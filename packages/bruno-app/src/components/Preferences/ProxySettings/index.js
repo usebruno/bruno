@@ -179,7 +179,7 @@ const ProxySettings = ({ close }) => {
         </SettingsGroup>
 
         {proxyMode === 'inherit' ? (
-          <SettingsGroup title="System Proxy">
+          <SettingsGroup>
             <div className="text-muted system-proxy-settings">
               <SystemProxy />
             </div>
@@ -238,11 +238,11 @@ const ProxySettings = ({ close }) => {
               </div>
             </SettingsGroup>
 
-            <SettingsGroup>
+            <SettingsGroup title="Authentication">
               <CheckboxSetting
                 id="config.auth.disabled"
                 name="config.auth.disabled"
-                label="Authentication"
+                label="Enable Authentication"
                 checked={authEnabled}
                 onChange={(e) => formik.setFieldValue('config.auth.disabled', !e.target.checked)}
               />
@@ -250,6 +250,7 @@ const ProxySettings = ({ close }) => {
                 <SettingsField
                   label="Username"
                   htmlFor="config.auth.username"
+                  disabled={!authEnabled}
                   error={formik.errors.config?.auth?.username}
                 >
                   <input
@@ -261,6 +262,7 @@ const ProxySettings = ({ close }) => {
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
+                    disabled={!authEnabled}
                     value={formik.values.config.auth.username}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
@@ -269,9 +271,10 @@ const ProxySettings = ({ close }) => {
                 <SettingsField
                   label="Password"
                   htmlFor="config.auth.password"
+                  disabled={!authEnabled}
                   error={formik.errors.config?.auth?.password}
                 >
-                  <div className="password-field">
+                  <div className={`password-field ${authEnabled ? '' : 'is-disabled'}`}>
                     <input
                       id="config.auth.password"
                       type={passwordVisible ? 'text' : 'password'}
@@ -281,6 +284,7 @@ const ProxySettings = ({ close }) => {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
+                      disabled={!authEnabled}
                       value={formik.values.config.auth.password}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
@@ -289,6 +293,7 @@ const ProxySettings = ({ close }) => {
                       type="button"
                       className="password-toggle"
                       aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                      disabled={!authEnabled}
                       onClick={() => setPasswordVisible(!passwordVisible)}
                     >
                       {passwordVisible ? (

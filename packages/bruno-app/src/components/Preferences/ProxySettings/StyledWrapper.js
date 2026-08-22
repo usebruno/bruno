@@ -43,6 +43,10 @@ const StyledWrapper = styled.div`
       border-color: ${(props) => props.theme.input.focusBorder};
     }
 
+    &.is-disabled {
+      opacity: 0.5;
+    }
+
     .password-input {
       flex: 1 1 auto;
       min-width: 0;
