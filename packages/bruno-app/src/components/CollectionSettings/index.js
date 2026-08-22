@@ -11,6 +11,7 @@ import Script from './Script';
 import Test from './Tests';
 import Presets from './Presets';
 import Protobuf from './Protobuf';
+import OnExit from './OnExit';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
 import StatusDot from 'components/StatusDot';
@@ -68,6 +69,9 @@ const CollectionSettings = ({ collection }) => {
     : get(collection, 'brunoConfig.protobuf', {});
   const presets = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.presets', {}) : get(collection, 'brunoConfig.presets', {});
   const hasPresets = presets && ((presets.requestType && presets.requestType !== DEFAULT_PRESET_REQUEST_TYPE) || (presets.requestUrl && presets.requestUrl !== ''));
+  const onExitConfig = collection.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.onExit', {})
+    : get(collection, 'brunoConfig.onExit', {});
 
   const getTabPanel = (tab) => {
     switch (tab) {
@@ -100,6 +104,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'protobuf': {
         return <Protobuf collection={collection} />;
+      }
+      case 'onExit': {
+        return <OnExit collection={collection} />;
       }
     }
   };
@@ -153,6 +160,17 @@ const CollectionSettings = ({ collection }) => {
             Protobuf
             {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
           </div>
+          <button
+            type="button"
+            className={getTabClassname('onExit')}
+            role="tab"
+            aria-selected={tab === 'onExit'}
+            data-testid="collection-settings-tab-onExit"
+            onClick={() => setTab('onExit')}
+          >
+            On Exit
+            {onExitConfig.enabled && <StatusDot />}
+          </button>
         </div>
         {AI_TABS.includes(tab) && (
           <div className="flex items-center gap-2 flex-shrink-0">

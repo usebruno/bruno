@@ -6,10 +6,12 @@ const StyledWrapper = styled.div`
     overflow-y: visible !important;
   }
   div.tabs {
-    div.tab {
+    .tab {
       padding: 6px 0px;
       border: none;
       border-bottom: solid 2px transparent;
+      background: transparent;
+      font: inherit;
       margin-right: ${(props) => props.theme.tabs.marginRight};
       color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
@@ -17,10 +19,14 @@ const StyledWrapper = styled.div`
       &:focus,
       &:active,
       &:focus-within,
-      &:focus-visible,
       &:target {
         outline: none !important;
         box-shadow: none !important;
+      }
+
+      &:focus-visible {
+        outline: 2px solid ${(props) => props.theme.primary.solid} !important;
+        outline-offset: 2px;
       }
 
       &:hover {

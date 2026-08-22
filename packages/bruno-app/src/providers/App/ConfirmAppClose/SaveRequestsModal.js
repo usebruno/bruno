@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { getInvalidVariableNames } from 'utils/common/variables';
@@ -17,13 +16,17 @@ import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 
-const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [] }) => {
+const SaveRequestsModal = ({ onClose, onComplete, forceCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const dispatch = useDispatch();
+  const complete = useCallback(() => {
+    if (onComplete) return onComplete();
+    return dispatch(completeQuitFlow());
+  }, [dispatch, onComplete]);
 
   const allDrafts = useMemo(() => {
     const requestDrafts = [];
@@ -119,10 +122,10 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         dispatch(closeTabs({ tabUids: tabUidsToClose }));
         onClose();
       } else {
-        dispatch(completeQuitFlow());
+        complete();
       }
     }
-  }, [totalDraftsCount, dispatch, forceCloseTabs, tabUidsToClose]);
+  }, [totalDraftsCount, dispatch, forceCloseTabs, tabUidsToClose, complete]);
 
   const closeWithoutSave = () => {
     if (forceCloseTabs) {
@@ -148,10 +151,12 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         }
       });
       dispatch(closeTabs({ tabUids: tabUidsToClose }));
-    } else {
-      dispatch(completeQuitFlow());
+      onClose();
+      return;
     }
-    onClose();
+
+    complete();
+    if (!onComplete) onClose();
   };
 
   const closeWithSave = async () => {
@@ -186,8 +191,9 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
             dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null)
           )
         );
-        onClose();
-        return;
+        if (!forceCloseTabs) {
+          onClose();
+        }
       }
 
       // Save environment drafts, skipping any with invalid variable names
@@ -226,10 +232,11 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
 
       if (forceCloseTabs) {
         dispatch(closeTabs({ tabUids: tabUidsToClose }));
+        onClose();
       } else {
-        dispatch(completeQuitFlow());
+        complete();
+        if (!onComplete) onClose();
       }
-      onClose();
     } catch (error) {
       console.error('Error saving drafts:', error);
     }

@@ -230,7 +230,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     // extensions
     oc.extensions = {};
 
-    const hasBrunoExtensions = brunoConfig.ignore?.length || hasPresets(brunoConfig);
+    const hasBrunoExtensions = brunoConfig.ignore?.length || hasPresets(brunoConfig) || brunoConfig.onExit;
 
     if (hasBrunoExtensions) {
       const brunoExtension: any = {};
@@ -259,6 +259,17 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
           presetsExtension.defaultEnvironment = brunoConfig.presets.defaultEnvironment;
         }
         brunoExtension.presets = presetsExtension;
+      }
+
+      if (brunoConfig.onExit) {
+        brunoExtension.onExit = {
+          enabled: brunoConfig.onExit.enabled === true,
+          showReminder: brunoConfig.onExit.showReminder !== false,
+          reminderMessage: brunoConfig.onExit.reminderMessage || '',
+          requestPaths: Array.isArray(brunoConfig.onExit.requestPaths)
+            ? brunoConfig.onExit.requestPaths
+            : []
+        };
       }
 
       oc.extensions.bruno = brunoExtension;
