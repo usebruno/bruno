@@ -57,9 +57,21 @@ const StyledWrapper = styled.div`
     border-top: 1px solid ${(props) => props.theme.border.border1};
   }
 
-  .support-link-icon {
+  .support-link-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: ${(props) => props.theme.border.radius.md};
+    background-color: ${(props) => props.theme.background.surface0};
     color: ${(props) => props.theme.colors.text.muted};
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+
+  .support-link:hover .support-link-tile {
+    background-color: ${(props) => props.theme.background.surface1};
   }
 
   .support-link-text {
@@ -82,7 +94,7 @@ const StyledWrapper = styled.div`
 
   .support-link-affordance {
     flex-shrink: 0;
-    color: ${(props) => props.theme.colors.text.subtext0};
+    color: ${(props) => props.theme.colors.text.muted};
     transition: color 0.12s ease;
   }
 `;

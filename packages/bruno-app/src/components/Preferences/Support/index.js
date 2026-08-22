@@ -82,7 +82,9 @@ const Support = () => {
                 rel="noreferrer"
                 data-testid={`support-${key}`}
               >
-                <Icon className="support-link-icon" size={18} strokeWidth={1.5} aria-hidden="true" />
+                <span className="support-link-tile">
+                  <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
+                </span>
                 <span className="support-link-text">
                   <span className="support-link-label">{t(label)}</span>
                   <span className="support-link-description">{t(description)}</span>
