@@ -41,6 +41,47 @@ const tokenFor = (content: string): string => {
 const blockValue = (content: string[]): string =>
   outdentString(content.join('\n').replace(/^(?:\r?\n)+/, '').replace(/\r$/, ''));
 
+const APP_BLOCK_OPENING = /^app[ \t]*\{\r?$/;
+const MULTILINE_DELIMITER = '\'\'\'';
+const APP_CODE_PAIR = `code: ${MULTILINE_DELIMITER}`;
+
+const appCodeValue = (code: string[]): string =>
+  code.map((line) => line.slice(4)).join('\n').trim();
+
+const redactAppCode = (source: string, blocks: RedactedBlock[]): string => {
+  const lines = source.split('\n');
+
+  const start = lines.findIndex((line) => APP_BLOCK_OPENING.test(line));
+  if (start === -1) {
+    return source;
+  }
+
+  const closingBrace = lines.findIndex((line, index) => index > start && isClosing(line));
+  const end = closingBrace === -1 ? lines.length : closingBrace;
+
+  const opening = lines.findIndex((line, index) => index > start && index < end && line.trim() === APP_CODE_PAIR);
+  if (opening === -1) {
+    return source;
+  }
+
+  const closing = lines.findIndex(
+    (line, index) => index > opening && index < end && line.trim() === MULTILINE_DELIMITER
+  );
+  if (closing === -1) {
+    return source;
+  }
+
+  const code = lines.slice(opening + 1, closing);
+  const value = appCodeValue(code);
+  if (!value.length) {
+    return source;
+  }
+
+  const token = tokenFor(code.join('\n'));
+  blocks.push({ token, value });
+  return [...lines.slice(0, opening + 1), `    ${token}`, ...lines.slice(closing)].join('\n');
+};
+
 export const redactLargeBruTextBlocks = (content: string): RedactionResult => {
   const source = content || '';
   const skeleton: string[] = [];
@@ -49,7 +90,7 @@ export const redactLargeBruTextBlocks = (content: string): RedactionResult => {
   let openTag: string | null = null;
   let openContent: string[] = [];
 
-  for (const line of source.split('\n')) {
+  for (const line of redactAppCode(source, blocks).split('\n')) {
     if (openTag === null && isOpening(line)) {
       openTag = line;
       openContent = [];

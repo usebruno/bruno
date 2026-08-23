@@ -4,6 +4,12 @@ jest.mock('electron', () => ({
   }
 }));
 
+jest.mock('../src/store/preferences', () => ({
+  preferencesUtil: {
+    isBetaFeatureEnabled: (featureName) => featureName === 'mock-server'
+  }
+}));
+
 const net = require('net');
 const path = require('path');
 const os = require('os');

@@ -27,5 +27,14 @@ export const buildDocsLocators = (page: Page) => ({
   codeBlockLangOption: (language: string) => page.locator(`[role="menuitem"][data-item-id="${language}"]`),
   codeBlockCopyBtn: () => page.getByTestId('code-block-copy-btn'),
   codeBlockContent: () => page.locator('[data-testid="code-block-pre"] code'),
-  codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`)
+  codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`),
+  // Link popover locators
+  linkEditPopover: () => page.locator('[data-editor-link-popover="true"]'),
+  linkEditUrlInput: () => page.getByRole('textbox', { name: 'URL' }),
+  linkEditInsertBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Insert' }),
+  linkEditSaveBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Save' }),
+  linkHoverPopover: () => page.locator('[data-hover-popover="true"]'),
+  linkHoverUrlDisplay: () => page.locator('[data-hover-popover="true"] .link-url'),
+  linkHoverEditBtn: () => page.getByTestId('link-hover-edit-btn'),
+  linkHoverUnlinkBtn: () => page.getByTestId('link-hover-unlink-btn')
 });

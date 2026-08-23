@@ -8,7 +8,8 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { isSameOrigin } = require('@usebruno/common').utils;
+const { getSentHeaders } = require('@usebruno/requests');
+const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -77,7 +78,7 @@ function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
   proxyConfig = {},
-  requestMaxRedirects = 5,
+  requestMaxRedirects = DEFAULT_MAX_REDIRECTS,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,
@@ -107,7 +108,6 @@ function makeAxiosInstance({
   // Assigning a new object (= { 'User-Agent': ... }) would nuke that default, causing servers that
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${version}`;
-
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
@@ -181,7 +181,6 @@ function makeAxiosInstance({
       present (blocking the guard) while toJSON() omits null values from the wire.
      */
     const headersToDelete = config.__headersToDelete;
-    let deleteConnection = false;
 
     if (headersToDelete && Array.isArray(headersToDelete)) {
       headersToDelete.forEach((headerName) => {
@@ -189,25 +188,12 @@ function makeAxiosInstance({
         if (lower === 'host') return;
         if (lower === 'connection') {
           // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
-          deleteConnection = true;
           return;
         }
         config.headers.set(headerName, null);
       });
       delete config.__headersToDelete;
     }
-
-    // Log request headers AFTER deletion so the timeline reflects what is actually sent.
-    // Skip null values (headers marked for deletion) and false values (e.g. content-type
-    // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
-    Object.entries(config.headers).forEach(([key, value]) => {
-      if (value === null || value === false) return;
-      timeline.push({
-        timestamp: new Date(),
-        type: 'requestHeader',
-        message: `${key}: ${value}`
-      });
-    });
 
     const agentOptions = {
       ...httpsAgentRequestFields,
@@ -251,6 +237,19 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
+      const sentHeaders = getSentHeaders(response.request);
+
+      /** Post-response vars and scripts read request.headers, which never held the transport set. */
+      response.sentHeaders = sentHeaders;
+
+      Object.entries(sentHeaders).forEach(([key, value]) => {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'requestHeader',
+          message: `${key}: ${value}`
+        });
+      });
+
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
         timeline.push({
@@ -284,6 +283,22 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
+
+      // A failed request carries the ClientRequest on the error itself when no response came back.
+      const errorRequest = error.response?.request || error.request;
+      const errorHeaders = getSentHeaders(errorRequest);
+
+      /** A non-2xx still runs post-response scripts, and they read request.headers. */
+      if (error.response) error.response.sentHeaders = errorHeaders;
+
+      Object.entries(errorHeaders).forEach(([key, value]) => {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'requestHeader',
+          message: `${key}: ${value}`
+        });
+      });
+
       timeline?.push({
         timestamp: new Date(),
         type: 'error',
