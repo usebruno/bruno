@@ -749,6 +749,7 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
       await locators.environment.globalTab().click();
       await expect(locators.environment.globalTab()).toHaveClass(/active/);
     } else {
+      await locators.environment.collectionTab().click();
       await expect(locators.environment.collectionTab()).toHaveClass(/active/);
     }
   });
@@ -854,13 +855,17 @@ const createEnvironment = async (
       await inlineNameInput.press('Enter');
     }
 
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
 
     await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
     await locators.environment.envOption(environmentName).click();
     await expect(page.locator('.current-environment')).toContainText(environmentName);
@@ -1033,8 +1038,10 @@ const saveEnvironment = async (page: Page) => {
  */
 const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collection') => {
   await test.step('Close environment tab', async () => {
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
+    const locators = buildCommonLocators(page);
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
@@ -1059,6 +1066,8 @@ const selectEnvironment = async (
 
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
 
     const option = environmentName === 'No Environment'

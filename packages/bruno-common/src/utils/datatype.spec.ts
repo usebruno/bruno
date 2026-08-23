@@ -171,6 +171,8 @@ describe('validateDataTypeValue', () => {
   it('returns null when dataType is missing or "string"', () => {
     expect(validateDataTypeValue('anything', undefined)).toBeNull();
     expect(validateDataTypeValue('anything', 'string')).toBeNull();
+    expect(validateDataTypeValue(42, 'string')).toBeNull();
+    expect(validateDataTypeValue(true, 'string')).toBeNull();
   });
 
   it('returns null for null/undefined values regardless of dataType', () => {
@@ -197,6 +199,8 @@ describe('validateDataTypeValue', () => {
     expect(validateDataTypeValue('not json', 'object')).toBe('Value is not a valid object');
   });
 });
+
+// Reference-resolution tests live in ./datatype.references.spec.ts.
 
 describe('valueToString — round-trip with parseValueByDataType', () => {
   it('stringifies typed values', () => {

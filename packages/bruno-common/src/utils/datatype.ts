@@ -5,9 +5,43 @@ export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDataType[] = ['stri
 export const isBrunoVariableDataType = (t: unknown): t is BrunoVariableDataType =>
   typeof t === 'string' && (BRUNO_VARIABLE_DATATYPES as readonly string[]).includes(t);
 
-// string-form → typed JS value, or raw on failure.
+const getByPath = (obj: Record<string, any>, path: string): any => {
+  if (obj == null) return undefined;
+  // Prefer a literal dotted key over walking the path — a variable named
+  // `foo.bar` outranks `foo` → `bar` when both exist.
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+  return path.split('.').reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), obj);
+};
+
+// Resolves a whole-string `{{reference}}` to the referenced variable's raw JS
+// value. Returns `undefined` when the value isn't a whole reference, the
+// resolvableVariables map is missing, or the referenced name isn't present —
+// the caller then falls through to normal coercion.
+//
+// Recommended composition at call sites:
+//   const resolved = resolveReference(value, vars);
+//   const effective = resolved !== undefined ? resolved : parseValueByDataType(value, dataType);
+//
+// The ternary — not a fused parseValueByDataType(value, dataType, vars) — is what
+// keeps a resolved value from being re-coerced (e.g. a resolved JSON-shaped
+// string stays a string instead of being JSON.parsed into an object).
+export const resolveReference = (value: any, resolvableVariables?: Record<string, any>): any => {
+  if (!resolvableVariables) return undefined;
+  if (typeof value !== 'string') return undefined;
+  // Whole-string reference only — `{{a}}b` and partial refs fall through.
+  // Surrounding whitespace inside the braces is tolerated (`{{ foo.bar }}`),
+  // but a whitespace-containing identifier (`{{a b}}`) is not a valid name.
+  const match = value.trim().match(/^\{\{\s*([^}\s]+)\s*\}\}$/);
+  if (!match) return undefined;
+  return getByPath(resolvableVariables, match[1]);
+};
+
+// string-form → typed JS value, or raw on failure. Pure coercion — no variable
+// resolution. For reference resolution, call `resolveReference` first (see its
+// docstring above for the recommended composition).
 export const parseValueByDataType = (value: any, dataType?: BrunoVariableDataType): any => {
   if (!dataType || dataType === 'string') return value;
+
   try {
     if (dataType === 'number') {
       if (typeof value === 'number') return value;

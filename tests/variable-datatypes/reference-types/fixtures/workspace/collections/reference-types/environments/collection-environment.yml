@@ -1,0 +1,65 @@
+# Collection environment fixture — mirrors the same declared × target grid as
+# the global env, but every reference points at a *global* target variable.
+# Proves the resolver reaches across scope boundaries.
+# Structure mirrors CASES in ../../../../../cases.ts.
+
+name: collection-environment
+
+variables:
+  # ────────────────────────────────────────────────────────────────────────
+  # Same-type references to a global target (no flag)
+  # ────────────────────────────────────────────────────────────────────────
+  - name: stringTypeRefersToGlobalString
+    value: "{{globalEnvString}}"
+  - name: numberTypeRefersToGlobalNumber
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: booleanTypeRefersToGlobalBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: objectTypeRefersToGlobalObject
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+  - name: stringTypeRefersToGlobalNestedString
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: numberTypeRefersToGlobalNestedNumber
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.numberField}}"
+  - name: booleanTypeRefersToGlobalNestedBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.booleanField}}"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # declared:string is permissive — accepts any global target
+  # ────────────────────────────────────────────────────────────────────────
+  - name: stringTypeRefersToGlobalNumber
+    value: "{{globalEnvNumber}}"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Cross-type references to a global target (flagged)
+  # ────────────────────────────────────────────────────────────────────────
+  - name: numberTypeRefersToGlobalString
+    value:
+      type: number
+      data: "{{globalEnvString}}"
+  - name: booleanTypeRefersToGlobalObject
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+  - name: objectTypeRefersToGlobalBoolean
+    value:
+      type: object
+      data: "{{globalEnvBoolean}}"
+  - name: numberTypeRefersToGlobalNestedString
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: booleanTypeRefersToGlobalNestedNumber
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"
