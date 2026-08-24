@@ -1,5 +1,5 @@
 const { ipcMain } = require('electron');
-const { cloneGitRepository } = require('../utils/git');
+const { cloneGitRepository, getCollectionGitRepoUrl } = require('../utils/git');
 const { createDirectory, removeDirectory } = require('../utils/filesystem');
 
 const registerGitIpc = (mainWindow) => {
@@ -15,6 +15,15 @@ const registerGitIpc = (mainWindow) => {
         await removeDirectory(path);
       }
       return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:get-collection-git-remote-url', async (event, collectionPath) => {
+    try {
+      const url = await getCollectionGitRepoUrl(collectionPath);
+      return url || null;
+    } catch (error) {
+      return null;
     }
   });
 };
