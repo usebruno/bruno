@@ -1,6 +1,6 @@
 import { test, expect } from '../../../../playwright';
 import path from 'path';
-import { closeAllCollections, buildCommonLocators } from '../../../utils/page';
+import { closeAllCollections } from '../../../utils/page';
 
 test.describe.serial('Environment Color Import Tests', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
@@ -43,7 +43,6 @@ test.describe.serial('Environment Color Import Tests', () => {
       await page.getByTestId('import-global-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(envWithColorFile);
-      await buildCommonLocators(page).environment.importSubmitButton('global').click();
 
       // Wait for the environment tab to appear
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });

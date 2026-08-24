@@ -52,7 +52,6 @@ test.describe.serial('Global Environment Import Tests', () => {
       await page.locator('[data-testid="import-global-environment"]').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(singleEnvFile);
-      await buildCommonLocators(page).environment.importSubmitButton('global').click();
     });
 
     await test.step('Verify imported global environment and variables', async () => {
@@ -118,7 +117,6 @@ test.describe.serial('Global Environment Import Tests', () => {
       await page.locator('[data-testid="import-global-environment"]').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(multiEnvFile);
-      await buildCommonLocators(page).environment.importSubmitButton('global').click();
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
       await expect(envTab).toBeVisible();

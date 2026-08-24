@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
-import { closeAllCollections, buildCommonLocators } from '../../utils/page';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Collection Environment Import Tests', () => {
   test.afterAll(async ({ page }) => {
@@ -47,7 +47,6 @@ test.describe('Collection Environment Import Tests', () => {
     await page.getByTestId('import-environment').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(envFile);
-    await buildCommonLocators(page).environment.importSubmitButton('collection').click();
 
     // Wait for import to complete and environment settings modal to open
     await expect(page.locator('.current-environment')).toContainText('Test Collection Environment');

@@ -64,72 +64,18 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     return 'bruno';
   };
 
-  const handleImportEnvironment = async (files) => {
-    try {
-      const parsedFiles = await readMultipleFiles(Array.from(files));
-      const format = detectEnvironmentFormat(parsedFiles[0].content);
-      let result;
-
-      if (format === 'postman') {
-        result = await importPostmanEnvironment(parsedFiles);
-      } else {
-        result = await importBrunoEnvironment(parsedFiles);
-      }
-
-      const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = result.valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
-
-      const allInvalid = [...result.invalid, ...missingNameEnvs];
-
-      if (allInvalid.length > 0) {
-        toast.error('One or more environment files have an invalid or unsupported format');
-        return;
-      }
-
-      const existingNamesNormalized = existingNames.map(normalizeEnvName);
-      const duplicates = validEnvironments.filter((e) => existingNamesNormalized.includes(normalizeEnvName(e.name)));
-      const newEnvs = validEnvironments.filter((e) => !existingNamesNormalized.includes(normalizeEnvName(e.name)));
-
-      setParsedData({ new: newEnvs, duplicates, invalid: allInvalid });
-
-      // Initialize selected set
-      const initialSelected = new Set();
-      validEnvironments.forEach((_, idx) => initialSelected.add(idx));
-      setSelectedIndices(initialSelected);
-
-      // Initialize resolutions for duplicates to 'copy' by default
-      const initialResolutions = new Map();
-      duplicates.forEach((e) => {
-        initialResolutions.set(e, 'copy');
-      });
-      setResolutions(initialResolutions);
-
-      setStep('REVIEW');
-    } catch (err) {
-      toastError(err, 'Import environment failed');
-    }
-  };
-
-  const handleConfirmImport = async () => {
-    const validEnvironments = [...parsedData.new, ...parsedData.duplicates];
-    const environmentsToImport = validEnvironments.filter((_, idx) => selectedIndices.has(idx));
-
-    if (environmentsToImport.length === 0) {
-      toast.error('No environments selected to import');
-      return;
-    }
-
+  const commitEnvironments = async (environmentsToImport, duplicates, itemResolutions) => {
     try {
       let importedCount = 0;
       const currentExistingNames = [...existingNames];
 
       for (const environment of environmentsToImport) {
-        const isDuplicate = parsedData.duplicates.includes(environment);
+        const isDuplicate = duplicates.includes(environment);
         let action;
         let colorAction;
 
         if (isDuplicate) {
-          const resolution = resolutions.get(environment) || 'copy';
+          const resolution = itemResolutions.get(environment) || 'copy';
           if (resolution === 'replace') {
             const existingEnv = existingEnvironments.find((e) => normalizeEnvName(e.name) === normalizeEnvName(environment.name));
             if (existingEnv) {
@@ -175,6 +121,69 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     } catch (error) {
       toastError(error, 'An error occurred while importing the environment(s)');
     }
+  };
+
+  const handleImportEnvironment = async (files) => {
+    try {
+      const parsedFiles = await readMultipleFiles(Array.from(files));
+      const format = detectEnvironmentFormat(parsedFiles[0].content);
+      let result;
+
+      if (format === 'postman') {
+        result = await importPostmanEnvironment(parsedFiles);
+      } else {
+        result = await importBrunoEnvironment(parsedFiles);
+      }
+
+      const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
+      const missingNameEnvs = result.valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
+
+      const allInvalid = [...result.invalid, ...missingNameEnvs];
+
+      if (allInvalid.length > 0) {
+        toast.error('One or more environment files have an invalid or unsupported format');
+        return;
+      }
+
+      const existingNamesNormalized = existingNames.map(normalizeEnvName);
+      const duplicates = validEnvironments.filter((e) => existingNamesNormalized.includes(normalizeEnvName(e.name)));
+      const newEnvs = validEnvironments.filter((e) => !existingNamesNormalized.includes(normalizeEnvName(e.name)));
+
+      if (duplicates.length === 0) {
+        await commitEnvironments(newEnvs, [], new Map());
+        return;
+      }
+
+      setParsedData({ new: newEnvs, duplicates, invalid: allInvalid });
+
+      // Initialize selected set
+      const initialSelected = new Set();
+      validEnvironments.forEach((_, idx) => initialSelected.add(idx));
+      setSelectedIndices(initialSelected);
+
+      // Initialize resolutions for duplicates to 'copy' by default
+      const initialResolutions = new Map();
+      duplicates.forEach((e) => {
+        initialResolutions.set(e, 'copy');
+      });
+      setResolutions(initialResolutions);
+
+      setStep('REVIEW');
+    } catch (err) {
+      toastError(err, 'Import environment failed');
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    const validEnvironments = [...parsedData.new, ...parsedData.duplicates];
+    const environmentsToImport = validEnvironments.filter((_, idx) => selectedIndices.has(idx));
+
+    if (environmentsToImport.length === 0) {
+      toast.error('No environments selected to import');
+      return;
+    }
+
+    await commitEnvironments(environmentsToImport, parsedData.duplicates, resolutions);
   };
 
   // Drag and drop handlers

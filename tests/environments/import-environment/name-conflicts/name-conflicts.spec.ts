@@ -41,6 +41,20 @@ test.describe('Import environment - name conflict handling', () => {
       await closeAllCollections(page);
     });
 
+    test('importing an environment with no naming conflict commits immediately without a review step', async ({ page, createTmpDir }) => {
+      const locators = buildCommonLocators(page);
+      await createCollection(page, 'name-conflict-none', await createTmpDir('name-conflict-none'));
+      await importEnvironment(page, fixture('production-env.json'), 'collection');
+
+      await openImportReview(page, 'collection', fixture('development-env.json'));
+
+      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
+        await expect(locators.environment.importModal('collection')).toBeHidden();
+        await expect(locators.environment.sidebarListItem('collection', 'Development')).toBeVisible();
+        await expect(locators.environment.sidebarListItem('collection', 'Production')).toBeVisible();
+      });
+    });
+
     test('flags a name conflict and offers Replace / Import as Copy resolution', async ({ page, createTmpDir }) => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-flag', await createTmpDir('name-conflict-flag'));
@@ -147,8 +161,9 @@ test.describe('Import environment - name conflict handling', () => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-apply-all', await createTmpDir('name-conflict-apply-all'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
+
       await openImportReview(page, 'collection', fixture('staging-env.json'));
-      await locators.environment.importSubmitButton('collection').click();
+      await expect(locators.environment.importModal('collection')).toBeHidden();
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 
@@ -213,25 +228,20 @@ test.describe('Import environment - name conflict handling', () => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-batch-dedupe', await createTmpDir('name-conflict-batch-dedupe'));
 
+      const importModal = locators.environment.importModal('collection');
+
       await test.step('Import a file whose environments array has two entries named "Test"', async () => {
         await openEnvironmentSelector(page, 'collection');
         await locators.environment.importEmptyStateButton().click();
-        await expect(locators.environment.importModal('collection')).toBeVisible();
+        await expect(importModal).toBeVisible();
         const fileChooserPromise = page.waitForEvent('filechooser');
         await locators.environment.importFileTrigger('collection').click();
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles(fixture('duplicate-names-in-batch.json'));
       });
 
-      await test.step('Both entries land in New, not Duplicates, still shown under their original name', async () => {
-        await expect(locators.environment.importDuplicatesGroup()).toHaveCount(0);
-        await expect(locators.environment.importNewCount()).toHaveText('2');
-        await expect(locators.environment.importReviewItem('Test')).toHaveCount(2);
-      });
-
-      await locators.environment.importSubmitButton('collection').click();
-
-      await test.step('The name clash is only resolved once the import is committed', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+        await expect(importModal).toBeHidden();
         await expect(locators.environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(locators.environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
       });
@@ -241,25 +251,20 @@ test.describe('Import environment - name conflict handling', () => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-postman-dedupe', await createTmpDir('name-conflict-postman-dedupe'));
 
+      const importModal = locators.environment.importModal('collection');
+
       await test.step('Import two separate Postman environment exports that both happen to be named "Test"', async () => {
         await openEnvironmentSelector(page, 'collection');
         await locators.environment.importEmptyStateButton().click();
-        await expect(locators.environment.importModal('collection')).toBeVisible();
+        await expect(importModal).toBeVisible();
         const fileChooserPromise = page.waitForEvent('filechooser');
         await locators.environment.importFileTrigger('collection').click();
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles([fixture('postman-env-duplicate-a.json'), fixture('postman-env-duplicate-b.json')]);
       });
 
-      await test.step('Both entries land in New, not Duplicates, still shown under their original name', async () => {
-        await expect(locators.environment.importDuplicatesGroup()).toHaveCount(0);
-        await expect(locators.environment.importNewCount()).toHaveText('2');
-        await expect(locators.environment.importReviewItem('Test')).toHaveCount(2);
-      });
-
-      await locators.environment.importSubmitButton('collection').click();
-
-      await test.step('The name clash is only resolved once the import is committed', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+        await expect(importModal).toBeHidden();
         await expect(locators.environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(locators.environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
       });
@@ -288,6 +293,22 @@ test.describe('Import environment - name conflict handling', () => {
   });
 
   test.describe('global scope', () => {
+    test('importing a global environment with no naming conflict commits immediately without a review step', async ({ newPage: page, createTmpDir }) => {
+      const locators = buildCommonLocators(page);
+      await createCollection(page, 'name-conflict-global-none', await createTmpDir('name-conflict-global-none'));
+      await importEnvironment(page, fixture('production-env.json'), 'global');
+
+      await openImportReview(page, 'global', fixture('development-env.json'));
+
+      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
+        await expect(locators.environment.importModal('global')).toBeHidden();
+        await expect(locators.environment.sidebarListItem('global', 'Development')).toBeVisible();
+        await expect(locators.environment.sidebarListItem('global', 'Production')).toBeVisible();
+      });
+
+      await closeAllCollections(page);
+    });
+
     test('duplicate handling (Replace and Import as Copy) works the same way for global environments', async ({ newPage: page, createTmpDir }) => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-global', await createTmpDir('name-conflict-global'));
@@ -337,8 +358,9 @@ test.describe('Import environment - name conflict handling', () => {
       const locators = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-global-apply-all', await createTmpDir('name-conflict-global-apply-all'));
       await importEnvironment(page, fixture('production-env.json'), 'global');
+
       await openImportReview(page, 'global', fixture('staging-env.json'));
-      await locators.environment.importSubmitButton('global').click();
+      await expect(locators.environment.importModal('global')).toBeHidden();
 
       await openImportReview(page, 'global', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 

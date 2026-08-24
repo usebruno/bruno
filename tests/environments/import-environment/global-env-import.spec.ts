@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
-import { closeAllCollections, buildCommonLocators } from '../../utils/page';
+import { closeAllCollections } from '../../utils/page';
 
 test.describe('Global Environment Import Tests', () => {
   test('should import global environment from file', async ({ newPage: page, createTmpDir }) => {
@@ -41,9 +41,6 @@ test.describe('Global Environment Import Tests', () => {
     await page.locator('[data-testid="import-global-environment"]').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
-    await buildCommonLocators(page).environment.importSubmitButton('global').click();
-
-    // Wait for import to complete and global environment settings modal to open
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });

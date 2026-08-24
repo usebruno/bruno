@@ -802,8 +802,6 @@ const importEnvironment = async (
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(filePath);
 
-    await locators.environment.importSubmitButton(type).click();
-
     const settingsTab = type === 'global'
       ? locators.environment.globalEnvTab()
       : locators.environment.collectionEnvTab();
