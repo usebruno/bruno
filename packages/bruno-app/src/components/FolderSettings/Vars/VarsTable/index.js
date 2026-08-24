@@ -32,7 +32,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDra
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
-  const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
+  const resolvableVariables = useMemo(() => getAllVariables(collection, folder), [collection, folder]);
 
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setFolderVars({
