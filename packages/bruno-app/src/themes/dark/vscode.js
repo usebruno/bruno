@@ -158,7 +158,6 @@ const vscodeDarkTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border3: colors.GRAY_6,
     border2: colors.GRAY_5,
     border1: colors.BORDER,
     border0: colors.BORDER_LIGHT
