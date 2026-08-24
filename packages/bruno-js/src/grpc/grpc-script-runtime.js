@@ -1,13 +1,13 @@
 const chai = require('chai');
 const Bru = require('../bru');
-const BrunoGrpcRequest = require('../bruno-grpc-request');
-const BrunoGrpcResponse = require('../bruno-grpc-response');
+const BrunoGrpcRequest = require('./bruno-grpc-request');
+const BrunoGrpcResponse = require('./bruno-grpc-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
-const { createScopeSetter } = require('./scripted-entries');
+const { createScopeSetter } = require('../runtime/scripted-entries');
 
 const RUN_REQUEST_UNSUPPORTED = 'bru.runRequest is not supported in gRPC scripts';
 

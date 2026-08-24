@@ -13,7 +13,6 @@ import {
   saveRequest
 } from '../../utils/page/actions';
 
-// Only persistence is tested here. Refer ../run-lifecycle-hooks for script runtime and API testing.
 const REQUEST_NAME = 'grpc-lifecycle-hooks';
 const GRPC_URL = 'localhost:50051';
 const BEFORE_CALL_START = 'bru.setVar(\'startedAt\', 1);';

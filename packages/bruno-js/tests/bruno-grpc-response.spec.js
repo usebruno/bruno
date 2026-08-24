@@ -1,4 +1,4 @@
-const BrunoGrpcResponse = require('../src/bruno-grpc-response');
+const BrunoGrpcResponse = require('../src/grpc/bruno-grpc-response');
 
 const makeRes = (overrides = {}) => ({
   statusCode: 0,

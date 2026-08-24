@@ -2,8 +2,6 @@ import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/req
 import stringifyItem from './stringifyItem';
 import parseItem from './parseItem';
 
-// `Item['request']` is an un-discriminated union, so the grpc arm has to be named to reach the
-// lifecycle hooks — the same cast the serializers make.
 const parseGrpcItem = (yml: string) => parseItem(yml).request as BrunoGrpcRequest;
 
 const grpcItem = (script: Record<string, string | null>, tests: string | null = null) => ({

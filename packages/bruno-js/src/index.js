@@ -1,5 +1,5 @@
 const ScriptRuntime = require('./runtime/script-runtime');
-const GrpcScriptRuntime = require('./runtime/grpc-script-runtime');
+const GrpcScriptRuntime = require('./grpc/grpc-script-runtime');
 const TestRuntime = require('./runtime/test-runtime');
 const VarsRuntime = require('./runtime/vars-runtime');
 const AssertRuntime = require('./runtime/assert-runtime');
