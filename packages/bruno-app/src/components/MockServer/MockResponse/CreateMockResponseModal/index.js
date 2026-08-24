@@ -5,8 +5,9 @@ import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-c
 import {
   collectCollectionExamples,
   getMockResponseNameError,
-  isMockResponseNameTaken,
-  MOCK_RESPONSE_NAME_MAX_LENGTH
+  getMockResponseNameInputError,
+  getMockResponseDescriptionError,
+  isMockResponseNameTaken
 } from 'utils/mock-server/mock-responses';
 
 const BODY_TYPES = [
@@ -16,15 +17,13 @@ const BODY_TYPES = [
   { value: 'html', label: 'HTML' }
 ];
 
-const DESCRIPTION_MAX_LENGTH = 1000;
-
 const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate, onClose }) => {
   const nameInputRef = useRef();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [statusCode, setStatusCode] = useState(200);
   const [bodyType, setBodyType] = useState('json');
-  const [nameError, setNameError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [exampleError, setExampleError] = useState('');
   const [useExample, setUseExample] = useState(false);
   const [selectedExampleKey, setSelectedExampleKey] = useState('');
@@ -45,8 +44,16 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
   // A picked example owns the response shape, so its values drive the (disabled) fields
   const linkedExample = useExample ? selectedExample : null;
   const nameValue = name || linkedExample?.example?.name || '';
+  const trimmedName = nameValue.trim();
   const statusValue = Number(linkedExample?.example?.response?.status) || statusCode;
   const bodyTypeValue = linkedExample?.example?.response?.body?.type || bodyType;
+  const descriptionError = getMockResponseDescriptionError(description);
+
+  const inputNameError = getMockResponseNameInputError(nameValue)
+    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName)
+      ? 'A mock response with this name already exists'
+      : null);
+  const nameError = inputNameError || submitError;
 
   useEffect(() => {
     if (nameInputRef.current) {
@@ -55,16 +62,18 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
   }, []);
 
   const handleConfirm = async () => {
-    const trimmedName = nameValue.trim();
-
     const validationError = getMockResponseNameError(trimmedName);
     if (validationError) {
-      setNameError(validationError);
+      setSubmitError(validationError);
       return;
     }
 
     if (isMockResponseNameTaken(existingResponses, trimmedName)) {
-      setNameError('A mock response with this name already exists');
+      setSubmitError('A mock response with this name already exists');
+      return;
+    }
+
+    if (descriptionError) {
       return;
     }
 
@@ -94,7 +103,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
         size="md"
         title="Create Mock Response"
         confirmText={isSaving ? 'Creating...' : 'Create'}
-        confirmDisabled={isSaving}
+        confirmDisabled={isSaving || !trimmedName || Boolean(inputNameError) || Boolean(descriptionError)}
         handleConfirm={handleConfirm}
         handleCancel={() => {
           if (!isSaving) {
@@ -117,13 +126,10 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              maxLength={MOCK_RESPONSE_NAME_MAX_LENGTH}
               value={nameValue}
               onChange={(event) => {
                 setName(event.target.value);
-                if (nameError) {
-                  setNameError('');
-                }
+                setSubmitError('');
               }}
               data-testid="mock-response-create-name-input"
             />
@@ -141,10 +147,12 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               className="block textbox w-full mt-2"
               rows={2}
               value={description}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              onChange={(event) => setDescription(event.target.value.slice(0, DESCRIPTION_MAX_LENGTH))}
+              onChange={(event) => setDescription(event.target.value)}
               data-testid="mock-response-create-description-input"
             />
+            {descriptionError ? (
+              <div className="text-red-500 mt-1">{descriptionError}</div>
+            ) : null}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4">

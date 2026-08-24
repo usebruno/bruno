@@ -8,7 +8,7 @@ const createManagedQuickJsContext = (module) => {
   const vm = module.newContext();
   const disposeTracked = trackQuickJsContext(vm);
   const evalCodeRetained = vm.evalCode.bind(vm);
-  const waitForPendingDeferreds = trackPendingDeferreds(vm);
+  const { waitForPendingDeferreds, disposePendingDeferreds } = trackPendingDeferreds(vm);
 
   vm.evalCode = (code, filename = 'eval.js') => {
     const result = evalCodeRetained(code, filename);
@@ -25,7 +25,7 @@ const createManagedQuickJsContext = (module) => {
   return {
     vm,
     waitForPendingDeferreds,
-    dispose: () => disposeQuickJsContext(vm, disposeTracked)
+    dispose: () => disposeQuickJsContext(vm, disposeTracked, disposePendingDeferreds)
   };
 };
 
@@ -38,26 +38,40 @@ const createManagedQuickJsContext = (module) => {
  * `QuickJSUseAfterFree`. Each `.settled` resolves once the deferred is
  * resolved/rejected, so awaiting them keeps the context alive long enough.
  *
- * The hook is installed now (at context creation) so it captures promises as
- * the script runs. Returns a function that drains the captured deferreds at
- * teardown; new deferreds can be created while we wait (a chained timer), so it
- * drains in place until none remain.
+ * The hook installs at context creation. `waitForPendingDeferreds` drains in
+ * place (waiting can chain new deferreds) with no timeout; `disposePendingDeferreds`
+ * frees unsettled resolve/reject handles, which left alive abort JS_FreeRuntime.
  */
-
 const trackPendingDeferreds = (vm) => {
-  const pendingDeferreds = [];
+  const pendingSettles = [];
+  const deferreds = [];
   const originalNewPromise = vm.newPromise.bind(vm);
   vm.newPromise = (...args) => {
     const deferred = originalNewPromise(...args);
-    pendingDeferreds.push(deferred.settled.catch(() => { }));
+    deferreds.push(deferred);
+    pendingSettles.push(deferred.settled.catch(() => { }));
     return deferred;
   };
 
-  return async () => {
-    while (pendingDeferreds.length) {
-      const batch = pendingDeferreds.splice(0);
+  const waitForPendingDeferreds = async () => {
+    while (pendingSettles.length) {
+      const batch = pendingSettles.splice(0);
       await Promise.all(batch);
     }
+  };
+
+  const disposePendingDeferreds = () => {
+    while (deferreds.length) {
+      const deferred = deferreds.pop();
+      if (deferred.alive) {
+        deferred.dispose();
+      }
+    }
+  };
+
+  return {
+    waitForPendingDeferreds,
+    disposePendingDeferreds
   };
 };
 
@@ -98,22 +112,18 @@ const trackQuickJsContext = (vm) => {
 };
 
 /**
- * Clears shim globals, drains pending QuickJS jobs, and disposes the context.
- * Pass disposeTracked from trackQuickJsContext() to free shim handles first.
+ * Drains pending QuickJS jobs, frees leftover deferreds and tracked handles,
+ * and disposes the context. Jobs are drained BEFORE the handle flush: a job
+ * can call allocating shims or start new async work, and anything it creates
+ * must still be freed or JS_FreeRuntime aborts on the leftover GC objects.
  */
-const disposeQuickJsContext = (vm, disposeTracked) => {
+const disposeQuickJsContext = (vm, disposeTracked, disposePendingDeferreds) => {
   if (!vm?.alive) {
     return;
   }
 
-  if (typeof disposeTracked === 'function') {
-    disposeTracked();
-  }
-
-  // Drain the runtime's pending job queue (resolved/rejected promise callbacks)
-  // before disposing. Executing a job can schedule more jobs (chained `.then()`s),
-  // so we keep going until `hasPendingJob()` reports the queue is empty or a job
-  // throws.
+  // Executing a job can schedule more jobs (chained `.then()`s), so keep going
+  // until `hasPendingJob()` reports the queue is empty or a job throws.
   while (vm.runtime?.hasPendingJob?.()) {
     const result = vm.runtime.executePendingJobs();
     // On error, dispose the error handle and stop draining.
@@ -122,6 +132,15 @@ const disposeQuickJsContext = (vm, disposeTracked) => {
       break;
     }
   }
+
+  if (typeof disposePendingDeferreds === 'function') {
+    disposePendingDeferreds();
+  }
+
+  if (typeof disposeTracked === 'function') {
+    disposeTracked();
+  }
+
   vm.dispose();
 };
 

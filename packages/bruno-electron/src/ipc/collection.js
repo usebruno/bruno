@@ -26,7 +26,7 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
@@ -362,9 +362,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // tear down the old watcher before moving the collection directory
       if (watcher && mainWindow) {
         watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-        if (wsClient) {
-          wsClient.closeForCollection(collectionUid);
-        }
+        getWsClient()?.closeForCollection(collectionUid);
       }
 
       // move the collection directory into the workspace
@@ -1321,10 +1319,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath) => {
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-
-      if (wsClient) {
-        wsClient.closeForCollection(collectionUid);
-      }
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
