@@ -373,9 +373,10 @@ const handleRequest = (mockServerUid, req, res) => {
       delay
     };
 
-    // A saved mock response can hold a header node refuses to write - an invalid
-    // HTTP token in the name, a newline in the value. Log the failure so the
-    // request still shows up in the request log with the status we actually sent.
+    // A saved mock response can hold values node refuses to write - an invalid
+    // HTTP token in a header name, a newline in a value, a status code outside
+    // 100-999. Log the failure so the request log shows the status we actually
+    // sent, not the one the mock response asked for.
     try {
       for (const header of selected.response.headers) {
         if (!header.name || !header.value) continue;
@@ -400,6 +401,12 @@ const handleRequest = (mockServerUid, req, res) => {
         };
         res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
       }
+
+      if (statusCode === 204) {
+        res.status(204).end();
+      } else {
+        res.status(statusCode).send(selected.response.body.content || '');
+      }
     } catch (err) {
       const message = err.message || 'Mock response failed';
 
@@ -422,12 +429,6 @@ const handleRequest = (mockServerUid, req, res) => {
       statusCode,
       duration: Date.now() - startTime
     });
-
-    if (statusCode === 204) {
-      res.status(204).end();
-    } else {
-      res.status(statusCode).send(selected.response.body.content || '');
-    }
   };
 
   if (delay > 0) {
