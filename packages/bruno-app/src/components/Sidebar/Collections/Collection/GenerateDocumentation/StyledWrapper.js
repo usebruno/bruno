@@ -125,7 +125,7 @@ const StyledWrapper = styled.div`
         .env-section-title {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
+          gap: 0.25rem;
           margin: 0;
           font-size: ${(props) => props.theme.font.size.sm};
           font-weight: 600;

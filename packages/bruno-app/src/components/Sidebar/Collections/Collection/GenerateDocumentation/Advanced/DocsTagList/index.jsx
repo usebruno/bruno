@@ -79,6 +79,7 @@ const DocsTagList = ({
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
+      if (e.nativeEvent.isComposing) return;
       e.preventDefault();
       e.stopPropagation();
       addTag(isOpen && highlighted >= 0 && suggestions[highlighted] ? suggestions[highlighted] : text);
@@ -114,7 +115,10 @@ const DocsTagList = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
-          onBlur={() => setIsOpen(false)}
+          onBlur={() => {
+            setIsOpen(false);
+            setHighlighted(-1);
+          }}
           role="combobox"
           aria-label={ariaLabel}
           aria-expanded={!!showMenu}
@@ -127,7 +131,13 @@ const DocsTagList = ({
 
       {showMenu
         && createPortal(
-          <Menu id={menuId} role="listbox" aria-label={ariaLabel} style={menuStyle}>
+          <Menu
+            id={menuId}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={menuStyle}
+            onMouseDown={(e) => e.preventDefault()}
+          >
             {suggestions.map((suggestion, index) => (
               <li
                 key={suggestion}

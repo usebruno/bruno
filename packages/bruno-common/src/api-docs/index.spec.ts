@@ -37,6 +37,11 @@ describe('filterRequestItemsByTags', () => {
     const result = filterRequestItemsByTags([{ name: 's', type: 'js' }, req('a', ['wip'])], ['prod'], []);
     expect(result.map((i) => i.name)).toEqual(['s']);
   });
+
+  it('prunes a pre-existing empty folder (no items array) when filtering', () => {
+    const result = filterRequestItemsByTags([{ name: 'Archive', type: 'folder' }, req('a', ['prod'])], ['prod'], []);
+    expect(result.map((i) => i.name)).toEqual(['a']);
+  });
 });
 
 describe('selectEnvironmentsByName', () => {
@@ -115,6 +120,13 @@ describe('generateApiDocsHtml', () => {
     expect(html).toContain('"a<\\/script>b"');
   });
 
+  it('neutralizes an HTML comment opener in the embedded data so it cannot flip script parsing', () => {
+    const deps = makeDeps({ escapeString: jest.fn(() => '"a<!--<script>b"') });
+    const html = generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any);
+    expect(html).not.toContain('<!--');
+    expect(html).toContain('<\\!--');
+  });
+
   it('augments version and export metadata on the open collection', () => {
     const deps = makeDeps();
     generateApiDocsHtml(
@@ -148,6 +160,13 @@ describe('generateApiDocsHtml', () => {
     const html = generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: url }, deps as any);
     expect(html).not.toContain('</script><script>');
     expect(html).toContain('<\\/script>');
+  });
+
+  it('neutralizes an HTML comment opener in the embedded git link', () => {
+    const deps = makeDeps();
+    const url = 'https://example.com/a<!--<script>';
+    const html = generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: url }, deps as any);
+    expect(html).not.toContain('<!--');
   });
 });
 
