@@ -8,6 +8,7 @@ const useCollectionGitRemoteUrl = (pathname) => {
     let active = true;
     setIsResolved(false);
     if (!pathname) {
+      setGitCollectionUrl(null);
       setIsResolved(true);
       return undefined;
     }
