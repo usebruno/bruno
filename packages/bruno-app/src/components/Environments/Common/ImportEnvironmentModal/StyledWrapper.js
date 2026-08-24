@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { rgba } from 'polished';
 
 export const StyledWrapper = styled.div`
@@ -143,7 +143,7 @@ export const StyledWrapper = styled.div`
   .select-all-checkbox {
     margin-right: 0.5rem;
     cursor: pointer;
-    background: transparent;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .select-all-text {
@@ -179,6 +179,10 @@ export const StyledWrapper = styled.div`
     margin-left: 0.5rem;
   }
 
+  .chevron-icon {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .group-list {
     padding: 0.5rem;
     display: flex;
@@ -206,7 +210,7 @@ export const StyledWrapper = styled.div`
     margin-right: 0.75rem;
     margin-top: 0.25rem;
     cursor: pointer;
-    background: transparent;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .env-item-content {
@@ -299,13 +303,13 @@ export const ResolutionButton = styled.button`
 
   ${(props) =>
     props.$selected
-      ? `
-    background: ${props.theme.background.base};
-    border-color: ${props.theme.border.border0};
-    color: ${props.theme.brand};
-  `
-      : `
-    background: transparent;
-    color: ${props.theme.colors.text.subtext0};
-  `}
+      ? css`
+          background: ${props.theme.background.base};
+          border-color: ${props.theme.border.border0};
+          color: ${props.theme.brand};
+        `
+      : css`
+          background: transparent;
+          color: ${props.theme.colors.text.subtext0};
+        `}
 `;
