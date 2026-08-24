@@ -33,7 +33,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
-  const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
+  const resolvableVariables = useMemo(() => getAllVariables(collection, item), [collection, item]);
 
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setRequestVars({
