@@ -35,17 +35,8 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('postman-env.json'), fixture('bruno-env.json'));
 
-      await test.step('Both files are parsed under New, regardless of which format each is', async () => {
-        await expect(locators.environment.importInvalidGroup()).toHaveCount(0);
-        await expect(locators.environment.importDuplicatesGroup()).toHaveCount(0);
-        await expect(locators.environment.importNewCount()).toHaveText('2');
-        await expect(locators.environment.importReviewItem('Postman Env')).toBeVisible();
-        await expect(locators.environment.importReviewItem('Bruno Env')).toBeVisible();
-      });
-
-      await locators.environment.importSubmitButton('collection').click();
-
-      await test.step('Each environment is imported using its own format', async () => {
+      await test.step('Neither file conflicts with an existing environment, so the import commits immediately, each using its own format', async () => {
+        await expect(locators.environment.importModal('collection')).toBeHidden();
         await expect(locators.environment.sidebarListItemExact('collection', 'Postman Env')).toBeVisible();
         await expect(locators.environment.sidebarListItemExact('collection', 'Bruno Env')).toBeVisible();
 
@@ -64,7 +55,7 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       await openImportReviewFromEmpty(page, 'collection', fixture('malformed.json'), fixture('bruno-env.json'));
 
       await test.step('The malformed file is flagged as invalid; the valid one still lands under New', async () => {
-        await expect(locators.environment.importDuplicatesWarning()).toContainText('1 file');
+        await expect(locators.environment.importInvalidWarning()).toContainText('1 file');
         await expect(locators.environment.importInvalidCount()).toHaveText('1');
         await expect(locators.environment.importInvalidItem('malformed.json')).toBeVisible();
         await expect(locators.environment.importNewCount()).toHaveText('1');
@@ -134,12 +125,14 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('malformed.json'), fixture('invalid-schema.json'));
 
-      await expect(locators.environment.importInvalidCount()).toHaveText('2');
-      await expect(locators.environment.importNewGroup()).toHaveCount(0);
-      await expect(locators.environment.importDuplicatesGroup()).toHaveCount(0);
-      await expect(locators.environment.importSubmitButton('collection')).toBeDisabled();
+      await test.step('Both files are flagged as invalid and Import stays disabled', async () => {
+        await expect(locators.environment.importInvalidCount()).toHaveText('2');
+        await expect(locators.environment.importNewGroup()).toHaveCount(0);
+        await expect(locators.environment.importDuplicatesGroup()).toHaveCount(0);
+        await expect(locators.environment.importSubmitButton('collection')).toBeDisabled();
+      });
 
-      await page.getByTestId('modal-close-button').click();
+      await locators.modal.closeButton().click();
     });
   });
 
@@ -149,10 +142,12 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       await createCollection(page, 'multi-format-global', await createTmpDir('multi-format-global'));
 
       await openImportReviewFromEmpty(page, 'global', fixture('postman-env.json'), fixture('bruno-env.json'));
-      await locators.environment.importSubmitButton('global').click();
 
-      await expect(locators.environment.sidebarListItemExact('global', 'Postman Env')).toBeVisible();
-      await expect(locators.environment.sidebarListItemExact('global', 'Bruno Env')).toBeVisible();
+      await test.step('Neither file conflicts with an existing environment, so the import commits immediately, each using its own format', async () => {
+        await expect(locators.environment.importModal('global')).toBeHidden();
+        await expect(locators.environment.sidebarListItemExact('global', 'Postman Env')).toBeVisible();
+        await expect(locators.environment.sidebarListItemExact('global', 'Bruno Env')).toBeVisible();
+      });
 
       await closeAllCollections(page);
     });

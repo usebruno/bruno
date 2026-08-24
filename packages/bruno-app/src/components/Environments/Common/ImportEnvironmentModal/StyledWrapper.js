@@ -116,7 +116,7 @@ export const StyledWrapper = styled.div`
   }
 
   .error-icon {
-    color: #CE4F3B
+    color: ${(props) => props.theme.colors.text.danger};
   }
 
   .search-block {
@@ -238,7 +238,7 @@ export const StyledWrapper = styled.div`
 
   .env-error {
     font-size: ${(props) => props.theme.font.size.sm};
-    color: #CE4F3B;
+    color: ${(props) => props.theme.colors.text.danger};
     margin-top: 0.125rem;
   }
 

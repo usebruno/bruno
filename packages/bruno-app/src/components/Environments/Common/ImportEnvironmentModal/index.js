@@ -152,8 +152,14 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
       const allInvalid = [...invalidFiles, ...result.invalid, ...missingNameEnvs];
 
-      const duplicates = validEnvironments.filter((e) => existingNames.includes(e.name));
-      const newEnvs = validEnvironments.filter((e) => !existingNames.includes(e.name));
+      const normalizedExistingNames = existingNames.map(normalizeEnvName);
+      const duplicates = validEnvironments.filter((e) => normalizedExistingNames.includes(normalizeEnvName(e.name)));
+      const newEnvs = validEnvironments.filter((e) => !normalizedExistingNames.includes(normalizeEnvName(e.name)));
+
+      if (duplicates.length === 0 && allInvalid.length === 0) {
+        await commitEnvironments(newEnvs, [], new Map());
+        return;
+      }
 
       setParsedData({ new: newEnvs, duplicates, invalid: allInvalid });
 
@@ -163,9 +169,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       setSelectedIndices(initialSelected);
 
       // Initialize resolutions for duplicates to 'copy' by default
-      const initialResolutions = {};
+      const initialResolutions = new Map();
       duplicates.forEach((e) => {
-        initialResolutions[e.name] = 'copy';
+        initialResolutions.set(e, 'copy');
       });
       setResolutions(initialResolutions);
 
@@ -348,7 +354,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                       </div>
                     )}
                     {parsedData.invalid.length > 0 && (
-                      <div className="warning-header danger">
+                      <div className="warning-header">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
                         <span className="warning-title">{parsedData.invalid.length} {pluralizeWord('file', parsedData.invalid.length)}&nbsp;</span> {parsedData.invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
                       </div>

@@ -1,8 +1,0 @@
-{
-  "id": "postman-env-id-2",
-  "name": "Postman Env Two",
-  "values": [
-    { "key": "token", "value": "abc123", "enabled": true, "type": "text" }
-  ],
-  "_postman_variable_scope": "environment"
-}

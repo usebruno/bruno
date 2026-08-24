@@ -117,6 +117,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
   importDuplicatesWarning: () => page.locator('.warning-block'),
+  importInvalidWarning: () => page.locator('.warning-header').filter({ has: page.locator('.error-icon') }),
   importDuplicatesGroup: () => page.locator('.group-container').filter({ hasText: 'Duplicates' }),
   importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
   importNewGroup: () => page.locator('.group-container').filter({ hasText: 'New' }),
