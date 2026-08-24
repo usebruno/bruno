@@ -4,7 +4,6 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { DropdownTrigger, ResolutionButton, StyledWrapper } from './StyledWrapper';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
-import Checkbox from 'components/Checkbox';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import toast from 'react-hot-toast';
@@ -352,11 +351,12 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                     />
                   </div>
                   <label className="select-all-wrapper">
-                    <Checkbox
+                    <input
+                      type="checkbox"
                       className="select-all-checkbox"
                       checked={isAllSelected}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
-                      dataTestId="env-import-select-all"
+                      data-testid="env-import-select-all"
                     />
                     <span className="select-all-text">Select all</span>
                   </label>
@@ -395,11 +395,12 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                           return (
                             <div key={idx} className="env-item" data-testid="env-import-item">
                               <label className="env-item-label">
-                                <Checkbox
+                                <input
+                                  type="checkbox"
                                   className="env-item-checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleItemSelection(env)}
-                                  dataTestId="env-import-item-checkbox"
+                                  data-testid="env-import-item-checkbox"
                                 />
                                 <div className="env-item-content">
                                   <div className="env-name">{env.name}</div>
@@ -457,11 +458,12 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                           return (
                             <div key={idx} className="env-item" data-testid="env-import-item">
                               <label className="env-item-label">
-                                <Checkbox
+                                <input
+                                  type="checkbox"
                                   className="env-item-checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleItemSelection(env)}
-                                  dataTestId="env-import-item-checkbox"
+                                  data-testid="env-import-item-checkbox"
                                 />
                                 <div className="env-item-content">
                                   <div className="env-name">{env.name}</div>

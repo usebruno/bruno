@@ -135,6 +135,7 @@ export const StyledWrapper = styled.div`
   .select-all-checkbox {
     margin-right: 0.5rem;
     cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .select-all-text {
@@ -201,6 +202,7 @@ export const StyledWrapper = styled.div`
     margin-right: 0.75rem;
     margin-top: 0.25rem;
     cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .env-item-content {
