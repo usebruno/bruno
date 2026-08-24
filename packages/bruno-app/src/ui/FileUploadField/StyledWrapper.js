@@ -2,11 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.25rem;
   width: 100%;
   min-width: 0;
-  padding: 0.45rem;
+  padding: 0;
   line-height: 1.5;
   border-radius: ${(props) => props.theme.border.radius.sm};
   background-color: ${(props) => props.theme.input.bg};
@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
     gap: 0.5rem;
     flex: 1 1 auto;
     min-width: 0;
-    padding: 0;
+    padding: 0.45rem;
     border: none;
     background: none;
     font: inherit;
@@ -45,6 +45,12 @@ const StyledWrapper = styled.div`
   .file-upload-icon {
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .file-upload-clear {
+    flex-shrink: 0;
+    align-self: center;
+    margin-right: 0.45rem;
   }
 
   .file-upload-name {

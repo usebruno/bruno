@@ -83,6 +83,7 @@ const FileUploadField = ({
       {value ? (
         <ActionIcon
           type="button"
+          className="file-upload-clear"
           label={clearLabel}
           size="sm"
           disabled={disabled}
