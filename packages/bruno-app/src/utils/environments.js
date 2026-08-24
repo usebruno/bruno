@@ -158,9 +158,12 @@ export const getDuplicateSecretNames = (variables) => {
 };
 
 export const generateCopyName = (baseName, existingNames) => {
+  const normalize = (name) => (name || '').toLowerCase().trim();
+  const normalizedExisting = existingNames.map(normalize);
+
   let counter = 1;
   let newName = `${baseName} copy`;
-  while (existingNames.includes(newName)) {
+  while (normalizedExisting.includes(normalize(newName))) {
     counter++;
     newName = `${baseName} copy ${counter}`;
   }
