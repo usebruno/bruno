@@ -638,7 +638,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   // uniqueness is resolved silently by electron.
   const handleCloneItem = () => {
     if (!isCloneable) return;
-    dispatch(cloneItem(`${item.name} copy`, `${sanitizeName(item.name)} copy`, item.uid, collectionUid))
+    dispatch(cloneItem(`${item.name} copy`, sanitizeName(`${item.name} copy`), item.uid, collectionUid))
       .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
       .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
   };

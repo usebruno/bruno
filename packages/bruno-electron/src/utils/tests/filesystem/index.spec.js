@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs/promises');
 const os = require('os');
-const { copyPathTo, removePath, getUniqueTargetPath } = require('../../filesystem');
+const { copyPathTo, removePath, getUniqueTargetPath, writeFileUnique } = require('../../filesystem');
 const { initialCollectionStructure, finalCollectionStructure } = require('../fixtures/filesystem/copypath-removepath');
 
 const moveInto = async (sourcePath, destDir) => {
@@ -99,6 +99,22 @@ describe('File System Operations', () => {
       const dir = path.join(tempDir, 'guard_desc');
       await fs.mkdir(dir, { recursive: true });
       await expect(copyPathTo(dir, path.join(dir, 'sub'))).rejects.toThrow(GUARD_ERR);
+    });
+  });
+
+  describe('MAX_DUPLICATE_NAMES cap', () => {
+    it('caps at 200: creates req.bru, req 1.bru … req 199.bru, then the 201st rejects', async () => {
+      const dir = path.join(tempDir, 'cap');
+      await fs.mkdir(dir, { recursive: true });
+
+      for (let i = 0; i < 200; i++) {
+        const { filename } = await writeFileUnique(dir, 'req', 'bru', 'x');
+        expect(filename).toBe(i === 0 ? 'req.bru' : `req ${i}.bru`);
+      }
+
+      await expect(writeFileUnique(dir, 'req', 'bru', 'x')).rejects.toThrow(
+        /Too many items named "req" \(limit 200\)/
+      );
     });
   });
 });
