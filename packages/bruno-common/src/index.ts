@@ -20,6 +20,7 @@ export {
   BRUNO_DEFAULT_HEADERS,
   getBrunoDefaultHeaderNames,
   applyOmitHeaders,
+  refreshExplicitHeaderNames,
   getBrunoRuntimeUserAgent
 } from './headers/default-headers';
 export type {

@@ -29,6 +29,14 @@ import { version as appVersion } from '../../../../package.json';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
+const ROW_TYPE = {
+  REQUEST: 'request',
+  DEFAULT: 'default',
+  SECTION: 'section'
+};
+
+const isRequestRow = (row) => !row.rowType || row.rowType === ROW_TYPE.REQUEST;
+
 const getDefaultHeaderValue = (header, requestUrl) => {
   if (header.name === 'User-Agent') {
     return getBrunoRuntimeUserAgent(appVersion);
@@ -85,7 +93,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const handleHeadersChange = useCallback((updatedHeaders) => {
     const requestHeaders = isHttpRequest
       ? updatedHeaders
-          .filter((header) => header.rowType === 'request' || !header.rowType)
+          .filter((header) => header.rowType === ROW_TYPE.REQUEST || !header.rowType)
           .map(({ rowType, ...header }) => header)
       : updatedHeaders;
 
@@ -129,7 +137,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
     return {
       uid: `bruno-default-${normalizedName}`,
-      rowType: 'default',
+      rowType: ROW_TYPE.DEFAULT,
       name: header.name,
       value: getDefaultHeaderValue(header, request?.url),
       enabled,
@@ -143,7 +151,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       return headers || [];
     }
 
-    const requestRows = (headers || []).map((header) => ({ ...header, rowType: 'request' }));
+    const requestRows = (headers || []).map((header) => ({ ...header, rowType: ROW_TYPE.REQUEST }));
 
     // Hide the defaults accordion.
     if (!showDefaultHeaders) {
@@ -153,8 +161,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     return [
       {
         uid: 'default-headers-section',
-        rowType: 'section',
-        section: 'default',
+        rowType: ROW_TYPE.SECTION,
+        section: ROW_TYPE.DEFAULT,
         label: 'Inherited Headers',
         count: defaultHeaders.length,
         expanded: isDefaultHeadersExpanded
@@ -162,8 +170,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       ...(isDefaultHeadersExpanded ? defaultHeaders : []),
       {
         uid: 'request-headers-section',
-        rowType: 'section',
-        section: 'request',
+        rowType: ROW_TYPE.SECTION,
+        section: ROW_TYPE.REQUEST,
         label: 'Request Headers',
         count: (headers || []).length,
         expanded: isRequestHeadersExpanded
@@ -198,7 +206,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }, [collection.uid, dispatch, item.uid, settings.omitHeaders]);
 
   const handleHeaderCheckboxChange = useCallback((row, checked) => {
-    if (row.rowType === 'default') {
+    if (row.rowType === ROW_TYPE.DEFAULT) {
       updateOmitHeaders(row.name, checked);
       return;
     }
@@ -210,11 +218,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }, [handleHeadersChange, headers, updateOmitHeaders]);
 
   const renderSectionRow = useCallback((row) => {
-    if (row.rowType !== 'section') {
+    if (row.rowType !== ROW_TYPE.SECTION) {
       return null;
     }
 
-    const toggle = row.section === 'default'
+    const toggle = row.section === ROW_TYPE.DEFAULT
       ? () => setIsDefaultHeadersExpanded(!isDefaultHeadersExpanded)
       : () => setIsRequestHeadersExpanded(!isRequestHeadersExpanded);
 
@@ -233,7 +241,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }, [isDefaultHeadersExpanded, isRequestHeadersExpanded, setIsDefaultHeadersExpanded, setIsRequestHeadersExpanded]);
 
   const getRowError = useCallback((row, index, key) => {
-    if (row.rowType && row.rowType !== 'request') {
+    if (row.rowType && row.rowType !== ROW_TYPE.REQUEST) {
       return null;
     }
 
@@ -265,7 +273,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   });
 
   const renderDefaultHeaderAction = useCallback((row) => {
-    if (row.rowType !== 'default') {
+    if (row.rowType !== ROW_TYPE.DEFAULT) {
       return null;
     }
 
@@ -273,22 +281,35 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       <ToolHint
         text={row.omittable
           ? 'Automatically added at runtime'
-          : 'Automatically added at runtime and required by HTTP'}
+          : 'Required by HTTP, cannot be omitted'}
         toolhintId={`default-header-info-${row.uid}`}
         className="default-header-info"
         dataTestId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
-        place="bottom-start"
+        place="bottom-end"
         positionStrategy="fixed"
         tooltipStyle={{ opacity: 1 }}
       >
         <IconInfoCircle
-          size={17}
+          size={16}
           strokeWidth={1.5}
         />
       </ToolHint>
     );
   }, []);
+
+  const rowConfig = useMemo(() => ({
+    isEditable: isRequestRow,
+    isCheckboxDisabled: (row) => row.rowType === ROW_TYPE.DEFAULT && !row.omittable,
+    className: (row) => (row.rowType ? `${row.rowType}-header-row` : ''),
+    testId: (row) => {
+      if (row.rowType === ROW_TYPE.SECTION) return `${row.section}-headers-section-row`;
+      if (row.rowType === ROW_TYPE.DEFAULT) return `default-header-row-${row.name.toLowerCase()}`;
+      return row.name ? `request-header-row-${row.name.toLowerCase()}` : 'request-header-add-row';
+    },
+    renderFullWidth: isHttpRequest && showDefaultHeaders ? renderSectionRow : undefined,
+    renderActionCell: isHttpRequest && showDefaultHeaders ? renderDefaultHeaderAction : undefined
+  }), [isHttpRequest, showDefaultHeaders, renderSectionRow, renderDefaultHeaderAction]);
 
   const columns = [
     {
@@ -298,7 +319,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Name',
       width: '20%',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === 'default') {
+        if (row.rowType === ROW_TYPE.DEFAULT) {
           return (
             <div className="header-name-cell">
               <span className="default-header-value">{value}</span>
@@ -357,7 +378,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange }) => row.rowType === 'default'
+      render: ({ row, value, onChange }) => row.rowType === ROW_TYPE.DEFAULT
         ? <span className="default-header-value">{value}</span>
         : (
             <SingleLineEditor
@@ -375,7 +396,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     },
     {
       ...descriptionColumn,
-      render: (cellProps) => (cellProps.row.rowType === 'default'
+      render: (cellProps) => (cellProps.row.rowType === ROW_TYPE.DEFAULT
         ? null
         : descriptionColumn.render(cellProps))
     }
@@ -416,17 +437,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         initialScroll={scroll}
         onReorder={handleHeaderDrag}
         onCheckboxChange={isHttpRequest ? handleHeaderCheckboxChange : undefined}
-        isCheckboxDisabled={(row) => row.rowType === 'default' && !row.omittable}
-        isRowDeletable={(row) => !row.rowType || row.rowType === 'request'}
-        isRowReorderable={(row) => !row.rowType || row.rowType === 'request'}
-        renderFullWidthRow={isHttpRequest && showDefaultHeaders ? renderSectionRow : undefined}
-        renderActionCell={isHttpRequest && showDefaultHeaders ? renderDefaultHeaderAction : undefined}
-        getRowClassName={(row) => row.rowType ? `${row.rowType}-header-row` : ''}
-        getRowTestId={(row) => {
-          if (row.rowType === 'section') return `${row.section}-headers-section-row`;
-          if (row.rowType === 'default') return `default-header-row-${row.name.toLowerCase()}`;
-          return row.name ? `request-header-row-${row.name.toLowerCase()}` : 'request-header-add-row';
-        }}
+        rowConfig={rowConfig}
         columnWidths={headersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-headers', widths)}
       />

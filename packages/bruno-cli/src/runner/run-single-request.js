@@ -10,7 +10,8 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithC
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
-const { makeAxiosInstance, refreshExplicitHeaderNames } = require('../utils/axios-instance');
+const { makeAxiosInstance } = require('../utils/axios-instance');
+const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');

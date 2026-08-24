@@ -242,21 +242,6 @@ function makeAxiosInstance({
   return instance;
 }
 
-/** Headers the user or scripts set, not Axios defaults. Refresh before send. */
-function refreshExplicitHeaderNames(request) {
-  if (!request?.headers || typeof request.headers !== 'object') {
-    return request;
-  }
-
-  request.__explicitHeaderNames = Object.keys(request.headers).filter((name) => {
-    const value = request.headers[name];
-    return value !== undefined && value !== null && value !== false;
-  });
-
-  return request;
-}
-
 module.exports = {
-  makeAxiosInstance,
-  refreshExplicitHeaderNames
+  makeAxiosInstance
 };

@@ -23,8 +23,7 @@ jest.mock('../../src/utils/bru', () => ({
   getOptions: jest.fn(() => ({}))
 }));
 jest.mock('../../src/utils/axios-instance', () => ({
-  makeAxiosInstance: jest.fn(),
-  refreshExplicitHeaderNames: (request) => request
+  makeAxiosInstance: jest.fn()
 }));
 jest.mock('../../src/runner/awsv4auth-helper', () => ({
   addAwsV4Interceptor: jest.fn(),
@@ -71,8 +70,11 @@ jest.mock('../../src/store/tokenStore', () => ({
 // Default: no prompt variables detected
 const mockExtractPromptVariables = jest.fn(() => []);
 jest.mock('@usebruno/common', () => {
-  const ogUtils = jest.requireActual('@usebruno/common').utils;
+  const ogCommon = jest.requireActual('@usebruno/common');
+  const ogUtils = ogCommon.utils;
   return {
+    applyOmitHeaders: ogCommon.applyOmitHeaders,
+    refreshExplicitHeaderNames: ogCommon.refreshExplicitHeaderNames,
     utils: {
       encodeUrl: jest.fn((u) => u),
       buildFormUrlEncodedPayload: jest.fn(),

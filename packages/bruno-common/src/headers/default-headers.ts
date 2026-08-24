@@ -52,6 +52,26 @@ export const BRUNO_DEFAULT_HEADERS: BrunoDefaultHeader[] = [
 export const getBrunoDefaultHeaderNames = (): string[] =>
   BRUNO_DEFAULT_HEADERS.map((header) => header.name);
 
+type RequestWithExplicitHeaderNames = {
+  headers?: Record<string, unknown>;
+  __explicitHeaderNames?: string[];
+};
+
+/** Headers the user or scripts set, not Axios defaults. Refresh before send. */
+export const refreshExplicitHeaderNames = <T extends RequestWithExplicitHeaderNames>(request: T): T => {
+  const headers = request?.headers;
+  if (!headers || typeof headers !== 'object') {
+    return request;
+  }
+
+  request.__explicitHeaderNames = Object.keys(headers).filter((name) => {
+    const value = headers[name];
+    return value !== undefined && value !== null && value !== false;
+  });
+
+  return request;
+};
+
 export type ApplyOmitHeadersResult = {
   /** True when Connection should be stripped after agents are attached. */
   omitConnection: boolean;
