@@ -1,4 +1,4 @@
-const GrpcMessageList = require('../src/grpc-message-list');
+const GrpcMessageList = require('../src/grpc/grpc-message-list');
 
 describe('GrpcMessageList', () => {
   const defaultMessages = [{ id: 1 }, { id: 2 }, { id: 3 }];

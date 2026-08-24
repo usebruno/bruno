@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const GrpcScriptRuntime = require('../src/runtime/grpc-script-runtime');
+const GrpcScriptRuntime = require('../src/grpc/grpc-script-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 const makeRequest = (overrides = {}) => ({
@@ -132,7 +132,7 @@ describe('GrpcScriptRuntime', () => {
       const script = `
         bru.setVar('statusCode', bru.grpc.response.statusCode);
         bru.setVar('duration', bru.grpc.response.duration);
-        bru.setVar('reply', bru.grpc.response.messages.get().data.reply);
+        bru.setVar('reply', bru.grpc.response.messages.get(0).data.reply);
         bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
         bru.setVar('grpcStatus', bru.grpc.response.trailers.get('grpc-status'));
       `;
@@ -159,7 +159,7 @@ describe('GrpcScriptRuntime', () => {
       });
       const script = `
         bru.setVar('count', bru.grpc.request.messages.count());
-        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
+        bru.setVar('greeting', bru.grpc.request.messages.get(0).data.greeting);
       `;
 
       const result = await runAfterCallEnd(script, request, makeResponse(), {
@@ -187,7 +187,7 @@ describe('GrpcScriptRuntime', () => {
       await quickJsLoader();
       const script = `
         bru.setVar('statusCode', bru.grpc.response.statusCode);
-        bru.setVar('reply', bru.grpc.response.messages.get().data.reply);
+        bru.setVar('reply', bru.grpc.response.messages.get(0).data.reply);
         bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
         bru.setVar('sentCount', bru.grpc.request.messages.count());
       `;

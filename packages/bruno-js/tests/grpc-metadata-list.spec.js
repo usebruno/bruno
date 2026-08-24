@@ -1,4 +1,4 @@
-const GrpcMetadataList = require('../src/grpc-metadata-list');
+const GrpcMetadataList = require('../src/grpc/grpc-metadata-list');
 const ReadOnlyPropertyList = require('../src/readonly-property-list');
 
 describe('GrpcMetadataList', () => {

@@ -1,4 +1,4 @@
-const ReadOnlyPropertyList = require('./readonly-property-list');
+const ReadOnlyPropertyList = require('../readonly-property-list');
 
 // Extends ReadOnlyPropertyList in dynamic mode: entries are read through the accessor (live headers) on every access.
 // Keep quickjs shim up to date on any updates to this class

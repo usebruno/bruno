@@ -1,4 +1,4 @@
-const BrunoGrpcRequest = require('../src/bruno-grpc-request');
+const BrunoGrpcRequest = require('../src/grpc/bruno-grpc-request');
 
 const makeReq = (overrides = {}) => ({
   url: 'grpcb.in:9000',

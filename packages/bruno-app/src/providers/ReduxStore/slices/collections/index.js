@@ -2024,7 +2024,6 @@ export const collectionsSlice = createSlice({
     updateGrpcScript: (state, action) => {
       const { collectionUid, itemUid, hook, script } = action.payload;
 
-      // Only allow GRPC lifecycle hooks.
       if (!GRPC_SCRIPT_KEYS.includes(hook)) {
         return;
       }
