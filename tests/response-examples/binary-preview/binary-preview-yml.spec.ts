@@ -1,6 +1,6 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { clickResponseAction, expandCollection, expandFolder } from '../../utils/page/actions';
+import { openCollectionRequest, sendAndSaveResposeExample } from '../../utils/page/response-example';
 
 /**
  * Same flow as binary-preview-bru.spec.ts, but against a collection stored in the
@@ -43,24 +43,6 @@ const imagePreviewCases = [
   }
 ];
 
-const openBinaryPreviewRequest = async (page: Page, folderName: string, requestName: string) => {
-  const locators = buildCommonLocators(page);
-  await expandCollection(page, 'yml-collection');
-  await expandFolder(page, folderName);
-  await locators.sidebar.folderRequest(folderName, requestName).click();
-};
-
-const saveResponseAsExample = async (page: Page, requestName: string, exampleName: string) => {
-  const { request, responseExample } = buildCommonLocators(page);
-  await request.sendButton().click();
-  await clickResponseAction(page, 'response-bookmark-btn');
-
-  await responseExample.nameInput().clear();
-  await responseExample.nameInput().fill(exampleName);
-  await page.getByRole('button', { name: 'Create Example' }).click();
-  await expect(responseExample.title()).toHaveText(`${requestName} / ${exampleName}`);
-};
-
 // The app instance (and its temp collection copy) is reused across tests and CI
 // retries in a worker, so example names must be unique per attempt to avoid
 // colliding with an example a failed attempt already created.
@@ -72,12 +54,12 @@ test.describe('Binary response example previews (yml collection)', () => {
     test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }, testInfo) => {
       const savedExampleName = uniqueExampleName(exampleName, testInfo);
 
-      await test.step('Open collection and request', async () => {
-        await openBinaryPreviewRequest(page, folderName, requestName);
+      await test.step('Open collection', async () => {
+        await openCollectionRequest(page, 'bru-collection', folderName, requestName);
       });
 
       await test.step('Send request and save response as example', async () => {
-        await saveResponseAsExample(page, requestName, savedExampleName);
+        await sendAndSaveResposeExample(page, requestName, savedExampleName);
       });
 
       await test.step('Verify the binary preview renders', async () => {
