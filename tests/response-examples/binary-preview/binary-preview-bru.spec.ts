@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { openCollectionRequest, sendAndSaveResposeExample } from '../../utils/page/response-example';
+import { openCollectionRequest, sendReqAndSaveResposeExample } from '../../utils/page/response-example';
 
 const binaryPreviewCases = [
   {
@@ -53,13 +53,8 @@ test.describe.serial('Binary response example previews', () => {
     test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }, testInfo) => {
       const savedExampleName = uniqueExampleName(exampleName, testInfo);
 
-      await test.step('Open collection', async () => {
-        await openCollectionRequest(page, 'bru-collection', folderName, requestName);
-      });
-
-      await test.step('Send request and save response as example', async () => {
-        await sendAndSaveResposeExample(page, requestName, savedExampleName);
-      });
+      await openCollectionRequest(page, 'bru-collection', folderName, requestName);
+      await sendReqAndSaveResposeExample(page, requestName, savedExampleName);
 
       await test.step('Verify the binary preview renders', async () => {
         const preview = buildCommonLocators(page).responseExample.binaryPreview();
@@ -81,16 +76,9 @@ test.describe.serial('Binary response example previews', () => {
   }
 
   test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ pageWithUserData: page }, testInfo) => {
-    await test.step('Open collection and request', async () => {
-      await openCollectionRequest(page, 'bru-collection', undefined, 'binary-preview-mislabeled');
-    });
+    await openCollectionRequest(page, 'bru-collection', undefined, 'binary-preview-mislabeled');
+    await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', uniqueExampleName('Mislabeled Example', testInfo));
 
-    await test.step('Send request and save response as example', async () => {
-      await sendAndSaveResposeExample(page, 'binary-preview-mislabeled', uniqueExampleName('Mislabeled Example', testInfo));
-    });
-
-    // The response is PNG bytes served with a text/plain header — the preview
-    // trusts the sniffed bytes over the header and renders an image.
     await test.step('Verify the sniffed image preview renders', async () => {
       const preview = buildCommonLocators(page).responseExample.binaryPreview();
       await expect(preview).toBeVisible();
@@ -102,13 +90,8 @@ test.describe.serial('Binary response example previews', () => {
   test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ pageWithUserData: page }, testInfo) => {
     const locators = buildCommonLocators(page);
 
-    await test.step('Open collection and request', async () => {
-      await openCollectionRequest(page, 'bru-collection', undefined, 'binary-preview-unknown-binary');
-    });
-
-    await test.step('Send request and save response as example', async () => {
-      await sendAndSaveResposeExample(page, 'binary-preview-unknown-binary', uniqueExampleName('Unknown Binary Example', testInfo));
-    });
+    await openCollectionRequest(page, 'bru-collection', undefined, 'binary-preview-unknown-binary');
+    await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', uniqueExampleName('Unknown Binary Example', testInfo));
 
     // application/octet-stream bytes with no recognizable signature have no
     // visual preview — the raw base64 body renders in the editor instead.
