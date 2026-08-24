@@ -39,7 +39,7 @@ const getFolderRoot = (dir, format) => {
   return parseFolder(fs.readFileSync(folderPath, 'utf8'), { format });
 };
 
-const createCollectionJsonFromPathname = (collectionPath) => {
+const createCollectionJsonFromPathname = (collectionPath, { sortFolders = sortByNameThenSequence } = {}) => {
   const format = getCollectionFormat(collectionPath);
   if (!format) {
     console.error(chalk.red(`You can run only at the root of a collection`));
@@ -80,7 +80,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
       }
     }
 
-    const folders = sortByNameThenSequence(currentDirItems.filter((i) => i.type === 'folder'));
+    const folders = sortFolders(currentDirItems.filter((i) => i.type === 'folder'));
     const requests = currentDirItems.filter((i) => i.type !== 'folder').sort((a, b) => a.seq - b.seq);
     return folders.concat(requests);
   };
