@@ -12,7 +12,8 @@ const {
   parseEnvironmentViaWorker,
   stringifyEnvironmentViaWorker
 } = require('@usebruno/filestore');
-const { getCollectionFormat, searchForFiles, getCollectionStats, writeFile } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
+const { getCollectionFormat, getCollectionStats, writeFile } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const snapshotManager = require('../services/snapshot');
 const { unmount, clearCollectionIndex } = require('./mount');
@@ -20,10 +21,336 @@ const { clearBrunoConfig } = require('../store/bruno-config');
 const { clearRequestUidsForCollection } = require('../cache/requestUids');
 
 const MIGRATION_CANCELLED_MESSAGE = 'Migration cancelled';
+const MIGRATION_IGNORED_DIRS = new Set(['node_modules', '.git']);
 
 // Cancellation is cooperative: the pipeline checks this set between file operations,
 // so a cancel takes effect at the next file boundary — never mid-write.
 const migrationCancellations = new Set();
+
+// Rewrites `bru.runRequest("path.bru")` in a script fragment so the trailing `.bru`
+// is dropped. The network handler (ipc/network/index.js — `runRequestByItemPathname`)
+// appends the collection's current format extension when the pathname has none, so an
+// extensionless path resolves correctly in both bru and yml collections. A migrated
+// script that still names `"foo.bru"` would otherwise try to load a file that no
+// longer exists; emitting extensionless paths also keeps the script portable across
+// any future format change.
+//
+// The rewriter walks the script once through a small state machine so it never
+// rewrites text that isn't a real call:
+//   - line and block comments are copied through untouched
+//   - single/double-quoted string literals are treated as opaque
+//   - template literals are scanned char-by-char, but `${...}` substitutions drop
+//     back into code mode with brace-depth tracking so a call nested inside a
+//     template still gets rewritten
+//   - regex literals are detected by lookback (whether the position expects a value
+//     or an operator) and skipped as opaque, so patterns like `/bru\.runRequest\(/`
+//     never trigger a false match
+// Only calls at code level whose sole argument is one string literal ending in
+// `.bru` are rewritten — commented-out calls, matches embedded in an outer literal,
+// and compound arguments such as `bru.runRequest("a.bru" + suffix)` are emitted
+// verbatim. Linear-time on script length; a cheap `indexOf` fast path skips scripts
+// that don't mention runRequest.
+
+const RUN_REQUEST_CALL_TOKEN = 'bru.runRequest';
+const BRU_EXTENSION = '.bru';
+const IDENT_CHAR_REGEX = /[A-Za-z0-9_$]/;
+const REGEX_FLAG_REGEX = /[dgimsuy]/;
+// Keywords after which a `/` opens a regex literal, not a division. The full JS
+// keyword set is much larger, but only value-expecting ones can precede a regex.
+const VALUE_EXPECTING_KEYWORDS = new Set([
+  'return', 'typeof', 'delete', 'throw', 'in', 'of', 'void', 'new',
+  'instanceof', 'await', 'yield', 'do', 'else', 'case'
+]);
+
+const isWhitespaceChar = (ch) => ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v';
+
+// Returns the index just past the closing quote of a JS string starting at `start`.
+// Honours `\` escapes; single/double quoted strings terminate at an unescaped newline
+// so a syntactically broken script cannot swallow the rest of the scanner input.
+// Not used for template literals — those are scanned inline so substitutions can
+// re-enter code mode.
+const findStringLiteralEnd = (code, start, quote) => {
+  const n = code.length;
+  let j = start + 1;
+  while (j < n) {
+    const ch = code[j];
+    if (ch === '\\') {
+      j += 2;
+      continue;
+    }
+    if (ch === quote) return j + 1;
+    if (ch === '\n' || ch === '\r') return j;
+    j++;
+  }
+  return n;
+};
+
+// Attempts to read a JS regex literal starting at `start` (which must be `/`).
+// Returns the end index just past the closing `/` and any flag chars, or -1 when
+// the `/` is not a valid regex (unterminated, contains a raw newline). Character
+// classes `[...]` are respected so `/`s inside them don't close the literal.
+const findRegexLiteralEnd = (code, start) => {
+  const n = code.length;
+  let j = start + 1;
+  let inCharClass = false;
+  while (j < n) {
+    const ch = code[j];
+    if (ch === '\\') {
+      j += 2;
+      continue;
+    }
+    if (ch === '\n' || ch === '\r') return -1;
+    if (inCharClass) {
+      if (ch === ']') inCharClass = false;
+    } else if (ch === '[') {
+      inCharClass = true;
+    } else if (ch === '/') {
+      j++;
+      while (j < n && REGEX_FLAG_REGEX.test(code[j])) j++;
+      return j;
+    }
+    j++;
+  }
+  return -1;
+};
+
+// Decides whether a `/` at position `pos` starts a regex literal (value-expecting
+// context) or a division (operator-expecting context), based on the last significant
+// character emitted and — when that char is an identifier char — the whole preceding
+// word so keywords like `return /re/` are recognised as regex.
+const startsRegexLiteral = (out, prevSignificant) => {
+  if (prevSignificant === '') return true;
+  if (prevSignificant === ')' || prevSignificant === ']') return false;
+  if (prevSignificant === '`' || prevSignificant === '"' || prevSignificant === '\'') return false;
+  if (prevSignificant === '/') return false;
+  if (!IDENT_CHAR_REGEX.test(prevSignificant)) return true;
+  let k = out.length - 1;
+  while (k >= 0 && IDENT_CHAR_REGEX.test(out[k])) k--;
+  return VALUE_EXPECTING_KEYWORDS.has(out.slice(k + 1));
+};
+
+const matchesRunRequestCallStart = (code, i) => {
+  if (i > 0 && IDENT_CHAR_REGEX.test(code[i - 1])) return false;
+  for (let k = 0; k < RUN_REQUEST_CALL_TOKEN.length; k++) {
+    if (code[i + k] !== RUN_REQUEST_CALL_TOKEN[k]) return false;
+  }
+  const after = code[i + RUN_REQUEST_CALL_TOKEN.length];
+  return after === '(' || (after !== undefined && isWhitespaceChar(after));
+};
+
+// Attempts to rewrite a single `bru.runRequest(<string-literal>)` call starting at
+// `start`. Returns `{ text, next }` only when the argument is exactly one quoted
+// literal whose content ends in `.bru`; otherwise returns null and the caller falls
+// through to per-char scanning (which safely skips embedded string content).
+const tryRewriteRunRequestCall = (code, start) => {
+  const n = code.length;
+  let j = start + RUN_REQUEST_CALL_TOKEN.length;
+  while (j < n && isWhitespaceChar(code[j])) j++;
+  if (code[j] !== '(') return null;
+  j++;
+  while (j < n && isWhitespaceChar(code[j])) j++;
+  const quote = code[j];
+  if (quote !== '"' && quote !== '\'' && quote !== '`') return null;
+  // For a runRequest arg we never expect `${...}` substitutions, so plain string
+  // scanning is sufficient — treating backticks as opaque here is intentional.
+  const strEnd = findTemplateOrStringEnd(code, j, quote);
+  if (strEnd > n || code[strEnd - 1] !== quote) return null;
+  let k = strEnd;
+  while (k < n && isWhitespaceChar(code[k])) k++;
+  if (code[k] !== ')') return null;
+  const contentStart = j + 1;
+  const contentEnd = strEnd - 1;
+  const content = code.slice(contentStart, contentEnd);
+  if (!content.endsWith(BRU_EXTENSION)) return null;
+  const stripped = content.slice(0, -BRU_EXTENSION.length);
+  const text = code.slice(start, contentStart) + stripped + code.slice(contentEnd, k + 1);
+  return { text, next: k + 1 };
+};
+
+// Like findStringLiteralEnd but tolerates backticks. Newlines inside a template
+// literal are legal, so only terminate at the matching closing quote.
+const findTemplateOrStringEnd = (code, start, quote) => {
+  if (quote !== '`') return findStringLiteralEnd(code, start, quote);
+  const n = code.length;
+  let j = start + 1;
+  while (j < n) {
+    const ch = code[j];
+    if (ch === '\\') {
+      j += 2;
+      continue;
+    }
+    if (ch === '`') return j + 1;
+    j++;
+  }
+  return n;
+};
+
+const stripBruExtInRunRequest = (code) => {
+  if (typeof code !== 'string' || code.length === 0) return code;
+  if (code.indexOf('runRequest') === -1) return code;
+
+  const n = code.length;
+  let out = '';
+  let i = 0;
+  // A stack of frames lets `${...}` re-enter code mode while an outer template
+  // waits for its closing backtick. The root frame is code with braceDepth 0;
+  // each template pushes a template frame; each `${` inside a template pushes a
+  // code frame with braceDepth 1 so its matching `}` returns to the template.
+  const frames = [{ kind: 'code', braceDepth: 0 }];
+  let prevSignificant = '';
+
+  while (i < n) {
+    const frame = frames[frames.length - 1];
+
+    if (frame.kind === 'template') {
+      const c = code[i];
+      if (c === '\\') {
+        out += code.slice(i, i + 2);
+        i += 2;
+        continue;
+      }
+      if (c === '`') {
+        out += c;
+        i++;
+        frames.pop();
+        prevSignificant = '`';
+        continue;
+      }
+      if (c === '$' && code[i + 1] === '{') {
+        out += '${';
+        i += 2;
+        frames.push({ kind: 'code', braceDepth: 1 });
+        prevSignificant = '';
+        continue;
+      }
+      out += c;
+      i++;
+      continue;
+    }
+
+    const c = code[i];
+    const next = code[i + 1];
+
+    if (c === '/' && next === '/') {
+      const nl = code.indexOf('\n', i + 2);
+      const end = nl === -1 ? n : nl;
+      out += code.slice(i, end);
+      i = end;
+      continue;
+    }
+
+    if (c === '/' && next === '*') {
+      const close = code.indexOf('*/', i + 2);
+      const end = close === -1 ? n : close + 2;
+      out += code.slice(i, end);
+      i = end;
+      continue;
+    }
+
+    if (c === '/' && startsRegexLiteral(out, prevSignificant)) {
+      const end = findRegexLiteralEnd(code, i);
+      if (end > 0) {
+        out += code.slice(i, end);
+        i = end;
+        prevSignificant = '/';
+        continue;
+      }
+    }
+
+    if (c === '"' || c === '\'') {
+      const end = findStringLiteralEnd(code, i, c);
+      out += code.slice(i, end);
+      i = end;
+      prevSignificant = c;
+      continue;
+    }
+
+    if (c === '`') {
+      out += c;
+      i++;
+      frames.push({ kind: 'template' });
+      continue;
+    }
+
+    if (c === '{') {
+      out += c;
+      i++;
+      if (frame.braceDepth > 0) frame.braceDepth++;
+      prevSignificant = '{';
+      continue;
+    }
+
+    if (c === '}') {
+      if (frame.braceDepth > 0) {
+        frame.braceDepth--;
+        if (frame.braceDepth === 0) {
+          out += c;
+          i++;
+          frames.pop();
+          prevSignificant = '}';
+          continue;
+        }
+      }
+      out += c;
+      i++;
+      prevSignificant = '}';
+      continue;
+    }
+
+    if (c === 'b' && matchesRunRequestCallStart(code, i)) {
+      const rewrite = tryRewriteRunRequestCall(code, i);
+      if (rewrite) {
+        out += rewrite.text;
+        i = rewrite.next;
+        prevSignificant = ')';
+        continue;
+      }
+    }
+
+    out += c;
+    i++;
+    if (!isWhitespaceChar(c)) prevSignificant = c;
+  }
+
+  return out;
+};
+
+const stripBruExtInParsedScripts = (parsed) => {
+  const request = parsed?.request;
+  if (!request) return;
+  if (request.script) {
+    request.script.req = stripBruExtInRunRequest(request.script.req);
+    request.script.res = stripBruExtInRunRequest(request.script.res);
+  }
+  request.tests = stripBruExtInRunRequest(request.tests);
+};
+
+const collectBruFilesForMigration = (root, extraIgnored = []) => {
+  const ignoredNames = new Set([...MIGRATION_IGNORED_DIRS, ...extraIgnored]);
+  const results = [];
+
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    for (const entry of entries) {
+      if (ignoredNames.has(entry.name)) continue;
+      if (entry.isSymbolicLink()) continue;
+      const entryPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+      } else if (entry.isFile() && path.extname(entry.name) === '.bru') {
+        results.push(entryPath);
+      }
+    }
+  };
+
+  walk(root);
+  return results;
+};
 
 /**
  * Converts every .bru file of a collection to its yml equivalent on disk, then removes
@@ -63,6 +390,7 @@ const migrateCollectionOnDisk = async ({
     let collectionRoot = {};
     if (fs.existsSync(collectionBruPath)) {
       collectionRoot = parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' });
+      stripBruExtInParsedScripts(collectionRoot);
     }
 
     const ymlBrunoConfig = { ...brunoConfig };
@@ -74,10 +402,15 @@ const migrateCollectionOnDisk = async ({
     }
     delete ymlBrunoConfig.collectionVersion;
 
+    if (ymlBrunoConfig.proxy) {
+      ymlBrunoConfig.proxy = transformProxyConfig(ymlBrunoConfig.proxy);
+    }
+
     // bruno.json + collection.bru merge into a single opencollection.yml
     const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
 
-    const bruFiles = searchForFiles(collectionPathname, '.bru');
+    const userIgnored = Array.isArray(brunoConfig?.ignore) ? brunoConfig.ignore : [];
+    const bruFiles = collectBruFilesForMigration(collectionPathname, userIgnored);
 
     // Phase 1: read → parse → convert in memory; nothing is written until every file
     // converted cleanly. Parse/stringify runs on the filestore worker pool so the main
@@ -117,10 +450,12 @@ const migrateCollectionOnDisk = async ({
           ymlContent = await stringifyEnvironmentViaWorker(envData, { format: 'yml' });
         } else if (basename === 'folder.bru') {
           const folderData = await parseFolderViaWorker(bruContent, { format: 'bru' });
+          stripBruExtInParsedScripts(folderData);
           ymlPath = path.join(dirname, 'folder.yml');
           ymlContent = await stringifyFolderViaWorker(folderData, { format: 'yml' });
         } else {
           const requestData = await parseRequestViaWorker(bruContent, { format: 'bru' });
+          stripBruExtInParsedScripts(requestData);
           ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
           ymlContent = await stringifyRequestViaWorker(requestData, { format: 'yml' });
         }
@@ -332,5 +667,6 @@ module.exports = {
   registerYmlMigrationIpc,
   migrateCollectionOnDisk,
   migrateCollectionToYml,
+  stripBruExtInRunRequest,
   MIGRATION_CANCELLED_MESSAGE
 };

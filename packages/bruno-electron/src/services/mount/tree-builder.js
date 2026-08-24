@@ -130,6 +130,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     request: data.request || {},
     settings: data.settings,
     examples: data.examples,
+    app: data.app ?? null,
     raw: entry.raw ?? null,
     size: sizeInMB(entry.raw ? Buffer.byteLength(entry.raw, 'utf8') : 0),
     filename: basename,
@@ -146,6 +147,7 @@ const buildEnvironmentNode = (collectionPath, relativePath, entry, uidFor) => {
   const absolutePath = path.join(collectionPath, relativePath);
   const data = entry.data || {};
   return {
+    ...data,
     uid: uidFor(absolutePath),
     name: stripExt(basename),
     variables: data.variables || [],
