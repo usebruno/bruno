@@ -79,7 +79,10 @@ const DocsTagList = ({
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      if (e.nativeEvent.isComposing) return;
+      if (e.nativeEvent.isComposing) {
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       addTag(isOpen && highlighted >= 0 && suggestions[highlighted] ? suggestions[highlighted] : text);
