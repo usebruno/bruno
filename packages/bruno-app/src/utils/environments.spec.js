@@ -769,8 +769,13 @@ describe('generateCopyName', () => {
     expect(generateCopyName('Production', existing)).toEqual('Production copy 3');
   });
 
-  it('should correctly increment past missing numbers (e.g. if " copy 2" exists but not " copy")', () => {
+  it('reuses the plain " copy" name when only " copy 2" exists', () => {
     const existing = ['Production', 'Production copy 2'];
     expect(generateCopyName('Production', existing)).toEqual('Production copy');
+  });
+
+  it('treats an existing name as taken even when it differs only by case or whitespace', () => {
+    const existing = ['production', ' Production copy  '];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
   });
 });

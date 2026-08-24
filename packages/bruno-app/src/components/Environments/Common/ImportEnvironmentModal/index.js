@@ -95,7 +95,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
               : importEnvironment({ name: copyName, variables: environment.variables, color: environment.color, collectionUid: collection?.uid });
           }
         } else {
-          const name = currentExistingNames.includes(environment.name)
+          const name = currentExistingNames.some((existingName) => normalizeEnvName(existingName) === normalizeEnvName(environment.name))
             ? generateCopyName(environment.name, currentExistingNames)
             : environment.name;
           currentExistingNames.push(name);
@@ -423,6 +423,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                               <div className="env-actions">
                                 <ResolutionButton
                                   $selected={resolution === 'copy'}
+                                  aria-pressed={resolution === 'copy'}
                                   onClick={() => setItemResolution(env, 'copy')}
                                   title="Import as copy"
                                   data-testid="env-import-copy-btn"
@@ -431,6 +432,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                                 </ResolutionButton>
                                 <ResolutionButton
                                   $selected={resolution === 'replace'}
+                                  aria-pressed={resolution === 'replace'}
                                   onClick={() => setItemResolution(env, 'replace')}
                                   title="Replace existing"
                                   data-testid="env-import-replace-btn"

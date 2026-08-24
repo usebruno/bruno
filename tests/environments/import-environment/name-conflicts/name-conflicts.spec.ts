@@ -72,8 +72,13 @@ test.describe('Import environment - name conflict handling', () => {
       await test.step('Copy is the default resolution and can be switched to Replace', async () => {
         const item = locators.environment.importReviewItem('Production');
         await expect(item).toBeVisible();
-        await expect(locators.environment.importCopyButton('Production')).toHaveAttribute('title', 'Import as copy');
+        await expect(locators.environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'true');
+        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'false');
+
         await locators.environment.importReplaceButton('Production').click();
+
+        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
+        await expect(locators.environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'false');
       });
 
       await locators.modal.closeButton().click();
@@ -172,7 +177,7 @@ test.describe('Import environment - name conflict handling', () => {
         await locators.environment.importGroupDropdownTrigger().click();
         await locators.environment.importGroupDropdownReplaceOption().click();
 
-        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('title', 'Replace existing');
+        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
       });
 
       await locators.environment.importSubmitButton('collection').click();
@@ -369,7 +374,7 @@ test.describe('Import environment - name conflict handling', () => {
         await locators.environment.importGroupDropdownTrigger().click();
         await locators.environment.importGroupDropdownReplaceOption().click();
 
-        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('title', 'Replace existing');
+        await expect(locators.environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
       });
 
       await locators.environment.importSubmitButton('global').click();
