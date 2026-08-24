@@ -7,37 +7,32 @@ type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
  * Manage Workspace section locators.
  */
 export const buildManageWorkspaceLocators = (page: Page) => {
-  const workspaceItem = (workspaceName: string) =>
-    page.locator('.workspace-list .workspace-item').filter({
-      has: page.locator('.workspace-name', { hasText: workspaceName })
-    });
-
-  const modal = (title: string) =>
-    page.locator('.bruno-modal').filter({
-      has: page.locator('.bruno-modal-header-title').filter({ hasText: title })
-    });
+  const workspaceItem = (workspaceName: string) => page.getByTestId(`workspace-item-${workspaceName}`);
+  const renameModal = () => page.getByTestId('rename-workspace-modal');
+  const removeModal = () => page.getByTestId('remove-workspace-modal');
 
   return {
-    title: () => page.locator('.manage-workspace-header .header-title'),
-    backButton: () => page.locator('.manage-workspace-header .back-button'),
-    createWorkspaceButton: () =>
-      page.locator('.manage-workspace-header').getByRole('button', { name: 'Create Workspace' }),
-    workspaceItems: () => page.locator('.workspace-list .workspace-item'),
+    title: () => page.getByTestId('manage-workspace-title'),
+    backButton: () => page.getByTestId('manage-workspace-back'),
+    createWorkspaceButton: () => page.getByTestId('manage-workspace-create'),
+    // Every row's testid carries its workspace name, so the prefix matches them all.
+    workspaceItems: () => page.getByTestId(/^workspace-item-/),
     workspaceItem,
-    workspaceName: (workspaceName: string) => workspaceItem(workspaceName).locator('.workspace-name'),
-    workspacePath: (workspaceName: string) => workspaceItem(workspaceName).locator('.workspace-path'),
-    defaultBadge: (workspaceName: string) => workspaceItem(workspaceName).locator('.default-badge'),
+    workspaceName: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-name'),
+    workspacePath: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-path'),
+    defaultBadge: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-default-badge'),
     openButton: (workspaceName: string) => workspaceItem(workspaceName).getByRole('button', { name: 'Open' }),
     // The default workspace renders no actions menu — assert on its count to cover that.
-    actionsTrigger: (workspaceName: string) => workspaceItem(workspaceName).locator('.more-actions-btn'),
+    actionsTrigger: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-actions-trigger'),
     // Menu items live in a tippy portal, so they can't be scoped to the workspace row.
     actionsMenuItem: (action: WorkspaceAction) => page.getByTestId(`menu-dropdown-${action}`),
-    renameModal: () => modal('Rename Workspace'),
-    renameNameInput: () => modal('Rename Workspace').locator('#workspace-name'),
-    renameError: () => modal('Rename Workspace').locator('.text-red-500'),
-    renameSubmitButton: () => modal('Rename Workspace').getByRole('button', { name: 'Rename', exact: true }),
-    removeModal: () => modal('Remove Workspace'),
-    removeSubmitButton: () => modal('Remove Workspace').getByRole('button', { name: 'Remove', exact: true })
+    renameModal,
+    renameNameInput: () => renameModal().getByTestId('workspace-name-input'),
+    renameError: () => renameModal().getByTestId('workspace-name-error'),
+    renameSubmitButton: () => page.getByTestId('rename-workspace-modal-submit-btn'),
+    removeModal,
+    // The label switches to "Removing..." mid-submit, so target the button by testid.
+    removeSubmitButton: () => page.getByTestId('remove-workspace-modal-submit-btn')
   };
 };
 

@@ -982,7 +982,7 @@ const EnvironmentVariablesTable = ({
                 </td>
                 <td style={{ width: columnWidths.name }}>
                   <div className="flex items-center">
-                    <div className="name-cell-wrapper">
+                    <div className="name-cell-wrapper" data-testid={`env-var-name-cell-${actualIndex}`}>
                       <input
                         type="text"
                         autoComplete="off"
