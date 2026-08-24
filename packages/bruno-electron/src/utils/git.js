@@ -23,12 +23,7 @@ const getGitVersion = () => {
 const getSimpleGitInstanceForPath = (gitRootPath) => {
   let git = simpleGitInstances.get(gitRootPath);
   if (!git) {
-    git = simpleGit(gitRootPath, {
-      unsafe: {
-        allowUnsafeEditor: true,
-        allowUnsafePager: true
-      }
-    });
+    git = simpleGit(gitRootPath);
     simpleGitInstances.set(gitRootPath, git);
   }
   return git;
