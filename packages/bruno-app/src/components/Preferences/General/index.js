@@ -8,15 +8,12 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import path from 'utils/common/path';
-import { IconTrash } from '@tabler/icons';
-import Button from 'ui/Button';
+import FileUploadField from 'ui/FileUploadField';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
 
 const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
-  const inputFileCaCertificateRef = useRef();
 
   const preferencesSchema = Yup.object().shape({
     sslVerification: Yup.boolean(),
@@ -154,17 +151,6 @@ const General = () => {
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
-  const addCaCertificate = (e) => {
-    const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
-    if (filePath) {
-      formik.setFieldValue('customCaCertificate.filePath', filePath);
-    }
-  };
-
-  const deleteCaCertificate = () => {
-    formik.setFieldValue('customCaCertificate.filePath', null);
-  };
-
   const browseDefaultLocation = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
@@ -206,47 +192,13 @@ const General = () => {
             onChange={formik.handleChange}
           >
             <div className="ca-certificate-picker">
-              <input
-                type="text"
-                className="textbox ca-certificate-input"
-                readOnly={true}
-                disabled={!customCaCertificateEnabled}
-                value={customCaCertificatePath ? path.basename(customCaCertificatePath) : ''}
-                title={customCaCertificatePath || undefined}
-                placeholder="No certificate selected"
-                aria-label="Custom CA certificate"
-                onClick={() => customCaCertificateEnabled && inputFileCaCertificateRef.current?.click()}
-              />
-              {customCaCertificatePath ? (
-                <button
-                  type="button"
-                  className="ca-certificate-remove"
-                  aria-label="Remove custom CA certificate"
-                  disabled={!customCaCertificateEnabled}
-                  onClick={deleteCaCertificate}
-                >
-                  <IconTrash strokeWidth={1.5} size={16} />
-                </button>
-              ) : null}
-              <Button
-                size="sm"
-                variant="filled"
-                color="secondary"
-                className="ca-certificate-select"
-                disabled={!customCaCertificateEnabled}
-                onClick={() => inputFileCaCertificateRef.current?.click()}
-              >
-                Select File
-              </Button>
-              <input
+              <FileUploadField
                 id="caCertFilePath"
-                type="file"
-                name="customCaCertificate.filePath"
-                className="hidden"
-                tabIndex="-1"
-                ref={inputFileCaCertificateRef}
+                value={customCaCertificatePath}
+                onChange={(filePath) => formik.setFieldValue('customCaCertificate.filePath', filePath)}
+                placeholder="No certificate selected"
                 disabled={!customCaCertificateEnabled}
-                onChange={addCaCertificate}
+                clearLabel="Remove custom CA certificate"
               />
             </div>
             <CheckboxSetting
@@ -356,15 +308,9 @@ const General = () => {
               onClick={browseDefaultLocation}
               placeholder="Click to browse for default location"
             />
-            <Button
-              size="sm"
-              variant="filled"
-              color="secondary"
-              className="default-location-browse"
-              onClick={browseDefaultLocation}
-            >
+            <button type="button" className="default-location-browse" onClick={browseDefaultLocation}>
               Browse
-            </Button>
+            </button>
           </SettingsField>
         </SettingsGroup>
       </form>

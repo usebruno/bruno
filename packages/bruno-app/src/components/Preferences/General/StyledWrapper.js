@@ -17,48 +17,6 @@ const StyledWrapper = styled.div`
 
   .ca-certificate-picker {
     display: flex;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .ca-certificate-input {
-    flex: 1 1 auto;
-    min-width: 0;
-    cursor: pointer;
-
-    &:disabled {
-      cursor: not-allowed;
-    }
-  }
-
-  /* match the button height to the input beside it */
-  .ca-certificate-select {
-    display: flex;
-
-    button {
-      height: 100%;
-      white-space: nowrap;
-    }
-  }
-
-  .ca-certificate-remove {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 0 0.25rem;
-    border: none;
-    background: none;
-    line-height: 0;
-    color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      color: ${(props) => props.theme.colors.text.danger};
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-    }
   }
 
   .timing-grid {
@@ -69,21 +27,27 @@ const StyledWrapper = styled.div`
 
   .default-location-field {
     .settings-field-control {
-      align-items: stretch;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.375rem;
     }
 
     .default-location-input {
-      flex: 1 1 auto;
-      min-width: 0;
+      width: 100%;
     }
+  }
 
-    /* match the Browse button's height to the input next to it */
-    .default-location-browse {
-      display: flex;
+  .default-location-browse {
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.textLink};
+    cursor: pointer;
 
-      button {
-        height: 100%;
-      }
+    &:hover {
+      text-decoration: underline;
     }
   }
 `;
