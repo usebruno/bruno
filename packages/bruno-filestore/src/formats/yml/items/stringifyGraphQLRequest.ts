@@ -8,7 +8,7 @@ import type { Assertion } from '@opencollection/types/common/assertions';
 import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestHeader } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
-import { isNonEmptyString, isNumber } from '../../../utils';
+import { isNonEmptyString } from '../../../utils';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
@@ -16,7 +16,7 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
-import { resolveTimeoutSetting } from '@usebruno/common/utils';
+import { resolveTimeoutSetting, toMaxRedirects } from '@usebruno/common/utils';
 
 const stringifyGraphQLRequest = (item: BrunoItem): string => {
   try {
@@ -143,12 +143,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       settings.followRedirects = true;
     }
 
-    const maxRedirects = httpSettings?.maxRedirects;
-    if (isNumber(maxRedirects)) {
-      settings.maxRedirects = maxRedirects;
-    } else {
-      settings.maxRedirects = 5;
-    }
+    settings.maxRedirects = toMaxRedirects(httpSettings?.maxRedirects);
 
     settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
 

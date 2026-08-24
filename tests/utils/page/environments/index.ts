@@ -1,12 +1,18 @@
-import { Page, test } from '../../../../playwright';
+import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
-  envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+  envOption: (name: string) =>
+    page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
   listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
+  listOptionBadge: (name: string) =>
+    page
+      .locator('.environment-list .dropdown-item')
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .getByTestId('color-badge'),
   currentEnvironment: () => page.locator('.current-environment'),
   configureButton: () => page.locator('#configure-env'),
   saveButton: () => page.getByTestId('save-env'),
@@ -88,7 +94,18 @@ export const buildEnvironmentLocators = (page: Page) => ({
     closeWithoutSave: () => page.getByTestId('env-unsaved-close-without-save'),
     cancel: () => page.getByTestId('env-unsaved-cancel'),
     saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
-  }
+  },
+  importEmptyStateButton: () => page.getByTestId('empty-state-import-env-btn'),
+  importModal: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment-modal' : 'import-environment-modal'),
+  importFileTrigger: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment' : 'import-environment'),
+  sidebarListItem: (scope: 'collection' | 'global', name: string) =>
+    page
+      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
+      .filter({ hasText: name }),
+  varRowEnabledCheckbox: (name: string) =>
+    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox')
 });
 
 /**
@@ -115,4 +132,20 @@ export const openEnvironmentSelector = async (page: Page) => {
 export const closeEnvironmentSelector = async (page: Page) => {
   const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
   await trigger.click();
+};
+
+/**
+ * Deactivates the focused collection's environment via the dropdown's
+ * "No Environment" entry.
+ * @param page - The page object
+ * @returns void
+ */
+export const selectNoEnvironment = async (page: Page) => {
+  const environment = buildEnvironmentLocators(page);
+
+  await test.step('Select "No Environment"', async () => {
+    await environment.selector().click();
+    await environment.noEnvironmentItem().click();
+    await expect(environment.selector()).toContainText('No Environment');
+  });
 };

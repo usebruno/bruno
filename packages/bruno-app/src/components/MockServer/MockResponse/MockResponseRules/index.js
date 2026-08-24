@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import EditableTable from 'components/EditableTable';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -29,10 +29,41 @@ const KEY_PLACEHOLDERS = {
   header: 'x-api-key'
 };
 
-const MockResponseRules = ({ rules, editMode, onChange }) => {
+const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
   const conditions = rules?.conditions || [];
   const operator = rules?.operator === 'OR' ? 'OR' : 'AND';
   const rowUidsRef = useRef([]);
+  const wrapperRef = useRef(null);
+  const focusAddRowPendingRef = useRef(false);
+
+  const handleAddRule = () => {
+    focusAddRowPendingRef.current = true;
+    onAddRule();
+  };
+
+  useEffect(() => {
+    if (!editMode || !focusAddRowPendingRef.current) {
+      return;
+    }
+
+    focusAddRowPendingRef.current = false;
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts += 1;
+      const keyInput = wrapperRef.current
+        ?.querySelector('tbody tr:last-child [data-testid="column-key"] input');
+
+      if (keyInput) {
+        keyInput.focus();
+        clearInterval(interval);
+      } else if (attempts >= 20) {
+        clearInterval(interval);
+      }
+    }, 25);
+
+    return () => clearInterval(interval);
+  }, [editMode]);
 
   const rows = useMemo(() => conditions.map((condition, index) => {
     if (condition.uid) {
@@ -121,10 +152,10 @@ const MockResponseRules = ({ rules, editMode, onChange }) => {
   ];
 
   return (
-    <StyledWrapper>
-      <div className="flex items-center justify-end mb-3">
-        <div className="flex items-center gap-2 text-xs">
-          <label htmlFor="mock-response-rule-operator">Match</label>
+    <StyledWrapper ref={wrapperRef}>
+      <div className="flex items-center justify-between mb-3 text-xs">
+        <div className="flex items-center gap-2">
+          <label htmlFor="mock-response-rule-operator" className="font-medium">Match</label>
           <select
             id="mock-response-rule-operator"
             className="rule-operator"
@@ -132,15 +163,25 @@ const MockResponseRules = ({ rules, editMode, onChange }) => {
             disabled={!editMode}
             onChange={(event) => onChange({ operator: event.target.value, conditions })}
           >
-            <option value="AND">ALL (AND)</option>
-            <option value="OR">ANY (OR)</option>
+            <option value="AND">All rules (AND)</option>
+            <option value="OR">Any rule (OR)</option>
           </select>
         </div>
+        {!editMode ? (
+          <button
+            type="button"
+            className="add-rule-link"
+            onClick={handleAddRule}
+            data-testid="mock-response-add-rule-btn"
+          >
+            + Add Rule
+          </button>
+        ) : null}
       </div>
 
       {rows.length === 0 && !editMode ? (
         <div className="text-xs opacity-70">
-          No rules. This response matches every request on the route.
+          No rules - every request on this route gets this response.
         </div>
       ) : (
         <EditableTable

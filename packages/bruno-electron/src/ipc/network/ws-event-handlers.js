@@ -1,6 +1,5 @@
 const { ipcMain, app } = require('electron');
 const { WsClient } = require('@usebruno/requests');
-const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { preferencesUtil } = require('../../store/preferences');
@@ -94,7 +93,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   wsRequest = setAuthHeaders(wsRequest, request, collection);
 
   if (wsRequest.oauth2) {
-    let requestCopy = cloneDeep(wsRequest);
+    const requestCopy = cloneDeep(wsRequest);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
@@ -470,10 +469,22 @@ const registerWsEventHandlers = (window) => {
       return { success: false, error: error.message, status: 'disconnected' };
     }
   });
+
+  app.on('window-all-closed', () => {
+    if (wsClient && typeof wsClient.clearAllConnections === 'function') {
+      try {
+        wsClient.clearAllConnections();
+      } catch (error) {
+        console.error('Error clearing WebSocket connections:', error);
+      }
+    }
+  });
 };
+
+const getWsClient = () => wsClient;
 
 module.exports = {
   registerWsEventHandlers,
-  wsClient,
+  getWsClient,
   prepareWsRequest
 };
