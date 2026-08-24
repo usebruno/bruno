@@ -18,7 +18,7 @@ export const buildManageWorkspaceLocators = (page: Page) => {
     // Every row's testid carries its workspace name, so the prefix matches them all.
     workspaceItems: () => page.getByTestId(/^workspace-item-/),
     workspaceItem,
-    workspaceName: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-name'),
+    workspaceName: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-row-name'),
     workspacePath: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-path'),
     defaultBadge: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-default-badge'),
     openButton: (workspaceName: string) => workspaceItem(workspaceName).getByRole('button', { name: 'Open' }),

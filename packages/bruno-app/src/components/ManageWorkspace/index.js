@@ -134,7 +134,7 @@ const ManageWorkspace = () => {
                         <IconCategory size={14} strokeWidth={1.5} />
                       )}
                     </span>
-                    <span className="workspace-name" data-testid="workspace-name">{workspace.name}</span>
+                    <span className="workspace-name" data-testid="workspace-row-name">{workspace.name}</span>
                     {isDefault && <span className="default-badge" data-testid="workspace-default-badge">Default</span>}
                   </div>
                   {workspace.pathname && (
