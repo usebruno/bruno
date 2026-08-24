@@ -12,8 +12,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import importPostmanEnvironment from 'utils/importers/postman-environment';
 import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
-import { importEnvironment, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { addGlobalEnvironment, saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { importEnvironment, saveEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
+import { addGlobalEnvironment, saveGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
 import { toastError } from 'utils/common/error';
 import {
   IconFileImport,
@@ -24,15 +24,8 @@ import {
 } from '@tabler/icons';
 import { useTheme } from 'styled-components';
 import { pluralizeWord } from 'utils/common/index';
-const generateCopyName = (baseName, existingNames) => {
-  let counter = 1;
-  let newName = `${baseName} copy`;
-  while (existingNames.includes(newName)) {
-    counter++;
-    newName = `${baseName} copy ${counter}`;
-  }
-  return newName;
-};
+import { generateCopyName } from 'utils/environments';
+const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
   const dispatch = useDispatch();
@@ -42,8 +35,8 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   const [parsedData, setParsedData] = useState({ new: [], duplicates: [], invalid: [] });
   // Set of indices from the valid items array (which is new + duplicates)
   const [selectedIndices, setSelectedIndices] = useState(new Set());
-  // Mapping of duplicate name -> 'copy' | 'replace'
-  const [resolutions, setResolutions] = useState({});
+  // Mapping of duplicate env object -> 'copy' | 'replace'
+  const [resolutions, setResolutions] = useState(new Map());
   const [searchText, setSearchText] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({ invalid: true, duplicates: true, new: true });
 
@@ -85,7 +78,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       }
 
       const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = result.valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: 'Unknown', error: 'Environment has no name' }));
+      const missingNameEnvs = result.valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
 
       const allInvalid = [...result.invalid, ...missingNameEnvs];
 
@@ -94,8 +87,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
         return;
       }
 
-      const duplicates = validEnvironments.filter((e) => existingNames.includes(e.name));
-      const newEnvs = validEnvironments.filter((e) => !existingNames.includes(e.name));
+      const existingNamesNormalized = existingNames.map(normalizeEnvName);
+      const duplicates = validEnvironments.filter((e) => existingNamesNormalized.includes(normalizeEnvName(e.name)));
+      const newEnvs = validEnvironments.filter((e) => !existingNamesNormalized.includes(normalizeEnvName(e.name)));
 
       setParsedData({ new: newEnvs, duplicates, invalid: allInvalid });
 
@@ -105,9 +99,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       setSelectedIndices(initialSelected);
 
       // Initialize resolutions for duplicates to 'copy' by default
-      const initialResolutions = {};
+      const initialResolutions = new Map();
       duplicates.forEach((e) => {
-        initialResolutions[e.name] = 'copy';
+        initialResolutions.set(e, 'copy');
       });
       setResolutions(initialResolutions);
 
@@ -133,15 +127,19 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       for (const environment of environmentsToImport) {
         const isDuplicate = parsedData.duplicates.includes(environment);
         let action;
+        let colorAction;
 
         if (isDuplicate) {
-          const resolution = resolutions[environment.name] || 'copy';
+          const resolution = resolutions.get(environment) || 'copy';
           if (resolution === 'replace') {
-            const existingEnv = existingEnvironments.find((e) => e.name === environment.name);
+            const existingEnv = existingEnvironments.find((e) => normalizeEnvName(e.name) === normalizeEnvName(environment.name));
             if (existingEnv) {
               action = isGlobal
                 ? saveGlobalEnvironment({ variables: environment.variables, environmentUid: existingEnv.uid })
                 : saveEnvironment(environment.variables, existingEnv.uid, collection.uid);
+              colorAction = isGlobal
+                ? updateGlobalEnvironmentColor(existingEnv.uid, environment.color)
+                : updateEnvironmentColor(existingEnv.uid, environment.color, collection.uid);
             }
           } else {
             // copy
@@ -163,6 +161,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
         if (action) {
           await dispatch(action);
+          if (colorAction) {
+            await dispatch(colorAction);
+          }
           importedCount++;
         }
       }
@@ -222,15 +223,15 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   };
 
   const setGroupResolution = (res) => {
-    const newResolutions = { ...resolutions };
+    const newResolutions = new Map(resolutions);
     parsedData.duplicates.forEach((env) => {
-      newResolutions[env.name] = res;
+      newResolutions.set(env, res);
     });
     setResolutions(newResolutions);
   };
 
-  const setItemResolution = (envName, res) => {
-    setResolutions({ ...resolutions, [envName]: res });
+  const setItemResolution = (env, res) => {
+    setResolutions(new Map(resolutions).set(env, res));
   };
 
   const toggleGroupExpanded = (group) => {
@@ -282,9 +283,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
   const getDropdownValue = () => {
     if (parsedData.duplicates.length === 0) return 'Custom';
-    const allCopy = parsedData.duplicates.every((env) => resolutions[env.name] === 'copy');
+    const allCopy = parsedData.duplicates.every((env) => resolutions.get(env) === 'copy');
     if (allCopy) return 'copy';
-    const allReplace = parsedData.duplicates.every((env) => resolutions[env.name] === 'replace');
+    const allReplace = parsedData.duplicates.every((env) => resolutions.get(env) === 'replace');
     if (allReplace) return 'replace';
     return 'Custom';
   };
@@ -350,7 +351,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                       iconSize={13}
                     />
                   </div>
-                  <div className="select-all-wrapper" onClick={() => toggleSelectAll(!isAllSelected)}>
+                  <label className="select-all-wrapper">
                     <Checkbox
                       className="select-all-checkbox"
                       checked={isAllSelected}
@@ -358,7 +359,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                       dataTestId="env-import-select-all"
                     />
                     <span className="select-all-text">Select all</span>
-                  </div>
+                  </label>
                 </div>
 
                 {/* Duplicates Group */}
@@ -366,7 +367,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                   <div className={`group-container ${parsedData.new.length > 0 ? 'has-border-bottom' : ''}`}>
                     <div className="group-header">
                       <div className="group-title-wrapper" onClick={() => toggleGroupExpanded('duplicates')}>
-                        {expandedGroups.duplicates ? <IconChevronDown size={16} className="text-zinc-500" /> : <IconChevronRight size={16} className="text-zinc-500" />}
+                        {expandedGroups.duplicates ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
                         <span className="group-title">Duplicates</span>
                         <CountBadge variant="warning" className="ml-2" data-testid="env-import-duplicates-count">{parsedData.duplicates.length}</CountBadge>
                       </div>
@@ -390,9 +391,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                         {filteredDuplicates.map((env, idx) => {
                           const globalIdx = [...parsedData.new, ...parsedData.duplicates].indexOf(env);
                           const isSelected = selectedIndices.has(globalIdx);
-                          const resolution = resolutions[env.name];
+                          const resolution = resolutions.get(env);
                           return (
-                            <div key={idx} className="env-item group" data-testid="env-import-item">
+                            <div key={idx} className="env-item" data-testid="env-import-item">
                               <label className="env-item-label">
                                 <Checkbox
                                   className="env-item-checkbox"
@@ -412,7 +413,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                               <div className="env-actions">
                                 <ResolutionButton
                                   $selected={resolution === 'copy'}
-                                  onClick={() => setItemResolution(env.name, 'copy')}
+                                  onClick={() => setItemResolution(env, 'copy')}
                                   title="Import as copy"
                                   data-testid="env-import-copy-btn"
                                 >
@@ -420,7 +421,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                                 </ResolutionButton>
                                 <ResolutionButton
                                   $selected={resolution === 'replace'}
-                                  onClick={() => setItemResolution(env.name, 'replace')}
+                                  onClick={() => setItemResolution(env, 'replace')}
                                   title="Replace existing"
                                   data-testid="env-import-replace-btn"
                                 >
@@ -443,7 +444,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                   <div className="group-container">
                     <div className="group-header">
                       <div className="group-title-wrapper" onClick={() => toggleGroupExpanded('new')}>
-                        {expandedGroups.new ? <IconChevronDown size={16} className="text-zinc-500" /> : <IconChevronRight size={16} className="text-zinc-500" />}
+                        {expandedGroups.new ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
                         <span className="group-title">New</span>
                         <CountBadge variant="warning" className="ml-2" data-testid="env-import-new-count">{parsedData.new.length}</CountBadge>
                       </div>
@@ -454,7 +455,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                           const globalIdx = [...parsedData.new, ...parsedData.duplicates].indexOf(env);
                           const isSelected = selectedIndices.has(globalIdx);
                           return (
-                            <div key={idx} className="env-item group" data-testid="env-import-item">
+                            <div key={idx} className="env-item" data-testid="env-import-item">
                               <label className="env-item-label">
                                 <Checkbox
                                   className="env-item-checkbox"

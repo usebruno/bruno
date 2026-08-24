@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
 import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
@@ -750,5 +750,27 @@ describe('dedupeImportedSecrets', () => {
     const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'kept', { enabled: false })];
 
     expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
+  });
+});
+
+describe('generateCopyName', () => {
+  it('should append " copy" if the base name is not in the existing names', () => {
+    const existing = ['Production', 'Staging'];
+    expect(generateCopyName('Development', existing)).toEqual('Development copy');
+  });
+
+  it('should append " copy 2" if the " copy" variant already exists', () => {
+    const existing = ['Production', 'Production copy'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
+  });
+
+  it('should append " copy 3" if the " copy" and " copy 2" variants already exist', () => {
+    const existing = ['Production', 'Production copy', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 3');
+  });
+
+  it('should correctly increment past missing numbers (e.g. if " copy 2" exists but not " copy")', () => {
+    const existing = ['Production', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy');
   });
 });

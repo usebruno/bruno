@@ -13,8 +13,8 @@ const ImportEnvironment = ({ onClose, onEnvironmentCreated }) => {
 
   const handleImportPostmanEnvironment = () => {
     importPostmanEnvironment()
-      .then((environments) => {
-        const importPromises = environments
+      .then(({ valid }) => {
+        const importPromises = valid
           .filter((env) =>
             env.name && env.name !== 'undefined')
           .map((environment) =>
