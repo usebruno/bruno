@@ -258,20 +258,21 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection, this.props.item);
-    if (!isEqual(variables, this.variables)) {
-      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-        this.editor.options.brunoVarInfo.variables = variables;
+    if (this.props.collection !== prevProps.collection || this.props.item !== prevProps.item) {
+      const variables = getAllVariables(this.props.collection, this.props.item);
+      if (!isEqual(variables, this.variables)) {
+        if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+          this.editor.options.brunoVarInfo.variables = variables;
+        }
+        this.addOverlay(variables);
       }
-      this.addOverlay(variables);
     }
 
-    // Update collection and item when they change
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+      if (this.props.collection !== this.editor.options.brunoVarInfo.collection) {
         this.editor.options.brunoVarInfo.collection = this.props.collection;
       }
-      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+      if (this.props.item !== this.editor.options.brunoVarInfo.item) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
@@ -312,7 +313,9 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     if (this.props.mode !== prevProps.mode && this.editor) {
-      this.addOverlay(variables);
+      // `this.variables` is kept in sync by addOverlay(), so it is always the current
+      // variable set — no need to re-derive it just to re-apply the mode.
+      this.addOverlay(this.variables);
     }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);

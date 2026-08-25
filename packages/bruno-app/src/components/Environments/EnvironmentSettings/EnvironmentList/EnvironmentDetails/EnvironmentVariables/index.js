@@ -15,13 +15,16 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
-  // Check for non-secret variables used in sensitive fields
+  const collectionItems = collection?.items;
+  const collectionRoot = collection?.root;
+  const environmentVariables = environment?.variables;
+
   const nonSecretSensitiveVarUsageMap = useMemo(() => {
     const result = {};
-    if (!collection || !environment?.variables) {
+    if (!environmentVariables) {
       return result;
     }
-    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    const nonSecretVars = environmentVariables.filter((v) => v.enabled && !v.secret && v.name);
     if (!nonSecretVars.length) {
       return result;
     }
@@ -45,12 +48,12 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       return item.root;
     };
 
-    const collectionObj = getObjectToProcess(collection);
+    const collectionObj = collectionRoot;
     sensitiveFields.forEach((fieldPath) => {
       checkSensitiveField(collectionObj, fieldPath);
     });
 
-    const items = flattenItems(collection.items || []);
+    const items = flattenItems(collectionItems || []);
     items.forEach((item) => {
       const objToProcess = getObjectToProcess(item);
       sensitiveFields.forEach((fieldPath) => {
@@ -58,7 +61,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       });
     });
     return result;
-  }, [collection, environment]);
+  }, [collectionItems, collectionRoot, environmentVariables]);
 
   const hasSensitiveUsage = useCallback((name) => !!nonSecretSensitiveVarUsageMap[name], [nonSecretSensitiveVarUsageMap]);
 

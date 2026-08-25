@@ -173,6 +173,19 @@ const EnvVarValueCell = ({
   );
 };
 
+const ErrorMessage = React.memo(({ id, error }) => {
+  if (!error) {
+    return null;
+  }
+
+  return (
+    <span>
+      <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
+      <Tooltip className="tooltip-mod" anchorId={id} html={error} />
+    </span>
+  );
+});
+
 const EnvironmentVariablesTable = ({
   environment,
   collection,
@@ -302,15 +315,18 @@ const EnvironmentVariablesTable = ({
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
 
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const globalEnvironmentVariables = useMemo(
+    () => getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
-  // context. Without memoization, `cloneDeep(collection)` runs on every render —
-  // and Formik triggers a re-render on every keystroke, so a single env edit
-  // session can deep-clone the entire collection 100+ times. That's the
-  // dominant cost behind the test-budget flake.
+  // context. The copy exists only so the three fields below can be attached without
+  // writing to Redux state, so a shallow spread is enough, every consumer
+  // (getAllVariables, mergeVars, brunoVarInfo) reads the nested structures and never
+  // mutates them
   const _collection = useMemo(() => {
-    const c = collection ? cloneDeep(collection) : {};
+    const c = collection ? { ...collection } : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
     c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
@@ -533,32 +549,6 @@ const EnvironmentVariablesTable = ({
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
   const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
-
-  const ErrorMessage = ({ name, index }) => {
-    const meta = formik.getFieldMeta(name);
-    const id = `error-${name}-${index}`;
-
-    const isLastRow = index === formik.values.length - 1;
-    const variable = formik.values[index];
-    const isEmptyRow = !variable?.name || variable.name.trim() === '';
-
-    if (isLastRow && isEmptyRow) {
-      return null;
-    }
-
-    const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
-    const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
-
-    if (!error) {
-      return null;
-    }
-    return (
-      <span>
-        <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
-      </span>
-    );
-  };
 
   const handleRemoveVar = useCallback(
     (id) => {
@@ -955,6 +945,12 @@ const EnvironmentVariablesTable = ({
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
+            const isDuplicateSecret
+              = variable.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+            const rowError = isLastEmptyRow
+              ? null
+              : formik.getFieldMeta(`${actualIndex}.name`).error
+                || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
 
             return (
               <>
@@ -1003,7 +999,10 @@ const EnvironmentVariablesTable = ({
                         onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                       />
                     </div>
-                    <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
+                    <ErrorMessage
+                      id={`error-${actualIndex}.name-${actualIndex}`}
+                      error={rowError}
+                    />
                   </div>
                 </td>
                 <td style={{ width: columnWidths.value }} className="overflow-hidden">
