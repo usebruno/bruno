@@ -15,7 +15,7 @@ const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebru
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, addEdgeGridInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, applySentHeadersToRequest } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -673,7 +673,6 @@ const registerNetworkIpc = (mainWindow) => {
         extend(request.headers, form.getHeaders());
       }
     }
-
     return scriptResult;
   };
 
@@ -690,6 +689,7 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    applySentHeadersToRequest(request, response);
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
@@ -876,7 +876,6 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
-
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
@@ -909,7 +908,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
       request.certsAndProxyConfig = certsAndProxyConfig;
-
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -962,6 +960,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -1070,7 +1069,9 @@ const registerNetworkIpc = (mainWindow) => {
             response.data = await promisifyStream(response.data);
           }
         } else {
-          await executeRequestOnFailHandler(request, error);
+          await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+          });
 
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
@@ -1947,7 +1948,9 @@ const registerNetworkIpc = (mainWindow) => {
                   ...eventData
                 });
               } else {
-                await executeRequestOnFailHandler(request, error);
+                await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+                });
 
                 // if it's not a network error, don't continue
                 throw error;
@@ -2242,14 +2245,19 @@ const registerNetworkIpc = (mainWindow) => {
  * Executes the custom error handler if it exists on the request
  * @param {Object} request - The request object that may contain an onFailHandler
  * @param {Error} error - The error that occurred
+ * @param {Function} onResult - Callback for handling the script result
  */
-const executeRequestOnFailHandler = async (request, error) => {
+const executeRequestOnFailHandler = async (request, error, onResult) => {
   if (!request || typeof request.onFailHandler !== 'function') {
     return;
   }
 
   try {
-    await request.onFailHandler(error);
+    const result = await request.onFailHandler(error);
+    if (result && typeof onResult === 'function') {
+      onResult(result);
+    }
+    return result;
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.

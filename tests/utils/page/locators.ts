@@ -15,6 +15,8 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 
@@ -24,6 +26,8 @@ export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
+  devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
@@ -222,6 +226,11 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    xmlTree: () => page.getByTestId('xml-tree'),
+    // Only the XML tree's expand/collapse buttons carry aria-expanded, so this matches
+    // every still-collapsed node regardless of depth.
+    xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
+    previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
@@ -241,7 +250,10 @@ export const buildCommonLocators = (page: Page) => ({
     container: () => page.getByTestId('timeline-container'),
     entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container')
+    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+    headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+    headerValue: (item: Locator, name: string) =>
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -307,6 +319,8 @@ export const buildCommonLocators = (page: Page) => ({
         return row.getByTestId(`column-${columnKey}`);
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowCheckboxByName: (name: string) =>
+        container().locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
       allRows: () => container().locator('tbody tr')
     };
@@ -334,6 +348,11 @@ export const buildCommonLocators = (page: Page) => ({
   }
 });
 
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
+  });
+
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
@@ -350,6 +369,7 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    messages: () => page.getByTestId('grpc-messages-container').locator('.message-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
     regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),

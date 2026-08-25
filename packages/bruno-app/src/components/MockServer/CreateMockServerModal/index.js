@@ -255,6 +255,9 @@ const CreateMockServerModal = ({
       const specPath = resolvedSourceType === 'spec'
         ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
         : null;
+      const collectionPathname = resolvedSourceType === 'collection'
+        ? collectionSelectOptions.find((collection) => collection.uid === values.collectionUid)?.pathname || null
+        : null;
 
       const instance = editingInstance
         ? {
@@ -263,6 +266,7 @@ const CreateMockServerModal = ({
             name: values.name.trim(),
             sourceType: resolvedSourceType,
             collectionUid: resolvedSourceType === 'collection' ? values.collectionUid : null,
+            collectionPathname,
             specPath: resolvedSourceType === 'spec' ? specPath : null,
             port: resolvedPort,
             globalDelay: Number(values.globalDelay) || 0
@@ -271,6 +275,7 @@ const CreateMockServerModal = ({
             name: values.name,
             sourceType: resolvedSourceType,
             collectionUid: values.collectionUid,
+            collectionPathname,
             specPath,
             port: resolvedPort,
             globalDelay: values.globalDelay,
@@ -278,7 +283,7 @@ const CreateMockServerModal = ({
           });
 
       try {
-        await dispatch(saveMockServerInstance(instance));
+        const savedInstance = await dispatch(saveMockServerInstance(instance));
 
         const tabCollectionUid = resolveTabCollectionUid({
           sourceType: resolvedSourceType,
@@ -288,9 +293,9 @@ const CreateMockServerModal = ({
         });
 
         if (isEditing) {
-          dispatch(updateMockServerTabName(instance));
+          dispatch(updateMockServerTabName(savedInstance));
         } else {
-          dispatch(openMockServerDashboard(instance, tabCollectionUid));
+          dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
         }
 
         toast.success(isEditing ? 'Mock server settings saved' : 'Mock server created');
