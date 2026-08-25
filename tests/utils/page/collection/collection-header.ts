@@ -8,7 +8,8 @@ export const buildCollectionHeaderLocators = (page: Page) => {
   return {
     runner: () => collectionHeader.getByTestId('runner'),
     sandboxModeSelector: () => collectionHeader.getByTestId('sandbox-mode-selector'),
-    collectionSettingsDropdown: () => collectionHeader.getByTestId('more-actions'),
+    overflowMenu: () => collectionHeader.getByTestId('more-actions'),
+    overflowMenuItem: (itemId: string) => page.getByTestId(`more-actions-${itemId}`),
     envSelectorTrigger: () => collectionHeader.getByTestId('environment-selector-trigger')
   };
 };
