@@ -5,8 +5,8 @@ import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { toastError } from 'utils/common/error';
 import { generateCopyName } from 'utils/environments';
-import { detectEnvironmentFormat, normalizeEnvName } from '../utils';
-import { useEnvironmentTarget } from './useEnvironmentTarget';
+import { detectEnvironmentFormat, normalizeEnvName } from '../../utils';
+import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
 export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCreated) => {
   const [step, setStep] = useState('UPLOAD'); // 'UPLOAD' | 'REVIEW'

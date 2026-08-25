@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconCopy, IconArrowsExchange } from '@tabler/icons';
-import { ResolutionButton } from './StyledWrapper';
+import { ResolutionButton } from '../StyledWrapper';
 
 const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setItemResolution, showResolutions }) => {
   return (

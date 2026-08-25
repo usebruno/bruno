@@ -5,9 +5,9 @@ import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import CountBadge from 'ui/CountBadge';
-import { StyledWrapper } from './StyledWrapper';
+import { StyledWrapper } from '../StyledWrapper';
 import { pluralizeWord } from 'utils/common/index';
-import EnvironmentGroup from './EnvironmentGroup';
+import EnvironmentGroup from '../EnvironmentGroup';
 
 const ReviewStep = ({
   modalTitle,
