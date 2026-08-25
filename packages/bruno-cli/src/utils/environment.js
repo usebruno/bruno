@@ -25,30 +25,40 @@ const parseEnvironmentJson = (parsed = {}) => {
   return normalized;
 };
 
+const parseEnvFile = (filePath) => {
+  const fileExt = path.extname(filePath).toLowerCase();
+  const content = fs.readFileSync(filePath, 'utf8');
+
+  if (fileExt === '.json') {
+    return parseEnvironmentJson(JSON.parse(content));
+  }
+
+  const format = fileExt === '.yml' ? 'yml' : 'bru';
+  const normalized = format === 'bru' ? content.replace(/\r\n/g, '\n') : content;
+  return parseEnvironment(normalized, { format });
+};
+
 const loadEnvironments = (collectionPath) => {
   const environmentsDir = path.join(collectionPath, 'environments');
   if (!fs.existsSync(environmentsDir)) {
     return [];
   }
 
-  return fs
+  const environments = fs
     .readdirSync(environmentsDir)
     .filter((file) => /\.(bru|yml|json)$/i.test(file))
     .map((file) => {
       const filePath = path.join(environmentsDir, file);
-      const fileExt = path.extname(file).toLowerCase();
-      const content = fs.readFileSync(filePath, 'utf8');
-
-      if (fileExt === '.json') {
-        const parsed = parseEnvironmentJson(JSON.parse(content));
-        return { ...parsed, name: parsed.name || path.basename(file, '.json'), variables: parsed.variables || [] };
+      try {
+        const envJson = parseEnvFile(filePath);
+        const name = envJson.name || path.basename(file, path.extname(file));
+        return { ...envJson, name, variables: envJson.variables || [] };
+      } catch (err) {
+        throw new Error(`environments/${file}: ${err.message}`);
       }
-
-      const format = fileExt === '.yml' ? 'yml' : 'bru';
-      const normalized = format === 'bru' ? content.replace(/\r\n/g, '\n') : content;
-      const envJson = parseEnvironment(normalized, { format });
-      return { ...envJson, name: envJson.name || path.basename(file, fileExt), variables: envJson.variables || [] };
     });
+
+  return environments.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 module.exports = {

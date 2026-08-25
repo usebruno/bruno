@@ -68,4 +68,23 @@ describe('loadEnvironments', () => {
 
     expect(loadEnvironments(collDir).map((e) => e.name)).toEqual(['Prod']);
   });
+
+  it('throws a clear error naming the file when an environment cannot be parsed', () => {
+    writeEnvFile('Broken.json', '{ not valid json');
+
+    expect(() => loadEnvironments(collDir)).toThrow(/Broken\.json/);
+  });
+
+  it('derives the name correctly from an uppercase file extension', () => {
+    writeEnvFile('Prod.JSON', JSON.stringify({ variables: [] }));
+
+    expect(loadEnvironments(collDir)[0].name).toBe('Prod');
+  });
+
+  it('orders the environments by name to match the app, not by file name', () => {
+    writeEnvFile('a-first.json', JSON.stringify({ name: 'Zeta', variables: [] }));
+    writeEnvFile('z-last.json', JSON.stringify({ name: 'Alpha', variables: [] }));
+
+    expect(loadEnvironments(collDir).map((e) => e.name)).toEqual(['Alpha', 'Zeta']);
+  });
 });

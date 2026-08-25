@@ -74,16 +74,6 @@ describe('bru docs generate', () => {
     expect(exitSpy).toHaveBeenNthCalledWith(1, 9);
   });
 
-  it('uses a default file name when --output is not given', async () => {
-    const expected = path.join(FIXTURE, 'collection-documentation.html');
-    try {
-      await generate.handler({ gitLink: false, format: 'html' });
-      expect(fs.existsSync(expected)).toBe(true);
-    } finally {
-      fs.rmSync(expected, { force: true });
-    }
-  });
-
   it('errors when the same tag is both included and excluded', async () => {
     const exitSpy = mockExit();
 
@@ -100,6 +90,25 @@ describe('bru docs generate', () => {
       generate.handler({ gitLink: false, format: 'html', envs: 'Production', excludeEnvs: 'Production' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+  });
+
+  it('exits with the invalid-file code when an environment file cannot be parsed', async () => {
+    const exitSpy = mockExit();
+    const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-badenv-'));
+    fs.cpSync(FIXTURE, badDir, { recursive: true });
+    fs.mkdirSync(path.join(badDir, 'environments'), { recursive: true });
+    fs.writeFileSync(path.join(badDir, 'environments', 'Broken.json'), '{ not valid json');
+    const prevCwd = process.cwd();
+    process.chdir(badDir);
+    try {
+      await expect(
+        generate.handler({ output: path.join(badDir, 'x.html'), gitLink: false, format: 'html' })
+      ).rejects.toThrow();
+      expect(exitSpy).toHaveBeenNthCalledWith(1, 10);
+    } finally {
+      process.chdir(prevCwd);
+      fs.rmSync(badDir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -142,6 +151,13 @@ describe('bru docs generate: environment selection', () => {
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Production');
     expect(html).not.toContain('Staging');
+  });
+
+  it('embeds the environments in the order given to --envs', async () => {
+    const output = path.join(outDir, 'order.html');
+    await generate.handler({ output, gitLink: false, format: 'html', envs: 'Staging,Production' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html.indexOf('Staging')).toBeLessThan(html.indexOf('Production'));
   });
 
   it('includes every environment except the ones in --exclude-envs', async () => {
@@ -255,5 +271,31 @@ describe('bru docs generate: git link', () => {
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('gitCollectionUrl');
     expect(html).toContain('https://example.com/team/repo.git');
+  });
+});
+
+describe('bru docs generate: default output path', () => {
+  let originalCwd;
+  let collDir;
+
+  beforeAll(() => {
+    originalCwd = process.cwd();
+    collDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-default-'));
+    fs.cpSync(FIXTURE, collDir, { recursive: true });
+    process.chdir(collDir);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(collDir, { recursive: true, force: true });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('writes <collection-name>-documentation.html to the cwd when --output is not given', async () => {
+    await generate.handler({ gitLink: false, format: 'html' });
+    expect(fs.existsSync(path.join(collDir, 'collection-documentation.html'))).toBe(true);
   });
 });

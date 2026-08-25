@@ -65,7 +65,12 @@ const handler = async (argv) => {
     const collection = createCollectionJsonFromPathname(collectionPath, { sortFolders });
 
     collection.name = collection.brunoConfig?.name;
-    collection.environments = loadEnvironments(collectionPath);
+    try {
+      collection.environments = loadEnvironments(collectionPath);
+    } catch (err) {
+      console.error(chalk.red('Failed to parse environment file: ') + chalk.dim(err.message));
+      process.exit(EXIT_STATUS.ERROR_INVALID_FILE);
+    }
 
     const includeTags = splitCsv(argv.tags);
     const excludeTags = splitCsv(argv.excludeTags);
@@ -89,8 +94,16 @@ const handler = async (argv) => {
       console.error(chalk.red('Environment not found: ') + chalk.dim(missingEnv));
       process.exit(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
     }
-    const excludeOnly = includeEnvs.length === 0 && excludeEnvs.length > 0;
-    const envInclude = excludeOnly ? [...availableEnvNames] : includeEnvs;
+
+    if (includeEnvs.length > 0) {
+      const envByName = new Map(collection.environments.map((env) => [env.name, env]));
+      collection.environments = includeEnvs.map((name) => envByName.get(name));
+    } else if (excludeEnvs.length > 0) {
+      const excluded = new Set(excludeEnvs);
+      collection.environments = collection.environments.filter((env) => !excluded.has(env.name));
+    } else {
+      collection.environments = [];
+    }
 
     const gitCollectionUrl = argv.gitLink ? getGitRemoteUrl(collectionPath) : undefined;
 
@@ -98,7 +111,6 @@ const handler = async (argv) => {
       collection,
       {
         tags: { include: includeTags, exclude: excludeTags },
-        environments: { include: envInclude, exclude: excludeEnvs },
         gitCollectionUrl,
         collectionVersion: resolveCollectionVersion(collection.brunoConfig, collection.format === 'yml'),
         exportedAt: new Date().toISOString(),
