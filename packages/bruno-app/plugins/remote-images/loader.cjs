@@ -2,16 +2,10 @@
 
 const crypto = require('crypto');
 const fs = require('fs');
-const net = require('net');
 const path = require('path');
 const { Readable, Transform } = require('stream');
 const { pipeline } = require('stream/promises');
 const { findRemoteImageUrls, assetFilenameFromHash, buildModuleSource } = require('./utils');
-
-// fetch/undici default is 250ms; too short since the domain might be in a different location.
-if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout === 'function') {
-  net.setDefaultAutoSelectFamilyAttemptTimeout(500);
-}
 
 const CACHE_DIR = path.join(process.cwd(), 'node_modules/.cache/bruno-remote-images');
 
