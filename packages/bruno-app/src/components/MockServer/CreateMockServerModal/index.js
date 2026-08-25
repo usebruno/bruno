@@ -43,18 +43,12 @@ const toSpecOption = (spec, fallbackName = null) => ({
   pathname: spec.pathname
 });
 
-const buildSpecSelectOptions = (workspaceSpecs, apiSpecs, editingInstance = null) => {
+const buildSpecSelectOptions = (workspaceSpecs, editingInstance = null) => {
   const optionsByUid = new Map(
     workspaceSpecs.map((spec) => [spec.uid, toSpecOption(spec)])
   );
 
-  apiSpecs.forEach((spec) => {
-    if (!optionsByUid.has(spec.uid)) {
-      optionsByUid.set(spec.uid, toSpecOption(spec));
-    }
-  });
-
-  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, apiSpecs);
+  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, workspaceSpecs);
   if (!selectedSpecUid && editingInstance?.specPath) {
     optionsByUid.set(editingInstance.specPath, {
       uid: editingInstance.specPath,
@@ -147,8 +141,8 @@ const CreateMockServerModal = ({
   }, [activeWorkspace, apiSpecs]);
 
   const specSelectOptions = useMemo(() => (
-    buildSpecSelectOptions(workspaceApiSpecs, apiSpecs, editingInstance)
-  ), [workspaceApiSpecs, apiSpecs, editingInstance]);
+    buildSpecSelectOptions(workspaceApiSpecs, editingInstance)
+  ), [workspaceApiSpecs, editingInstance]);
 
   const collectionSelectOptions = useMemo(() => (
     buildCollectionSelectOptions(workspaceCollections, collections, editingInstance)
@@ -157,7 +151,7 @@ const CreateMockServerModal = ({
   const defaultCollection = workspaceCollections.find((collection) => collection.uid === defaultCollectionUid)
     || workspaceCollections[0]
     || null;
-  const defaultSpec = specSelectOptions.find((spec) => spec.uid === resolveSelectedSpecUid(editingInstance, apiSpecs))
+  const defaultSpec = specSelectOptions.find((spec) => spec.uid === resolveSelectedSpecUid(editingInstance, workspaceApiSpecs))
     || specSelectOptions[0]
     || null;
 
@@ -169,7 +163,7 @@ const CreateMockServerModal = ({
   const hasSpecOptions = specSelectOptions.length > 0;
   const canLinkSource = hasCollectionOptions || hasSpecOptions;
   const initialSpecUid = editingInstance
-    ? resolveSelectedSpecUid(editingInstance, apiSpecs)
+    ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
     : (defaultSpec?.uid || '');
 
   const formik = useFormik({
