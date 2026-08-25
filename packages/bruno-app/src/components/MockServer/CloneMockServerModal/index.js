@@ -13,6 +13,7 @@ import {
   getMockServerInstances,
   getMockServerNameError,
   getMockServerPortError,
+  getMockServerPortRangeError,
   isMockServerNameTaken,
   isMockServerPortTaken,
   openMockServerDashboard,
@@ -53,12 +54,11 @@ const CloneMockServerModal = ({
         .test('duplicate-name', 'A mock server with this name already exists', (value) => (
           !isMockServerNameTaken(existingInstances, value)
         )),
-      port: Yup.number()
-        .typeError('Port is required')
-        .required('Port is required')
-        .integer('Port must be a whole number')
-        .min(1, 'Port must be at least 1')
-        .max(65535, 'Port must be 65535 or less')
+      port: Yup.mixed()
+        .test('port-range', function (value) {
+          const error = getMockServerPortRangeError(value);
+          return error ? this.createError({ message: error }) : true;
+        })
         .test('duplicate-port', 'This port is already used by another mock server', (value) => {
           const normalizedPort = Number(value);
           if (!normalizedPort) {
@@ -75,11 +75,15 @@ const CloneMockServerModal = ({
       }
 
       const resolvedPort = Number(values.port);
-      const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances);
-      const portError = getMockServerPortError(portCheck, resolvedPort);
-      if (portError) {
-        setFieldError('port', portError);
-        toast.error(portError);
+      try {
+        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances);
+        const availabilityError = getMockServerPortError(portCheck, resolvedPort);
+        if (availabilityError) {
+          setFieldError('port', availabilityError);
+          return;
+        }
+      } catch (err) {
+        setFieldError('port', err.message || 'Failed to validate port');
         return;
       }
 
@@ -90,12 +94,12 @@ const CloneMockServerModal = ({
       });
 
       try {
-        await dispatch(saveMockServerInstance(newInstance));
+        const savedInstance = await dispatch(saveMockServerInstance(newInstance));
 
         const result = await window.ipcRenderer.invoke('renderer:mock-server-clone-responses', {
           workspacePath,
           sourceMockServerUid: instance.uid,
-          targetMockServerUid: newInstance.uid
+          targetMockServerUid: savedInstance.uid
         });
 
         if (!result.success) {
@@ -103,18 +107,18 @@ const CloneMockServerModal = ({
         }
 
         await dispatch(loadMockResponses({
-          mockServerUid: newInstance.uid,
+          mockServerUid: savedInstance.uid,
           workspacePath
         }));
 
         const tabCollectionUid = resolveTabCollectionUid({
-          sourceType: newInstance.sourceType,
-          collectionUid: newInstance.collectionUid,
+          sourceType: savedInstance.sourceType,
+          collectionUid: savedInstance.collectionUid,
           activeWorkspace,
           workspaceCollections
         });
 
-        dispatch(openMockServerDashboard(newInstance, tabCollectionUid));
+        dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
         toast.success('Mock server cloned');
         onClose();
       } catch (err) {
@@ -150,7 +154,18 @@ const CloneMockServerModal = ({
         size="md"
         title="Clone Mock Server"
         confirmText="Clone"
-        handleConfirm={() => formik.handleSubmit()}
+        handleConfirm={async () => {
+          const errors = await formik.validateForm();
+          if (Object.keys(errors).length > 0) {
+            formik.setTouched(Object.keys(errors).reduce((touched, key) => ({
+              ...touched,
+              [key]: true
+            }), formik.touched));
+            return;
+          }
+
+          formik.handleSubmit();
+        }}
         handleCancel={onClose}
         dataTestId="mock-server-clone-modal"
       >
@@ -193,6 +208,9 @@ const CloneMockServerModal = ({
               value={formik.values.port || ''}
               onChange={(event) => {
                 formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
+                if (formik.errors.port) {
+                  formik.setFieldError('port', undefined);
+                }
               }}
               onBlur={formik.handleBlur}
               data-testid="mock-server-clone-port-input"

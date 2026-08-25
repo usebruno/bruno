@@ -1,6 +1,8 @@
 import {
   DEFAULT_MOCK_SERVER_PORT,
   getMockServerNameError,
+  getMockServerPortError,
+  getMockServerPortRangeError,
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
@@ -69,15 +71,70 @@ describe('mock server instance validation helpers', () => {
   });
 });
 
-describe('mock server name validation', () => {
-  it('rejects digit-only and symbol-only names', () => {
-    expect(getMockServerNameError('12345')).toBe('Name must contain at least one letter.');
-    expect(getMockServerNameError('!@££@!£@!')).toBe('Special characters aren\'t allowed in the name.');
+describe('getMockServerPortRangeError', () => {
+  it('rejects empty port values', () => {
+    expect(getMockServerPortRangeError('')).toBe('Port is required');
+    expect(getMockServerPortRangeError(null)).toBe('Port is required');
   });
 
-  it('allows normal names with letters', () => {
+  it('rejects non-integer ports', () => {
+    expect(getMockServerPortRangeError(4000.5)).toBe('Port must be a whole number');
+  });
+
+  it('rejects ports below 1', () => {
+    expect(getMockServerPortRangeError(0)).toBe('Port must be at least 1');
+  });
+
+  it('rejects ports above 65535', () => {
+    expect(getMockServerPortRangeError(65536)).toBe('Port must be 65535 or less');
+  });
+
+  it('accepts ports in range', () => {
+    expect(getMockServerPortRangeError(1)).toBeNull();
+    expect(getMockServerPortRangeError(65535)).toBeNull();
+    expect(getMockServerPortRangeError(4000)).toBeNull();
+    expect(getMockServerPortRangeError(' 8080 ')).toBeNull();
+  });
+
+  it('treats whitespace-only values as missing rather than out of range', () => {
+    expect(getMockServerPortRangeError('   ')).toBe('Port is required');
+  });
+
+  it('rejects negative ports', () => {
+    expect(getMockServerPortRangeError(-1)).toBe('Port must be at least 1');
+  });
+});
+
+describe('getMockServerPortError', () => {
+  it('returns null when the port is available', () => {
+    expect(getMockServerPortError({ available: true }, 4000)).toBeNull();
+  });
+
+  it('reports ports held by another process', () => {
+    expect(getMockServerPortError({ available: false, reason: 'system' }, 4000))
+      .toBe('Port 4000 is already in use on this system.');
+  });
+
+  it('reports ports held by another mock server', () => {
+    expect(getMockServerPortError({ available: false, reason: 'bruno' }, 4000))
+      .toBe('Port 4000 is already used by another mock server in Bruno.');
+  });
+});
+
+describe('mock server name validation', () => {
+  it('follows collection-name rules: any characters are allowed', () => {
     expect(getMockServerNameError('Shop Mock')).toBe('');
     expect(getMockServerNameError('mock-1')).toBe('');
-    expect(getMockServerNameError('Auth Server')).toBe('');
+    expect(getMockServerNameError('12345')).toBe('');
+    expect(getMockServerNameError('!@££@!£@!')).toBe('');
+    expect(getMockServerNameError('Dog / Cat: API? *v2*')).toBe('');
+  });
+
+  it('rejects empty and over-long names', () => {
+    expect(getMockServerNameError('')).toBe('Name is required');
+    expect(getMockServerNameError('   ')).toBe('Name is required');
+    expect(getMockServerNameError(null)).toBe('Name is required');
+    expect(getMockServerNameError('a'.repeat(256))).toBe('Must be 255 characters or less');
+    expect(getMockServerNameError('a'.repeat(255))).toBe('');
   });
 });

@@ -1,20 +1,43 @@
 import get from 'lodash/get';
-import { uuid } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
-import { validateName, validateNameError } from 'utils/common/regex';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import {
-  loadAllMockResponses,
   loadMockServerInstances,
   refreshMockRoutes,
   removeMockServerData,
   removeMockServerInstance,
+  setMockResponses,
   stopMockServer,
   upsertMockServerInstance
 } from 'providers/ReduxStore/slices/mock-server/index';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
+export const MOCK_SERVER_PORT_MIN = 1;
+export const MOCK_SERVER_PORT_MAX = 65535;
+
+export const getMockServerPortRangeError = (port) => {
+  const trimmedPort = typeof port === 'string' ? port.trim() : port;
+
+  if (trimmedPort === '' || trimmedPort === null || trimmedPort === undefined) {
+    return 'Port is required';
+  }
+
+  const normalizedPort = Number(trimmedPort);
+
+  if (!Number.isInteger(normalizedPort)) {
+    return 'Port must be a whole number';
+  }
+
+  if (normalizedPort < MOCK_SERVER_PORT_MIN) {
+    return 'Port must be at least 1';
+  }
+
+  if (normalizedPort > MOCK_SERVER_PORT_MAX) {
+    return 'Port must be 65535 or less';
+  }
+
+  return null;
+};
 
 export const normalizeMockTabType = (type) => {
   if (type === 'mock-server-dashboard' || type === 'mocker') {
@@ -80,80 +103,68 @@ export const resolveMockServerInstance = (state, { mockServerUid, collectionUid 
   )) || null;
 };
 
-const clearLegacyMockServerPrefs = (preferences, workspaceUid) => ({
-  ...preferences,
-  mockServer: {
-    ...preferences.mockServer,
-    instances: get(preferences, 'mockServer.instances', []).filter((item) => item.workspaceUid !== workspaceUid)
-  }
-});
-
-export const hydrateMockServerInstances = (workspacePath, workspaceUid) => async (dispatch, getState) => {
+export const hydrateMockServerInstances = (workspacePath, workspaceUid) => async (dispatch) => {
   if (!workspacePath || !workspaceUid) {
     return [];
   }
 
-  const preferences = getState().app.preferences;
-  const migrateFrom = get(preferences, 'mockServer.instances', [])
-    .filter((instance) => instance.workspaceUid === workspaceUid);
-
   const result = await dispatch(loadMockServerInstances({
     workspacePath,
-    workspaceUid,
-    migrateFrom
+    workspaceUid
   })).unwrap();
-
-  if (migrateFrom.length) {
-    await dispatch(savePreferences(clearLegacyMockServerPrefs(preferences, workspaceUid)));
-  }
 
   return result.instances || [];
 };
 
-// Thin disk sync for workspace watcher / git pull while the workspace is open.
-export const syncMockServersFromWorkspaceStore = (workspacePath, workspaceUid) => async (dispatch, getState) => {
-  const previousUids = getMockServerInstances(getState(), workspaceUid).map((instance) => instance.uid);
-  const instances = await dispatch(hydrateMockServerInstances(workspacePath, workspaceUid));
-  const nextUids = new Set(instances.map((instance) => instance.uid));
-
-  previousUids.forEach((mockServerUid) => {
-    if (!nextUids.has(mockServerUid)) {
-      dispatch(removeMockServerData({ mockServerUid }));
-    }
-  });
-
-  const state = getState();
-  const collections = state.collections.collections;
-  const activeWorkspace = state.workspaces.workspaces.find((workspace) => workspace.uid === workspaceUid) || null;
-
-  const locations = instances.map((instance) => ({
-    mockServerUid: instance.uid,
-    sourceType: instance.sourceType,
-    collectionPath: instance.sourceType === 'collection'
-      ? collections.find((collection) => collection.uid === instance.collectionUid)?.pathname || null
-      : null,
-    workspacePath: resolveMockServerWorkspacePath(instance, state.workspaces.workspaces, activeWorkspace) || workspacePath
-  }));
-
-  if (locations.length) {
-    await dispatch(loadAllMockResponses({ locations })).unwrap();
+// Watcher push for a single mock server file (created, edited, or git-pulled on disk).
+export const mockServerFileEvent = (workspaceUid, { instance, responses }) => async (dispatch, getState) => {
+  if (!instance?.uid) {
+    return;
   }
 
-  const servers = state.mockServer?.servers || {};
-  await Promise.all(locations.map(async (location) => {
-    const status = servers[location.mockServerUid]?.status;
-    if (status !== 'running' && status !== 'starting') {
-      return;
-    }
+  dispatch(upsertMockServerInstance({ workspaceUid, instance: { ...instance, workspaceUid } }));
+  dispatch(setMockResponses({ mockServerUid: instance.uid, responses: responses || [] }));
 
+  const state = getState();
+  const status = state.mockServer?.servers?.[instance.uid]?.status;
+  if (status !== 'running' && status !== 'starting') {
+    return;
+  }
+
+  const workspacePath = state.workspaces.workspaces.find((workspace) => workspace.uid === workspaceUid)?.pathname || null;
+
+  try {
+    await dispatch(refreshMockRoutes({
+      mockServerUid: instance.uid,
+      workspacePath
+    })).unwrap();
+  } catch {
+    // Running server may have stopped between the file event and refresh.
+  }
+};
+
+export const mockServerFileDeletedEvent = (workspaceUid, mockServerUid) => async (dispatch, getState) => {
+  // The file can be deleted while the server is running (e.g. git checkout);
+  // stop it first so it doesn't keep serving deleted routes on a bound port.
+  const status = getState().mockServer?.servers?.[mockServerUid]?.status;
+  if (status === 'running' || status === 'starting') {
     try {
-      await dispatch(refreshMockRoutes(location)).unwrap();
+      await dispatch(stopMockServer({ mockServerUid })).unwrap();
     } catch {
-      // Running server may have stopped between hydrate and refresh.
+      // Continue removing the stale file-backed configuration.
     }
-  }));
+  }
 
-  return instances;
+  const tabUids = (getState().tabs?.tabs || [])
+    .filter((tab) => isMockServerRelatedTab(tab, mockServerUid))
+    .map((tab) => tab.uid);
+
+  if (tabUids.length) {
+    dispatch(closeTabs({ tabUids }));
+  }
+
+  dispatch(removeMockServerInstance({ workspaceUid, mockServerUid }));
+  dispatch(removeMockServerData({ mockServerUid }));
 };
 
 export const saveMockServerInstance = (instance) => async (dispatch, getState) => {
@@ -241,15 +252,16 @@ export const createMockServerInstance = ({
   name,
   sourceType,
   collectionUid,
+  collectionPathname,
   specPath,
   port,
   globalDelay,
   workspaceUid
 }) => ({
-  uid: uuid(),
   name: name.trim(),
   sourceType: sourceType || 'manual',
   collectionUid: sourceType === 'collection' ? collectionUid : null,
+  collectionPathname: sourceType === 'collection' ? collectionPathname || null : null,
   specPath: sourceType === 'spec' ? specPath || null : null,
   port: Number(port) || DEFAULT_MOCK_SERVER_PORT,
   globalDelay: Number(globalDelay) || 0,
@@ -386,21 +398,18 @@ export const isMockServerNameTaken = (instances, name, excludeUid = null) => {
   ));
 };
 
-const MOCK_SERVER_NAME_CHARS = /^[\p{L}\p{N} _.-]+$/u;
-
+// Mock server names follow collection-name rules: any characters are allowed.
+// The on-disk filename is sanitized separately by the main process and can
+// differ from the name stored in the file's info block.
 export const getMockServerNameError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
-  if (!validateName(value)) {
-    return validateNameError(value);
+  if (!value.length) {
+    return 'Name is required';
   }
 
-  if (!MOCK_SERVER_NAME_CHARS.test(value)) {
-    return 'Special characters aren\'t allowed in the name.';
-  }
-
-  if (!/\p{L}/u.test(value)) {
-    return 'Name must contain at least one letter.';
+  if (value.length > 255) {
+    return 'Must be 255 characters or less';
   }
 
   return '';
@@ -483,6 +492,7 @@ export const cloneMockServerInstancePayload = (sourceInstance, { name, port, wor
     name,
     sourceType: sourceInstance.sourceType,
     collectionUid: sourceInstance.collectionUid,
+    collectionPathname: sourceInstance.collectionPathname,
     specPath: sourceInstance.specPath,
     port,
     globalDelay: sourceInstance.globalDelay,
