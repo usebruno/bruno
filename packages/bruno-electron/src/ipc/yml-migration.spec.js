@@ -39,7 +39,12 @@ jest.mock('@usebruno/filestore', () => {
   };
 });
 
-const { migrateCollectionOnDisk, migrateCollectionToYml, MIGRATION_CANCELLED_MESSAGE } = require('./yml-migration');
+const {
+  migrateCollectionOnDisk,
+  migrateCollectionToYml,
+  stripBruExtInRunRequest,
+  MIGRATION_CANCELLED_MESSAGE
+} = require('./yml-migration');
 const { openCollection } = require('../app/collections');
 const snapshotManager = require('../services/snapshot');
 
@@ -73,6 +78,46 @@ const ENV_BRU = `vars {
 
 const COLLECTION_BRU = `docs {
   Root level docs
+}
+`;
+
+const REQUEST_BRU_WITH_RUN_REQUEST = `meta {
+  name: chain
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:3000/chain
+}
+
+script:pre-request {
+  await bru.runRequest("newFolder/SecondReq.bru");
+  await bru.runRequest('single/quoted.bru');
+}
+
+script:post-response {
+  await bru.runRequest(\`template/literal.bru\`);
+  await bru.runRequest("no-ext");
+  await bru.runRequest("keeper.bruv");
+}
+
+tests {
+  await bru.runRequest("tests/only.bru");
+}
+`;
+
+const FOLDER_BRU_WITH_RUN_REQUEST = `meta {
+  name: chained
+}
+
+script:pre-request {
+  await bru.runRequest("folder-scoped/first.bru");
+}
+`;
+
+const COLLECTION_BRU_WITH_RUN_REQUEST = `script:pre-request {
+  await bru.runRequest("collection-scoped/first.bru");
 }
 `;
 
@@ -315,6 +360,33 @@ describe('migrateCollectionOnDisk', () => {
     expect(ocYml).toContain('proxy.example.com');
   });
 
+  it('strips the .bru extension from bru.runRequest calls across request, folder and collection scripts', async () => {
+    fs.writeFileSync(filePath('collection.bru'), COLLECTION_BRU_WITH_RUN_REQUEST);
+    fs.writeFileSync(filePath('chain.bru'), REQUEST_BRU_WITH_RUN_REQUEST);
+    fs.writeFileSync(filePath('api', 'folder.bru'), FOLDER_BRU_WITH_RUN_REQUEST);
+
+    await runMigration();
+
+    const chainYml = fs.readFileSync(filePath('chain.yml'), 'utf8');
+    expect(chainYml).toContain('bru.runRequest("newFolder/SecondReq")');
+    expect(chainYml).toContain('bru.runRequest(\'single/quoted\')');
+    expect(chainYml).toContain('bru.runRequest(`template/literal`)');
+    expect(chainYml).toContain('bru.runRequest("tests/only")');
+    // Untouched: extensionless call and a look-alike extension.
+    expect(chainYml).toContain('bru.runRequest("no-ext")');
+    expect(chainYml).toContain('bru.runRequest("keeper.bruv")');
+    // No stray literal ".bru" survived any of the rewritten calls.
+    expect(chainYml).not.toMatch(/bru\.runRequest\([^)]*\.bru['"`]\)/);
+
+    const folderYml = fs.readFileSync(filePath('api', 'folder.yml'), 'utf8');
+    expect(folderYml).toContain('bru.runRequest("folder-scoped/first")');
+    expect(folderYml).not.toContain('folder-scoped/first.bru');
+
+    const ocYml = fs.readFileSync(filePath('opencollection.yml'), 'utf8');
+    expect(ocYml).toContain('bru.runRequest("collection-scoped/first")');
+    expect(ocYml).not.toContain('collection-scoped/first.bru');
+  });
+
   it('keeps the backup and reports when a source cannot be restored', async () => {
     const realUnlink = fs.promises.unlink.bind(fs.promises);
     let unlinkCalls = 0;
@@ -339,6 +411,138 @@ describe('migrateCollectionOnDisk', () => {
     expect(reportError).toHaveBeenCalledWith(expect.stringContaining('could not be restored'));
     // the backup directory with the originals must survive for manual recovery
     expect(fs.readdirSync(backupRootDir)).toHaveLength(1);
+  });
+});
+
+describe('stripBruExtInRunRequest', () => {
+  it('rewrites standalone string-literal arguments in every quote style', () => {
+    const input = [
+      'await bru.runRequest("folder/one.bru");',
+      'await bru.runRequest(\'folder/two.bru\');',
+      'await bru.runRequest(`folder/three.bru`);'
+    ].join('\n');
+    const output = stripBruExtInRunRequest(input);
+    expect(output).toBe([
+      'await bru.runRequest("folder/one");',
+      'await bru.runRequest(\'folder/two\');',
+      'await bru.runRequest(`folder/three`);'
+    ].join('\n'));
+  });
+
+  it('rewrites every eligible call on the same line', () => {
+    const input = 'bru.runRequest("a.bru"); bru.runRequest("b.bru");';
+    expect(stripBruExtInRunRequest(input)).toBe('bru.runRequest("a"); bru.runRequest("b");');
+  });
+
+  it('leaves calls inside line comments untouched', () => {
+    const input = [
+      '// bru.runRequest("commented.bru")',
+      'bru.runRequest("real.bru");'
+    ].join('\n');
+    const output = stripBruExtInRunRequest(input);
+    expect(output).toContain('// bru.runRequest("commented.bru")');
+    expect(output).toContain('bru.runRequest("real")');
+    expect(output).not.toContain('real.bru');
+  });
+
+  it('leaves calls inside block comments untouched', () => {
+    const input = '/* bru.runRequest("block.bru") */ bru.runRequest("real.bru");';
+    const output = stripBruExtInRunRequest(input);
+    expect(output).toContain('/* bru.runRequest("block.bru") */');
+    expect(output).toContain('bru.runRequest("real")');
+  });
+
+  it('leaves lookalike text inside an unrelated outer string literal untouched', () => {
+    const single = 'const s = \'bru.runRequest("outer.bru")\';';
+    const double = 'const s = "bru.runRequest(\'outer.bru\')";';
+    expect(stripBruExtInRunRequest(single)).toBe(single);
+    expect(stripBruExtInRunRequest(double)).toBe(double);
+  });
+
+  it('does not rewrite when the argument is a compound expression', () => {
+    const cases = [
+      'bru.runRequest("first.bru" + suffix)',
+      'bru.runRequest("first.bru", { retries: 1 })',
+      'bru.runRequest(getPath("first.bru"))',
+      'bru.runRequest(`${prefix}` + ".bru")'
+    ];
+    for (const input of cases) {
+      expect(stripBruExtInRunRequest(input)).toBe(input);
+    }
+  });
+
+  it('does not rewrite calls whose argument does not end in .bru', () => {
+    const cases = [
+      'bru.runRequest("no-ext")',
+      'bru.runRequest("looks/like.bruv")',
+      'bru.runRequest("")'
+    ];
+    for (const input of cases) {
+      expect(stripBruExtInRunRequest(input)).toBe(input);
+    }
+  });
+
+  it('ignores identifiers that only end in "bru"', () => {
+    const input = 'notbru.runRequest("foo.bru"); mybru.runRequest("bar.bru");';
+    expect(stripBruExtInRunRequest(input)).toBe(input);
+  });
+
+  it('tolerates whitespace around the call punctuation', () => {
+    const input = 'bru.runRequest\n(\n  "spaced/out.bru"\n)';
+    expect(stripBruExtInRunRequest(input)).toBe('bru.runRequest\n(\n  "spaced/out"\n)');
+  });
+
+  it('is a no-op when the input never references runRequest', () => {
+    const input = 'const x = 1;\nfunction f() { return x + 2; }';
+    expect(stripBruExtInRunRequest(input)).toBe(input);
+  });
+
+  it('returns the input unchanged for empty or non-string values', () => {
+    expect(stripBruExtInRunRequest('')).toBe('');
+    expect(stripBruExtInRunRequest(null)).toBe(null);
+    expect(stripBruExtInRunRequest(undefined)).toBe(undefined);
+  });
+
+  it('rewrites calls nested inside a template literal substitution', () => {
+    const input = 'const msg = `Result: ${await bru.runRequest("nested/one.bru")}`;';
+    expect(stripBruExtInRunRequest(input)).toBe(
+      'const msg = `Result: ${await bru.runRequest("nested/one")}`;'
+    );
+  });
+
+  it('descends into nested template substitutions', () => {
+    const input = 'const s = `${`inner ${bru.runRequest("deep.bru")}`}`;';
+    expect(stripBruExtInRunRequest(input)).toBe(
+      'const s = `${`inner ${bru.runRequest("deep")}`}`;'
+    );
+  });
+
+  it('leaves template literal text (outside substitutions) untouched', () => {
+    const input = 'const s = `text bru.runRequest("outer.bru") text`;';
+    expect(stripBruExtInRunRequest(input)).toBe(input);
+  });
+
+  it('leaves calls that appear inside a regex literal untouched', () => {
+    const cases = [
+      'const re = /bru\\.runRequest\\("foo\\.bru"\\)/;',
+      'if (source.match(/bru\\.runRequest\\("bar.bru"\\)/)) {}',
+      'const re = /[a-z]bru\\.runRequest\\("baz.bru"\\)/g;'
+    ];
+    for (const input of cases) {
+      expect(stripBruExtInRunRequest(input)).toBe(input);
+    }
+  });
+
+  it('rewrites a call that follows an unrelated division', () => {
+    const input = 'const half = total / 2; bru.runRequest("real.bru");';
+    expect(stripBruExtInRunRequest(input)).toBe(
+      'const half = total / 2; bru.runRequest("real");'
+    );
+  });
+
+  it('treats `/` after a value-expecting keyword as a regex, not division', () => {
+    const input = 'function f() { return /bru\\.runRequest\\("kw.bru"\\)/; }';
+    expect(stripBruExtInRunRequest(input)).toBe(input);
   });
 });
 

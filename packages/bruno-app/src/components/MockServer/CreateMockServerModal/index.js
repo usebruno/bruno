@@ -44,18 +44,12 @@ const toSpecOption = (spec, fallbackName = null) => ({
   pathname: spec.pathname
 });
 
-const buildSpecSelectOptions = (workspaceSpecs, apiSpecs, editingInstance = null) => {
+const buildSpecSelectOptions = (workspaceSpecs, editingInstance = null) => {
   const optionsByUid = new Map(
     workspaceSpecs.map((spec) => [spec.uid, toSpecOption(spec)])
   );
 
-  apiSpecs.forEach((spec) => {
-    if (!optionsByUid.has(spec.uid)) {
-      optionsByUid.set(spec.uid, toSpecOption(spec));
-    }
-  });
-
-  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, apiSpecs);
+  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, workspaceSpecs);
   if (!selectedSpecUid && editingInstance?.specPath) {
     optionsByUid.set(editingInstance.specPath, {
       uid: editingInstance.specPath,
@@ -147,8 +141,8 @@ const CreateMockServerModal = ({
   }, [activeWorkspace, apiSpecs]);
 
   const specSelectOptions = useMemo(() => (
-    buildSpecSelectOptions(workspaceApiSpecs, apiSpecs, editingInstance)
-  ), [workspaceApiSpecs, apiSpecs, editingInstance]);
+    buildSpecSelectOptions(workspaceApiSpecs, editingInstance)
+  ), [workspaceApiSpecs, editingInstance]);
 
   const collectionSelectOptions = useMemo(() => (
     buildCollectionSelectOptions(workspaceCollections, collections, editingInstance)
@@ -159,15 +153,14 @@ const CreateMockServerModal = ({
     : null;
 
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
-  // getMockServerInstances rebuilds a new array wrapper each call; shallowEqual keeps the
-  // reference stable across renders as long as the underlying instances haven't changed
+
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
   const canLinkSource = hasCollectionOptions || hasSpecOptions;
   const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
-    ? resolveSelectedSpecUid(editingInstance, apiSpecs)
+    ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
     : '';
 
   const requiresPortField = showAdvancedPort || isEditing;
