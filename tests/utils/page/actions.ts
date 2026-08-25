@@ -2711,6 +2711,40 @@ const openSystemProxyPanel = async (page: Page) => {
   await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
 };
 
+/**
+ * Opens the environment import review modal and selects the given files.
+ * @param page - The Playwright Page object
+ * @param scope - The environment scope ('collection' | 'global')
+ * @param filePaths - The paths to the environment files to import
+ */
+const openImportReview = async (page: Page, scope: 'collection' | 'global', ...filePaths: string[]) => {
+  const { environment } = buildCommonLocators(page);
+  await openEnvironmentConfigTab(page, scope);
+  await environment.importSettingsButton().click();
+  await environment.importModal(scope).waitFor({ state: 'visible' });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await environment.importFileTrigger(scope).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePaths);
+};
+
+/**
+ * Clicks outside the modal backdrop to test click-outside behavior.
+ * @param page - The Playwright Page object
+ */
+const clickOutsideModal = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+
+  const cardBox = await modal.card().boundingBox();
+  if (!cardBox) {
+    throw new Error('Modal card not found');
+  }
+  await modal.backdrop().click({
+    position: { x: cardBox.x + cardBox.width / 2, y: cardBox.y + cardBox.height + 20 }
+  });
+};
+
 export {
   waitForReadyPage,
   readClipboard,
@@ -2827,7 +2861,9 @@ export {
   selectAppView,
   renameWsMessage,
   elementIsInsideDropdown,
-  openSystemProxyPanel
+  openSystemProxyPanel,
+  openImportReview,
+  clickOutsideModal
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

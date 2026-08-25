@@ -346,7 +346,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
             <div className="scroll-area">
               <div className="environments-list-container">
                 {(parsedData.duplicates.length > 0 || parsedData.invalid.length > 0) && (
-                  <div className="warning-block">
+                  <div className="warning-block" data-testid="import-duplicates-warning">
                     {parsedData.duplicates.length > 0 && (
                       <div className="warning-header">
                         <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />

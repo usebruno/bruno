@@ -96,7 +96,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
     saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
   },
   importEmptyStateButton: () => page.getByTestId('empty-state-import-env-btn'),
-  importSettingsButton: () => page.locator('.environments-container .sidebar button[title="Import environment"]'),
+  importSettingsButton: () => page.getByTestId('import-environment-btn'),
   importModal: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal' : 'import-environment-modal'),
   importFileTrigger: (scope: 'collection' | 'global') =>
@@ -116,7 +116,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importSubmitButton: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
-  importDuplicatesWarning: () => page.locator('.warning-block'),
+  importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
   importInvalidWarning: () => page.locator('.warning-header').filter({ has: page.locator('.error-icon') }),
   importDuplicatesGroup: () => page.locator('.group-container').filter({ hasText: 'Duplicates' }),
   importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
