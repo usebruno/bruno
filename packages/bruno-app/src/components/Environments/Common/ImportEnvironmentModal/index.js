@@ -337,7 +337,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
             <div className="scroll-area">
               <div className="environments-list-container">
                 {parsedData.duplicates.length > 0 && (
-                  <div className="warning-block">
+                  <div className="warning-block" data-testid="import-duplicates-warning">
                     <div className="warning-header">
                       <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
                       <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name

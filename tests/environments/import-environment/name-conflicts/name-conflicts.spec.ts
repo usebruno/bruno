@@ -5,35 +5,12 @@ import {
   closeAllCollections,
   createCollection,
   importEnvironment,
-  openEnvironmentConfigTab,
+  openImportReview,
+  clickOutsideModal,
   openEnvironmentSelector
 } from '../../../utils/page';
 
-type EnvironmentScope = 'collection' | 'global';
-
 const fixture = (name: string) => path.join(__dirname, 'fixtures', name);
-
-const openImportReview = async (page: Page, scope: EnvironmentScope, ...filePaths: string[]) => {
-  const locators = buildCommonLocators(page);
-  await openEnvironmentConfigTab(page, scope);
-  await locators.environment.importSettingsButton().click();
-  await expect(locators.environment.importModal(scope)).toBeVisible();
-
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await locators.environment.importFileTrigger(scope).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles(filePaths);
-};
-
-const clickOutsideModal = async (page: Page, locators: ReturnType<typeof buildCommonLocators>) => {
-  const cardBox = await locators.modal.card().boundingBox();
-  if (!cardBox) {
-    throw new Error('Modal card not found');
-  }
-  await locators.modal.backdrop().click({
-    position: { x: cardBox.x + cardBox.width / 2, y: cardBox.y + cardBox.height + 20 }
-  });
-};
 
 test.describe('Import environment - name conflict handling', () => {
   test.describe('collection scope', () => {
