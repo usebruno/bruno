@@ -939,6 +939,7 @@ const sortByNameThenSequence = (items) => {
 };
 
 // Resolves the JS sandbox a collection's scripts run in.
+// Duplicated as getJsSandboxRuntime in ipc/network/index.js; keep the two in sync.
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 

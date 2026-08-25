@@ -12,6 +12,10 @@ import { setSandboxMode } from '../../utils/page/runner';
 const COLLECTION_NAME = 'GrpcHooks';
 const SANDBOX_MODES = ['safe', 'developer'] as const;
 
+// Classnames for flashed line is addded to codemirror editor.
+const FLASHED_LINE_NUMBER = '.CodeMirror-gutter-wrapper.cm-error-line-flash-gutter .CodeMirror-linenumber';
+const FLASHED_LINE = '.CodeMirror-code > div:has(.cm-error-line-flash)';
+
 for (const mode of SANDBOX_MODES) {
   test.describe.serial(`grpc lifecycle hooks in ${mode} mode`, () => {
     const openCollection = async (page: Page) => {
@@ -32,9 +36,6 @@ for (const mode of SANDBOX_MODES) {
         await expect(locators.response.content()).toContainText('set-by-hook');
       });
 
-      // Nothing on a unary call ever streams, so `bru.grpc.request.messages` is rebuilt from the
-      // request body rather than observed — a hook that saw an empty list would be indistinguishable
-      // from a working one anywhere else in this suite.
       await test.step('the hook saw the message the unary call sent', async () => {
         await openGrpcTestsTab(page);
 
@@ -44,8 +45,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(tests.failedRows('afterCallEnd')).toHaveCount(0);
       });
 
-      // The only way to observe an afterCallEnd variable is to use it, which is also the only way
-      // a user can: a following request interpolates it.
+      // verifying if the previous afterCallEnd wrote the value.
       await test.step('a following request sees the variable afterCallEnd wrote', async () => {
         await sendGrpcRequest(page, 'EchoCapturedReply', 'HelloService/SayHello');
 
@@ -169,14 +169,15 @@ for (const mode of SANDBOX_MODES) {
         await expect(locators.response.statusCode()).toHaveCount(0);
       });
 
-      await test.step('clicking the file path opens the failing hook editor', async () => {
+      await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
         await scriptError.filePath().click();
 
-        await expect(page.getByTestId('before-call-start-script-editor')).toBeVisible();
+        const editor = page.getByTestId('before-call-start-script-editor');
+        await expect(editor).toBeVisible();
+        await expect(editor.locator(FLASHED_LINE_NUMBER)).toHaveText('2');
+        await expect(editor.locator(FLASHED_LINE)).toContainText('throw new Error(\'beforeCallStart exploded\');');
       });
 
-      // The hook sets a variable on its way to throwing. Aborting the call must not throw that
-      // away with it — the only way to see that it survived is the way a user would.
       await test.step('a following request sees the variable the hook set before it threw', async () => {
         await sendGrpcRequest(page, 'EchoReachedVar', 'HelloService/SayHello');
 
@@ -185,10 +186,6 @@ for (const mode of SANDBOX_MODES) {
       });
     });
 
-    // The mirror of the case above, and it fails differently: `afterCallEnd` throws once the call
-    // is already over, so the error is reported rather than propagated and there is nothing left to
-    // abort. The response pane therefore renders its card over a completed response, not over the
-    // empty placeholder a failed `beforeCallStart` leaves behind.
     test('a throwing afterCallEnd shows a card without taking the response with it', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
       const scriptError = buildScriptErrorLocators(page);
@@ -202,17 +199,18 @@ for (const mode of SANDBOX_MODES) {
         await expect(scriptError.filePath()).toHaveText('BrokenAfterCallEnd.yml');
       });
 
-      // The status code lives in the tab bar, so reading it alongside the card is what proves the
-      // pane kept its tabs rather than falling back to the placeholder.
       await test.step('the response arrived and is still readable behind the card', async () => {
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('after-hook-throws');
       });
 
-      await test.step('clicking the file path opens the failing hook editor', async () => {
+      await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
         await scriptError.filePath().click();
 
-        await expect(page.getByTestId('after-call-end-script-editor')).toBeVisible();
+        const editor = page.getByTestId('after-call-end-script-editor');
+        await expect(editor).toBeVisible();
+        await expect(editor.locator(FLASHED_LINE_NUMBER)).toHaveText('2');
+        await expect(editor.locator(FLASHED_LINE)).toContainText('throw new Error(\'afterCallEnd exploded\');');
       });
     });
   });
