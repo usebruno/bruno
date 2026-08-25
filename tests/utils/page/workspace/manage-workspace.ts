@@ -1,5 +1,5 @@
 import { expect, Page, test } from '../../../../playwright';
-import { buildTitleBarLocators } from '../title-bar';
+import { openManageWorkspaces } from '../title-bar';
 import { buildRemoveWorkspaceModalLocators } from './remove-workspace-modal';
 import { buildRenameWorkspaceModalLocators } from './rename-workspace-modal';
 
@@ -35,12 +35,10 @@ export const buildManageWorkspaceLocators = (page: Page) => {
  * Navigate to the Manage Workspace section from the title bar's workspace menu.
  * @param page - The page object
  */
-export const openManageWorkspaces = async (page: Page) => {
+export const goToManageWorkspace = async (page: Page) => {
   await test.step('Open the Manage Workspace section', async () => {
-    const titleBar = buildTitleBarLocators(page);
-    await titleBar.workspaceMenuTrigger().click();
-    await titleBar.manageWorkspacesOption().click();
-    await expect(buildManageWorkspaceLocators(page).title()).toBeVisible();
+    await openManageWorkspaces(page);
+    await buildManageWorkspaceLocators(page).title().waitFor({ state: 'visible' });
   });
 };
 
@@ -52,7 +50,7 @@ export const openManageWorkspaces = async (page: Page) => {
 export const openWorkspaceActionsMenu = async (page: Page, workspaceName: string) => {
   await test.step(`Open the actions menu of workspace "${workspaceName}"`, async () => {
     const manageWorkspace = buildManageWorkspaceLocators(page);
-    await expect(manageWorkspace.workspaceItem(workspaceName)).toBeVisible();
+    await manageWorkspace.workspaceItem(workspaceName).waitFor({ state: 'visible' });
     await manageWorkspace.actionsTrigger(workspaceName).click();
   });
 };

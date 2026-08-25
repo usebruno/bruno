@@ -4,7 +4,7 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { createWorkspace, switchWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { buildTitleBarLocators } from '../../utils/page/title-bar';
-import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
@@ -28,7 +28,7 @@ test.describe('Manage Workspace — remove', () => {
     let workspacePath = '';
 
     await test.step('Navigate to the Manage Workspace section and verify the workspace list', async () => {
-      await openManageWorkspaces(page);
+      await goToManageWorkspace(page);
       await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
       await expect(manageWorkspace.workspaceItem('Removable WS')).toBeVisible();
       await expect(manageWorkspace.workspaceItems()).toHaveCount(2);
@@ -66,7 +66,7 @@ test.describe('Manage Workspace — remove', () => {
       await manageWorkspace.backButton().click();
       await expect(manageWorkspace.title()).toBeHidden();
 
-      await openManageWorkspaces(page);
+      await goToManageWorkspace(page);
       await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
       await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
       await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');

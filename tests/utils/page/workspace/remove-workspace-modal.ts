@@ -8,7 +8,6 @@ export const buildRemoveWorkspaceModalLocators = (page: Page) => {
 
   return {
     modal,
-    // The label switches to "Removing..." mid-submit, so target the button by testid.
     submitButton: () => page.getByTestId('remove-workspace-modal-submit-btn')
   };
 };

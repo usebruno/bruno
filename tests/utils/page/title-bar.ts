@@ -14,3 +14,15 @@ export const clickImportWorkspace = async (page: Page) => {
     await titleBar.importWorkspaceOption().click();
   });
 };
+
+/**
+ * Open the Manage Workspace section from the title bar's workspace menu.
+ * @param page - The page object
+ */
+export const openManageWorkspaces = async (page: Page) => {
+  await test.step('Open the Manage Workspace section', async () => {
+    const titleBar = buildTitleBarLocators(page);
+    await titleBar.workspaceMenuTrigger().click();
+    await titleBar.manageWorkspacesOption().click();
+  });
+};

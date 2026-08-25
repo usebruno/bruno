@@ -2,7 +2,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { createWorkspace } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 test.describe('Manage Workspace', () => {
   test('TC-3109: should open terminal from the workspace actions menu', async ({ page }) => {
@@ -13,7 +13,7 @@ test.describe('Manage Workspace', () => {
     let workspacePath = '';
 
     await test.step('Open Manage Workspaces', async () => {
-      await openManageWorkspaces(page);
+      await goToManageWorkspace(page);
       await expect(manageWorkspace.title()).toHaveText('Manage Workspace');
       workspacePath = (await manageWorkspace.workspacePath('Terminal Workspace').innerText()).trim();
       expect(workspacePath).not.toBe('');

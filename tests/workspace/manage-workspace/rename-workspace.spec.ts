@@ -5,7 +5,7 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { createWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { buildTitleBarLocators } from '../../utils/page/title-bar';
-import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
+import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
@@ -27,7 +27,7 @@ test.describe('Manage Workspace — rename', () => {
     let workspacePath = '';
 
     await test.step('Navigate to the Manage Workspace section', async () => {
-      await openManageWorkspaces(page);
+      await goToManageWorkspace(page);
       await expect(manageWorkspace.title()).toHaveText('Manage Workspace');
       await expect(manageWorkspace.workspaceItem('Rename Me WS')).toBeVisible();
 
@@ -91,7 +91,7 @@ test.describe('Manage Workspace — rename', () => {
     await createWorkspace(page, 'Rename Conflict WS');
 
     await test.step('Open the rename workspace modal', async () => {
-      await openManageWorkspaces(page);
+      await goToManageWorkspace(page);
       await openWorkspaceActionsMenu(page, 'Rename Conflict WS');
       await manageWorkspace.actionsMenuItem('rename').click();
       await expect(manageWorkspace.renameModal.modal()).toBeVisible();
