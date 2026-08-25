@@ -402,6 +402,21 @@ const runSingleRequest = async function (
     // when every leg reuses one socket.
     const httpsAgentRequestFields = request.ntlmConfig ? { keepAlive: true } : {};
 
+    // Without `--cache-ssl-session` every request gets its own keep-alive agent. When the
+    // response completes that agent parks its socket in its free pool, and since the agent
+    // is never used again nothing closes the socket: one open fd per request for the rest
+    // of the run (a 2,000-request run held 2,000 sockets). Tear the agents down as soon as
+    // the response is in. Cached agents are shared across requests and must stay alive.
+    const destroyThrowawayAgents = (...configs) => {
+      if (!disableCache) {
+        return;
+      }
+      for (const config of configs) {
+        config?.httpAgent?.destroy?.();
+        config?.httpsAgent?.destroy?.();
+      }
+    };
+
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
@@ -645,7 +660,12 @@ const runSingleRequest = async function (
             httpsAgent: oauth2HttpsAgent
           });
 
-          token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
+          try {
+            token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
+          } finally {
+            // The token request's agents are throwaway too (unless cached): close their sockets
+            destroyThrowawayAgents({ httpAgent: oauth2HttpAgent, httpsAgent: oauth2HttpsAgent });
+          }
         }
 
         if (token) {
@@ -738,6 +758,7 @@ const runSingleRequest = async function (
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(refreshExplicitHeaderNames(request));
+      destroyThrowawayAgents(request, response?.config);
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
@@ -752,6 +773,7 @@ const runSingleRequest = async function (
         saveCookies(request.url, response.headers);
       }
     } catch (err) {
+      destroyThrowawayAgents(request, err?.config, err?.response?.config);
       if (err?.response) {
         const { data, dataBuffer } = parseDataFromResponse(err?.response);
         err.response.data = data;
