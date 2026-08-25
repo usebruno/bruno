@@ -1,13 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{collectionPath}}/bru-collection",
-      "securityConfig": {
-        "jsSandboxMode": "safe"
-      }
-    },
-    {
-      "path": "{{collectionPath}}/yml-collection",
+      "path": "{{collectionPath}}",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
