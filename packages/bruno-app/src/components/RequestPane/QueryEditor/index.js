@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 
 const CodeMirror = require('codemirror');
@@ -149,7 +150,9 @@ export default class QueryEditor extends React.Component {
     }
     this.addOverlay();
 
-    setupLinkAware(editor);
+    setupLinkAware(editor, {
+      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused

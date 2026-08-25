@@ -6,6 +6,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -80,7 +81,9 @@ class MultiLineEditor extends Component {
       autoCompleteOptions
     );
 
-    setupLinkAware(this.editor);
+    setupLinkAware(this.editor, {
+      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
