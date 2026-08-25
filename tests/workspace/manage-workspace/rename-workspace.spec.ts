@@ -77,7 +77,7 @@ test.describe('Manage Workspace — rename', () => {
     await closeElectronApp(app);
   });
 
-  test('Verify renaming a workspace to an existing name is rejected', async ({
+  test('TC-6086: Verify renaming a workspace to an existing name is rejected', async ({
     launchElectronApp,
     createTmpDir
   }) => {

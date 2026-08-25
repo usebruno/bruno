@@ -1,4 +1,4 @@
-import { expect, Page, test } from '../../../../playwright';
+import { Page, test } from '../../../../playwright';
 import { openManageWorkspaces } from '../title-bar';
 import { buildRemoveWorkspaceModalLocators } from './remove-workspace-modal';
 import { buildRenameWorkspaceModalLocators } from './rename-workspace-modal';
