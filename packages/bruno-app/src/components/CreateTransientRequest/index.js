@@ -6,8 +6,7 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/collections';
-import filter from 'lodash/filter';
+import { generateTransientRequestName } from 'utils/collections';
 import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
 
@@ -16,38 +15,6 @@ const REQUEST_TYPE = {
   GRAPHQL: 'graphql',
   GRPC: 'grpc',
   WEBSOCKET: 'websocket'
-};
-
-/**
- * Generate a request name for transient requests in the pattern "Untitled {Count}"
- * @param {Object} collection - The collection object
- * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
- */
-const generateTransientRequestName = (collection) => {
-  if (!collection || !collection.items) {
-    return 'Untitled 1';
-  }
-  const allItems = flattenItems(collection.items);
-  const transientRequests = filter(allItems, (item) => {
-    return isItemTransientRequest(item);
-  });
-
-  // Find the highest "Untitled X" number among transient requests
-  let maxNumber = 0;
-  transientRequests.forEach((item) => {
-    const match = item.name?.match(/^Untitled (\d+)$/);
-    if (match) {
-      const number = parseInt(match[1], 10);
-      if (number > maxNumber) {
-        maxNumber = number;
-      }
-    }
-  });
-
-  // Increment from the highest number found, or start at 1 if none found
-  const count = maxNumber + 1;
-
-  return `Untitled ${count}`;
 };
 
 const CreateTransientRequest = ({ collectionUid }) => {

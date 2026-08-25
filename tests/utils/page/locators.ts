@@ -75,7 +75,15 @@ export const buildCommonLocators = (page: Page) => ({
     envNameInput: () => page.locator('input[name="name"]')
   },
   codeMirror: {
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
+    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
+    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
+    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
+    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
+  },
+  docs: {
+    /** Docs tabs default to preview mode — this toggles into edit mode. */
+    editToggle: (scope: Locator) => scope.locator('.editing-mode')
   },
   request: {
     urlInput: () => page.locator('#request-url .CodeMirror'),
@@ -118,6 +126,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
+    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },

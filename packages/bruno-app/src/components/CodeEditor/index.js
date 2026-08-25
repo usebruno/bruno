@@ -15,6 +15,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
@@ -261,7 +262,9 @@ class CodeEditor extends React.Component {
       );
 
       setupLinkAware(editor, {
-        onLinkClick: typeof this.props.onLinkClick === 'function' ? this.handleLinkClick : undefined
+        onLinkClick: (typeof this.props.onLinkClick === 'function' || resolveLinkClickHandler(this.props.item, this.props.collection))
+          ? this.handleLinkClick
+          : undefined
       });
 
       // Setup lint error tooltip on line number hover
@@ -470,7 +473,10 @@ class CodeEditor extends React.Component {
   };
 
   handleLinkClick = (url) => {
-    this.props.onLinkClick?.(url);
+    const onLinkClick = typeof this.props.onLinkClick === 'function'
+      ? this.props.onLinkClick
+      : resolveLinkClickHandler(this.props.item, this.props.collection);
+    onLinkClick?.(url);
   };
 }
 

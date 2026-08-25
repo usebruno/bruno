@@ -190,7 +190,9 @@ function updateCmdCtrlClass(event, editorWrapper, cmdCtrlClass, isCmdOrCtrlPress
 }
 
 /**
- * Handles click events on links to open them externally or through a custom handler
+ * Handles click events on links to open them externally or through a custom handler.
+ * When a custom handler is registered, a plain click uses it (e.g. open as a new request)
+ * while Cmd/Ctrl+click still falls back to opening the link externally.
  * @param {Event} event - The click event
  * @param {string} linkClass - CSS class name for links
  * @param {Function} isCmdOrCtrlPressed - Function to check if Cmd/Ctrl is pressed
@@ -200,14 +202,15 @@ function handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
   if (!event.target.classList.contains(linkClass)) return;
 
   const shouldUseCustomHandler = typeof onLinkClick === 'function';
-  if (!shouldUseCustomHandler && !isCmdOrCtrlPressed(event)) return;
+  const modifierPressed = isCmdOrCtrlPressed(event);
+  if (!shouldUseCustomHandler && !modifierPressed) return;
 
   event.preventDefault();
   event.stopPropagation();
   const url = event.target.getAttribute('data-url');
   if (!url) return;
 
-  if (shouldUseCustomHandler) {
+  if (shouldUseCustomHandler && !modifierPressed) {
     onLinkClick(url);
   } else {
     window?.ipcRenderer?.openExternal(url);
@@ -234,7 +237,7 @@ function setupLinkAware(editor, options = {}) {
   const linkHoverClass = 'hovered-link';
   const onLinkClick = options?.onLinkClick;
   const linkHint = typeof onLinkClick === 'function'
-    ? 'Click to open link as request'
+    ? (isMacOS() ? 'Click to open as request · Cmd+Click to open externally' : 'Click to open as request · Ctrl+Click to open externally')
     : isMacOS() ? 'Hold Cmd and click to open link' : 'Hold Ctrl and click to open link';
 
   // Helper function to check if Cmd/Ctrl is pressed

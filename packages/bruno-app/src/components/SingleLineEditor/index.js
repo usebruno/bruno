@@ -1,12 +1,13 @@
-import React, { Component } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
@@ -91,6 +92,18 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. disableLinkAwareClick opts a field out of the "open as new
+     * request" click (e.g. the URL bar) - it still marks URLs and Cmd/Ctrl+Click still opens
+     * them externally, matching Bruno's pre-existing URL bar behaviour.
+     */
+    setupLinkAware(this.editor, {
+      onLinkClick: this.props.disableLinkAwareClick
+        ? undefined
+        : resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
@@ -103,7 +116,6 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();

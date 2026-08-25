@@ -155,7 +155,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
           <QueryResult
