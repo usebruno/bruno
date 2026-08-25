@@ -133,7 +133,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a folder to a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { modal, namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, renameItemModal } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-reserved');
 
     await createCollection(page, 'Rename Folder Reserved', testDir, 'bru');
@@ -143,9 +143,9 @@ test.describe('Naming collisions - rename folder', () => {
 
     await test.step('Open rename, set the name to reserved "CON", reveal filesystem name, submit', async () => {
       await openRenameModal(page, 'Auth', 'folder');
-      await nc.renameNameInput().fill('CON');
+      await renameItemModal.nameInput().fill('CON');
       await revealFilesystemName(page);
-      await nc.renameSubmit().click();
+      await renameItemModal.submit().click();
     });
 
     await test.step('Reserved-name error is shown and nothing is renamed', async () => {

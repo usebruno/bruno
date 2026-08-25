@@ -4,10 +4,9 @@ import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
-import { buildNamingCollisionLocators } from './naming-collisions';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
-import { buildSidebarLocators } from './sidebar';
+import { buildSidebarLocators, buildSidebarModalLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -35,7 +34,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
-  namingCollisions: buildNamingCollisionLocators(page),
+  ...buildSidebarModalLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),

@@ -16,7 +16,7 @@ test.describe('Naming collisions - clone collection', () => {
   });
 
   test('cloning a collection opens a modal (unlike request/folder clone) defaulting to "<name> copy"', async ({ page, createTmpDir }) => {
-    const { modal, namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, cloneCollectionModal } = buildCommonLocators(page);
     const testDir = await createTmpDir('collection-clone-modal');
 
     await createCollection(page, 'MyColl', testDir, 'bru');
@@ -29,8 +29,8 @@ test.describe('Naming collisions - clone collection', () => {
     });
 
     await test.step('Modal defaults to "MyColl copy" and exposes Location + Folder Name', async () => {
-      await expect(nc.collectionNameInput()).toHaveValue('MyColl copy');
-      await expect(nc.collectionLocationInput()).toBeVisible();
+      await expect(cloneCollectionModal.nameInput()).toHaveValue('MyColl copy');
+      await expect(cloneCollectionModal.locationInput()).toBeVisible();
       await expect(cloneModal.getByText('Folder Name')).toBeVisible();
     });
 

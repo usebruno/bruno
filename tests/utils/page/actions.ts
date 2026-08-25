@@ -2735,6 +2735,208 @@ const openSystemProxyPanel = async (page: Page) => {
   await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
 };
 
+// Sidebar item actions: clone / copy / paste / rename / create, opened through a
+// row's menu.
+
+const openItemActionsMenu = async (page: Page, name: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(name);
+  await sidebar.itemRow(name).first().hover();
+  await menu.trigger().first().click({ force: true });
+};
+
+const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(collectionName, 'collection');
+  await sidebar.collectionRow(collectionName).hover();
+  const trigger = menu.trigger();
+  await trigger.waitFor({ state: 'visible' });
+  await trigger.click();
+};
+
+const cloneItem = async (page: Page, name: string) => {
+  await test.step(`Clone item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Clone').click();
+    // Synchronize on completion (a "… cloned!" toast). `.first()` so a still-visible
+    // toast from a prior clone is not the one we wait on.
+    await toast.byMessage(/cloned!/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const copyItem = async (page: Page, name: string) => {
+  await test.step(`Copy item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Copy').click();
+    await toast.byMessage(/copied/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Paste into collection "${collectionName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openCollectionActionsMenu(page, collectionName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoFolder = async (page: Page, folderName: string) => {
+  await test.step(`Paste into folder "${folderName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, folderName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+type ItemType = 'request' | 'folder';
+const renameModalTitle = (type: ItemType) => (type === 'folder' ? 'Rename Folder' : 'Rename Request');
+
+const openRenameModal = async (page: Page, name: string, type: ItemType = 'request') => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openItemActionsMenu(page, name);
+  await dropdown.item('Rename').click();
+  await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'visible' });
+};
+
+const renameItemTo = async (page: Page, name: string, newName: string, type: ItemType = 'request') => {
+  await test.step(`Rename "${name}" to "${newName}"`, async () => {
+    const { modal, renameItemModal } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await renameItemModal.nameInput().fill(newName);
+    await renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const revealFilesystemName = async (page: Page) => {
+  const { filesystemName } = buildCommonLocators(page);
+  await filesystemName.optionsButton().first().click();
+  await filesystemName.showFilesystemNameItem().click();
+};
+
+const renameViaFilename = async (page: Page, name: string, newFilename: string, type: ItemType = 'request') => {
+  await test.step(`Rename filesystem name of "${name}" to "${newFilename}"`, async () => {
+    const { modal, renameItemModal, filesystemName } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await revealFilesystemName(page);
+    await renameItemModal.filenameEditIcon().click();
+    await filesystemName.fileNameInput().fill(newFilename);
+    await renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewRequestModal = async (page: Page, parentName: string, { inFolder = false } = {}) => {
+  const { dropdown, request } = buildCommonLocators(page);
+  if (inFolder) {
+    await openItemActionsMenu(page, parentName);
+  } else {
+    await openCollectionActionsMenu(page, parentName);
+  }
+  await dropdown.item('New Request').click();
+  await request.requestNameInput().waitFor({ state: 'visible' });
+};
+
+const createRequestViaModal = async (page: Page, parentName: string, name: string, { inFolder = false } = {}) => {
+  await test.step(`Create request "${name}" via modal in "${parentName}"`, async () => {
+    const { modal, request, newRequestModal } = buildCommonLocators(page);
+    await openNewRequestModal(page, parentName, { inFolder });
+    await request.requestNameInput().fill(name);
+    await newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const createRequestWithEditedFilename = async (
+  page: Page,
+  collectionName: string,
+  displayName: string,
+  filename: string
+) => {
+  await test.step(`Create request "${displayName}" with filename "${filename}"`, async () => {
+    const { modal, request, newRequestModal, filesystemName } = buildCommonLocators(page);
+    await openNewRequestModal(page, collectionName);
+    await request.requestNameInput().fill(displayName);
+    await revealFilesystemName(page);
+    await newRequestModal.filenameEditIcon().click();
+    await filesystemName.fileNameInput().fill(filename);
+    await newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewFolderModal = async (page: Page, collectionName: string) => {
+  const { dropdown, newFolderModal } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('New Folder').click();
+  await newFolderModal.nameInput().waitFor({ state: 'visible' });
+};
+
+const createFolderViaModal = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Create folder "${folderName}" via modal in "${collectionName}"`, async () => {
+    const { modal, newFolderModal } = buildCommonLocators(page);
+    await openNewFolderModal(page, collectionName);
+    await newFolderModal.nameInput().fill(folderName);
+    await modal.button('Create').click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openCloneCollectionModal = async (page: Page, collectionName: string) => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('Clone').click();
+  await modal.byTitle('Clone Collection').waitFor({ state: 'visible' });
+};
+
+const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
+  const { cloneCollectionModal } = buildCommonLocators(page);
+  await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
+    (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+  }, location);
+  try {
+    await cloneCollectionModal.browseButton().click();
+    await cloneCollectionModal.locationInput().waitFor({ state: 'visible' });
+  } finally {
+    await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }) => {
+      if ((globalThis as any).__bruPrevShowOpenDialog) {
+        dialog.showOpenDialog = (globalThis as any).__bruPrevShowOpenDialog;
+        delete (globalThis as any).__bruPrevShowOpenDialog;
+      }
+    });
+  }
+};
+
+const setTextBody = async (page: Page, value: string) => {
+  const { request } = buildCommonLocators(page);
+  await request.bodyModeSelector().click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Text' }).click();
+  await request.bodyEditor().locator('.CodeMirror').first().click();
+  await page.keyboard.type(value);
+};
+
+// Save the active transient (untitled) request via the Save modal, giving it a
+// display name. Waits for the modal to open and close.
+const saveTransientRequestAs = async (page: Page, name: string) => {
+  await test.step(`Save transient request as "${name}"`, async () => {
+    const { saveRequestModal } = buildCommonLocators(page);
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    const dialog = saveRequestModal.modal();
+
+    await page.keyboard.press(`${modifier}+s`);
+    await dialog.waitFor({ state: 'visible' });
+    await saveRequestModal.nameInput().clear();
+    await saveRequestModal.nameInput().fill(name);
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+  });
+};
+
 export {
   waitForReadyPage,
   readClipboard,
@@ -2852,7 +3054,25 @@ export {
   selectAppView,
   renameWsMessage,
   elementIsInsideDropdown,
-  openSystemProxyPanel
+  openSystemProxyPanel,
+  openItemActionsMenu,
+  cloneItem,
+  copyItem,
+  pasteIntoCollection,
+  pasteIntoFolder,
+  openRenameModal,
+  renameItemTo,
+  revealFilesystemName,
+  renameViaFilename,
+  openNewRequestModal,
+  createRequestViaModal,
+  createRequestWithEditedFilename,
+  openNewFolderModal,
+  createFolderViaModal,
+  openCloneCollectionModal,
+  chooseCloneLocation,
+  setTextBody,
+  saveTransientRequestAs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
