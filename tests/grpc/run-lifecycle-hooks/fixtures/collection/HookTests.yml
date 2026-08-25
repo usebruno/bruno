@@ -59,7 +59,7 @@ runtime:
       code: |-
         test('response scalars describe the completed call', () => {
           expect(bru.grpc.response.statusCode).to.equal(0);
-          expect(bru.grpc.response.statusMessage).to.be.a('string');
+          expect(bru.grpc.response.statusText).to.be.a('string');
           expect(bru.grpc.response.methodType).to.equal('unary');
           expect(bru.grpc.response.duration).to.be.a('number').and.to.be.above(0);
         });

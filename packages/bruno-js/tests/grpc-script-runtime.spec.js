@@ -13,7 +13,7 @@ const makeRequest = (overrides = {}) => ({
 
 const makeResponse = (overrides = {}) => ({
   statusCode: 0,
-  statusMessage: 'OK',
+  statusText: 'OK',
   messages: [{ data: { reply: 'hello' }, timestamp: 1700000000 }],
   metadata: [{ name: 'content-type', value: 'application/grpc' }],
   trailers: [{ name: 'grpc-status', value: '0' }],

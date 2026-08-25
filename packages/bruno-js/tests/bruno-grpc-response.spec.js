@@ -2,7 +2,7 @@ const BrunoGrpcResponse = require('../src/grpc/bruno-grpc-response');
 
 const makeRes = (overrides = {}) => ({
   statusCode: 0,
-  statusMessage: 'OK',
+  statusText: 'OK',
   messages: [{ data: { id: 1 }, timestamp: 1700000000 }],
   metadata: [{ name: 'content-type', value: 'application/grpc' }],
   trailers: [{ name: 'grpc-status', value: '0' }],
@@ -17,7 +17,7 @@ describe('BrunoGrpcResponse', () => {
 
     expect(res).toMatchObject({
       statusCode: 0,
-      statusMessage: 'OK',
+      statusText: 'OK',
       duration: 12,
       methodType: 'unary'
     });
