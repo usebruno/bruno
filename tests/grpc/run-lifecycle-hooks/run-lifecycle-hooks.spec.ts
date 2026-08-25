@@ -202,7 +202,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
         await expect(scriptError.title()).toHaveText('Before Call Start Script Error');
         await expect(scriptError.message()).toContainText('beforeCallStart exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenHook.bru');
+        await expect(scriptError.filePath()).toHaveText('BrokenHook.yml');
       });
 
       await test.step('no response arrived', async () => {
@@ -239,7 +239,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
         await expect(scriptError.title()).toHaveText('After Call End Script Error');
         await expect(scriptError.message()).toContainText('afterCallEnd exploded');
-        await expect(scriptError.filePath()).toHaveText('BrokenAfterCallEnd.bru');
+        await expect(scriptError.filePath()).toHaveText('BrokenAfterCallEnd.yml');
       });
 
       // The status code lives in the tab bar, so reading it alongside the card is what proves the
