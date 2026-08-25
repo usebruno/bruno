@@ -2,8 +2,198 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
 const nodeModule = require('node:module');
+const { AsyncLocalStorage } = require('node:async_hooks');
 
 const { isBuiltinModule, isPathWithinAllowedRoots } = require('./utils');
+const { safeGlobals } = require('./constants');
+const { mixinTypedArrays } = require('../mixins/typed-arrays');
+
+/**
+ * Shared context for npm modules.
+ *
+ * Every script execution runs in a fresh vm context, so evaluating npm modules
+ * inside the script's own context meant a collection-level script doing
+ * `require('@faker-js/faker')` re-evaluated the whole package on every request
+ * (~20 MB of heap and ~8 MB of ArrayBuffers per script run, sitting in contexts
+ * V8 only reclaims under heap pressure — a 2,000-request `bru run` reached
+ * 9.5 GB RSS, see usebruno/bruno#9074).
+ *
+ * npm modules are therefore evaluated once per process, in a single dedicated
+ * context, and their exports are shared by every script — the way Node's own
+ * `require` cache behaves. The Bruno objects a module may reference as globals
+ * (`bru`, `req`, `res`, `test`, ...) are exposed on that context as accessors
+ * that resolve to the *currently executing* script's context, so a module
+ * evaluated during request 1 still sees request 42's `bru` when called from
+ * request 42. Collection-local modules (`./scripts/x.js`) are unaffected: they
+ * keep being evaluated per script context, cached in `localModuleCache`.
+ *
+ * "Currently executing" is tracked with AsyncLocalStorage rather than a global,
+ * because a script's `runInContext` is awaited: executions that interleave (the
+ * app can run several requests at once) must each keep resolving to their own
+ * `bru`/`req`/`res`, whatever order they complete in. Nested executions
+ * (`bru.runRequest`) nest naturally.
+ */
+const activeScriptContext = new AsyncLocalStorage();
+const sharedNpmModuleCache = new Map();
+let sharedNpmSandbox = null;
+let sharedNpmContext = null;
+
+// Keys that scripts get from Bruno rather than from the host: always exposed as
+// dynamic accessors on the shared context (extended on the fly by runWithScriptContext).
+const BRUNO_CONTEXT_KEYS = [
+  'bru',
+  'req',
+  'res',
+  'test',
+  'expect',
+  'assert',
+  '__brunoTestResults',
+  '__bruSetScope',
+  'jwt',
+  'console',
+  'scriptingConfig'
+];
+
+const facades = new Map();
+
+/**
+ * Late-bound stand-in for one Bruno global (`bru`, `req`, ...) inside the shared
+ * npm context. Every trap resolves the *current* script context's value, so a
+ * module that captured `bru` at load time (`const captured = bru` during
+ * execution A) still talks to execution B's `bru` when called from B. The
+ * target is a plain object for object-valued globals (so `typeof bru` stays
+ * 'object') and an arrow function for callable ones (so `test(...)` works);
+ * neither has a non-configurable own property that would constrain the traps.
+ * One facade per (key, callability), picked from the value the current
+ * execution provides, so a key that is an object in one execution and a
+ * function in another is served correctly in both.
+ * @param {string} key - The Bruno global's name
+ * @param {boolean} callable - Whether the current value is a function
+ */
+function facadeFor(key, callable) {
+  const cacheKey = `${key}:${callable ? 'fn' : 'obj'}`;
+  if (facades.has(cacheKey)) {
+    return facades.get(cacheKey);
+  }
+  const current = () => activeScriptContext.getStore()?.[key];
+  const isMissing = (value) => value === undefined || value === null;
+  const target = callable ? () => {} : {};
+  // Methods are handed out as late-bound wrappers too, so `const { getVar } = bru`
+  // at module scope keeps calling the current script's getVar. Cached per method
+  // name so `bru.setVar === bru.setVar` holds within the facade.
+  const methods = new Map();
+  const lateBoundMethod = (prop) => {
+    if (!methods.has(prop)) {
+      methods.set(prop, (...args) => {
+        const value = current();
+        const member = isMissing(value) ? undefined : value[prop];
+        if (typeof member !== 'function') {
+          throw new TypeError(`${key}.${String(prop)} is not available outside of a script execution`);
+        }
+        return Reflect.apply(member, value, args);
+      });
+    }
+    return methods.get(prop);
+  };
+  const facade = new Proxy(target, {
+    get: (_, prop) => {
+      const value = current();
+      if (isMissing(value)) {
+        return undefined;
+      }
+      const member = value[prop];
+      return typeof member === 'function' ? lateBoundMethod(prop) : member;
+    },
+    set: (_, prop, newValue) => {
+      const value = current();
+      if (isMissing(value)) {
+        return false;
+      }
+      value[prop] = newValue;
+      return true;
+    },
+    has: (_, prop) => {
+      const value = current();
+      return !isMissing(value) && prop in Object(value);
+    },
+    ownKeys: () => {
+      const value = current();
+      return isMissing(value) ? [] : Reflect.ownKeys(Object(value));
+    },
+    getOwnPropertyDescriptor: (_, prop) => {
+      const value = current();
+      const descriptor = isMissing(value) ? undefined : Object.getOwnPropertyDescriptor(Object(value), prop);
+      return descriptor ? { ...descriptor, configurable: true } : undefined;
+    },
+    getPrototypeOf: () => {
+      const value = current();
+      return isMissing(value) ? null : Object.getPrototypeOf(Object(value));
+    },
+    apply: (_, thisArg, args) => {
+      const value = current();
+      if (typeof value !== 'function') {
+        throw new TypeError(`${key} is not available outside of a script execution`);
+      }
+      return Reflect.apply(value, thisArg, args);
+    }
+  });
+  facades.set(cacheKey, facade);
+  return facade;
+}
+
+function defineDynamicGlobal(key) {
+  if (Object.prototype.hasOwnProperty.call(sharedNpmSandbox, key)) {
+    return;
+  }
+  Object.defineProperty(sharedNpmSandbox, key, {
+    enumerable: true,
+    configurable: true,
+    get: () => {
+      // A key the current execution does not provide reads as undefined, exactly
+      // as it would inside the script's own context (e.g. `res` before a response).
+      const value = activeScriptContext.getStore()?.[key];
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      return facadeFor(key, typeof value === 'function');
+    }
+  });
+}
+
+function getSharedNpmContext() {
+  if (!sharedNpmContext) {
+    sharedNpmSandbox = Object.fromEntries(
+      safeGlobals
+        .filter((key) => global[key] !== undefined)
+        .map((key) => [key, global[key]])
+    );
+    mixinTypedArrays(sharedNpmSandbox);
+    sharedNpmContext = vm.createContext(sharedNpmSandbox);
+    sharedNpmSandbox.global = sharedNpmSandbox;
+    sharedNpmSandbox.globalThis = sharedNpmSandbox;
+    BRUNO_CONTEXT_KEYS.forEach(defineDynamicGlobal);
+  }
+  return sharedNpmContext;
+}
+
+/**
+ * Runs `fn` with `scriptContext` as the currently executing script context, so
+ * npm modules called from it (or from async work it starts) resolve `bru`,
+ * `req`, `res`, ... to it. Safe for interleaved executions; nested executions
+ * (`bru.runRequest`) see their own context.
+ * @param {Object} scriptContext - The script's vm global object
+ * @param {Function} fn - The execution, typically `() => script.runInContext(...)`
+ * @returns {*} Whatever `fn` returns
+ */
+function runWithScriptContext(scriptContext, fn) {
+  getSharedNpmContext();
+  for (const key of Object.keys(scriptContext)) {
+    if (key !== 'global' && key !== 'globalThis' && key !== 'require') {
+      defineDynamicGlobal(key);
+    }
+  }
+  return activeScriptContext.run(scriptContext, fn);
+}
 
 /**
  * Resolve a local module path, handling files and directories
@@ -111,13 +301,11 @@ function createCustomRequire({
       return require(moduleName);
     }
 
-    // 4. Handle npm modules - load INTO vm context
+    // 4. Handle npm modules - evaluated once, in the shared npm context
     return loadNpmModule({
       moduleName,
       collectionPath,
-      currentModuleDir,
-      isolatedContext,
-      localModuleCache
+      currentModuleDir
     });
   };
 }
@@ -200,7 +388,8 @@ function loadLocalModule({
 }
 
 /**
- * Executes a module in the VM context with caching and special file handling
+ * Executes an npm module in the shared npm context, caching it process-wide,
+ * with special file handling
  * @param {Object} options - Configuration options
  * @returns {*} The exported content of the loaded module
  * @throws {Error} When module cannot be loaded
@@ -208,13 +397,11 @@ function loadLocalModule({
 function executeModuleInVmContext({
   resolvedPath,
   moduleName,
-  isolatedContext,
-  collectionPath,
-  localModuleCache
+  collectionPath
 }) {
   // Check cache - we cache moduleObj, return its exports
-  if (localModuleCache.has(resolvedPath)) {
-    return localModuleCache.get(resolvedPath).exports;
+  if (sharedNpmModuleCache.has(resolvedPath)) {
+    return sharedNpmModuleCache.get(resolvedPath).exports;
   }
 
   // Native modules (.node files) - fall back to host require
@@ -223,7 +410,7 @@ function executeModuleInVmContext({
   if (resolvedPath.endsWith('.node')) {
     const result = require(resolvedPath);
     // Wrap in moduleObj format for consistent cache retrieval
-    localModuleCache.set(resolvedPath, { exports: result });
+    sharedNpmModuleCache.set(resolvedPath, { exports: result });
     return result;
   }
 
@@ -232,7 +419,7 @@ function executeModuleInVmContext({
     const jsonContent = fs.readFileSync(resolvedPath, 'utf8');
     const result = JSON.parse(jsonContent);
     // Wrap in moduleObj format for consistent cache retrieval
-    localModuleCache.set(resolvedPath, { exports: result });
+    sharedNpmModuleCache.set(resolvedPath, { exports: result });
     return result;
   }
 
@@ -244,24 +431,22 @@ function executeModuleInVmContext({
   // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
   // This allows re-entrant requires to get partial exports (Node.js behavior)
   // We cache moduleObj (not moduleObj.exports) so that module.exports reassignment works
-  localModuleCache.set(resolvedPath, moduleObj);
+  sharedNpmModuleCache.set(resolvedPath, moduleObj);
 
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
-    isolatedContext,
-    currentModuleDir: moduleDir,
-    localModuleCache
+    currentModuleDir: moduleDir
   });
 
   try {
     // Wrap module code in a function that receives CJS parameters
     const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
     const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
-    const moduleFunction = compiledScript.runInContext(isolatedContext);
+    const moduleFunction = compiledScript.runInContext(getSharedNpmContext());
     moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
   } catch (error) {
     // Remove failed module from cache to allow retry
-    localModuleCache.delete(resolvedPath);
+    sharedNpmModuleCache.delete(resolvedPath);
     const stack = error.stack || '';
     throw new Error(`Error loading module ${moduleName}: ${error.message}\nStack: ${stack}`);
   }
@@ -284,9 +469,7 @@ function executeModuleInVmContext({
 function loadNpmModule({
   moduleName,
   collectionPath,
-  currentModuleDir,
-  isolatedContext,
-  localModuleCache
+  currentModuleDir
 }) {
   let resolvedPath;
 
@@ -323,9 +506,7 @@ function loadNpmModule({
   return executeModuleInVmContext({
     resolvedPath,
     moduleName,
-    isolatedContext,
-    collectionPath,
-    localModuleCache
+    collectionPath
   });
 }
 
@@ -340,9 +521,7 @@ function loadNpmModule({
  */
 function createNpmModuleRequire({
   collectionPath,
-  isolatedContext,
-  currentModuleDir,
-  localModuleCache
+  currentModuleDir
 }) {
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
@@ -353,9 +532,7 @@ function createNpmModuleRequire({
       return executeModuleInVmContext({
         resolvedPath,
         moduleName,
-        isolatedContext,
-        collectionPath,
-        localModuleCache
+        collectionPath
       });
     }
 
@@ -371,13 +548,12 @@ function createNpmModuleRequire({
     return executeModuleInVmContext({
       resolvedPath,
       moduleName,
-      isolatedContext,
-      collectionPath,
-      localModuleCache
+      collectionPath
     });
   };
 }
 
 module.exports = {
-  createCustomRequire
+  createCustomRequire,
+  runWithScriptContext
 };
