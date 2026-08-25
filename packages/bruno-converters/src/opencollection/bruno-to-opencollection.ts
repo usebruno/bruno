@@ -193,8 +193,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     brunoExtension.scripts = { flow: scriptFlow };
   }
   const openApiExtensions = brunoConfig?.openapi;
-  if (Array.isArray(openApiExtensions) && openApiExtensions.length > 0) {
-    brunoExtension.openapi = openApiExtensions.map((entry: any) => ({
+  const openApiEntries = Array.isArray(openApiExtensions)
+    ? openApiExtensions.filter((entry: any) => entry !== null && typeof entry === 'object')
+    : [];
+  if (openApiEntries.length > 0) {
+    brunoExtension.openapi = openApiEntries.map((entry: any) => ({
       sourceUrl: entry.sourceUrl,
       groupBy: entry.groupBy,
       ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),

@@ -46,8 +46,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     brunoConfig.scripts = { flow: scriptFlow };
   }
   const openApiExtensions = brunoExtension?.openapi;
-  if (Array.isArray(openApiExtensions) && openApiExtensions.length > 0) {
-    brunoConfig.openapi = openApiExtensions.map((entry: any) => ({
+  const openApiEntries = Array.isArray(openApiExtensions)
+    ? openApiExtensions.filter((entry: any) => entry !== null && typeof entry === 'object')
+    : [];
+  if (openApiEntries.length > 0) {
+    brunoConfig.openapi = openApiEntries.map((entry: any) => ({
       sourceUrl: entry.sourceUrl,
       groupBy: entry.groupBy,
       ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
