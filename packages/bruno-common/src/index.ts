@@ -20,13 +20,15 @@ export {
   BRUNO_DEFAULT_HEADERS,
   getBrunoDefaultHeaderNames,
   applyOmitHeaders,
+  shouldOmitConnection,
   refreshExplicitHeaderNames,
   getBrunoRuntimeUserAgent
 } from './headers/default-headers';
 export type {
   BrunoDefaultHeader,
   BrunoDefaultHeaderSource,
-  ApplyOmitHeadersResult
+  ApplyOmitHeadersResult,
+  OmitHeadersOptions
 } from './headers/default-headers';
 
 export * as utils from './utils';

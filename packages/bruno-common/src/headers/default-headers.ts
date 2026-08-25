@@ -91,23 +91,22 @@ const normalizeHeaderNameList = (names?: string[] | null): string[] => {
     .filter((name) => name.length > 0);
 };
 
+export type OmitHeadersOptions = {
+  omitHeaders?: string[] | null;
+  headersToDelete?: string[] | null;
+  explicitHeaderNames?: string[] | null;
+};
+
 /**
- * Drop auto-added headers from an Axios request.
+ * Lowercased names to drop from a request.
  * Host is never omitted. User-set headers win over omitHeaders.
- * Script deleteHeader always wins. Connection is left for the caller.
+ * Script deleteHeader always wins.
  */
-export const applyOmitHeaders = (
-  headers: AxiosLikeHeaders,
-  {
-    omitHeaders,
-    headersToDelete,
-    explicitHeaderNames
-  }: {
-    omitHeaders?: string[] | null;
-    headersToDelete?: string[] | null;
-    explicitHeaderNames?: string[] | null;
-  } = {}
-): ApplyOmitHeadersResult => {
+const resolveHeaderNamesToClear = ({
+  omitHeaders,
+  headersToDelete,
+  explicitHeaderNames
+}: OmitHeadersOptions = {}): string[] => {
   const explicit = new Set(
     normalizeHeaderNameList(explicitHeaderNames).map((name) => name.toLowerCase())
   );
@@ -118,28 +117,36 @@ export const applyOmitHeaders = (
     normalizeHeaderNameList(omitHeaders).map((name) => name.toLowerCase())
   );
 
-  const namesToClear = new Set<string>([...omitSet, ...deleteSet]);
-  let omitConnection = false;
+  return [...new Set<string>([...omitSet, ...deleteSet])].filter((lowerName) => {
+    if (lowerName === 'host') {
+      return false;
+    }
+
+    return !(omitSet.has(lowerName) && !deleteSet.has(lowerName) && explicit.has(lowerName));
+  });
+};
+
+/**
+ * True when Connection must stay off the wire. Deleting the header is not enough
+ * Node's agent writes it, so the agent has to be built with keepAlive false.
+ */
+export const shouldOmitConnection = (options: OmitHeadersOptions = {}): boolean =>
+  resolveHeaderNamesToClear(options).includes('connection');
+
+/** Drop auto-added headers from an Axios request. Connection is left for the caller. */
+export const applyOmitHeaders = (
+  headers: AxiosLikeHeaders,
+  options: OmitHeadersOptions = {}
+): ApplyOmitHeadersResult => {
+  const namesToClear = resolveHeaderNamesToClear(options);
 
   namesToClear.forEach((lowerName) => {
-    if (lowerName === 'host') {
-      return;
+    if (lowerName !== 'connection') {
+      headers.set(lowerName, null);
     }
-
-    // Keep user-set headers; script deleteHeader still clears them.
-    if (omitSet.has(lowerName) && !deleteSet.has(lowerName) && explicit.has(lowerName)) {
-      return;
-    }
-
-    if (lowerName === 'connection') {
-      omitConnection = true;
-      return;
-    }
-
-    headers.set(lowerName, null);
   });
 
-  return { omitConnection };
+  return { omitConnection: namesToClear.includes('connection') };
 };
 
 /** User-Agent Bruno sends by default. */

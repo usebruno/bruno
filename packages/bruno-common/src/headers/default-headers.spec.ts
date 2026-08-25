@@ -1,9 +1,20 @@
 import {
   applyOmitHeaders,
+  shouldOmitConnection,
   getBrunoDefaultHeaderNames,
   getBrunoRuntimeUserAgent,
   BRUNO_DEFAULT_HEADERS
 } from './default-headers';
+
+const createHeaders = () => {
+  const values = new Map<string, unknown>();
+  return {
+    values,
+    set: (name: string, value: unknown) => {
+      values.set(name.toLowerCase(), value);
+    }
+  };
+};
 
 describe('bruno default headers catalog', () => {
   it('includes the expected default header names', () => {
@@ -30,16 +41,6 @@ describe('bruno default headers catalog', () => {
 });
 
 describe('applyOmitHeaders', () => {
-  const createHeaders = () => {
-    const values = new Map<string, unknown>();
-    return {
-      values,
-      set: (name: string, value: unknown) => {
-        values.set(name.toLowerCase(), value);
-      }
-    };
-  };
-
   it('sets omitted defaults to null', () => {
     const headers = createHeaders();
     applyOmitHeaders(headers, {
@@ -89,5 +90,38 @@ describe('applyOmitHeaders', () => {
 
     expect(result.omitConnection).toBe(true);
     expect(headers.values.has('connection')).toBe(false);
+  });
+});
+
+describe('shouldOmitConnection', () => {
+  it('is true when Connection is omitted', () => {
+    expect(shouldOmitConnection({ omitHeaders: ['Connection'] })).toBe(true);
+  });
+
+  it('is false when Connection is not listed', () => {
+    expect(shouldOmitConnection({ omitHeaders: ['User-Agent'] })).toBe(false);
+    expect(shouldOmitConnection()).toBe(false);
+  });
+
+  it('is false when the user set Connection explicitly', () => {
+    expect(shouldOmitConnection({
+      omitHeaders: ['Connection'],
+      explicitHeaderNames: ['Connection']
+    })).toBe(false);
+  });
+
+  it('is true when a script deletes an explicitly set Connection', () => {
+    expect(shouldOmitConnection({
+      omitHeaders: ['Connection'],
+      headersToDelete: ['Connection'],
+      explicitHeaderNames: ['Connection']
+    })).toBe(true);
+  });
+
+  it('agrees with applyOmitHeaders on the same input', () => {
+    const options = { omitHeaders: ['connection', 'User-Agent'], explicitHeaderNames: ['Accept'] };
+    const headers = createHeaders();
+
+    expect(shouldOmitConnection(options)).toBe(applyOmitHeaders(headers, options).omitConnection);
   });
 });

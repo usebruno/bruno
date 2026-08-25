@@ -73,7 +73,7 @@ jest.mock('@usebruno/common', () => {
   const ogCommon = jest.requireActual('@usebruno/common');
   const ogUtils = ogCommon.utils;
   return {
-    applyOmitHeaders: ogCommon.applyOmitHeaders,
+    shouldOmitConnection: ogCommon.shouldOmitConnection,
     refreshExplicitHeaderNames: ogCommon.refreshExplicitHeaderNames,
     utils: {
       encodeUrl: jest.fn((u) => u),
