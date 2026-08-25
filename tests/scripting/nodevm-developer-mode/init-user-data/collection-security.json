@@ -1,0 +1,16 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/nodevm-developer-mode",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    },
+    {
+      "path": "{{collectionPath}}/nodevm-collection-script-target",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

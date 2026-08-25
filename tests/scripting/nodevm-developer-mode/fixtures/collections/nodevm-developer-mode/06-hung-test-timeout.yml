@@ -1,0 +1,34 @@
+info:
+  name: 06-hung-test-timeout
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("sync control (before hang)", function () {
+          expect(1).to.equal(1);
+        });
+
+        // Never resolves or rejects - proves the timeout guard bounds the run
+        // instead of hanging on it forever.
+        test("hung test - never resolves (bug check)", async function () {
+          await new Promise(() => {});
+          expect(true).to.equal(true);
+        });
+
+        test("sync control (after hang)", function () {
+          expect(2).to.equal(2);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
