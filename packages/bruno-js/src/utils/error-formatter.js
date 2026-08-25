@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
+const { SCRIPT_TYPES } = require('@usebruno/common');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
@@ -10,14 +11,6 @@ const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
 
 const isAllowedSourceFile = (filePath) =>
   typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
-
-const SCRIPT_TYPES = Object.freeze({
-  PRE_REQUEST: 'pre-request',
-  POST_RESPONSE: 'post-response',
-  TEST: 'test',
-  BEFORE_CALL_START: 'before-call-start',
-  AFTER_CALL_END: 'after-call-end'
-});
 
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {

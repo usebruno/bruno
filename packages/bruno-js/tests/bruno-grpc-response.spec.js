@@ -7,7 +7,6 @@ const makeRes = (overrides = {}) => ({
   metadata: [{ name: 'content-type', value: 'application/grpc' }],
   trailers: [{ name: 'grpc-status', value: '0' }],
   duration: 12,
-  methodType: 'unary',
   ...overrides
 });
 
@@ -18,8 +17,7 @@ describe('BrunoGrpcResponse', () => {
     expect(res).toMatchObject({
       statusCode: 0,
       statusText: 'OK',
-      duration: 12,
-      methodType: 'unary'
+      duration: 12
     });
   });
 
