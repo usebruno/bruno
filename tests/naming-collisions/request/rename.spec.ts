@@ -19,7 +19,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to a free name changes both the display name and the file', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { toast, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-free');
 
     await createCollection(page, 'Rename Free', testDir, 'bru');
@@ -27,7 +27,7 @@ test.describe('Naming collisions - rename request', () => {
     await renameItemTo(page, 'login', 'signin');
 
     await test.step('Sidebar and disk reflect the new name; old file is gone', async () => {
-      await expect(nc.toast('Item renamed successfully').first()).toBeVisible({ timeout: 5000 });
+      await expect(toast.byMessage('Item renamed successfully').first()).toBeVisible({ timeout: 5000 });
       await expect(sidebar.itemByName('signin')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
@@ -77,13 +77,13 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-invalid');
 
     await createCollection(page, 'Rename Invalid', testDir, 'bru');
     await createRequest(page, 'login', 'Rename Invalid');
 
-    const modal = nc.modalByTitle('Rename Request');
+    const renameModal = modal.byTitle('Rename Request');
 
     await test.step('Open rename, set the name to reserved "CON", reveal filesystem name, submit', async () => {
       await openRenameModal(page, 'login');
@@ -93,15 +93,15 @@ test.describe('Naming collisions - rename request', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is renamed', async () => {
-      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
-      await expect(modal).toBeVisible();
+      await expect(modal.formError('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(renameModal).toBeVisible();
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).not.toContain('CON.bru');
     });
 
-    await modal.getByRole('button', { name: 'Cancel' }).click();
-    await expect(modal).toHaveCount(0, { timeout: 5000 });
+    await renameModal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(renameModal).toHaveCount(0, { timeout: 5000 });
   });
 
   test('renaming to an existing name in a yml collection suffixes the .yml file', async ({ page, createTmpDir }) => {

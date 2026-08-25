@@ -20,7 +20,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('clones a request as "<name> copy" with no collision', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { toast, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-basic');
 
     await createCollection(page, 'Clone Basic', testDir, 'bru');
@@ -29,7 +29,7 @@ test.describe('Naming collisions - clone request', () => {
     await cloneItem(page, 'login');
 
     await test.step('Success toast is shown and the "login copy" clone appears', async () => {
-      await expect(nc.toast('Request cloned!').first()).toBeVisible({ timeout: 5000 });
+      await expect(toast.byMessage('Request cloned!').first()).toBeVisible({ timeout: 5000 });
       await expect(sidebar.request('login copy')).toBeVisible();
     });
 
@@ -126,7 +126,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('cloning a request never opens a modal', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-no-modal');
 
     await createCollection(page, 'Clone No Modal', testDir, 'bru');
@@ -135,7 +135,7 @@ test.describe('Naming collisions - clone request', () => {
     await cloneItem(page, 'login');
 
     await test.step('Clone completes without a modal', async () => {
-      await expect(nc.anyModal()).toHaveCount(0);
+      await expect(modal.any()).toHaveCount(0);
       await expect(sidebar.request('login copy')).toBeVisible();
     });
   });
@@ -158,7 +158,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('clones a request via the keyboard shortcut', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { toast, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-keybinding');
 
     await createCollection(page, 'Clone Keys', testDir, 'bru');
@@ -172,7 +172,7 @@ test.describe('Naming collisions - clone request', () => {
     });
 
     await test.step('Clone is created just like the menu path', async () => {
-      await expect(nc.toast('Request cloned!').first()).toBeVisible({ timeout: 5000 });
+      await expect(toast.byMessage('Request cloned!').first()).toBeVisible({ timeout: 5000 });
       await expect(sidebar.request('login copy')).toBeVisible();
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');

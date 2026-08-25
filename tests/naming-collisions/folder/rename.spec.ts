@@ -133,13 +133,13 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a folder to a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-reserved');
 
     await createCollection(page, 'Rename Folder Reserved', testDir, 'bru');
     await createFolder(page, 'Auth', 'Rename Folder Reserved');
 
-    const modal = nc.modalByTitle('Rename Folder');
+    const renameModal = modal.byTitle('Rename Folder');
 
     await test.step('Open rename, set the name to reserved "CON", reveal filesystem name, submit', async () => {
       await openRenameModal(page, 'Auth', 'folder');
@@ -149,15 +149,15 @@ test.describe('Naming collisions - rename folder', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is renamed', async () => {
-      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
-      await expect(modal).toBeVisible();
+      await expect(modal.formError('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(renameModal).toBeVisible();
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'CON'))).toBe(false);
     });
 
-    await modal.getByRole('button', { name: 'Cancel' }).click();
-    await expect(modal).toHaveCount(0, { timeout: 5000 });
+    await renameModal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(renameModal).toHaveCount(0, { timeout: 5000 });
   });
 
   test('a nested request tab follows when its folder is renamed (identity preserved)', async ({ page, createTmpDir }) => {

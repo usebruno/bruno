@@ -100,26 +100,26 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('creating with a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { request, modal, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-request-reserved');
 
     await createCollection(page, 'Create Reserved', testDir, 'bru');
 
     await test.step('Enter reserved name "CON", reveal filesystem name, submit', async () => {
       await openNewRequestModal(page, 'Create Reserved');
-      await nc.requestNameInput().fill('CON');
+      await request.requestNameInput().fill('CON');
       await revealFilesystemName(page);
       await nc.createRequestButton().click();
     });
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
-      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
-      await expect(nc.anyModal()).toBeVisible();
+      await expect(modal.formError('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(modal.any()).toBeVisible();
       expect(listRequestFiles(testDir)).toHaveLength(0);
     });
 
-    await nc.anyModal().getByRole('button', { name: 'Cancel' }).click();
-    await expect(nc.anyModal()).toHaveCount(0, { timeout: 5000 });
+    await modal.any().getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal.any()).toHaveCount(0, { timeout: 5000 });
   });
 
   test('creating a case-variant name behaves per filesystem case-sensitivity', async ({ page, createTmpDir }) => {

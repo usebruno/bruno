@@ -18,7 +18,7 @@ test.describe('Naming collisions - clone folder', () => {
   });
 
   test('clones a folder as "<name> copy" with its nested contents', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-clone-basic');
 
     await createCollection(page, 'Clone Folder', testDir, 'bru');
@@ -29,7 +29,7 @@ test.describe('Naming collisions - clone folder', () => {
     await cloneItem(page, 'Users');
 
     await test.step('Folder clone is one-click (no modal) and shows the "Users copy" folder', async () => {
-      await expect(nc.anyModal()).toHaveCount(0);
+      await expect(modal.any()).toHaveCount(0);
       await expect(sidebar.folder('Users copy')).toBeVisible();
     });
 

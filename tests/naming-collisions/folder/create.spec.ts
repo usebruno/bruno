@@ -51,14 +51,14 @@ test.describe('Naming collisions - create folder', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
-      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
-      await expect(nc.anyModal()).toBeVisible();
+      await expect(modal.formError('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(modal.any()).toBeVisible();
       await expect(sidebar.itemByName('CON')).toHaveCount(0);
       expect(fs.existsSync(path.join(findCollectionDir(testDir), 'CON'))).toBe(false);
     });
 
     // Close the modal so afterEach isn't blocked by the backdrop.
-    await nc.anyModal().getByRole('button', { name: 'Cancel' }).click();
-    await expect(nc.anyModal()).toHaveCount(0, { timeout: 5000 });
+    await modal.any().getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal.any()).toHaveCount(0, { timeout: 5000 });
   });
 });

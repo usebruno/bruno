@@ -5,18 +5,6 @@ import { buildCommonLocators } from './locators';
 
 export const buildNamingCollisionLocators = (page: Page) => ({
 
-  toast: (text: string | RegExp): Locator =>
-    page.locator('.toast-container').getByText(text),
-
-  // Inline Yup form-validation error rendered inside a modal.
-  formError: (text: string | RegExp): Locator =>
-    page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
-
-  anyModal: (): Locator => page.locator('.bruno-modal'),
-  modalByTitle: (title: string): Locator => buildCommonLocators(page).modal.byTitle(title),
-  modalCardByTitle: (title: string): Locator => buildCommonLocators(page).modal.card().filter({ hasText: title }),
-
-  requestNameInput: (): Locator => buildCommonLocators(page).request.requestNameInput(),
   createRequestButton: (): Locator => page.getByTestId('create-new-request-button'),
 
   renameNameInput: (): Locator => page.locator('#collection-item-name'),
@@ -39,11 +27,7 @@ export const buildNamingCollisionLocators = (page: Page) => ({
 
   // Save Request (transient) modal
   saveRequestModal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
-  saveRequestNameInput: (): Locator => page.locator('#request-name'),
-
-  // Request body editor (used to set/inspect a request body)
-  bodyModeSelector: (): Locator => buildCommonLocators(page).request.bodyModeSelector(),
-  bodyEditor: (): Locator => buildCommonLocators(page).request.bodyEditor().locator('.CodeMirror').first()
+  saveRequestNameInput: (): Locator => page.locator('#request-name')
 });
 
 export const openItemActionsMenu = async (page: Page, name: string) => {
@@ -63,43 +47,39 @@ const openCollectionActionsMenu = async (page: Page, collectionName: string) => 
 
 export const cloneItem = async (page: Page, name: string) => {
   await test.step(`Clone item "${name}"`, async () => {
-    const { dropdown } = buildCommonLocators(page);
-    const { toast } = buildNamingCollisionLocators(page);
+    const { dropdown, toast } = buildCommonLocators(page);
     await openItemActionsMenu(page, name);
     await dropdown.item('Clone').click();
     // Synchronize on completion (a "… cloned!" toast), scoped to the toast
     // container so a still-visible toast from a prior clone is not matched.
-    await toast(/cloned!/).first().waitFor({ state: 'visible' });
+    await toast.byMessage(/cloned!/).first().waitFor({ state: 'visible' });
   });
 };
 
 export const copyItem = async (page: Page, name: string) => {
   await test.step(`Copy item "${name}"`, async () => {
-    const { dropdown } = buildCommonLocators(page);
-    const { toast } = buildNamingCollisionLocators(page);
+    const { dropdown, toast } = buildCommonLocators(page);
     await openItemActionsMenu(page, name);
     await dropdown.item('Copy').click();
-    await toast(/copied/).first().waitFor({ state: 'visible' });
+    await toast.byMessage(/copied/).first().waitFor({ state: 'visible' });
   });
 };
 
 export const pasteIntoCollection = async (page: Page, collectionName: string) => {
   await test.step(`Paste into collection "${collectionName}"`, async () => {
-    const { dropdown } = buildCommonLocators(page);
-    const { toast } = buildNamingCollisionLocators(page);
+    const { dropdown, toast } = buildCommonLocators(page);
     await openCollectionActionsMenu(page, collectionName);
     await dropdown.item('Paste').click();
-    await toast('Item pasted successfully').first().waitFor({ state: 'visible' });
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
   });
 };
 
 export const pasteIntoFolder = async (page: Page, folderName: string) => {
   await test.step(`Paste into folder "${folderName}"`, async () => {
-    const { dropdown } = buildCommonLocators(page);
-    const { toast } = buildNamingCollisionLocators(page);
+    const { dropdown, toast } = buildCommonLocators(page);
     await openItemActionsMenu(page, folderName);
     await dropdown.item('Paste').click();
-    await toast('Item pasted successfully').first().waitFor({ state: 'visible' });
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
   });
 };
 
@@ -107,20 +87,20 @@ type ItemType = 'request' | 'folder';
 const renameModalTitle = (type: ItemType) => (type === 'folder' ? 'Rename Folder' : 'Rename Request');
 
 export const openRenameModal = async (page: Page, name: string, type: ItemType = 'request') => {
-  const { dropdown } = buildCommonLocators(page);
-  const locators = buildNamingCollisionLocators(page);
+  const { dropdown, modal } = buildCommonLocators(page);
   await openItemActionsMenu(page, name);
   await dropdown.item('Rename').click();
-  await locators.modalByTitle(renameModalTitle(type)).waitFor({ state: 'visible' });
+  await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'visible' });
 };
 
 export const renameItemTo = async (page: Page, name: string, newName: string, type: ItemType = 'request') => {
   await test.step(`Rename "${name}" to "${newName}"`, async () => {
+    const { modal } = buildCommonLocators(page);
     const locators = buildNamingCollisionLocators(page);
     await openRenameModal(page, name, type);
     await locators.renameNameInput().fill(newName);
     await locators.renameSubmit().click();
-    await locators.modalByTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
   });
 };
 
@@ -132,13 +112,14 @@ export const revealFilesystemName = async (page: Page) => {
 
 export const renameViaFilename = async (page: Page, name: string, newFilename: string, type: ItemType = 'request') => {
   await test.step(`Rename filesystem name of "${name}" to "${newFilename}"`, async () => {
+    const { modal } = buildCommonLocators(page);
     const locators = buildNamingCollisionLocators(page);
     await openRenameModal(page, name, type);
     await revealFilesystemName(page);
     await locators.renameEditIcon().click();
     await locators.fileNameInput().fill(newFilename);
     await locators.renameSubmit().click();
-    await locators.modalByTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
   });
 };
 
@@ -150,16 +131,17 @@ export const openNewRequestModal = async (page: Page, parentName: string, { inFo
     await openCollectionActionsMenu(page, parentName);
   }
   await dropdown.item('New Request').click();
-  await buildNamingCollisionLocators(page).requestNameInput().waitFor({ state: 'visible' });
+  await buildCommonLocators(page).request.requestNameInput().waitFor({ state: 'visible' });
 };
 
 export const createRequestViaModal = async (page: Page, parentName: string, name: string, { inFolder = false } = {}) => {
   await test.step(`Create request "${name}" via modal in "${parentName}"`, async () => {
+    const { modal, request } = buildCommonLocators(page);
     const locators = buildNamingCollisionLocators(page);
     await openNewRequestModal(page, parentName, { inFolder });
-    await locators.requestNameInput().fill(name);
+    await request.requestNameInput().fill(name);
     await locators.createRequestButton().click();
-    await locators.anyModal().waitFor({ state: 'hidden' });
+    await modal.any().waitFor({ state: 'hidden' });
   });
 };
 
@@ -170,14 +152,15 @@ export const createRequestWithEditedFilename = async (
   filename: string
 ) => {
   await test.step(`Create request "${displayName}" with filename "${filename}"`, async () => {
+    const { modal, request } = buildCommonLocators(page);
     const locators = buildNamingCollisionLocators(page);
     await openNewRequestModal(page, collectionName);
-    await locators.requestNameInput().fill(displayName);
+    await request.requestNameInput().fill(displayName);
     await revealFilesystemName(page);
     await locators.filenameEditIcon().click();
     await locators.fileNameInput().fill(filename);
     await locators.createRequestButton().click();
-    await locators.anyModal().waitFor({ state: 'hidden' });
+    await modal.any().waitFor({ state: 'hidden' });
   });
 };
 
@@ -195,7 +178,7 @@ export const createFolderViaModal = async (page: Page, collectionName: string, f
     await openNewFolderModal(page, collectionName);
     await locators.newFolderInput().fill(folderName);
     await modal.button('Create').click();
-    await locators.anyModal().waitFor({ state: 'hidden' });
+    await modal.any().waitFor({ state: 'hidden' });
   });
 };
 
@@ -203,7 +186,7 @@ export const openCloneCollectionModal = async (page: Page, collectionName: strin
   const { dropdown } = buildCommonLocators(page);
   await openCollectionActionsMenu(page, collectionName);
   await dropdown.item('Clone').click();
-  await buildNamingCollisionLocators(page).modalByTitle('Clone Collection').waitFor({ state: 'visible' });
+  await buildCommonLocators(page).modal.byTitle('Clone Collection').waitFor({ state: 'visible' });
 };
 
 export const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
@@ -226,10 +209,10 @@ export const chooseCloneLocation = async (page: Page, electronApp: ElectronAppli
 };
 
 export const setTextBody = async (page: Page, value: string) => {
-  const locators = buildNamingCollisionLocators(page);
-  await locators.bodyModeSelector().click();
+  const { request } = buildCommonLocators(page);
+  await request.bodyModeSelector().click();
   await page.locator('.dropdown-item').filter({ hasText: 'Text' }).click();
-  await locators.bodyEditor().click();
+  await request.bodyEditor().locator('.CodeMirror').first().click();
   await page.keyboard.type(value);
 };
 
