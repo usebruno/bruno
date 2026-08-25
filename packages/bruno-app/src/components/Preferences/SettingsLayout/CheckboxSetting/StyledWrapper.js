@@ -31,8 +31,8 @@ const StyledWrapper = styled.div`
   .setting-checkbox-children {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    margin: 0.75rem 0 0 1.5rem;
+    gap: 0.5rem;
+    margin: 0.3rem 0 0 1.5rem;
   }
 
   &.is-disabled {
