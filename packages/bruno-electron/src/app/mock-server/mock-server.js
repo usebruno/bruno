@@ -412,7 +412,7 @@ const handleRequest = (mockServerUid, req, res) => {
       try {
         sendResponse();
       } catch (err) {
-        if (!res.headersSent) {
+        if (!res.headersSent && res.writableEnded && res.destroyed) {
           res.status(500).json({ error: err.message || 'Mock response failed' });
         } else if (!res.writableEnded && !res.destroyed) {
           res.destroy();
