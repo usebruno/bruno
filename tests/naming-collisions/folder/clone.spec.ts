@@ -41,7 +41,7 @@ test.describe('Naming collisions - clone folder', () => {
   });
 
   test('cloning a folder twice keeps the display name and suffixes only the directory', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-clone-twice');
 
     await createCollection(page, 'Clone Folder Twice', testDir, 'bru');
@@ -51,7 +51,7 @@ test.describe('Naming collisions - clone folder', () => {
     await cloneItem(page, 'Users');
 
     await test.step('Sidebar shows two "Users copy" folders (duplicate display names allowed)', async () => {
-      await expect(nc.itemByTitle('Users copy')).toHaveCount(2);
+      await expect(sidebar.itemByName('Users copy')).toHaveCount(2);
     });
 
     await test.step('On disk: display name preserved, directory names suffixed', async () => {

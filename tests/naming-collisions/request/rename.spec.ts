@@ -19,7 +19,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to a free name changes both the display name and the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-free');
 
     await createCollection(page, 'Rename Free', testDir, 'bru');
@@ -28,7 +28,7 @@ test.describe('Naming collisions - rename request', () => {
 
     await test.step('Sidebar and disk reflect the new name; old file is gone', async () => {
       await expect(nc.toast('Item renamed successfully').first()).toBeVisible({ timeout: 5000 });
-      await expect(nc.itemByTitle('signin')).toHaveCount(1);
+      await expect(sidebar.itemByName('signin')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
       expect(files).not.toContain('login.bru');
@@ -36,7 +36,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to an existing name keeps the display name and suffixes the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-collision');
 
     await createCollection(page, 'Rename Collision', testDir, 'bru');
@@ -45,7 +45,7 @@ test.describe('Naming collisions - rename request', () => {
     await renameItemTo(page, 'login', 'signin');
 
     await test.step('Two "signin" entries shown; file silently suffixed, old file gone', async () => {
-      await expect(nc.itemByTitle('signin')).toHaveCount(2);
+      await expect(sidebar.itemByName('signin')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
       expect(files).toContain('signin 1.bru');
@@ -105,7 +105,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to an existing name in a yml collection suffixes the .yml file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-collision-yml');
 
     await createCollection(page, 'Rename Yml', testDir, 'yml');
@@ -114,7 +114,7 @@ test.describe('Naming collisions - rename request', () => {
     await renameItemTo(page, 'login', 'signin');
 
     await test.step('On disk: both .yml, second suffixed, old file gone', async () => {
-      await expect(nc.itemByTitle('signin')).toHaveCount(2);
+      await expect(sidebar.itemByName('signin')).toHaveCount(2);
       const files = listRequestFiles(testDir, '.yml');
       expect(files).toContain('signin.yml');
       expect(files).toContain('signin 1.yml');
@@ -123,7 +123,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('editing only the filename to a free name renames the file, keeps the display name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-filename-free');
 
     await createCollection(page, 'Rename Fn Free', testDir, 'bru');
@@ -131,7 +131,7 @@ test.describe('Naming collisions - rename request', () => {
     await renameViaFilename(page, 'login', 'signin');
 
     await test.step('Display name stays "login"; file is renamed to signin.bru', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(1);
+      await expect(sidebar.itemByName('login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
       expect(files).not.toContain('login.bru');
@@ -139,7 +139,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('editing only the filename to an existing name suffixes the file, keeps the display name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-filename-collision');
 
     await createCollection(page, 'Rename Fn Collision', testDir, 'bru');
@@ -148,7 +148,7 @@ test.describe('Naming collisions - rename request', () => {
     await renameViaFilename(page, 'login', 'signin');
 
     await test.step('Display name stays "login"; file silently suffixed', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(1);
+      await expect(sidebar.itemByName('login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
       expect(files).toContain('signin 1.bru');
@@ -176,7 +176,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to a case-variant of an existing name behaves per filesystem case-sensitivity', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-case');
 
     await createCollection(page, 'Rename Case', testDir, 'bru');
@@ -185,8 +185,8 @@ test.describe('Naming collisions - rename request', () => {
     await renameItemTo(page, 'signin', 'Login'); // case variant of existing "login"
 
     await test.step('Both display names shown; disk depends on FS case-sensitivity', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(1);
-      await expect(nc.itemByTitle('Login')).toHaveCount(1);
+      await expect(sidebar.itemByName('login')).toHaveCount(1);
+      await expect(sidebar.itemByName('Login')).toHaveCount(1);
 
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');

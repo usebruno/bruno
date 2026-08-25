@@ -19,7 +19,7 @@ test.describe('Naming collisions - create folder', () => {
   });
 
   test('creating a folder with an existing name keeps the name and suffixes the directory', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-create-dup');
 
     await createCollection(page, 'Create Folder Dup', testDir, 'bru');
@@ -27,7 +27,7 @@ test.describe('Naming collisions - create folder', () => {
     await createFolderViaModal(page, 'Create Folder Dup', 'Auth');
 
     await test.step('Sidebar shows two "Auth" folders (duplicate display names allowed)', async () => {
-      await expect(nc.itemByTitle('Auth')).toHaveCount(2);
+      await expect(sidebar.itemByName('Auth')).toHaveCount(2);
     });
 
     await test.step('On disk: typed name preserved, second directory silently suffixed', async () => {
@@ -38,7 +38,7 @@ test.describe('Naming collisions - create folder', () => {
   });
 
   test('creating a folder with a reserved name is blocked and creates nothing', async ({ page, createTmpDir }) => {
-    const { modal, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar, modal, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-create-reserved');
 
     await createCollection(page, 'Create Folder Reserved', testDir, 'bru');
@@ -53,7 +53,7 @@ test.describe('Naming collisions - create folder', () => {
     await test.step('Reserved-name error is shown and nothing is created', async () => {
       await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
       await expect(nc.anyModal()).toBeVisible();
-      await expect(nc.itemByTitle('CON')).toHaveCount(0);
+      await expect(sidebar.itemByName('CON')).toHaveCount(0);
       expect(fs.existsSync(path.join(findCollectionDir(testDir), 'CON'))).toBe(false);
     });
 

@@ -21,7 +21,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a folder to a free name changes both the display name and the directory', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-free');
 
     await createCollection(page, 'Rename Folder Free', testDir, 'bru');
@@ -29,7 +29,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Sidebar and disk reflect the new name; old directory is gone', async () => {
-      await expect(nc.itemByTitle('Accounts')).toHaveCount(1);
+      await expect(sidebar.itemByName('Accounts')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(false);
@@ -37,7 +37,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('a normal folder rename produces no duplicate node and keeps nested items', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-no-dup');
 
     await createCollection(page, 'Rename No Dup', testDir, 'bru');
@@ -47,8 +47,8 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Exactly one "Accounts" node (no duplicate); nested request follows', async () => {
-      await expect(nc.itemByTitle('Accounts')).toHaveCount(1);
-      await expect(nc.itemByTitle('Auth')).toHaveCount(0);
+      await expect(sidebar.itemByName('Accounts')).toHaveCount(1);
+      await expect(sidebar.itemByName('Auth')).toHaveCount(0);
 
       await sidebar.folder('Accounts').dblclick();
       await expect(sidebar.folderRequest('Accounts', 'login')).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a folder to an existing name keeps the display name and suffixes the directory', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-collision');
 
     await createCollection(page, 'Rename Folder Collision', testDir, 'bru');
@@ -69,7 +69,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Two "Accounts" entries; directory silently suffixed, old dir gone', async () => {
-      await expect(nc.itemByTitle('Accounts')).toHaveCount(2);
+      await expect(sidebar.itemByName('Accounts')).toHaveCount(2);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);
@@ -78,7 +78,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('editing the directory name to an existing folder suffixes it, keeps the display name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-dir-collision');
 
     await createCollection(page, 'Rename Dir Collision', testDir, 'bru');
@@ -87,7 +87,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameViaFilename(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Display name stays "Auth"; directory silently suffixed to "Accounts 1"', async () => {
-      await expect(nc.itemByTitle('Auth')).toHaveCount(1);
+      await expect(sidebar.itemByName('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);
@@ -96,7 +96,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('editing the directory name to a free name renames the directory, keeps the display name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-dir-free');
 
     await createCollection(page, 'Rename Dir Free', testDir, 'bru');
@@ -104,7 +104,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameViaFilename(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Display name stays "Auth"; directory renamed to "Accounts" (no suffix)', async () => {
-      await expect(nc.itemByTitle('Auth')).toHaveCount(1);
+      await expect(sidebar.itemByName('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(false);
@@ -113,7 +113,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a subfolder to a sibling name suffixes within the parent directory', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-nested');
 
     await createCollection(page, 'Rename Nested', testDir, 'bru');
@@ -124,7 +124,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'Beta', 'Alpha', 'folder');
 
     await test.step('Two "Alpha" subfolders; directory suffixed within "Parent", old dir gone', async () => {
-      await expect(nc.itemByTitle('Alpha')).toHaveCount(2);
+      await expect(sidebar.itemByName('Alpha')).toHaveCount(2);
       const parentDir = path.join(findCollectionDir(testDir), 'Parent');
       expect(fs.existsSync(path.join(parentDir, 'Alpha'))).toBe(true);
       expect(fs.existsSync(path.join(parentDir, 'Alpha 1'))).toBe(true);
@@ -185,7 +185,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('a case-only folder rename is applied in place without a suffix', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-case');
 
     await createCollection(page, 'Rename Folder Case', testDir, 'bru');
@@ -193,7 +193,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'auth', 'Auth', 'folder');
 
     await test.step('Renamed in place: single "Auth" in the sidebar, no suffixed variant', async () => {
-      await expect(nc.itemByTitle('Auth')).toHaveCount(1);
+      await expect(sidebar.itemByName('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Auth 1'))).toBe(false);
@@ -202,7 +202,7 @@ test.describe('Naming collisions - rename folder', () => {
   });
 
   test('renaming a folder to an existing name in a yml collection suffixes the directory', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-rename-yml');
 
     await createCollection(page, 'Rename Folder Yml', testDir, 'yml');
@@ -211,7 +211,7 @@ test.describe('Naming collisions - rename folder', () => {
     await renameItemTo(page, 'Auth', 'Accounts', 'folder');
 
     await test.step('Two "Accounts" entries; directory suffixed, old dir gone', async () => {
-      await expect(nc.itemByTitle('Accounts')).toHaveCount(2);
+      await expect(sidebar.itemByName('Accounts')).toHaveCount(2);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);

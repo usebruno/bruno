@@ -41,7 +41,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('cloning twice keeps the display name and suffixes only the filename', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-twice');
 
     await createCollection(page, 'Clone Twice', testDir, 'bru');
@@ -52,7 +52,7 @@ test.describe('Naming collisions - clone request', () => {
     await cloneItem(page, 'login');
 
     await test.step('Sidebar shows two "login copy" entries (duplicate display names allowed)', async () => {
-      await expect(nc.itemByTitle('login copy')).toHaveCount(2);
+      await expect(sidebar.itemByName('login copy')).toHaveCount(2);
     });
 
     await test.step('On disk: display name preserved, filesystem name suffixed', async () => {
@@ -64,7 +64,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('cloning a "copy" appends another "copy"', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-append');
 
     await createCollection(page, 'Clone Append', testDir, 'bru');
@@ -73,7 +73,7 @@ test.describe('Naming collisions - clone request', () => {
     await cloneItem(page, 'login copy');
 
     await test.step('Sidebar shows "login copy copy" (appended, not deduped)', async () => {
-      await expect(nc.itemByTitle('login copy copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('login copy copy')).toHaveCount(1);
     });
 
     await test.step('On disk: "login copy.bru" + "login copy copy.bru"', async () => {
@@ -141,7 +141,7 @@ test.describe('Naming collisions - clone request', () => {
   });
 
   test('preserves interior spaces in the copy name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('clone-request-spaces');
 
     await createCollection(page, 'Clone Spaces', testDir, 'bru');
@@ -150,7 +150,7 @@ test.describe('Naming collisions - clone request', () => {
     await cloneItem(page, 'My Request');
 
     await test.step('Sidebar and disk keep the spaces (no slugging)', async () => {
-      await expect(nc.itemByTitle('My Request copy')).toHaveCount(1);
+      await expect(sidebar.itemByName('My Request copy')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('My Request.bru');
       expect(files).toContain('My Request copy.bru');
@@ -165,7 +165,7 @@ test.describe('Naming collisions - clone request', () => {
     await createRequest(page, 'login', 'Clone Keys');
 
     await test.step('Focus the "login" row and press the clone shortcut', async () => {
-      await nc.itemRow('login').focus();
+      await sidebar.itemRow('login').focus();
       await page.keyboard.down(modifier);
       await page.keyboard.press('d');
       await page.keyboard.up(modifier);

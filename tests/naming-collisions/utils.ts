@@ -29,10 +29,6 @@ export const listRequestFiles = (dir: string, ext = '.bru'): string[] => {
   return out;
 };
 
-/**
- * Find the collection root under `testDir`. Bruno marks a collection root with
- * `bruno.json` (bru format) or `opencollection.yml` (yml format).
- */
 export const findCollectionDir = (testDir: string): string => {
   const markers = ['bruno.json', 'opencollection.yml'];
   for (const entry of fs.readdirSync(testDir, { withFileTypes: true })) {
@@ -44,7 +40,6 @@ export const findCollectionDir = (testDir: string): string => {
   throw new Error(`No collection (bruno.json / opencollection.yml) found under ${testDir}`);
 };
 
-/** Minimal valid .bru request content, for seeding files directly on disk. */
 export const minimalBru = (name: string) => `meta {\n  name: ${name}\n  type: http\n  seq: 1\n}\n`;
 
 /**

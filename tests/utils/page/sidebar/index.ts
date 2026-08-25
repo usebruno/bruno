@@ -1,11 +1,16 @@
-import { Page } from '../../../../playwright';
+import { Locator, Page } from '../../../../playwright';
 
 /**
  * Locators for the sidebar (collections tree) section.
  */
 export const buildSidebarLocators = (page: Page) => {
+  const itemByName = (name: string): Locator =>
+    page.locator('.item-name').and(page.getByTitle(name, { exact: true }));
+
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
-  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
+  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
+
+  const collectionScope = (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`);
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
@@ -23,6 +28,11 @@ export const buildSidebarLocators = (page: Page) => {
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
     itemRow,
+    itemByName,
+    itemsIn: (collectionName: string, name: string): Locator =>
+      collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
+    itemRowIn: (collectionName: string, name: string): Locator =>
+      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a
     // top-level collection row (`collection-actions-*`). Trigger is in the row; items
@@ -38,9 +48,7 @@ export const buildSidebarLocators = (page: Page) => {
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
-    // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
-    // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    collectionScope,
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar')

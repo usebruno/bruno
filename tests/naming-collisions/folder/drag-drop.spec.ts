@@ -18,7 +18,7 @@ test.describe('Naming collisions - drag/drop folder', () => {
   });
 
   test('dragging a folder into a collection that has the same folder name suffixes the directory', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const sourceDir = await createTmpDir('folder-drag-source');
     const targetDir = await createTmpDir('folder-drag-target');
 
@@ -31,14 +31,14 @@ test.describe('Naming collisions - drag/drop folder', () => {
     seedFolder(findCollectionDir(targetDir), 'Auth'); // colliding folder in target
 
     await test.step('Drag the "Auth" folder from the source onto the target collection', async () => {
-      const source = nc.itemInCollection('Folder Drag Source', 'Auth');
+      const source = sidebar.itemRowIn('Folder Drag Source', 'Auth');
       await expect(source).toBeVisible();
-      await source.dragTo(nc.collectionDropTarget('Folder Drag Target'));
+      await source.dragTo(sidebar.collectionRow('Folder Drag Target'));
     });
 
     await test.step('Sidebar: both "Auth" folders show in the target, none left in the source', async () => {
-      await expect(nc.itemsByTitleInCollection('Folder Drag Target', 'Auth')).toHaveCount(2);
-      await expect(nc.itemsByTitleInCollection('Folder Drag Source', 'Auth')).toHaveCount(0);
+      await expect(sidebar.itemsIn('Folder Drag Target', 'Auth')).toHaveCount(2);
+      await expect(sidebar.itemsIn('Folder Drag Source', 'Auth')).toHaveCount(0);
     });
 
     await test.step('Target keeps both folders (dir suffixed); moved subtree intact; source emptied', async () => {
@@ -51,7 +51,7 @@ test.describe('Naming collisions - drag/drop folder', () => {
   });
 
   test('dragging a folder into a collection with no collision keeps its name', async ({ page, createTmpDir }) => {
-    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const sourceDir = await createTmpDir('folder-drag-nc-source');
     const targetDir = await createTmpDir('folder-drag-nc-target');
 
@@ -63,14 +63,14 @@ test.describe('Naming collisions - drag/drop folder', () => {
     await createCollection(page, 'Folder NC Target', targetDir, 'bru'); // empty target
 
     await test.step('Drag "Auth" onto the empty target collection', async () => {
-      const source = nc.itemInCollection('Folder NC Source', 'Auth');
+      const source = sidebar.itemRowIn('Folder NC Source', 'Auth');
       await expect(source).toBeVisible();
-      await source.dragTo(nc.collectionDropTarget('Folder NC Target'));
+      await source.dragTo(sidebar.collectionRow('Folder NC Target'));
     });
 
     await test.step('Sidebar: "Auth" now shows in the target and is gone from the source', async () => {
-      await expect(nc.itemsByTitleInCollection('Folder NC Target', 'Auth')).toHaveCount(1);
-      await expect(nc.itemsByTitleInCollection('Folder NC Source', 'Auth')).toHaveCount(0);
+      await expect(sidebar.itemsIn('Folder NC Target', 'Auth')).toHaveCount(1);
+      await expect(sidebar.itemsIn('Folder NC Source', 'Auth')).toHaveCount(0);
     });
 
     await test.step('Target has "Auth" (no suffix) with subtree; source emptied', async () => {
@@ -83,7 +83,7 @@ test.describe('Naming collisions - drag/drop folder', () => {
   });
 
   test('reordering folders within the same collection does not create a copy', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-drag-reorder');
 
     await createCollection(page, 'Folder Reorder', testDir, 'bru');
@@ -91,7 +91,7 @@ test.describe('Naming collisions - drag/drop folder', () => {
     await createFolder(page, 'Beta', 'Folder Reorder');
 
     await test.step('Drag "Beta" onto "Alpha" (same-collection reorder)', async () => {
-      await nc.itemInCollection('Folder Reorder', 'Beta').dragTo(nc.itemInCollection('Folder Reorder', 'Alpha'), {
+      await sidebar.itemRowIn('Folder Reorder', 'Beta').dragTo(sidebar.itemRowIn('Folder Reorder', 'Alpha'), {
         targetPosition: { x: 5, y: 5 }
       });
     });

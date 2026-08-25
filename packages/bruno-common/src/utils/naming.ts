@@ -9,7 +9,6 @@
  * resolved against the real filesystem.
  */
 
-// Characters that are illegal in file/dir names across Windows/macOS/Linux.
 const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
 const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
 const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no leading space, hyphen, or invalid char

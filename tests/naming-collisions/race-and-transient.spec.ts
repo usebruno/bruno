@@ -22,7 +22,7 @@ test.describe('Naming collisions - double-paste race', () => {
   });
 
   test('pasting twice in rapid succession yields distinct files with no error', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar, namingCollisions: nc } = buildCommonLocators(page);
     const testDir = await createTmpDir('race-double-paste');
 
     await createCollection(page, 'Race', testDir, 'bru');
@@ -33,7 +33,7 @@ test.describe('Naming collisions - double-paste race', () => {
 
     await test.step('Focus the target folder and fire two pastes back-to-back', async () => {
       // Focusing the row enables the pasteItem keybinding for this item.
-      await nc.itemRow('Target').focus();
+      await sidebar.itemRow('Target').focus();
 
       await page.keyboard.press(`${modifier}+v`);
       await page.keyboard.press(`${modifier}+v`);
@@ -56,7 +56,7 @@ test.describe('Naming collisions - save transient request', () => {
   });
 
   test('saving a transient request with an existing name silently suffixes the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('transient-save-collision');
 
     await createCollection(page, 'Transient Save', testDir, 'bru');
@@ -66,7 +66,7 @@ test.describe('Naming collisions - save transient request', () => {
     await saveTransientRequestAs(page, 'login'); // save the draft as the already-taken name
 
     await test.step('Two "login" entries; filesystem name silently suffixed', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(2);
+      await expect(sidebar.itemByName('login')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login 1.bru');
@@ -74,7 +74,7 @@ test.describe('Naming collisions - save transient request', () => {
   });
 
   test('opens the newly-saved (suffixed) request, not the pre-existing one with the same name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc, tabs } = buildCommonLocators(page);
+    const { sidebar, tabs } = buildCommonLocators(page);
     const testDir = await createTmpDir('transient-save-open-correct');
 
     await createCollection(page, 'Transient Open', testDir, 'bru');
@@ -90,7 +90,7 @@ test.describe('Naming collisions - save transient request', () => {
     });
 
     await test.step('On disk: both files exist (display names collide, directory suffixed)', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(2);
+      await expect(sidebar.itemByName('login')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login 1.bru');

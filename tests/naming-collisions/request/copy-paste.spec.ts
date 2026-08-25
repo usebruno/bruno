@@ -36,7 +36,7 @@ test.describe('Naming collisions - copy/paste request', () => {
   });
 
   test('pasting twice keeps the display name and suffixes the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('paste-twice');
 
     await createCollection(page, 'Paste Twice', testDir, 'bru');
@@ -47,7 +47,7 @@ test.describe('Naming collisions - copy/paste request', () => {
     await pasteIntoCollection(page, 'Paste Twice'); // login copy (display) -> login copy 1.bru
 
     await test.step('Two "login copy" entries; filesystem name suffixed', async () => {
-      await expect(nc.itemByTitle('login copy')).toHaveCount(2);
+      await expect(sidebar.itemByName('login copy')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login copy.bru');

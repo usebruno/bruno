@@ -9,7 +9,7 @@ test.describe('Naming collisions - long names', () => {
   });
 
   test('a ~255-char name collision is truncated and suffixed within the filesystem limit', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('long-names');
     const longName = 'a'.repeat(255); // max allowed display name length
 
@@ -21,7 +21,7 @@ test.describe('Naming collisions - long names', () => {
     await createRequestViaModal(page, 'Long Names', longName);
 
     await test.step('Both display names appear in the sidebar', async () => {
-      await expect(nc.itemByTitle(longName)).toHaveCount(2);
+      await expect(sidebar.itemByName(longName)).toHaveCount(2);
     });
 
     await test.step('On disk: two distinct .bru files, each within the 255-char limit', async () => {

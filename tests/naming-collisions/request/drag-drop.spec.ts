@@ -10,7 +10,7 @@ test.describe('Naming collisions - drag/drop request', () => {
   });
 
   test('dragging a request into a collection that has the same name suffixes the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const sourceDir = await createTmpDir('drag-source');
     const targetDir = await createTmpDir('drag-target');
 
@@ -22,9 +22,9 @@ test.describe('Naming collisions - drag/drop request', () => {
     fs.writeFileSync(path.join(findCollectionDir(targetDir), 'login.bru'), minimalBru('login'));
 
     await test.step('Drag "login" from the source collection onto the target collection', async () => {
-      const source = nc.itemInCollection('Drag Source', 'login');
+      const source = sidebar.itemRowIn('Drag Source', 'login');
       await expect(source).toBeVisible();
-      await source.dragTo(nc.collectionDropTarget('Drag Target'));
+      await source.dragTo(sidebar.collectionRow('Drag Target'));
     });
 
     await test.step('Target keeps both files (silently suffixed); source is emptied', async () => {
@@ -36,7 +36,7 @@ test.describe('Naming collisions - drag/drop request', () => {
   });
 
   test('dragging a request into a collection with no collision keeps its name', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const sourceDir = await createTmpDir('drag-nc-source');
     const targetDir = await createTmpDir('drag-nc-target');
 
@@ -45,9 +45,9 @@ test.describe('Naming collisions - drag/drop request', () => {
     await createCollection(page, 'NC Target', targetDir, 'bru'); // empty target
 
     await test.step('Drag "login" onto the empty target collection', async () => {
-      const source = nc.itemInCollection('NC Source', 'login');
+      const source = sidebar.itemRowIn('NC Source', 'login');
       await expect(source).toBeVisible();
-      await source.dragTo(nc.collectionDropTarget('NC Target'));
+      await source.dragTo(sidebar.collectionRow('NC Target'));
     });
 
     await test.step('Target has "login.bru" (no suffix); source is emptied', async () => {
@@ -57,7 +57,7 @@ test.describe('Naming collisions - drag/drop request', () => {
   });
 
   test('reordering within the same collection does not create a copy', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('drag-reorder');
 
     await createCollection(page, 'Reorder', testDir, 'bru');
@@ -65,7 +65,7 @@ test.describe('Naming collisions - drag/drop request', () => {
     await createRequest(page, 'beta', 'Reorder');
 
     await test.step('Drag "beta" onto "alpha" (same-folder reorder)', async () => {
-      await nc.itemInCollection('Reorder', 'beta').dragTo(nc.itemInCollection('Reorder', 'alpha'), {
+      await sidebar.itemRowIn('Reorder', 'beta').dragTo(sidebar.itemRowIn('Reorder', 'alpha'), {
         targetPosition: { x: 5, y: 5 }
       });
     });
@@ -79,7 +79,7 @@ test.describe('Naming collisions - drag/drop request', () => {
   });
 
   test('cross-format move converts to .yml and suffixes on collision', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const sourceDir = await createTmpDir('drag-xfmt-source');
     const targetDir = await createTmpDir('drag-xfmt-target');
 
@@ -93,9 +93,9 @@ test.describe('Naming collisions - drag/drop request', () => {
     );
 
     await test.step('Drag the .bru "login" onto the yml collection', async () => {
-      const source = nc.itemInCollection('Xfmt Source', 'login');
+      const source = sidebar.itemRowIn('Xfmt Source', 'login');
       await expect(source).toBeVisible();
-      await source.dragTo(nc.collectionDropTarget('Xfmt Target'));
+      await source.dragTo(sidebar.collectionRow('Xfmt Target'));
     });
 
     await test.step('Target holds two .yml files (converted + suffixed); source emptied', async () => {

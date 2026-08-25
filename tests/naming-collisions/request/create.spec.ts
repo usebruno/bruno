@@ -19,7 +19,7 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('creating a request with an existing name keeps the name and suffixes the file', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-request-dup');
 
     await createCollection(page, 'Create Dup', testDir, 'bru');
@@ -27,7 +27,7 @@ test.describe('Naming collisions - create request', () => {
     await createRequestViaModal(page, 'Create Dup', 'users');
 
     await test.step('Sidebar shows two "users" entries (duplicate display names allowed)', async () => {
-      await expect(nc.itemByTitle('users')).toHaveCount(2);
+      await expect(sidebar.itemByName('users')).toHaveCount(2);
     });
 
     await test.step('On disk: typed name preserved, second file silently suffixed', async () => {
@@ -69,14 +69,14 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('manually-edited filename with no collision is used exactly as typed', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-request-edited-filename-free');
 
     await createCollection(page, 'Edit Filename Free', testDir, 'bru');
     await createRequestWithEditedFilename(page, 'Edit Filename Free', 'My Login', 'signin');
 
     await test.step('Display name and the exact edited filename are both honoured', async () => {
-      await expect(nc.itemByTitle('My Login')).toHaveCount(1);
+      await expect(sidebar.itemByName('My Login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru'); // exactly as typed, no suffix
       expect(files).not.toContain('My Login.bru'); // display name was not used as the filename
@@ -84,7 +84,7 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('manually-edited filename that collides is silently suffixed, display name kept', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-request-edited-filename');
 
     await createCollection(page, 'Edit Filename', testDir, 'bru');
@@ -92,7 +92,7 @@ test.describe('Naming collisions - create request', () => {
     await createRequestWithEditedFilename(page, 'Edit Filename', 'My Login', 'login');
 
     await test.step('Display name is kept; filesystem name silently suffixed', async () => {
-      await expect(nc.itemByTitle('My Login')).toHaveCount(1);
+      await expect(sidebar.itemByName('My Login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login 1.bru');
@@ -123,7 +123,7 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('creating a case-variant name behaves per filesystem case-sensitivity', async ({ page, createTmpDir }) => {
-    const { namingCollisions: nc } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-case');
 
     await createCollection(page, 'Create Case', testDir, 'bru');
@@ -131,8 +131,8 @@ test.describe('Naming collisions - create request', () => {
     await createRequestViaModal(page, 'Create Case', 'Login'); // case variant
 
     await test.step('Both display names appear in the sidebar', async () => {
-      await expect(nc.itemByTitle('login')).toHaveCount(1);
-      await expect(nc.itemByTitle('Login')).toHaveCount(1);
+      await expect(sidebar.itemByName('login')).toHaveCount(1);
+      await expect(sidebar.itemByName('Login')).toHaveCount(1);
     });
 
     await test.step('On disk: case-insensitive FS suffixes; case-sensitive FS coexists', async () => {

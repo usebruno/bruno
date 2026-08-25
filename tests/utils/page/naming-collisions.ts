@@ -3,36 +3,7 @@ import { ElectronApplication } from '@playwright/test';
 import { test, Page, Locator } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
-/**
- * Locators for the "naming collisions" domain: sidebar items by display name,
- * the create/rename/clone modals and their fields, and the success/error toasts.
- */
 export const buildNamingCollisionLocators = (page: Page) => ({
-
-  itemByTitle: (title: string): Locator => page.locator('.item-name').and(page.getByTitle(title, { exact: true })),
-
-  itemRow: (title: string): Locator =>
-    page
-      .locator('[data-testid="sidebar-collection-item-row"]')
-      .filter({ has: page.locator('.item-name').and(page.getByTitle(title, { exact: true })) }),
-
-  itemInCollection: (collectionName: string, itemName: string): Locator => {
-    const { sidebar } = buildCommonLocators(page);
-    return sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ hasText: itemName }).first();
-  },
-
-  collectionDropTarget: (collectionName: string): Locator =>
-    page.locator('.collection-name').filter({ hasText: collectionName }),
-
-  // Sidebar items with an exact display name, scoped to one collection's container
-  // (for counting duplicates / asserting presence within a specific collection).
-  itemsByTitleInCollection: (collectionName: string, title: string): Locator =>
-    page
-      .locator('.collection-name')
-      .filter({ hasText: collectionName })
-      .locator('..')
-      .locator('.item-name')
-      .and(page.getByTitle(title, { exact: true })),
 
   toast: (text: string | RegExp): Locator =>
     page.locator('.toast-container').getByText(text),
