@@ -26,9 +26,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
+import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
@@ -38,7 +37,7 @@ import DeleteCollectionItem from './DeleteCollectionItem';
 import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder } from 'utils/tabs';
+import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
@@ -48,8 +47,6 @@ import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
-import { scrollToTheActiveTab } from 'utils/tabs';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector,
@@ -73,7 +70,6 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -540,20 +536,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const handleCreateExample = async (name, description = '', mockFields) => {
-    const statusCode = mockFields?.statusCode || 200;
-    const bodyType = mockFields?.bodyType || 'text';
-    const defaultContent = bodyType === 'json' ? '{}' : '';
-
+  const handleCreateExample = async (name, description = '') => {
     const exampleData = {
       name: name,
       description: description,
-      status: statusCode,
+      status: 200,
       statusText: 'OK',
       headers: [],
       body: {
-        type: bodyType,
-        content: defaultContent
+        type: 'text',
+        content: ''
       }
     };
 
@@ -697,7 +689,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onSave={handleCreateExample}
         title="Create Response Example"
         initialName={getInitialExampleName(item)}
-        showMockFields={false}
       />
       <div
         className={itemRowClassName}
