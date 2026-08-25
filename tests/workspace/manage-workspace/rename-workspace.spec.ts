@@ -43,19 +43,19 @@ test.describe('Manage Workspace — rename', () => {
 
     await test.step('Click Rename to open the rename workspace modal', async () => {
       await manageWorkspace.actionsMenuItem('rename').click();
-      await expect(manageWorkspace.renameModal()).toBeVisible();
-      await expect(manageWorkspace.renameNameInput()).toHaveValue('Rename Me WS');
+      await expect(manageWorkspace.renameModal.modal()).toBeVisible();
+      await expect(manageWorkspace.renameModal.nameInput()).toHaveValue('Rename Me WS');
     });
 
     await test.step('Enter a new name for the workspace', async () => {
-      await manageWorkspace.renameNameInput().fill('Renamed WS');
-      await expect(manageWorkspace.renameNameInput()).toHaveValue('Renamed WS');
-      await expect(manageWorkspace.renameError()).toHaveCount(0);
+      await manageWorkspace.renameModal.nameInput().fill('Renamed WS');
+      await expect(manageWorkspace.renameModal.nameInput()).toHaveValue('Renamed WS');
+      await expect(manageWorkspace.renameModal.error()).toHaveCount(0);
     });
 
     await test.step('Confirm the rename', async () => {
-      await manageWorkspace.renameSubmitButton().click();
-      await expect(manageWorkspace.renameModal()).toBeHidden();
+      await manageWorkspace.renameModal.submitButton().click();
+      await expect(manageWorkspace.renameModal.modal()).toBeHidden();
     });
 
     await test.step('Verify the new name is reflected in the workspace list', async () => {
@@ -94,17 +94,17 @@ test.describe('Manage Workspace — rename', () => {
       await openManageWorkspaces(page);
       await openWorkspaceActionsMenu(page, 'Rename Conflict WS');
       await manageWorkspace.actionsMenuItem('rename').click();
-      await expect(manageWorkspace.renameModal()).toBeVisible();
+      await expect(manageWorkspace.renameModal.modal()).toBeVisible();
     });
 
     await test.step('Submit a name that already belongs to another workspace', async () => {
-      await manageWorkspace.renameNameInput().fill('My Workspace');
-      await manageWorkspace.renameSubmitButton().click();
+      await manageWorkspace.renameModal.nameInput().fill('My Workspace');
+      await manageWorkspace.renameModal.submitButton().click();
     });
 
     await test.step('Verify the rename is rejected and the original name is unchanged', async () => {
-      await expect(manageWorkspace.renameError()).toHaveText('A workspace with this name already exists');
-      await expect(manageWorkspace.renameModal()).toBeVisible();
+      await expect(manageWorkspace.renameModal.error()).toHaveText('A workspace with this name already exists');
+      await expect(manageWorkspace.renameModal.modal()).toBeVisible();
       await expect(manageWorkspace.workspaceItem('Rename Conflict WS')).toBeVisible();
       await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
     });

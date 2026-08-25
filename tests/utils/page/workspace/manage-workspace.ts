@@ -1,5 +1,7 @@
 import { expect, Page, test } from '../../../../playwright';
 import { buildTitleBarLocators } from '../title-bar';
+import { buildRemoveWorkspaceModalLocators } from './remove-workspace-modal';
+import { buildRenameWorkspaceModalLocators } from './rename-workspace-modal';
 
 type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
 
@@ -8,8 +10,6 @@ type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
  */
 export const buildManageWorkspaceLocators = (page: Page) => {
   const workspaceItem = (workspaceName: string) => page.getByTestId(`workspace-item-${workspaceName}`);
-  const renameModal = () => page.getByTestId('rename-workspace-modal');
-  const removeModal = () => page.getByTestId('remove-workspace-modal');
 
   return {
     title: () => page.getByTestId('manage-workspace-title'),
@@ -26,13 +26,8 @@ export const buildManageWorkspaceLocators = (page: Page) => {
     actionsTrigger: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-actions-trigger'),
     // Menu items live in a tippy portal, so they can't be scoped to the workspace row.
     actionsMenuItem: (action: WorkspaceAction) => page.getByTestId(`menu-dropdown-${action}`),
-    renameModal,
-    renameNameInput: () => renameModal().getByTestId('workspace-name-input'),
-    renameError: () => renameModal().getByTestId('workspace-name-error'),
-    renameSubmitButton: () => page.getByTestId('rename-workspace-modal-submit-btn'),
-    removeModal,
-    // The label switches to "Removing..." mid-submit, so target the button by testid.
-    removeSubmitButton: () => page.getByTestId('remove-workspace-modal-submit-btn')
+    renameModal: buildRenameWorkspaceModalLocators(page),
+    removeModal: buildRemoveWorkspaceModalLocators(page)
   };
 };
 

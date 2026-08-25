@@ -44,16 +44,16 @@ test.describe('Manage Workspace — remove', () => {
     });
 
     await test.step('Verify the confirmation dialog asks to confirm the removal', async () => {
-      await expect(manageWorkspace.removeModal()).toBeVisible();
-      await expect(manageWorkspace.removeModal()).toContainText(
+      await expect(manageWorkspace.removeModal.modal()).toBeVisible();
+      await expect(manageWorkspace.removeModal.modal()).toContainText(
         'Are you sure you want to remove workspace Removable WS?'
       );
-      await expect(manageWorkspace.removeModal()).toContainText(workspacePath);
+      await expect(manageWorkspace.removeModal.modal()).toContainText(workspacePath);
     });
 
     await test.step('Confirm the removal', async () => {
-      await manageWorkspace.removeSubmitButton().click();
-      await expect(manageWorkspace.removeModal()).toBeHidden();
+      await manageWorkspace.removeModal.submitButton().click();
+      await expect(manageWorkspace.removeModal.modal()).toBeHidden();
     });
 
     await test.step('Verify the removed workspace no longer appears in the workspace list', async () => {
