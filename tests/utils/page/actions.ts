@@ -1891,6 +1891,53 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
+ * Open a gRPC request from the sidebar, wait for its method to resolve, and send it.
+ * Does not wait for the response — assert on it in the caller, since a call may end in a
+ * status, a stream, or a script error card.
+ * @param page - The page object
+ * @param requestName - The name of the request in the sidebar
+ * @param method - The expected method on the dropdown trigger (e.g. "HelloService/SayHello")
+ */
+const sendGrpcRequest = async (page: Page, requestName: string, method: string) => {
+  await test.step(`Send gRPC request "${requestName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+
+    await locators.sidebar.request(requestName).click();
+    await expect(locators.method.dropdownTrigger()).toContainText(method, { timeout: 30000 });
+    await locators.request.sendButton().click();
+  });
+};
+
+/**
+ * Send a streaming gRPC request, stream the given authored messages, then end the call and
+ * wait for it to close with status 0.
+ * @param page - The page object
+ * @param requestName - The name of the request in the sidebar
+ * @param method - The expected method on the dropdown trigger (e.g. "HelloService/BidiHello")
+ * @param messageIndexes - 0-based indexes of the authored messages to stream, in order
+ */
+const streamGrpcMessagesAndEndCall = async (
+  page: Page,
+  requestName: string,
+  method: string,
+  messageIndexes: number[]
+) => {
+  await test.step(`Stream messages [${messageIndexes.join(', ')}] on "${requestName}" and end the call`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+
+    await sendGrpcRequest(page, requestName, method);
+    await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
+
+    for (const index of messageIndexes) {
+      await locators.request.sendMessage(index).click();
+    }
+
+    await locators.request.endConnectionButton().click();
+    await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+  });
+};
+
+/**
  * Close every open request tab, discarding or saving based on the saveChanges flag.
  *
  * @param page - The page object
@@ -3310,6 +3357,8 @@ export {
   addGrpcMessage,
   generateGrpcSampleMessage,
   selectGrpcMethod,
+  sendGrpcRequest,
+  streamGrpcMessagesAndEndCall,
   closeAllTabs,
   closeAllOpenTabs,
   switchToOpenTab,
