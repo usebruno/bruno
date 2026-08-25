@@ -57,7 +57,7 @@ class TestRuntime {
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -124,6 +124,8 @@ class TestRuntime {
     } catch (error) {
       scriptError = error;
     }
+
+    await waitForPendingTests();
 
     const result = {
       request,
