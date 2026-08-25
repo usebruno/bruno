@@ -17,4 +17,6 @@ grpc:
 runtime:
   scripts:
     - type: grpc:after-call-end
-      code: throw new Error('afterCallEnd exploded');
+      code: |-
+        // the throw sits off line 1 so the flashed line number the spec asserts is discriminating
+        throw new Error('afterCallEnd exploded');
