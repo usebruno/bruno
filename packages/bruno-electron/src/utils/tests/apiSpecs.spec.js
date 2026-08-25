@@ -38,7 +38,7 @@ describe('resolveExternalApiSpecRefs', () => {
     writeSpecFile('endpoint.yaml', 'get:\n  operationId: hello\n');
     const specPath = writeSpecFile('openapi.yaml', '');
 
-    const resolved = await resolveExternalApiSpecRefs(
+    const { resolvedJson: resolved } = await resolveExternalApiSpecRefs(
       { openapi: '3.1.0', paths: { '/hello': { $ref: './endpoint.yaml' } } },
       specPath
     );
@@ -50,7 +50,7 @@ describe('resolveExternalApiSpecRefs', () => {
     writeSpecFile('schemas/hello.yaml', 'Hello:\n  type: object\nGreeting:\n  $ref: "#/Hello"\n');
     const specPath = writeSpecFile('openapi.yaml', '');
 
-    const resolved = await resolveExternalApiSpecRefs(
+    const { resolvedJson: resolved } = await resolveExternalApiSpecRefs(
       {
         openapi: '3.1.0',
         components: {
@@ -82,7 +82,7 @@ describe('resolveExternalApiSpecRefs', () => {
     writeSpecFile('endpoint.yaml', 'get:\n  responses:\n    "200":\n      $ref: "./shared.yaml#/Ok"\n');
     const specPath = writeSpecFile('openapi.yaml', '');
 
-    const resolved = await resolveExternalApiSpecRefs(
+    const { resolvedJson: resolved } = await resolveExternalApiSpecRefs(
       { openapi: '3.1.0', paths: { '/hello': { $ref: './endpoint.yaml' } } },
       specPath
     );
@@ -94,7 +94,7 @@ describe('resolveExternalApiSpecRefs', () => {
     writeSpecFile('endpoint.yaml', 'get:\n  responses:\n    "200":\n      $ref: "./openapi.yaml#/paths/~1hello"\n');
     const specPath = writeSpecFile('openapi.yaml', 'paths:\n  /hello:\n    $ref: "./endpoint.yaml"\n');
 
-    const resolved = await resolveExternalApiSpecRefs(
+    const { resolvedJson: resolved } = await resolveExternalApiSpecRefs(
       { openapi: '3.1.0', paths: { '/hello': { $ref: './endpoint.yaml' } } },
       specPath
     );
@@ -110,8 +110,8 @@ describe('resolveExternalApiSpecRefs', () => {
       paths: { '/hello': { get: { responses: { 200: { $ref: '#/components/responses/Ok' } } } } }
     };
 
-    expect(await resolveExternalApiSpecRefs(internalOnly, specPath)).toBeNull();
-    expect(await resolveExternalApiSpecRefs(null, specPath)).toBeNull();
+    expect((await resolveExternalApiSpecRefs(internalOnly, specPath)).resolvedJson).toBeNull();
+    expect((await resolveExternalApiSpecRefs(null, specPath)).resolvedJson).toBeNull();
   });
 
   it('leaves refs the parser cannot follow alone', async () => {
@@ -123,15 +123,15 @@ describe('resolveExternalApiSpecRefs', () => {
       components: { schemas: { Hello: { $id: 'hello.json', type: 'object' }, Greeting: { $ref: 'hello.json' } } }
     };
 
-    expect(await resolveExternalApiSpecRefs(remoteRef, specPath)).toBeNull();
-    expect(await resolveExternalApiSpecRefs(idRef, specPath)).toBeNull();
+    expect((await resolveExternalApiSpecRefs(remoteRef, specPath)).resolvedJson).toBeNull();
+    expect((await resolveExternalApiSpecRefs(idRef, specPath)).resolvedJson).toBeNull();
   });
 
   it('inlines what it can when one ref among several is unresolvable', async () => {
     writeSpecFile('endpoint.yaml', 'get:\n  operationId: hello\n');
     const specPath = writeSpecFile('openapi.yaml', '');
 
-    const resolved = await resolveExternalApiSpecRefs(
+    const { resolvedJson: resolved } = await resolveExternalApiSpecRefs(
       {
         openapi: '3.1.0',
         paths: {
@@ -151,6 +151,6 @@ describe('resolveExternalApiSpecRefs', () => {
     const json = { openapi: '3.1.0', components: {} };
     json.components.self = json;
 
-    expect(await resolveExternalApiSpecRefs(json, specPath)).toBeNull();
+    expect((await resolveExternalApiSpecRefs(json, specPath)).resolvedJson).toBeNull();
   });
 });

@@ -45,14 +45,26 @@ const containsExternalFileRef = (node, specDir, visited = new Set()) => {
   return Object.values(node).some((value) => containsExternalFileRef(value, specDir, visited));
 };
 
+const refFilePathsOf = (parser, apiSpecPath) => {
+  const root = path.resolve(apiSpecPath);
+
+  return (parser?.$refs.paths('file') ?? [])
+    .map((refFilePath) => path.resolve(refFilePath))
+    .filter((refFilePath) => refFilePath !== root);
+};
+
 const resolveExternalApiSpecRefs = async (json, apiSpecPath) => {
   let parser;
   try {
-    if (!containsExternalFileRef(json, path.dirname(apiSpecPath))) return null;
+    if (!containsExternalFileRef(json, path.dirname(apiSpecPath))) {
+      return { resolvedJson: null, refFilePaths: [] };
+    }
     parser = new $RefParser();
-    return await parser.bundle(apiSpecPath, structuredClone(json), REF_PARSER_OPTIONS);
+    const resolvedJson = await parser.bundle(apiSpecPath, structuredClone(json), REF_PARSER_OPTIONS);
+
+    return { resolvedJson, refFilePaths: refFilePathsOf(parser, apiSpecPath) };
   } catch {
-    return parser?.schema ?? null;
+    return { resolvedJson: parser?.schema ?? null, refFilePaths: refFilePathsOf(parser, apiSpecPath) };
   }
 };
 

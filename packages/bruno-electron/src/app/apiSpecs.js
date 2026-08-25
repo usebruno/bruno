@@ -95,6 +95,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
       const rawContent = fs.readFileSync(apiSpecPath, 'utf8');
       const extension = path.extname(apiSpecPath);
       const apiSpecContent = parseApiSpecContent(rawContent, extension);
+      const { resolvedJson } = await resolveExternalApiSpecRefs(apiSpecContent, apiSpecPath);
 
       win.webContents.send('main:apispec-tree-updated', 'addFile', {
         pathname: apiSpecPath,
@@ -103,7 +104,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         name: path.basename(apiSpecPath, path.extname(apiSpecPath)),
         filename: path.basename(apiSpecPath),
         json: apiSpecContent,
-        resolvedJson: await resolveExternalApiSpecRefs(apiSpecContent, apiSpecPath)
+        resolvedJson: resolvedJson
       });
     }
   } catch (err) {

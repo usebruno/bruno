@@ -16,6 +16,19 @@ const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
   return apiSpec;
 };
 
+const refFileWatchState = new Map();
+
+const syncRefFileWatchers = (rootPath, refFilePaths) => {
+  const state = refFileWatchState.get(rootPath);
+  if (!state) return;
+
+  const unwatched = refFilePaths.filter((filePath) => !state.watchedRefFilePaths.has(filePath));
+  if (!unwatched.length) return;
+
+  unwatched.forEach((filePath) => state.watchedRefFilePaths.add(filePath));
+  state.watcher.add(unwatched);
+};
+
 const add = async (win, pathname) => {
   if (!hasApiSpecExtension(pathname)) return;
   try {
@@ -24,15 +37,17 @@ const add = async (win, pathname) => {
     const raw = fs.readFileSync(pathname, 'utf8');
     const extension = path.extname(pathname);
     const apiSpecContent = parseApiSpecContent(raw, extension);
+    const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;
-    file.resolvedJson = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
+    file.resolvedJson = resolvedJson;
     hydrateApiSpecWithUuid(file, pathname);
     win.webContents.send('main:apispec-tree-updated', 'addFile', file);
+    syncRefFileWatchers(pathname, refFilePaths);
   } catch (err) {
     console.error(err);
   }
@@ -46,15 +61,17 @@ const change = async (win, pathname) => {
     const raw = fs.readFileSync(pathname, 'utf8');
     const extension = path.extname(pathname);
     const apiSpecContent = parseApiSpecContent(raw, extension);
+    const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;
-    file.resolvedJson = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
+    file.resolvedJson = resolvedJson;
     hydrateApiSpecWithUuid(file, pathname);
     win.webContents.send('main:apispec-tree-updated', 'changeFile', file);
+    syncRefFileWatchers(pathname, refFilePaths);
   } catch (err) {
     console.error(err);
   }
@@ -72,6 +89,7 @@ class ApiSpecWatcher {
 
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
+      refFileWatchState.delete(watchPath);
     }
 
     if (workspacePath) {
@@ -113,10 +131,20 @@ class ApiSpecWatcher {
         depth: 20
       });
 
-      watcher
-        .on('add', (pathname) => add(win, pathname, apiSpecUid, watchPath, workspacePath))
-        .on('change', (pathname) => change(win, pathname, apiSpecUid, watchPath, workspacePath));
+      const isSpecItself = (pathname) => path.resolve(pathname) === path.resolve(watchPath);
 
+      watcher
+        .on('add', (pathname) => {
+          if (isSpecItself(pathname)) add(win, watchPath);
+          else change(win, watchPath);
+        })
+        .on('change', () => change(win, watchPath))
+        .on('unlink', (pathname) => {
+          if (!isSpecItself(pathname)) change(win, watchPath);
+        })
+        .on('error', (err) => console.error(`API spec watcher error for ${watchPath}:`, err));
+
+      refFileWatchState.set(watchPath, { watcher, watchedRefFilePaths: new Set() });
       self.watchers[watchPath] = watcher;
     }, 100);
   }
@@ -126,6 +154,7 @@ class ApiSpecWatcher {
   }
 
   removeWatcher(watchPath, win) {
+    refFileWatchState.delete(watchPath);
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
@@ -145,6 +174,7 @@ class ApiSpecWatcher {
     }
     this.watchers = {};
     this.watcherWorkspaces = {};
+    refFileWatchState.clear();
     return Promise.allSettled(pending);
   }
 }
