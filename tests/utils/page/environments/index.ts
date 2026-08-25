@@ -124,8 +124,6 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox'),
   resetButton: () => page.getByTestId('reset-env'),
   workspaceEnvTab: () => workspaceEnvTab(page),
-  // The workspace Environments tab can't be closed, so unsaved changes surface as the
-  // tab's draft icon instead of a close button.
   workspaceEnvTabDraftIcon: () => workspaceEnvTab(page).getByTestId('tab-draft-icon'),
   // The `.env` files section is shared by the collection and workspace environment editors.
   dotEnvSection: () => page.getByTestId('dotenv-files-section'),
@@ -180,7 +178,7 @@ export const selectNoEnvironment = async (page: Page) => {
   await test.step('Select "No Environment"', async () => {
     await environment.selector().click();
     await environment.noEnvironmentItem().click();
-    await expect(environment.selector()).toContainText('No Environment');
+    await environment.selector().filter({ hasText: 'No Environment' }).waitFor({ state: 'visible' });
   });
 };
 
@@ -191,7 +189,11 @@ export const selectNoEnvironment = async (page: Page) => {
 export const openWorkspaceEnvironmentsTab = async (page: Page) => {
   await test.step('Open the workspace Environments tab', async () => {
     await buildEnvironmentLocators(page).workspaceEnvTab().click();
-    await expect(page.locator('.request-tab.active').locator('.tab-label')).toHaveText('Environments');
+    await page
+      .locator('.request-tab.active')
+      .locator('.tab-label')
+      .filter({ hasText: /^\s*Environments\s*$/ })
+      .waitFor({ state: 'visible' });
   });
 };
 
@@ -212,11 +214,11 @@ export const createEnvironmentFromSidebar = async (
 
     await environment.settingsCreateButton().click();
     const nameInput = environment.settingsCreateNameInput();
-    await expect(nameInput).toBeVisible();
+    await nameInput.waitFor({ state: 'visible' });
     await nameInput.fill(name);
     await nameInput.press('Enter');
 
-    await expect(environment.sidebarListItem(scope, name)).toBeVisible();
+    await environment.sidebarListItem(scope, name).waitFor({ state: 'visible' });
   });
 };
 
@@ -234,7 +236,7 @@ export const createDotEnvFile = async (page: Page, filename = '.env') => {
     await environment.dotEnvNameInput().fill(filename);
     await environment.dotEnvNameInput().press('Enter');
 
-    await expect(environment.dotEnvFileItem(filename)).toBeVisible();
+    await environment.dotEnvFileItem(filename).waitFor({ state: 'visible' });
   });
 };
 
@@ -249,7 +251,7 @@ export const addDotEnvVariable = async (page: Page, name: string, value: string)
     const environment = buildEnvironmentLocators(page);
 
     await environment.dotEnvAddRowNameInput().fill(name);
-    await expect(environment.dotEnvVarRow(name)).toBeVisible();
+    await environment.dotEnvVarRow(name).waitFor({ state: 'visible' });
 
     await environment.dotEnvVarValueEditor(name).click();
     await page.keyboard.type(value);

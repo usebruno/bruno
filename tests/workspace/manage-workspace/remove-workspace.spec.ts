@@ -17,66 +17,65 @@ test.describe('Manage Workspace — remove', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
+
     const { manageWorkspace } = buildCommonLocators(page);
     const titleBar = buildTitleBarLocators(page);
 
-    try {
-      await createWorkspace(page, 'Removable WS');
-      // Switching to removable workspace that isn't the active one.
-      await switchWorkspace(page, 'My Workspace');
+    await createWorkspace(page, 'Removable WS');
+    // Switching to removable workspace that isn't the active one.
+    await switchWorkspace(page, 'My Workspace');
 
-      let workspacePath = '';
+    let workspacePath = '';
 
-      await test.step('Navigate to the Manage Workspace section and verify the workspace list', async () => {
-        await openManageWorkspaces(page);
-        await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
-        await expect(manageWorkspace.workspaceItem('Removable WS')).toBeVisible();
-        await expect(manageWorkspace.workspaceItems()).toHaveCount(2);
+    await test.step('Navigate to the Manage Workspace section and verify the workspace list', async () => {
+      await openManageWorkspaces(page);
+      await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
+      await expect(manageWorkspace.workspaceItem('Removable WS')).toBeVisible();
+      await expect(manageWorkspace.workspaceItems()).toHaveCount(2);
 
-        workspacePath = (await manageWorkspace.workspacePath('Removable WS').innerText()).trim();
-        expect(fs.existsSync(workspacePath)).toBe(true);
-      });
+      workspacePath = (await manageWorkspace.workspacePath('Removable WS').innerText()).trim();
+      expect(fs.existsSync(workspacePath)).toBe(true);
+    });
 
-      await test.step('Click Remove in the workspace actions menu', async () => {
-        await openWorkspaceActionsMenu(page, 'Removable WS');
-        await expect(manageWorkspace.actionsMenuItem('remove')).toBeVisible();
-        await manageWorkspace.actionsMenuItem('remove').click();
-      });
+    await test.step('Click Remove in the workspace actions menu', async () => {
+      await openWorkspaceActionsMenu(page, 'Removable WS');
+      await expect(manageWorkspace.actionsMenuItem('remove')).toBeVisible();
+      await manageWorkspace.actionsMenuItem('remove').click();
+    });
 
-      await test.step('Verify the confirmation dialog asks to confirm the removal', async () => {
-        await expect(manageWorkspace.removeModal()).toBeVisible();
-        await expect(manageWorkspace.removeModal()).toContainText(
-          'Are you sure you want to remove workspace Removable WS?'
-        );
-        await expect(manageWorkspace.removeModal()).toContainText(workspacePath);
-      });
+    await test.step('Verify the confirmation dialog asks to confirm the removal', async () => {
+      await expect(manageWorkspace.removeModal()).toBeVisible();
+      await expect(manageWorkspace.removeModal()).toContainText(
+        'Are you sure you want to remove workspace Removable WS?'
+      );
+      await expect(manageWorkspace.removeModal()).toContainText(workspacePath);
+    });
 
-      await test.step('Confirm the removal', async () => {
-        await manageWorkspace.removeSubmitButton().click();
-        await expect(manageWorkspace.removeModal()).toBeHidden();
-      });
+    await test.step('Confirm the removal', async () => {
+      await manageWorkspace.removeSubmitButton().click();
+      await expect(manageWorkspace.removeModal()).toBeHidden();
+    });
 
-      await test.step('Verify the removed workspace no longer appears in the workspace list', async () => {
-        await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
-        await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
-        await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
-      });
+    await test.step('Verify the removed workspace no longer appears in the workspace list', async () => {
+      await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
+      await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
+      await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
+    });
 
-      await test.step('Verify the removal survives re-opening the Manage Workspace section', async () => {
-        await manageWorkspace.backButton().click();
-        await expect(manageWorkspace.title()).toBeHidden();
+    await test.step('Verify the removal survives re-opening the Manage Workspace section', async () => {
+      await manageWorkspace.backButton().click();
+      await expect(manageWorkspace.title()).toBeHidden();
 
-        await openManageWorkspaces(page);
-        await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
-        await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
-        await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
-      });
+      await openManageWorkspaces(page);
+      await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
+      await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
+      await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
+    });
 
-      await test.step('Verify the removed workspace still exists on the file system', async () => {
-        expect(fs.existsSync(path.join(workspacePath, 'workspace.yml'))).toBe(true);
-      });
-    } finally {
-      await closeElectronApp(app);
-    }
+    await test.step('Verify the removed workspace still exists on the file system', async () => {
+      expect(fs.existsSync(path.join(workspacePath, 'workspace.yml'))).toBe(true);
+    });
+
+    await closeElectronApp(app);
   });
 });

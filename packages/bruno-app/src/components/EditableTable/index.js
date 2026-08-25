@@ -47,7 +47,7 @@ const TableRow = React.memo(
         {...rest}
         className={className}
         data-row-name={rowName || undefined}
-        data-testid={rowName ? `row-${rowName}` : undefined}
+        data-testid={`row-${rowName || rowIndex}`}
         {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
       >
         {!showCheckbox && reorderable && (

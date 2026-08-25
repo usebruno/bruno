@@ -98,7 +98,7 @@ const ManageWorkspace = () => {
 
       <div className="manage-workspace-header">
         <div className="header-left">
-          <div className="back-button" onClick={handleBack} data-testid="manage-workspace-back">
+          <div className="back-button" onClick={handleBack} data-testid="manage-workspace-back-btn">
             <IconArrowLeft size={18} strokeWidth={1.5} />
           </div>
           <span className="header-title" data-testid="manage-workspace-title">Manage Workspace</span>

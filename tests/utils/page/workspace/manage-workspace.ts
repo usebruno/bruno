@@ -13,7 +13,7 @@ export const buildManageWorkspaceLocators = (page: Page) => {
 
   return {
     title: () => page.getByTestId('manage-workspace-title'),
-    backButton: () => page.getByTestId('manage-workspace-back'),
+    backButton: () => page.getByTestId('manage-workspace-back-btn'),
     createWorkspaceButton: () => page.getByTestId('manage-workspace-create'),
     // Every row's testid carries its workspace name, so the prefix matches them all.
     workspaceItems: () => page.getByTestId(/^workspace-item-/),
