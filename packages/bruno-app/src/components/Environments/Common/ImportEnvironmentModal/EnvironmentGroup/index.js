@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 import MenuDropdown from 'ui/MenuDropdown';
-import { DropdownTrigger } from './StyledWrapper';
-import EnvironmentRow from './EnvironmentRow';
+import { DropdownTrigger } from '../StyledWrapper';
+import EnvironmentRow from '../EnvironmentRow';
 
 const EnvironmentGroup = ({
   title,

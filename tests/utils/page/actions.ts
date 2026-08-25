@@ -2736,12 +2736,8 @@ const openImportReview = async (page: Page, scope: 'collection' | 'global', ...f
 const clickOutsideModal = async (page: Page) => {
   const { modal } = buildCommonLocators(page);
 
-  const cardBox = await modal.card().boundingBox();
-  if (!cardBox) {
-    throw new Error('Modal card not found');
-  }
   await modal.backdrop().click({
-    position: { x: cardBox.x + cardBox.width / 2, y: cardBox.y + cardBox.height + 20 }
+    position: { x: 10, y: 10 }
   });
 };
 

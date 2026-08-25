@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { IconFileImport } from '@tabler/icons';
-import { StyledWrapper } from './StyledWrapper';
+import { StyledWrapper } from '../StyledWrapper';
 
 const UploadStep = ({ modalTitle, modalTestId, importTestId, onClose, handleImportEnvironment }) => {
   const [isDragOver, setIsDragOver] = useState(false);

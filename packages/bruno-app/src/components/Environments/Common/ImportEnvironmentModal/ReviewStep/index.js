@@ -6,9 +6,9 @@ import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import IconFileAlertFilled from 'components/Icons/IconFileAlertFilled';
 import CountBadge from 'ui/CountBadge';
-import { StyledWrapper } from './StyledWrapper';
+import { StyledWrapper } from '../StyledWrapper';
 import { pluralizeWord } from 'utils/common/index';
-import EnvironmentGroup from './EnvironmentGroup';
+import EnvironmentGroup from '../EnvironmentGroup';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 
 const ReviewStep = ({
