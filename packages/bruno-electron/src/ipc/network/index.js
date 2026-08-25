@@ -1760,6 +1760,7 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
+            // sasa
             if (preRequestScriptResult?.skipRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
