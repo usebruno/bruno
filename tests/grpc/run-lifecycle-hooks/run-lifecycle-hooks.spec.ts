@@ -1,49 +1,24 @@
 import { Page } from '@playwright/test';
 import { test, expect } from '../../../playwright';
 import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/page/locators';
-import { openGrpcTestsTab } from '../../utils/page/actions';
+import {
+  openGrpcTestsTab,
+  selectEnvironment,
+  sendGrpcRequest,
+  streamGrpcMessagesAndEndCall
+} from '../../utils/page/actions';
 import { setSandboxMode } from '../../utils/page/runner';
 
 const COLLECTION_NAME = 'GrpcHooks';
 const SANDBOX_MODES = ['safe', 'developer'] as const;
 
-type GrpcLocators = ReturnType<typeof buildGrpcCommonLocators>;
-
 for (const mode of SANDBOX_MODES) {
   test.describe.serial(`grpc lifecycle hooks in ${mode} mode`, () => {
     const openCollection = async (page: Page) => {
-      const locators = buildGrpcCommonLocators(page);
+      await setSandboxMode(page, COLLECTION_NAME, mode);
+      await selectEnvironment(page, 'Env');
 
-      await test.step(`open the collection in ${mode} mode`, async () => {
-        await setSandboxMode(page, COLLECTION_NAME, mode);
-        await locators.sidebar.collection(COLLECTION_NAME).click();
-      });
-
-      await test.step('select the environment', async () => {
-        await locators.environment.selector().click();
-        await locators.environment.collectionTab().click();
-        await locators.environment.envOption('Env').click();
-      });
-
-      return locators;
-    };
-
-    const send = async (page: Page, locators: GrpcLocators, requestName: string, method: string) => {
-      await locators.sidebar.request(requestName).click();
-      await expect(locators.method.dropdownTrigger()).toContainText(method, { timeout: 30000 });
-      await locators.request.sendButton().click();
-    };
-
-    const streamMessagesAndEndCall = async (page: Page, locators: GrpcLocators, requestName: string, method: string, messageIndexes: number[]) => {
-      await send(page, locators, requestName, method);
-      await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
-
-      for (const index of messageIndexes) {
-        await locators.request.sendMessage(index).click();
-      }
-
-      await locators.request.endConnectionButton().click();
-      await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+      return buildGrpcCommonLocators(page);
     };
 
     test('beforeCallStart reaches the message through interpolation, afterCallEnd reads the reply', async ({ pageWithUserData: page }) => {
@@ -51,7 +26,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('the message carries the value the hook set', async () => {
-        await send(page, locators, 'SayHello', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'SayHello', 'HelloService/SayHello');
 
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('set-by-hook');
@@ -72,7 +47,7 @@ for (const mode of SANDBOX_MODES) {
       // The only way to observe an afterCallEnd variable is to use it, which is also the only way
       // a user can: a following request interpolates it.
       await test.step('a following request sees the variable afterCallEnd wrote', async () => {
-        await send(page, locators, 'EchoCapturedReply', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'EchoCapturedReply', 'HelloService/SayHello');
 
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('set-by-hook');
@@ -84,7 +59,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('receive the whole stream', async () => {
-        await send(page, locators, 'LotsOfReplies', 'HelloService/LotsOfReplies');
+        await sendGrpcRequest(page, 'LotsOfReplies', 'HelloService/LotsOfReplies');
 
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.responseItems()).toHaveCount(10);
@@ -102,7 +77,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('the hook counted all ten messages', async () => {
-        await send(page, locators, 'EchoReplyCount', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'EchoReplyCount', 'HelloService/SayHello');
 
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('replies-10');
@@ -114,7 +89,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('stream two of the three authored messages, then end the call', async () => {
-        await streamMessagesAndEndCall(page, locators, 'LotsOfGreetings', 'HelloService/LotsOfGreetings', [0, 1]);
+        await streamGrpcMessagesAndEndCall(page, 'LotsOfGreetings', 'HelloService/LotsOfGreetings', [0, 1]);
       });
 
       await test.step('every hook assertion passed', async () => {
@@ -132,7 +107,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('stream both messages, then end the call', async () => {
-        await streamMessagesAndEndCall(page, locators, 'BidiHello', 'HelloService/BidiHello', [0, 1]);
+        await streamGrpcMessagesAndEndCall(page, 'BidiHello', 'HelloService/BidiHello', [0, 1]);
       });
 
       await test.step('every hook assertion passed', async () => {
@@ -150,7 +125,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('send a request whose hooks both run tests', async () => {
-        await send(page, locators, 'HookTests', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'HookTests', 'HelloService/SayHello');
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
       });
 
@@ -182,7 +157,7 @@ for (const mode of SANDBOX_MODES) {
       const scriptError = buildScriptErrorLocators(page);
 
       await test.step('the card names the hook that failed', async () => {
-        await send(page, locators, 'BrokenHook', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'BrokenHook', 'HelloService/SayHello');
 
         await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
         await expect(scriptError.title()).toHaveText('Before Call Start Script Error');
@@ -203,7 +178,7 @@ for (const mode of SANDBOX_MODES) {
       // The hook sets a variable on its way to throwing. Aborting the call must not throw that
       // away with it — the only way to see that it survived is the way a user would.
       await test.step('a following request sees the variable the hook set before it threw', async () => {
-        await send(page, locators, 'EchoReachedVar', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'EchoReachedVar', 'HelloService/SayHello');
 
         await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('reached-yes');
@@ -219,7 +194,7 @@ for (const mode of SANDBOX_MODES) {
       const scriptError = buildScriptErrorLocators(page);
 
       await test.step('the card names the hook that failed', async () => {
-        await send(page, locators, 'BrokenAfterCallEnd', 'HelloService/SayHello');
+        await sendGrpcRequest(page, 'BrokenAfterCallEnd', 'HelloService/SayHello');
 
         await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
         await expect(scriptError.title()).toHaveText('After Call End Script Error');
