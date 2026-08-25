@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const { parseEnvironment } = require('@usebruno/filestore');
+
 /**
  * Parse a Bruno JSON environment object and normalize variables
  * Accepts only single environment object: { name?, uid?, variables: [...] }
@@ -21,6 +25,33 @@ const parseEnvironmentJson = (parsed = {}) => {
   return normalized;
 };
 
+const loadEnvironments = (collectionPath) => {
+  const environmentsDir = path.join(collectionPath, 'environments');
+  if (!fs.existsSync(environmentsDir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(environmentsDir)
+    .filter((file) => /\.(bru|yml|json)$/i.test(file))
+    .map((file) => {
+      const filePath = path.join(environmentsDir, file);
+      const fileExt = path.extname(file).toLowerCase();
+      const content = fs.readFileSync(filePath, 'utf8');
+
+      if (fileExt === '.json') {
+        const parsed = parseEnvironmentJson(JSON.parse(content));
+        return { ...parsed, name: parsed.name || path.basename(file, '.json'), variables: parsed.variables || [] };
+      }
+
+      const format = fileExt === '.yml' ? 'yml' : 'bru';
+      const normalized = format === 'bru' ? content.replace(/\r\n/g, '\n') : content;
+      const envJson = parseEnvironment(normalized, { format });
+      return { ...envJson, name: envJson.name || path.basename(file, fileExt), variables: envJson.variables || [] };
+    });
+};
+
 module.exports = {
-  parseEnvironmentJson
+  parseEnvironmentJson,
+  loadEnvironments
 };

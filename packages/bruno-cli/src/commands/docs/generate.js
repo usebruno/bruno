@@ -1,68 +1,14 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const jsesc = require('jsesc');
 const { brunoToOpenCollection } = require('@usebruno/converters');
 const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion, sortByNameThenSequence: sortFolders } = require('@usebruno/common');
-const { parseEnvironment } = require('@usebruno/filestore');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
-const { parseEnvironmentJson } = require('../../utils/environment');
+const { loadEnvironments } = require('../../utils/environment');
+const { splitCsv, findConflict, getGitRemoteUrl } = require('../../utils/common');
 const { CLI_VERSION, EXIT_STATUS } = require('../../constants');
-
-const splitCsv = (value) =>
-  value
-    ? String(value)
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    : [];
-
-const findConflict = (include, exclude) => {
-  const excluded = new Set(exclude);
-  return include.find((name) => excluded.has(name));
-};
-
-const loadEnvironments = (collectionPath) => {
-  const environmentsDir = path.join(collectionPath, 'environments');
-  if (!fs.existsSync(environmentsDir)) {
-    return [];
-  }
-
-  return fs
-    .readdirSync(environmentsDir)
-    .filter((file) => /\.(bru|yml|json)$/i.test(file))
-    .map((file) => {
-      const filePath = path.join(environmentsDir, file);
-      const fileExt = path.extname(file).toLowerCase();
-      const content = fs.readFileSync(filePath, 'utf8');
-
-      if (fileExt === '.json') {
-        const parsed = parseEnvironmentJson(JSON.parse(content));
-        return { ...parsed, name: parsed.name || path.basename(file, '.json'), variables: parsed.variables || [] };
-      }
-
-      const format = fileExt === '.yml' ? 'yml' : 'bru';
-      const normalized = format === 'bru' ? content.replace(/\r\n/g, '\n') : content;
-      const envJson = parseEnvironment(normalized, { format });
-      return { ...envJson, name: envJson.name || path.basename(file, fileExt), variables: envJson.variables || [] };
-    });
-};
-
-const getGitRemoteUrl = (collectionPath) => {
-  try {
-    const url = execSync('git remote get-url origin', {
-      cwd: collectionPath,
-      stdio: ['ignore', 'pipe', 'ignore']
-    })
-      .toString()
-      .trim();
-    return url || undefined;
-  } catch (error) {
-    return undefined;
-  }
-};
 
 const command = 'generate';
 const desc = 'Generate standalone HTML documentation for the collection';
