@@ -117,7 +117,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
   importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
-  importInvalidWarning: () => page.locator('.warning-header').filter({ has: page.locator('.error-icon') }),
+  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
   importDuplicatesGroup: () => page.locator('.group-container').filter({ hasText: 'Duplicates' }),
   importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
   importNewGroup: () => page.locator('.group-container').filter({ hasText: 'New' }),
@@ -131,7 +131,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
   importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
   importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
-  importInvalidGroup: () => page.locator('.group-container').filter({ hasText: 'Invalid or unsupported' }),
+  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
   importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
   importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });

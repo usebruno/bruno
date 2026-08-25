@@ -354,7 +354,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                       </div>
                     )}
                     {parsedData.invalid.length > 0 && (
-                      <div className="warning-header">
+                      <div className="warning-header" data-testid="import-invalid-warning">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
                         <span className="warning-title">{parsedData.invalid.length} {pluralizeWord('file', parsedData.invalid.length)}&nbsp;</span> {parsedData.invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
                       </div>
@@ -390,7 +390,10 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
                 {/* Invalid Group */}
                 {parsedData.invalid.length > 0 && (
-                  <div className={`group-container ${(parsedData.duplicates.length > 0 || parsedData.new.length > 0) ? 'has-border-bottom' : ''}`}>
+                  <div
+                    className={`group-container ${(parsedData.duplicates.length > 0 || parsedData.new.length > 0) ? 'has-border-bottom' : ''}`}
+                    data-testid="env-import-invalid-group"
+                  >
                     <div className="group-header">
                       <div className="group-title-wrapper" onClick={() => toggleGroupExpanded('invalid')}>
                         {expandedGroups.invalid ? <IconChevronDown size={16} className="text-zinc-500" /> : <IconChevronRight size={16} className="text-zinc-500" />}

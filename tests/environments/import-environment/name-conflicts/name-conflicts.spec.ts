@@ -253,25 +253,25 @@ test.describe('Import environment - name conflict handling', () => {
     });
 
     test('a batch with both a name conflict and an invalid file resolves the conflict and reports the invalid file separately', async ({ page, createTmpDir }) => {
-      const locators = buildCommonLocators(page);
+      const { environment } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-with-invalid', await createTmpDir('name-conflict-with-invalid'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('malformed.json'));
 
       await test.step('The duplicate and the invalid file are both flagged, independently of each other', async () => {
-        await expect(locators.environment.importDuplicatesCount()).toHaveText('1');
-        await expect(locators.environment.importInvalidCount()).toHaveText('1');
-        await expect(locators.environment.importInvalidItem('malformed.json')).toBeVisible();
+        await expect(environment.importDuplicatesCount()).toHaveText('1');
+        await expect(environment.importInvalidCount()).toHaveText('1');
+        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
       });
 
-      await locators.environment.importReplaceButton('Production').click();
-      await locators.environment.importSubmitButton('collection').click();
+      await environment.importReplaceButton('Production').click();
+      await environment.importSubmitButton('collection').click();
 
       await test.step('Production was replaced; the invalid file did not block the import', async () => {
-        await expect(locators.environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
-        await locators.environment.sidebarListItem('collection', 'Production').click();
-        await expect(locators.environment.varRowLine('api_url')).toHaveText('https://api.updated.example.com');
+        await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
+        await environment.sidebarListItem('collection', 'Production').click();
+        await expect(environment.varRowLine('api_url')).toHaveText('https://api.updated.example.com');
       });
     });
   });
