@@ -4,18 +4,6 @@ import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/p
 import { openGrpcTestsTab } from '../../utils/page/actions';
 import { setSandboxMode } from '../../utils/page/runner';
 
-// The gRPC hooks execute here, against grpcb.in's HelloService. A hook's work is only observable
-// through what it leaves behind, so the assertions below read either a variable the hook set —
-// interpolated into the same request (`beforeCallStart`, which runs before interpolation) or into a
-// following one (`afterCallEnd`) — or the results of `test()` calls made inside the hook, which the
-// response pane renders per hook. Both sandboxes are exercised because a missing QuickJS shim is
-// invisible in Safe Mode until a script touches the method that was never bridged.
-//
-// The suite's preferences pin the response pane to the vertical (stacked) layout, where the pane is
-// wide enough to show every tab: side by side it is not, and ResponsiveTabs moves Tests into its
-// overflow menu. That is a convenience only — `openGrpcTestsTab` finds the tab either way, and the
-// counts on its label are read only once it is active, which forces it back into the bar.
-
 const COLLECTION_NAME = 'GrpcHooks';
 const SANDBOX_MODES = ['safe', 'developer'] as const;
 
@@ -46,10 +34,7 @@ for (const mode of SANDBOX_MODES) {
       await locators.request.sendButton().click();
     };
 
-    // A client or bidi stream sends nothing on connect: each message goes out only when its own
-    // send button is clicked, and the call ends when the connection is ended by hand. That is what
-    // makes `bru.grpc.request.messages` in `afterCallEnd` differ from the authored messages.
-    const streamAndEnd = async (page: Page, locators: GrpcLocators, requestName: string, method: string, messageIndexes: number[]) => {
+    const streamMessagesAndEndCall = async (page: Page, locators: GrpcLocators, requestName: string, method: string, messageIndexes: number[]) => {
       await send(page, locators, requestName, method);
       await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
 
@@ -129,7 +114,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('stream two of the three authored messages, then end the call', async () => {
-        await streamAndEnd(page, locators, 'LotsOfGreetings', 'HelloService/LotsOfGreetings', [0, 1]);
+        await streamMessagesAndEndCall(page, locators, 'LotsOfGreetings', 'HelloService/LotsOfGreetings', [0, 1]);
       });
 
       await test.step('every hook assertion passed', async () => {
@@ -147,7 +132,7 @@ for (const mode of SANDBOX_MODES) {
       const tests = locators.response.tests;
 
       await test.step('stream both messages, then end the call', async () => {
-        await streamAndEnd(page, locators, 'BidiHello', 'HelloService/BidiHello', [0, 1]);
+        await streamMessagesAndEndCall(page, locators, 'BidiHello', 'HelloService/BidiHello', [0, 1]);
       });
 
       await test.step('every hook assertion passed', async () => {

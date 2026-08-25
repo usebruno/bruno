@@ -11,15 +11,15 @@ const TERMINAL_EVENTS = ['grpc:status', 'grpc:error', 'grpc:server-end-stream', 
 
 const CALL_EVENTS = new Set([...TERMINAL_EVENTS, 'grpc:response', 'grpc:metadata', 'grpc:message']);
 
-const foldError = (session, error) => {
+const applyErrorToSession = (session, error) => {
   session.statusCode = error?.code ?? UNKNOWN_STATUS_CODE;
-  session.statusMessage = error?.details || error?.message;
+  session.statusText = error?.details || error?.message;
   if (error?.metadata) {
     session.trailers = error.metadata;
   }
 };
 
-const foldEvent = (session, eventName, payload) => {
+const applyEventToSession = (session, eventName, payload) => {
   switch (eventName) {
     case 'grpc:metadata':
       session.metadata = payload?.metadata;
@@ -29,20 +29,20 @@ const foldEvent = (session, eventName, payload) => {
       break;
     case 'grpc:response':
       if (payload?.error) {
-        foldError(session, payload.error);
+        applyErrorToSession(session, payload.error);
       } else if (payload?.res !== undefined) {
         session.messages.push({ data: payload.res, timestamp: Date.now() });
       }
       break;
     case 'grpc:status':
       session.statusCode = payload?.status?.code;
-      session.statusMessage = payload?.status?.details;
+      session.statusText = payload?.status?.details;
       if (payload?.status?.metadata) {
         session.trailers = payload.status.metadata;
       }
       break;
     case 'grpc:error':
-      foldError(session, payload?.error);
+      applyErrorToSession(session, payload?.error);
       break;
     default:
       break;
@@ -68,7 +68,7 @@ const buildCallResult = (session) => ({
   metadata: session.metadata,
   trailers: session.trailers,
   statusCode: session.statusCode ?? UNKNOWN_STATUS_CODE,
-  statusMessage: session.statusMessage,
+  statusText: session.statusText,
   duration: Date.now() - session.startedAt,
   url: session.request.url,
   method: session.request.method,
@@ -298,7 +298,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
       metadata: undefined,
       trailers: undefined,
       statusCode: undefined,
-      statusMessage: undefined,
+      statusText: undefined,
       terminated: false
     });
   };
@@ -313,7 +313,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     const session = callSessions.get(requestId);
     if (!session) return;
 
-    foldEvent(session, eventName, payload);
+    applyEventToSession(session, eventName, payload);
 
     if (!TERMINAL_EVENTS.includes(eventName) || session.terminated) return;
 

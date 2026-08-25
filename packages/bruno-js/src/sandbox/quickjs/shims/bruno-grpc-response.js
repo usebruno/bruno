@@ -7,7 +7,7 @@ const addBrunoGrpcResponseShimToContext = (vm, response, grpcObject) => {
   const responseObject = vm.newObject();
 
   // Marshalled once, as on the request: the call is over, so no scalar can change mid-hook.
-  const scalars = ['statusCode', 'statusMessage', 'duration', 'methodType'];
+  const scalars = ['statusCode', 'statusText', 'duration', 'methodType'];
 
   for (const property of scalars) {
     const value = marshallToVm(response?.[property], vm);
