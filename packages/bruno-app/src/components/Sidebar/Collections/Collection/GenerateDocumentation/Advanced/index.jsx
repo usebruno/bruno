@@ -71,7 +71,7 @@ const Advanced = ({
                 </div>
               </div>
 
-              <Tooltip id="docs-tags-hint" style={{ maxWidth: '16rem' }} />
+              <Tooltip id="docs-tags-hint" className="adv-hint-tooltip" />
 
               {filterByTags && (
                 <IncludeExcludeTags

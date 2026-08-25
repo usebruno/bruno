@@ -1,4 +1,4 @@
-import React, { useId, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import React, { useId, useState, useRef, useCallback, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconX, IconTag } from '@tabler/icons';
 import { StyledWrapper, Menu } from './StyledWrapper';
@@ -33,8 +33,12 @@ const DocsTagList = ({
   }, []);
 
   useLayoutEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) return;
     positionMenu();
+  }, [isOpen, positionMenu]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
     window.addEventListener('scroll', positionMenu, true);
     window.addEventListener('resize', positionMenu);
     return () => {
@@ -124,7 +128,7 @@ const DocsTagList = ({
           }}
           role="combobox"
           aria-label={ariaLabel}
-          aria-expanded={!!showMenu}
+          aria-expanded={Boolean(showMenu)}
           aria-controls={showMenu ? menuId : undefined}
           aria-activedescendant={showMenu && highlighted >= 0 ? optionId(highlighted) : undefined}
           aria-autocomplete="list"
@@ -182,7 +186,7 @@ const DocsTagList = ({
                 aria-label={`Remove ${tag}`}
                 onClick={() => handleRemoveTag(tag)}
               >
-                <IconX size={12} strokeWidth={2} aria-hidden="true" />
+                <IconX size={12} strokeWidth={1.5} aria-hidden="true" />
               </button>
             </li>
           ))}

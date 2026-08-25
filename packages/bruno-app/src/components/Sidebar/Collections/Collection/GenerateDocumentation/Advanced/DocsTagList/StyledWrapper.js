@@ -56,16 +56,12 @@ export const StyledWrapper = styled.div`
   }
 
   .docs-tag-icon {
-    width: 1rem;
-    height: 1rem;
     color: ${(props) => props.theme.colors.text.subtext0};
-    stroke-width: 1.33;
     flex-shrink: 0;
   }
 
   .docs-tag-text {
     font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 400;
     line-height: 1.25rem;
     color: ${(props) => props.theme.text};
     min-width: 0;
@@ -84,11 +80,6 @@ export const StyledWrapper = styled.div`
     cursor: pointer;
     color: ${(props) => props.theme.colors.text.subtext0};
     flex-shrink: 0;
-
-    svg {
-      width: 0.75rem;
-      height: 0.75rem;
-    }
 
     &:hover {
       color: ${(props) => props.theme.text};
