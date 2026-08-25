@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
+import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
@@ -41,8 +42,10 @@ const TableRow = React.memo(
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(item);
     const isDragOver = canDrag && dragOverKey === item?.uid;
     const isBeingDragged = canDrag && draggingKey === item?.uid;
-    const existingClass = rest.className || '';
-    const className = `${existingClass} ${isDragOver ? 'drag-over' : ''} ${isBeingDragged ? 'dragging-source' : ''} ${getRowClassName(item)}`.trim();
+    const className = classnames(rest.className, {
+      'drag-over': isDragOver,
+      'dragging-source': isBeingDragged
+    }, getRowClassName(item));
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
