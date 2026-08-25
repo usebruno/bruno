@@ -373,10 +373,6 @@ const handleRequest = (mockServerUid, req, res) => {
       delay
     };
 
-    // A saved mock response can hold values node refuses to write - an invalid
-    // HTTP token in a header name, a newline in a value, a status code outside
-    // 100-999. Log the failure so the request log shows the status we actually
-    // sent, not the one the mock response asked for.
     try {
       for (const header of selected.response.headers) {
         if (!header.name || !header.value) continue;
