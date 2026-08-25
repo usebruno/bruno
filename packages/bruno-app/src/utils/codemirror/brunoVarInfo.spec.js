@@ -1,4 +1,5 @@
 import { interpolate } from '@usebruno/common';
+import store from 'providers/ReduxStore';
 import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
@@ -16,9 +17,14 @@ jest.mock('@usebruno/common', () => ({
 }));
 
 jest.mock('providers/ReduxStore', () => ({
+  __esModule: true,
   default: {
     dispatch: jest.fn(),
-    getState: jest.fn()
+    getState: jest.fn(() => ({}))
+  },
+  store: {
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({}))
   }
 }));
 
@@ -565,6 +571,89 @@ describe('renderVarInfo', () => {
       expect(scopeBadge.textContent).toBe('OAuth2');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('OAuth2 token not found');
+    });
+  });
+
+  describe('new variable scope selector rendering', () => {
+    beforeEach(() => {
+      store.getState.mockReturnValue({
+        globalEnvironments: {
+          activeGlobalEnvironmentUid: 'global-env-1'
+        }
+      });
+    });
+
+    it('should render a select dropdown when creating a new request variable with multiple scopes available', () => {
+      const mockCollection = { uid: 'col-1', name: 'Test Collection' };
+      const mockItem = { uid: 'req-1', name: 'Test Request', type: 'http-request' };
+
+      const result = renderVarInfo(
+        { string: '{{newUnsetVar}}' },
+        { variables: {}, collection: mockCollection, item: mockItem }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      expect(scopeSelect).not.toBeNull();
+      expect(scopeSelect.getAttribute('data-testid')).toBe('var-info-scope-select');
+
+      const options = Array.from(scopeSelect.querySelectorAll('option'));
+      expect(options.map((opt) => opt.value)).toEqual(['global', 'collection', 'request']);
+      expect(scopeSelect.value).toBe('global');
+    });
+
+    it('should update scopeInfo when user changes the dropdown selection', () => {
+      const mockCollection = { uid: 'col-1', name: 'Test Collection' };
+      const mockItem = { uid: 'req-1', name: 'Test Request', type: 'http-request' };
+
+      const result = renderVarInfo(
+        { string: '{{newUnsetVar}}' },
+        { variables: {}, collection: mockCollection, item: mockItem }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      scopeSelect.value = 'collection';
+      scopeSelect.dispatchEvent(new Event('change'));
+
+      expect(scopeSelect.value).toBe('collection');
+    });
+
+    it('should fall back to badge when there is only one scope option (e.g., folder context)', () => {
+      const mockCollection = { uid: 'col-1', name: 'Test Collection' };
+      const mockFolder = { uid: 'folder-1', name: 'Test Folder', type: 'folder' };
+
+      const result = renderVarInfo(
+        { string: '{{newFolderVar}}' },
+        { variables: {}, collection: mockCollection, item: mockFolder }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      const scopeBadge = result.querySelector('.var-scope-badge');
+
+      expect(scopeSelect).toBeNull();
+      expect(scopeBadge).not.toBeNull();
+      expect(scopeBadge.textContent).toBe('Folder');
+    });
+
+    it('should render badge instead of selector if a runtime variable exists', () => {
+      const mockCollection = {
+        uid: 'col-1',
+        runtimeVariables: {
+          existingRuntimeVar: 'runtime-val'
+        }
+      };
+      const mockItem = { uid: 'req-1', name: 'Test Request', type: 'http-request' };
+
+      const result = renderVarInfo(
+        { string: '{{existingRuntimeVar}}' },
+        { variables: { existingRuntimeVar: 'runtime-val' }, collection: mockCollection, item: mockItem }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      const scopeBadge = result.querySelector('.var-scope-badge');
+
+      expect(scopeSelect).toBeNull();
+      expect(scopeBadge).not.toBeNull();
+      expect(scopeBadge.textContent).toBe('Runtime');
     });
   });
 });
