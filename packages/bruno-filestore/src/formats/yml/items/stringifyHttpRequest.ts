@@ -138,7 +138,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
 
     const omitHeaders = normalizeOmitHeaders(httpSettings?.omitHeaders);
     if (omitHeaders) {
-      (settings as HttpRequestSettings & { omitHeaders?: string[] }).omitHeaders = omitHeaders;
+      settings.omitHeaders = omitHeaders;
     }
 
     ocRequest.settings = settings;
