@@ -192,7 +192,7 @@ const RequestLog = ({ mockServerUid, location }) => {
     dispatch(syncMockServerState(location));
 
     return unsubscribe;
-  }, [dispatch, mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, mockServerUid, location.workspacePath]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((entry) => {
