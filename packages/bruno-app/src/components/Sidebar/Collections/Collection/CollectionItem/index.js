@@ -697,7 +697,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onSave={handleCreateExample}
         title="Create Response Example"
         initialName={getInitialExampleName(item)}
-        showMockFields={isMockServerEnabled}
+        showMockFields={false}
       />
       <div
         className={itemRowClassName}
