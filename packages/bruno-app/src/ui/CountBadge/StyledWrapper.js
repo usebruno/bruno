@@ -1,15 +1,7 @@
 import styled, { css } from 'styled-components';
 import { rgba } from 'polished';
 
-/**
- * Variant styles for CountBadge.
- *
- * - default:  surface0 bg, body text, border1 border  — neutral counters
- * - danger:   theme.status.danger tokens, no border — error / conflict counts
- * - warning:  brand at 10% bg, brand text, no border — attention / highlight counts
- *
- * @see packages/bruno-app/src/themes/light/light.js — token schema
- */
+/** Variants: default (neutral surface), danger (status.danger), warning (brand tint, not status.warning). */
 const getVariantStyles = (props) => {
   const { theme, $variant } = props;
 
