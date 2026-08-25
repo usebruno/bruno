@@ -2718,13 +2718,13 @@ const openSystemProxyPanel = async (page: Page) => {
  * @param filePaths - The paths to the environment files to import
  */
 const openImportReview = async (page: Page, scope: 'collection' | 'global', ...filePaths: string[]) => {
-  const locators = buildCommonLocators(page);
+  const { environment } = buildCommonLocators(page);
   await openEnvironmentConfigTab(page, scope);
-  await locators.environment.importSettingsButton().click();
-  await expect(locators.environment.importModal(scope)).toBeVisible();
+  await environment.importSettingsButton().click();
+  await environment.importModal(scope).waitFor({ state: 'visible' });
 
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await locators.environment.importFileTrigger(scope).click();
+  await environment.importFileTrigger(scope).click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles(filePaths);
 };
@@ -2732,14 +2732,15 @@ const openImportReview = async (page: Page, scope: 'collection' | 'global', ...f
 /**
  * Clicks outside the modal backdrop to test click-outside behavior.
  * @param page - The Playwright Page object
- * @param locators - Common locators returned by buildCommonLocators
  */
-const clickOutsideModal = async (page: Page, locators: ReturnType<typeof buildCommonLocators>) => {
-  const cardBox = await locators.modal.card().boundingBox();
+const clickOutsideModal = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+
+  const cardBox = await modal.card().boundingBox();
   if (!cardBox) {
     throw new Error('Modal card not found');
   }
-  await locators.modal.backdrop().click({
+  await modal.backdrop().click({
     position: { x: cardBox.x + cardBox.width / 2, y: cardBox.y + cardBox.height + 20 }
   });
 };
