@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconInfoCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle, IconGripVertical, IconMinusVertical, IconPlus } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -301,6 +301,7 @@ const EnvironmentVariablesTable = ({
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
+  const pendingFocusInputIdRef = useRef(null);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -442,6 +443,8 @@ const EnvironmentVariablesTable = ({
 
   useEffect(() => {
     cancelDrag();
+    // Drop any unresolved add request so it cannot steal focus after a tab switch.
+    pendingFocusInputIdRef.current = null;
   }, [variableType, cancelDrag]);
 
   const dragContext = useMemo(() => ({
@@ -905,158 +908,211 @@ const EnvironmentVariablesTable = ({
     return hasTrailing ? [...sorted, trailing] : sorted;
   })();
 
+  const addRowIndex = formik.values.length - 1;
+
+  const lastDisplayedIndexRef = useRef(0);
+  lastDisplayedIndexRef.current = displayedVariables.length - 1;
+
+  const virtuosoRef = useRef(null);
+  const [showFloatingAdd, setShowFloatingAdd] = useState(false);
+
+  const handleRangeChanged = useCallback(({ endIndex }) => {
+    const last = lastDisplayedIndexRef.current;
+
+    // Show the floating Add button only when the trailing Add row is outside the viewport.
+    setShowFloatingAdd((prev) => {
+      const next = endIndex < last;
+      return next === prev ? prev : next;
+    });
+  }, []);
+
+  const registerNameInput = useCallback((node) => {
+    if (!node || node.id !== pendingFocusInputIdRef.current) return;
+    pendingFocusInputIdRef.current = null;
+    node.focus();
+  }, []);
+
+  const handleAddVariable = useCallback(() => {
+    const nameInputId = `${addRowIndex}.name`;
+
+    const mounted = document.getElementById(nameInputId);
+    if (mounted) {
+      mounted.focus();
+      return;
+    }
+
+    pendingFocusInputIdRef.current = nameInputId;
+    virtuosoRef.current?.scrollToIndex({ index: lastDisplayedIndexRef.current, align: 'end' });
+  }, [addRowIndex]);
+
   return (
     <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
       {isSearchActive && displayedVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
-        <TableVirtuoso
-          className="table-container"
-          style={{ height: tableHeight }}
-          scrollerRef={setScrollerEl}
-          initialTopMostItemIndex={initialTopMostItemIndex}
-          overscan={Math.min(30, displayedVariables.length)}
-          components={{ TableRow }}
-          context={dragContext}
-          data={displayedVariables}
-          totalListHeightChanged={handleTotalHeightChanged}
-          fixedHeaderContent={() => (
-            <tr>
-              <td className="text-center"></td>
-              <td
-                style={{ width: columnWidths.name }}
-                className="sortable-header"
-                onClick={(e) => {
-                  if (!e.target.closest('.resize-handle')) cycleSortMode();
-                }}
-              >
-                <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
-                <div
-                  className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'name')}
-                />
-              </td>
-              <td style={{ width: columnWidths.value }}>
-                Value
-                <div
-                  className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
-                  style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'value')}
-                />
-              </td>
-              <td style={{ width: columnWidths.description }}>Description</td>
-              <td className="actions-column"></td>
-            </tr>
-          )}
-          defaultItemHeight={35}
-          computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
-          itemContent={(virtualIndex, { variable, index: actualIndex }) => {
-            const isLastRow = actualIndex === formik.values.length - 1;
-            const isEmptyRow = !variable.name || variable.name.trim() === '';
-            const isLastEmptyRow = isLastRow && isEmptyRow;
+        <div className="table-viewport">
+          <TableVirtuoso
+            ref={virtuosoRef}
+            className="table-container"
+            style={{ height: tableHeight }}
+            scrollerRef={setScrollerEl}
+            rangeChanged={handleRangeChanged}
+            initialTopMostItemIndex={initialTopMostItemIndex}
+            overscan={Math.min(30, displayedVariables.length)}
+            components={{ TableRow }}
+            context={dragContext}
+            data={displayedVariables}
+            totalListHeightChanged={handleTotalHeightChanged}
+            fixedHeaderContent={() => (
+              <tr>
+                <td className="text-center"></td>
+                <td
+                  style={{ width: columnWidths.name }}
+                  className="sortable-header"
+                  onClick={(e) => {
+                    if (!e.target.closest('.resize-handle')) cycleSortMode();
+                  }}
+                >
+                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
+                  <div
+                    className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
+                    style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                    onMouseDown={(e) => handleResizeStart(e, 'name')}
+                  />
+                </td>
+                <td style={{ width: columnWidths.value }}>
+                  Value
+                  <div
+                    className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
+                    style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                    onMouseDown={(e) => handleResizeStart(e, 'value')}
+                  />
+                </td>
+                <td style={{ width: columnWidths.description }}>Description</td>
+                <td className="actions-column"></td>
+              </tr>
+            )}
+            defaultItemHeight={35}
+            computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
+            itemContent={(virtualIndex, { variable, index: actualIndex }) => {
+              const isLastRow = actualIndex === formik.values.length - 1;
+              const isEmptyRow = !variable.name || variable.name.trim() === '';
+              const isLastEmptyRow = isLastRow && isEmptyRow;
 
-            return (
-              <>
-                <td className="text-center relative">
-                  {dragEnabled && !isLastEmptyRow && (
-                    <div
-                      data-testid="drag-handle"
-                      className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
-                      onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
-                    >
-                      <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
-                      <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
-                    </div>
-                  )}
-                  {!isLastEmptyRow && (
-                    <input
-                      type="checkbox"
-                      className="mousetrap"
-                      name={`${actualIndex}.enabled`}
-                      data-testid="env-var-enabled-checkbox"
-                      checked={variable.enabled}
-                      onChange={formik.handleChange}
-                    />
-                  )}
-                </td>
-                <td style={{ width: columnWidths.name }}>
-                  <div className="flex items-center">
-                    <div className="name-cell-wrapper">
+              return (
+                <>
+                  <td className="text-center relative">
+                    {dragEnabled && !isLastEmptyRow && (
+                      <div
+                        data-testid="drag-handle"
+                        className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                        onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                      >
+                        <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                        <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+                      </div>
+                    )}
+                    {!isLastEmptyRow && (
                       <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
+                        type="checkbox"
                         className="mousetrap"
-                        id={`${actualIndex}.name`}
-                        name={`${actualIndex}.name`}
-                        data-testid="env-var-name-input"
-                        value={variable.name}
-                        placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
-                        onChange={(e) => handleNameChange(actualIndex, e)}
-                        onFocus={() => handleRowFocus(variable.uid)}
-                        onBlur={() => {
-                          handleNameBlur(actualIndex);
-                        }}
-                        onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+                        name={`${actualIndex}.enabled`}
+                        data-testid="env-var-enabled-checkbox"
+                        checked={variable.enabled}
+                        onChange={formik.handleChange}
                       />
+                    )}
+                  </td>
+                  <td style={{ width: columnWidths.name }}>
+                    <div className="flex items-center">
+                      <div className="name-cell-wrapper">
+                        <input
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          className="mousetrap"
+                          ref={registerNameInput}
+                          id={`${actualIndex}.name`}
+                          name={`${actualIndex}.name`}
+                          data-testid="env-var-name-input"
+                          value={variable.name}
+                          placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
+                          onChange={(e) => handleNameChange(actualIndex, e)}
+                          onFocus={() => handleRowFocus(variable.uid)}
+                          onBlur={() => {
+                            handleNameBlur(actualIndex);
+                          }}
+                          onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
+                        />
+                      </div>
+                      <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                     </div>
-                    <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
-                  </div>
-                </td>
-                <td style={{ width: columnWidths.value }} className="overflow-hidden">
-                  <EnvVarValueCell
-                    variable={variable}
-                    actualIndex={actualIndex}
-                    isLastRow={isLastRow}
-                    isLastEmptyRow={isLastEmptyRow}
-                    isSecretTab={isSecretTab}
-                    storedTheme={storedTheme}
-                    collection={_collection}
-                    formik={formik}
-                    handleRowFocus={handleRowFocus}
-                    handleSave={handleSave}
-                    renderExtraValueContent={renderExtraValueContent}
-                  />
-                </td>
-                <td style={{ width: columnWidths.description }}>
-                  <MultiLineEditor
-                    theme={storedTheme}
-                    collection={_collection}
-                    name={`${actualIndex}.description`}
-                    value={variable.description ?? ''}
-                    placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
-                    onChange={(newValue) => {
-                      formik.setFieldValue(`${actualIndex}.description`, newValue, true);
-                      if (isLastRow) {
-                        setTimeout(() => {
-                          formik.setFieldValue(formik.values.length, {
-                            uid: uuid(),
-                            name: '',
-                            value: '',
-                            type: 'text',
-                            secret: isSecretTab,
-                            enabled: true
-                          }, false);
-                        }, 0);
-                      }
-                    }}
-                    onSave={handleSave}
-                  />
-                </td>
-                <td>
-                  {!isLastEmptyRow && (
-                    <button onClick={() => handleRemoveVar(variable.uid)}>
-                      <IconTrash strokeWidth={1.5} size={18} />
-                    </button>
-                  )}
-                </td>
-              </>
-            );
-          }}
-        />
+                  </td>
+                  <td style={{ width: columnWidths.value }} className="overflow-hidden">
+                    <EnvVarValueCell
+                      variable={variable}
+                      actualIndex={actualIndex}
+                      isLastRow={isLastRow}
+                      isLastEmptyRow={isLastEmptyRow}
+                      isSecretTab={isSecretTab}
+                      storedTheme={storedTheme}
+                      collection={_collection}
+                      formik={formik}
+                      handleRowFocus={handleRowFocus}
+                      handleSave={handleSave}
+                      renderExtraValueContent={renderExtraValueContent}
+                    />
+                  </td>
+                  <td style={{ width: columnWidths.description }}>
+                    <MultiLineEditor
+                      theme={storedTheme}
+                      collection={_collection}
+                      name={`${actualIndex}.description`}
+                      value={variable.description ?? ''}
+                      placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
+                      onChange={(newValue) => {
+                        formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                        if (isLastRow) {
+                          setTimeout(() => {
+                            formik.setFieldValue(formik.values.length, {
+                              uid: uuid(),
+                              name: '',
+                              value: '',
+                              type: 'text',
+                              secret: isSecretTab,
+                              enabled: true
+                            }, false);
+                          }, 0);
+                        }
+                      }}
+                      onSave={handleSave}
+                    />
+                  </td>
+                  <td>
+                    {!isLastEmptyRow && (
+                      <button onClick={() => handleRemoveVar(variable.uid)}>
+                        <IconTrash strokeWidth={1.5} size={18} />
+                      </button>
+                    )}
+                  </td>
+                </>
+              );
+            }}
+          />
+          {showFloatingAdd && (
+            <button
+              type="button"
+              className="add-variable-action"
+              onClick={handleAddVariable}
+              data-testid="add-variable-action"
+            >
+              <IconPlus size={14} strokeWidth={1.5} />
+              <span>{isSecretTab ? 'Add secret' : 'Add variable'}</span>
+            </button>
+          )}
+        </div>
       )}
 
       {/* We should re-think of these buttons placement in component as we use TableVirtuoso which because of
