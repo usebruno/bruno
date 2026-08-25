@@ -2,7 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { GRPC_SCRIPT_KEYS } from '@usebruno/common';
+import { GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import { updateGrpcScript } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -14,13 +14,13 @@ import ScriptEditorPane from './ScriptEditorPane';
 const HOOKS = {
   beforeCallStart: {
     label: 'Before Call Start',
-    scriptType: 'before-call-start',
+    scriptType: SCRIPT_TYPES.BEFORE_CALL_START,
     showHintsFor: ['req', 'bru'],
     errorMessageKey: 'beforeCallStartScriptErrorMessage'
   },
   afterCallEnd: {
     label: 'After Call End',
-    scriptType: 'after-call-end',
+    scriptType: SCRIPT_TYPES.AFTER_CALL_END,
     showHintsFor: ['req', 'res', 'bru'],
     errorMessageKey: 'afterCallEndScriptErrorMessage'
   }

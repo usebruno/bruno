@@ -24,7 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS } from '@usebruno/common';
+import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
@@ -836,12 +836,12 @@ export const collectionsSlice = createSlice({
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
 
-      if (scriptType === 'before-call-start') {
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
         item.beforeCallStartScriptErrorMessage = errorMessage;
         item.beforeCallStartScriptErrorContext = errorContext || null;
       }
 
-      if (scriptType === 'after-call-end') {
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
         item.afterCallEndScriptErrorMessage = errorMessage;
         item.afterCallEndScriptErrorContext = errorContext || null;
       }
@@ -854,11 +854,11 @@ export const collectionsSlice = createSlice({
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
 
-      if (scriptType === 'before-call-start') {
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
         item.beforeCallStartTestResults = results;
       }
 
-      if (scriptType === 'after-call-end') {
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
         item.afterCallEndTestResults = results;
       }
     },

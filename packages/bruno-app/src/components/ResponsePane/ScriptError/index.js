@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
+import { SCRIPT_TYPES } from '@usebruno/common';
 import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
@@ -211,11 +212,11 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
 // phase key matches with the CodeEditor scriptType so the error stack navigates back to the right editor.
 const SCRIPT_PHASES = [
-  { phase: 'pre-request', title: 'Pre-Request Script Error', messageKey: 'preRequestScriptErrorMessage', contextKey: 'preRequestScriptErrorContext' },
-  { phase: 'post-response', title: 'Post-Response Script Error', messageKey: 'postResponseScriptErrorMessage', contextKey: 'postResponseScriptErrorContext' },
-  { phase: 'test', title: 'Test Script Error', messageKey: 'testScriptErrorMessage', contextKey: 'testScriptErrorContext' },
-  { phase: 'before-call-start', title: 'Before Call Start Script Error', messageKey: 'beforeCallStartScriptErrorMessage', contextKey: 'beforeCallStartScriptErrorContext' },
-  { phase: 'after-call-end', title: 'After Call End Script Error', messageKey: 'afterCallEndScriptErrorMessage', contextKey: 'afterCallEndScriptErrorContext' }
+  { phase: SCRIPT_TYPES.PRE_REQUEST, title: 'Pre-Request Script Error', messageKey: 'preRequestScriptErrorMessage', contextKey: 'preRequestScriptErrorContext' },
+  { phase: SCRIPT_TYPES.POST_RESPONSE, title: 'Post-Response Script Error', messageKey: 'postResponseScriptErrorMessage', contextKey: 'postResponseScriptErrorContext' },
+  { phase: SCRIPT_TYPES.TEST, title: 'Test Script Error', messageKey: 'testScriptErrorMessage', contextKey: 'testScriptErrorContext' },
+  { phase: SCRIPT_TYPES.BEFORE_CALL_START, title: 'Before Call Start Script Error', messageKey: 'beforeCallStartScriptErrorMessage', contextKey: 'beforeCallStartScriptErrorContext' },
+  { phase: SCRIPT_TYPES.AFTER_CALL_END, title: 'After Call End Script Error', messageKey: 'afterCallEndScriptErrorMessage', contextKey: 'afterCallEndScriptErrorContext' }
 ];
 
 export const hasScriptError = (item) => SCRIPT_PHASES.some(({ messageKey }) => Boolean(item?.[messageKey]));

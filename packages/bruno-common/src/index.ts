@@ -17,7 +17,7 @@ export type {
   TaggedItem,
   NamedEnvironment
 } from './api-docs';
-export { HTTP_SCRIPT_KEYS, GRPC_SCRIPT_KEYS } from './scripts';
+export { HTTP_SCRIPT_KEYS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from './scripts';
 
 export { buildHar } from './generate-code/har';
 export type {

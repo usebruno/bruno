@@ -26,7 +26,6 @@ class BrunoGrpcResponse {
     this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
     this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
     this.duration = response.duration;
-    this.methodType = response.methodType;
 
     // Deliberately a plain object, where HTTP's `BrunoResponse` returns a callable so `res('user.id')`
     // queries the body. gRPC body (messages) will vary based on method type, so skipping here.

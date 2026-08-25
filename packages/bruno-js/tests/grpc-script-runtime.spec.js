@@ -18,7 +18,6 @@ const makeResponse = (overrides = {}) => ({
   metadata: [{ name: 'content-type', value: 'application/grpc' }],
   trailers: [{ name: 'grpc-status', value: '0' }],
   duration: 12,
-  methodType: 'unary',
   ...overrides
 });
 
