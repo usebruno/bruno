@@ -85,10 +85,9 @@ const MockServerDashboard = ({ instance, collection }) => {
   const nameValue = nameDraft ?? storedInstance.name;
   const delayValue = delayDraft ?? activeDelay;
 
-  const validatePort = async (value = activePort) => {
+  const resolvePortError = async (value) => {
     const rangeError = getMockServerPortRangeError(value);
     if (rangeError) {
-      setPortError(rangeError);
       return rangeError;
     }
 
@@ -96,18 +95,24 @@ const MockServerDashboard = ({ instance, collection }) => {
       const portCheck = await checkMockServerPortAvailable(Number(value), workspaceInstances, {
         excludeUid: storedInstance.uid
       });
-      const error = getMockServerPortError(portCheck, value);
-      setPortError(error);
-      return error;
+      return getMockServerPortError(portCheck, value);
     } catch (err) {
-      const error = err.message || 'Failed to validate port';
-      setPortError(error);
-      return error;
+      return err.message || 'Failed to validate port';
     }
   };
 
   useEffect(() => {
-    validatePort(activePort);
+    let isCurrent = true;
+
+    resolvePortError(activePort).then((error) => {
+      if (isCurrent) {
+        setPortError(error);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [activePort]);
 
   useEffect(() => {
@@ -121,9 +126,10 @@ const MockServerDashboard = ({ instance, collection }) => {
   });
 
   const handleStart = async () => {
-    const validationError = await validatePort(activePort);
+    const validationError = await resolvePortError(activePort);
+    setPortError(validationError);
     if (validationError) {
-      toast.error(validationError || 'Fix the port before starting the mock server');
+      toast.error(validationError);
       return;
     }
 
