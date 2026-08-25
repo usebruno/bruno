@@ -1,10 +1,18 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { describe, it, expect, beforeAll, afterAll } = require('@jest/globals');
+const { execSync } = require('child_process');
+const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/globals');
 const generate = require('../../src/commands/docs/generate');
 
 const FIXTURE = path.resolve(__dirname, '../runner/fixtures/collection-json-from-pathname/collection');
+
+const mockExit = () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  return jest.spyOn(process, 'exit').mockImplementation((code) => {
+    throw new Error(`exit:${code}`);
+  });
+};
 
 describe('bru docs generate', () => {
   let originalCwd;
@@ -21,7 +29,11 @@ describe('bru docs generate', () => {
     fs.rmSync(outDir, { recursive: true, force: true });
   });
 
-  it('generates a standalone HTML doc titled with the collection name (not "Untitled")', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('uses the collection name as the document title', async () => {
     const output = path.join(outDir, 'a.html');
     await generate.handler({ output, gitLink: false, format: 'html' });
 
@@ -31,13 +43,13 @@ describe('bru docs generate', () => {
     expect(html).toContain('const collectionData =');
   });
 
-  it('omits gitCollectionUrl when --no-git-link is passed', async () => {
+  it('leaves out the git repo url when --no-git-link is used', async () => {
     const output = path.join(outDir, 'b.html');
     await generate.handler({ output, gitLink: false, format: 'html' });
     expect(fs.readFileSync(output, 'utf8')).not.toContain('gitCollectionUrl');
   });
 
-  it('drops requests that do not match an include tag, keeping a valid document', async () => {
+  it('still writes a smaller but valid doc when no request matches the tag filter', async () => {
     const all = path.join(outDir, 'all.html');
     const filtered = path.join(outDir, 'filtered.html');
     await generate.handler({ output: all, gitLink: false, format: 'html' });
@@ -49,26 +61,20 @@ describe('bru docs generate', () => {
     expect(filteredHtml).toContain('new window.OpenCollection');
   });
 
-  it('creates parent directories for the output path', async () => {
+  it('creates any missing folders in the output path', async () => {
     const output = path.join(outDir, 'nested', 'deep', 'c.html');
     await generate.handler({ output, gitLink: false, format: 'html' });
     expect(fs.existsSync(output)).toBe(true);
   });
 
-  it('rejects an unsupported --format with the incorrect-output-format exit code', async () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((code) => {
-      throw new Error(`exit:${code}`);
-    });
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('exits with an error when the format is not html', async () => {
+    const exitSpy = mockExit();
 
     await expect(generate.handler({ format: 'pdf' })).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 9);
-
-    exitSpy.mockRestore();
-    errSpy.mockRestore();
   });
 
-  it('writes <collection-name>-documentation.html to the cwd when --output is omitted', async () => {
+  it('uses a default file name when --output is not given', async () => {
     const expected = path.join(FIXTURE, 'collection-documentation.html');
     try {
       await generate.handler({ gitLink: false, format: 'html' });
@@ -78,38 +84,26 @@ describe('bru docs generate', () => {
     }
   });
 
-  it('errors when a tag is passed to both --tags and --exclude-tags', async () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((code) => {
-      throw new Error(`exit:${code}`);
-    });
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('errors when the same tag is both included and excluded', async () => {
+    const exitSpy = mockExit();
 
     await expect(
       generate.handler({ gitLink: false, format: 'html', tags: 'smoke', excludeTags: 'smoke' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-
-    exitSpy.mockRestore();
-    errSpy.mockRestore();
   });
 
-  it('errors when an environment is passed to both --envs and --exclude-envs', async () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((code) => {
-      throw new Error(`exit:${code}`);
-    });
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('errors when the same environment is both included and excluded', async () => {
+    const exitSpy = mockExit();
 
     await expect(
       generate.handler({ gitLink: false, format: 'html', envs: 'Production', excludeEnvs: 'Production' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-
-    exitSpy.mockRestore();
-    errSpy.mockRestore();
   });
 });
 
-describe('bru docs generate — environment selection', () => {
+describe('bru docs generate: environment selection', () => {
   let originalCwd;
   let collDir;
   let outDir;
@@ -138,7 +132,11 @@ describe('bru docs generate — environment selection', () => {
     fs.rmSync(outDir, { recursive: true, force: true });
   });
 
-  it('embeds only the environments named by --envs', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('includes only the environments listed in --envs', async () => {
     const output = path.join(outDir, 'envs.html');
     await generate.handler({ output, gitLink: false, format: 'html', envs: 'Production' });
     const html = fs.readFileSync(output, 'utf8');
@@ -146,7 +144,7 @@ describe('bru docs generate — environment selection', () => {
     expect(html).not.toContain('Staging');
   });
 
-  it('treats --exclude-envs on its own as all-but-excluded', async () => {
+  it('includes every environment except the ones in --exclude-envs', async () => {
     const output = path.join(outDir, 'exclude.html');
     await generate.handler({ output, gitLink: false, format: 'html', excludeEnvs: 'Production' });
     const html = fs.readFileSync(output, 'utf8');
@@ -154,18 +152,108 @@ describe('bru docs generate — environment selection', () => {
     expect(html).not.toContain('Production');
   });
 
-  it('exits with the environment-not-found code for an unknown --envs name', async () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((code) => {
-      throw new Error(`exit:${code}`);
-    });
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('errors when --envs names an environment that does not exist', async () => {
+    const exitSpy = mockExit();
 
     await expect(
       generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, format: 'html', envs: 'DoesNotExist' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+  });
 
-    exitSpy.mockRestore();
-    errSpy.mockRestore();
+  it('errors when --exclude-envs names an environment that does not exist', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'y.html'), gitLink: false, format: 'html', excludeEnvs: 'DoesNotExist' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+  });
+});
+
+describe('bru docs generate: tag filtering', () => {
+  let originalCwd;
+  let collDir;
+  let outDir;
+
+  const writeRequest = (dir, name, tags) => {
+    const tagLines = tags && tags.length ? `\n  tags: [\n${tags.map((t) => `    ${t}`).join('\n')}\n  ]` : '';
+    fs.writeFileSync(
+      path.join(dir, `${name}.bru`),
+      `meta {\n  name: ${name}\n  type: http\n  seq: 1${tagLines}\n}\n\nget {\n  url: https://example.com/${name}\n  body: text\n  auth: none\n}\n`
+    );
+  };
+
+  beforeAll(() => {
+    originalCwd = process.cwd();
+    collDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-tags-'));
+    fs.writeFileSync(
+      path.join(collDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'tagcoll', type: 'collection' })
+    );
+    writeRequest(collDir, 'SmokeReq', ['smoke']);
+    writeRequest(collDir, 'PlainReq', null);
+    outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-tags-out-'));
+    process.chdir(collDir);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(collDir, { recursive: true, force: true });
+    fs.rmSync(outDir, { recursive: true, force: true });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('keeps only the requests that have the included tag', async () => {
+    const output = path.join(outDir, 'include.html');
+    await generate.handler({ output, gitLink: false, format: 'html', tags: 'smoke' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).not.toContain('PlainReq');
+  });
+
+  it('drops the requests that have the excluded tag and keeps the others', async () => {
+    const output = path.join(outDir, 'exclude.html');
+    await generate.handler({ output, gitLink: false, format: 'html', excludeTags: 'smoke' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('PlainReq');
+    expect(html).not.toContain('SmokeReq');
+  });
+});
+
+describe('bru docs generate: git link', () => {
+  let originalCwd;
+  let collDir;
+  let outDir;
+
+  beforeAll(() => {
+    originalCwd = process.cwd();
+    collDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-git-'));
+    fs.cpSync(FIXTURE, collDir, { recursive: true });
+    execSync('git init', { cwd: collDir, stdio: 'ignore' });
+    execSync('git remote add origin https://example.com/team/repo.git', { cwd: collDir, stdio: 'ignore' });
+    outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-git-out-'));
+    process.chdir(collDir);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+    fs.rmSync(collDir, { recursive: true, force: true });
+    fs.rmSync(outDir, { recursive: true, force: true });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('includes the git repo url when --git-link is on', async () => {
+    const output = path.join(outDir, 'git.html');
+    await generate.handler({ output, gitLink: true, format: 'html' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('gitCollectionUrl');
+    expect(html).toContain('https://example.com/team/repo.git');
   });
 });

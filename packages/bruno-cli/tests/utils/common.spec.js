@@ -1,5 +1,10 @@
-const { describe, it, expect } = require('@jest/globals');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { execSync } = require('child_process');
+const { describe, it, expect, afterEach } = require('@jest/globals');
 const { hasExecutableTestInScript } = require('../../src/utils/request');
+const { splitCsv, findConflict, getGitRemoteUrl } = require('../../src/utils/common');
 
 describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
@@ -305,5 +310,73 @@ describe('hasExecutableTestInScript', () => {
       // because there's a space between the dot and test
       expect(hasExecutableTestInScript(script)).toBe(true);
     });
+  });
+});
+
+describe('splitCsv', () => {
+  it('returns an empty array for empty or missing input', () => {
+    expect(splitCsv(undefined)).toEqual([]);
+    expect(splitCsv(null)).toEqual([]);
+    expect(splitCsv('')).toEqual([]);
+  });
+
+  it('splits a comma separated string into a list', () => {
+    expect(splitCsv('smoke,regression,wip')).toEqual(['smoke', 'regression', 'wip']);
+  });
+
+  it('trims the spaces around each value', () => {
+    expect(splitCsv(' smoke , regression ,wip ')).toEqual(['smoke', 'regression', 'wip']);
+  });
+
+  it('drops empty entries left by extra or trailing commas', () => {
+    expect(splitCsv('smoke,,regression,')).toEqual(['smoke', 'regression']);
+  });
+});
+
+describe('findConflict', () => {
+  it('returns undefined when nothing appears in both lists', () => {
+    expect(findConflict(['a', 'b'], ['c', 'd'])).toBeUndefined();
+  });
+
+  it('returns undefined when either list is empty', () => {
+    expect(findConflict([], ['a'])).toBeUndefined();
+    expect(findConflict(['a'], [])).toBeUndefined();
+  });
+
+  it('returns the first value that appears in both lists', () => {
+    expect(findConflict(['a', 'b', 'c'], ['c', 'b'])).toBe('b');
+  });
+});
+
+describe('getGitRemoteUrl', () => {
+  let tmpDir;
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      tmpDir = undefined;
+    }
+  });
+
+  const makeTmpDir = () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-git-'));
+    return tmpDir;
+  };
+
+  it('returns undefined when the folder is not a git repo', () => {
+    expect(getGitRemoteUrl(makeTmpDir())).toBeUndefined();
+  });
+
+  it('returns undefined when the repo has no origin remote', () => {
+    const dir = makeTmpDir();
+    execSync('git init', { cwd: dir, stdio: 'ignore' });
+    expect(getGitRemoteUrl(dir)).toBeUndefined();
+  });
+
+  it('returns the origin url when the repo has one', () => {
+    const dir = makeTmpDir();
+    execSync('git init', { cwd: dir, stdio: 'ignore' });
+    execSync('git remote add origin https://example.com/team/repo.git', { cwd: dir, stdio: 'ignore' });
+    expect(getGitRemoteUrl(dir)).toBe('https://example.com/team/repo.git');
   });
 });
