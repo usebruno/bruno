@@ -1,0 +1,6 @@
+name: Global
+variables:
+  - name: globalEnvVar
+    value: original
+    enabled: true
+    secret: false

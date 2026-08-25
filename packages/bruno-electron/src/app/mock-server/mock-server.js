@@ -59,11 +59,19 @@ const resolveRouteMap = (mockServerUid, location = {}) => {
 };
 
 const getRouteCounts = (mockServerUid, location = {}) => {
-  const routeMap = resolveRouteMap(mockServerUid, location);
-  return {
-    routeCount: routeMap.size,
-    exampleCount: countRouteResponses(routeMap)
-  };
+  try {
+    const routeMap = resolveRouteMap(mockServerUid, location);
+    return {
+      routeCount: routeMap.size,
+      exampleCount: countRouteResponses(routeMap)
+    };
+  } catch (err) {
+    console.warn(`[MockServer] Could not count routes for ${mockServerUid}: ${err.message}`);
+    return {
+      routeCount: 0,
+      exampleCount: 0
+    };
+  }
 };
 
 const getUsedPorts = () => {

@@ -1415,6 +1415,30 @@ const switchToEditorTab = async (page: Page) => {
 };
 
 /**
+ * Expand every collapsed node in the XML preview tree.
+ *
+ * @param page - The page object
+ */
+const expandAllXmlNodes = async (page: Page) => {
+  await test.step('Expand all XML preview nodes', async () => {
+    const collapsedToggles = buildCommonLocators(page).response.xmlCollapsedNodeToggles();
+    // One iteration per tree level; the bound guards against a node that fails to
+    // expand turning this into an infinite loop.
+    const maxDepth = 20;
+    for (let depth = 0; depth < maxDepth; depth++) {
+      const count = await collapsedToggles.count();
+      if (count === 0) return;
+      // Expanding a node re-renders its subtree, so walk backwards — clicking the
+      // last toggle first keeps the earlier ones' indices stable.
+      for (let i = count - 1; i >= 0; i--) {
+        await collapsedToggles.nth(i).click();
+      }
+    }
+    throw new Error(`XML tree still has collapsed nodes after ${maxDepth} expansion passes`);
+  });
+};
+
+/**
  * Get the response body text
  * @param page - The page object
  * @returns The response body text
@@ -1804,7 +1828,10 @@ const saveRequest = async (page: Page) => {
 const addGrpcMessage = async (page: Page) => {
   await test.step('Add gRPC message', async () => {
     const locators = buildGrpcCommonLocators(page);
+    const messages = locators.request.messages();
+    const before = await messages.count();
     await locators.request.addMessageButton().click();
+    await expect(messages).toHaveCount(before + 1);
   });
 };
 
@@ -2788,6 +2815,7 @@ export {
   switchResponseFormat,
   switchToPreviewTab,
   switchToEditorTab,
+  expandAllXmlNodes,
   clickResponseAction,
   addAssertion,
   editAssertion,
