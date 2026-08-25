@@ -22,7 +22,7 @@ test.describe('Naming collisions - double-paste race', () => {
   });
 
   test('pasting twice in rapid succession yields distinct files with no error', async ({ page, createTmpDir }) => {
-    const { toast, sidebar } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('race-double-paste');
 
     await createCollection(page, 'Race', testDir, 'bru');
@@ -44,7 +44,8 @@ test.describe('Naming collisions - double-paste race', () => {
       await expect
         .poll(() => listRequestFiles(targetDir).sort(), { timeout: 10000 })
         .toEqual(['login copy.bru', 'login copy 1.bru'].sort());
-      await expect(toast.byMessage(/already exists/i)).toHaveCount(0);
+
+      await expect(page.getByText(/already exists/i)).toHaveCount(0);
     });
   });
 });

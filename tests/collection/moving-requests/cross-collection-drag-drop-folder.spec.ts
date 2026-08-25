@@ -96,7 +96,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Perform drag and drop operation
     await sourceFolder.dragTo(targetCollection);
 
-    // collision is resolved silently (folder directory suffixed on disk).
     await expect(page.getByText(/already exists/i)).toHaveCount(0);
 
     // The folder is moved out of the source collection.
