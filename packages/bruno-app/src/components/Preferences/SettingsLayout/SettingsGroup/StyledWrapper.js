@@ -27,7 +27,7 @@ const StyledWrapper = styled.div`
   .settings-group-body {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
     margin-top: 0.75rem;
   }
 
