@@ -428,9 +428,6 @@ const handleRequest = (mockServerUid, req, res) => {
   };
 
   if (delay > 0) {
-    // A throw inside the timer callback has no express frame to land in, so it
-    // would take down the main process. Keep the net even though header failures
-    // are already handled above.
     setTimeout(() => {
       try {
         sendResponse();
