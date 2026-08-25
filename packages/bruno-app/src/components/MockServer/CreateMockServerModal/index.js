@@ -152,7 +152,6 @@ const CreateMockServerModal = ({
     ? workspaceCollections.find((collection) => collection.uid === defaultCollectionUid) || null
     : null;
   const defaultSpec = specSelectOptions.find((spec) => spec.uid === resolveSelectedSpecUid(editingInstance, workspaceApiSpecs))
-    || specSelectOptions[0]
     || null;
 
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
