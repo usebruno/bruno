@@ -101,6 +101,11 @@ const MockServerDashboard = ({ instance, collection }) => {
     }
   };
 
+  const conflictingPortsKey = workspaceInstances
+    .filter((i) => i.uid !== storedInstance.uid)
+    .map((i) => Number(i.port))
+    .join(',');
+
   useEffect(() => {
     let isCurrent = true;
 
@@ -113,7 +118,7 @@ const MockServerDashboard = ({ instance, collection }) => {
     return () => {
       isCurrent = false;
     };
-  }, [activePort]);
+  }, [activePort, conflictingPortsKey]);
 
   useEffect(() => {
     dispatch(syncMockServerState(location));
