@@ -73,16 +73,11 @@ const binaryPreviewCases = [
   }
 ];
 
-const uniqueExampleName = (exampleName: string, testInfo: { retry: number }) =>
-  testInfo.retry ? `${exampleName} (retry ${testInfo.retry})` : exampleName;
-
 test.describe('Binary response example previews', () => {
   for (const { requestName, folderName, exampleName, previewType, expectedMime } of binaryPreviewCases) {
-    test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }, testInfo) => {
-      const savedExampleName = uniqueExampleName(exampleName, testInfo);
-
+    test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }) => {
       await openCollectionRequest(page, 'binary-preview', folderName, requestName);
-      await sendReqAndSaveResposeExample(page, requestName, savedExampleName);
+      await sendReqAndSaveResposeExample(page, requestName, exampleName);
 
       await test.step('Verify the binary preview renders', async () => {
         const preview = buildCommonLocators(page).responseExample.binaryPreview();
@@ -103,9 +98,9 @@ test.describe('Binary response example previews', () => {
     });
   }
 
-  test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ pageWithUserData: page }, testInfo) => {
+  test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ pageWithUserData: page }) => {
     await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-mislabeled');
-    await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', uniqueExampleName('Mislabeled Example', testInfo));
+    await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
 
     await test.step('Verify the sniffed image preview renders', async () => {
       const preview = buildCommonLocators(page).responseExample.binaryPreview();
@@ -115,11 +110,11 @@ test.describe('Binary response example previews', () => {
     });
   });
 
-  test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ pageWithUserData: page }, testInfo) => {
+  test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-unknown-binary');
-    await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', uniqueExampleName('Unknown Binary Example', testInfo));
+    await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
 
     // application/octet-stream bytes with no recognizable signature have no
     // visual preview — the raw base64 body renders in the editor instead.
