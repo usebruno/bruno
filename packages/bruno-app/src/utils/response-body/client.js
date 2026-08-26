@@ -1,9 +1,8 @@
 import { RESPONSE_BODY_CHANNELS } from './media-url';
 
 /**
- * @typedef {{ invoke: (channel: string, ...args: any[]) => Promise<any> }} IpcPort
+ * @param {{ invoke: (channel: string, ...args: any[]) => Promise<any> }} ipcPort
  */
-
 export const createResponseBodyClient = (ipcPort) => {
   if (!ipcPort || typeof ipcPort.invoke !== 'function') {
     throw new Error('createResponseBodyClient requires an IpcPort with invoke()');
@@ -17,7 +16,6 @@ export const createResponseBodyClient = (ipcPort) => {
     async readRange(bodyRef, offset, length) {
       const b64 = await ipcPort.invoke(RESPONSE_BODY_CHANNELS.READ, bodyRef, offset, length);
       if (typeof b64 !== 'string') return Buffer.alloc(0);
-      // Browser / renderer: Buffer may be polyfilled; prefer Uint8Array decode
       if (typeof Buffer !== 'undefined') {
         return Buffer.from(b64, 'base64');
       }
@@ -47,4 +45,16 @@ export const createResponseBodyClient = (ipcPort) => {
       return ipcPort.invoke(RESPONSE_BODY_CHANNELS.RELEASE, pinIdOrBodyRef);
     }
   };
+};
+
+let defaultClient = null;
+
+export const getResponseBodyClient = () => {
+  if (!defaultClient) {
+    const { ipcRenderer } = window;
+    defaultClient = createResponseBodyClient({
+      invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args)
+    });
+  }
+  return defaultClient;
 };

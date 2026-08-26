@@ -94,4 +94,23 @@ describe('ResponseBodyStore', () => {
     const { bodyRef } = await store.putBuffer(Buffer.from('abc'));
     expect(await store.readRange(bodyRef, 10, 5)).toEqual(Buffer.alloc(0));
   });
+
+  test('ingestStream cleans up partial spill file on mid-stream error', async () => {
+    const { Readable } = require('node:stream');
+    let chunkCount = 0;
+    const failing = new Readable({
+      read() {
+        chunkCount += 1;
+        if (chunkCount === 1) {
+          this.push(Buffer.from('x'.repeat(120))); // exceeds spillThreshold (100)
+          return;
+        }
+        this.destroy(new Error('boom'));
+      }
+    });
+
+    await expect(store.ingestStream(failing)).rejects.toThrow('boom');
+    expect(fs.existsSync('/spill/body-1')).toBe(false);
+    expect(() => store.getStat('body-1')).toThrow(BodyNotFoundError);
+  });
 });

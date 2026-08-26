@@ -1,4 +1,4 @@
-import { getResponseBodyClient } from './electron-ipc';
+import { getResponseBodyClient } from './client';
 
 /**
  * Pin a bodyRef for timeline / active response retention (5A).

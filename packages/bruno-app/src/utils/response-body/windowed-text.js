@@ -129,29 +129,10 @@ export const createWindowedTextModel = ({
     return snapshot(0, prependedChars);
   };
 
-  // Back-compat helpers used by older tests / call sites
-  const loadWindow = async (offset) => fetchWindow(offset);
-  const loadNext = async (currentOffset) => {
-    const aligned = windows.length ? windows[windows.length - 1].offset : currentOffset;
-    // Prefer shifting from the live viewport when aligned with it
-    if (windows.length && aligned === currentOffset) {
-      return shiftForward();
-    }
-    await ensureSize();
-    const next = currentOffset + windowSize;
-    if (next >= size) {
-      return { offset: currentOffset, text: '', size, done: true };
-    }
-    const result = await fetchWindow(next);
-    return { ...result, done: next + windowSize >= size, size };
-  };
-
   return {
     loadInitial,
     shiftForward,
     shiftBackward,
-    loadNext,
-    loadWindow,
     getText: () => windows.map((w) => w.text).join(''),
     getWindows: () => windows.slice(),
     getWindowSize: () => windowSize,

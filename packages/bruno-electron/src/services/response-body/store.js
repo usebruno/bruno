@@ -1,4 +1,3 @@
-const { Readable } = require('node:stream');
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
 const { SPILL_THRESHOLD_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
@@ -201,22 +200,6 @@ const createResponseBodyStore = ({
     return fs.readFileRange(entry.filePath, { position: start, length: len });
   };
 
-  const openReadStream = (bodyRef) => {
-    const entry = getEntry(bodyRef);
-    if (entry.storage === STORAGE_MEMORY) {
-      return Readable.from(entry.buffer);
-    }
-    if (typeof fs.createReadStream === 'function') {
-      return fs.createReadStream(entry.filePath);
-    }
-    return Readable.from(
-      (async function* () {
-        const buf = await fs.readFile(entry.filePath);
-        yield buf;
-      })()
-    );
-  };
-
   const assertScriptAccessible = (bodyRef) => {
     const entry = getEntry(bodyRef);
     if (entry.storage === STORAGE_FILE) {
@@ -266,14 +249,6 @@ const createResponseBodyStore = ({
     await destroyEntry(pinIdOrBodyRef);
   };
 
-  const disposeIfUnpinned = async (bodyRef) => {
-    const entry = entries.get(bodyRef);
-    if (!entry) return;
-    if (entry.refs === 0) {
-      await destroyEntry(bodyRef);
-    }
-  };
-
   const getFilePath = (bodyRef) => {
     const entry = getEntry(bodyRef);
     return entry.storage === STORAGE_FILE ? entry.filePath : null;
@@ -284,13 +259,11 @@ const createResponseBodyStore = ({
     putBuffer,
     getStat,
     readRange,
-    openReadStream,
     getBufferForScripts,
     getFilePath,
     saveToPath,
     pin,
     release,
-    disposeIfUnpinned,
     assertScriptAccessible,
     _entries: entries
   };
