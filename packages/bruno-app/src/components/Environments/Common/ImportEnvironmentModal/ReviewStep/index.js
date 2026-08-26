@@ -8,6 +8,7 @@ import CountBadge from 'ui/CountBadge';
 import { StyledWrapper } from './StyledWrapper';
 import { pluralizeWord } from 'utils/common/index';
 import EnvironmentGroup from '../EnvironmentGroup';
+import { ENV_STATUS } from '../hooks/useEnvironmentImport';
 
 const ReviewStep = ({
   modalTitle,
@@ -23,20 +24,19 @@ const ReviewStep = ({
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
 
-  const newEnvs = useMemo(() => items.filter((env) => env.status === 'new'), [items]);
-  const duplicates = useMemo(() => items.filter((env) => env.status === 'duplicate'), [items]);
+  const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
+  const duplicates = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
 
-  const totalEnvironments = items.filter((env) => env.status !== 'invalid').length;
+  const totalEnvironments = items.filter((env) => env.status !== ENV_STATUS.INVALID).length;
 
   const normalizedSearchText = searchText.toLowerCase();
+  const matchesSearch = useCallback((env) =>
+    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
+  [normalizedSearchText]);
 
-  const filteredNew = useMemo(() => newEnvs.filter((env) =>
-    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText)
-  ), [newEnvs, normalizedSearchText]);
+  const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
 
-  const filteredDuplicates = useMemo(() => duplicates.filter((env) =>
-    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText)
-  ), [duplicates, normalizedSearchText]);
+  const filteredDuplicates = useMemo(() => duplicates.filter(matchesSearch), [duplicates, matchesSearch]);
 
   const isAllSelected = (filteredNew.length + filteredDuplicates.length) > 0
     && [...filteredNew, ...filteredDuplicates].every((e) => selected.has(e.id));

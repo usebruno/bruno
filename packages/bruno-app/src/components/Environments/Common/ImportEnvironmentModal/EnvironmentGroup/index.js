@@ -21,7 +21,7 @@ const EnvironmentGroup = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  if (environments.length === 0) return null;
+  if (environments.length === 0 && !searchText) return null;
 
   const toggleExpanded = () => {
     setIsExpanded((prev) => !prev);

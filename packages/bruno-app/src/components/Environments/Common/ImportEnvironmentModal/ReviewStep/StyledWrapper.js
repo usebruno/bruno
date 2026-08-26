@@ -34,7 +34,7 @@ export const StyledWrapper = styled.div`
   .warning-block {
     background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
-    color: ${(props) => props.theme.colors.text.base};
+    color: ${(props) => props.theme.text};
     padding: 0.75rem;
     font-size: 0.875rem;
     flex-shrink: 0;
@@ -46,7 +46,7 @@ export const StyledWrapper = styled.div`
     letter-spacing: normal;
     display: flex;
     align-items: center;
-    color: ${(props) => props.theme.colors.text.base};
+    color: ${(props) => props.theme.text};
   }
 
   .warning-title {
@@ -161,7 +161,7 @@ export const StyledWrapper = styled.div`
   }
 
   .env-name {
-    color: ${(props) => props.theme.colors.text.base};
+    color: ${(props) => props.theme.text};
     font-family: Inter;
     font-weight: 500;
     font-size: ${(props) => props.theme.font.size.base};

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 export const StyledWrapper = styled.div`
   .upload-container {
@@ -11,7 +12,7 @@ export const StyledWrapper = styled.div`
     flex-direction: column;
     align-items: center;
     width: 100%;
-    border-radius: ${(props) => props.theme.border.radius};
+    border-radius: ${(props) => props.theme.border.radius.base};
     border: 2px dashed ${(props) => props.theme.border.border0};
     padding: 3rem;
     text-align: center;
@@ -30,12 +31,12 @@ export const StyledWrapper = styled.div`
 
     &.is-drag-over {
       border-color: ${(props) => props.theme.colors.text.yellow};
-      background-color: ${(props) => props.theme.colors.bg.yellow};
+      background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
     }
   }
 
   .upload-dropzone-icon {
-    color: ${(props) => props.theme.colors.text.base};
+    color: ${(props) => props.theme.text};
   }
 
   .upload-dropzone-title {

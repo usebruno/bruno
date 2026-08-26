@@ -23,7 +23,7 @@ const validateBrunoEnvironment = (env, filePath, fileName) => {
   const variables = env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }));
 
   return {
-    name: env.name || 'Imported Environment',
+    name: env.name,
     variables: dedupeImportedSecrets(variables),
     color: env.color,
     filePath,

@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { importEnvironment, saveEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment, saveGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
-import { normalizeEnvName } from '../../utils';
+import { normalizeEnvName } from 'utils/environments';
 
 export const useEnvironmentTarget = (type, collection) => {
   const dispatch = useDispatch();

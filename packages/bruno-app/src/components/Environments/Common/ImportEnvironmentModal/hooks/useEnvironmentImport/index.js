@@ -4,8 +4,8 @@ import importPostmanEnvironment from 'utils/importers/postman-environment';
 import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { toastError } from 'utils/common/error';
-import { generateCopyName } from 'utils/environments';
-import { detectEnvironmentFormat, normalizeEnvName, RESOLUTION_TYPES } from '../../utils';
+import { generateCopyName, normalizeEnvName } from 'utils/environments';
+import { detectEnvironmentFormat, RESOLUTION_TYPES } from '../../utils';
 import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
 export const IMPORT_STEPS = { UPLOAD: 'UPLOAD', REVIEW: 'REVIEW' };
@@ -26,6 +26,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     const currentExistingNames = [...existingNames];
 
     const isNameDuplicate = (envName) => currentExistingNames.some((existingName) => normalizeEnvName(existingName) === normalizeEnvName(envName));
+    const replacedNames = new Set();
 
     setIsImporting(true);
     for (const environment of environmentsToImport) {
@@ -34,10 +35,12 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
 
         if (isDuplicate) {
           const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.COPY;
-          if (resolution === RESOLUTION_TYPES.REPLACE) {
+          const normalizedName = normalizeEnvName(environment.name);
+          if (resolution === RESOLUTION_TYPES.REPLACE && !replacedNames.has(normalizedName)) {
             const existingEnv = getExistingEnv(environment.name);
             if (existingEnv) {
               await saveEnv(environment, existingEnv);
+              replacedNames.add(normalizedName);
               importedCount++;
             }
           } else {
@@ -83,19 +86,15 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       const invalid = [];
 
       for (const file of parsedFiles) {
-        const format = detectEnvironmentFormat(file.content);
-        let result;
-
         try {
-          if (format === 'postman') {
-            result = await importPostmanEnvironment([file]);
-          } else {
-            result = await importBrunoEnvironment([file]);
-          }
+          const format = detectEnvironmentFormat(file.content);
+          const result = format === 'postman'
+            ? await importPostmanEnvironment([file])
+            : await importBrunoEnvironment([file]);
           valid.push(...result.valid);
           invalid.push(...result.invalid);
         } catch (err) {
-          invalid.push({ fileName: file.meta.name || 'Unknown', error: 'Failed to parse environment file' });
+          invalid.push({ fileName: file.fileName || 'Unknown', error: 'Failed to parse environment file' });
         }
       }
 

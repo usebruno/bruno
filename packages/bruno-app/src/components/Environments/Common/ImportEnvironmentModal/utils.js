@@ -1,5 +1,3 @@
-export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
-
 export const detectEnvironmentFormat = (data) => {
   if (data.info && data.info.type === 'bruno-environment') {
     return 'bruno';

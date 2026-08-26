@@ -1,7 +1,7 @@
 import React from 'react';
 import UploadStep from './UploadStep';
 import ReviewStep from './ReviewStep';
-import { useEnvironmentImport } from './hooks/useEnvironmentImport';
+import { useEnvironmentImport, IMPORT_STEPS } from './hooks/useEnvironmentImport';
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
   const isGlobal = type === 'global';
@@ -25,7 +25,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   const modalTestId = isGlobal ? 'import-global-environment-modal' : 'import-environment-modal';
   const importTestId = isGlobal ? 'import-global-environment' : 'import-environment';
 
-  if (step === 'UPLOAD') {
+  if (step === IMPORT_STEPS.UPLOAD) {
     return (
       <UploadStep
         modalTitle={modalTitle}
