@@ -104,7 +104,7 @@ const ReviewStep = ({
                       </div>
                     )}
                     {invalid.length > 0 && (
-                      <div className="warning-header" data-testid="import-invalid-warning">
+                      <div className="warning-header pt-2" data-testid="import-invalid-warning">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
                         <span className="warning-title">{invalid.length} {pluralizeWord('file', invalid.length)}&nbsp;</span> {invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
                       </div>
