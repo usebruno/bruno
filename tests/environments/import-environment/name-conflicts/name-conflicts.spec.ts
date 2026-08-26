@@ -120,7 +120,7 @@ test.describe('Import environment - name conflict handling', () => {
       });
     });
 
-    test('the select-all checkbox toggles every environment and the footer reflects the selection count', async ({ page, createTmpDir }) => {
+    test('the accordion-level select-all checkbox toggles environments in its group and updates the footer selection count', async ({ page, createTmpDir }) => {
       const { environment, modal } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-select-all', await createTmpDir('name-conflict-select-all'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
@@ -130,10 +130,16 @@ test.describe('Import environment - name conflict handling', () => {
       await expect(environment.importTotalCount()).toHaveText('2');
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
-      await environment.importSelectAllCheckbox().uncheck();
+      await environment.importNewGroupSelectAllCheckbox().uncheck();
+      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+
+      await environment.importDuplicatesGroupSelectAllCheckbox().uncheck();
       await expect(environment.importSelectedCount()).toContainText('0 of 2 selected');
 
-      await environment.importSelectAllCheckbox().check();
+      await environment.importNewGroupSelectAllCheckbox().check();
+      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+
+      await environment.importDuplicatesGroupSelectAllCheckbox().check();
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
       await modal.closeButton().click();

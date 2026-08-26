@@ -25,20 +25,28 @@ const ReviewStep = ({
 }) => {
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
-  const [expandedGroups, setExpandedGroups] = useState({ invalid: true, duplicates: true, new: true });
+  const [expandedGroups, setExpandedGroups] = useState({ [ENV_STATUS.INVALID]: true, [ENV_STATUS.DUPLICATE]: true, [ENV_STATUS.NEW]: true });
 
   const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
   const duplicates = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
-  const invalid = items.filter((env) => env.status === 'invalid');
+  const invalid = items.filter((env) => env.status === ENV_STATUS.INVALID);
 
   const totalEnvironments = newEnvs.length + duplicates.length;
   const totalParsedCount = totalEnvironments + invalid.length;
 
-  const allExpanded = expandedGroups.invalid && expandedGroups.duplicates && expandedGroups.new;
+  const normalizedSearchText = searchText.toLowerCase();
+  const matchesSearch = useCallback((env) =>
+    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
+  [normalizedSearchText]);
+
+  const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
+  const filteredDuplicates = useMemo(() => duplicates.filter(matchesSearch), [duplicates, matchesSearch]);
+
+  const allExpanded = expandedGroups[ENV_STATUS.INVALID] && expandedGroups[ENV_STATUS.DUPLICATE] && expandedGroups[ENV_STATUS.NEW];
 
   const toggleExpandAll = () => {
     const newState = !allExpanded;
-    setExpandedGroups({ invalid: newState, duplicates: newState, new: newState });
+    setExpandedGroups({ [ENV_STATUS.INVALID]: newState, [ENV_STATUS.DUPLICATE]: newState, [ENV_STATUS.NEW]: newState });
   };
 
   const toggleGroupExpanded = (group) => {
@@ -144,24 +152,26 @@ const ReviewStep = ({
                   {/* Invalid Group */}
                   <InvalidEnvironmentGroup
                     invalid={invalid}
-                    hasBorderBottom={duplicates.length > 0 || newEnvs.length > 0}
-                    isExpanded={expandedGroups.invalid}
-                    toggleExpanded={() => toggleGroupExpanded('invalid')}
+                    isExpanded={expandedGroups[ENV_STATUS.INVALID]}
+                    toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.INVALID)}
                   />
 
-                <EnvironmentGroup
-                  title="Duplicates"
-                  environments={filteredDuplicates}
-                  countTestId="env-import-duplicates-count"
-                  selected={selected}
-                  toggleItemSelection={toggleItemSelection}
-                  resolutions={resolutions}
-                  setItemResolution={setItemResolution}
-                  showResolutions={true}
-                  setGroupResolution={setGroupResolution}
-                  searchText={searchText}
-                  dataTestId="env-import-duplicates-group"
-                />
+                  <EnvironmentGroup
+                    title="Duplicates"
+                    environments={filteredDuplicates}
+                    countTestId="env-import-duplicates-count"
+                    selected={selected}
+                    toggleItemSelection={toggleItemSelection}
+                    resolutions={resolutions}
+                    setItemResolution={setItemResolution}
+                    showResolutions={true}
+                    setGroupResolution={setGroupResolution}
+                    isExpanded={expandedGroups[ENV_STATUS.DUPLICATE]}
+                    toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.DUPLICATE)}
+                    toggleGroupSelection={(checked) => toggleGroupSelection(filteredDuplicates, checked)}
+                    searchText={searchText}
+                    dataTestId="env-import-duplicates-group"
+                  />
 
                   <EnvironmentGroup
                     title="New"
@@ -170,8 +180,8 @@ const ReviewStep = ({
                     selected={selected}
                     toggleItemSelection={toggleItemSelection}
                     showResolutions={false}
-                    isExpanded={expandedGroups.new}
-                    toggleExpanded={() => toggleGroupExpanded('new')}
+                    isExpanded={expandedGroups[ENV_STATUS.NEW]}
+                    toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.NEW)}
                     toggleGroupSelection={(checked) => toggleGroupSelection(filteredNew, checked)}
                     searchText={searchText}
                     dataTestId="env-import-new-group"
