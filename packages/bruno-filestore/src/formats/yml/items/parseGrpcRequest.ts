@@ -51,8 +51,8 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
       grpc: []
     },
     script: {
-      req: null,
-      res: null
+      beforeCallStart: null,
+      afterCallEnd: null
     },
     vars: {
       req: [],
@@ -80,11 +80,11 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
-    if (scripts.script.req) {
-      brunoRequest.script.req = scripts.script.req;
+    if (scripts.script.beforeCallStart) {
+      brunoRequest.script.beforeCallStart = scripts.script.beforeCallStart;
     }
-    if (scripts.script.res) {
-      brunoRequest.script.res = scripts.script.res;
+    if (scripts.script.afterCallEnd) {
+      brunoRequest.script.afterCallEnd = scripts.script.afterCallEnd;
     }
   }
   if (scripts?.tests) {

@@ -4,17 +4,21 @@ const { GrpcClient } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
-const { getCertsAndProxyConfig } = require('./cert-utils');
+const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
 const { normalizeAndResolvePath } = require('../../utils/filesystem');
-const { configureRequest } = require('./prepare-grpc-request');
+const { configureRequest, buildGrpcRequest, interpolateGrpcRequest } = require('./prepare-grpc-request');
 const { shouldUseProxy } = require('../../utils/proxy-util');
 const { getPacResolver } = require('@usebruno/requests');
+const { getBrunoConfig } = require('../../store/bruno-config');
+const { getJsSandboxRuntime } = require('../../utils/collection');
+const { createGrpcScriptOrchestration } = require('./grpc-script-orchestration');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+let grpcScriptOrchestration;
 
 /**
  * Resolve proxy configuration for gRPC requests.
@@ -145,7 +149,11 @@ const registerGrpcEventHandlers = (window) => {
     }
   };
 
-  grpcClient = new GrpcClient(sendEvent);
+  grpcScriptOrchestration = createGrpcScriptOrchestration({ sendEvent });
+
+  // The orchestration forwards every event to the renderer and maintains session
+  // details for hooks to use.
+  grpcClient = new GrpcClient(grpcScriptOrchestration.interceptGrpcEvent);
 
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
@@ -155,7 +163,40 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
     try {
       const requestCopy = cloneDeep(request);
-      const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+      const preparedRequest = await buildGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
+
+      const scriptingConfig = get(getBrunoConfig(collection.uid, collection), 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
+
+      // Attached before the hook runs so `bru.sendRequest` inside it honours the collection's
+      // certificates and proxy, as it does for HTTP scripts.
+      preparedRequest.certsAndProxyConfig = await buildCertsAndProxyConfig({
+        collectionUid: collection.uid,
+        collection,
+        collectionPath: collection.pathname,
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars,
+        request: preparedRequest
+      });
+
+      try {
+        await grpcScriptOrchestration.runBeforeCallStart({
+          request: preparedRequest,
+          collection,
+          envVars: preparedRequest.envVars,
+          runtimeVariables,
+          processEnvVars: preparedRequest.processEnvVars,
+          scriptingConfig
+        });
+      } catch (scriptError) {
+        // A thrown pre-request script never sends the request; the same holds here. The
+        // file/line-mapped card already went out as `grpc:script-error`, so the error is returned
+        // rather than thrown — rejecting would toast the same failure a second time.
+        return { success: false, error: scriptError.message };
+      }
+
+      interpolateGrpcRequest(preparedRequest);
 
       const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
       if (!protocolRegex.test(preparedRequest.url)) {
@@ -219,19 +260,35 @@ const registerGrpcEventHandlers = (window) => {
 
       const includeDirs = getProtobufIncludeDirs(collection);
 
-      // Start gRPC connection with the processed request, certificates, and proxy
-      await grpcClient.startConnection({
+      // Armed before the connection opens, or the first events arrive with nowhere to go
+      grpcScriptOrchestration.openCallSession({
         request: preparedRequest,
         collection,
-        rootCertificate,
-        privateKey,
-        certificateChain,
-        passphrase,
-        pfx,
-        verifyOptions,
-        includeDirs,
-        proxyConfig: grpcProxyConfig
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars,
+        scriptingConfig
       });
+
+      try {
+        // Start gRPC connection with the processed request, certificates, and proxy
+        await grpcClient.startConnection({
+          request: preparedRequest,
+          collection,
+          rootCertificate,
+          privateKey,
+          certificateChain,
+          passphrase,
+          pfx,
+          verifyOptions,
+          includeDirs,
+          proxyConfig: grpcProxyConfig
+        });
+      } catch (error) {
+        // The call never opened, so no terminal event will arrive to retire the session it armed.
+        grpcScriptOrchestration.closeCallSession(request.uid);
+        throw error;
+      }
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
 
@@ -273,7 +330,7 @@ const registerGrpcEventHandlers = (window) => {
   ipcMain.handle('grpc:send-message', (event, requestId, collectionUid, message) => {
     try {
       grpcClient.sendMessage(requestId, collectionUid, message);
-      sendEvent('grpc:message', requestId, collectionUid, message);
+      grpcScriptOrchestration.interceptGrpcEvent('grpc:message', requestId, collectionUid, message);
       return { success: true };
     } catch (error) {
       console.error('Error sending gRPC message:', error);
@@ -515,6 +572,7 @@ if (app && typeof app.on === 'function') {
         console.error('Error clearing gRPC connections:', error);
       }
     }
+    grpcScriptOrchestration?.closeAllCallSessions();
   });
 }
 

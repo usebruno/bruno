@@ -22,3 +22,18 @@ describe('jsonToBru', () => {
     expect(output).toEqual(expected);
   });
 });
+
+describe('round-trip', () => {
+  it('should preserve all four script blocks through jsonToBru and back', () => {
+    const json = {
+      script: {
+        req: 'req.setHeader(\'Content-Type\', \'application/json\');',
+        res: 'expect(res.status).to.equal(200);',
+        beforeCallStart: 'req.setMetadata(\'authorization\', \'Bearer token\');',
+        afterCallEnd: 'if (res.getStatusCode() === 0) {\n  bru.setVar(\'ok\', true);\n}'
+      }
+    };
+
+    expect(bruToJson(jsonToBru(json))).toEqual(json);
+  });
+});

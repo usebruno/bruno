@@ -75,6 +75,10 @@ export const buildCommonLocators = (page: Page) => ({
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
+    // request and response may have more tabs, pass the pane to isolate further.
+    overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
+    // menu is rendered via portal, hence it rooted to page.
+    overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -356,6 +360,8 @@ const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
+type GrpcTestSectionKey = 'beforeCallStart' | 'afterCallEnd';
+
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   method: {
@@ -386,7 +392,24 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('grpc-responses-list'),
     responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
-    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count')
+    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count'),
+    tests: {
+      passedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-passed-count'),
+      failedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-failed-count'),
+      section: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`),
+      summary: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).locator('.test-summary'),
+      rows: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).getByTestId('test-result-item'),
+      passedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-fail') })
+    }
   }
 });
 
