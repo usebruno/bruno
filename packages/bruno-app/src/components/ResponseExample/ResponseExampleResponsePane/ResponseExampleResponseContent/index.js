@@ -104,7 +104,7 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
           fontSize={get(preferences, 'font.codeFontSize')}
           value={getResponseContent()}
           onEdit={isBinaryBody ? undefined : onResponseEdit}
-          onRun={() => { }}
+          onRun={() => {}}
           onSave={onSave}
           mode={getCodeMirrorMode()}
           enableVariableHighlighting={false}

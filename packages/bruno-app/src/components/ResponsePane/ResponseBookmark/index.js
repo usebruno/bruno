@@ -83,7 +83,6 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
-    // Sniffed bytes win the binary decision (the header may be missing or wrong);
     const sniffedMime = detectContentTypeFromBase64(response.dataBuffer);
     const bodyType = isBinaryContentType(sniffedMime) ? 'binary' : getBodyType(contentType);
 
