@@ -92,6 +92,9 @@ export const buildCommonLocators = (page: Page) => ({
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
   modal: {
+    any: () => page.locator('.bruno-modal'),
+    formError: (text: string | RegExp) =>
+      page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),

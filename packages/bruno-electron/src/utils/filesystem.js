@@ -4,6 +4,9 @@ const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
+// Single shared implementation lives in @usebruno/common; re-exported below so
+// `require('../utils/filesystem')` consumers keep working unchanged.
+const { sanitizeName, validateName } = require('@usebruno/common').utils;
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -132,6 +135,105 @@ const withFileLock = async (pathname, fn) => {
   }
 };
 
+const MAX_DUPLICATE_NAMES = 200;
+
+const MAX_FILENAME_LENGTH = 255;
+
+/**
+ * Build the nth suffixed filename. n === 0 -> no suffix.
+ * @param {string} base   basename without extension
+ * @param {string} ext    extension without a leading dot ('' for directories)
+ * @param {number} n      0 for the unsuffixed name, otherwise the suffix number
+ */
+const nextSuffixedName = (base, ext, n) => {
+  const suffix = n === 0 ? '' : ` ${n}`;
+  return ext ? `${base}${suffix}.${ext}` : `${base}${suffix}`;
+};
+
+/**
+ * Truncate `base` so that `base` + the largest possible collision suffix + the
+ * extension can never exceed the filesystem filename limit (255). This keeps
+ * both the no-collision name and every suffixed candidate within bounds, so a
+ * max-length name can't trigger ENAMETOOLONG.
+ *
+ * @param {string} base   basename without extension
+ * @param {string} ext    extension without a leading dot ('' for directories)
+ */
+const truncateBaseForSuffix = (base, ext) => {
+  const extLength = ext ? ext.length + 1 : 0;
+  // Longest suffix the duplicate cap can append, incl. the leading space
+  // separator (e.g. " 199" -> 4 chars).
+  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length + 1;
+  const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
+  return base.length > maxBaseLength ? base.slice(0, maxBaseLength) : base;
+};
+
+/**
+ * Creates a file with a unique name inside `dirname`.
+ * If the name already exists, appends a numeric suffix.
+ *
+ * @returns {Promise<{ pathname: string, filename: string }>} the path created
+ */
+const writeFileUnique = async (dirname, baseFilename, ext, content) => {
+  const normalizedExt = ext && ext.startsWith('.') ? ext.slice(1) : ext;
+
+  // Keep the base name within the filename length limit.
+  const safeBase = truncateBaseForSuffix(baseFilename, normalizedExt);
+
+  for (let counter = 0; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidate = nextSuffixedName(safeBase, normalizedExt, counter);
+    const pathname = path.join(dirname, candidate);
+
+    try {
+      // `wx` fails with EEXIST if another file already has this name.
+      await fsPromises.writeFile(pathname, content, { flag: 'wx' });
+      return { pathname, filename: path.basename(pathname) };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+
+      console.error(`Error writing file at ${pathname}:`, err);
+      throw err;
+    }
+  }
+
+  throw new Error(
+    `Too many items named "${baseFilename}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`
+  );
+};
+
+/**
+ * Creates a unique directory inside `dirname`.
+ * If `baseName` already exists, tries `baseName 1`, `baseName 2`, etc.
+ * Stops after MAX_DUPLICATE_NAMES attempts.
+ *
+ * @returns {Promise<{ pathname: string, name: string }>} The created directory.
+ */
+const mkdirUnique = async (dirname, baseName) => {
+  // Keep the base name within the filename length limit when adding a suffix.
+  const safeBase = truncateBaseForSuffix(baseName, '');
+
+  // Let mkdir determine whether the name is already taken.
+  // EEXIST means, try the next suffix.
+  for (let counter = 0; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const name = nextSuffixedName(safeBase, '', counter);
+    const pathname = path.join(dirname, name);
+
+    try {
+      await fsPromises.mkdir(pathname);
+      return { pathname, name };
+    } catch (err) {
+      if (err && err.code === 'EEXIST') continue;
+
+      console.error(`Error creating directory at ${pathname}:`, err);
+      throw err;
+    }
+  }
+
+  throw new Error(
+    `Too many items named "${baseName}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`
+  );
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -239,15 +341,6 @@ const searchForRequestFiles = (dir, collectionPath = null) => {
   }
 };
 
-const sanitizeName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
-  name = name
-    .replace(invalidCharacters, '-') // replace invalid characters with hyphens
-    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
-    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
-  return name;
-};
-
 const isWindowsOS = () => {
   return os.platform() === 'win32';
 };
@@ -288,23 +381,6 @@ const getCollectionFormat = (collectionPath) => {
   throw new Error(`No collection configuration found at: ${collectionPath}`);
 };
 
-const validateName = (name) => {
-  const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // keeping this for informational purpose
-  const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
-  const firstCharacter = /^[^\s\-<>:"/\\|?*\x00-\x1F]/; // no space, hyphen and `invalidCharacters`
-  const middleCharacters = /^[^<>:"/\\|?*\x00-\x1F]*$/; // no `invalidCharacters`
-  const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invalidCharacters`
-  if (name.length > 255) return false; // max name length
-
-  if (reservedDeviceNames.test(name)) return false; // windows reserved names
-
-  return (
-    firstCharacter.test(name)
-    && middleCharacters.test(name)
-    && lastCharacter.test(name)
-  );
-};
-
 const safeToRename = (oldPath, newPath) => {
   try {
     // If the new path doesn't exist, it's safe to rename
@@ -326,6 +402,121 @@ const safeToRename = (oldPath, newPath) => {
   } catch (error) {
     console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
     return false;
+  }
+};
+
+/**
+ * Canonicalize a path to its real on-disk form (actual casing + symlinks
+ * resolved) so path comparisons are correct on case-insensitive volumes.
+ */
+const canonicalPath = (p) => {
+  try {
+    return fs.realpathSync.native(p);
+  } catch (_) {
+    return path.resolve(p);
+  }
+};
+
+const getUniqueRenamePath = (oldPath, desiredNewPath) => {
+  const dir = path.dirname(desiredNewPath);
+  const ext = isDirectory(oldPath) ? '' : path.extname(desiredNewPath);
+  const rawBase = path.basename(desiredNewPath, ext);
+  const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
+
+  // Leave room for numeric suffixes within the filename limit.
+  const base = truncateBaseForSuffix(rawBase, extNoDot);
+
+  const sourceReal = canonicalPath(oldPath);
+
+  // Start with the requested name; if it's taken, try numbered suffixes.
+  for (let counter = 0; counter < MAX_DUPLICATE_NAMES; counter++) {
+    const candidatePath = path.join(
+      dir,
+      nextSuffixedName(base, extNoDot, counter)
+    );
+    if (!fs.existsSync(candidatePath) || canonicalPath(candidatePath) === sourceReal) {
+      return candidatePath;
+    }
+  }
+
+  throw new Error(
+    `Too many items named "${rawBase}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`
+  );
+};
+
+/**
+  * Returns a unique path for moving `sourcePathname` into `targetDirname`.
+  */
+const getUniqueTargetPath = (sourcePathname, targetDirname) => {
+  const desired = path.join(targetDirname, path.basename(sourcePathname));
+  return getUniqueRenamePath(sourcePathname, desired);
+};
+
+/**
+ * Recursively copies `source` to `targetPath`.
+ */
+const copyPathTo = async (source, targetPath) => {
+  const resolvedSource = canonicalPath(source);
+  const resolvedTarget = path.join(canonicalPath(path.dirname(targetPath)), path.basename(targetPath));
+
+  // Prevent copying a path into itself or one of its descendants.
+  if (resolvedTarget === resolvedSource || resolvedTarget.startsWith(resolvedSource + path.sep)) {
+    throw new Error('Cannot copy a path into itself or a subdirectory of itself');
+  }
+
+  const copyTree = async (src, dest) => {
+    const lst = await fsPromises.lstat(src);
+
+    if (lst.isSymbolicLink()) {
+      // Dereference the link (copy what it points at) rather than recreating it.
+      const real = await fsPromises.stat(src).catch(() => null); // follows the link
+      if (!real) return; // dangling link(target doesn't exist). skip
+      if (real.isFile()) {
+        await fsPromises.copyFile(src, dest); // copyFile follows the link → real file
+      }
+
+      return;
+    }
+
+    if (lst.isDirectory()) {
+      await fsPromises.mkdir(dest, { recursive: true });
+
+      const entries = await fsPromises.readdir(src);
+      for (const entry of entries) {
+        await copyTree(path.join(src, entry), path.join(dest, entry));
+      }
+    } else {
+      await fsPromises.copyFile(src, dest);
+    }
+  };
+
+  await copyTree(source, targetPath);
+};
+
+/**
+ * Serializes moves targeting the same directory.
+ * Different directories can still be processed concurrently.
+ */
+const dirLockChains = new Map();
+
+const withDirLock = async (dirname, fn) => {
+  // canonicalPath resolves symlinks and real on-disk casing via realpathSync,
+  // so two differently-cased spellings of the same dir on a case-insensitive
+  // volume (macOS, Windows) share the same lock key.
+  const key = canonicalPath(dirname);
+  const prev = dirLockChains.get(key) || Promise.resolve();
+
+  // Wait for the previous operation, even if it failed.
+  const next = prev.catch(() => {}).then(() => fn());
+
+  dirLockChains.set(key, next);
+
+  try {
+    return await next;
+  } finally {
+    if (dirLockChains.get(key) === next) {
+      dirLockChains.delete(key);
+    }
   }
 };
 
@@ -374,15 +565,14 @@ const sizeInMB = (size) => {
 };
 
 const getSafePathToWrite = (filePath) => {
-  const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
-  let dir = path.dirname(filePath);
-  let ext = path.extname(filePath);
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
     base = sanitizeName(base);
     base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
-  let safePath = path.join(dir, base + ext);
+  const safePath = path.join(dir, base + ext);
   return safePath;
 };
 
@@ -402,33 +592,6 @@ function safeWriteFileSync(filePath, data) {
   const safePath = getSafePathToWrite(filePath);
   fs.writeFileSync(safePath, data);
 }
-
-// Recursively copies a source <file/directory> to a destination <directory>.
-const copyPath = async (source, destination) => {
-  let targetPath = `${destination}/${path.basename(source)}`;
-
-  const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
-  if (targetPathExists) {
-    throw new Error(`Cannot copy, ${path.basename(source)} already exists in ${path.basename(destination)}`);
-  }
-
-  const copy = async (source, destination) => {
-    const stat = await fsPromises.lstat(source);
-    if (stat.isDirectory()) {
-      await fsPromises.mkdir(destination, { recursive: true });
-      const entries = await fsPromises.readdir(source);
-      for (const entry of entries) {
-        const srcPath = path.join(source, entry);
-        const destPath = path.join(destination, entry);
-        await copy(srcPath, destPath);
-      }
-    } else {
-      await fsPromises.copyFile(source, destination);
-    }
-  };
-
-  await copy(source, targetPath);
-};
 
 // Recursively removes a source <file/directory>.
 const removePath = async (source) => {
@@ -478,7 +641,7 @@ const moveCollectionDirectory = async (source, destination) => {
 
 // Recursively gets paths.
 const getPaths = async (source) => {
-  let paths = [];
+  const paths = [];
   const _getPaths = async (source) => {
     const stat = await fsPromises.lstat(source);
     paths.push(source);
@@ -589,6 +752,14 @@ module.exports = {
   normalizeWSLPath,
   writeFile,
   withFileLock,
+  nextSuffixedName,
+  writeFileUnique,
+  mkdirUnique,
+  getUniqueRenamePath,
+  getUniqueTargetPath,
+  copyPathTo,
+  canonicalPath,
+  withDirLock,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
@@ -608,7 +779,6 @@ module.exports = {
   sizeInMB,
   safeWriteFile,
   safeWriteFileSync,
-  copyPath,
   removePath,
   moveCollectionDirectory,
   getPaths,
