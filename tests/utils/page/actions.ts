@@ -2050,7 +2050,7 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
-type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'after-call-end';
+type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'after-call-end' | 'before-message-send' | 'after-message-receive';
 
 /**
  * Navigate to a Script sub-tab (pre-request / post-response for http & graphql, the lifecycle

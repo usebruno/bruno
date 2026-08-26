@@ -68,7 +68,39 @@ script:grpc:after-call-end {
     expect(output).toEqual(expected);
   });
 
-  it('should merge all four script blocks present in a single file', () => {
+  it('should parse grpc before-message-send script', () => {
+    const input = `
+script:grpc:before-message-send {
+  expect(bru.grpc.request.message.data).to.be.an('object');
+}
+`;
+
+    const output = parser(input);
+    const expected = {
+      script: {
+        beforeMessageSend: 'expect(bru.grpc.request.message.data).to.be.an(\'object\');'
+      }
+    };
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse grpc after-message-receive script', () => {
+    const input = `
+script:grpc:after-message-receive {
+  expect(bru.grpc.response.message.data).to.be.an('object');
+}
+`;
+
+    const output = parser(input);
+    const expected = {
+      script: {
+        afterMessageReceive: 'expect(bru.grpc.response.message.data).to.be.an(\'object\');'
+      }
+    };
+    expect(output).toEqual(expected);
+  });
+
+  it('should merge all six script blocks present in a single file', () => {
     const input = `
 script:pre-request {
   req.setHeader('Content-Type', 'application/json');
@@ -85,6 +117,14 @@ script:grpc:before-call-start {
 script:grpc:after-call-end {
   expect(res.getStatusCode()).to.equal(0);
 }
+
+script:grpc:before-message-send {
+  bru.setVar('sent', bru.grpc.request.message.timestamp);
+}
+
+script:grpc:after-message-receive {
+  bru.setVar('received', bru.grpc.response.message.timestamp);
+}
 `;
 
     const output = parser(input);
@@ -93,7 +133,9 @@ script:grpc:after-call-end {
         req: 'req.setHeader(\'Content-Type\', \'application/json\');',
         res: 'expect(res.status).to.equal(200);',
         beforeCallStart: 'req.setMetadata(\'authorization\', \'Bearer token\');',
-        afterCallEnd: 'expect(res.getStatusCode()).to.equal(0);'
+        afterCallEnd: 'expect(res.getStatusCode()).to.equal(0);',
+        beforeMessageSend: 'bru.setVar(\'sent\', bru.grpc.request.message.timestamp);',
+        afterMessageReceive: 'bru.setVar(\'received\', bru.grpc.response.message.timestamp);'
       }
     };
     expect(output).toEqual(expected);

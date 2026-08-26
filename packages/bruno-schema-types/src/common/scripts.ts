@@ -6,6 +6,8 @@ export interface HTTPScripts {
 export interface GrpcScripts {
   beforeCallStart?: string | null;
   afterCallEnd?: string | null;
+  beforeMessageSend?: string | null;
+  afterMessageReceive?: string | null;
 }
 
 export interface Script extends HTTPScripts, GrpcScripts {}
