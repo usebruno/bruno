@@ -45,7 +45,7 @@ export const palette = {
     OVERLAY0: '#C0C0C0'
   },
   border: {
-    BORDER3: '#b0b0b0',
+    BORDER3: '#b3b3b3',
     BORDER2: '#cccccc',
     BORDER1: '#e5e5e5',
     BORDER0: '#efefef'
