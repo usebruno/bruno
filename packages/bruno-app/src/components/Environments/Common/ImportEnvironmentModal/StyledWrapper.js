@@ -100,7 +100,6 @@ export const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     color: ${(props) => props.theme.colors.text.base};
-    margin-bottom: 0.5rem;
   }
 
   .warning-title {
