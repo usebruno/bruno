@@ -23,18 +23,34 @@ describe('toOpenCollectionScripts', () => {
 
   it('writes the grpc lifecycle hooks for the grpc keys', () => {
     const out = toOpenCollectionScripts(
-      { script: { beforeCallStart: 'before()', afterCallEnd: 'after()' } } as any,
+      {
+        script: {
+          beforeCallStart: 'before()',
+          afterCallEnd: 'after()',
+          beforeMessageSend: 'beforeSend()',
+          afterMessageReceive: 'afterReceive()'
+        }
+      } as any,
       GRPC_SCRIPT_KEYS
     );
 
     expect(out).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
-      { type: 'grpc:after-call-end', code: 'after()' }
+      { type: 'grpc:after-call-end', code: 'after()' },
+      { type: 'grpc:before-message-send', code: 'beforeSend()' },
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' }
     ]);
   });
 
   it('drops script slots outside the allowed keys', () => {
-    const script = { req: 'pre()', res: 'post()', beforeCallStart: 'before()', afterCallEnd: 'after()' };
+    const script = {
+      req: 'pre()',
+      res: 'post()',
+      beforeCallStart: 'before()',
+      afterCallEnd: 'after()',
+      beforeMessageSend: 'beforeSend()',
+      afterMessageReceive: 'afterReceive()'
+    };
 
     expect(toOpenCollectionScripts({ script } as any, HTTP_SCRIPT_KEYS)).toEqual([
       { type: 'before-request', code: 'pre()' },
@@ -42,12 +58,15 @@ describe('toOpenCollectionScripts', () => {
     ]);
     expect(toOpenCollectionScripts({ script } as any, GRPC_SCRIPT_KEYS)).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
-      { type: 'grpc:after-call-end', code: 'after()' }
+      { type: 'grpc:after-call-end', code: 'after()' },
+      { type: 'grpc:before-message-send', code: 'beforeSend()' },
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' }
     ]);
   });
 
   it('returns undefined when every populated slot is gated out', () => {
     expect(toOpenCollectionScripts({ script: { beforeCallStart: 'before()' } } as any, HTTP_SCRIPT_KEYS)).toBeUndefined();
+    expect(toOpenCollectionScripts({ script: { beforeMessageSend: 'beforeSend()' } } as any, HTTP_SCRIPT_KEYS)).toBeUndefined();
     expect(toOpenCollectionScripts({ script: { req: 'pre()' } } as any, GRPC_SCRIPT_KEYS)).toBeUndefined();
   });
 
@@ -87,6 +106,8 @@ describe('toBrunoScripts', () => {
         { type: 'after-response', code: 'post()' },
         { type: 'grpc:before-call-start', code: 'before()' },
         { type: 'grpc:after-call-end', code: 'after()' },
+        { type: 'grpc:before-message-send', code: 'beforeSend()' },
+        { type: 'grpc:after-message-receive', code: 'afterReceive()' },
         { type: 'tests', code: 'test()' }
       ])
     ).toEqual({
@@ -94,7 +115,9 @@ describe('toBrunoScripts', () => {
         req: 'pre()',
         res: 'post()',
         beforeCallStart: 'before()',
-        afterCallEnd: 'after()'
+        afterCallEnd: 'after()',
+        beforeMessageSend: 'beforeSend()',
+        afterMessageReceive: 'afterReceive()'
       },
       tests: 'test()'
     });

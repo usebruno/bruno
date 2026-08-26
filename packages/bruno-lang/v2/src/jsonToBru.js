@@ -778,6 +778,22 @@ ${indentString(script.afterCallEnd)}
 `;
   }
 
+  if (script && script.beforeMessageSend && script.beforeMessageSend.length) {
+    bru += `script:grpc:before-message-send {
+${indentString(script.beforeMessageSend)}
+}
+
+`;
+  }
+
+  if (script && script.afterMessageReceive && script.afterMessageReceive.length) {
+    bru += `script:grpc:after-message-receive {
+${indentString(script.afterMessageReceive)}
+}
+
+`;
+  }
+
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}

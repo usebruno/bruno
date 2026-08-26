@@ -77,6 +77,20 @@ describe('updateGrpcScript', () => {
     expect(itemFrom(next).draft.request.script.beforeCallStart).toBeNull();
   });
 
+  it.each([
+    ['beforeMessageSend', 'bru.setVar("sent", bru.grpc.request.message.timestamp);'],
+    ['afterMessageReceive', 'bru.setVar("received", bru.grpc.response.message.timestamp);']
+  ])('writes the %s message hook into the draft request script', (hook, script) => {
+    const state = makeState();
+
+    const next = reducer(
+      state,
+      updateGrpcScript({ collectionUid: COLLECTION_UID, itemUid: ITEM_UID, hook, script })
+    );
+
+    expect(itemFrom(next).draft.request.script[hook]).toBe(script);
+  });
+
   it('leaves the saved request untouched when creating the draft', () => {
     const state = makeState();
 
@@ -168,7 +182,7 @@ describe('updateGrpcScript', () => {
   // The hook allowlist is the only thing stopping an arbitrary key from being written into
   // request.script, which the filestore would then try to serialize.
   describe('hook allowlist', () => {
-    it.each(['req', 'res', 'tests', 'proto', '__proto__', 'BeforeCallStart', '', undefined, null])(
+    it.each(['req', 'res', 'tests', 'proto', '__proto__', 'BeforeCallStart', 'beforemessagesend', 'onMessage', '', undefined, null])(
       'ignores the disallowed hook %p',
       (hook) => {
         const state = makeState();

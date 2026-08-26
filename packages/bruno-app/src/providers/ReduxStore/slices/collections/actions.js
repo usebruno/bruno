@@ -1600,7 +1600,9 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
         },
         script: {
           beforeCallStart: null,
-          afterCallEnd: null
+          afterCallEnd: null,
+          beforeMessageSend: null,
+          afterMessageReceive: null
         },
         assertions: [],
         tests: null

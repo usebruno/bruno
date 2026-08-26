@@ -186,11 +186,13 @@ const grammar = ohm.grammar(`Bru {
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
 
-  script = scriptreq | scriptres | scriptbeforecallstart | scriptaftercallend
+  script = scriptreq | scriptres | scriptbeforecallstart | scriptaftercallend | scriptbeforemessagesend | scriptaftermessagereceive
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
   scriptbeforecallstart = "script:grpc:before-call-start" st* "{" nl* textblock tagend
   scriptaftercallend = "script:grpc:after-call-end" st* "{" nl* textblock tagend
+  scriptbeforemessagesend = "script:grpc:before-message-send" st* "{" nl* textblock tagend
+  scriptaftermessagereceive = "script:grpc:after-message-receive" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -1213,6 +1215,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         afterCallEnd: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptbeforemessagesend(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        beforeMessageSend: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptaftermessagereceive(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        afterMessageReceive: outdentString(textblock.sourceString)
       }
     };
   },

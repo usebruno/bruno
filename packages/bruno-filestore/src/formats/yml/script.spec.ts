@@ -5,15 +5,26 @@ import parseCollection from './parseCollection';
 import stringifyFolder from './stringifyFolder';
 import parseFolder from './parseFolder';
 
+const GRPC_SLOTS = {
+  beforeCallStart: 'before()',
+  afterCallEnd: 'after()',
+  beforeMessageSend: 'beforeSend()',
+  afterMessageReceive: 'afterReceive()'
+};
+
 const ALL_SLOTS = {
   req: 'pre()',
   res: 'post()',
-  beforeCallStart: 'before()',
-  afterCallEnd: 'after()'
+  ...GRPC_SLOTS
 };
 
 const HTTP_TYPES = ['before-request', 'after-response'];
-const GRPC_TYPES = ['grpc:before-call-start', 'grpc:after-call-end'];
+const GRPC_TYPES = [
+  'grpc:before-call-start',
+  'grpc:after-call-end',
+  'grpc:before-message-send',
+  'grpc:after-message-receive'
+];
 
 const expectScriptTypes = (yml: string, written: string[], dropped: string[]) => {
   written.forEach((type) => expect(yml).toContain(`type: ${type}`));
@@ -83,6 +94,8 @@ describe('script — request items', () => {
     expectScriptTypes(yml, HTTP_TYPES, GRPC_TYPES);
     expect(yml).not.toContain('before()');
     expect(yml).not.toContain('after()');
+    expect(yml).not.toContain('beforeSend()');
+    expect(yml).not.toContain('afterReceive()');
 
     expect(parseItem(yml).request!.script).toEqual({ req: 'pre()', res: 'post()' });
   });
@@ -102,7 +115,12 @@ describe('script — request items', () => {
     expect(yml).not.toContain('pre()');
     expect(yml).not.toContain('post()');
 
-    expect(parseItem(yml).request!.script).toEqual({ beforeCallStart: 'before()', afterCallEnd: 'after()' });
+    expect(parseItem(yml).request!.script).toEqual({
+      beforeCallStart: 'before()',
+      afterCallEnd: 'after()',
+      beforeMessageSend: 'beforeSend()',
+      afterMessageReceive: 'afterReceive()'
+    });
   });
 });
 
@@ -124,9 +142,7 @@ describe('script — collection and folder roots', () => {
   });
 
   it('a collection root carrying only grpc hooks writes no scripts at all', () => {
-    const yml = stringifyCollection(rootWithScript({ beforeCallStart: 'before()', afterCallEnd: 'after()' }), {
-      name: 'c'
-    });
+    const yml = stringifyCollection(rootWithScript({ ...GRPC_SLOTS }), { name: 'c' });
 
     expect(yml).not.toContain('scripts:');
 
@@ -134,7 +150,7 @@ describe('script — collection and folder roots', () => {
   });
 
   it('a folder root carrying only grpc hooks writes no scripts at all', () => {
-    const yml = stringifyFolder(rootWithScript({ beforeCallStart: 'before()', afterCallEnd: 'after()' }));
+    const yml = stringifyFolder(rootWithScript({ ...GRPC_SLOTS }));
 
     expect(yml).not.toContain('scripts:');
 
