@@ -87,6 +87,7 @@ const ReviewStep = ({
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
         confirmDisabled={totalEnvironments === 0}
+        footerClassName="pt-0"
         footerLeft={(
           <div className="footer-left-content" data-testid="env-import-selected-count">
             <span style={{ color: theme.brand }}>{selected.size}</span> of {totalEnvironments} selected

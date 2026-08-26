@@ -102,7 +102,7 @@ export const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.base};
 
     &:not(:last-child) {
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.75rem;
     }
   }
 
@@ -155,7 +155,7 @@ export const StyledWrapper = styled.div`
 
   .groups-scroll-area {
     overflow-y: auto;
-    max-height: 28vh;
+    max-height: calc(45vh - 160px);
   }
 
   .group-container {
