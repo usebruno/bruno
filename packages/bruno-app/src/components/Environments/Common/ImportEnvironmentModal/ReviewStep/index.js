@@ -14,55 +14,51 @@ const ReviewStep = ({
   modalTestId,
   onClose,
   handleConfirmImport,
-  parsedData,
-  selectedIndices,
-  setSelectedIndices,
+  items,
+  selected,
+  setSelected,
   resolutions,
   setResolutions
 }) => {
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
 
-  const totalEnvironments = parsedData.new.length + parsedData.duplicates.length;
-  const isAllSelected = selectedIndices.size === totalEnvironments && totalEnvironments > 0;
+  const newEnvs = items.filter((env) => env.status === 'new');
+  const duplicates = items.filter((env) => env.status === 'duplicate');
+
+  const totalEnvironments = newEnvs.length + duplicates.length;
+  const isAllSelected = selected.size === totalEnvironments && totalEnvironments > 0;
 
   const toggleSelectAll = (checked) => {
     if (checked) {
-      const allSelected = new Set();
-      for (let i = 0; i < totalEnvironments; i++) {
-        allSelected.add(i);
-      }
-      setSelectedIndices(allSelected);
+      const allSelected = new Set([...newEnvs, ...duplicates].map((e) => e.id));
+      setSelected(allSelected);
     } else {
-      setSelectedIndices(new Set());
+      setSelected(new Set());
     }
   };
 
-  const toggleItemSelection = (env) => {
-    const validEnvironments = [...parsedData.new, ...parsedData.duplicates];
-    const idx = validEnvironments.indexOf(env);
-    if (idx !== -1) {
-      const newSelected = new Set(selectedIndices);
-      if (newSelected.has(idx)) newSelected.delete(idx);
-      else newSelected.add(idx);
-      setSelectedIndices(newSelected);
-    }
+  const toggleItemSelection = (envId) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(envId)) newSelected.delete(envId);
+    else newSelected.add(envId);
+    setSelected(newSelected);
   };
 
   const setGroupResolution = (res) => {
     const newResolutions = new Map(resolutions);
-    parsedData.duplicates.forEach((env) => {
-      newResolutions.set(env, res);
+    duplicates.forEach((env) => {
+      newResolutions.set(env.id, res);
     });
     setResolutions(newResolutions);
   };
 
-  const setItemResolution = (env, res) => {
-    setResolutions(new Map(resolutions).set(env, res));
+  const setItemResolution = (envId, res) => {
+    setResolutions(new Map(resolutions).set(envId, res));
   };
 
-  const filteredNew = parsedData.new.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
-  const filteredDuplicates = parsedData.duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const filteredNew = newEnvs.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const filteredDuplicates = duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
 
   return (
     <Portal>
@@ -77,7 +73,7 @@ const ReviewStep = ({
         disableCloseOnOutsideClick
         footerLeft={(
           <div className="footer-left-content" data-testid="env-import-selected-count">
-            <span style={{ color: theme.brand }}>{selectedIndices.size}</span> of {totalEnvironments} selected
+            <span style={{ color: theme.brand }}>{selected.size}</span> of {totalEnvironments} selected
           </div>
         )}
       >
@@ -89,11 +85,11 @@ const ReviewStep = ({
 
             <div className="scroll-area">
               <div className="environments-list-container">
-                {parsedData.duplicates.length > 0 && (
+                {duplicates.length > 0 && (
                   <div className="warning-block" data-testid="import-duplicates-warning">
                     <div className="warning-header">
                       <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
-                      <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name
+                      <span className="warning-title">{duplicates.length} {pluralizeWord('environment', duplicates.length)}&nbsp;</span> already {duplicates.length > 1 ? 'exist' : 'exists'} with the same name
                     </div>
                   </div>
                 )}
@@ -128,9 +124,8 @@ const ReviewStep = ({
                   title="Duplicates"
                   environments={filteredDuplicates}
                   countTestId="env-import-duplicates-count"
-                  hasBorderBottom={parsedData.new.length > 0}
-                  parsedData={parsedData}
-                  selectedIndices={selectedIndices}
+                  hasBorderBottom={newEnvs.length > 0}
+                  selected={selected}
                   toggleItemSelection={toggleItemSelection}
                   resolutions={resolutions}
                   setItemResolution={setItemResolution}
@@ -145,8 +140,7 @@ const ReviewStep = ({
                   environments={filteredNew}
                   countTestId="env-import-new-count"
                   hasBorderBottom={false}
-                  parsedData={parsedData}
-                  selectedIndices={selectedIndices}
+                  selected={selected}
                   toggleItemSelection={toggleItemSelection}
                   showResolutions={false}
                   searchText={searchText}
