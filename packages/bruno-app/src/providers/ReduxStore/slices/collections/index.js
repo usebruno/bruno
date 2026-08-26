@@ -679,7 +679,7 @@ export const collectionsSlice = createSlice({
 
       if (eventType === 'request') {
         item.requestSent = eventData;
-        item.requestSent.timestamp = Date.now();
+        item.requestSent.timestamp = eventData?.timestamp ?? Date.now();
         item.response = {
           initiatedGrpcResponse,
           statusText: isUnary ? 'PENDING' : 'STREAMING'
@@ -717,7 +717,10 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedGrpcResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      const elapsed = Date.now() - (timestamp || Date.now());
+      // Terminating events carry the duration measured in the main process — the same number
+      // `bru.grpc.response.duration` reports. Everything else shows elapsed-so-far.
+      let updatedResponse = { ...currentResponse, duration: eventData?.duration ?? elapsed };
 
       // Process based on event type
       switch (eventType) {
@@ -842,6 +845,18 @@ export const collectionsSlice = createSlice({
           item.preRequestTestResults = [];
           item.postResponseTestResults = [];
           item.testResults = [];
+          item.beforeCallStartTestResults = [];
+          item.beforeMessageSendTestResults = [];
+          item.afterMessageReceiveTestResults = [];
+          item.afterCallEndTestResults = [];
+          item.beforeCallStartScriptErrorMessage = null;
+          item.beforeMessageSendScriptErrorMessage = null;
+          item.afterMessageReceiveScriptErrorMessage = null;
+          item.afterCallEndScriptErrorMessage = null;
+          item.beforeCallStartScriptErrorContext = null;
+          item.beforeMessageSendScriptErrorContext = null;
+          item.afterMessageReceiveScriptErrorContext = null;
+          item.afterCallEndScriptErrorContext = null;
         }
       }
     },
@@ -1936,6 +1951,22 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.script = item.draft.request.script || {};
           item.draft.request.script.req = action.payload.script;
+        }
+      }
+    },
+    updateScript: (state, action) => {
+      const { collectionUid, itemUid, script, field } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script[field] = script;
         }
       }
     },
@@ -3227,14 +3258,32 @@ export const collectionsSlice = createSlice({
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
       item.testResults = [];
-      item.preRequestTestResults = [];
-      item.postResponseTestResults = [];
       item.assertionResults = [];
-      item.preRequestScriptErrorMessage = null;
-      item.postResponseScriptErrorMessage = null;
+
+      if (item.type === 'grpc-request') {
+        item.beforeCallStartTestResults = [];
+        item.beforeMessageSendTestResults = [];
+        item.afterMessageReceiveTestResults = [];
+        item.afterCallEndTestResults = [];
+
+        item.beforeCallStartScriptErrorMessage = null;
+        item.beforeMessageSendScriptErrorMessage = null;
+        item.afterMessageReceiveScriptErrorMessage = null;
+        item.afterCallEndScriptErrorMessage = null;
+
+        item.beforeCallStartScriptErrorContext = null;
+        item.beforeMessageSendScriptErrorContext = null;
+        item.afterMessageReceiveScriptErrorContext = null;
+        item.afterCallEndScriptErrorContext = null;
+      } else {
+        item.preRequestTestResults = [];
+        item.postResponseTestResults = [];
+        item.preRequestScriptErrorMessage = null;
+        item.postResponseScriptErrorMessage = null;
+        item.preRequestScriptErrorContext = null;
+        item.postResponseScriptErrorContext = null;
+      }
       item.testScriptErrorMessage = null;
-      item.preRequestScriptErrorContext = null;
-      item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
@@ -3255,6 +3304,26 @@ export const collectionsSlice = createSlice({
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
             item.postResponseScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:before-call-start-script-execution') {
+            item.beforeCallStartScriptErrorMessage = action.payload.errorMessage;
+            item.beforeCallStartScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:before-message-send-script-execution') {
+            item.beforeMessageSendScriptErrorMessage = action.payload.errorMessage;
+            item.beforeMessageSendScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:after-message-receive-script-execution') {
+            item.afterMessageReceiveScriptErrorMessage = action.payload.errorMessage;
+            item.afterMessageReceiveScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:after-call-end-script-execution') {
+            item.afterCallEndScriptErrorMessage = action.payload.errorMessage;
+            item.afterCallEndScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
@@ -3332,6 +3401,28 @@ export const collectionsSlice = createSlice({
           if (type === 'test-results-post-response') {
             const { results } = action.payload;
             item.postResponseTestResults = results;
+          }
+
+          if (type === 'test-results-grpc:before-call-start') {
+            const { results } = action.payload;
+            item.beforeCallStartTestResults = results;
+          }
+
+          // beforeMessageSend runs once per outgoing message and afterMessageReceive once per received
+          // one, so a streaming call emits these repeatedly and their results accumulate.
+          if (type === 'test-results-grpc:before-message-send') {
+            const { results } = action.payload;
+            item.beforeMessageSendTestResults = [...(item.beforeMessageSendTestResults || []), ...results];
+          }
+
+          if (type === 'test-results-grpc:after-message-receive') {
+            const { results } = action.payload;
+            item.afterMessageReceiveTestResults = [...(item.afterMessageReceiveTestResults || []), ...results];
+          }
+
+          if (type === 'test-results-grpc:after-call-end') {
+            const { results } = action.payload;
+            item.afterCallEndTestResults = results;
           }
         }
       }
@@ -4107,6 +4198,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseScript,
+  updateScript,
   updateRequestTests,
   updateRequestMethod,
   updateRequestProtoPath,

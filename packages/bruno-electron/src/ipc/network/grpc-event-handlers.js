@@ -1,10 +1,14 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
+const { GrpcScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const decomment = require('decomment');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
+const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCertsAndProxyConfig } = require('./cert-utils');
+const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
@@ -15,6 +19,11 @@ const { getPacResolver } = require('@usebruno/requests');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
+
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+  return securityConfig.jsSandboxMode === 'developer' ? 'nodevm' : 'quickjs';
+};
 
 /**
  * Resolve proxy configuration for gRPC requests.
@@ -147,12 +156,301 @@ const registerGrpcEventHandlers = (window) => {
 
   grpcClient = new GrpcClient(sendEvent);
 
+  // Per-connection script context, cached for streaming so each `grpc:send-message` can run beforeMessageSend.
+  const grpcScriptContexts = new Map();
+
+  const onConsoleLog = (type, args) => {
+    console[type]?.(...args);
+    sendEvent('main:console-log', { type, args });
+  };
+
+  const sendVariableUpdates = (scriptResult, request, collection) => {
+    if (!scriptResult) return;
+
+    if (scriptResult.envVariables || scriptResult.runtimeVariables) {
+      sendEvent('main:script-environment-update', {
+        envVariables: scriptResult.envVariables,
+        runtimeVariables: scriptResult.runtimeVariables,
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        requestUid: request.uid,
+        collectionUid: collection.uid
+      });
+    }
+    if (scriptResult.persistentEnvVariables) {
+      sendEvent('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid: collection.uid
+      });
+    }
+    if (scriptResult.globalEnvironmentVariables) {
+      sendEvent('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+    }
+    if (scriptResult.collectionVariables) {
+      sendEvent('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        requestUid: request.uid,
+        collectionUid: collection.uid
+      });
+      applyCollectionVarsToCollectionRoot(collection, scriptResult.collectionVariables);
+    }
+  };
+
+  /**
+   * Emit the test() results produced by a gRPC phase script so they show in the Tests tab.
+   * `testResultsEvent` names the phase's bucket in the renderer.
+   */
+  const emitPhaseTestResults = ({ scriptResult, testResultsEvent, requestUid, collection, itemUid }) => {
+    if (!scriptResult?.results?.length) return;
+    sendEvent('main:run-request-event', {
+      type: testResultsEvent,
+      results: scriptResult.results,
+      itemUid,
+      requestUid,
+      collectionUid: collection.uid
+    });
+  };
+
+  /** Emit a `main:run-request-event` reporting a gRPC script phase's execution (and any error). */
+  const notifyScriptExecution = ({
+    channel,
+    basePayload,
+    scriptType,
+    scriptExecutionEvent,
+    error,
+    collectionPath,
+    scriptMetadata
+  }) => {
+    const errorContext = error ? formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath) : null;
+
+    sendEvent(channel, {
+      type: scriptExecutionEvent,
+      ...basePayload,
+      errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
+      errorContext
+    });
+  };
+
+  // Run the beforeCallStart script (once, before the call opens)
+  const runBeforeCallStart = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid
+  }) => {
+    const beforeMessageScript = get(request, 'script.beforeCallStart');
+    if (!beforeMessageScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phaseType: 'beforeCallStart',
+        script: decomment(beforeMessageScript, { space: true }),
+        request,
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath: collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        collectionName: collection.name
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    notifyScriptExecution({
+      channel: 'main:run-request-event',
+      basePayload: { requestUid, collectionUid: collection.uid, itemUid },
+      scriptType: 'grpc:before-call-start',
+      scriptExecutionEvent: 'grpc:before-call-start-script-execution',
+      error: scriptError,
+      collectionPath: collection.pathname,
+      scriptMetadata: request.script?.beforeCallStartMetadata
+    });
+
+    sendVariableUpdates(scriptResult, request, collection);
+    emitPhaseTestResults({ scriptResult, testResultsEvent: 'test-results-grpc:before-call-start', requestUid, collection, itemUid });
+
+    return { scriptResult, scriptError };
+  };
+
+  // Run beforeMessageSend for one outgoing message
+  const runBeforeMessageSend = async (scriptContext, outgoingMessage) => {
+    const { request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig, requestUid, itemUid }
+      = scriptContext;
+
+    const beforeMessageSendScript = get(request, 'script.beforeMessageSend');
+    if (!beforeMessageSendScript?.length) {
+      return { message: outgoingMessage, scriptError: null };
+    }
+
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phaseType: 'beforeMessageSend',
+        script: decomment(beforeMessageSendScript, { space: true }),
+        request,
+        phaseData: { message: outgoingMessage },
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath: collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        collectionName: collection.name
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    notifyScriptExecution({
+      channel: 'main:run-request-event',
+      basePayload: { requestUid, collectionUid: collection.uid, itemUid },
+      scriptType: 'grpc:before-message-send',
+      scriptExecutionEvent: 'grpc:before-message-send-script-execution',
+      error: scriptError,
+      collectionPath: collection.pathname,
+      scriptMetadata: request.script?.beforeMessageSendMetadata
+    });
+
+    sendVariableUpdates(scriptResult, request, collection);
+    emitPhaseTestResults({ scriptResult, testResultsEvent: 'test-results-grpc:before-message-send', requestUid, collection, itemUid });
+
+    return { message: outgoingMessage, scriptError };
+  };
+
+  // Run the afterMessageReceive script for each received message
+  const runAfterMessageReceive = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    message,
+    messageReceivedAt
+  }) => {
+    const onAfterMessageScript = get(request, 'script.afterMessageReceive');
+    if (!onAfterMessageScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    try {
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phaseType: 'afterMessageReceive',
+        script: decomment(onAfterMessageScript, { space: true }),
+        request,
+        phaseData: { message, timestamp: messageReceivedAt },
+        primary: { response: message },
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath: collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        collectionName: collection.name
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    notifyScriptExecution({
+      channel: 'main:run-request-event',
+      basePayload: { requestUid, collectionUid: collection.uid, itemUid },
+      scriptType: 'grpc:after-message-receive',
+      scriptExecutionEvent: 'grpc:after-message-receive-script-execution',
+      error: scriptError,
+      collectionPath: collection.pathname,
+      scriptMetadata: request.script?.afterMessageReceiveMetadata
+    });
+
+    sendVariableUpdates(scriptResult, request, collection);
+    emitPhaseTestResults({ scriptResult, testResultsEvent: 'test-results-grpc:after-message-receive', requestUid, collection, itemUid });
+
+    return { scriptResult, scriptError };
+  };
+
+  // Run the afterCallEnd script once the call terminates (status / end / cancel / error). Fires once
+  const runAfterCallEnd = async ({
+    request,
+    collection,
+    envVars,
+    runtimeVariables,
+    processEnvVars,
+    scriptingConfig,
+    requestUid,
+    itemUid,
+    response,
+    sentMessages
+  }) => {
+    const afterResponseScript = get(request, 'script.afterCallEnd');
+    if (!afterResponseScript?.length) {
+      return { scriptResult: null, scriptError: null };
+    }
+
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
+    let scriptError = null;
+    let scriptResult = null;
+    const afterCallEndFinalResponse = { ...response, sentMessages };
+    try {
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phaseType: 'afterCallEnd',
+        script: decomment(afterResponseScript, { space: true }),
+        request,
+        phaseData: afterCallEndFinalResponse,
+        primary: { response: afterCallEndFinalResponse },
+        envVariables: envVars,
+        runtimeVariables,
+        collectionPath: collection.pathname,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig,
+        collectionName: collection.name
+      });
+    } catch (error) {
+      scriptError = error;
+    }
+
+    notifyScriptExecution({
+      channel: 'main:run-request-event',
+      basePayload: { requestUid, collectionUid: collection.uid, itemUid },
+      scriptType: 'grpc:after-call-end',
+      scriptExecutionEvent: 'grpc:after-call-end-script-execution',
+      error: scriptError,
+      collectionPath: collection.pathname,
+      scriptMetadata: request.script?.afterCallEndMetadata
+    });
+
+    sendVariableUpdates(scriptResult, request, collection);
+    emitPhaseTestResults({ scriptResult, testResultsEvent: 'test-results-grpc:after-call-end', requestUid, collection, itemUid });
+
+    return { scriptResult, scriptError };
+  };
+
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
   });
 
   // Start a new gRPC connection
-  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, requestUid }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
@@ -161,6 +459,75 @@ const registerGrpcEventHandlers = (window) => {
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
       }
+
+      const brunoConfig = getBrunoConfig(collection.uid, collection);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
+
+      const scriptContext = {
+        request: preparedRequest,
+        collection,
+        envVars: preparedRequest.envVars,
+        runtimeVariables,
+        processEnvVars: preparedRequest.processEnvVars,
+        scriptingConfig,
+        requestUid,
+        itemUid: request.uid,
+        sentMessages: []
+      };
+
+      // ── Before Call Start ──────────────────────────────────────────────────
+      const { scriptError: preRequestError } = await runBeforeCallStart(scriptContext);
+      if (preRequestError) {
+        return { success: false, error: preRequestError.message };
+      }
+
+      // ── Before Message Send ────────────────────────────────────────────────
+      const isStreamingMethod = ['client-streaming', 'bidi-streaming'].includes(preparedRequest.methodType);
+      if (isStreamingMethod) {
+        grpcScriptContexts.set(preparedRequest.uid, scriptContext);
+      } else {
+        // Unary / server-streaming send only body.grpc[0]: run beforeMessageSend, write it back, record it.
+        const sentEntry = get(preparedRequest, 'body.grpc.0');
+        if (sentEntry) {
+          const hasBeforeMessageSend = !!get(preparedRequest, 'script.beforeMessageSend')?.length;
+          if (hasBeforeMessageSend) {
+            const { message, scriptError } = await runBeforeMessageSend(scriptContext, safeParseJSON(sentEntry.content));
+            if (scriptError) {
+              return { success: false, error: scriptError.message };
+            }
+            sentEntry.content = safeStringifyJSON(message);
+          }
+          scriptContext.sentMessages.push(sentEntry);
+        }
+      }
+
+      let afterMessageReceiveErrored = false;
+
+      // ── After Message Receive ──────────────────────────────────────────────
+      const hasAfterMessageReceiveScript = !!get(preparedRequest, 'script.afterMessageReceive')?.length;
+      const afterMessageReceive = hasAfterMessageReceiveScript
+        ? (message, messageReceivedAt) => {
+            runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
+              .then(({ scriptError }) => {
+                if (scriptError) afterMessageReceiveErrored = true;
+              })
+              .catch((err) => {
+                console.error('Error running gRPC afterMessageReceive script:', err);
+              });
+          }
+        : undefined;
+
+      // ── After Call End ─────────────────────────────────────────────────────
+      const hasAfterCallEndScript = !!get(preparedRequest, 'script.afterCallEnd')?.length;
+      const afterCallEnd = hasAfterCallEndScript
+        ? (response = {}) => {
+            if (afterMessageReceiveErrored) return;
+            runAfterCallEnd({ ...scriptContext, response }).catch((err) => {
+              console.error('Error running gRPC afterCallEnd script:', err);
+            });
+          }
+        : undefined;
 
       // Get certificates and proxy configuration
       const certsAndProxyConfig = await getCertsAndProxyConfig({
@@ -202,6 +569,7 @@ const registerGrpcEventHandlers = (window) => {
 
       // Resolve proxy configuration for gRPC
       const grpcProxyConfig = await resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
+      const startedAt = Date.now();
 
       const requestSent = {
         type: 'request',
@@ -210,7 +578,7 @@ const registerGrpcEventHandlers = (window) => {
         methodType: preparedRequest.methodType,
         headers: preparedRequest.headers,
         body: preparedRequest.body,
-        timestamp: Date.now(),
+        timestamp: startedAt,
         proxy: {
           mode: proxyMode,
           url: grpcProxyConfig.proxyUrl || null
@@ -230,7 +598,10 @@ const registerGrpcEventHandlers = (window) => {
         pfx,
         verifyOptions,
         includeDirs,
-        proxyConfig: grpcProxyConfig
+        proxyConfig: grpcProxyConfig,
+        onAfterMessageReceive: afterMessageReceive,
+        onAfterCallEnd: afterCallEnd,
+        startedAt
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -250,6 +621,7 @@ const registerGrpcEventHandlers = (window) => {
       return { success: true };
     } catch (error) {
       console.error('Error starting gRPC connection:', error);
+      grpcScriptContexts.delete(request.uid);
       if (error instanceof Error) {
         throw error;
       }
@@ -270,10 +642,32 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Send a message to an existing stream
-  ipcMain.handle('grpc:send-message', (event, requestId, collectionUid, message) => {
+  ipcMain.handle('grpc:send-message', async (event, requestId, collectionUid, message) => {
     try {
-      grpcClient.sendMessage(requestId, collectionUid, message);
-      sendEvent('grpc:message', requestId, collectionUid, message);
+      let outgoing = message;
+
+      // Run the "before message send" phase for this streamed message, if the connection has one.
+      const scriptContext = grpcScriptContexts.get(requestId);
+      const hasBeforeMessageSend = !!get(
+        scriptContext?.request,
+        'script.beforeMessageSend'
+      )?.length;
+      if (hasBeforeMessageSend) {
+        const outgoingMessage = typeof message === 'string' ? safeParseJSON(message) : message;
+        const { message: transformed, scriptError } = await runBeforeMessageSend(scriptContext, outgoingMessage);
+        if (scriptError) {
+          return { success: false, error: scriptError.message };
+        }
+        outgoing = transformed;
+      }
+
+      grpcClient.sendMessage(requestId, collectionUid, outgoing);
+      sendEvent('grpc:message', requestId, collectionUid, outgoing);
+      // Record what actually went on the wire so afterCallEnd's `bru.grpc.request.messages` returns it.
+      if (scriptContext) {
+        const content = typeof outgoing === 'string' ? outgoing : safeStringifyJSON(outgoing);
+        scriptContext.sentMessages.push({ name: '', content });
+      }
       return { success: true };
     } catch (error) {
       console.error('Error sending gRPC message:', error);
@@ -289,6 +683,7 @@ const registerGrpcEventHandlers = (window) => {
         throw new Error('Request ID is required');
       }
       grpcClient.end(requestId);
+      grpcScriptContexts.delete(requestId);
       return { success: true };
     } catch (error) {
       console.error('Error ending gRPC stream:', error);
@@ -304,6 +699,7 @@ const registerGrpcEventHandlers = (window) => {
         throw new Error('Request ID is required');
       }
       grpcClient.cancel(requestId);
+      grpcScriptContexts.delete(requestId);
       return { success: true };
     } catch (error) {
       console.error('Error cancelling gRPC request:', error);

@@ -1,33 +1,44 @@
 const chai = require('chai');
 const Bru = require('../bru');
-const BrunoRequest = require('../bruno-request');
-const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
-const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
 
-class TestRuntime {
+/**
+ * Runs the scripts of a gRPC call. Each of the four phases (beforeCallStart, beforeMessageSend,
+ * afterMessageReceive, afterCallEnd) runs through `runGrpcScript`, which builds the phase-aware
+ * `bru.grpc` namespace from `phase` + `phaseData` — there is no `req`/`res` in the sandbox, since a
+ * gRPC call has messages rather than a single request/response pair.
+ */
+class GrpcScriptRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'quickjs';
   }
 
-  async runTests(
-    testsFile,
+  /**
+   * @param {object} args
+   * @param {string} args.phaseType - the phase's `request.script` field, e.g. `beforeCallStart`
+   * @param {object} [args.phaseData] - payload for the `bru.grpc` namespace (message, response, ...)
+   * @param {object} [args.primary] - `{ request }` before the call, `{ response }` after it
+   */
+  async runGrpcScript({
+    phaseType,
+    script,
     request,
-    response,
+    phaseData,
+    primary = { request },
     envVariables,
     runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname,
+    runRequestByItemPathname = null,
     collectionName
-  ) {
+  }) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -53,37 +64,19 @@ class TestRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url,
       request,
-      phaseType: request?.type === 'grpc-request' ? 'afterCallEnd' : undefined,
-      phaseData: response
+      phaseType,
+      phaseData
     });
-    const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
 
-    if (!testsFile || !testsFile.length) {
-      return {
-        request,
-        envVariables: null,
-        runtimeVariables: null,
-        collectionVariables: null,
-        globalEnvironmentVariables: null,
-        results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest,
-        stopExecution: bru.stopExecution
-      };
-    }
-
     const context = {
-      test,
       bru,
-      req,
-      res,
+      test,
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
-      jwt: jsonwebtoken,
       __bruSetScope: createScopeSetter(bru)
     };
 
@@ -95,59 +88,76 @@ class TestRuntime {
       };
       context.console = {
         log: customLogger('log'),
+        debug: customLogger('debug'),
         info: customLogger('info'),
         warn: customLogger('warn'),
-        debug: customLogger('debug'),
         error: customLogger('error')
       };
     }
 
     bindRunRequest(bru, runRequestByItemPathname);
 
+    // `primary` is `{ request }` for the phases that run before the call and `{ response }` for the
+    // ones after it, so the caller gets back whichever the phase could have mutated.
+    const buildGrpcScriptResult = () => ({
+      ...primary,
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
+      results: cleanJson(__brunoTestResults.getResults()),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
+    });
+
+    // Track script errors to attach partial results before re-throwing, so any test() calls that
+    // passed before the error are preserved
     let scriptError = null;
 
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
-          script: testsFile,
+          script,
           context,
           collectionPath,
           scriptingConfig,
           scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
-        await executeQuickJsVmAsync({
-          script: testsFile,
-          context: context,
-          collectionPath,
-          scriptPath
-        });
+      } catch (error) {
+        scriptError = error;
       }
+
+      if (scriptError) {
+        scriptError.partialResults = buildGrpcScriptResult();
+        throw scriptError;
+      }
+
+      return buildGrpcScriptResult();
+    }
+
+    // default runtime is `quickjs`
+    try {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath,
+        scriptPath
+      });
     } catch (error) {
       scriptError = error;
     }
 
-    const result = {
-      request,
-      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
-      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
-      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
-      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
-      results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest,
-      stopExecution: bru.stopExecution,
-      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
-    };
-
     if (scriptError) {
-      scriptError.partialResults = result;
+      scriptError.partialResults = buildGrpcScriptResult();
       throw scriptError;
     }
 
-    return result;
+    return buildGrpcScriptResult();
   }
 }
 
-module.exports = TestRuntime;
+module.exports = GrpcScriptRuntime;
