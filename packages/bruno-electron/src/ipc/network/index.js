@@ -63,6 +63,15 @@ const isTextLikeContentType = (contentType) => {
   );
 };
 
+/** True when post-response vars/scripts, assertions, or tests would read the body. */
+const requestNeedsResponseBodyForScripts = (request) => {
+  if (get(request, 'script.res')?.trim()) return true;
+  if (get(request, 'vars.res')?.length) return true;
+  if (get(request, 'assertions')?.length) return true;
+  const tests = get(request, 'tests');
+  return typeof tests === 'string' && Boolean(tests.trim());
+};
+
 /**
  * Ingest axios response stream into ResponseBodyStore; attach bodyRef + parsed data for scripts when memory-backed.
  */
@@ -1188,9 +1197,10 @@ const registerNetworkIpc = (mainWindow) => {
 
       const runPostScripts = async () => {
         if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY && !isResponseStream) {
-          const err = new BodyTooLargeForScriptsError(response.bodyRef, response.size);
-          response.postResponseScriptErrorMessage = err.message;
-          // Skip post-response vars/scripts/assertions/tests for file-backed bodies (6B)
+          if (requestNeedsResponseBodyForScripts(request)) {
+            const err = new BodyTooLargeForScriptsError(response.bodyRef, response.size);
+            response.postResponseScriptErrorMessage = err.message;
+          }
           return;
         }
 
@@ -2049,21 +2059,24 @@ const registerNetworkIpc = (mainWindow) => {
             let postResponseError = null;
             try {
               if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY) {
-                throw new BodyTooLargeForScriptsError(response.bodyRef, response.size);
+                if (requestNeedsResponseBodyForScripts(request)) {
+                  throw new BodyTooLargeForScriptsError(response.bodyRef, response.size);
+                }
+              } else {
+                postResponseScriptResult = await runPostResponse(
+                  request,
+                  response,
+                  requestUid,
+                  envVars,
+                  collectionPath,
+                  collection,
+                  collectionUid,
+                  runtimeVariables,
+                  processEnvVars,
+                  scriptingConfig,
+                  runRequestByItemPathname
+                );
               }
-              postResponseScriptResult = await runPostResponse(
-                request,
-                response,
-                requestUid,
-                envVars,
-                collectionPath,
-                collection,
-                collectionUid,
-                runtimeVariables,
-                processEnvVars,
-                scriptingConfig,
-                runRequestByItemPathname
-              );
             } catch (error) {
               console.error('Post-response script error:', error);
               postResponseError = error;
