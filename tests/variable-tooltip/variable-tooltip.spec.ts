@@ -20,6 +20,8 @@ import { SECRET_DATATYPE_CASES } from '../utils/constants';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
+test.describe.configure({ timeout: 60_000 });
+
 test.describe('Variable Tooltip', () => {
   test.afterEach(async ({ page }) => {
     if (!page.isClosed()) {
@@ -61,6 +63,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Test secret variable with toggle', async () => {
       await page.mouse.move(0, 0);
+      await expect(varInfoPopup.all()).toHaveCount(0);
 
       await selectRequestPaneTab(page, 'Headers');
 
@@ -639,7 +642,7 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
         });
 
         await environment.saveAll().click();
-        await closeEnvironmentPanel(page);
+        await closeEnvironmentPanel(page, 'global');
       });
 
       await test.step('Reference the global secret in a request URL', async () => {

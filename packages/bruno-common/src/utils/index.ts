@@ -36,8 +36,10 @@ export {
 
 export {
   parseValueByDataType,
+  resolveVariableReference,
   getDataTypeFromValue,
   validateDataTypeValue,
+  validateVariableType,
   valueToString,
   BrunoVariableDataType,
   BRUNO_VARIABLE_DATATYPES,
