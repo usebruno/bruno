@@ -158,7 +158,7 @@ describe('utils/results - createBruTestResultMethods', () => {
       await expect(waitForPendingTests()).resolves.toBeUndefined();
     });
 
-    it('resolves via the timeout path when a callback never settles, without losing sibling results', async () => {
+    it('records a failed "timed out" result for a callback that never settles, without losing sibling results', async () => {
       const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
       test('sync control (before hang)', () => {
@@ -171,11 +171,63 @@ describe('utils/results - createBruTestResultMethods', () => {
 
       await waitForPendingTests(50);
 
+      const results = __brunoTestResults.getResults();
+      expect(results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ description: 'sync control (before hang)', status: 'pass' }),
+          expect.objectContaining({ description: 'sync control (after hang)', status: 'pass' }),
+          expect.objectContaining({
+            description: 'hung test - never resolves',
+            status: 'fail',
+            errorName: 'TestTimeoutError'
+          })
+        ])
+      );
+      expect(results).toHaveLength(3);
+    });
+
+    it('does not record a second result when a timed-out callback goes on to settle on its own', async () => {
+      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+      test('eventually passes, too late to matter', async () => {
+        await delay(60);
+        chai.expect(1).to.equal(1);
+      });
+
+      await waitForPendingTests(20);
+      // The abandoned callback is still running in the background at this point -
+      // give it time to settle and attempt its own (now-suppressed) result write.
+      await delay(80);
+
+      const results = __brunoTestResults.getResults();
+      expect(results).toEqual([
+        expect.objectContaining({
+          description: 'eventually passes, too late to matter',
+          status: 'fail',
+          errorName: 'TestTimeoutError'
+        })
+      ]);
+    });
+
+    it('waits for a test() registered from inside another callback after an await, not just the initial batch', async () => {
+      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+      test('outer async', async () => {
+        await delay(10);
+        // Only pushed once this callback resumes - after waitForPendingTests() has
+        // already started waiting on the batch that existed when it was called.
+        test('inner registered after wait started', async () => {
+          await delay(10);
+          chai.expect('ran').to.equal('ran');
+        });
+      });
+
+      await waitForPendingTests();
+
       const descriptions = __brunoTestResults.getResults().map((r) => r.description);
       expect(descriptions).toEqual(
-        expect.arrayContaining(['sync control (before hang)', 'sync control (after hang)'])
+        expect.arrayContaining(['outer async', 'inner registered after wait started'])
       );
-      expect(descriptions).not.toContain('hung test - never resolves');
     });
   });
 
@@ -205,7 +257,7 @@ describe('utils/results - createBruTestResultMethods', () => {
   });
 
   describe('isolation between instances', () => {
-    it('does not share pendingTestPromises state between two separate createBruTestResultMethods() calls', async () => {
+    it('does not share pending-test state between two separate createBruTestResultMethods() calls', async () => {
       const first = createBruTestResultMethods(null, [], chai);
       const second = createBruTestResultMethods(null, [], chai);
 
