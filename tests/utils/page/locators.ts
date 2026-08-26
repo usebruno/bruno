@@ -215,6 +215,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    status: () => page.getByTestId('response-pane-status'),
     elapsedTime: () => page.getByTestId('response-elapsed-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
