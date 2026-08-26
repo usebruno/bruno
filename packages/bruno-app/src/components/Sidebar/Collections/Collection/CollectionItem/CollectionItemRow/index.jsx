@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import {
@@ -25,28 +24,26 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, toggleRequestExamples, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
-import RenameCollectionItem from './RenameCollectionItem';
-import CloneCollectionItem from './CloneCollectionItem';
-import DeleteCollectionItem from './DeleteCollectionItem';
-import IgnoreCollectionItem from './IgnoreCollectionItem';
-import RunCollectionItem from './RunCollectionItem';
-import GenerateCodeItem from './GenerateCodeItem';
+import RenameCollectionItem from '../RenameCollectionItem';
+import CloneCollectionItem from '../CloneCollectionItem';
+import DeleteCollectionItem from '../DeleteCollectionItem';
+import IgnoreCollectionItem from '../IgnoreCollectionItem';
+import RunCollectionItem from '../RunCollectionItem';
+import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
-import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper from '../StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import CollectionItemInfo from './CollectionItemInfo/index';
-import CollectionItemIcon from './CollectionItemIcon';
-import ExampleItem from './ExampleItem';
+import CollectionItemInfo from '../CollectionItemInfo/index';
+import CollectionItemIcon from '../CollectionItemIcon';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
@@ -56,14 +53,12 @@ import {
   isTabForItemPresent as isTabForItemPresentSelector
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
   getInitialExampleName,
   findParentItemInCollection
 } from 'utils/collections/index';
-import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -72,7 +67,11 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+/**
+ * CollectionItemRow — the presentation + interaction for a single sidebar item row
+ * (folder / app / request), and its response-example rows.
+ */
+const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText, depth, children }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
@@ -110,8 +109,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
-  const [examplesExpanded, setExamplesExpanded] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+
+  const examplesExpanded = !!item.examplesExpanded;
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -162,17 +162,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
-
-  // Auto-scroll to show this item when its tab becomes active
-  useEffect(() => {
-    if (isTabForItemActive && ref.current) {
-      try {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors (some environments may not support smooth scrolling)
-      }
-    }
-  }, [isTabForItemActive]);
 
   const resolveDropFromMonitor = (monitor) => {
     return determineCollectionItemDrop({
@@ -338,7 +327,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleExamplesCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    setExamplesExpanded(!examplesExpanded);
+    dispatch(toggleRequestExamples({ collectionUid, itemUid: item.uid }));
   };
 
   // prevent the parent's double-click handler from firing
@@ -354,7 +343,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     menuDropdownRef.current?.show();
   };
 
-  const indents = range(item.depth);
+  const rowDepth = typeof depth === 'number' ? depth : item.depth;
+  const indents = range(rowDepth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -512,25 +502,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'is-sidebar-dragging': isSidebarDragging
   });
 
-  if (searchText && searchText.length) {
-    if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
-        return null;
-      }
-    } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
-        return null;
-      }
-    }
-  }
-
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
-  };
-
-  // Sort items by their "seq" property.
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
   };
 
   const handleShowInFolder = () => {
@@ -588,14 +561,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     toast.success(`Example "${name}" created successfully`);
     setCreateExampleModalOpen(false);
   };
-
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
-  const showEmptyFolderMessage
-    = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
-
-  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
   const handleGenerateCode = () => {
     if (
@@ -781,64 +746,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           </div>
         </div>
       </div>
-      {!itemIsCollapsed ? (
-        <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-              })
-            : null}
-          {appItems && appItems.length
-            ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-              })
-            : null}
-          {showEmptyFolderMessage ? (
-            <div className="empty-folder-message">
-              {range(item.depth + 1).map((i) => (
-                <div className="indent-block" key={i} style={{ width: 16, minWidth: 16, height: '100%' }}>
-                  &nbsp;
-                </div>
-              ))}
-              <div style={{ paddingLeft: 8 }}>
-                <MenuDropdown
-                  data-testid="add-request-cta-folder"
-                  items={emptyFolderMenuItems}
-                  placement="bottom-start"
-                  appendTo={dropdownContainerRef?.current || document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                >
-                  <button className="ml-1 add-request-link">+ Add request</button>
-                </MenuDropdown>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
-      {/* Show examples when expanded (only for HTTP requests) */}
-      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
-        <div>
-          {(item.examples || []).map((example, index) => {
-            return (
-              <ExampleItem
-                key={example.uid || index}
-                example={example}
-                item={item}
-                index={index}
-                collection={collection}
-              />
-            );
-          })}
-        </div>
-      )}
+      {children}
     </StyledWrapper>
   );
 };
 
-export default React.memo(CollectionItem);
+export default React.memo(CollectionItemRow);
