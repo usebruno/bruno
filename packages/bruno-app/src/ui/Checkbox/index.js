@@ -74,14 +74,21 @@ function IndeterminateIcon({ size }) {
   );
 }
 
-function useIndeterminate(ref, indeterminate) {
-  // `indeterminate` is a DOM property, not an HTML attribute.
-  // React doesn't manage it, and the browser clears it after interaction.
-  useLayoutEffect(() => {
+function useIndeterminateSync(ref, indeterminate, onChange) {
+  // `indeterminate` is a DOM property, not an HTML attribute. React doesn't
+  // manage it, and the browser clears it on every click.
+  const sync = () => {
     if (ref.current) {
       ref.current.indeterminate = indeterminate;
     }
-  });
+  };
+
+  useLayoutEffect(sync);
+
+  return (event) => {
+    onChange?.(event);
+    sync();
+  };
 }
 
 function assignRef(ref, node) {
@@ -126,7 +133,7 @@ const Checkbox = forwardRef(
     const inputRef = useRef(null);
     const mergedRef = useMemo(() => mergeRefs(inputRef, forwardedRef), [inputRef, forwardedRef]);
 
-    useIndeterminate(inputRef, indeterminate);
+    const handleChange = useIndeterminateSync(inputRef, indeterminate, onChange);
 
     return (
       <StyledWrapper
@@ -144,7 +151,7 @@ const Checkbox = forwardRef(
               value={value}
               checked={checked}
               disabled={disabled}
-              onChange={onChange}
+              onChange={handleChange}
               className={`checkbox-input ${inputClassName}`.trim()}
               data-testid={dataTestId}
               aria-label={ariaLabel}
