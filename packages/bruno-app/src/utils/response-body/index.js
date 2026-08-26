@@ -1,7 +1,5 @@
 import { createResponseBodyClient, getResponseBodyClient } from './client';
 import { mediaUrlFor } from './media-url';
-import { createWindowedTextModel } from './windowed-text';
-import { useResponseBodyWindow } from './useResponseBodyWindow';
 import {
   pinBodyRef,
   releaseBodyPin,
@@ -32,8 +30,6 @@ export {
   createResponseBodyClient,
   getResponseBodyClient,
   mediaUrlFor,
-  createWindowedTextModel,
-  useResponseBodyWindow,
   pinBodyRef,
   releaseBodyPin,
   pinResponseForTimeline,

@@ -3,23 +3,12 @@ const { chooseFileToSave } = require('../../utils/filesystem');
 const { resolveResponseSaveDefaultPath } = require('../../utils/response-save-filename');
 
 const CHANNELS = {
-  STAT: 'renderer:response-body-stat',
-  READ: 'renderer:response-body-read',
   SAVE: 'renderer:response-body-save',
   PIN: 'renderer:response-body-pin',
   RELEASE: 'renderer:response-body-release'
 };
 
 const registerResponseBodyIpc = (mainWindow, store) => {
-  ipcMain.handle(CHANNELS.STAT, async (_event, bodyRef) => {
-    return store.getStat(bodyRef);
-  });
-
-  ipcMain.handle(CHANNELS.READ, async (_event, bodyRef, offset, length) => {
-    const buf = await store.readRange(bodyRef, offset, length);
-    return buf.toString('base64');
-  });
-
   ipcMain.handle(CHANNELS.PIN, async (_event, bodyRef) => {
     return store.pin(bodyRef);
   });
