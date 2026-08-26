@@ -4,19 +4,19 @@ import yaml from 'js-yaml';
 import { bruToJsonV2 } from '@usebruno/lang';
 import { expect, test } from '../../../playwright';
 import {
-  addGrpcHookScript,
   closeAllTabs,
   createCollection,
   createRequest,
   openRequest,
-  readGrpcHookScript,
-  saveRequest
+  readScriptContent,
+  saveRequest,
+  writeScriptContent
 } from '../../utils/page/actions';
 
 const REQUEST_NAME = 'grpc-lifecycle-hooks';
 const GRPC_URL = 'localhost:50051';
-const BEFORE_CALL_START = 'bru.setVar(\'startedAt\', 1);';
-const AFTER_CALL_END = 'bru.setVar(\'endedAt\', 2);';
+const BEFORE_CALL_START_SCRIPT = 'bru.setVar(\'startedAt\', 1);';
+const AFTER_CALL_END_SCRIPT = 'bru.setVar(\'endedAt\', 2);';
 
 type GrpcRequestYml = {
   runtime?: {
@@ -39,16 +39,16 @@ for (const { format, collectionName, tmpDirPrefix } of FORMATS) {
       await createCollection(page, collectionName, collectionPath, format);
       await createRequest(page, REQUEST_NAME, collectionName, { url: GRPC_URL, requestType: 'grpc' });
 
-      await addGrpcHookScript(page, 'before-call-start', BEFORE_CALL_START);
-      await addGrpcHookScript(page, 'after-call-end', AFTER_CALL_END);
+      await writeScriptContent(page, 'before-call-start', BEFORE_CALL_START_SCRIPT);
+      await writeScriptContent(page, 'after-call-end', AFTER_CALL_END_SCRIPT);
       await saveRequest(page);
 
       await test.step('reopening the request shows both hooks', async () => {
         await closeAllTabs(page);
         await openRequest(page, collectionName, REQUEST_NAME);
 
-        expect(await readGrpcHookScript(page, 'before-call-start')).toBe(BEFORE_CALL_START);
-        expect(await readGrpcHookScript(page, 'after-call-end')).toBe(AFTER_CALL_END);
+        expect(await readScriptContent(page, 'before-call-start')).toBe(BEFORE_CALL_START_SCRIPT);
+        expect(await readScriptContent(page, 'after-call-end')).toBe(AFTER_CALL_END_SCRIPT);
       });
     });
 
@@ -63,14 +63,14 @@ for (const { format, collectionName, tmpDirPrefix } of FORMATS) {
         expect(fileContent).toContain('script:grpc:after-call-end {');
 
         const parsed = bruToJsonV2(fileContent) as { script?: Record<string, string> };
-        expect(parsed.script?.beforeCallStart).toBe(BEFORE_CALL_START);
-        expect(parsed.script?.afterCallEnd).toBe(AFTER_CALL_END);
+        expect(parsed.script?.beforeCallStart).toBe(BEFORE_CALL_START_SCRIPT);
+        expect(parsed.script?.afterCallEnd).toBe(AFTER_CALL_END_SCRIPT);
       } else {
         const scripts = (yaml.load(fileContent) as GrpcRequestYml).runtime?.scripts ?? [];
         expect(scripts).toEqual(
           expect.arrayContaining([
-            { type: 'grpc:before-call-start', code: BEFORE_CALL_START },
-            { type: 'grpc:after-call-end', code: AFTER_CALL_END }
+            { type: 'grpc:before-call-start', code: BEFORE_CALL_START_SCRIPT },
+            { type: 'grpc:after-call-end', code: AFTER_CALL_END_SCRIPT }
           ])
         );
       }

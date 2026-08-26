@@ -2050,7 +2050,7 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
-type GrpcScriptHook = 'before-call-start' | 'after-call-end';
+type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'after-call-end';
 
 /**
  * Navigate to a Script sub-tab (pre-request / post-response for http & graphql, the lifecycle
@@ -2058,7 +2058,7 @@ type GrpcScriptHook = 'before-call-start' | 'after-call-end';
  * @param page - The page object
  * @param subTab - The sub-tab to select
  */
-const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response' | GrpcScriptHook) => {
+const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
     const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
@@ -2112,27 +2112,26 @@ const addPostResponseScript = async (page: Page, content: string) => {
 };
 
 /**
- * Add a gRPC lifecycle hook script (navigates to Script > the hook's sub-tab and replaces editor
- * content)
+ * Write a script into a Script sub-tab (navigates to the sub-tab and replaces editor content)
  * @param page - The page object
- * @param hook - The lifecycle hook to author
+ * @param subTab - The Script sub-tab to author
  * @param content - The script content to add
  */
-const addGrpcHookScript = async (page: Page, hook: GrpcScriptHook, content: string) => {
-  await test.step(`Add ${hook} script`, async () => {
-    await selectScriptSubTab(page, hook);
-    await editCodeMirrorEditor(page, `${hook}-script-editor`, content);
+const writeScriptContent = async (page: Page, subTab: ScriptSubTab, content: string) => {
+  await test.step(`Add ${subTab} script`, async () => {
+    await selectScriptSubTab(page, subTab);
+    await editCodeMirrorEditor(page, `${subTab}-script-editor`, content);
   });
 };
 
 /**
- * Read the content of a gRPC lifecycle hook editor
+ * Read the content of a Script sub-tab editor
  * @param page - The page object
- * @param hook - The lifecycle hook to read
+ * @param subTab - The Script sub-tab to read
  */
-const readGrpcHookScript = async (page: Page, hook: GrpcScriptHook): Promise<string> => {
-  await selectScriptSubTab(page, hook);
-  const editorTestId = `${hook}-script-editor`;
+const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<string> => {
+  await selectScriptSubTab(page, subTab);
+  const editorTestId = `${subTab}-script-editor`;
   return buildCommonLocators(page)
     .codeMirror.byTestId(editorTestId)
     .evaluate((el: any, testId: string) => {
@@ -2140,25 +2139,6 @@ const readGrpcHookScript = async (page: Page, hook: GrpcScriptHook): Promise<str
       if (!cm) throw new Error(`CodeMirror instance not found for "${testId}"`);
       return cm.getValue();
     }, editorTestId);
-};
-
-const openGrpcTestsTab = async (page: Page) => {
-  await test.step('Open the gRPC Tests tab', async () => {
-    const { paneTabs, response } = buildCommonLocators(page);
-    const tab = paneTabs.responsiveTab('tests');
-    const overflowTrigger = paneTabs.overflowTrigger(response.pane());
-
-    await expect(tab.or(overflowTrigger)).toBeVisible();
-
-    if (await tab.isVisible()) {
-      await tab.click();
-
-      return;
-    }
-
-    await overflowTrigger.click();
-    await paneTabs.overflowItem('tests').click();
-  });
 };
 
 /**
@@ -3368,9 +3348,8 @@ export {
   editCodeMirrorEditor,
   addPreRequestScript,
   addPostResponseScript,
-  addGrpcHookScript,
-  readGrpcHookScript,
-  openGrpcTestsTab,
+  writeScriptContent,
+  readScriptContent,
   addTestScript,
   addFolderScript,
   addCollectionScript,
@@ -3443,4 +3422,4 @@ export {
   clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, GrpcScriptHook };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, ScriptSubTab };
