@@ -17,11 +17,11 @@ const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
 };
 
 const refFileWatchState = new Map();
-
+// Maps the root path of the spec to an object containing the watcher object and set of referenced files
 const syncRefFileWatchers = (rootPath, refFilePaths) => {
   const state = refFileWatchState.get(rootPath);
   if (!state) return;
-
+  // If any referenced file is not being watched,add it to watcher and update the state.
   const unwatched = refFilePaths.filter((filePath) => !state.watchedRefFilePaths.has(filePath));
   if (!unwatched.length) return;
 
@@ -133,11 +133,15 @@ class ApiSpecWatcher {
 
       const isSpecItself = (pathname) => path.resolve(pathname) === path.resolve(watchPath);
 
+      // watch the changes in the spec file and referenced file.
       watcher
         .on('add', (pathname) => {
+          // if the added file is spec file then sends an addFile message to renderer.
           if (isSpecItself(pathname)) add(win, watchPath);
+          // else if the added file is referenced file then refresh the spec file
           else change(win, watchPath);
         })
+        // if there are any changes in the spec or referenced file just refresh the spec file.
         .on('change', () => change(win, watchPath))
         .on('unlink', (pathname) => {
           if (!isSpecItself(pathname)) change(win, watchPath);
