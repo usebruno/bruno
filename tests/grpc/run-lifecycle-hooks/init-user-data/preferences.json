@@ -2,10 +2,5 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/grpc/run-lifecycle-hooks/fixtures/collection"
-  ],
-  "preferences": {
-    "layout": {
-      "responsePaneOrientation": "vertical"
-    }
-  }
+  ]
 }

@@ -2,8 +2,8 @@ import { Page } from '@playwright/test';
 import { test, expect } from '../../../playwright';
 import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/page/locators';
 import {
-  openGrpcTestsTab,
   selectEnvironment,
+  selectResponsePaneTab,
   sendGrpcRequest,
   streamGrpcMessagesAndEndCall
 } from '../../utils/page/actions';
@@ -37,7 +37,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('the hook saw the message the unary call sent', async () => {
-        await openGrpcTestsTab(page);
+        await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.passedCount()).toHaveText('1');
         await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (1), Passed: 1, Failed: 0');
@@ -68,7 +68,7 @@ for (const mode of SANDBOX_MODES) {
       // Ten replies came back, but only one message went out — and like a unary call, it never
       // streamed, so the hook's view of it is rebuilt rather than observed.
       await test.step('the hook saw the one message the stream sent', async () => {
-        await openGrpcTestsTab(page);
+        await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.passedCount()).toHaveText('1');
         await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (1), Passed: 1, Failed: 0');
@@ -93,7 +93,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('every hook assertion passed', async () => {
-        await openGrpcTestsTab(page);
+        await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.passedCount()).toHaveText('3');
         await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (3), Passed: 3, Failed: 0');
@@ -111,7 +111,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('every hook assertion passed', async () => {
-        await openGrpcTestsTab(page);
+        await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.passedCount()).toHaveText('3');
         await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (3), Passed: 3, Failed: 0');
@@ -130,7 +130,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('the tab label reports the failure, not the pass count', async () => {
-        await openGrpcTestsTab(page);
+        await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.failedCount()).toHaveText('1');
         await expect(tests.passedCount()).toHaveCount(0);
