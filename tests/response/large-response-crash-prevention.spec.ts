@@ -1,40 +1,38 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../utils/page/actions';
+import { closeAllCollections, createCollection, createRequest, sendRequest } from '../utils/page/actions';
 
-test.describe('Large Response Crash/High Memory Usage Prevention', () => {
-  // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
-  // Prevents tests from failing due to timeout while waiting for the response, especially on slower internet connections.
-  test.setTimeout(1 * 60 * 1000); // 1 minute
+const LARGE_TEXT_URL = 'http://localhost:8081/api/large-payload?size=15728640';
+const SMALL_TEXT_URL = 'http://localhost:8081/api/large-payload?size=1048576';
+
+test.describe('Large response handling', () => {
+  test.setTimeout(2 * 60 * 1000);
 
   test.afterAll(async ({ page }) => {
-    // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
-    const collectionName = 'size-warning-test';
-    const requestName = 'large-response';
-
-    // Create collection (auto-opens the collection)
+  test('under-threshold text shows in response pane without Large Response Warning', async ({ page, createTmpDir }) => {
+    const collectionName = 'large-under-threshold';
     await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, 'small-large', collectionName, { url: SMALL_TEXT_URL });
 
-    // Create request using the dialog/modal flow
-    await createRequest(page, requestName, collectionName, {
-      url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
-    });
+    await sendRequest(page, 200);
 
-    // Send request
-    const sendButton = page.getByTestId('send-arrow-icon');
-    await sendButton.click();
+    await expect(page.getByText('Large Response Warning')).toHaveCount(0);
+    await expect(page.getByTestId('response-preview-container')).toBeVisible({ timeout: 60000 });
+    await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload', { timeout: 60000 });
+  });
 
-    // Verify warning appears
-    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 60000 });
+  test('over 10MB text auto-previews without Large Response Warning', async ({ page, createTmpDir }) => {
+    const collectionName = 'large-over-threshold';
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, 'big-text', collectionName, { url: LARGE_TEXT_URL });
 
-    // Verify warning content
-    await expect(page.getByText('Handling responses over')).toBeVisible();
-    await expect(page.getByText('could degrade performance')).toBeVisible();
+    await sendRequest(page, 200);
 
-    // Verify action button
-    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+    await expect(page.getByText('Large Response Warning')).toHaveCount(0);
+    await expect(page.getByTestId('response-preview-container')).toBeVisible({ timeout: 90000 });
+    // Windowed first chunk should still show the filler prefix
+    await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload', { timeout: 90000 });
   });
 });

@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 
-const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type }) => {
+const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type, response }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const hasBody = !!(data || dataBuffer);
+  const bodyRef = response?.bodyRef;
+  const hasBody = !!(data || dataBuffer || bodyRef);
+  // QueryResult reads bodyRef from item.response
+  const itemForPreview = bodyRef ? { ...item, response: response || item?.response } : item;
 
   return (
     <div className="tl-block">
@@ -24,7 +27,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type })
         hasBody ? (
           <div className="h-96 overflow-auto">
             <QueryResponse
-              item={item}
+              item={itemForPreview}
               collection={collection}
               data={data}
               dataBuffer={dataBuffer}

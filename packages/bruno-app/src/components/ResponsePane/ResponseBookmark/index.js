@@ -83,7 +83,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
     const bodyType = getBodyType(contentType);
-    const content = formatResponse(response.data, response.dataBuffer, bodyType);
+    const content = formatResponse(response.data, null, bodyType);
 
     const exampleData = {
       name: name,

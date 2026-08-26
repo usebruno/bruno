@@ -42,8 +42,10 @@ const ResponseMeta = ({ code, statusText, duration, size }) => {
 };
 
 const Response = ({ collection, response, item }) => {
-  let { status, statusCode, statusText, dataBuffer, headers, data, error, duration, size } = response || {};
-  if (!dataBuffer) {
+  let { status, statusCode, statusText, dataBuffer, headers, data, error, duration, size, bodyRef } = response || {};
+  // Only synthesize a base64 buffer when we have inlined data (small responses).
+  // Large / file-backed bodies use bodyRef + windowed/protocol preview instead.
+  if (!dataBuffer && data != null && !bodyRef) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
 
@@ -64,6 +66,7 @@ const Response = ({ collection, response, item }) => {
         headers={headers}
         item={item}
         type="response"
+        response={response}
       />
     </>
   );

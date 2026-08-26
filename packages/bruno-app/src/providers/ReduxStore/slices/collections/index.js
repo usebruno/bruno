@@ -650,6 +650,10 @@ export const collectionsSlice = createSlice({
             ? timelineRequest.timestamp.getTime()
             : timelineRequest?.timestamp || Date.now();
 
+          if (action.payload.response?.postResponseScriptErrorMessage) {
+            item.postResponseScriptErrorMessage = action.payload.response.postResponseScriptErrorMessage;
+          }
+
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
             type: 'request',
@@ -661,6 +665,7 @@ export const collectionsSlice = createSlice({
             data: {
               request: timelineRequest,
               response: action.payload.response,
+              bodyPinId: action.payload.timelineBodyPinId || null,
               timestamp: timestamp
             }
           });

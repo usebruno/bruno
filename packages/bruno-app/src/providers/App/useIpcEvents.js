@@ -249,17 +249,81 @@ const useIpcEvents = () => {
       dispatch(collectionRenamedEvent(val));
     });
 
-    const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
+    const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', async (val) => {
       // Folder runs reuse the workspace baseline across N requests; clear it
       // per request so request N's global-env update doesn't diff against
       // request N-1's pre-flush snapshot.
       if (val.type === 'testrun-started' || val.type === 'request-queued') {
         dispatch(_clearScriptGlobalEnvBaseline());
       }
+
+      // Pin runner response bodies so timeline/results stay readable (5A)
+      if (val.type === 'response-received' && val.responseReceived?.bodyRef) {
+        try {
+          const { pinBodyRef } = require('utils/response-body');
+          const pinId = await pinBodyRef(val.responseReceived.bodyRef);
+          if (pinId) {
+            val = {
+              ...val,
+              responseReceived: {
+                ...val.responseReceived,
+                bodyPinId: pinId
+              }
+            };
+          }
+        } catch (err) {
+          console.warn('Failed to pin runner response body:', err?.message || err);
+        }
+      }
+
+      if (val.type === 'scripted-request' && val.data?.response?.bodyRef) {
+        try {
+          const { pinBodyRef } = require('utils/response-body');
+          const pinId = await pinBodyRef(val.data.response.bodyRef);
+          if (pinId) {
+            val = {
+              ...val,
+              data: {
+                ...val.data,
+                bodyPinId: pinId,
+                response: {
+                  ...val.data.response,
+                  bodyPinId: pinId
+                }
+              }
+            };
+          }
+        } catch (err) {
+          console.warn('Failed to pin runner scripted response body:', err?.message || err);
+        }
+      }
+
       dispatch(runFolderEvent(val));
     });
 
-    const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', (val) => {
+    const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', async (val) => {
+      // Pin scripted nested-request bodies kept in the timeline (5A)
+      if (val.type === 'scripted-request' && val.data?.response?.bodyRef) {
+        try {
+          const { pinBodyRef } = require('utils/response-body');
+          const pinId = await pinBodyRef(val.data.response.bodyRef);
+          if (pinId) {
+            val = {
+              ...val,
+              data: {
+                ...val.data,
+                bodyPinId: pinId,
+                response: {
+                  ...val.data.response,
+                  bodyPinId: pinId
+                }
+              }
+            };
+          }
+        } catch (err) {
+          console.warn('Failed to pin scripted response body:', err?.message || err);
+        }
+      }
       dispatch(runRequestEvent(val));
     });
 

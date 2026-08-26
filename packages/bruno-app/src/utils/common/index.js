@@ -275,7 +275,89 @@ const applyJSONPathFilter = (data, filter) => {
 };
 
 export const formatResponse = (data, dataBufferString, mode, filter, bufferThreshold = LARGE_BUFFER_THRESHOLD) => {
-  if (data === undefined || !dataBufferString || !mode) {
+  if (data === undefined || !mode) {
+    return '';
+  }
+
+  // Prefer structured/string data when no buffer is available (bodyRef architecture)
+  if (!dataBufferString) {
+    if (mode.includes('hex')) {
+      if (typeof data === 'string' && isHexFormat(data)) {
+        return data;
+      }
+      try {
+        const asString = typeof data === 'string' ? data : safeStringifyJSON(data);
+        return formatHexView(Buffer.from(asString || '', 'utf8'));
+      } catch (_) {
+        return '';
+      }
+    }
+
+    if (mode.includes('base64')) {
+      if (typeof data === 'string') {
+        return Buffer.from(data, 'utf8').toString('base64');
+      }
+      if (data != null) {
+        const asString = safeStringifyJSON(data);
+        return Buffer.from(asString || '', 'utf8').toString('base64');
+      }
+      return '';
+    }
+
+    if (mode.includes('json')) {
+      try {
+        if (filter) {
+          const parsed = typeof data === 'string' ? safeParseJSON(data) : data;
+          return safeStringifyJSON(applyJSONPathFilter(parsed, filter), true);
+        }
+      } catch (error) { /* ignore */ }
+      if (typeof data === 'string') {
+        try {
+          return fastJsonFormat(data);
+        } catch (_) {
+          return data;
+        }
+      }
+      const stringified = safeStringifyJSON(data, true);
+      return typeof stringified === 'string' ? stringified : String(data);
+    }
+
+    if (mode.includes('xml')) {
+      if (typeof data === 'string') {
+        const parsed = safeParseXML(data, { collapseContent: true });
+        return typeof parsed === 'string' ? parsed : safeStringifyJSON(parsed, true);
+      }
+      return typeof data === 'string' ? data : safeStringifyJSON(data, true);
+    }
+
+    if (mode.includes('html')) {
+      if (typeof data === 'string') {
+        try {
+          return prettifyHtmlString(data);
+        } catch (_) {
+          return data;
+        }
+      }
+      return data != null ? String(typeof data === 'object' ? safeStringifyJSON(data) : data) : '';
+    }
+
+    if (mode.includes('javascript')) {
+      if (typeof data === 'string') {
+        try {
+          return prettifyJavaScriptString(data);
+        } catch (_) {
+          return data;
+        }
+      }
+      return data != null ? String(typeof data === 'object' ? safeStringifyJSON(data) : data) : '';
+    }
+
+    // raw / text / fallback
+    if (typeof data === 'string') return data;
+    if (data != null) {
+      const stringified = safeStringifyJSON(data, true);
+      return typeof stringified === 'string' ? stringified : String(data);
+    }
     return '';
   }
 
@@ -383,28 +465,47 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       return data;
     }
 
-    // Data is not in hex format, encode it to hex
-    try {
-      const dataBuffer = Buffer.from(dataBufferString, 'base64');
-      const hexView = formatHexView(dataBuffer);
-      return hexView;
-    } catch (error) {
-      // If buffer conversion fails, try to encode the string data directly
-      if (typeof data === 'string') {
-        try {
-          const stringBuffer = Buffer.from(data, 'utf8');
-          return formatHexView(stringBuffer);
-        } catch (stringError) {
-          return '';
-        }
+    // Prefer base64 buffer when present; otherwise encode structured/string data
+    if (dataBufferString) {
+      try {
+        const dataBuffer = Buffer.from(dataBufferString, 'base64');
+        return formatHexView(dataBuffer);
+      } catch (error) {
+        /* fall through */
       }
-      return '';
     }
+
+    if (typeof data === 'string') {
+      try {
+        return formatHexView(Buffer.from(data, 'utf8'));
+      } catch (stringError) {
+        return '';
+      }
+    }
+    if (data != null) {
+      try {
+        const asString = typeof data === 'string' ? data : safeStringifyJSON(data);
+        return formatHexView(Buffer.from(asString || '', 'utf8'));
+      } catch (_) {
+        return '';
+      }
+    }
+    return '';
   }
 
-  // Handle base64 format - return base64 string as-is
+  // Handle base64 format — use dataBuffer when present; otherwise encode from data
   if (mode.includes('base64')) {
-    return dataBufferString;
+    if (dataBufferString) {
+      return dataBufferString;
+    }
+    if (typeof data === 'string') {
+      return Buffer.from(data, 'utf8').toString('base64');
+    }
+    if (data != null) {
+      const asString = typeof data === 'string' ? data : safeStringifyJSON(data);
+      return Buffer.from(asString || '', 'utf8').toString('base64');
+    }
+    return '';
   }
 
   // Handle raw format - return data as-is without any formatting
