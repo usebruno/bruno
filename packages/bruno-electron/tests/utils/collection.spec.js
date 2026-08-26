@@ -1,5 +1,5 @@
 const path = require('path');
-const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts } = require('../../src/utils/collection');
+const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, mergeGrpcScripts } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -541,5 +541,87 @@ describe('mergeScripts metadata', () => {
     mergeScripts(collection, request, [request], 'non-sequential');
 
     expect(request.script.resMetadata.requestScriptContent).toBe('let req = 2;');
+  });
+});
+
+describe('mergeGrpcScripts', () => {
+  const makeCollection = () => ({
+    pathname: '/test/collection',
+    format: 'bru',
+    root: {
+      request: {
+        script: { beforeCallStart: 'let col = 1;', afterCallEnd: 'let col = 2;' },
+        tests: 'test("collection", function() {});'
+      }
+    }
+  });
+
+  const makeFolder = () => ({
+    type: 'folder',
+    pathname: '/test/collection/subfolder',
+    root: {
+      request: {
+        script: { beforeCallStart: 'let fold = 1;', afterCallEnd: 'let fold = 2;' },
+        tests: 'test("folder", function() {});'
+      }
+    }
+  });
+
+  const makeRequest = (script = {}, tests = '') => ({
+    pathname: '/test/collection/subfolder/say-hello.bru',
+    script,
+    tests
+  });
+
+  test('wraps the request script for each phase and leaves untouched phases empty', () => {
+    const request = makeRequest({ beforeCallStart: 'let req = 1;' });
+    mergeGrpcScripts(makeCollection(), request, [makeFolder(), request]);
+
+    expect(request.script.beforeCallStart).toContain('let req = 1;');
+    expect(request.script.beforeCallStartMetadata).toEqual({
+      requestStartLine: 1,
+      requestEndLine: 3,
+      requestScriptContent: 'let req = 1;'
+    });
+
+    expect(request.script.beforeMessageSend).toBe('');
+    expect(request.script.afterMessageReceive).toBe('');
+    expect(request.script.afterCallEnd).toBe('');
+    expect(request.script.afterCallEndMetadata).toBeNull();
+  });
+
+  test('does not inherit collection or folder scripts', () => {
+    const request = makeRequest({ beforeCallStart: 'let req = 1;', afterCallEnd: 'let req = 2;' });
+    mergeGrpcScripts(makeCollection(), request, [makeFolder(), request]);
+
+    expect(request.script.beforeCallStart).not.toContain('let col = 1;');
+    expect(request.script.beforeCallStart).not.toContain('let fold = 1;');
+    expect(request.script.afterCallEnd).not.toContain('let col = 2;');
+    expect(request.script.afterCallEnd).not.toContain('let fold = 2;');
+
+    for (const field of ['beforeCallStart', 'afterCallEnd']) {
+      expect(request.script[`${field}Metadata`].segments).toBeUndefined();
+    }
+  });
+
+  test('does not inherit collection or folder tests', () => {
+    const request = makeRequest({}, 'test("request", function() {});');
+    mergeGrpcScripts(makeCollection(), request, [makeFolder(), request]);
+
+    expect(request.tests).toContain('test("request"');
+    expect(request.tests).not.toContain('test("collection"');
+    expect(request.tests).not.toContain('test("folder"');
+    expect(request.testsMetadata.requestScriptContent).toBe('test("request", function() {});');
+    expect(request.testsMetadata.segments).toBeUndefined();
+  });
+
+  test('produces empty code and null metadata when the request has no scripts', () => {
+    const request = makeRequest();
+    mergeGrpcScripts(makeCollection(), request, [request]);
+
+    expect(request.script.beforeCallStart).toBe('');
+    expect(request.script.beforeCallStartMetadata).toBeNull();
+    expect(request.tests).toBe('');
+    expect(request.testsMetadata).toBeNull();
   });
 });

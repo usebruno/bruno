@@ -1,4 +1,5 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
+import { REQUEST_TYPES } from '@usebruno/common';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
@@ -51,8 +52,10 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
       grpc: []
     },
     script: {
-      req: null,
-      res: null
+      beforeCallStart: null,
+      beforeMessageSend: null,
+      afterMessageReceive: null,
+      afterCallEnd: null
     },
     vars: {
       req: [],
@@ -78,7 +81,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   }
 
   // scripts
-  const scripts = toBrunoScripts(runtime?.scripts);
+  const scripts = toBrunoScripts(runtime?.scripts, REQUEST_TYPES.GRPC);
   if (scripts?.script && brunoRequest.script) {
     if (scripts.script.req) {
       brunoRequest.script.req = scripts.script.req;
