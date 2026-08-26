@@ -1,8 +1,24 @@
 const { protocol, net } = require('electron');
 const { pathToFileURL } = require('node:url');
-const { BodyNotFoundError } = require('../core/errors');
-const { STORAGE_FILE } = require('../core/constants');
-const { SCHEME, parseBodyRefFromUrl } = require('./protocol-url');
+const { BodyNotFoundError } = require('./errors');
+const { STORAGE_FILE } = require('./constants');
+
+const SCHEME = 'bruno-response';
+
+/** Parse bodyRef from bruno-response://body/<bodyRef> URLs. */
+const parseBodyRefFromUrl = (requestUrl) => {
+  try {
+    const u = new URL(requestUrl);
+    if (u.protocol !== `${SCHEME}:`) return null;
+    const host = u.hostname;
+    const ref = u.pathname.replace(/^\//, '');
+    if (host === 'body' && ref) return ref;
+    if (u.host === 'body' || host === 'body') return ref || null;
+  } catch (_) {
+    /* ignore */
+  }
+  return null;
+};
 
 /**
  * Register bruno-response://body/<bodyRef> privileged scheme handler.
@@ -74,7 +90,6 @@ const registerBrunoResponseProtocol = (store) => {
       }
     }
 
-    // Full body: stream from store
     if (stat.storage === STORAGE_FILE) {
       const entryPath = store.getFilePath(bodyRef);
       if (entryPath) {
@@ -94,7 +109,7 @@ const registerBrunoResponseProtocol = (store) => {
 
 module.exports = {
   SCHEME,
+  parseBodyRefFromUrl,
   registerBrunoResponseScheme,
-  registerBrunoResponseProtocol,
-  parseBodyRefFromUrl
+  registerBrunoResponseProtocol
 };

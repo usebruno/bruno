@@ -5,7 +5,6 @@ const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
-const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
@@ -2271,101 +2270,31 @@ const registerNetworkIpc = (mainWindow) => {
     try {
       const bodyService = getResponseBodyService();
       if (response?.bodyRef) {
-        const result = await new Promise((resolve, reject) => {
-          // Delegate to the dedicated save channel logic via store
-          const headers = response.headers;
-          const getHeaderValue = (headerName) => {
-            const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
-            if (headersArray.length > 0) {
-              const header = headersArray.find((h) => h[0] === headerName);
-              if (header && header.length > 1) return header[1];
-            }
-          };
-          const getFileNameFromContentDispositionHeader = () => {
-            try {
-              const disposition = contentDispositionParser.parse(getHeaderValue('content-disposition'));
-              return disposition && disposition.parameters['filename'];
-            } catch (_) { /* ignore */ }
-          };
-          const getFileNameFromUrlPath = () => {
-            try {
-              const lastPathLevel = new URL(url).pathname.split('/').pop();
-              if (lastPathLevel && /\..+/.exec(lastPathLevel)) return lastPathLevel;
-            } catch (_) { /* ignore */ }
-          };
-          const getFileNameBasedOnContentTypeHeader = () => {
-            const contentType = getHeaderValue('content-type');
-            const extension = (contentType && mime.extension(contentType)) || 'txt';
-            return `response.${extension}`;
-          };
-          const fileName
-            = getFileNameFromContentDispositionHeader()
-              || getFileNameFromUrlPath()
-              || getFileNameBasedOnContentTypeHeader();
-          const dirPath = pathname ? path.dirname(pathname) : undefined;
-          const defaultPath = dirPath ? path.join(dirPath, fileName) : fileName;
-
-          chooseFileToSave(mainWindow, defaultPath)
-            .then(async (filePath) => {
-              if (!filePath) {
-                resolve({ success: false, cancelled: true });
-                return;
-              }
-              await bodyService.store.saveToPath(response.bodyRef, filePath);
-              resolve({ success: true, filePath });
-            })
-            .catch(reject);
+        const { resolveResponseSaveDefaultPath } = require('../../utils/response-save-filename');
+        const defaultPath = resolveResponseSaveDefaultPath({
+          headers: response.headers,
+          url,
+          pathname
         });
-        return result;
+        const filePath = await chooseFileToSave(mainWindow, defaultPath);
+        if (!filePath) {
+          return { success: false, cancelled: true };
+        }
+        await bodyService.store.saveToPath(response.bodyRef, filePath);
+        return { success: true, filePath };
       }
 
       // Legacy fallback: base64 dataBuffer (should not be used for new responses)
-      const getHeaderValue = (headerName) => {
-        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
-
-        if (headersArray.length > 0) {
-          const header = headersArray.find((header) => header[0] === headerName);
-          if (header && header.length > 1) {
-            return header[1];
-          }
-        }
-      };
-
-      const getFileNameFromContentDispositionHeader = () => {
-        const contentDisposition = getHeaderValue('content-disposition');
-        try {
-          const disposition = contentDispositionParser.parse(contentDisposition);
-          return disposition && disposition.parameters['filename'];
-        } catch (error) { }
-      };
-
-      const getFileNameFromUrlPath = () => {
-        const lastPathLevel = new URL(url).pathname.split('/').pop();
-        if (lastPathLevel && /\..+/.exec(lastPathLevel)) {
-          return lastPathLevel;
-        }
-      };
-
-      const getFileNameBasedOnContentTypeHeader = () => {
-        const contentType = getHeaderValue('content-type');
-        const extension = (contentType && mime.extension(contentType)) || 'txt';
-        return `response.${extension}`;
-      };
+      const { resolveResponseSaveFilename, getHeaderValue } = require('../../utils/response-save-filename');
 
       const getEncodingFormat = () => {
-        const contentType = getHeaderValue('content-type');
+        const contentType = getHeaderValue(response.headers, 'content-type');
         const extension = mime.extension(contentType) || 'txt';
         return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
       };
 
-      const determineFileName = () => {
-        return (
-          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
-        );
-      };
-
       const dirPath = path.dirname(pathname);
-      const fileName = determineFileName();
+      const fileName = resolveResponseSaveFilename({ headers: response.headers, url });
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();

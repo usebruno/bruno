@@ -3,8 +3,7 @@ import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useCallback } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import { useResponseBodyWindow } from 'utils/response-body/adapters/react/useResponseBodyWindow';
-import { useResponseMediaSrc } from 'utils/response-body/adapters/react/useResponseMediaSrc';
+import { useResponseBodyWindow, mediaUrlFor } from 'utils/response-body';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -131,7 +130,7 @@ const QueryResult = ({
   }, [dataBuffer, response.size]);
 
   const needsWindowedText = Boolean(bodyRef) && responseSize > LARGE_RESPONSE_BYTES && !data;
-  const mediaSrc = useResponseMediaSrc(bodyRef, contentType);
+  const mediaSrc = useMemo(() => mediaUrlFor(bodyRef), [bodyRef]);
   const {
     text: windowedText,
     loading: windowLoading,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { getResponseBodyClient } from '../electron-ipc';
-import { createWindowedTextModel } from '../../core/windowed-text';
+import { getResponseBodyClient } from './client';
+import { createWindowedTextModel } from './windowed-text';
 
 /**
  * Sliding-window text for a bodyRef — only a few chunks stay in memory.

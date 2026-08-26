@@ -1,24 +1,21 @@
-const { createResponseBodyStore } = require('./core/store');
-const { createNodeFileSystem } = require('./adapters/node-fs');
-const { ensureResponseBodiesDirectory } = require('./adapters/paths');
-const { registerResponseBodyIpc, CHANNELS } = require('./adapters/ipc');
+const { createResponseBodyStore } = require('./store');
+const { createNodeFileSystem } = require('./node-fs');
+const { ensureResponseBodiesDirectory } = require('./paths');
+const { registerResponseBodyIpc, CHANNELS } = require('./ipc');
 const {
   registerBrunoResponseScheme,
   registerBrunoResponseProtocol,
   SCHEME
-} = require('./adapters/protocol');
-const { SPILL_THRESHOLD_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./core/constants');
+} = require('./protocol');
+const { SPILL_THRESHOLD_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
 const {
   BodyNotFoundError,
   BodyTooLargeForScriptsError,
   ResponseBodyError
-} = require('./core/errors');
+} = require('./errors');
 
 let singleton = null;
 
-/**
- * Create (or return) the process-wide response body service.
- */
 const createResponseBodyService = (options = {}) => {
   if (singleton && !options.fresh) {
     return singleton;

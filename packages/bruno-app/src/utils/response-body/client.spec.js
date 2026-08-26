@@ -1,7 +1,7 @@
 import { createResponseBodyClient } from './client';
 import { mediaUrlFor } from './media-url';
 import { createWindowedTextModel } from './windowed-text';
-import { mapNetworkResponseToRedux } from '../adapters/redux';
+import { mapNetworkResponseToRedux } from './index';
 
 describe('response-body client ring', () => {
   test('mediaUrlFor builds bruno-response URL', () => {

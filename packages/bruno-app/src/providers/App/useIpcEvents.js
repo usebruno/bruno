@@ -48,6 +48,31 @@ import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
+
+const pinScriptedRequestBody = async (val) => {
+  if (val.type !== 'scripted-request' || !val.data?.response?.bodyRef) {
+    return val;
+  }
+  try {
+    const { pinBodyRef } = require('utils/response-body');
+    const pinId = await pinBodyRef(val.data.response.bodyRef);
+    if (!pinId) return val;
+    return {
+      ...val,
+      data: {
+        ...val.data,
+        bodyPinId: pinId,
+        response: {
+          ...val.data.response,
+          bodyPinId: pinId
+        }
+      }
+    };
+  } catch (err) {
+    console.warn('Failed to pin scripted response body:', err?.message || err);
+    return val;
+  }
+};
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -277,53 +302,14 @@ const useIpcEvents = () => {
       }
 
       if (val.type === 'scripted-request' && val.data?.response?.bodyRef) {
-        try {
-          const { pinBodyRef } = require('utils/response-body');
-          const pinId = await pinBodyRef(val.data.response.bodyRef);
-          if (pinId) {
-            val = {
-              ...val,
-              data: {
-                ...val.data,
-                bodyPinId: pinId,
-                response: {
-                  ...val.data.response,
-                  bodyPinId: pinId
-                }
-              }
-            };
-          }
-        } catch (err) {
-          console.warn('Failed to pin runner scripted response body:', err?.message || err);
-        }
+        val = await pinScriptedRequestBody(val);
       }
 
       dispatch(runFolderEvent(val));
     });
 
     const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', async (val) => {
-      // Pin scripted nested-request bodies kept in the timeline (5A)
-      if (val.type === 'scripted-request' && val.data?.response?.bodyRef) {
-        try {
-          const { pinBodyRef } = require('utils/response-body');
-          const pinId = await pinBodyRef(val.data.response.bodyRef);
-          if (pinId) {
-            val = {
-              ...val,
-              data: {
-                ...val.data,
-                bodyPinId: pinId,
-                response: {
-                  ...val.data.response,
-                  bodyPinId: pinId
-                }
-              }
-            };
-          }
-        } catch (err) {
-          console.warn('Failed to pin scripted response body:', err?.message || err);
-        }
-      }
+      val = await pinScriptedRequestBody(val);
       dispatch(runRequestEvent(val));
     });
 
