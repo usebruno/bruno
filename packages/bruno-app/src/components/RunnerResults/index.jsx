@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { resetCollectionRunnerAndReleasePins } from 'providers/ReduxStore/slices/collections/actions';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
 import { IconRefresh, IconPlayerStop, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconReload } from '@tabler/icons';
 import useContainerBreakpoint from 'hooks/useContainerBreakpoint';
@@ -211,11 +211,7 @@ export default function RunnerResults({ collection }) {
   const resetRunner = () => {
     isReRunningRef.current = false;
     clearStoredRunnerExchanges();
-    dispatch(
-      resetCollectionRunner({
-        collectionUid: collection.uid
-      })
-    );
+    dispatch(resetCollectionRunnerAndReleasePins(collection.uid));
     setDelay(null);
   };
 

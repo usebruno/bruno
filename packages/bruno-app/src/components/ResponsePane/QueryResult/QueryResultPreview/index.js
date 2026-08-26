@@ -29,7 +29,11 @@ const QueryResultPreview = ({
   previewMode,
   disableRunEventListener,
   displayedTheme,
-  docKey
+  docKey,
+  mediaSrc,
+  onNearBottomScroll,
+  onNearTopScroll,
+  scrollAnchor
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -73,6 +77,9 @@ const QueryResultPreview = ({
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
         onLinkClick={handleResponseLinkClick}
+        onNearBottomScroll={onNearBottomScroll}
+        onNearTopScroll={onNearTopScroll}
+        scrollAnchor={scrollAnchor}
         readOnly
       />
     );
@@ -84,12 +91,15 @@ const QueryResultPreview = ({
       return <HtmlPreview data={data} baseUrl={baseUrl} />;
     }
     case 'preview-image': {
-      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;
+      const src = mediaSrc || (dataBuffer ? `data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}` : null);
+      return src ? <img src={src} /> : null;
     }
     case 'preview-pdf': {
+      const file = mediaSrc || (dataBuffer ? `data:application/pdf;base64,${dataBuffer}` : null);
+      if (!file) return null;
       return (
         <div className="preview-pdf" style={{ height: '100%', overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
-          <Document file={`data:application/pdf;base64,${dataBuffer}`} onLoadSuccess={onDocumentLoadSuccess}>
+          <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
             {Array.from(new Array(numPages), (el, index) => (
               <Page key={`page_${index + 1}`} pageNumber={index + 1} renderAnnotationLayer={false} />
             ))}
@@ -98,11 +108,15 @@ const QueryResultPreview = ({
       );
     }
     case 'preview-audio': {
-      return (
-        <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
-      );
+      const src = mediaSrc || (dataBuffer ? `data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}` : null);
+      return src ? (
+        <audio controls src={src} className="mx-auto" />
+      ) : null;
     }
     case 'preview-video': {
+      if (mediaSrc) {
+        return <video controls src={mediaSrc} className="mx-auto max-w-full" />;
+      }
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {

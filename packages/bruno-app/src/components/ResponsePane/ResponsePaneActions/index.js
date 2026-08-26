@@ -1,12 +1,13 @@
 import React, { forwardRef, useRef } from 'react';
 import styled from 'styled-components';
-import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
+import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconIndentIncrease, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import ResponseDownload from '../ResponseDownload';
 import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
 import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
 import ResponseCopy from '../ResponseCopy/index';
+import ResponsePrettify from '../ResponsePrettify';
 import StyledWrapper from './StyledWrapper';
 
 const StyledMenuIcon = styled.button`
@@ -37,20 +38,34 @@ const MenuIcon = forwardRef((props, ref) => (
 
 MenuIcon.displayName = 'MenuIcon';
 
-const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
+const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, onPrettified }) => {
   const { orientation } = useResponseLayoutToggle();
+  const showPrettify = selectedFormat === 'json';
 
   // Refs to access child component imperative handles (click, isDisabled)
   const bookmarkButtonRef = useRef(null);
   const downloadButtonRef = useRef(null);
   const clearButtonRef = useRef(null);
   const copyButtonRef = useRef(null);
+  const prettifyButtonRef = useRef(null);
   const layoutToggleButtonRef = useRef(null);
 
   /**
    * GQL response actions missing with Save response - because their is schema validation missing for saving GQL response will undo once example
    * scehem is updated
    */
+  const prettifyMenuItem = showPrettify
+    ? {
+        id: 'prettify-json',
+        label: 'Prettify JSON',
+        leftSection: IconIndentIncrease,
+        get disabled() {
+          return prettifyButtonRef.current?.isDisabled ?? false;
+        },
+        onClick: () => prettifyButtonRef.current?.click()
+      }
+    : null;
+
   const gqlMenuItems = [
     {
       id: 'copy-response',
@@ -61,6 +76,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
       },
       onClick: () => copyButtonRef.current?.click()
     },
+    ...(prettifyMenuItem ? [prettifyMenuItem] : []),
     {
       id: 'download-response',
       label: 'Download response',
@@ -100,6 +116,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
       },
       onClick: () => copyButtonRef.current?.click()
     },
+    ...(prettifyMenuItem ? [prettifyMenuItem] : []),
     {
       id: 'save-response',
       label: 'Save response',
@@ -160,8 +177,14 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
           selectedFormat={selectedFormat}
           selectedTab={selectedTab}
           data={data}
-          dataBuffer={dataBuffer}
         />
+        {showPrettify ? (
+          <ResponsePrettify
+            ref={prettifyButtonRef}
+            data={data}
+            onPrettified={onPrettified}
+          />
+        ) : null}
         {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
         <ResponseDownload ref={downloadButtonRef} item={item} />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />

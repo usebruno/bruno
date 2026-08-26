@@ -5,11 +5,12 @@ import get from 'lodash/get';
 import { IconDownload } from '@tabler/icons';
 import classnames from 'classnames';
 import ActionIcon from 'ui/ActionIcon/index';
+import { getResponseBodyClient } from 'utils/response-body';
 
 const ResponseDownload = forwardRef(({ item, children }, ref) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
-  const isDisabled = !response.dataBuffer || response.stream?.running;
+  const isDisabled = !response.bodyRef || response.stream?.running;
   const elementRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
@@ -22,8 +23,15 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
       return;
     }
     return new Promise((resolve, reject) => {
-      ipcRenderer
-        .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname)
+      const savePromise = response.bodyRef
+        ? getResponseBodyClient().save(response.bodyRef, {
+            url: item?.requestSent?.url,
+            pathname: item.pathname,
+            headers: response.headers
+          })
+        : ipcRenderer.invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname);
+
+      savePromise
         .then((result) => {
           if (result && result.success) {
             toast.success('Response downloaded to file');
@@ -31,7 +39,7 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
           resolve();
         })
         .catch((err) => {
-          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          toast.error(get(err, 'error.message') || get(err, 'message') || 'Something went wrong!');
           reject(err);
         });
     });

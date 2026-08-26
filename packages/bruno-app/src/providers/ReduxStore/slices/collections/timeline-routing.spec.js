@@ -39,7 +39,7 @@ const scriptedRequestEvent = (overrides = {}) => ({
   timestamp: 1000,
   data: {
     request: { method: 'GET', url: 'https://example.com/ping', headers: {}, data: undefined },
-    response: { statusCode: 200, statusText: 'OK', headers: {}, data: 'ok', dataBuffer: '', size: 0, duration: 1 }
+    response: { statusCode: 200, statusText: 'OK', headers: {}, data: 'ok', bodyRef: null, size: 0, duration: 1 }
   },
   ...overrides
 });

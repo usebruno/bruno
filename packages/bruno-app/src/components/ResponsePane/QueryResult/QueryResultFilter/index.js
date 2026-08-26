@@ -28,11 +28,11 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
   };
 
   const infotipText = useMemo(() => {
-    if (mode.includes('json')) {
+    if (mode?.includes('json')) {
       return 'Filter with JSONPath';
     }
 
-    if (mode.includes('xml')) {
+    if (mode?.includes('xml')) {
       return 'Filter with XPath';
     }
 
@@ -40,11 +40,11 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
   }, [mode]);
 
   const placeholderText = useMemo(() => {
-    if (mode.includes('json')) {
+    if (mode?.includes('json')) {
       return '$.store.books..author';
     }
 
-    if (mode.includes('xml')) {
+    if (mode?.includes('xml')) {
       return '/store/books//author';
     }
 
