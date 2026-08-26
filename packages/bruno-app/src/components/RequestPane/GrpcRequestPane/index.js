@@ -68,9 +68,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   // keys spelled out so they stay greppable
   const hasScriptError
     = item.beforeCallStartScriptErrorMessage
-      || item.afterCallEndScriptErrorMessage
       || item.beforeMessageSendScriptErrorMessage
-      || item.afterMessageReceiveScriptErrorMessage;
+      || item.afterMessageReceiveScriptErrorMessage
+      || item.afterCallEndScriptErrorMessage;
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),

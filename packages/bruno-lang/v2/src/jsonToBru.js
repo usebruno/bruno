@@ -770,14 +770,6 @@ ${indentString(script.beforeCallStart)}
 `;
   }
 
-  if (script && script.afterCallEnd && script.afterCallEnd.length) {
-    bru += `script:grpc:after-call-end {
-${indentString(script.afterCallEnd)}
-}
-
-`;
-  }
-
   if (script && script.beforeMessageSend && script.beforeMessageSend.length) {
     bru += `script:grpc:before-message-send {
 ${indentString(script.beforeMessageSend)}
@@ -789,6 +781,14 @@ ${indentString(script.beforeMessageSend)}
   if (script && script.afterMessageReceive && script.afterMessageReceive.length) {
     bru += `script:grpc:after-message-receive {
 ${indentString(script.afterMessageReceive)}
+}
+
+`;
+  }
+
+  if (script && script.afterCallEnd && script.afterCallEnd.length) {
+    bru += `script:grpc:after-call-end {
+${indentString(script.afterCallEnd)}
 }
 
 `;

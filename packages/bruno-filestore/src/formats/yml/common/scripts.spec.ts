@@ -26,9 +26,9 @@ describe('toOpenCollectionScripts', () => {
       {
         script: {
           beforeCallStart: 'before()',
-          afterCallEnd: 'after()',
           beforeMessageSend: 'beforeSend()',
-          afterMessageReceive: 'afterReceive()'
+          afterMessageReceive: 'afterReceive()',
+          afterCallEnd: 'after()'
         }
       } as any,
       GRPC_SCRIPT_KEYS
@@ -36,9 +36,9 @@ describe('toOpenCollectionScripts', () => {
 
     expect(out).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
-      { type: 'grpc:after-call-end', code: 'after()' },
       { type: 'grpc:before-message-send', code: 'beforeSend()' },
-      { type: 'grpc:after-message-receive', code: 'afterReceive()' }
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
+      { type: 'grpc:after-call-end', code: 'after()' }
     ]);
   });
 
@@ -47,9 +47,9 @@ describe('toOpenCollectionScripts', () => {
       req: 'pre()',
       res: 'post()',
       beforeCallStart: 'before()',
-      afterCallEnd: 'after()',
       beforeMessageSend: 'beforeSend()',
-      afterMessageReceive: 'afterReceive()'
+      afterMessageReceive: 'afterReceive()',
+      afterCallEnd: 'after()'
     };
 
     expect(toOpenCollectionScripts({ script } as any, HTTP_SCRIPT_KEYS)).toEqual([
@@ -58,9 +58,9 @@ describe('toOpenCollectionScripts', () => {
     ]);
     expect(toOpenCollectionScripts({ script } as any, GRPC_SCRIPT_KEYS)).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
-      { type: 'grpc:after-call-end', code: 'after()' },
       { type: 'grpc:before-message-send', code: 'beforeSend()' },
-      { type: 'grpc:after-message-receive', code: 'afterReceive()' }
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
+      { type: 'grpc:after-call-end', code: 'after()' }
     ]);
   });
 

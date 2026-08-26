@@ -52,9 +52,9 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     },
     script: {
       beforeCallStart: null,
-      afterCallEnd: null,
       beforeMessageSend: null,
-      afterMessageReceive: null
+      afterMessageReceive: null,
+      afterCallEnd: null
     },
     vars: {
       req: [],
@@ -85,14 +85,14 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     if (scripts.script.beforeCallStart) {
       brunoRequest.script.beforeCallStart = scripts.script.beforeCallStart;
     }
-    if (scripts.script.afterCallEnd) {
-      brunoRequest.script.afterCallEnd = scripts.script.afterCallEnd;
-    }
     if (scripts.script.beforeMessageSend) {
       brunoRequest.script.beforeMessageSend = scripts.script.beforeMessageSend;
     }
     if (scripts.script.afterMessageReceive) {
       brunoRequest.script.afterMessageReceive = scripts.script.afterMessageReceive;
+    }
+    if (scripts.script.afterCallEnd) {
+      brunoRequest.script.afterCallEnd = scripts.script.afterCallEnd;
     }
   }
   if (scripts?.tests) {
