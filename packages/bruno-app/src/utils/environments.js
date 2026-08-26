@@ -157,13 +157,14 @@ export const getDuplicateSecretNames = (variables) => {
   return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
 };
 
+export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
+
 export const generateCopyName = (baseName, existingNames) => {
-  const normalize = (name) => (name || '').toLowerCase().trim();
-  const normalizedExisting = existingNames.map(normalize);
+  const normalizedExisting = existingNames.map(normalizeEnvName);
 
   let counter = 1;
   let newName = `${baseName} copy`;
-  while (normalizedExisting.includes(normalize(newName))) {
+  while (normalizedExisting.includes(normalizeEnvName(newName))) {
     counter++;
     newName = `${baseName} copy ${counter}`;
   }

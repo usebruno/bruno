@@ -10,4 +10,6 @@ const CountBadge = ({ children, variant = 'default', size = 'sm', className = ''
   );
 };
 
+CountBadge.displayName = 'CountBadge';
+
 export default CountBadge;

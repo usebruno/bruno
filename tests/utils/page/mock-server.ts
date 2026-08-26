@@ -35,6 +35,15 @@ export const buildMockServerLocators = (page: Page) => ({
   createModal: () => page.locator('.bruno-modal-card'),
   nameInput: () => page.getByTestId('mock-server-name-input'),
   modalSubmit: () => page.getByTestId('modal-submit-btn'),
+  sidebarCreateBtn: () => page.getByTestId('mock-servers-create-btn'),
+  linkSourceCheckbox: () => page.getByTestId('mock-server-link-source-checkbox'),
+  sourceSpecRadio: () => page.getByTestId('mock-server-source-spec'),
+  specSelect: () => page.getByTestId('mock-server-spec-select'),
+  specSelectedOption: () => page.getByTestId('mock-server-spec-select').locator('option:checked'),
+  specOption: (name: string) => page.getByTestId('mock-server-spec-select').locator('option').filter({ hasText: name }),
+  settingsBtn: () => page.getByTestId('mock-server-settings-btn'),
+  sidebarItem: (name: string) => page.locator('.mock-server-item').filter({ hasText: name }),
+  sidebarSection: () => page.locator('.sidebar-section').filter({ hasText: 'Mock Servers' }),
 
   routeSearch: () => page.getByTestId('mock-server-route-search'),
   methodFilter: () => page.getByTestId('mock-server-method-filter'),
@@ -104,6 +113,16 @@ export const stopMockServer = async (page: Page) => {
   });
 };
 
+// Open the create-mock-server modal from the Mock Servers sidebar section. Unlike the
+// collection flow, this needs no collection, so it works in an empty workspace.
+export const openCreateMockServerModal = async (page: Page) => {
+  await test.step('Open the create mock server modal from the sidebar', async () => {
+    const ms = buildMockServerLocators(page);
+    await ms.sidebarCreateBtn().click();
+    await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
 // Open the create-mock-server flow from a collection's actions menu and submit a name.
 export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string) => {
   await test.step(`Create mock server "${serverName}" for "${collectionName}"`, async () => {
@@ -117,5 +136,21 @@ export const createMockServerFromCollection = async (page: Page, collectionName:
     await ms.nameInput().fill(serverName);
     await ms.modalSubmit().click();
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+// Open an existing mock server's Settings modal via its sidebar row and the dashboard.
+export const openMockServerSettings = async (page: Page, serverName: string) => {
+  await test.step(`Open settings for mock server "${serverName}"`, async () => {
+    const ms = buildMockServerLocators(page);
+    const section = ms.sidebarSection();
+    if (!(await section.evaluate((el) => el.classList.contains('expanded')))) {
+      await section.locator('.section-header-left').click();
+    }
+    await section.locator('.section-content').waitFor({ state: 'visible', timeout: 10000 });
+    await ms.sidebarItem(serverName).click();
+    await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+    await ms.settingsBtn().click();
+    await ms.nameInput().waitFor({ state: 'visible', timeout: 10000 });
   });
 };

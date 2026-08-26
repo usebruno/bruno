@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTheme } from 'styled-components';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
@@ -6,9 +6,10 @@ import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import IconFileAlertFilled from 'components/Icons/IconFileAlertFilled';
 import CountBadge from 'ui/CountBadge';
-import { StyledWrapper } from '../StyledWrapper';
+import { StyledWrapper } from './StyledWrapper';
 import { pluralizeWord } from 'utils/common/index';
 import EnvironmentGroup from '../EnvironmentGroup';
+import { ENV_STATUS } from '../hooks/useEnvironmentImport';
 import InvalidEnvironmentGroup from '../InvalidEnvironmentGroup';
 
 const ReviewStep = ({
@@ -26,8 +27,8 @@ const ReviewStep = ({
   const [searchText, setSearchText] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({ invalid: true, duplicates: true, new: true });
 
-  const newEnvs = items.filter((env) => env.status === 'new');
-  const duplicates = items.filter((env) => env.status === 'duplicate');
+  const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
+  const duplicates = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
   const invalid = items.filter((env) => env.status === 'invalid');
 
   const totalEnvironments = newEnvs.length + duplicates.length;
@@ -53,27 +54,28 @@ const ReviewStep = ({
     setSelected(newSelected);
   };
 
-  const toggleItemSelection = (envId) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(envId)) newSelected.delete(envId);
-    else newSelected.add(envId);
-    setSelected(newSelected);
-  };
-
-  const setGroupResolution = (res) => {
-    const newResolutions = new Map(resolutions);
-    duplicates.forEach((env) => {
-      newResolutions.set(env.id, res);
+  const toggleItemSelection = useCallback((envId) => {
+    setSelected((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(envId)) newSelected.delete(envId);
+      else newSelected.add(envId);
+      return newSelected;
     });
-    setResolutions(newResolutions);
-  };
+  }, [setSelected]);
 
-  const setItemResolution = (envId, res) => {
-    setResolutions(new Map(resolutions).set(envId, res));
-  };
+  const setGroupResolution = useCallback((res) => {
+    setResolutions((prev) => {
+      const newResolutions = new Map(prev);
+      duplicates.forEach((env) => {
+        newResolutions.set(env.id, res);
+      });
+      return newResolutions;
+    });
+  }, [duplicates, setResolutions]);
 
-  const filteredNew = newEnvs.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
-  const filteredDuplicates = duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const setItemResolution = useCallback((envId, res) => {
+    setResolutions((prev) => new Map(prev).set(envId, res));
+  }, [setResolutions]);
 
   return (
     <Portal>
@@ -147,29 +149,24 @@ const ReviewStep = ({
                     toggleExpanded={() => toggleGroupExpanded('invalid')}
                   />
 
-                  <EnvironmentGroup
-                    title="Duplicates"
-                    environments={filteredDuplicates}
-                    countTestId="env-import-duplicates-count"
-                    hasBorderBottom={newEnvs.length > 0}
-                    selected={selected}
-                    toggleItemSelection={toggleItemSelection}
-                    resolutions={resolutions}
-                    setItemResolution={setItemResolution}
-                    showResolutions={true}
-                    setGroupResolution={setGroupResolution}
-                    isExpanded={expandedGroups.duplicates}
-                    toggleExpanded={() => toggleGroupExpanded('duplicates')}
-                    toggleGroupSelection={(checked) => toggleGroupSelection(filteredDuplicates, checked)}
-                    searchText={searchText}
-                    dataTestId="env-import-duplicates-group"
-                  />
+                <EnvironmentGroup
+                  title="Duplicates"
+                  environments={filteredDuplicates}
+                  countTestId="env-import-duplicates-count"
+                  selected={selected}
+                  toggleItemSelection={toggleItemSelection}
+                  resolutions={resolutions}
+                  setItemResolution={setItemResolution}
+                  showResolutions={true}
+                  setGroupResolution={setGroupResolution}
+                  searchText={searchText}
+                  dataTestId="env-import-duplicates-group"
+                />
 
                   <EnvironmentGroup
                     title="New"
                     environments={filteredNew}
                     countTestId="env-import-new-count"
-                    hasBorderBottom={false}
                     selected={selected}
                     toggleItemSelection={toggleItemSelection}
                     showResolutions={false}

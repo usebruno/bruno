@@ -1,5 +1,3 @@
-export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
-
 export const detectEnvironmentFormat = (data) => {
   if (data.info && data.info.type === 'bruno-environment') {
     return 'bruno';
@@ -9,4 +7,16 @@ export const detectEnvironmentFormat = (data) => {
     return 'postman';
   }
   return 'bruno';
+};
+
+export const RESOLUTION_TYPES = {
+  CUSTOM: 'custom',
+  COPY: 'copy',
+  REPLACE: 'replace'
+};
+
+export const RESOLUTION_LABELS = {
+  [RESOLUTION_TYPES.CUSTOM]: 'Custom',
+  [RESOLUTION_TYPES.COPY]: 'Import as copy',
+  [RESOLUTION_TYPES.REPLACE]: 'Replace existing'
 };

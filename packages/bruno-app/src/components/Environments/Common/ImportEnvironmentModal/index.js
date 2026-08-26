@@ -1,18 +1,10 @@
 import React from 'react';
 import UploadStep from './UploadStep';
 import ReviewStep from './ReviewStep';
-import { useEnvironmentImport } from './hooks/useEnvironmentImport';
+import { useEnvironmentImport, IMPORT_STEPS } from './hooks/useEnvironmentImport';
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
   const isGlobal = type === 'global';
-
-  if (!isGlobal && !collection) {
-    console.error('ImportEnvironmentModal: collection prop is required when type is "collection"');
-    return null;
-  }
-  const modalTitle = isGlobal ? 'Import Global Environment' : 'Import Environment';
-  const modalTestId = isGlobal ? 'import-global-environment-modal' : 'import-environment-modal';
-  const importTestId = isGlobal ? 'import-global-environment' : 'import-environment';
 
   const {
     step,
@@ -25,7 +17,15 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     handleConfirmImport
   } = useEnvironmentImport(type, collection, onClose, onEnvironmentCreated);
 
-  if (step === 'UPLOAD') {
+  if (!isGlobal && !collection) {
+    console.error('ImportEnvironmentModal: collection prop is required when type is "collection"');
+    return null;
+  }
+  const modalTitle = isGlobal ? 'Import Global Environment' : 'Import Environment';
+  const modalTestId = isGlobal ? 'import-global-environment-modal' : 'import-environment-modal';
+  const importTestId = isGlobal ? 'import-global-environment' : 'import-environment';
+
+  if (step === IMPORT_STEPS.UPLOAD) {
     return (
       <UploadStep
         modalTitle={modalTitle}
