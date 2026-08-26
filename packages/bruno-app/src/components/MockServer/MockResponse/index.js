@@ -9,9 +9,17 @@ import {
   updateMockResponseRules,
   cancelMockResponseEditorEdit
 } from 'providers/ReduxStore/slices/collections';
-import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
+import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
+import { flattenItems, isItemTransientRequest } from 'utils/collections';
+import {
+  findMockServerInstance,
+  resolveMockServerStartPayload,
+  resolveMockServerWorkspacePath
+} from 'utils/mock-server/mock-server-instances';
 import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import ResponseExampleResponsePane from 'components/ResponseExample/ResponseExampleResponsePane';
 import MockResponseTopBar from './MockResponseTopBar';
@@ -20,7 +28,7 @@ import StyledWrapper from 'components/ResponseExample/StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 210;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const MockResponse = ({ instance, collection, responseUid }) => {
@@ -29,10 +37,13 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const editor = useSelector((state) => state.collections.mockResponseEditors[responseUid]);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
+  const storedInstance = useSelector((state) => findMockServerInstance(state, instance.uid) || instance);
   const isServerRunning = serverState?.status === 'running';
+  const isStartingServer = serverState?.status === 'starting';
   const mockServerPort = serverState?.port || instance.port;
   const preferences = useSelector((state) => state.app.preferences);
   const screenWidth = useSelector((state) => state.app.screenWidth);
@@ -69,8 +80,8 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   ]);
 
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const storedResponse = useMemo(() => (
     responses.find((item) => item.uid === responseUid) || null
@@ -112,7 +123,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   useEffect(() => {
     if (!storedResponse) {
@@ -217,8 +228,10 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         editor.savedMockResponse
       );
 
-      if (!mockResponse.name?.trim()) {
-        toast.error('Mock response name is required');
+      const validationError = getMockResponseNameError(mockResponse.name)
+        || getMockResponseDescriptionError(mockResponse.description);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
 
@@ -280,6 +293,20 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     };
   }, [editMode, item, editor]);
 
+  const handleStartServer = async () => {
+    try {
+      const result = await dispatch(startMockServer(resolveMockServerStartPayload(storedInstance, {
+        collection: resolvedCollection,
+        apiSpecs,
+        workspacePath: resolveMockServerWorkspacePath(storedInstance, workspaces, activeWorkspace)
+      }))).unwrap();
+      await dispatch(syncMockServerState(location));
+      toast.success(`Mock server started at ${result.baseUrl}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to start mock server');
+    }
+  };
+
   const handleTry = async () => {
     if (!isServerRunning || !mockServerPort) {
       toast.error('Start the mock server before trying this response');
@@ -298,7 +325,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     try {
       const result = await tryMockResponseRequest({
         port: mockServerPort,
-        request: example.request
+        request: buildDemoRequestFromRules(example.request, editor.rules)
       });
 
       setTryState({ responseUid, result });
@@ -311,6 +338,64 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       toast.error(err.message || 'Could not reach the mock server');
     } finally {
       setIsTrying(false);
+    }
+  };
+
+  const resolveTransientRequestName = (targetCollection, baseName) => {
+    const transientFilenames = new Set(
+      flattenItems(targetCollection.items)
+        .filter(isItemTransientRequest)
+        .map((request) => (request.filename || '').trim().toLowerCase())
+    );
+
+    let name = baseName;
+    let counter = 1;
+    while (transientFilenames.has(`${sanitizeName(name)}.${targetCollection.format || 'bru'}`.toLowerCase())) {
+      counter += 1;
+      name = `${baseName} ${counter}`;
+    }
+
+    return name;
+  };
+
+  const handleOpenAsRequest = async () => {
+    const example = item?.draft?.examples?.find((entry) => entry.uid === responseUid)
+      || item?.examples?.find((entry) => entry.uid === responseUid);
+
+    if (!example?.request?.url) {
+      toast.error('Set a request URL before opening it as a request');
+      return;
+    }
+
+    if (!resolvedCollection?.uid) {
+      toast.error('Open a collection in this workspace to create a request');
+      return;
+    }
+
+    const demoRequest = buildDemoRequestFromRules(example.request, editor.rules);
+    const requestUrl = buildMockServerTryUrl({
+      port: mockServerPort,
+      requestUrl: demoRequest.url,
+      params: demoRequest.params
+    });
+    const requestName = resolveTransientRequestName(resolvedCollection, storedResponse?.name || 'Mock Request');
+
+    try {
+      await dispatch(newHttpRequest({
+        requestName,
+        filename: sanitizeName(requestName),
+        requestType: 'http-request',
+        requestUrl,
+        requestMethod: demoRequest.method,
+        collectionUid: resolvedCollection.uid,
+        itemUid: null,
+        isTransient: true,
+        headers: demoRequest.headers,
+        ...(demoRequest.body ? { body: { mode: 'json', json: demoRequest.body.content } } : {})
+      }));
+      toast.success('Opened demo request in a new tab');
+    } catch (err) {
+      toast.error(err.message || 'Failed to open the demo request');
     }
   };
 
@@ -370,6 +455,11 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               onTry={handleTry}
               isTrying={isTrying}
               isServerRunning={isServerRunning}
+              onStartServer={handleStartServer}
+              isStartingServer={isStartingServer}
+              mockServerPort={mockServerPort}
+              onOpenAsRequest={handleOpenAsRequest}
+              onEditToggle={() => setEditMode(true)}
             />
           </div>
         </section>

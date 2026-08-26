@@ -33,7 +33,7 @@ import type {
   BrunoHttpRequestParam
 } from '../types';
 
-const { toBool, toNumber } = utils;
+const { toBool, toMaxRedirects } = utils;
 
 const getGraphqlBody = (body: GraphQLBody | GraphQLBodyVariant[] | undefined): GraphQLBody | undefined => {
   if (!body) return undefined;
@@ -85,7 +85,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
       encodeUrl: toBool(settings.encodeUrl, true),
       timeout: resolveTimeoutSetting(settings.timeout),
       followRedirects: toBool(settings.followRedirects, true),
-      maxRedirects: toNumber(settings.maxRedirects, 5),
+      maxRedirects: toMaxRedirects(settings.maxRedirects),
       forwardAuthorizationHeader: toBool(settings.forwardAuthorizationHeader, true)
     };
   }
@@ -179,7 +179,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     encodeUrl: toBool(brunoSettings.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings.timeout),
     followRedirects: toBool(brunoSettings.followRedirects, true),
-    maxRedirects: toNumber(brunoSettings.maxRedirects, 5),
+    maxRedirects: toMaxRedirects(brunoSettings.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;

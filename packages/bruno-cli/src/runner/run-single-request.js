@@ -19,10 +19,10 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -30,6 +30,19 @@ const onConsoleLog = (type, args) => {
 
 const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+};
+
+const executeRequestOnFailHandler = async (request, error) => {
+  if (typeof request?.onFailHandler !== 'function') {
+    return null;
+  }
+
+  try {
+    return await request.onFailHandler(error);
+  } catch (handlerError) {
+    console.error(chalk.red(`Error executing onFail handler: ${handlerError?.message || 'Unknown error'}`));
+    return null;
+  }
 };
 
 /**
@@ -553,11 +566,11 @@ const runSingleRequest = async function (
     const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
 
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
     // Ensure it's a valid number
     if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-      requestMaxRedirects = 5; // Default to 5 redirects
+      requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
     }
 
     // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
@@ -739,7 +752,13 @@ const runSingleRequest = async function (
           saveCookies(request.url, response.headers);
         }
       } else {
+        // Only network-level failures (no response received) reach the onFail handler, matching
+        // the desktop app. Variables the handler wrote are synced like any other script write.
+        const onFailResult = await executeRequestOnFailHandler(request, err);
+        syncVariableUpdates(onFailResult, request);
+
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        applySentHeadersToRequest(request, err);
         return {
           test: {
             filename: relativeItemPathname
@@ -773,6 +792,7 @@ const runSingleRequest = async function (
     }
 
     response.responseTime = responseTime;
+    applySentHeadersToRequest(request, response);
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname))

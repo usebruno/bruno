@@ -18,7 +18,7 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils'
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections';
 import {
   stripEnvVarUid,
   getDuplicateSecretNames,
@@ -90,6 +90,7 @@ const EnvVarValueCell = ({
   isLastEmptyRow,
   storedTheme,
   collection,
+  resolvableVariables,
   formik,
   handleRowFocus,
   handleSave,
@@ -160,7 +161,7 @@ const EnvVarValueCell = ({
             <DataTypeSelector
               compact={isCompact}
               variable={variable}
-              collection={collection}
+              resolvableVariables={resolvableVariables}
               onChange={(fields) => {
                 Object.entries(fields).forEach(([key, val]) => {
                   formik.setFieldValue(`${actualIndex}.${key}`, val, true);
@@ -228,8 +229,10 @@ const EnvironmentVariablesTable = ({
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
   const isSearchActive = !!searchQuery?.trim();
 
-  const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey: `env-var-sort::${environment.uid}` });
-  const dragEnabled = sortMode === 'default' && !isSecretTab && !isSearchActive;
+  const variablesSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::variables` });
+  const secretsSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::secrets` });
+  const { sortMode, cycleSortMode, SortIcon, sortLabel } = isSecretTab ? secretsSort : variablesSort;
+  const dragEnabled = sortMode === 'default' && !isSearchActive;
 
   const handleColumnWidthsChange = (id, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
@@ -316,6 +319,8 @@ const EnvironmentVariablesTable = ({
     }
     return c;
   }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
+
+  const resolvableVariables = useMemo(() => getAllVariables(_collection), [_collection]);
 
   // Reuse the previous initialValues when only uids changed but the content is
   // identical.
@@ -410,13 +415,16 @@ const EnvironmentVariablesTable = ({
 
   const sortOrderRef = useRef(null);
   const prevSortModeRef = useRef();
+  const prevIsSecretTabRef = useRef(isSecretTab);
   const prevIsDraftRef = useRef(hasDraftForThisEnv);
   const prevEnvironmentVariablesRef = useRef(environment.variables);
   const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
   const savedVariablesChanged = prevEnvironmentVariablesRef.current !== environment.variables;
+  const tabChanged = prevIsSecretTabRef.current !== isSecretTab;
+  prevIsSecretTabRef.current = isSecretTab;
   prevIsDraftRef.current = hasDraftForThisEnv;
   prevEnvironmentVariablesRef.current = environment.variables;
-  if (prevSortModeRef.current !== sortMode || justCommitted || savedVariablesChanged) {
+  if (prevSortModeRef.current !== sortMode || tabChanged || justCommitted || savedVariablesChanged) {
     prevSortModeRef.current = sortMode;
     // After a save/reparse, `environment.variables` gets new uids; `initialValues` keeps stable ones for reorder.
     sortOrderRef.current = buildSortOrder(savedVariablesChanged ? initialValues : formik.values, sortMode);
@@ -881,7 +889,7 @@ const EnvironmentVariablesTable = ({
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
   const displayedVariables = (() => {
-    if (isSecretTab || sortMode === 'default' || !sortOrderRef.current) {
+    if (sortMode === 'default' || !sortOrderRef.current) {
       return filteredVariables;
     }
 
@@ -920,14 +928,12 @@ const EnvironmentVariablesTable = ({
               <td className="text-center"></td>
               <td
                 style={{ width: columnWidths.name }}
-                className={!isSecretTab ? 'sortable-header' : ''}
-                onClick={!isSecretTab ? (e) => {
+                className="sortable-header"
+                onClick={(e) => {
                   if (!e.target.closest('.resize-handle')) cycleSortMode();
-                } : undefined}
+                }}
               >
-                {isSecretTab ? 'Name' : (
-                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
-                )}
+                <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
@@ -971,6 +977,7 @@ const EnvironmentVariablesTable = ({
                       type="checkbox"
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
+                      data-testid="env-var-enabled-checkbox"
                       checked={variable.enabled}
                       onChange={formik.handleChange}
                     />
@@ -1011,6 +1018,7 @@ const EnvironmentVariablesTable = ({
                     isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
+                    resolvableVariables={resolvableVariables}
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}

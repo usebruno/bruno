@@ -131,7 +131,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 }}
                 value={formik.values.name || ''}
               />
-              {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
+              {formik.touched.name && formik.errors.name ? <div className="text-red-500" data-testid="form-error">{formik.errors.name}</div> : null}
             </div>
 
             {showFilesystemName && (
@@ -198,7 +198,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
+                  <div className="text-red-500" data-testid="form-error">{formik.errors.filename}</div>
                 ) : null}
               </div>
             )}
