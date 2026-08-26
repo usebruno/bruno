@@ -103,19 +103,19 @@ test.describe('Binary response example previews', () => {
         await sendReqAndSaveResposeExample(page, requestName, exampleName);
 
         await test.step('Verify the binary preview renders', async () => {
-          const preview = buildCommonLocators(page).responseExample.binaryPreview();
-          await expect(preview).toBeVisible();
-          await expect(preview).toHaveAttribute('data-preview-type', previewType);
+          const { responseExample } = buildCommonLocators(page);
+          await expect(responseExample.binaryPreview()).toBeVisible();
+          await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', previewType);
 
           if (previewType === 'image') {
-            await expect(preview.locator('img')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
+            await expect(responseExample.binaryPreviewImage()).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
           } else if (previewType === 'pdf') {
-            await expect(preview.locator('.preview-pdf canvas').first()).toBeVisible();
+            await expect(responseExample.binaryPreviewPdfCanvas()).toBeVisible();
           } else if (previewType === 'audio') {
-            await expect(preview.locator('audio')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
+            await expect(responseExample.binaryPreviewAudio()).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
           } else if (previewType === 'video') {
             // VideoPreview serves the bytes through a blob URL, not a data URI
-            await expect(preview.locator('video')).toHaveAttribute('src', /^blob:/);
+            await expect(responseExample.binaryPreviewVideo()).toHaveAttribute('src', /^blob:/);
           }
         });
       } finally {
@@ -132,10 +132,10 @@ test.describe('Binary response example previews', () => {
       await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
 
       await test.step('Verify the sniffed image preview renders', async () => {
-        const preview = buildCommonLocators(page).responseExample.binaryPreview();
-        await expect(preview).toBeVisible();
-        await expect(preview).toHaveAttribute('data-preview-type', 'image');
-        await expect(preview.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+        const { responseExample } = buildCommonLocators(page);
+        await expect(responseExample.binaryPreview()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+        await expect(responseExample.binaryPreviewImage()).toHaveAttribute('src', /^data:image\/png;base64,/);
       });
     } finally {
       await closeElectronApp(app);
@@ -156,7 +156,7 @@ test.describe('Binary response example previews', () => {
       await test.step('Verify the raw body renders instead of a binary preview', async () => {
         await expect(locators.responseExample.title()).toBeVisible();
         await expect(locators.responseExample.binaryPreview()).toHaveCount(0);
-        await expect(locators.responseExample.responseContent().locator('.CodeMirror').first()).toContainText('AAECAwQFBgcI');
+        await expect(locators.responseExample.responseContentCodeMirror()).toContainText('AAECAwQFBgcI');
       });
     } finally {
       await closeElectronApp(app);

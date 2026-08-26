@@ -11,7 +11,13 @@ export const buildResponseExampleLocators = (page: Page) => ({
   createButton: () => page.getByTestId('create-example-modal-submit-btn'),
   title: () => page.getByTestId('response-example-title'),
   binaryPreview: () => page.getByTestId('response-example-binary-preview'),
-  responseContent: () => page.getByTestId('response-example-response-content')
+  // Media elements rendered inside the binary preview, keyed by preview type.
+  binaryPreviewImage: () => page.getByTestId('response-example-binary-preview').locator('img'),
+  binaryPreviewPdfCanvas: () => page.getByTestId('response-example-binary-preview').locator('.preview-pdf canvas').first(),
+  binaryPreviewAudio: () => page.getByTestId('response-example-binary-preview').locator('audio'),
+  binaryPreviewVideo: () => page.getByTestId('response-example-binary-preview').locator('video'),
+  responseContent: () => page.getByTestId('response-example-response-content'),
+  responseContentCodeMirror: () => page.getByTestId('response-example-response-content').locator('.CodeMirror').first()
 });
 
 export const openCollectionRequest = async (page: Page, collectionName: string, folderName: string | undefined, requestName: string) => {
