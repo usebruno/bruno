@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import cx from 'classnames';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -11,7 +10,6 @@ const EnvironmentGroup = ({
   title,
   environments,
   countTestId,
-  hasBorderBottom,
   selected,
   toggleItemSelection,
   resolutions,
@@ -26,7 +24,7 @@ const EnvironmentGroup = ({
   if (environments.length === 0) return null;
 
   const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
+    setIsExpanded((prev) => !prev);
   };
 
   const getGroupResolutionState = () => {
@@ -46,7 +44,7 @@ const EnvironmentGroup = ({
   const groupResolutionState = getGroupResolutionState();
 
   return (
-    <div className={cx('group-container', { 'has-border-bottom': hasBorderBottom })} data-testid={dataTestId}>
+    <div className="group-container" data-testid={dataTestId}>
       <div className="group-header">
         <div className="group-title-wrapper" onClick={toggleExpanded}>
           {isExpanded ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}

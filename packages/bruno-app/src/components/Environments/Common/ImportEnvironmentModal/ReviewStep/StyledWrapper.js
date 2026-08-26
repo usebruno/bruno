@@ -92,7 +92,7 @@ export const StyledWrapper = styled.div`
   }
 
   .group-container {
-    &.has-border-bottom {
+    &:not(:last-child) {
       border-bottom: 1px solid ${(props) => props.theme.border.border0};
     }
   }

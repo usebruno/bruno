@@ -16,12 +16,13 @@ export const useEnvironmentTarget = (type, collection) => {
     const action = isGlobal
       ? saveGlobalEnvironment({ variables: environment.variables, environmentUid: existingEnv.uid })
       : saveEnvironment(environment.variables, existingEnv.uid, collection.uid);
-    const colorAction = isGlobal
-      ? updateGlobalEnvironmentColor(existingEnv.uid, environment.color)
-      : updateEnvironmentColor(existingEnv.uid, environment.color, collection.uid);
 
     await dispatch(action);
+
     if (environment.color !== undefined) {
+      const colorAction = isGlobal
+        ? updateGlobalEnvironmentColor(existingEnv.uid, environment.color)
+        : updateEnvironmentColor(existingEnv.uid, environment.color, collection.uid);
       await dispatch(colorAction);
     }
   }, [isGlobal, collection, dispatch]);
