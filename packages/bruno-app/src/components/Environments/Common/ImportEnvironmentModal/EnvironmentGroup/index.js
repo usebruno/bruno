@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import cx from 'classnames';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 import MenuDropdown from 'ui/MenuDropdown';
-import { DropdownTrigger } from '../StyledWrapper';
+import { DropdownTrigger } from '../ReviewStep/StyledWrapper';
 import EnvironmentRow from '../EnvironmentRow';
+import { RESOLUTION_TYPES, RESOLUTION_LABELS } from '../utils';
 
 const EnvironmentGroup = ({
   title,
@@ -27,17 +29,24 @@ const EnvironmentGroup = ({
     setIsExpanded(!isExpanded);
   };
 
-  const getDropdownValue = () => {
-    if (environments.length === 0) return 'Custom';
-    const allCopy = environments.every((env) => resolutions.get(env.id) === 'copy');
-    if (allCopy) return 'copy';
-    const allReplace = environments.every((env) => resolutions.get(env.id) === 'replace');
-    if (allReplace) return 'replace';
-    return 'Custom';
+  const getGroupResolutionState = () => {
+    if (environments.length === 0 || !resolutions) return RESOLUTION_TYPES.CUSTOM;
+    const allCopy = environments.every((env) => resolutions.get(env.id) === RESOLUTION_TYPES.COPY);
+    if (allCopy) return RESOLUTION_TYPES.COPY;
+    const allReplace = environments.every((env) => resolutions.get(env.id) === RESOLUTION_TYPES.REPLACE);
+    if (allReplace) return RESOLUTION_TYPES.REPLACE;
+    return RESOLUTION_TYPES.CUSTOM;
   };
 
+  const getResolutionMenuItems = (onSetGroupResolution) => [
+    { id: RESOLUTION_TYPES.COPY, label: RESOLUTION_LABELS[RESOLUTION_TYPES.COPY], onClick: () => onSetGroupResolution(RESOLUTION_TYPES.COPY) },
+    { id: RESOLUTION_TYPES.REPLACE, label: RESOLUTION_LABELS[RESOLUTION_TYPES.REPLACE], onClick: () => onSetGroupResolution(RESOLUTION_TYPES.REPLACE) }
+  ];
+
+  const groupResolutionState = getGroupResolutionState();
+
   return (
-    <div className={`group-container ${hasBorderBottom ? 'has-border-bottom' : ''}`} data-testid={dataTestId}>
+    <div className={cx('group-container', { 'has-border-bottom': hasBorderBottom })} data-testid={dataTestId}>
       <div className="group-header">
         <div className="group-title-wrapper" onClick={toggleExpanded}>
           {isExpanded ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
@@ -46,15 +55,12 @@ const EnvironmentGroup = ({
         </div>
         {showResolutions && (
           <MenuDropdown
-            items={[
-              { id: 'copy', label: 'Import as copy', onClick: () => setGroupResolution('copy') },
-              { id: 'replace', label: 'Replace existing', onClick: () => setGroupResolution('replace') }
-            ]}
-            selectedItemId={getDropdownValue() !== 'Custom' ? getDropdownValue() : null}
+            items={getResolutionMenuItems(setGroupResolution)}
+            selectedItemId={groupResolutionState !== RESOLUTION_TYPES.CUSTOM ? groupResolutionState : null}
           >
             <DropdownTrigger data-testid="env-import-group-dropdown">
               <span>
-                {getDropdownValue() === 'Custom' ? 'Custom' : getDropdownValue() === 'copy' ? 'Import as copy' : 'Replace existing'}
+                {RESOLUTION_LABELS[groupResolutionState]}
               </span>
               <IconChevronDown size={14} className="icon-chevron" />
             </DropdownTrigger>
@@ -72,14 +78,14 @@ const EnvironmentGroup = ({
                 env={env}
                 isSelected={isSelected}
                 resolution={resolution}
-                toggleItemSelection={() => toggleItemSelection(env.id)}
-                setItemResolution={(res) => setItemResolution(env.id, res)}
+                toggleItemSelection={toggleItemSelection}
+                setItemResolution={setItemResolution}
                 showResolutions={showResolutions}
               />
             );
           })}
           {environments.length === 0 && searchText && (
-            <div className="empty-state">No matching {title.toLowerCase()}</div>
+            <div className="empty-state">No {title.toLowerCase()} environments found matching your search</div>
           )}
         </div>
       )}

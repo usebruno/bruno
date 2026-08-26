@@ -10,3 +10,15 @@ export const detectEnvironmentFormat = (data) => {
   }
   return 'bruno';
 };
+
+export const RESOLUTION_TYPES = {
+  CUSTOM: 'custom',
+  COPY: 'copy',
+  REPLACE: 'replace'
+};
+
+export const RESOLUTION_LABELS = {
+  [RESOLUTION_TYPES.CUSTOM]: 'Custom',
+  [RESOLUTION_TYPES.COPY]: 'Import as copy',
+  [RESOLUTION_TYPES.REPLACE]: 'Replace existing'
+};

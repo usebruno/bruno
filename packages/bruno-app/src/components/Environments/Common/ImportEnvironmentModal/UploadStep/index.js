@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { IconFileImport } from '@tabler/icons';
-import { StyledWrapper } from '../StyledWrapper';
+import { StyledWrapper } from './StyledWrapper';
 
 const UploadStep = ({ modalTitle, modalTestId, importTestId, onClose, handleImportEnvironment }) => {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -43,7 +43,6 @@ const UploadStep = ({ modalTitle, modalTestId, importTestId, onClose, handleImpo
         size="md"
         title={modalTitle}
         hideFooter={true}
-        handleConfirm={onClose}
         handleCancel={onClose}
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
@@ -52,6 +51,14 @@ const UploadStep = ({ modalTitle, modalTestId, importTestId, onClose, handleImpo
           <div className="upload-container">
             <div
               className={`upload-dropzone ${isDragOver ? 'is-drag-over' : ''}`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleFileSelect();
+                }
+              }}
               onClick={handleFileSelect}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -63,7 +70,7 @@ const UploadStep = ({ modalTitle, modalTestId, importTestId, onClose, handleImpo
                 {isDragOver ? 'Drop your environment files here' : 'Import your environments'}
               </span>
               <span className="upload-dropzone-subtitle">
-                Drag & drop JSON files/folders or click to browse. Supports both Bruno and Postman formats.
+                Drag & drop JSON files or click to browse. Supports both Bruno and Postman formats.
               </span>
             </div>
           </div>

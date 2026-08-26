@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTheme } from 'styled-components';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import CountBadge from 'ui/CountBadge';
-import { StyledWrapper } from '../StyledWrapper';
+import { StyledWrapper } from './StyledWrapper';
 import { pluralizeWord } from 'utils/common/index';
 import EnvironmentGroup from '../EnvironmentGroup';
 
@@ -23,42 +23,55 @@ const ReviewStep = ({
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
 
-  const newEnvs = items.filter((env) => env.status === 'new');
-  const duplicates = items.filter((env) => env.status === 'duplicate');
+  const newEnvs = useMemo(() => items.filter((env) => env.status === 'new'), [items]);
+  const duplicates = useMemo(() => items.filter((env) => env.status === 'duplicate'), [items]);
 
-  const totalEnvironments = newEnvs.length + duplicates.length;
-  const isAllSelected = selected.size === totalEnvironments && totalEnvironments > 0;
+  const totalEnvironments = items.filter((env) => env.status !== 'invalid').length;
 
-  const toggleSelectAll = (checked) => {
+  const normalizedSearchText = searchText.toLowerCase();
+
+  const filteredNew = useMemo(() => newEnvs.filter((env) =>
+    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText)
+  ), [newEnvs, normalizedSearchText]);
+
+  const filteredDuplicates = useMemo(() => duplicates.filter((env) =>
+    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText)
+  ), [duplicates, normalizedSearchText]);
+
+  const isAllSelected = (filteredNew.length + filteredDuplicates.length) > 0
+    && [...filteredNew, ...filteredDuplicates].every((e) => selected.has(e.id));
+
+  const toggleSelectAll = useCallback((checked) => {
     if (checked) {
-      const allSelected = new Set([...newEnvs, ...duplicates].map((e) => e.id));
+      const allSelected = new Set([...filteredNew, ...filteredDuplicates].map((e) => e.id));
       setSelected(allSelected);
     } else {
       setSelected(new Set());
     }
-  };
+  }, [filteredNew, filteredDuplicates, setSelected]);
 
-  const toggleItemSelection = (envId) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(envId)) newSelected.delete(envId);
-    else newSelected.add(envId);
-    setSelected(newSelected);
-  };
-
-  const setGroupResolution = (res) => {
-    const newResolutions = new Map(resolutions);
-    duplicates.forEach((env) => {
-      newResolutions.set(env.id, res);
+  const toggleItemSelection = useCallback((envId) => {
+    setSelected((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(envId)) newSelected.delete(envId);
+      else newSelected.add(envId);
+      return newSelected;
     });
-    setResolutions(newResolutions);
-  };
+  }, [setSelected]);
 
-  const setItemResolution = (envId, res) => {
-    setResolutions(new Map(resolutions).set(envId, res));
-  };
+  const setGroupResolution = useCallback((res) => {
+    setResolutions((prev) => {
+      const newResolutions = new Map(prev);
+      duplicates.forEach((env) => {
+        newResolutions.set(env.id, res);
+      });
+      return newResolutions;
+    });
+  }, [duplicates, setResolutions]);
 
-  const filteredNew = newEnvs.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
-  const filteredDuplicates = duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const setItemResolution = useCallback((envId, res) => {
+    setResolutions((prev) => new Map(prev).set(envId, res));
+  }, [setResolutions]);
 
   return (
     <Portal>

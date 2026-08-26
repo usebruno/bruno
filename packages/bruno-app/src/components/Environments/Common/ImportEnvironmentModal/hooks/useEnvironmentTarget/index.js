@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { importEnvironment, saveEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment, saveGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
@@ -8,10 +9,10 @@ export const useEnvironmentTarget = (type, collection) => {
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const isGlobal = type === 'global';
 
-  const existingEnvironments = isGlobal ? globalEnvironments : (collection?.environments || []);
-  const existingNames = existingEnvironments.map((e) => e.name);
+  const existingEnvironments = useMemo(() => isGlobal ? globalEnvironments : (collection?.environments || []), [isGlobal, globalEnvironments, collection]);
+  const existingNames = useMemo(() => existingEnvironments.map((e) => e.name), [existingEnvironments]);
 
-  const saveEnv = async (environment, existingEnv) => {
+  const saveEnv = useCallback(async (environment, existingEnv) => {
     const action = isGlobal
       ? saveGlobalEnvironment({ variables: environment.variables, environmentUid: existingEnv.uid })
       : saveEnvironment(environment.variables, existingEnv.uid, collection.uid);
@@ -20,24 +21,23 @@ export const useEnvironmentTarget = (type, collection) => {
       : updateEnvironmentColor(existingEnv.uid, environment.color, collection.uid);
 
     await dispatch(action);
-    if (colorAction) {
+    if (environment.color !== undefined) {
       await dispatch(colorAction);
     }
-  };
+  }, [isGlobal, collection, dispatch]);
 
-  const createEnv = async (name, environment) => {
+  const createEnv = useCallback(async (name, environment) => {
     const action = isGlobal
       ? addGlobalEnvironment({ name, variables: environment.variables, color: environment.color })
       : importEnvironment({ name, variables: environment.variables, color: environment.color, collectionUid: collection?.uid });
     await dispatch(action);
-  };
+  }, [isGlobal, collection, dispatch]);
 
-  const getExistingEnv = (name) => {
+  const getExistingEnv = useCallback((name) => {
     return existingEnvironments.find((e) => normalizeEnvName(e.name) === normalizeEnvName(name));
-  };
+  }, [existingEnvironments]);
 
   return {
-    isGlobal,
     existingNames,
     saveEnv,
     createEnv,
