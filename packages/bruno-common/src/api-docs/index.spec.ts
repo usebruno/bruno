@@ -139,6 +139,25 @@ describe('generateApiDocsHtml', () => {
     expect(openCollection.extensions.bruno).toEqual({ exportedAt: 'T', exportedUsing: 'Bruno/1' });
   });
 
+  it('drops a converter-derived version when no collectionVersion is provided (bru schema marker "1")', () => {
+    const deps = makeDeps({
+      brunoToOpenCollection: jest.fn((c: any) => ({ info: { name: c.name || 'X', version: '1' }, items: c.items }))
+    });
+    generateApiDocsHtml({ name: 'C', items: [] }, { collectionVersion: '' }, deps as any);
+    const openCollection = deps.dumpYaml.mock.calls[0][0] as any;
+    expect(openCollection.info.version).toBeUndefined();
+    expect(openCollection.info.name).toBe('C');
+  });
+
+  it('overrides a converter-derived version with the provided collectionVersion', () => {
+    const deps = makeDeps({
+      brunoToOpenCollection: jest.fn((c: any) => ({ info: { name: c.name || 'X', version: '1' }, items: c.items }))
+    });
+    generateApiDocsHtml({ name: 'C', items: [] }, { collectionVersion: '3.1' }, deps as any);
+    const openCollection = deps.dumpYaml.mock.calls[0][0] as any;
+    expect(openCollection.info.version).toBe('3.1');
+  });
+
   it('embeds the git link only when provided', () => {
     const deps = makeDeps();
     expect(generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any)).not.toContain('gitCollectionUrl');

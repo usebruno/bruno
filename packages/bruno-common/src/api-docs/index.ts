@@ -105,6 +105,8 @@ const augmentDocsMetadata = (openCollection: DocsOpenCollection, metadata: ApiDo
 
   if (collectionVersion != null && collectionVersion !== '') {
     openCollection.info = { ...openCollection.info, version: String(collectionVersion) };
+  } else if (openCollection.info) {
+    delete openCollection.info.version;
   }
 
   openCollection.extensions = {
