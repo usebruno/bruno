@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const jsesc = require('jsesc');
 const { brunoToOpenCollection } = require('@usebruno/converters');
-const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion, sortByNameThenSequence: sortFolders } = require('@usebruno/common');
+const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion } = require('@usebruno/common');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
 const { loadEnvironments } = require('../../utils/environment');
 const { splitCsv, findConflict, getGitRemoteUrl } = require('../../utils/common');
@@ -62,7 +62,7 @@ const handler = async (argv) => {
 
     global.brunoSkippedFiles = [];
     const collectionPath = process.cwd();
-    const collection = createCollectionJsonFromPathname(collectionPath, { sortFolders });
+    const collection = createCollectionJsonFromPathname(collectionPath);
 
     collection.name = collection.brunoConfig?.name;
     try {
@@ -74,8 +74,8 @@ const handler = async (argv) => {
 
     const includeTags = splitCsv(argv.tags);
     const excludeTags = splitCsv(argv.excludeTags);
-    const includeEnvs = splitCsv(argv.envs);
-    const excludeEnvs = splitCsv(argv.excludeEnvs);
+    const includeEnvs = [...new Set(splitCsv(argv.envs))];
+    const excludeEnvs = [...new Set(splitCsv(argv.excludeEnvs))];
 
     const conflictingTag = findConflict(includeTags, excludeTags);
     if (conflictingTag) {
@@ -89,9 +89,9 @@ const handler = async (argv) => {
     }
 
     const availableEnvNames = new Set(collection.environments.map((env) => env.name));
-    const missingEnv = [...includeEnvs, ...excludeEnvs].find((name) => !availableEnvNames.has(name));
-    if (missingEnv) {
-      console.error(chalk.red('Environment not found: ') + chalk.dim(missingEnv));
+    const missingEnvs = [...includeEnvs, ...excludeEnvs].filter((name) => !availableEnvNames.has(name));
+    if (missingEnvs.length > 0) {
+      console.error(chalk.red('Environments not found: ') + chalk.dim(missingEnvs.join(', ')));
       process.exit(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
     }
 

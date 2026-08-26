@@ -160,6 +160,13 @@ describe('bru docs generate: environment selection', () => {
     expect(html.indexOf('Staging')).toBeLessThan(html.indexOf('Production'));
   });
 
+  it('embeds an environment once even when --envs repeats it', async () => {
+    const output = path.join(outDir, 'dup.html');
+    await generate.handler({ output, gitLink: false, format: 'html', envs: 'Production,Production' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect((html.match(/name: Production/g) || []).length).toBe(1);
+  });
+
   it('includes every environment except the ones in --exclude-envs', async () => {
     const output = path.join(outDir, 'exclude.html');
     await generate.handler({ output, gitLink: false, format: 'html', excludeEnvs: 'Production' });
@@ -175,6 +182,18 @@ describe('bru docs generate: environment selection', () => {
       generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, format: 'html', envs: 'DoesNotExist' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+  });
+
+  it('lists every unknown environment name in a single error', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, format: 'html', envs: 'NopeOne,NopeTwo' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('NopeOne');
+    expect(message).toContain('NopeTwo');
   });
 
   it('errors when --exclude-envs names an environment that does not exist', async () => {
