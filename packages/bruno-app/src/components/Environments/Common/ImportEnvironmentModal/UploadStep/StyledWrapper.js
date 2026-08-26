@@ -26,12 +26,12 @@ export const StyledWrapper = styled.div`
     
     &:focus {
       outline: none;
-      box-shadow: 0 0 0 2px ${(props) => props.theme.brand}, 0 0 0 4px transparent;
+      border-color: ${(props) => props.theme.brand};
     }
 
     &.is-drag-over {
-      border-color: ${(props) => props.theme.colors.text.yellow};
-      background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
+      border-color: ${(props) => props.theme.brand};
+      background-color: ${(props) => rgba(props.theme.brand, 0.1)};
     }
   }
 
