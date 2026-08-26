@@ -3,7 +3,7 @@ import {
   buildCommonLocators,
   openRequest,
   openRequestInFolder,
-  selectResponsePaneTab,
+  selectResponsePaneTabViaOverflow,
   sendRequest,
   setSandboxMode
 } from '../../utils/page';
@@ -18,7 +18,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '01-tests-tab-async');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Tests (4), Passed: 2, Failed: 2');
     // Settlement order, not script order: a throwing sync callback fails before its first
@@ -38,7 +38,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '02-pre-request-async');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Pre-Request Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
@@ -53,7 +53,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '03-post-response-async');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Post-Response Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
@@ -63,21 +63,22 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
   });
 
   test('All three phases on one request are awaited independently', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '04-all-phases-async');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    // testSummary() alone is ambiguous once all three sections coexist (its `hasText: 'Tests'`
-    // filter matches "Pre-Request Tests"/"Post-Response Tests" too), so each section is
-    // matched by its own anchored prefix instead.
-    await expect(page.locator('.test-summary').filter({ hasText: /^Pre-Request Tests/ })).toContainText(
+    // The default testSummary() filter is ambiguous once all three sections coexist (it
+    // matches "Pre-Request Tests"/"Post-Response Tests" too), so each section is selected
+    // by its own anchored prefix instead.
+    await expect(locators.response.testSummary(/^Pre-Request Tests/)).toContainText(
       'Pre-Request Tests (2), Passed: 2, Failed: 0'
     );
-    await expect(page.locator('.test-summary').filter({ hasText: /^Post-Response Tests/ })).toContainText(
+    await expect(locators.response.testSummary(/^Post-Response Tests/)).toContainText(
       'Post-Response Tests (2), Passed: 2, Failed: 0'
     );
-    await expect(page.locator('.test-summary').filter({ hasText: /^Tests \(/ })).toContainText(
+    await expect(locators.response.testSummary(/^Tests \(/)).toContainText(
       'Tests (4), Passed: 2, Failed: 2'
     );
   });
@@ -88,9 +89,9 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '05-multiple-async-tests');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Tests (5), Passed: 5, Failed: 0', { timeout: 10000 });
+    await expect(locators.response.testSummary()).toContainText('Tests (5), Passed: 5, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync control',
       'async 100ms',
@@ -106,15 +107,34 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '06-hung-test-timeout');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     // TEST_AWAIT_TIMEOUT_MS is 5s; give the UI room to actually render after that.
-    await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0', { timeout: 15000 });
+    await expect(locators.response.testSummary()).toContainText('Tests (3), Passed: 2, Failed: 1');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync control (before hang)',
-      'sync control (after hang)'
+      'sync control (after hang)',
+      'hung test - never resolves (bug check)'
     ]);
-    await expect(page.getByText('hung test - never resolves')).toHaveCount(0);
+  });
+
+  test('An async test() callback awaiting a real outgoing request (bru.sendRequest) is not dropped', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
+    await setSandboxMode(page, COLLECTION, 'developer');
+    await openRequest(page, COLLECTION, '07-real-request-async-test');
+    await sendRequest(page, 200);
+
+    // At this window size the response pane's tab bar never has room for "Tests"
+    // directly - it's always behind the ">>" overflow arrow, so open that first and
+    // pick "Tests" from its dropdown rather than going through selectResponsePaneTab.
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
+    await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.assertionResults.rows()).toContainText([
+      'sync pass (control)',
+      'async test awaiting a real request (bug check)'
+    ]);
   });
 
   test('A collection-level test script (defined in opencollection.yml) is awaited for a request with no test script of its own', async ({ pageWithUserData: page }) => {
@@ -123,7 +143,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION_SCRIPT_COLLECTION, 'developer');
     await openRequest(page, COLLECTION_SCRIPT_COLLECTION, '01-target');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
@@ -138,7 +158,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequestInFolder(page, 'async-folder', '08-folder-level-target');
     await sendRequest(page, 200);
-    await selectResponsePaneTab(page, 'Tests');
+    await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([

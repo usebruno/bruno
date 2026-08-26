@@ -23,8 +23,9 @@ const stripAnsi = (text) => text.replace(/\x1b\[[0-9;]*m/g, '');
  * line for a result it actually received.
  *
  * 01/02 additionally chain an async test() result across two separate requests via a var
- * (mirroring the safe-mode pattern in quickjs-trap-containment/), while 03 proves all three
- * script phases are awaited independently within a single request.
+ * (mirroring the safe-mode pattern in quickjs-trap-containment/), 03 proves all three
+ * script phases are awaited independently within a single request, and 04 waits on a real
+ * outgoing HTTP call (bru.sendRequest) instead of a timer.
  */
 describe('CLI run — async test() callbacks in developer sandbox', () => {
   let server;
@@ -63,6 +64,9 @@ describe('CLI run — async test() callbacks in developer sandbox', () => {
       expect(output).toContain('✓ post-response async test (bug check)');
       expect(output).toContain('✓ sync pass (control)');
       expect(output).toContain('✓ async assertion never runs (bug check)');
+
+      // 04: waiting on a real HTTP call, not just a timer, is awaited the same way.
+      expect(output).toContain('✓ async test awaiting a real request (bug check)');
 
       // 03's tests tab carries two deliberate control-group failures, so the run as a
       // whole exits non-zero (ERROR_FAILED_COLLECTION) - that's expected, not a bug.
