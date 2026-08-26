@@ -34,7 +34,6 @@ const ResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
-  const [prettifiedOverride, setPrettifiedOverride] = useState(null);
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
@@ -92,11 +91,6 @@ const ResponsePane = ({ item, collection }) => {
       setShowScriptErrorCard(true);
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
-
-  // Drop manual prettify when a new response arrives
-  useEffect(() => {
-    setPrettifiedOverride(null);
-  }, [response.bodyRef, response.size, response.status]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -169,7 +163,6 @@ const ResponsePane = ({ item, collection }) => {
             filterExpanded={focusedTab?.responseFilterExpanded}
             onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
             onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
-            prettifiedOverride={prettifiedOverride}
           />
         );
       }
@@ -276,7 +269,6 @@ const ResponsePane = ({ item, collection }) => {
             selectedFormat={selectedFormat}
             selectedTab={selectedViewTab}
             data={response.data}
-            onPrettified={setPrettifiedOverride}
           />
         ) : null}
       </div>

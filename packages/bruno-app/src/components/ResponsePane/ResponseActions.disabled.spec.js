@@ -4,7 +4,6 @@ import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import ResponseCopy from './ResponseCopy/index';
 import ResponseDownload from './ResponseDownload/index';
-import ResponsePrettify from './ResponsePrettify/index';
 
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
@@ -57,16 +56,6 @@ describe('response actions disabled for file-backed / missing bodies', () => {
       <ResponseCopy item={{}} selectedFormat="json" selectedTab="editor" data='{"a":1}' />
     );
     expect(screen.getByTestId('response-copy-btn')).not.toHaveAttribute('aria-disabled', 'true');
-  });
-
-  test('prettify is disabled when data is missing', () => {
-    renderWithTheme(<ResponsePrettify data={null} onPrettified={jest.fn()} />);
-    expect(screen.getByTestId('response-prettify-btn')).toHaveAttribute('aria-disabled', 'true');
-  });
-
-  test('prettify is enabled for in-memory JSON text', () => {
-    renderWithTheme(<ResponsePrettify data='{"a":1}' onPrettified={jest.fn()} />);
-    expect(screen.getByTestId('response-prettify-btn')).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   test('download is disabled without bodyRef', () => {

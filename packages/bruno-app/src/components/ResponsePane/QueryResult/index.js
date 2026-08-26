@@ -108,8 +108,7 @@ const QueryResult = ({
   filterExpanded,
   onFilterChange,
   onFilterExpandChange,
-  docKey,
-  prettifiedOverride
+  docKey
 }) => {
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
@@ -142,12 +141,9 @@ const QueryResult = ({
       if (isLargeResponse && !showLargeResponse) {
         return '';
       }
-      if (prettifiedOverride != null) {
-        return prettifiedOverride;
-      }
       return formatResponse(data, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse, prettifiedOverride]
+    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
   );
 
   const handleFilterChange = (value) => {
