@@ -1,4 +1,6 @@
-import { test, expect } from '../../../playwright';
+import * as fs from 'fs';
+import * as path from 'path';
+import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { openCollectionRequest, sendReqAndSaveResposeExample } from '../../utils/page/response-example';
 
@@ -73,55 +75,91 @@ const binaryPreviewCases = [
   }
 ];
 
+const initUserDataPath = path.join(__dirname, 'init-user-data');
+const fixtureCollectionPath = path.join(__dirname, 'fixtures', 'collection');
+
+type LaunchFixtures = {
+  launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
+  createTmpDir: (tag?: string) => Promise<string>;
+};
+
+const launchWithIsolatedCollection = async ({ launchElectronApp, createTmpDir }: LaunchFixtures) => {
+  const collectionPath = await createTmpDir('binary-preview-collection');
+  await fs.promises.cp(fixtureCollectionPath, collectionPath, { recursive: true });
+  const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
+  const page = await waitForReadyPage(app);
+  return { app, page };
+};
+
 test.describe('Binary response example previews', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   for (const { requestName, folderName, exampleName, previewType, expectedMime } of binaryPreviewCases) {
-    test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }) => {
-      await openCollectionRequest(page, 'binary-preview', folderName, requestName);
-      await sendReqAndSaveResposeExample(page, requestName, exampleName);
+    test(`should preview a saved ${previewType} response (${requestName})`, async ({ launchElectronApp, createTmpDir }) => {
+      const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
-      await test.step('Verify the binary preview renders', async () => {
-        const preview = buildCommonLocators(page).responseExample.binaryPreview();
-        await expect(preview).toBeVisible();
-        await expect(preview).toHaveAttribute('data-preview-type', previewType);
+      try {
+        await openCollectionRequest(page, 'binary-preview', folderName, requestName);
+        await sendReqAndSaveResposeExample(page, requestName, exampleName);
 
-        if (previewType === 'image') {
-          await expect(preview.locator('img')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
-        } else if (previewType === 'pdf') {
-          await expect(preview.locator('.preview-pdf canvas').first()).toBeVisible();
-        } else if (previewType === 'audio') {
-          await expect(preview.locator('audio')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
-        } else if (previewType === 'video') {
-          // VideoPreview serves the bytes through a blob URL, not a data URI
-          await expect(preview.locator('video')).toHaveAttribute('src', /^blob:/);
-        }
-      });
+        await test.step('Verify the binary preview renders', async () => {
+          const preview = buildCommonLocators(page).responseExample.binaryPreview();
+          await expect(preview).toBeVisible();
+          await expect(preview).toHaveAttribute('data-preview-type', previewType);
+
+          if (previewType === 'image') {
+            await expect(preview.locator('img')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
+          } else if (previewType === 'pdf') {
+            await expect(preview.locator('.preview-pdf canvas').first()).toBeVisible();
+          } else if (previewType === 'audio') {
+            await expect(preview.locator('audio')).toHaveAttribute('src', new RegExp(`^data:${expectedMime};base64,`));
+          } else if (previewType === 'video') {
+            // VideoPreview serves the bytes through a blob URL, not a data URI
+            await expect(preview.locator('video')).toHaveAttribute('src', /^blob:/);
+          }
+        });
+      } finally {
+        await closeElectronApp(app);
+      }
     });
   }
 
-  test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ pageWithUserData: page }) => {
-    await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-mislabeled');
-    await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
+  test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
-    await test.step('Verify the sniffed image preview renders', async () => {
-      const preview = buildCommonLocators(page).responseExample.binaryPreview();
-      await expect(preview).toBeVisible();
-      await expect(preview).toHaveAttribute('data-preview-type', 'image');
-      await expect(preview.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
-    });
+    try {
+      await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-mislabeled');
+      await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
+
+      await test.step('Verify the sniffed image preview renders', async () => {
+        const preview = buildCommonLocators(page).responseExample.binaryPreview();
+        await expect(preview).toBeVisible();
+        await expect(preview).toHaveAttribute('data-preview-type', 'image');
+        await expect(preview.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
   });
 
-  test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
+  test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
-    await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-unknown-binary');
-    await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
+    try {
+      const locators = buildCommonLocators(page);
 
-    // application/octet-stream bytes with no recognizable signature have no
-    // visual preview — the raw base64 body renders in the editor instead.
-    await test.step('Verify the raw body renders instead of a binary preview', async () => {
-      await expect(locators.responseExample.title()).toBeVisible();
-      await expect(locators.responseExample.binaryPreview()).toHaveCount(0);
-      await expect(locators.responseExample.responseContent().locator('.CodeMirror').first()).toContainText('AAECAwQFBgcI');
-    });
+      await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-unknown-binary');
+      await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
+
+      // application/octet-stream bytes with no recognizable signature have no
+      // visual preview — the raw base64 body renders in the editor instead.
+      await test.step('Verify the raw body renders instead of a binary preview', async () => {
+        await expect(locators.responseExample.title()).toBeVisible();
+        await expect(locators.responseExample.binaryPreview()).toHaveCount(0);
+        await expect(locators.responseExample.responseContent().locator('.CodeMirror').first()).toContainText('AAECAwQFBgcI');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
   });
 });
