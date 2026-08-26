@@ -76,13 +76,9 @@ describe('response-body IPC adapter', () => {
     jest.dontMock('../../utils/filesystem');
   });
 
-  test('stat / read / pin / release / save round-trip', async () => {
+  test('pin / release / save round-trip', async () => {
     const { CHANNELS } = require('./ipc');
     const { bodyRef } = await store.putBuffer(Buffer.from('hello'));
-
-    expect(await handlers[CHANNELS.STAT]({}, bodyRef)).toMatchObject({ size: 5, storage: 'memory' });
-    const b64 = await handlers[CHANNELS.READ]({}, bodyRef, 0, 5);
-    expect(Buffer.from(b64, 'base64').toString()).toBe('hello');
 
     const pinId = await handlers[CHANNELS.PIN]({}, bodyRef);
     expect(typeof pinId).toBe('string');

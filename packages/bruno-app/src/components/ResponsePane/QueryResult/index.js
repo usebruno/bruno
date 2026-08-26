@@ -1,9 +1,10 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import { useResponseBodyWindow, mediaUrlFor } from 'utils/response-body';
+import { mediaUrlFor } from 'utils/response-body';
+import LargeResponseWarning, { LARGE_RESPONSE_BYTES } from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -40,8 +41,6 @@ const formatErrorMessage = (error) => {
 
   return error;
 };
-
-const LARGE_RESPONSE_BYTES = 10 * 1024 * 1024;
 
 // Custom hook to determine the initial format and tab based on the data buffer and headers
 export const useInitialResponseFormat = (dataBuffer, headers) => {
@@ -113,6 +112,7 @@ const QueryResult = ({
   prettifiedOverride
 }) => {
   const contentType = getContentType(headers);
+  const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
   const response = item.response || {};
   const bodyRef = response.bodyRef;
@@ -129,31 +129,9 @@ const QueryResult = ({
     return 0;
   }, [dataBuffer, response.size]);
 
-  const needsWindowedText = Boolean(bodyRef) && responseSize > LARGE_RESPONSE_BYTES && !data;
+  const isLargeResponse = responseSize > LARGE_RESPONSE_BYTES;
   const mediaSrc = useMemo(() => mediaUrlFor(bodyRef), [bodyRef]);
-  const {
-    text: windowedText,
-    loading: windowLoading,
-    error: windowError,
-    scrollAnchor,
-    loadMore,
-    loadPrevious
-  } = useResponseBodyWindow(bodyRef, {
-    totalSize: responseSize,
-    enabled: needsWindowedText
-  });
 
-  const handleNearBottomScroll = useCallback(() => {
-    if (needsWindowedText) {
-      loadMore();
-    }
-  }, [needsWindowedText, loadMore]);
-
-  const handleNearTopScroll = useCallback(() => {
-    if (needsWindowedText) {
-      loadPrevious();
-    }
-  }, [needsWindowedText, loadPrevious]);
   const detectedContentType = useMemo(() => {
     if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
     return null;
@@ -161,16 +139,15 @@ const QueryResult = ({
 
   const formattedData = useMemo(
     () => {
-      if (prettifiedOverride != null && !needsWindowedText) {
-        return prettifiedOverride;
+      if (isLargeResponse && !showLargeResponse) {
+        return '';
       }
-      // File-backed windows stay as raw byte slices in a sliding viewport
-      if (needsWindowedText) {
-        return windowedText || (windowLoading ? 'Loading response…' : '');
+      if (prettifiedOverride != null) {
+        return prettifiedOverride;
       }
       return formatResponse(data, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, needsWindowedText, windowedText, windowLoading, prettifiedOverride]
+    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse, prettifiedOverride]
   );
 
   const handleFilterChange = (value) => {
@@ -237,16 +214,19 @@ const QueryResult = ({
             </div>
           ) : null}
         </div>
+      ) : isLargeResponse && !showLargeResponse ? (
+        <LargeResponseWarning
+          item={item}
+          responseSize={responseSize}
+          onRevealResponse={() => setShowLargeResponse(true)}
+        />
       ) : (
         <div className="h-full flex flex-col">
-          {windowError ? (
-            <div className="error p-2 text-sm">{windowError}</div>
-          ) : null}
           <div className="flex-1 relative">
             <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
-                data={data ?? windowedText}
+                data={data}
                 dataBuffer={dataBuffer}
                 formattedData={formattedData}
                 item={item}
@@ -258,9 +238,6 @@ const QueryResult = ({
                 displayedTheme={displayedTheme}
                 docKey={docKey}
                 mediaSrc={mediaSrc}
-                onNearBottomScroll={needsWindowedText ? handleNearBottomScroll : undefined}
-                onNearTopScroll={needsWindowedText ? handleNearTopScroll : undefined}
-                scrollAnchor={needsWindowedText ? scrollAnchor : undefined}
               />
             </div>
           </div>

@@ -18,8 +18,7 @@ const toJsonText = (data) => {
 
 /**
  * Prettify only works on in-memory response `data`.
- * File-backed / windowed bodies stay on byte-offset reads — formatting them
- * would replace the sliding viewport and break scroll virtualization.
+ * File-backed bodies (over the large-response threshold) have no inline data.
  */
 export const useResponsePrettify = (data, onPrettified) => {
   const text = toJsonText(data);

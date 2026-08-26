@@ -3,7 +3,7 @@ const router = express.Router();
 
 const FILLER = 'bruno large payload ';
 const DEFAULT_SIZE = 1024 * 1024;
-const MAX_SIZE = 64 * 1024 * 1024;
+const MAX_SIZE = 128 * 1024 * 1024;
 
 const clampSize = (requested) => {
   const n = parseInt(requested, 10);
@@ -12,14 +12,14 @@ const clampSize = (requested) => {
 
 const textPayload = (size) => FILLER.repeat(Math.ceil(size / FILLER.length)).slice(0, size);
 
-// Responds with `?size` bytes of plain text (default 1 MB, clamped to 0-64 MB).
+// Responds with `?size` bytes of plain text (default 1 MB, clamped to 0-128 MB).
 router.get('/', (req, res) => {
   const size = clampSize(req.query.size);
   res.setHeader('content-type', 'text/plain; charset=utf-8');
   res.send(textPayload(size));
 });
 
-// JSON body of approximately `?size` bytes (for windowed JSON preview).
+// JSON body of approximately `?size` bytes.
 router.get('/json', (req, res) => {
   const size = clampSize(req.query.size);
   const prefix = '{"ok":true,"payload":"';

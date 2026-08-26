@@ -9,30 +9,6 @@ export const createResponseBodyClient = (ipcPort) => {
   }
 
   return {
-    getStat(bodyRef) {
-      return ipcPort.invoke(RESPONSE_BODY_CHANNELS.STAT, bodyRef);
-    },
-
-    async readRange(bodyRef, offset, length) {
-      const b64 = await ipcPort.invoke(RESPONSE_BODY_CHANNELS.READ, bodyRef, offset, length);
-      if (typeof b64 !== 'string') return Buffer.alloc(0);
-      if (typeof Buffer !== 'undefined') {
-        return Buffer.from(b64, 'base64');
-      }
-      const binary = atob(b64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return bytes;
-    },
-
-    async readRangeAsText(bodyRef, offset, length, encoding = 'utf-8') {
-      const buf = await this.readRange(bodyRef, offset, length);
-      if (typeof TextDecoder !== 'undefined') {
-        return new TextDecoder(encoding).decode(buf);
-      }
-      return Buffer.from(buf).toString(encoding);
-    },
-
     save(bodyRef, { url, pathname, headers } = {}) {
       return ipcPort.invoke(RESPONSE_BODY_CHANNELS.SAVE, { bodyRef, url, pathname, headers });
     },

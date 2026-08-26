@@ -30,10 +30,7 @@ const QueryResultPreview = ({
   disableRunEventListener,
   displayedTheme,
   docKey,
-  mediaSrc,
-  onNearBottomScroll,
-  onNearTopScroll,
-  scrollAnchor
+  mediaSrc
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -77,9 +74,6 @@ const QueryResultPreview = ({
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
         onLinkClick={handleResponseLinkClick}
-        onNearBottomScroll={onNearBottomScroll}
-        onNearTopScroll={onNearTopScroll}
-        scrollAnchor={scrollAnchor}
         readOnly
       />
     );

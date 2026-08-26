@@ -161,67 +161,6 @@ class CodeEditor extends React.Component {
     return getDocKey(this.props);
   }
 
-  _maybeEdgeScroll = () => {
-    if (!this.editor) {
-      return;
-    }
-
-    const wrapper = this.editor.getWrapperElement();
-    if (wrapper && wrapper.offsetParent === null) {
-      return;
-    }
-
-    const info = this.editor.getScrollInfo();
-    const bottomThreshold = this.props.nearBottomScrollThreshold ?? 400;
-    const topThreshold = this.props.nearTopScrollThreshold ?? 400;
-
-    if (
-      typeof this.props.onNearBottomScroll === 'function'
-      && info.top + info.clientHeight >= info.height - bottomThreshold
-    ) {
-      this.props.onNearBottomScroll();
-    }
-
-    if (
-      typeof this.props.onNearTopScroll === 'function'
-      && info.top <= topThreshold
-    ) {
-      this.props.onNearTopScroll();
-    }
-  };
-
-  _applyValueWithScrollAnchor = (nextValue, scrollAnchor) => {
-    const removedPrefixChars = scrollAnchor?.removedPrefixChars || 0;
-    const prependedChars = scrollAnchor?.prependedChars || 0;
-    const info = this.editor.getScrollInfo();
-    let dropHeight = 0;
-
-    if (removedPrefixChars > 0) {
-      const idx = Math.min(removedPrefixChars, this.editor.getValue().length);
-      dropHeight = this.editor.charCoords(this.editor.posFromIndex(idx), 'local').top;
-    }
-
-    this.cachedValue = String(nextValue ?? '');
-    this.editor.setValue(this.cachedValue);
-
-    if (prependedChars > 0) {
-      const idx = Math.min(prependedChars, this.cachedValue.length);
-      const addHeight = this.editor.charCoords(this.editor.posFromIndex(idx), 'local').top;
-      this.editor.scrollTo(null, info.top + addHeight);
-      return;
-    }
-
-    if (removedPrefixChars > 0) {
-      this.editor.scrollTo(null, Math.max(0, info.top - dropHeight));
-      return;
-    }
-
-    // Append-only (or full replace without prefix change) — keep cursor when possible
-    try {
-      this.editor.setCursor(this.editor.getCursor());
-    } catch (_) { /* ignore */ }
-  };
-
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
     const longLineMode = this.longLineMode;
@@ -391,7 +330,6 @@ class CodeEditor extends React.Component {
         if (this.props.onScroll && typeof this.props.onScroll === 'function') {
           this.props.onScroll(this._lastScrollTop);
         }
-        this._maybeEdgeScroll();
       });
 
       // For editors inside a scroll container (e.g. the WebSocket message list),
@@ -632,14 +570,6 @@ class CodeEditor extends React.Component {
 
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', Boolean(this.props.readOnly));
-    }
-
-    if (
-      this.props.value !== prevProps.value
-      && (typeof this.props.onNearBottomScroll === 'function'
-        || typeof this.props.onNearTopScroll === 'function')
-    ) {
-      requestAnimationFrame(() => this._maybeEdgeScroll());
     }
 
     this.ignoreChangeEvent = false;
