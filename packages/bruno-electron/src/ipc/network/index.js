@@ -10,6 +10,8 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
+const { getSentHeaders } = require('@usebruno/requests');
+const { separator, info, requestLine, responseLine, dataRow, headerRows } = require('./network-log');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
@@ -108,6 +110,57 @@ const promisifyStream = async (stream, abortController, closeOnFirst) => {
   });
 };
 
+// Records all requests sent inside an adapter, bruno's interceptor don't reach here
+const recordNtlmRequests = (httpAdapter, requests) => async (config) => {
+  const startedAt = Date.now();
+  const keep = (response) => requests.push({ config, response, startedAt, ms: Date.now() - startedAt });
+
+  try {
+    const response = await httpAdapter(config);
+    keep(response);
+    return response;
+  } catch (error) {
+    if (error.response) {
+      keep(error.response);
+    }
+    throw error;
+  }
+};
+
+// Returns request rows formatted for timeline
+const getTimelineRowsForRequests = (requests) =>
+  requests.reduce((rows, { config, response, startedAt, ms }) => {
+    separator(rows);
+    info(rows, `Preparing request to ${config.url}`);
+    info(rows, `Current time is ${new Date(startedAt).toISOString()}`);
+    requestLine(rows, config);
+    if (config.data) {
+      dataRow(rows, config.data);
+    }
+    headerRows(rows, 'requestHeader', getSentHeaders(response.request));
+    responseLine(rows, response);
+    headerRows(rows, 'responseHeader', response.headers);
+    info(rows, `Request completed in ${ms} ms`);
+
+    return rows;
+  }, []);
+
+// Bruno's interceptors have already opened this request's block, so the rows are built first and then
+// put in front of it, at the last separator: that is where the block starts, and anything before it
+// belongs to earlier requests, such as the ones a redirect left behind.
+const addRequestsToTimeline = (config, requests, answered) => {
+  const timeline = config?.metadata?.timeline;
+  const rows = getTimelineRowsForRequests(answered ? requests.slice(0, -1) : requests);
+
+  if (!timeline || !rows.length) {
+    return;
+  }
+
+  const blockStart = timeline.findLastIndex((row) => row.type === 'separator');
+
+  timeline.splice(Math.max(blockStart, 0), 0, ...rows);
+};
+
 const configureRequest = async (
   collectionUid,
   collection,
@@ -170,7 +223,19 @@ const configureRequest = async (
 
   if (request.ntlmConfig) {
     const ntlmInstance = NtlmClient(request.ntlmConfig, {});
-    axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
+    axiosInstance.defaults.adapter = async (config) => {
+      const requests = [];
+
+      try {
+        const response = await ntlmInstance.request({ ...config, adapter: recordNtlmRequests(axios.getAdapter('http'), requests) });
+        addRequestsToTimeline(response.config, requests, true);
+
+        return response;
+      } catch (error) {
+        addRequestsToTimeline(error.response?.config ?? error.config, requests, Boolean(error.response));
+        throw error;
+      }
+    };
     delete request.ntlmConfig;
   }
 
