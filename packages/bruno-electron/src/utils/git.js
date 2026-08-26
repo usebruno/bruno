@@ -4,7 +4,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const { parseRequest } = require('@usebruno/filestore');
 
-const collectionPathToGitRootPathMap = new Map();
+let collectionPathToGitRootPathMap = new Map();
 
 const simpleGitInstances = new Map();
 
@@ -64,11 +64,11 @@ const findGitRootPath = (collectionPath) => {
 };
 
 const getCollectionGitRootPath = (collectionPath) => {
-  const savedGitRootPath = collectionPathToGitRootPathMap.get(collectionPath);
+  let savedGitRootPath = collectionPathToGitRootPathMap.get(collectionPath);
   if (savedGitRootPath) {
     return savedGitRootPath;
   }
-  const gitRootPath = findGitRootPath(collectionPath);
+  let gitRootPath = findGitRootPath(collectionPath);
   collectionPathToGitRootPathMap.set(collectionPath, gitRootPath);
   return gitRootPath;
 };
@@ -270,7 +270,7 @@ const getStagedFileDiff = async (gitRootPath, filePath) => {
 
 const getRenamedFileDiff = async (gitRootPath, file) => {
   return new Promise((resolve, reject) => {
-    const git = getSimpleGitInstanceForPath(gitRootPath);
+    const git = simpleGit(gitRootPath);
     git.diff(['--staged', '--', file.from, file.to], (err, stagedChanges) => {
       if (err) {
         reject(err);
@@ -317,7 +317,7 @@ const getUnstagedFileDiff = async (gitRootPath, filePath) => {
           const lineCount = prefixedLines.length;
           const lines = prefixedLines.join('\n');
 
-          const diff
+          let diff
             = [
               `diff --git a/${filePath} b/${filePath}`,
               `new file mode 100644`,
