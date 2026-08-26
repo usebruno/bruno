@@ -1,11 +1,10 @@
-meta {
+info:
   name: sse-stream-request
   type: http
   seq: 1
-}
 
-get {
+http:
+  method: GET
   url: http://localhost:8081/api/sse/stream
-  body: none
-  auth: none
-}
+  body:
+    type: none
