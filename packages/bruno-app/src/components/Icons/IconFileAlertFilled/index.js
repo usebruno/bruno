@@ -2,12 +2,12 @@ import React from 'react';
 
 const IconFileAlertFilled = ({ size = 16, ...props }) => {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-      <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"></path>
-      <line x1="12" y1="17" x2="12.01" y2="17"></line><line x1="12" y1="11" x2="12" y2="14"></line>
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M11.3334 14H4.66671C4.31309 14 3.97395 13.8595 3.7239 13.6095C3.47385 13.3594 3.33337 13.0203 3.33337 12.6667V3.33333C3.33337 2.97971 3.47385 2.64057 3.7239 2.39052C3.97395 2.14048 4.31309 2 4.66671 2H9.33337L12.6667 5.33333V12.6667C12.6667 13.0203 12.5262 13.3594 12.2762 13.6095C12.0261 13.8595 11.687 14 11.3334 14Z" fill="currentColo" />
+      <path d="M9.33337 2V4.66667C9.33337 4.84348 9.40361 5.01305 9.52864 5.13807C9.65366 5.2631 9.82323 5.33333 10 5.33333H12.6667M12.6667 5.33333L9.33337 2H4.66671C4.31309 2 3.97395 2.14048 3.7239 2.39052C3.47385 2.64057 3.33337 2.97971 3.33337 3.33333V12.6667C3.33337 13.0203 3.47385 13.3594 3.7239 13.6095C3.97395 13.8595 4.31309 14 4.66671 14H11.3334C11.687 14 12.0261 13.8595 12.2762 13.6095C12.5262 13.3594 12.6667 13.0203 12.6667 12.6667V5.33333ZM8.00004 11.3333H8.00671M8.00004 7.33333V9.33333" stroke="#CE4F3B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M8 11.9943V12M8 9V6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
+
   );
 };
 

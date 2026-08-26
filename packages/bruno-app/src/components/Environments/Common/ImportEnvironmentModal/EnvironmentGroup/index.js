@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -16,16 +16,15 @@ const EnvironmentGroup = ({
   setItemResolution,
   showResolutions,
   setGroupResolution,
+  isExpanded,
+  toggleExpanded,
+  toggleGroupSelection,
   searchText,
   dataTestId
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
-
   if (environments.length === 0) return null;
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
+  const isAllSelected = environments.length > 0 && environments.every((env) => selected.has(env.id));
 
   const getDropdownValue = () => {
     if (environments.length === 0) return 'Custom';
@@ -41,6 +40,16 @@ const EnvironmentGroup = ({
       <div className="group-header">
         <div className="group-title-wrapper" onClick={toggleExpanded}>
           {isExpanded ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
+          <input
+            type="checkbox"
+            className="group-checkbox"
+            checked={isAllSelected}
+            onChange={(e) => {
+              toggleGroupSelection(e.target.checked);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`${dataTestId}-checkbox`}
+          />
           <span className="group-title">{title}</span>
           <CountBadge variant="warning" className="ml-2" data-testid={countTestId}>{environments.length}</CountBadge>
         </div>

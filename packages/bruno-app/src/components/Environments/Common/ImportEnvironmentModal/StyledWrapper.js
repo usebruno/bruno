@@ -58,7 +58,7 @@ export const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-height: 60vh;
+    height: 45vh;
     overflow: hidden;
   }
 
@@ -100,6 +100,10 @@ export const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     color: ${(props) => props.theme.colors.text.base};
+
+    &:not(:last-child) {
+      margin-bottom: 0.25rem;
+    }
   }
 
   .warning-title {
@@ -135,17 +139,23 @@ export const StyledWrapper = styled.div`
     user-select: none;
   }
 
-  .select-all-checkbox {
+  .expand-all-checkbox {
     margin-right: 0.5rem;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
 
-  .select-all-text {
+  .expand-all-text {
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     line-height: 20px;
     letter-spacing: 0%;
+    min-width: 4.5rem;
+  }
+
+  .groups-scroll-area {
+    overflow-y: auto;
+    max-height: 28vh;
   }
 
   .group-container {
@@ -159,6 +169,7 @@ export const StyledWrapper = styled.div`
     align-items: center;
     padding: 0.5rem;
     background: ${(props) => props.theme.background.mantle};
+    max-height: 2.5rem;
   }
 
   .group-title-wrapper {
@@ -174,23 +185,30 @@ export const StyledWrapper = styled.div`
     margin-left: 0.5rem;
   }
 
+  .group-checkbox {
+    margin-left: 0.5rem;
+    margin-right: 0.25rem;
+  }
+
   .chevron-icon {
     color: ${(props) => props.theme.colors.text.subtext0};
   }
 
   .group-list {
-    padding: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    padding: 0.5rem 0;
   }
 
   .env-item {
     display: flex;
     align-items: flex-start;
-    padding-left: 1.5rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-left: 0.625rem;
+  }
+
+  .env-import-invalid-item {
+    padding-left: 2.125rem;
   }
 
   .env-item-label {
@@ -199,6 +217,7 @@ export const StyledWrapper = styled.div`
     align-items: flex-start;
     cursor: pointer;
     min-width: 0;
+    margin-left: 1.375rem;
   }
 
   .env-item-checkbox {
