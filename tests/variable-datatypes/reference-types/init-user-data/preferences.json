@@ -1,0 +1,8 @@
+{
+  "maximized": false,
+  "preferences": {
+    "general": {
+      "defaultWorkspacePath": "{{workspacePath}}"
+    }
+  }
+}

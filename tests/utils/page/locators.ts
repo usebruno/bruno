@@ -92,6 +92,9 @@ export const buildCommonLocators = (page: Page) => ({
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
   modal: {
+    any: () => page.locator('.bruno-modal'),
+    formError: (text: string | RegExp) =>
+      page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
@@ -212,6 +215,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    elapsedTime: () => page.getByTestId('response-elapsed-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
@@ -226,6 +230,11 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    xmlTree: () => page.getByTestId('xml-tree'),
+    // Only the XML tree's expand/collapse buttons carry aria-expanded, so this matches
+    // every still-collapsed node regardless of depth.
+    xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
+    previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
     // Match the fail icon (one per row) rather than a class shared by both the icon and

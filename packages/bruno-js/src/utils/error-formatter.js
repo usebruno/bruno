@@ -747,5 +747,6 @@ module.exports = {
   findYmlScriptBlockStartLine,
   findYmlScriptBlockEndLine,
   adjustStackTrace,
-  getErrorTypeName
+  getErrorTypeName,
+  posixifyPath
 };
