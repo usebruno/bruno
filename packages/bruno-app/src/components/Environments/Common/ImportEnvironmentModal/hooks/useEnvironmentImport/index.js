@@ -10,22 +10,22 @@ import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
 export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCreated) => {
   const [step, setStep] = useState('UPLOAD'); // 'UPLOAD' | 'REVIEW'
-  const [parsedData, setParsedData] = useState({ new: [], duplicates: [], invalid: [] });
-  const [selectedIndices, setSelectedIndices] = useState(new Set());
+  const [items, setItems] = useState([]);
+  const [selected, setSelected] = useState(new Set());
   const [resolutions, setResolutions] = useState(new Map());
 
   const { existingNames, getExistingEnv, saveEnv, createEnv } = useEnvironmentTarget(type, collection);
 
-  const commitEnvironments = async (environmentsToImport, duplicates, itemResolutions) => {
+  const commitEnvironments = async (environmentsToImport, itemResolutions) => {
     try {
       let importedCount = 0;
       const currentExistingNames = [...existingNames];
 
       for (const environment of environmentsToImport) {
-        const isDuplicate = duplicates.includes(environment);
+        const isDuplicate = environment.status === 'duplicate';
 
         if (isDuplicate) {
-          const resolution = itemResolutions.get(environment) || 'copy';
+          const resolution = itemResolutions.get(environment.id) || 'copy';
           if (resolution === 'replace') {
             const existingEnv = getExistingEnv(environment.name);
             if (existingEnv) {
@@ -88,23 +88,33 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       const allInvalid = [...invalidFiles, ...result.invalid, ...missingNameEnvs];
 
       const existingNamesNormalized = existingNames.map(normalizeEnvName);
-      const duplicates = validEnvironments.filter((e) => existingNamesNormalized.includes(normalizeEnvName(e.name)));
-      const newEnvs = validEnvironments.filter((e) => !existingNamesNormalized.includes(normalizeEnvName(e.name)));
+
+      let itemIndex = 0;
+      const validItems = validEnvironments.map((env) => {
+        const isDuplicate = existingNamesNormalized.includes(normalizeEnvName(env.name));
+        return { ...env, id: `env-${itemIndex++}`, status: isDuplicate ? 'duplicate' : 'new' };
+      });
+
+      const invalidItems = allInvalid.map((env) => ({
+        ...env, id: `env-${itemIndex++}`, status: 'invalid'
+      }));
+
+      const newItems = [...validItems, ...invalidItems];
+      const duplicates = validItems.filter((e) => e.status === 'duplicate');
 
       if (duplicates.length === 0 && allInvalid.length === 0) {
-        await commitEnvironments(newEnvs, [], new Map());
+        await commitEnvironments(validItems, new Map());
         return;
       }
 
-      setParsedData({ new: newEnvs, duplicates, invalid: allInvalid });
+      setItems(newItems);
 
-      const initialSelected = new Set();
-      validEnvironments.forEach((_, idx) => initialSelected.add(idx));
-      setSelectedIndices(initialSelected);
+      const initialSelected = new Set(validItems.map((i) => i.id));
+      setSelected(initialSelected);
 
       const initialResolutions = new Map();
       duplicates.forEach((e) => {
-        initialResolutions.set(e, 'copy');
+        initialResolutions.set(e.id, 'copy');
       });
       setResolutions(initialResolutions);
 
@@ -115,22 +125,21 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
   };
 
   const handleConfirmImport = async () => {
-    const validEnvironments = [...parsedData.new, ...parsedData.duplicates];
-    const environmentsToImport = validEnvironments.filter((_, idx) => selectedIndices.has(idx));
+    const environmentsToImport = items.filter((env) => (env.status === 'new' || env.status === 'duplicate') && selected.has(env.id));
 
     if (environmentsToImport.length === 0) {
       toast.error('No environments selected to import');
       return;
     }
 
-    await commitEnvironments(environmentsToImport, parsedData.duplicates, resolutions);
+    await commitEnvironments(environmentsToImport, resolutions);
   };
 
   return {
     step,
-    parsedData,
-    selectedIndices,
-    setSelectedIndices,
+    items,
+    selected,
+    setSelected,
     resolutions,
     setResolutions,
     handleImportEnvironment,

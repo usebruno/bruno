@@ -10,8 +10,7 @@ const EnvironmentGroup = ({
   environments,
   countTestId,
   hasBorderBottom,
-  parsedData,
-  selectedIndices,
+  selected,
   toggleItemSelection,
   resolutions,
   setItemResolution,
@@ -30,9 +29,9 @@ const EnvironmentGroup = ({
 
   const getDropdownValue = () => {
     if (environments.length === 0) return 'Custom';
-    const allCopy = environments.every((env) => resolutions.get(env) === 'copy');
+    const allCopy = environments.every((env) => resolutions.get(env.id) === 'copy');
     if (allCopy) return 'copy';
-    const allReplace = environments.every((env) => resolutions.get(env) === 'replace');
+    const allReplace = environments.every((env) => resolutions.get(env.id) === 'replace');
     if (allReplace) return 'replace';
     return 'Custom';
   };
@@ -64,18 +63,17 @@ const EnvironmentGroup = ({
       </div>
       {isExpanded && (
         <div className="group-list">
-          {environments.map((env, idx) => {
-            const globalIdx = [...parsedData.new, ...parsedData.duplicates].indexOf(env);
-            const isSelected = selectedIndices.has(globalIdx);
-            const resolution = resolutions ? resolutions.get(env) : null;
+          {environments.map((env) => {
+            const isSelected = selected.has(env.id);
+            const resolution = resolutions ? resolutions.get(env.id) : null;
             return (
               <EnvironmentRow
-                key={idx}
+                key={env.id}
                 env={env}
                 isSelected={isSelected}
                 resolution={resolution}
-                toggleItemSelection={toggleItemSelection}
-                setItemResolution={setItemResolution}
+                toggleItemSelection={() => toggleItemSelection(env.id)}
+                setItemResolution={(res) => setItemResolution(env.id, res)}
                 showResolutions={showResolutions}
               />
             );

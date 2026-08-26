@@ -10,7 +10,7 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           type="checkbox"
           className="env-item-checkbox"
           checked={isSelected}
-          onChange={() => toggleItemSelection(env)}
+          onChange={toggleItemSelection}
           data-testid="env-import-item-checkbox"
         />
         <div className="env-item-content">
@@ -27,7 +27,7 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           <ResolutionButton
             $selected={resolution === 'copy'}
             aria-pressed={resolution === 'copy'}
-            onClick={() => setItemResolution(env, 'copy')}
+            onClick={() => setItemResolution('copy')}
             title="Import as copy"
             data-testid="env-import-copy-btn"
           >
@@ -36,7 +36,7 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           <ResolutionButton
             $selected={resolution === 'replace'}
             aria-pressed={resolution === 'replace'}
-            onClick={() => setItemResolution(env, 'replace')}
+            onClick={() => setItemResolution('replace')}
             title="Replace existing"
             data-testid="env-import-replace-btn"
           >

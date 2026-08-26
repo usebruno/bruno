@@ -16,9 +16,9 @@ const ReviewStep = ({
   modalTestId,
   onClose,
   handleConfirmImport,
-  parsedData,
-  selectedIndices,
-  setSelectedIndices,
+  items,
+  selected,
+  setSelected,
   resolutions,
   setResolutions
 }) => {
@@ -26,51 +26,48 @@ const ReviewStep = ({
   const [searchText, setSearchText] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({ invalid: true });
 
-  const totalEnvironments = parsedData.new.length + parsedData.duplicates.length;
-  const totalParsedCount = totalEnvironments + parsedData.invalid.length;
-  const isAllSelected = selectedIndices.size === totalEnvironments && totalEnvironments > 0;
+  const newEnvs = items.filter((env) => env.status === 'new');
+  const duplicates = items.filter((env) => env.status === 'duplicate');
+  const invalid = items.filter((env) => env.status === 'invalid');
+
+  const totalEnvironments = newEnvs.length + duplicates.length;
+  const totalParsedCount = totalEnvironments + invalid.length;
+  const isAllSelected = selected.size === totalEnvironments && totalEnvironments > 0;
 
   const toggleSelectAll = (checked) => {
     if (checked) {
-      const allSelected = new Set();
-      for (let i = 0; i < totalEnvironments; i++) {
-        allSelected.add(i);
-      }
-      setSelectedIndices(allSelected);
+      const allSelected = new Set([...newEnvs, ...duplicates].map((e) => e.id));
+      setSelected(allSelected);
     } else {
-      setSelectedIndices(new Set());
+      setSelected(new Set());
     }
-  };
-
-  const toggleItemSelection = (env) => {
-    const validEnvironments = [...parsedData.new, ...parsedData.duplicates];
-    const idx = validEnvironments.indexOf(env);
-    if (idx !== -1) {
-      const newSelected = new Set(selectedIndices);
-      if (newSelected.has(idx)) newSelected.delete(idx);
-      else newSelected.add(idx);
-      setSelectedIndices(newSelected);
-    }
-  };
-
-  const setGroupResolution = (res) => {
-    const newResolutions = new Map(resolutions);
-    parsedData.duplicates.forEach((env) => {
-      newResolutions.set(env, res);
-    });
-    setResolutions(newResolutions);
-  };
-
-  const setItemResolution = (env, res) => {
-    setResolutions(new Map(resolutions).set(env, res));
   };
 
   const toggleGroupExpanded = (group) => {
     setExpandedGroups({ ...expandedGroups, [group]: !expandedGroups[group] });
   };
 
-  const filteredNew = parsedData.new.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
-  const filteredDuplicates = parsedData.duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const toggleItemSelection = (envId) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(envId)) newSelected.delete(envId);
+    else newSelected.add(envId);
+    setSelected(newSelected);
+  };
+
+  const setGroupResolution = (res) => {
+    const newResolutions = new Map(resolutions);
+    duplicates.forEach((env) => {
+      newResolutions.set(env.id, res);
+    });
+    setResolutions(newResolutions);
+  };
+
+  const setItemResolution = (envId, res) => {
+    setResolutions(new Map(resolutions).set(envId, res));
+  };
+
+  const filteredNew = newEnvs.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
+  const filteredDuplicates = duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
 
   return (
     <Portal>
@@ -86,7 +83,7 @@ const ReviewStep = ({
         confirmDisabled={totalEnvironments === 0}
         footerLeft={(
           <div className="footer-left-content" data-testid="env-import-selected-count">
-            <span style={{ color: theme.brand }}>{selectedIndices.size}</span> of {totalEnvironments} selected
+            <span style={{ color: theme.brand }}>{selected.size}</span> of {totalEnvironments} selected
           </div>
         )}
       >
@@ -98,18 +95,18 @@ const ReviewStep = ({
 
             <div className="scroll-area">
               <div className="environments-list-container">
-                {(parsedData.duplicates.length > 0 || parsedData.invalid.length > 0) && (
+                {(duplicates.length > 0 || invalid.length > 0) && (
                   <div className="warning-block" data-testid="import-duplicates-warning">
-                    {parsedData.duplicates.length > 0 && (
+                    {duplicates.length > 0 && (
                       <div className="warning-header">
                         <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
-                        <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name
+                        <span className="warning-title">{duplicates.length} {pluralizeWord('environment', duplicates.length)}&nbsp;</span> already {duplicates.length > 1 ? 'exist' : 'exists'} with the same name
                       </div>
                     )}
-                    {parsedData.invalid.length > 0 && (
+                    {invalid.length > 0 && (
                       <div className="warning-header" data-testid="import-invalid-warning">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
-                        <span className="warning-title">{parsedData.invalid.length} {pluralizeWord('file', parsedData.invalid.length)}&nbsp;</span> {parsedData.invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
+                        <span className="warning-title">{invalid.length} {pluralizeWord('file', invalid.length)}&nbsp;</span> {invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
                       </div>
                     )}
                   </div>
@@ -142,21 +139,21 @@ const ReviewStep = ({
                 </div>
 
                 {/* Invalid Group */}
-                {parsedData.invalid.length > 0 && (
+                {invalid.length > 0 && (
                   <div
-                    className={`group-container ${(parsedData.duplicates.length > 0 || parsedData.new.length > 0) ? 'has-border-bottom' : ''}`}
+                    className={`group-container ${(duplicates.length > 0 || newEnvs.length > 0) ? 'has-border-bottom' : ''}`}
                     data-testid="env-import-invalid-group"
                   >
                     <div className="group-header">
                       <div className="group-title-wrapper" onClick={() => toggleGroupExpanded('invalid')}>
                         {expandedGroups.invalid ? <IconChevronDown size={16} className="text-zinc-500" /> : <IconChevronRight size={16} className="text-zinc-500" />}
                         <span className="group-title">Invalid or unsupported</span>
-                        <CountBadge variant="danger" className="ml-2" data-testid="env-import-invalid-count">{parsedData.invalid.length}</CountBadge>
+                        <CountBadge variant="danger" className="ml-2" data-testid="env-import-invalid-count">{invalid.length}</CountBadge>
                       </div>
                     </div>
                     {expandedGroups.invalid && (
                       <div className="group-list">
-                        {parsedData.invalid.map((item, idx) => (
+                        {invalid.map((item, idx) => (
                           <div key={idx} className="env-item" data-testid="env-import-invalid-item">
                             <div className="env-item-content">
                               <div className="env-name">{item.fileName}</div>
@@ -173,9 +170,8 @@ const ReviewStep = ({
                   title="Duplicates"
                   environments={filteredDuplicates}
                   countTestId="env-import-duplicates-count"
-                  hasBorderBottom={parsedData.new.length > 0}
-                  parsedData={parsedData}
-                  selectedIndices={selectedIndices}
+                  hasBorderBottom={newEnvs.length > 0}
+                  selected={selected}
                   toggleItemSelection={toggleItemSelection}
                   resolutions={resolutions}
                   setItemResolution={setItemResolution}
@@ -190,8 +186,7 @@ const ReviewStep = ({
                   environments={filteredNew}
                   countTestId="env-import-new-count"
                   hasBorderBottom={false}
-                  parsedData={parsedData}
-                  selectedIndices={selectedIndices}
+                  selected={selected}
                   toggleItemSelection={toggleItemSelection}
                   showResolutions={false}
                   searchText={searchText}

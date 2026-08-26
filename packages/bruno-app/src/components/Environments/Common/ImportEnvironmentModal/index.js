@@ -16,9 +16,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
   const {
     step,
-    parsedData,
-    selectedIndices,
-    setSelectedIndices,
+    items,
+    selected,
+    setSelected,
     resolutions,
     setResolutions,
     handleImportEnvironment,
@@ -43,9 +43,9 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       modalTestId={modalTestId}
       onClose={onClose}
       handleConfirmImport={handleConfirmImport}
-      parsedData={parsedData}
-      selectedIndices={selectedIndices}
-      setSelectedIndices={setSelectedIndices}
+      items={items}
+      selected={selected}
+      setSelected={setSelected}
       resolutions={resolutions}
       setResolutions={setResolutions}
     />
