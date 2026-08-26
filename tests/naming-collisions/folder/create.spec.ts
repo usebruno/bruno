@@ -38,14 +38,14 @@ test.describe('Naming collisions - create folder', () => {
   });
 
   test('creating a folder with a reserved name is blocked and creates nothing', async ({ page, createTmpDir }) => {
-    const { sidebar, modal, newFolderModal } = buildCommonLocators(page);
+    const { sidebar, modal } = buildCommonLocators(page);
     const testDir = await createTmpDir('folder-create-reserved');
 
     await createCollection(page, 'Create Folder Reserved', testDir, 'bru');
 
     await test.step('Enter reserved name "CON", reveal filesystem name, submit', async () => {
       await openNewFolderModal(page, 'Create Folder Reserved');
-      await newFolderModal.nameInput().fill('CON');
+      await sidebar.newFolderModal.nameInput().fill('CON');
       await revealFilesystemName(page);
       await modal.button('Create').click();
     });

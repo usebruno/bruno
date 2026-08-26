@@ -51,42 +51,40 @@ export const buildSidebarLocators = (page: Page) => {
     collectionScope,
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
-    sidebarContainer: () => page.getByTestId('sidebar')
+    sidebarContainer: () => page.getByTestId('sidebar'),
+
+    // Modals opened from a sidebar row's "..." menu.
+    renameItemModal: {
+      nameInput: (): Locator => page.locator('#collection-item-name'),
+      submit: (): Locator => page.getByTestId('rename-item-button'),
+      filenameEditIcon: (): Locator => page.getByTestId('rename-request-edit-icon')
+    },
+
+    newRequestModal: {
+      createButton: (): Locator => page.getByTestId('create-new-request-button'),
+      filenameEditIcon: (): Locator => page.getByTestId('filename-edit-icon')
+    },
+
+    newFolderModal: {
+      nameInput: (): Locator => page.getByTestId('new-folder-input')
+    },
+
+    cloneCollectionModal: {
+      nameInput: (): Locator => page.locator('#collection-name'),
+      locationInput: (): Locator => page.locator('#collection-location'),
+      browseButton: (): Locator => page.getByText('Browse', { exact: true })
+    },
+
+    saveRequestModal: {
+      modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
+      nameInput: (): Locator => page.locator('#request-name')
+    },
+
+    filesystemName: {
+      optionsButton: (): Locator => page.locator('.btn-advanced'),
+      showFilesystemNameItem: (): Locator =>
+        page.locator('.dropdown-item').filter({ hasText: 'Show Filesystem Name' }),
+      fileNameInput: (): Locator => page.locator('#file-name')
+    }
   };
 };
-
-// Modals opened from a sidebar row's "..." menu.
-export const buildSidebarModalLocators = (page: Page) => ({
-  renameItemModal: {
-    nameInput: (): Locator => page.locator('#collection-item-name'),
-    submit: (): Locator => page.getByTestId('rename-item-button'),
-    filenameEditIcon: (): Locator => page.getByTestId('rename-request-edit-icon')
-  },
-
-  newRequestModal: {
-    createButton: (): Locator => page.getByTestId('create-new-request-button'),
-    filenameEditIcon: (): Locator => page.getByTestId('filename-edit-icon')
-  },
-
-  newFolderModal: {
-    nameInput: (): Locator => page.getByTestId('new-folder-input')
-  },
-
-  cloneCollectionModal: {
-    nameInput: (): Locator => page.locator('#collection-name'),
-    locationInput: (): Locator => page.locator('#collection-location'),
-    browseButton: (): Locator => page.getByText('Browse', { exact: true })
-  },
-
-  saveRequestModal: {
-    modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
-    nameInput: (): Locator => page.locator('#request-name')
-  },
-
-  filesystemName: {
-    optionsButton: (): Locator => page.locator('.btn-advanced'),
-    showFilesystemNameItem: (): Locator =>
-      page.locator('.dropdown-item').filter({ hasText: 'Show Filesystem Name' }),
-    fileNameInput: (): Locator => page.locator('#file-name')
-  }
-});

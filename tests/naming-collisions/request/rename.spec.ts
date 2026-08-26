@@ -77,7 +77,7 @@ test.describe('Naming collisions - rename request', () => {
   });
 
   test('renaming to a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { modal, renameItemModal } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('rename-invalid');
 
     await createCollection(page, 'Rename Invalid', testDir, 'bru');
@@ -87,9 +87,9 @@ test.describe('Naming collisions - rename request', () => {
 
     await test.step('Open rename, set the name to reserved "CON", reveal filesystem name, submit', async () => {
       await openRenameModal(page, 'login');
-      await renameItemModal.nameInput().fill('CON');
+      await sidebar.renameItemModal.nameInput().fill('CON');
       await revealFilesystemName(page);
-      await renameItemModal.submit().click();
+      await sidebar.renameItemModal.submit().click();
     });
 
     await test.step('Reserved-name error is shown and nothing is renamed', async () => {

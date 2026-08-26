@@ -2804,28 +2804,28 @@ const openRenameModal = async (page: Page, name: string, type: ItemType = 'reque
 
 const renameItemTo = async (page: Page, name: string, newName: string, type: ItemType = 'request') => {
   await test.step(`Rename "${name}" to "${newName}"`, async () => {
-    const { modal, renameItemModal } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     await openRenameModal(page, name, type);
-    await renameItemModal.nameInput().fill(newName);
-    await renameItemModal.submit().click();
+    await sidebar.renameItemModal.nameInput().fill(newName);
+    await sidebar.renameItemModal.submit().click();
     await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
   });
 };
 
 const revealFilesystemName = async (page: Page) => {
-  const { filesystemName } = buildCommonLocators(page);
-  await filesystemName.optionsButton().first().click();
-  await filesystemName.showFilesystemNameItem().click();
+  const { sidebar } = buildCommonLocators(page);
+  await sidebar.filesystemName.optionsButton().first().click();
+  await sidebar.filesystemName.showFilesystemNameItem().click();
 };
 
 const renameViaFilename = async (page: Page, name: string, newFilename: string, type: ItemType = 'request') => {
   await test.step(`Rename filesystem name of "${name}" to "${newFilename}"`, async () => {
-    const { modal, renameItemModal, filesystemName } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     await openRenameModal(page, name, type);
     await revealFilesystemName(page);
-    await renameItemModal.filenameEditIcon().click();
-    await filesystemName.fileNameInput().fill(newFilename);
-    await renameItemModal.submit().click();
+    await sidebar.renameItemModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(newFilename);
+    await sidebar.renameItemModal.submit().click();
     await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
   });
 };
@@ -2843,10 +2843,10 @@ const openNewRequestModal = async (page: Page, parentName: string, { inFolder = 
 
 const createRequestViaModal = async (page: Page, parentName: string, name: string, { inFolder = false } = {}) => {
   await test.step(`Create request "${name}" via modal in "${parentName}"`, async () => {
-    const { modal, request, newRequestModal } = buildCommonLocators(page);
+    const { modal, request, sidebar } = buildCommonLocators(page);
     await openNewRequestModal(page, parentName, { inFolder });
     await request.requestNameInput().fill(name);
-    await newRequestModal.createButton().click();
+    await sidebar.newRequestModal.createButton().click();
     await modal.any().waitFor({ state: 'hidden' });
   });
 };
@@ -2858,29 +2858,29 @@ const createRequestWithEditedFilename = async (
   filename: string
 ) => {
   await test.step(`Create request "${displayName}" with filename "${filename}"`, async () => {
-    const { modal, request, newRequestModal, filesystemName } = buildCommonLocators(page);
+    const { modal, request, sidebar } = buildCommonLocators(page);
     await openNewRequestModal(page, collectionName);
     await request.requestNameInput().fill(displayName);
     await revealFilesystemName(page);
-    await newRequestModal.filenameEditIcon().click();
-    await filesystemName.fileNameInput().fill(filename);
-    await newRequestModal.createButton().click();
+    await sidebar.newRequestModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(filename);
+    await sidebar.newRequestModal.createButton().click();
     await modal.any().waitFor({ state: 'hidden' });
   });
 };
 
 const openNewFolderModal = async (page: Page, collectionName: string) => {
-  const { dropdown, newFolderModal } = buildCommonLocators(page);
+  const { dropdown, sidebar } = buildCommonLocators(page);
   await openCollectionActionsMenu(page, collectionName);
   await dropdown.item('New Folder').click();
-  await newFolderModal.nameInput().waitFor({ state: 'visible' });
+  await sidebar.newFolderModal.nameInput().waitFor({ state: 'visible' });
 };
 
 const createFolderViaModal = async (page: Page, collectionName: string, folderName: string) => {
   await test.step(`Create folder "${folderName}" via modal in "${collectionName}"`, async () => {
-    const { modal, newFolderModal } = buildCommonLocators(page);
+    const { modal, sidebar } = buildCommonLocators(page);
     await openNewFolderModal(page, collectionName);
-    await newFolderModal.nameInput().fill(folderName);
+    await sidebar.newFolderModal.nameInput().fill(folderName);
     await modal.button('Create').click();
     await modal.any().waitFor({ state: 'hidden' });
   });
@@ -2894,14 +2894,14 @@ const openCloneCollectionModal = async (page: Page, collectionName: string) => {
 };
 
 const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
-  const { cloneCollectionModal } = buildCommonLocators(page);
+  const { sidebar } = buildCommonLocators(page);
   await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
     (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
   }, location);
   try {
-    await cloneCollectionModal.browseButton().click();
-    await cloneCollectionModal.locationInput().waitFor({ state: 'visible' });
+    await sidebar.cloneCollectionModal.browseButton().click();
+    await sidebar.cloneCollectionModal.locationInput().waitFor({ state: 'visible' });
   } finally {
     await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }) => {
       if ((globalThis as any).__bruPrevShowOpenDialog) {
@@ -2924,14 +2924,14 @@ const setTextBody = async (page: Page, value: string) => {
 // display name. Waits for the modal to open and close.
 const saveTransientRequestAs = async (page: Page, name: string) => {
   await test.step(`Save transient request as "${name}"`, async () => {
-    const { saveRequestModal } = buildCommonLocators(page);
+    const { sidebar } = buildCommonLocators(page);
     const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-    const dialog = saveRequestModal.modal();
+    const dialog = sidebar.saveRequestModal.modal();
 
     await page.keyboard.press(`${modifier}+s`);
     await dialog.waitFor({ state: 'visible' });
-    await saveRequestModal.nameInput().clear();
-    await saveRequestModal.nameInput().fill(name);
+    await sidebar.saveRequestModal.nameInput().clear();
+    await sidebar.saveRequestModal.nameInput().fill(name);
     await dialog.getByRole('button', { name: 'Save' }).click();
     await dialog.waitFor({ state: 'hidden' });
   });

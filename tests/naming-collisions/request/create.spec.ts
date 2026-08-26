@@ -100,7 +100,7 @@ test.describe('Naming collisions - create request', () => {
   });
 
   test('creating with a reserved name is blocked and shows a validation error', async ({ page, createTmpDir }) => {
-    const { request, modal, newRequestModal } = buildCommonLocators(page);
+    const { request, modal, sidebar } = buildCommonLocators(page);
     const testDir = await createTmpDir('create-request-reserved');
 
     await createCollection(page, 'Create Reserved', testDir, 'bru');
@@ -109,7 +109,7 @@ test.describe('Naming collisions - create request', () => {
       await openNewRequestModal(page, 'Create Reserved');
       await request.requestNameInput().fill('CON');
       await revealFilesystemName(page);
-      await newRequestModal.createButton().click();
+      await sidebar.newRequestModal.createButton().click();
     });
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
