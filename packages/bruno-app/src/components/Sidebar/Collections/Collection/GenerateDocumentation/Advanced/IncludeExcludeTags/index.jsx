@@ -25,7 +25,7 @@ const IncludeExcludeTags = ({
     }
   };
 
-  const handleAddTag = ({ tag, to }) => {
+  const handleAddTag = (tag, to) => {
     const trimmedTag = tag.trim();
     if (!trimmedTag) return;
     if (include.includes(trimmedTag) || exclude.includes(trimmedTag)) return;
@@ -33,7 +33,7 @@ const IncludeExcludeTags = ({
     onChange({ include, exclude, [to]: [...tags[to], trimmedTag].sort() });
   };
 
-  const handleRemoveTag = ({ tag, from }) => {
+  const handleRemoveTag = (tag, from) => {
     const trimmedTag = tag.trim();
     if (!trimmedTag) return;
     if (!tags[from].includes(trimmedTag)) return;
@@ -48,8 +48,8 @@ const IncludeExcludeTags = ({
           <DocsTagList
             tags={include}
             tagsHintList={tagsHintList}
-            handleAddTag={(tag) => handleAddTag({ tag, to: 'include' })}
-            handleRemoveTag={(tag) => handleRemoveTag({ tag, from: 'include' })}
+            handleAddTag={(tag) => handleAddTag(tag, 'include')}
+            handleRemoveTag={(tag) => handleRemoveTag(tag, 'include')}
             handleValidation={handleValidation}
             ariaLabel="Include tags"
             placeholder="e.g. Production ready"
@@ -60,8 +60,8 @@ const IncludeExcludeTags = ({
           <DocsTagList
             tags={exclude}
             tagsHintList={tagsHintList}
-            handleAddTag={(tag) => handleAddTag({ tag, to: 'exclude' })}
-            handleRemoveTag={(tag) => handleRemoveTag({ tag, from: 'exclude' })}
+            handleAddTag={(tag) => handleAddTag(tag, 'exclude')}
+            handleRemoveTag={(tag) => handleRemoveTag(tag, 'exclude')}
             handleValidation={handleValidation}
             ariaLabel="Exclude tags"
             placeholder="e.g, Work in progress"
