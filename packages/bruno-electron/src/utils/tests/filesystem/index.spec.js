@@ -1,8 +1,13 @@
 const path = require('path');
 const fs = require('fs/promises');
 const os = require('os');
-const { copyPath, removePath } = require('../../filesystem');
+const { copyPathTo, removePath, getUniqueTargetPath, writeFileUnique } = require('../../filesystem');
 const { initialCollectionStructure, finalCollectionStructure } = require('../fixtures/filesystem/copypath-removepath');
+
+const moveInto = async (sourcePath, destDir) => {
+  const targetPath = path.join(destDir, path.basename(sourcePath));
+  await copyPathTo(sourcePath, targetPath);
+};
 
 describe('File System Operations', () => {
   let tempDir;
@@ -22,33 +27,33 @@ describe('File System Operations', () => {
     expect(await fs.access(tempDir).then(() => true).catch(() => false)).toBe(false);
   });
 
-  describe('copyPath and removePath', () => {
+  describe('copyPathTo and removePath', () => {
     it('should move files and folder items multiple times', async () => {
       {
         const sourcePath = path.join(tempDir, 'folder_1', 'file_2.bru');
         const destDir = path.join(tempDir, 'folder_1', 'folder_1_1');
-        await copyPath(sourcePath, destDir);
+        await moveInto(sourcePath, destDir);
         await removePath(sourcePath);
       }
 
       {
         const sourcePath = path.join(tempDir, 'folder_2');
         const destDir = path.join(tempDir, 'folder_1', 'folder_1_1');
-        await copyPath(sourcePath, destDir);
+        await moveInto(sourcePath, destDir);
         await removePath(sourcePath);
       }
 
       {
         const sourcePath = path.join(tempDir, 'folder_1', 'folder_1_1', 'folder_2', 'file_2_2.bru');
         const destDir = path.join(tempDir, 'folder_1');
-        await copyPath(sourcePath, destDir);
+        await moveInto(sourcePath, destDir);
         await removePath(sourcePath);
       }
 
       {
         const sourcePath = path.join(tempDir, 'folder_1', 'folder_1_1', 'folder_2', 'folder_2_1');
         const destDir = path.join(tempDir);
-        await copyPath(sourcePath, destDir);
+        await moveInto(sourcePath, destDir);
         await removePath(sourcePath);
       }
 
@@ -56,12 +61,60 @@ describe('File System Operations', () => {
       expect(result).toBe(true);
     });
 
-    it('should throw an error move file/folder if the destination has the same filename', async () => {
-      {
-        const sourcePath = path.join(tempDir, 'folder_1', 'file_dup.bru');
-        const destDir = path.join(tempDir, 'folder_1');
-        await expect(copyPath(sourcePath, destDir)).rejects.toThrow();
+    it('should resolve a unique suffixed target when the destination has the same filename', async () => {
+      const srcDir = path.join(tempDir, 'suffix_src');
+      const destDir = path.join(tempDir, 'suffix_dest');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.mkdir(destDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'dup.bru'), 'source');
+      await fs.writeFile(path.join(destDir, 'dup.bru'), 'existing');
+
+      const targetPath = getUniqueTargetPath(path.join(srcDir, 'dup.bru'), destDir);
+      // silent numeric suffix instead of throwing
+      expect(path.basename(targetPath)).toBe('dup 1.bru');
+    });
+
+    it('suffixes a dotted DIRECTORY name without splitting on the dot', async () => {
+      const srcDir = path.join(tempDir, 'dotdir_src');
+      const destDir = path.join(tempDir, 'dotdir_dest');
+      await fs.mkdir(path.join(srcDir, 'v1.2'), { recursive: true });
+      await fs.mkdir(path.join(destDir, 'v1.2'), { recursive: true }); // colliding folder
+
+      // Directories have no extension: "v1.2" must suffix to "v1.2 1", not "v1 2.2".
+      const targetPath = getUniqueTargetPath(path.join(srcDir, 'v1.2'), destDir);
+      expect(path.basename(targetPath)).toBe('v1.2 1');
+    });
+  });
+
+  describe('copyPathTo self-copy guard', () => {
+    const GUARD_ERR = /Cannot copy a path into itself/;
+
+    it('rejects copying a path into itself', async () => {
+      const dir = path.join(tempDir, 'guard_self');
+      await fs.mkdir(dir, { recursive: true });
+      await expect(copyPathTo(dir, dir)).rejects.toThrow(GUARD_ERR);
+    });
+
+    it('rejects copying a path into its own descendant', async () => {
+      const dir = path.join(tempDir, 'guard_desc');
+      await fs.mkdir(dir, { recursive: true });
+      await expect(copyPathTo(dir, path.join(dir, 'sub'))).rejects.toThrow(GUARD_ERR);
+    });
+  });
+
+  describe('MAX_DUPLICATE_NAMES cap', () => {
+    it('caps at 200: creates req.bru, req 1.bru … req 199.bru, then the 201st rejects', async () => {
+      const dir = path.join(tempDir, 'cap');
+      await fs.mkdir(dir, { recursive: true });
+
+      for (let i = 0; i < 200; i++) {
+        const { filename } = await writeFileUnique(dir, 'req', 'bru', 'x');
+        expect(filename).toBe(i === 0 ? 'req.bru' : `req ${i}.bru`);
       }
+
+      await expect(writeFileUnique(dir, 'req', 'bru', 'x')).rejects.toThrow(
+        /Too many items named "req" \(limit 200\)/
+      );
     });
   });
 });
