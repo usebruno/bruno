@@ -239,7 +239,6 @@ export const DropdownTrigger = styled.div`
   margin-left: 0.5rem;
   cursor: pointer;
   color: ${(props) => props.theme.dropdown.color};
-
   .icon-chevron {
     color: ${(props) => props.theme.dropdown.iconColor};
     margin-left: 0.25rem;

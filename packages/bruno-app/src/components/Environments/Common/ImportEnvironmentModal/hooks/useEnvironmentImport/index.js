@@ -79,6 +79,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
   const handleImportEnvironment = async (files) => {
     if (isImporting) return;
     try {
+      setIsImporting(true);
       const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
 
       const filesByFormat = parsedFiles.reduce((acc, file) => {

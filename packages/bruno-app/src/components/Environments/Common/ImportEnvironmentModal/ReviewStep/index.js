@@ -49,18 +49,18 @@ const ReviewStep = ({
     setExpandedGroups({ [ENV_STATUS.INVALID]: newState, [ENV_STATUS.DUPLICATE]: newState, [ENV_STATUS.NEW]: newState });
   };
 
-  const toggleGroupExpanded = (group) => {
+  const toggleGroupExpanded = useCallback((group) => {
     setExpandedGroups({ ...expandedGroups, [group]: !expandedGroups[group] });
-  };
+  }, [expandedGroups]);
 
-  const toggleGroupSelection = (groupEnvs, checked) => {
+  const toggleGroupSelection = useCallback((groupEnvs, checked) => {
     const newSelected = new Set(selected);
     groupEnvs.forEach((env) => {
       if (checked) newSelected.add(env.id);
       else newSelected.delete(env.id);
     });
     setSelected(newSelected);
-  };
+  }, [selected]);
 
   const toggleItemSelection = useCallback((envId) => {
     setSelected((prev) => {
