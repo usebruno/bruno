@@ -37,7 +37,7 @@ const ReviewStep = ({
 
   const normalizedSearchText = searchText.toLowerCase();
   const matchesSearch = useCallback((env) =>
-    env.name.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
+    env.name?.toLowerCase().includes(normalizedSearchText) || env.fileName?.toLowerCase().includes(normalizedSearchText),
   [normalizedSearchText]);
 
   const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
