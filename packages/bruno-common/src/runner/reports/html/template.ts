@@ -327,7 +327,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{result.path}} - {{result.status === 'skipped' ? (result.skipReason === 'bail' ? 'Request skipped due to bail' : 'Request Skipped') : (totalPassed + '/' + total + ' Passed')}} {{hasError && result.status !== 'skipped' ? " - (request failed)" : "" }}
+              {{result.path}} - {{resultSummary}} {{hasError && result.status !== 'skipped' ? " - (request failed)" : "" }}
             </template>
           </n-alert>
         </template>
@@ -772,6 +772,12 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
           const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText + ' ' + props?.index);
+          const resultSummary = computed(() => {
+            if (props.result.status === 'skipped') {
+              return props.result.skipReason === 'bail' ? 'Request skipped due to bail' : 'Request Skipped';
+            }
+            return totalPassed.value + '/' + total.value + ' Passed';
+          });
           const getAlertType = computed(() => {
             if (props.result.status === 'skipped') {
               return 'warning';
@@ -793,6 +799,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             result: props.result,
             testDuration,
             resultTitle,
+            resultSummary,
             getAlertType,
             iterationIndex: props?.result?.iterationIndex
           };

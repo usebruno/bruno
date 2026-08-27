@@ -42,6 +42,11 @@ describe('htmlTemplateString', () => {
   });
 });
 
+const readEmbeddedIterations = (html: string) => {
+  const base64 = html.split('decodeBase64(\'')[1].split('\'')[0];
+  return JSON.parse(Buffer.from(base64, 'base64').toString()).results;
+};
+
 describe('generateHtmlReport', () => {
   it('keeps the skip reason, method and url of bail-skipped requests', () => {
     const bailSkippedResult = {
@@ -57,8 +62,7 @@ describe('generateHtmlReport', () => {
     const html = generateHtmlReport({
       runnerResults: [{ iterationIndex: 0, results: [bailSkippedResult], summary: { totalRequests: 1 } }] as any
     });
-    const encodedResults = html.match(/decodeBase64\('([^']*)'\)/)?.[1] || '';
-    const [iteration] = JSON.parse(Buffer.from(encodedResults, 'base64').toString()).results;
+    const [iteration] = readEmbeddedIterations(html);
 
     expect(iteration.results[0]).toMatchObject({
       status: 'skipped',

@@ -11,7 +11,7 @@ describe('makeJUnitOutput', () => {
     jest.spyOn(xmlbuilder, 'create').mockImplementation(() => {
       return { end: createStub };
     });
-    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => { });
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -277,7 +277,10 @@ describe('makeJUnitOutput', () => {
 
     makeJUnitOutput(results, '/tmp/testfile.xml');
 
-    const suites = xmlbuilder.create.mock.calls[0][0].testsuites.testsuite;
+    expect(createStub).toHaveBeenCalled();
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+    const suites = junit.testsuites.testsuite;
 
     expect(suites.length).toBe(4);
 
