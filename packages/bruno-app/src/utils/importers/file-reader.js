@@ -29,7 +29,7 @@ const readFile = (file) => {
     fileReader.onload = (e) => {
       try {
         const parsed = JSON.parse(e.target.result);
-        resolve({ fileName: file.name, content: parsed });
+        resolve({ fileName: file.name, filePath: file.path || file.webkitRelativePath || '', content: parsed });
       } catch (err) {
         console.error(err);
         reject(new BrunoError(`Unable to parse JSON file: ${file.name}`));
