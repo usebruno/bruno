@@ -2523,18 +2523,6 @@ const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('ap
 const appEmptyState = (page: Page) => activeAppPreviewSlot(page).getByTestId('empty-app-state');
 
 /**
- * The empty state's primary action, which takes the user to the app code editor.
- * @param page - The page object
- */
-const appEmptyStateAddCode = (page: Page) => appEmptyState(page).getByTestId('empty-app-add-code');
-
-/**
- * The empty state's secondary action, which opens the Apps documentation.
- * @param page - The page object
- */
-const appEmptyStateLearnMore = (page: Page) => appEmptyState(page).getByTestId('empty-app-learn-more');
-
-/**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
  * takes over the request/response area.
  * @param page - The page object
@@ -2875,8 +2863,6 @@ export {
   activeAppPreviewSlot,
   activeAppView,
   appEmptyState,
-  appEmptyStateAddCode,
-  appEmptyStateLearnMore,
   previewApp,
   exitApp,
   selectViewMode,
