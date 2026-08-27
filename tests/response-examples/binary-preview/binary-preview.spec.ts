@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { editCodeMirrorEditor } from '../../utils/page/actions';
 import { openCollectionRequest, sendReqAndSaveResposeExample } from '../../utils/page/response-example';
 
 const binaryPreviewCases = [
@@ -157,6 +158,13 @@ test.describe('Binary response example previews', () => {
         await expect(locators.responseExample.title()).toBeVisible();
         await expect(locators.responseExample.binaryPreview()).toHaveCount(0);
         await expect(locators.responseExample.responseContentCodeMirror()).toContainText('AAECAwQFBgcI');
+      });
+
+      await test.step('Verify the raw body is editable in edit mode', async () => {
+        await page.getByTestId('response-example-edit-btn').click();
+        await editCodeMirrorEditor(page, 'response-example-response-content', 'ZWRpdGVk');
+        await expect(locators.responseExample.responseContentCodeMirror()).toContainText('ZWRpdGVk');
+        await expect(locators.responseExample.responseContentCodeMirror()).not.toContainText('AAECAwQFBgcI');
       });
     } finally {
       await closeElectronApp(app);

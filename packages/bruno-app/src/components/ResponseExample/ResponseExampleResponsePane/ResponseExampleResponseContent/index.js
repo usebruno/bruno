@@ -103,12 +103,12 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           value={getResponseContent()}
-          onEdit={isBinaryBody ? undefined : onResponseEdit}
+          onEdit={onResponseEdit}
           onRun={() => {}}
           onSave={onSave}
           mode={getCodeMirrorMode()}
           enableVariableHighlighting={false}
-          readOnly={!editMode || isBinaryBody}
+          readOnly={!editMode}
         />
       </div>
     </StyledWrapper>
