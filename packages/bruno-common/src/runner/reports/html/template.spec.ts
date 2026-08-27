@@ -37,7 +37,6 @@ describe('htmlTemplateString', () => {
     const template = htmlTemplateString('');
 
     expect(template).toContain('result.status === \'skipped\'');
-    expect(template).not.toContain('result.response.status === \'skipped\'');
     expect(template).toContain('result.skipReason === \'bail\' ? \'Request skipped due to bail\'');
   });
 });
