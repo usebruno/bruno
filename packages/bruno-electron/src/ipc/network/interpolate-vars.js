@@ -2,6 +2,9 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 
+const findActivePathParam = (pathParams, name) =>
+  pathParams.find((param) => param.name === name && param.enabled !== false);
+
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
     return false;
@@ -197,7 +200,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // traditional path parameters
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+          const existingPathParam = findActivePathParam(request.pathParams, paramName);
           if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
@@ -218,7 +221,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               let name = match[1].replace(/[')"`]+$/, '');
               name = name.replace(/^[('"`]+/, '');
               if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                const existingPathParam = findActivePathParam(request.pathParams, name);
                 if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }

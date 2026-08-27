@@ -146,7 +146,24 @@ const jsonToBru = (json) => {
     if (pathParams.length) {
       bru += 'params:path {';
 
-      bru += `\n${indentString(pathParams.map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.name}: ${getValueString(item.value)}`).join('\n'))}`;
+      if (enabled(pathParams).length) {
+        bru += `\n${indentString(
+          enabled(pathParams)
+            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .join('\n')
+        )}`;
+      }
+
+      // Enabled rows must precede disabled ones: older readers resolve a :segment
+      // with a first-match-by-name lookup, so a leading ~row would shadow the
+      // active value there.
+      if (disabled(pathParams).length) {
+        bru += `\n${indentString(
+          disabled(pathParams)
+            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+            .join('\n')
+        )}`;
+      }
 
       bru += '\n}\n\n';
     }

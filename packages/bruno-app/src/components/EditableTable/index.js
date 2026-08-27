@@ -80,6 +80,9 @@ const EditableTable = ({
   disableCheckbox = false,
   checkboxLabel = '',
   checkboxKey = 'enabled',
+  radioGroupKey,
+  onCheckboxChange,
+  canDeleteRow,
   reorderable: reorderableProp = false,
   onReorder,
   showAddRow = true,
@@ -295,8 +298,20 @@ const EditableTable = ({
   }, [rowsWithEmpty, hasAnyValue, onChange, showAddRow]);
 
   const handleCheckboxChange = useCallback((rowUid, checked) => {
+    if (onCheckboxChange) {
+      onCheckboxChange(rowUid, checked);
+      return;
+    }
     handleValueChange(rowUid, checkboxKey, checked);
-  }, [handleValueChange, checkboxKey]);
+  }, [onCheckboxChange, handleValueChange, checkboxKey]);
+
+  const radioGroupCounts = useMemo(() => {
+    if (!radioGroupKey) {
+      return null;
+    }
+
+    return rows.reduce((counts, row) => counts.set(row[radioGroupKey], (counts.get(row[radioGroupKey]) || 0) + 1), new Map());
+  }, [radioGroupKey, rows]);
 
   const handleRemoveRow = useCallback((rowUid) => {
     const filteredRows = rows.filter((row) => row.uid !== rowUid);
@@ -455,7 +470,21 @@ const EditableTable = ({
                 />
               </div>
             )}
-            {!isEmpty && (
+            {/* A lone always-on row needs no control, but a lone row persisted as
+                disabled still needs the radio or it could never be re-enabled. */}
+            {!isEmpty && radioGroupCounts && (radioGroupCounts.get(row[radioGroupKey]) > 1 || row[checkboxKey] === false) && (
+              <input
+                type="radio"
+                className="mousetrap"
+                data-testid="column-radio"
+                name={`${testId}-${row[radioGroupKey]}`}
+                aria-label={`Use ${row[keyColumn?.key] ?? row[radioGroupKey]}: ${row.value ?? ''}`}
+                checked={row[checkboxKey] !== false}
+                disabled={disableCheckbox}
+                onChange={() => handleCheckboxChange(row.uid, true)}
+              />
+            )}
+            {!isEmpty && !radioGroupCounts && (
               <input
                 type="checkbox"
                 className="mousetrap"
@@ -486,7 +515,7 @@ const EditableTable = ({
             }
           }}
           >
-            {!isEmpty && (
+            {!isEmpty && (!canDeleteRow || canDeleteRow(row)) && (
               <button
                 data-testid="column-delete"
                 onClick={() => handleRemoveRow(row.uid)}
@@ -498,7 +527,7 @@ const EditableTable = ({
         )}
       </>
     );
-  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, keyColumn, handleDragHandleMouseDown, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
+  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, keyColumn, handleDragHandleMouseDown, checkboxKey, radioGroupCounts, radioGroupKey, testId, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, canDeleteRow, handleRemoveRow]);
 
   const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
 
