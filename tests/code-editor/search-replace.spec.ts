@@ -432,4 +432,29 @@ test.describe.serial('CodeEditor Search/Replace', () => {
     await closeCodeEditorSearchBar(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
+
+  test('replace shortcut with no selection keeps the previous term and anchors at the cursor', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    await test.step('Search for "foo" across three lines, then close the bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar\nbaz foo\nqux foo');
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Move the cursor to line 2 with nothing selected, then open the replace bar', async () => {
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 2, ch: 0 }, true);
+      await page.keyboard.press(replaceKey);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await loc.replaceInput().waitFor({ state: 'visible' });
+    });
+    await test.step('Previous term is kept and the match anchors to the cursor, not back to the first', async () => {
+      await expect(loc.searchInput()).toHaveValue('foo');
+      await expectMatchCount(page, '3 / 3');
+      await expect(loc.replaceInput()).toBeFocused();
+    });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
 });
