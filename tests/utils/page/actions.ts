@@ -749,6 +749,7 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
       await locators.environment.globalTab().click();
       await expect(locators.environment.globalTab()).toHaveClass(/active/);
     } else {
+      await locators.environment.collectionTab().click();
       await expect(locators.environment.collectionTab()).toHaveClass(/active/);
     }
   });
@@ -854,13 +855,17 @@ const createEnvironment = async (
       await inlineNameInput.press('Enter');
     }
 
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
 
     await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
     await locators.environment.envOption(environmentName).click();
     await expect(page.locator('.current-environment')).toContainText(environmentName);
@@ -1033,8 +1038,10 @@ const saveEnvironment = async (page: Page) => {
  */
 const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collection') => {
   await test.step('Close environment tab', async () => {
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
+    const locators = buildCommonLocators(page);
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
@@ -1059,6 +1066,8 @@ const selectEnvironment = async (
 
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
 
     const option = environmentName === 'No Environment'
@@ -2507,6 +2516,13 @@ const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.act
 const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
 
 /**
+ * The shared "No app yet" empty state, rendered by both the request-level app
+ * view and the standalone collection app whenever the app has no code.
+ * @param page - The page object
+ */
+const appEmptyState = (page: Page) => activeAppPreviewSlot(page).getByTestId('empty-app-state');
+
+/**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
  * takes over the request/response area.
  * @param page - The page object
@@ -2626,6 +2642,8 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
   });
 };
 
+const SETTLE_MS = 2_000;
+
 /**
  * Scroll a row inside a react-virtuoso table (request/folder/collection vars or
  * env vars — both rendered with the `table-container` className) into view so it
@@ -2635,7 +2653,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => { });
+    await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
     return;
   }
 
@@ -2653,7 +2671,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => { });
+      await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
       return;
     }
   }
@@ -2663,7 +2681,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => { });
+  await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
 };
 
 /**
@@ -2733,6 +2751,238 @@ const openSystemProxyPanel = async (page: Page) => {
   const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
   await systemProxyLocators.systemProxyMode().click();
   await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
+// Sidebar item actions: clone / copy / paste / rename / create, opened through a
+// row's menu.
+
+const openItemActionsMenu = async (page: Page, name: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(name);
+  await sidebar.itemRow(name).first().hover();
+  await menu.trigger().first().click({ force: true });
+};
+
+const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(collectionName, 'collection');
+  await sidebar.collectionRow(collectionName).hover();
+  const trigger = menu.trigger();
+  await trigger.waitFor({ state: 'visible' });
+  await trigger.click();
+};
+
+const cloneItem = async (page: Page, name: string) => {
+  await test.step(`Clone item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Clone').click();
+    // Synchronize on completion (a "… cloned!" toast). `.first()` so a still-visible
+    // toast from a prior clone is not the one we wait on.
+    await toast.byMessage(/cloned!/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const copyItem = async (page: Page, name: string) => {
+  await test.step(`Copy item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Copy').click();
+    await toast.byMessage(/copied/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Paste into collection "${collectionName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openCollectionActionsMenu(page, collectionName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoFolder = async (page: Page, folderName: string) => {
+  await test.step(`Paste into folder "${folderName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, folderName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+type ItemType = 'request' | 'folder';
+const renameModalTitle = (type: ItemType) => (type === 'folder' ? 'Rename Folder' : 'Rename Request');
+
+const openRenameModal = async (page: Page, name: string, type: ItemType = 'request') => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openItemActionsMenu(page, name);
+  await dropdown.item('Rename').click();
+  await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'visible' });
+};
+
+const renameItemTo = async (page: Page, name: string, newName: string, type: ItemType = 'request') => {
+  await test.step(`Rename "${name}" to "${newName}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await sidebar.renameItemModal.nameInput().fill(newName);
+    await sidebar.renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const revealFilesystemName = async (page: Page) => {
+  const { sidebar } = buildCommonLocators(page);
+  await sidebar.filesystemName.optionsButton().first().click();
+  await sidebar.filesystemName.showFilesystemNameItem().click();
+};
+
+const renameViaFilename = async (page: Page, name: string, newFilename: string, type: ItemType = 'request') => {
+  await test.step(`Rename filesystem name of "${name}" to "${newFilename}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await revealFilesystemName(page);
+    await sidebar.renameItemModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(newFilename);
+    await sidebar.renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewRequestModal = async (page: Page, parentName: string, { inFolder = false } = {}) => {
+  const { dropdown, request } = buildCommonLocators(page);
+  if (inFolder) {
+    await openItemActionsMenu(page, parentName);
+  } else {
+    await openCollectionActionsMenu(page, parentName);
+  }
+  await dropdown.item('New Request').click();
+  await request.requestNameInput().waitFor({ state: 'visible' });
+};
+
+const createRequestViaModal = async (page: Page, parentName: string, name: string, { inFolder = false } = {}) => {
+  await test.step(`Create request "${name}" via modal in "${parentName}"`, async () => {
+    const { modal, request, sidebar } = buildCommonLocators(page);
+    await openNewRequestModal(page, parentName, { inFolder });
+    await request.requestNameInput().fill(name);
+    await sidebar.newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const createRequestWithEditedFilename = async (
+  page: Page,
+  collectionName: string,
+  displayName: string,
+  filename: string
+) => {
+  await test.step(`Create request "${displayName}" with filename "${filename}"`, async () => {
+    const { modal, request, sidebar } = buildCommonLocators(page);
+    await openNewRequestModal(page, collectionName);
+    await request.requestNameInput().fill(displayName);
+    await revealFilesystemName(page);
+    await sidebar.newRequestModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(filename);
+    await sidebar.newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewFolderModal = async (page: Page, collectionName: string) => {
+  const { dropdown, sidebar } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('New Folder').click();
+  await sidebar.newFolderModal.nameInput().waitFor({ state: 'visible' });
+};
+
+const createFolderViaModal = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Create folder "${folderName}" via modal in "${collectionName}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openNewFolderModal(page, collectionName);
+    await sidebar.newFolderModal.nameInput().fill(folderName);
+    await modal.button('Create').click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openCloneCollectionModal = async (page: Page, collectionName: string) => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('Clone').click();
+  await modal.byTitle('Clone Collection').waitFor({ state: 'visible' });
+};
+
+const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
+    (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+  }, location);
+  try {
+    await sidebar.cloneCollectionModal.browseButton().click();
+    await sidebar.cloneCollectionModal.locationInput().waitFor({ state: 'visible' });
+  } finally {
+    await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }) => {
+      if ((globalThis as any).__bruPrevShowOpenDialog) {
+        dialog.showOpenDialog = (globalThis as any).__bruPrevShowOpenDialog;
+        delete (globalThis as any).__bruPrevShowOpenDialog;
+      }
+    });
+  }
+};
+
+const setTextBody = async (page: Page, value: string) => {
+  const { request } = buildCommonLocators(page);
+  await request.bodyModeSelector().click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Text' }).click();
+  await request.bodyEditor().locator('.CodeMirror').first().click();
+  await page.keyboard.type(value);
+};
+
+// Save the active transient (untitled) request via the Save modal, giving it a
+// display name. Waits for the modal to open and close.
+const saveTransientRequestAs = async (page: Page, name: string) => {
+  await test.step(`Save transient request as "${name}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    const dialog = sidebar.saveRequestModal.modal();
+
+    await page.keyboard.press(`${modifier}+s`);
+    await dialog.waitFor({ state: 'visible' });
+    await sidebar.saveRequestModal.nameInput().clear();
+    await sidebar.saveRequestModal.nameInput().fill(name);
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Opens the environment import review modal and selects the given files.
+ * @param page - The Playwright Page object
+ * @param scope - The environment scope ('collection' | 'global')
+ * @param filePaths - The paths to the environment files to import
+ */
+const openImportReview = async (page: Page, scope: 'collection' | 'global', ...filePaths: string[]) => {
+  const { environment } = buildCommonLocators(page);
+  await openEnvironmentConfigTab(page, scope);
+  await environment.importSettingsButton().click();
+  await environment.importModal(scope).waitFor({ state: 'visible' });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await environment.importFileTrigger(scope).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePaths);
+};
+
+/**
+ * Clicks outside the modal backdrop to test click-outside behavior.
+ * @param page - The Playwright Page object
+ */
+const clickOutsideModal = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+
+  await modal.backdrop().click({
+    position: { x: 10, y: 10 }
+  });
 };
 
 export {
@@ -2844,6 +3094,7 @@ export {
   requestPaneOverflowTabItem,
   activeAppPreviewSlot,
   activeAppView,
+  appEmptyState,
   previewApp,
   exitApp,
   selectViewMode,
@@ -2852,7 +3103,27 @@ export {
   selectAppView,
   renameWsMessage,
   elementIsInsideDropdown,
-  openSystemProxyPanel
+  openSystemProxyPanel,
+  openItemActionsMenu,
+  cloneItem,
+  copyItem,
+  pasteIntoCollection,
+  pasteIntoFolder,
+  openRenameModal,
+  renameItemTo,
+  revealFilesystemName,
+  renameViaFilename,
+  openNewRequestModal,
+  createRequestViaModal,
+  createRequestWithEditedFilename,
+  openNewFolderModal,
+  createFolderViaModal,
+  openCloneCollectionModal,
+  chooseCloneLocation,
+  setTextBody,
+  saveTransientRequestAs,
+  openImportReview,
+  clickOutsideModal
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

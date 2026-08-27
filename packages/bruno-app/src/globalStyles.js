@@ -264,6 +264,15 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-prompt {
       color: ${(props) => props.theme.codemirror.variable.prompt};
     }
+    .cm-search-line-highlight {
+      background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+    }
+    .cm-search-match {
+      background: ${(props) => rgba(props.theme.codemirror.searchMatch, 0.25)};
+    }
+    .cm-search-current {
+      background: ${(props) => rgba(props.theme.codemirror.searchMatchActive, 0.4)};
+    }
   }
   .CodeMirror-brunoVarInfo {
     color: ${(props) => props.theme.text};
