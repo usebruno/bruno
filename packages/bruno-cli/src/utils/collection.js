@@ -224,7 +224,7 @@ const mergeVars = (collection, request, requestTreePath) => {
 /**
  * Wraps a script in an IIFE closure to isolate its scope
  * @param {string} script - The script code to wrap
- * @param {{ dirname: string, filename: string } | null} sourcePaths - Absolute paths bound to __dirname / __filename
+ * @param {{ dirname: string, filename: string | null } | null} sourcePaths - Absolute paths bound to __dirname / __filename
  * @returns {string} The wrapped script
  */
 const wrapScriptInClosure = (script, sourcePaths = null) => {
