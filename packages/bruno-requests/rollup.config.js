@@ -42,6 +42,6 @@ module.exports = [
     external: (id) =>
       isBuiltin(id)
       || id.startsWith('@usebruno/')
-      || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id)
+      || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten', 'kerberos'].includes(id)
   }
 ];

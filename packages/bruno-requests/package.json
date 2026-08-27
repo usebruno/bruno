@@ -40,6 +40,9 @@
     "tough-cookie": "^6.0.0",
     "ws": "8.21.3"
   },
+  "optionalDependencies": {
+    "kerberos": "^7.0.0"
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.22.0",
     "@babel/preset-typescript": "^7.22.0",

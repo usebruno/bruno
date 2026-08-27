@@ -10,6 +10,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { isEmpty, get, isUndefined, isNull } from 'lodash';
 import { getCACertificates } from './ca-cert';
+import { getKerberosProxyAuthHeader } from './kerberos-proxy';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
 import { getPacResolver } from './pac-resolver';
@@ -28,6 +29,7 @@ type ProxyMode = 'on' | 'off' | 'system' | 'pac';
 
 type ProxyAuth = {
   enabled: boolean;
+  mode?: 'basic' | 'kerberos';
   username?: string;
   password?: string;
 };
@@ -89,6 +91,7 @@ type TlsOptions = HttpsAgentRequestFields & CertsConfig & {
   secureProtocol?: string;
   minVersion?: string;
   ALPNProtocols?: string[];
+  kerberosProxyAuth?: boolean;
 };
 
 type AgentResult = {
@@ -219,12 +222,27 @@ const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthori
  */
 export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   private constructorOpts: any;
+  private kerberosTokenQueue: string[] = [];
 
   constructor(proxy: string, opts: any) {
     super(proxy, opts);
     this.constructorOpts = opts;
+    if (opts?.kerberosProxyAuth) {
+      // Cached agents are shared, so concurrent connect() calls must not
+      // clobber shared header state: each connect() enqueues one single-use
+      // token, and this function (invoked by the upstream agent once per
+      // CONNECT) dequeues exactly one. Tokens for the same user and proxy
+      // are interchangeable, so consumption order does not matter.
+      const baseHeaders = (this as any).proxyHeaders;
+      (this as any).proxyHeaders = () => {
+        const existing = typeof baseHeaders === 'function' ? baseHeaders() : { ...(baseHeaders || {}) };
+        const token = this.kerberosTokenQueue.shift();
+        return token ? { ...existing, 'Proxy-Authorization': token } : existing;
+      };
+    }
   }
 
+  /** Establishes the CONNECT tunnel, forwarding TLS options and, when enabled, Kerberos proxy auth. */
   async connect(req: any, opts: any) {
     const targetOpts = { ...opts };
 
@@ -237,7 +255,37 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
       }
     }
 
+    if (this.constructorOpts?.kerberosProxyAuth) {
+      this.kerberosTokenQueue.push(await getKerberosProxyAuthHeader(this.proxy.hostname));
+    }
+
     return super.connect(req, targetOpts);
+  }
+}
+
+/**
+ * Patched version of HttpProxyAgent (plain-HTTP requests forwarded via an
+ * HTTP proxy) that supports Kerberos proxy authentication via the
+ * `kerberosProxyAuth` option. Clearing `req._header` before setHeader mirrors
+ * the upstream agent, which regenerates the buffered header block inside
+ * connect().
+ */
+export class PatchedHttpProxyAgent extends HttpProxyAgent<any> {
+  private kerberosProxyAuth: boolean;
+
+  constructor(proxy: string, opts?: any) {
+    super(proxy, opts);
+    this.kerberosProxyAuth = !!opts?.kerberosProxyAuth;
+  }
+
+  /** Connects to the proxy, attaching a Negotiate Proxy-Authorization header when enabled. */
+  async connect(req: any, opts: any) {
+    if (this.kerberosProxyAuth) {
+      const authHeader = await getKerberosProxyAuthHeader(this.proxy.hostname);
+      req._header = null;
+      req.setHeader('Proxy-Authorization', authHeader);
+    }
+    return super.connect(req, opts);
   }
 }
 
@@ -396,6 +444,7 @@ type ResolveAgentsFromPacParams = {
   timeline?: TimelineEntry[] | null;
   disableCache: boolean;
   hostname: string | null;
+  kerberosProxyAuth?: boolean;
 };
 
 type ResolveAgentsFromPacResult = {
@@ -418,7 +467,8 @@ export async function resolveAgentsFromPac({
   requestProtocol = 'both',
   timeline,
   disableCache,
-  hostname
+  hostname,
+  kerberosProxyAuth = false
 }: ResolveAgentsFromPacParams): Promise<ResolveAgentsFromPacResult> {
   const pacResolverFields = httpsAgentRequestFields || {
     ca: tlsOptions.ca,
@@ -443,8 +493,10 @@ export async function resolveAgentsFromPac({
     const scheme = keyword === 'HTTPS' ? 'https' : 'http';
     const proxyUri = `${scheme}://${hostPort}`;
     const result: ResolveAgentsFromPacResult = { directives };
-    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
-    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+    const httpOptions = kerberosProxyAuth ? { keepAlive: true, kerberosProxyAuth: true } : { keepAlive: true };
+    const httpsOptions: TlsOptions = kerberosProxyAuth ? { ...tlsOptions, kerberosProxyAuth: true } : tlsOptions;
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: httpOptions, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: httpsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
     return result;
   }
   if (/^SOCKS/i.test(first)) {
@@ -498,6 +550,7 @@ async function createAgents({
       const proxyPort = get(proxyConfig, 'port');
       const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
       const socksEnabled = proxyProtocol && proxyProtocol.includes('socks');
+      const kerberosProxyAuth = proxyAuthEnabled && get(proxyConfig, 'auth.mode', 'basic') === 'kerberos' && !socksEnabled;
 
       if (!proxyProtocol || !proxyHostname) {
         throw new Error('Proxy protocol and hostname are required when proxy is enabled');
@@ -505,18 +558,24 @@ async function createAgents({
 
       const uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri: string;
-      if (proxyAuthEnabled) {
+      if (proxyAuthEnabled && !kerberosProxyAuth) {
         const proxyAuthUsername = encodeURIComponent(get(proxyConfig, 'auth.username', ''));
         const proxyAuthPassword = encodeURIComponent(get(proxyConfig, 'auth.password', ''));
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
+        // Kerberos mode: no credentials in the proxy URI, so the agents'
+        // Basic auth logic cannot clobber the Negotiate header.
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
-      const httpProxyAgentOptions = isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+      const httpsProxyAgentOptions: TlsOptions = kerberosProxyAuth ? { ...tlsOptions, kerberosProxyAuth: true } : tlsOptions;
+      const httpProxyAgentOptions = {
+        ...(isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true }),
+        ...(kerberosProxyAuth ? { kerberosProxyAuth: true } : {})
+      };
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -527,9 +586,9 @@ async function createAgents({
         }
       } else {
         if (isHttpsRequest) {
-          httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
+          httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: httpsProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname });
+          httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: httpProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname });
         }
       }
     }
@@ -566,7 +625,7 @@ async function createAgents({
             const parsedHttpProxy = new URL(http_proxy);
             const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
             const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-            httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
+            httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
           }
         } catch (error) {
           throw new Error('Invalid system http_proxy');

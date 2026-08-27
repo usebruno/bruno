@@ -142,6 +142,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   proxy: Yup.object({
     disabled: Yup.boolean().optional(),
+    // Kerberos (SPNEGO) auth for system-proxy/PAC-mode proxies
+    kerberosAuth: Yup.boolean().optional(),
     source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
     pac: Yup.object({
       source: Yup.string().optional().max(2048).nullable()
@@ -152,6 +154,7 @@ const preferencesSchema = Yup.object().shape({
       port: Yup.number().min(1).max(65535).nullable(),
       auth: Yup.object({
         disabled: Yup.boolean().optional(),
+        mode: Yup.string().oneOf(['basic', 'kerberos']).optional(),
         username: Yup.string().max(1024),
         password: Yup.string().max(1024)
       }).optional(),
@@ -434,6 +437,9 @@ const preferencesUtil = {
   },
   isSslSessionCachingEnabled: () => {
     return get(getPreferences(), 'cache.sslSession.enabled', false);
+  },
+  shouldUseKerberosProxyAuth: () => {
+    return get(getPreferences(), 'proxy.kerberosAuth', false);
   },
   isFileCacheEnabled: () => {
     return get(getPreferences(), 'cache.file.enabled', false);
