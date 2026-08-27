@@ -4,7 +4,7 @@ import { test } from '../../../playwright';
 import { setSandboxMode, runCollection, validateRunnerResults, waitForReadyPage } from '../../utils/page';
 import { startServers, stopServers, PAC_PORT, type TestServers } from './server';
 
-test.describe('PAC Proxy', () => {
+test.describe.serial('PAC Proxy', () => {
   let servers: TestServers;
 
   test.beforeAll(async () => {

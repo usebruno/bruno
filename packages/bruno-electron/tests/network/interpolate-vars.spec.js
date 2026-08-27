@@ -181,6 +181,41 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('http://example.com/Category(\'foobar\')/Item(1)/foobar/Tags(%22tag%20test%22)');
       });
+
+      it('keeps colon path segments when the path param has no value', async () => {
+        const request = {
+          method: 'POST',
+          url: 'https://httpbin.org/anything/:test-segment',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'test-segment',
+              value: ''
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
+      });
+
+      it('keeps colon path segments when the path param is disabled', async () => {
+        const request = {
+          method: 'POST',
+          url: 'https://httpbin.org/anything/:test-segment',
+          pathParams: [
+            {
+              type: 'path',
+              name: 'test-segment',
+              value: 'replaced',
+              enabled: false
+            }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
+      });
     });
 
     describe('With process environment variables', () => {

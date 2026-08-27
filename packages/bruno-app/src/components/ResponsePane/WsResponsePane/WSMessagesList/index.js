@@ -96,6 +96,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
 
   return (
     <div
+      data-testid={isError ? 'ws-message-error' : 'ws-message'}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': isOutgoing,
@@ -116,7 +117,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
           <span className="message-type-icon">
             <TypeIcon type={message.type} />
           </span>
-          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
+          <span data-testid="ws-message-content" className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
         </div>
         <div className="flex shrink-0 gap-2 items-center">
           {message.timestamp && (
@@ -168,6 +169,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
               value={showHex ? contentHexdump : parsedContent.content}
               item={item}
               collection={collection}
+              readOnly
             />
           </div>
         </>

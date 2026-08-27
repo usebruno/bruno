@@ -78,13 +78,14 @@ test.describe('Preferences Tab Switch Persistence', () => {
     await page.getByRole('tab', { name: 'Cache' }).click();
     await page.waitForTimeout(300);
 
-    // Get the initial state of SSL session caching checkbox
-    const sslSessionCheckbox = page.locator('#sslSession\\.enabled');
-    await sslSessionCheckbox.waitFor({ state: 'visible' });
+    // Get the initial state of SSL session caching toggle
+    const sslSessionToggle = page.getByTestId('sslSession.enabled');
+    const sslSessionCheckbox = sslSessionToggle.locator('input[type="checkbox"]');
+    await sslSessionToggle.waitFor({ state: 'visible' });
     const initialChecked = await sslSessionCheckbox.isChecked();
 
     // Toggle the checkbox
-    await sslSessionCheckbox.click();
+    await sslSessionToggle.click();
 
     // Immediately switch to another tab
     await page.getByRole('tab', { name: 'Themes' }).click();
@@ -92,14 +93,14 @@ test.describe('Preferences Tab Switch Persistence', () => {
 
     // Switch back to Cache tab
     await page.getByRole('tab', { name: 'Cache' }).click();
-    await sslSessionCheckbox.waitFor({ state: 'visible' });
+    await sslSessionToggle.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted
     const newChecked = await sslSessionCheckbox.isChecked();
     expect(newChecked).toBe(!initialChecked);
 
     // Restore original state
-    await sslSessionCheckbox.click();
+    await sslSessionToggle.click();
     await page.waitForTimeout(600);
   });
 
@@ -154,13 +155,14 @@ test.describe('Preferences Tab Switch Persistence', () => {
     await page.getByRole('tab', { name: 'Cache' }).click();
     await page.waitForTimeout(300);
 
-    // Get the initial state of SSL session caching checkbox
-    const sslSessionCheckbox = page.locator('#sslSession\\.enabled');
-    await sslSessionCheckbox.waitFor({ state: 'visible' });
+    // Get the initial state of SSL session caching toggle
+    const sslSessionToggle = page.getByTestId('sslSession.enabled');
+    const sslSessionCheckbox = sslSessionToggle.locator('input[type="checkbox"]');
+    await sslSessionToggle.waitFor({ state: 'visible' });
     const initialCacheState = await sslSessionCheckbox.isChecked();
 
     // Toggle the checkbox
-    await sslSessionCheckbox.click();
+    await sslSessionToggle.click();
 
     // Close preferences tab immediately
     const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
@@ -178,13 +180,13 @@ test.describe('Preferences Tab Switch Persistence', () => {
     // Navigate to Cache tab
     await page.getByRole('tab', { name: 'Cache' }).click();
     await page.waitForTimeout(300);
-    await sslSessionCheckbox.waitFor({ state: 'visible' });
+    await sslSessionToggle.waitFor({ state: 'visible' });
 
     // Verify the setting was persisted
     expect(await sslSessionCheckbox.isChecked()).toBe(!initialCacheState);
 
     // Restore original state
-    await sslSessionCheckbox.click();
+    await sslSessionToggle.click();
     await page.waitForTimeout(600);
   });
 });

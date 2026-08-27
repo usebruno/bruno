@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 
-const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '' }) => {
+const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response Example', initialName = '', confirmText = 'Create Example' }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState('');
@@ -54,7 +54,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
         title={title}
         handleCancel={handleClose}
         handleConfirm={handleConfirm}
-        confirmText="Create Example"
+        confirmText={confirmText}
         cancelText="Cancel"
         isOpen={isOpen}
       >

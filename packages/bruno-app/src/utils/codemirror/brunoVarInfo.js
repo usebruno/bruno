@@ -7,6 +7,7 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { toDisplayString } from '@usebruno/common/utils';
 import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -83,7 +84,7 @@ const getScopeLabel = (scopeType) => {
 
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
-  const contentLength = (value || '').length;
+  const contentLength = (value === undefined || value === null ? '' : String(value)).length;
   return contentLength > 0 ? '*'.repeat(contentLength) : '';
 };
 
@@ -95,7 +96,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
     return;
   }
 
@@ -136,6 +137,7 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
+  copyButton.setAttribute('data-testid', 'var-info-copy-button');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   copyButton.type = 'button';
 
@@ -153,8 +155,10 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
+
     navigator.clipboard
-      .writeText(valueToCopy ?? '')
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -278,8 +282,8 @@ export const renderVarInfo = (token, options) => {
   // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
   const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
 
-  // Get raw value from scope
-  const rawValue = scopeInfo.value || '';
+  // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
+  const rawValue = scopeInfo.value ?? '';
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
@@ -297,10 +301,12 @@ export const renderVarInfo = (token, options) => {
 
   const varName = document.createElement('span');
   varName.className = 'var-name';
+  varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
+  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
@@ -320,6 +326,7 @@ export const renderVarInfo = (token, options) => {
   if (!isValidVariableName) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
     into.appendChild(warningNote);
 
@@ -331,6 +338,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
     into.appendChild(warningNote);
     return into;
@@ -340,6 +348,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
     readOnlyNote.textContent = scopeInfo.isTimeBased
       ? 'Generates current timestamp on each request'
       : 'Generates random value on each request';
@@ -351,6 +360,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
     into.appendChild(warningNote);
     return into;
@@ -368,12 +378,14 @@ export const renderVarInfo = (token, options) => {
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-editable');
     // Mask the displayed value if it contains secrets or references to secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
     editorContainer.className = 'var-value-editor';
+    editorContainer.setAttribute('data-testid', 'var-info-value-editor');
     editorContainer.style.display = 'none'; // Hidden initially
 
     // Detect current theme from DOM
@@ -383,9 +395,10 @@ export const renderVarInfo = (token, options) => {
     // Get all variables for syntax highlighting (but prevent recursive tooltips)
     const allVariables = collection ? getAllVariables(collection, item) : {};
 
-    // Create CodeMirror instance
+    const editorInitialValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+
     const cmEditor = CodeMirror(editorContainer, {
-      value: typeof rawValue === 'string' ? rawValue : String(rawValue), // Use raw value (e.g., {{echo-host}} not resolved value) (ensure it's always a string for CodeMirror) #usebruno/bruno/#6265
+      value: editorInitialValue,
       mode: 'brunovariables',
       theme: cmTheme,
       lineWrapping: true,
@@ -415,8 +428,8 @@ export const renderVarInfo = (token, options) => {
       maskedEditor.enable();
     }
 
-    // Store original value for comparison and track editing state
-    let originalValue = rawValue;
+    // Use the editor-formatted string so a no-op blur on a typed value doesn't dispatch.
+    let originalValue = editorInitialValue;
     let isEditing = false;
     // Latest resolved value and mask state used by the copy button, eye toggle, and
     // error-revert path. Updated after each successful save so subsequent redraws
@@ -458,6 +471,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -594,6 +608,7 @@ export const renderVarInfo = (token, options) => {
 
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-display');
     // For read-only variables, still check if they reference secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
@@ -605,6 +620,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -631,21 +647,25 @@ export const renderVarInfo = (token, options) => {
     if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'Set by scripts (read-only)';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'oauth2') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
       into.appendChild(readOnlyNote);
     }
@@ -702,8 +722,10 @@ if (!SERVER_RENDERED) {
     }
 
     const box = target.getBoundingClientRect();
+    let point = { left: e.clientX, top: e.clientY };
 
-    const onMouseMove = function () {
+    const onMouseMove = function (moveEvent) {
+      point = { left: moveEvent.clientX, top: moveEvent.clientY };
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
@@ -719,7 +741,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      onMouseHover(cm, box, point);
     };
 
     const hoverTime = getHoverTime(cm);
@@ -729,8 +751,8 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
-    const pos = cm.coordsChar({
+  function onMouseHover(cm, box, point) {
+    const pos = cm.coordsChar(point || {
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
     });
@@ -841,6 +863,7 @@ if (!SERVER_RENDERED) {
 
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
+    popup.setAttribute('data-testid', 'var-info-popup');
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
@@ -922,6 +945,20 @@ if (!SERVER_RENDERED) {
       }
     };
 
+    // The popup is position:fixed, so any scroller around the editor strands it;
+    // scroll events do not bubble, hence the capture-phase listener on document.
+    const onScroll = function (e) {
+      if (popup.contains(e.target)) {
+        return;
+      }
+      const wrapper = cm.getWrapperElement();
+      if (!e.target.contains(wrapper) && !wrapper.contains(e.target)) {
+        return;
+      }
+      isPinned = false;
+      hidePopup({ immediate: true });
+    };
+
     const hidePopup = function (options = {}) {
       if (isHidden) {
         return;
@@ -936,6 +973,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('scroll', onScroll, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -999,6 +1037,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
+    document.addEventListener('scroll', onScroll, true);
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
@@ -20,6 +20,13 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
       value: ensureString(meta.value),
       enabled: meta.disabled !== true
     };
+
+    if (meta.description) {
+      const desc = typeof meta.description === 'string' ? meta.description : (meta.description as any)?.content || '';
+      if (desc.trim().length) {
+        brunoMeta.description = desc;
+      }
+    }
 
     return brunoMeta;
   });
@@ -57,10 +64,16 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  if (isNonEmptyString(grpc?.message)) {
+  const rawMessage = grpc?.message;
+  if (Array.isArray(rawMessage)) {
+    brunoRequest.body.grpc = (rawMessage as GrpcMessageVariant[]).map(({ title, message }, index) => ({
+      name: title || `message ${index + 1}`,
+      content: ensureString(message)
+    }));
+  } else if (isNonEmptyString(rawMessage)) {
     brunoRequest.body.grpc = [{
       name: '',
-      content: grpc?.message as string
+      content: rawMessage as string
     }];
   }
 
@@ -109,6 +122,14 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   return brunoItem;
 };

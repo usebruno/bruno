@@ -212,6 +212,9 @@ class SingleLineEditor extends Component {
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
+    if (this.props.mode !== prevProps.mode && this.editor) {
+      this.addOverlay(variables);
+    }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
     }
@@ -241,7 +244,8 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
+    const mode = this.props.mode || 'text/plain';
+    defineCodeMirrorBrunoVariablesMode(variables, mode, this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 
@@ -314,7 +318,7 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

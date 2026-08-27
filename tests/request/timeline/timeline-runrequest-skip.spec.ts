@@ -42,13 +42,13 @@ test.describe('Timeline — bru.runRequest skips unsupported item types', () => 
     await test.step('Timeline has main + two Skipped runRequest rows', async () => {
       await selectResponsePaneTab(page, 'Timeline');
 
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       await expect(rows).toHaveCount(3);
 
-      const skippedRows = rows.filter({ has: page.locator('.tl-badge--run-request') });
+      const skippedRows = rows.filter({ has: page.getByTestId('timeline-badge-post') });
       await expect(skippedRows).toHaveCount(2);
-      await expect(skippedRows.nth(0).locator('.timeline-status')).toContainText('Skipped');
-      await expect(skippedRows.nth(1).locator('.timeline-status')).toContainText('Skipped');
+      await expect(skippedRows.nth(0).getByTestId('timeline-status')).toContainText('Skipped');
+      await expect(skippedRows.nth(1).getByTestId('timeline-status')).toContainText('Skipped');
     });
   });
 });

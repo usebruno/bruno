@@ -55,32 +55,31 @@ test.describe('Timeline — nested bru.runRequest bubbles inner scripted entries
     await test.step('Outer Timeline shows three rows: main + runRequest + bubbled inner sendRequest', async () => {
       await selectResponsePaneTab(page, 'Timeline');
 
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       // Without the fix: 2 (main + runRequest); inner sendRequest is dropped.
       await expect(rows).toHaveCount(3);
 
       // Badge mix guards against an accidental wrong-3-rows pass.
-      await expect(rows.locator('.tl-badge--main')).toHaveCount(1);
-      await expect(rows.locator('.tl-badge--run-request')).toHaveCount(1);
-      await expect(rows.locator('.tl-badge--scripted')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-main')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-post')).toHaveCount(1);
+      await expect(rows.getByTestId('timeline-badge-pre')).toHaveCount(1);
     });
 
     await test.step('Bubbled sendRequest row targets the inner-script URL (proving it came from inner)', async () => {
-      const rows = page.locator('.timeline-container .tl-row-wrap');
-      const scriptedRow = rows.filter({ has: page.locator('.tl-badge--scripted') });
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
+      const scriptedRow = rows.filter({ has: page.getByTestId('timeline-badge-pre') });
       await expect(scriptedRow).toHaveCount(1);
-      await expect(scriptedRow.locator('.tl-col-url')).toContainText('/headers');
+      await expect(scriptedRow.getByTestId('timeline-url')).toContainText('/headers');
     });
 
     await test.step('Filter chips count the bubbled entry under Pre-Request', async () => {
-      const chips = page.locator('.timeline-filter-bar .timeline-chip');
-      const countFor = (label: string) =>
-        chips.filter({ hasText: label }).locator('.timeline-chip-count').first();
+      const countFor = (id: string) =>
+        page.getByTestId(`timeline-chip-${id}`).getByTestId('timeline-chip-count');
 
-      await expect(countFor('All')).toHaveText('3');
-      await expect(countFor('Main')).toHaveText('1');
+      await expect(countFor('all')).toHaveText('3');
+      await expect(countFor('main')).toHaveText('1');
       // runRequest + bubbled sendRequest both ran during outer's pre-request.
-      await expect(countFor('Pre-Request')).toHaveText('2');
+      await expect(countFor('pre')).toHaveText('2');
     });
   });
 
@@ -119,13 +118,13 @@ test.describe('Timeline — nested bru.runRequest bubbles inner scripted entries
     await test.step('Outer Timeline shows the bubbled post-response sendRequest row', async () => {
       await selectResponsePaneTab(page, 'Timeline');
 
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       await expect(rows).toHaveCount(3);
 
       // URL match confirms the scripted row is the post-response one.
-      const scriptedRow = rows.filter({ has: page.locator('.tl-badge--scripted') });
+      const scriptedRow = rows.filter({ has: page.getByTestId('timeline-badge-pre') });
       await expect(scriptedRow).toHaveCount(1);
-      await expect(scriptedRow.locator('.tl-col-url')).toContainText('/query');
+      await expect(scriptedRow.getByTestId('timeline-url')).toContainText('/query');
     });
   });
 });

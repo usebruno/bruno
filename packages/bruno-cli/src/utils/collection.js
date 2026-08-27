@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest } = require('@usebruno/filestore');
+const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -539,7 +539,7 @@ const safeWriteFileSync = (filePath, content) => {
  * @param {string} dirPath - The output directory path
  */
 const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = DEFAULT_COLLECTION_FORMAT } = options;
   // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
@@ -595,7 +595,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  * @param {"bru"|"yml"} options.format - Current directory path
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
-  const { format = 'bru' } = options;
+  const { format = DEFAULT_COLLECTION_FORMAT } = options;
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder

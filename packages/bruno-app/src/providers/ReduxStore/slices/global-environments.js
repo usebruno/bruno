@@ -1,21 +1,34 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep, has } from 'lodash';
+import { getDataTypeFromValue } from '@usebruno/common/utils';
+import { cloneDeep } from 'lodash';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 
 const initialState = {
   globalEnvironments: [],
   activeGlobalEnvironmentUid: null,
-  globalEnvironmentDraft: null
+  globalEnvironmentDraft: null,
+  _scriptGlobalEnvBaseline: null
 };
 
+// Properties prefixed with `_` (e.g. `_scriptGlobalEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const globalEnvironmentsSlice = createSlice({
   name: 'global-environments',
   initialState,
   reducers: {
     updateGlobalEnvironments: (state, action) => {
-      state.globalEnvironments = action.payload?.globalEnvironments;
-      state.activeGlobalEnvironmentUid = action.payload?.activeGlobalEnvironmentUid;
+      const newEnvs = action.payload?.globalEnvironments || [];
+      const incomingActiveUid = action.payload?.activeGlobalEnvironmentUid ?? null;
+
+      const resolvedActiveUid = incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)
+        ? incomingActiveUid
+        : null;
+
+      state.globalEnvironments = newEnvs;
+      state.activeGlobalEnvironmentUid = resolvedActiveUid;
     },
     _addGlobalEnvironment: (state, action) => {
       const { name, uid, variables = [], color } = action.payload;
@@ -83,6 +96,12 @@ export const globalEnvironmentsSlice = createSlice({
     clearGlobalEnvironmentDraft: (state) => {
       state.globalEnvironmentDraft = null;
     },
+    _setScriptGlobalEnvBaseline: (state, action) => {
+      state._scriptGlobalEnvBaseline = action.payload;
+    },
+    _clearScriptGlobalEnvBaseline: (state) => {
+      state._scriptGlobalEnvBaseline = null;
+    },
     _updateGlobalEnvironmentColor: (state, action) => {
       const { environmentUid, color } = action.payload;
       if (environmentUid) {
@@ -102,7 +121,9 @@ export const {
   _deleteGlobalEnvironment,
   _updateGlobalEnvironmentColor,
   setGlobalEnvironmentDraft,
-  clearGlobalEnvironmentDraft
+  clearGlobalEnvironmentDraft,
+  _setScriptGlobalEnvBaseline,
+  _clearScriptGlobalEnvBaseline
 } = globalEnvironmentsSlice.actions;
 
 const getWorkspaceContext = (state) => {
@@ -218,6 +239,17 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       return reject(new Error('Environment not found'));
     }
 
+    // Guarded here rather than only in the editor panes, because cmd+S, autosave and the
+    // save-all-drafts hotkey reach this thunk directly and `environmentSchema` accepts any name.
+    const invalidNames = getInvalidVariableNames(variables);
+    if (invalidNames.length > 0) {
+      return reject(new Error(invalidVariableNamesError(invalidNames)));
+    }
+
+    if (writesCollidingSecrets(variables, environment.variables)) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
+    }
+
     const environmentToSave = { ...environment, variables };
     const { ipcRenderer } = window;
 
@@ -265,60 +297,62 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 };
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-    if (!globalEnvironmentVariables) resolve();
+  if (!globalEnvironmentVariables) return;
 
-    const state = getState();
-    const { workspaceUid, workspacePath } = getWorkspaceContext(state);
-    const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
-    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
-    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+  const state = getState();
 
-    if (!environment || !environmentUid) {
-      return resolve();
-    }
+  const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
+  const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+  const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
 
-    let variables = cloneDeep(environment?.variables);
+  if (!environment || !environmentUid) return;
 
-    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
-    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
-    variables = variables?.map?.((variable) => ({
-      ...variable,
-      value: has(globalEnvironmentVariables, variable?.name)
-        ? globalEnvironmentVariables[variable?.name]
-        : variable?.value
-    }));
-
-    Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
-      const isAnExistingVariable = variables?.find((v) => v?.name == key);
-      if (!isAnExistingVariable) {
-        variables.push({
-          uid: uuid(),
-          name: key,
-          value,
-          type: 'text',
-          secret: false,
-          enabled: true
-        });
-      }
+  const draft = state?.globalEnvironments?.globalEnvironmentDraft;
+  if (draft && draft.environmentUid === environmentUid && draft.variables) {
+    const baseline = {};
+    environment.variables?.forEach((v) => {
+      if (v.enabled) baseline[v.name] = v.value;
     });
+    dispatch(_setScriptGlobalEnvBaseline(baseline));
 
-    const environmentToSave = { ...environment, variables };
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables: draft.variables }));
+    dispatch(clearGlobalEnvironmentDraft());
+  }
 
-    environmentSchema
-      .validate(environmentToSave)
-      .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
-        environmentUid,
-        variables,
-        color: environment.color,
-        workspaceUid,
-        workspacePath
-      }))
-      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
-      .then(resolve)
-      .catch(reject);
+  const updatedState = getState();
+  const updatedEnv = updatedState?.globalEnvironments?.globalEnvironments?.find((env) => env?.uid == environmentUid);
+  const baseline = updatedState?.globalEnvironments?._scriptGlobalEnvBaseline;
+  let variables = cloneDeep(updatedEnv?.variables || []);
+
+  variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline, { skipKeys: ['__name__'] });
+
+  // Re-infer dataType only for vars the script actually modified — preserves draft-only type edits
+  // when a script does a structurally-equal no-op write.
+  const modifiedKeys = getScriptModifiedKeys(globalEnvironmentVariables, baseline, { skipKeys: ['__name__'] });
+  variables.forEach((v) => {
+    if (!modifiedKeys.has(v.name)) return;
+    const inferred = getDataTypeFromValue(globalEnvironmentVariables[v.name]);
+    if (inferred === 'string') {
+      delete v.dataType;
+    } else {
+      v.dataType = inferred;
+    }
   });
+
+  dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
+
+  const { ipcRenderer } = window;
+  const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+  environmentSchema
+    .validate({ ...environment, variables })
+    .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
+      environmentUid,
+      variables,
+      color: environment.color,
+      workspaceUid,
+      workspacePath
+    }))
+    .catch((err) => console.error('Failed to persist global environment:', err));
 };
 
 export const updateGlobalEnvironmentColor = (environmentUid, color) => (dispatch, getState) => {

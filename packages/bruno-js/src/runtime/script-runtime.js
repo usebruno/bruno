@@ -89,10 +89,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildRequestScriptResult = () => ({
       request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      persistentEnvVariables: bru.persistentEnvVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -100,6 +100,18 @@ class ScriptRuntime {
       stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
+
+    const attachScriptResultToOnFailHandler = () => {
+      if (typeof request.onFailHandler !== 'function') {
+        return;
+      }
+
+      const onFailHandler = request.onFailHandler;
+      request.onFailHandler = async (error) => {
+        await onFailHandler(error);
+        return buildRequestScriptResult();
+      };
+    };
 
     // Track script errors to attach partial results before re-throwing
     // This ensures that any test() calls that passed before the error are preserved
@@ -126,6 +138,7 @@ class ScriptRuntime {
         throw scriptError;
       }
 
+      attachScriptResultToOnFailHandler();
       return buildRequestScriptResult();
     }
 
@@ -146,6 +159,7 @@ class ScriptRuntime {
       throw scriptError;
     }
 
+    attachScriptResultToOnFailHandler();
     return buildRequestScriptResult();
   }
 
@@ -225,10 +239,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildResponseScriptResult = () => ({
       response,
-      envVariables: cleanJson(envVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,

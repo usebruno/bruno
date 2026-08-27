@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import BearerAuth from '../../Auth/BearerAuth';
@@ -6,16 +6,15 @@ import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
-import { getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-const supportedAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'none', 'inherit'];
+import { AUTH_MODES_WS } from 'utils/common/constants';
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   const request = item.draft
     ? get(item, 'draft.request', {})
@@ -25,9 +24,14 @@ const WSAuth = ({ item, collection }) => {
     return saveRequest(item.uid, collection.uid);
   };
 
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
+    [authMode, item, collection]
+  );
+
   // Reset to 'none' if current auth mode is not supported
   useEffect(() => {
-    if (authMode && !supportedAuthModes.includes(authMode)) {
+    if (authMode && !AUTH_MODES_WS.includes(authMode)) {
       dispatch(updateRequestAuthMode({
         itemUid: item.uid,
         collectionUid: collection.uid,
@@ -35,35 +39,6 @@ const WSAuth = ({ item, collection }) => {
       }));
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
-
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Check folders in reverse to find the closest auth configuration
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: i.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
-  };
 
   const getAuthView = () => {
     switch (authMode) {
@@ -91,26 +66,24 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
-
         // Check if inherited auth is OAuth1/OAuth2 - not supported for WebSockets
-        if (source?.auth?.mode === 'oauth1' || source?.auth?.mode === 'oauth2') {
+        if (inheritedSource?.auth?.mode === 'oauth1' || inheritedSource?.auth?.mode === 'oauth2') {
           return (
             <>
               <div className="flex flex-row w-full mt-2 gap-2">
-                {source.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
+                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
               </div>
             </>
           );
         }
 
         // Only show inherited auth if it's one of the supported types
-        if (source && supportedAuthModes.includes(source.auth?.mode)) {
+        if (inheritedSource && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)) {
           return (
             <>
               <div className="flex flex-row w-full gap-2">
-                <div> Auth inherited from {source.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
+                <div> Auth inherited from {inheritedSource.name}: </div>
+                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
               </div>
             </>
           );

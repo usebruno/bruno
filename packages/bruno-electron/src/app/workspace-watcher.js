@@ -4,11 +4,19 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
-const { getWorkspaceUid } = require('../utils/workspace-config');
+const { getWorkspaceUid, normalizeWorkspaceConfig } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
+const {
+  getMocksDirPath,
+  getMockServerFromFile,
+  getMockServerUid,
+  invalidateMockServerFile,
+  removeMockServerFileFromCache
+} = require('./mock-server/mock-server-store');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -17,16 +25,6 @@ const DEFAULT_WORKSPACE_NAME = 'My Workspace';
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
   return secrets && secrets.length > 0;
-};
-
-const normalizeWorkspaceConfig = (config) => {
-  return {
-    ...config,
-    name: config.info?.name,
-    type: config.info?.type,
-    collections: config.collections || [],
-    apiSpecs: config.specs || []
-  };
 };
 
 const handleWorkspaceFileChange = (win, workspacePath) => {
@@ -85,10 +83,10 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
   if (envHasSecrets(file.data)) {
     const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, file.data);
     _.each(envSecrets, (secret) => {
-      const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+      const variable = _.find(file.data.variables, (v) => v.name === secret.name && v.secret);
       if (variable && secret.value) {
         const decryptionResult = decryptStringSafe(secret.value);
-        variable.value = decryptionResult.value;
+        variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
       }
     });
   }
@@ -99,7 +97,7 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
 const handleGlobalEnvironmentFileAdd = async (win, pathname, workspacePath, workspaceUid) => {
   try {
     const file = await parseGlobalEnvironmentFile(pathname, workspacePath, workspaceUid);
-    win.webContents.send('main:global-environment-added', workspaceUid, file);
+    win.webContents.send('main:workspace-environment-added', workspaceUid, file);
   } catch (error) {
     console.error('Error handling global environment file add:', error);
   }
@@ -108,7 +106,7 @@ const handleGlobalEnvironmentFileAdd = async (win, pathname, workspacePath, work
 const handleGlobalEnvironmentFileChange = async (win, pathname, workspacePath, workspaceUid) => {
   try {
     const file = await parseGlobalEnvironmentFile(pathname, workspacePath, workspaceUid);
-    win.webContents.send('main:global-environment-changed', workspaceUid, file);
+    win.webContents.send('main:workspace-environment-changed', workspaceUid, file);
   } catch (error) {
     console.error('Error handling global environment file change:', error);
   }
@@ -117,9 +115,36 @@ const handleGlobalEnvironmentFileChange = async (win, pathname, workspacePath, w
 const handleGlobalEnvironmentFileUnlink = async (win, pathname, workspaceUid) => {
   try {
     const environmentUid = generateUidBasedOnHash(pathname);
-    win.webContents.send('main:global-environment-deleted', workspaceUid, environmentUid);
+    win.webContents.send('main:workspace-environment-deleted', workspaceUid, environmentUid);
   } catch (error) {
     console.error('Error handling global environment file unlink:', error);
+  }
+};
+
+const handleMockServerFileAddOrChange = (win, pathname, workspaceUid, channel) => {
+  if (win.isDestroyed()) {
+    return;
+  }
+
+  try {
+    invalidateMockServerFile(pathname);
+    const mockServerFile = getMockServerFromFile(pathname, workspaceUid);
+    win.webContents.send(channel, workspaceUid, mockServerFile);
+  } catch (error) {
+    console.error('Error handling mock server file change:', error);
+  }
+};
+
+const handleMockServerFileUnlink = (win, pathname, workspaceUid) => {
+  if (win.isDestroyed()) {
+    return;
+  }
+
+  try {
+    removeMockServerFileFromCache(pathname);
+    win.webContents.send('main:workspace-mock-server-deleted', workspaceUid, getMockServerUid(pathname));
+  } catch (error) {
+    console.error('Error handling mock server file unlink:', error);
   }
 };
 
@@ -127,6 +152,62 @@ class WorkspaceWatcher {
   constructor() {
     this.watchers = {};
     this.environmentWatchers = {};
+    this.mockServerWatchers = {};
+  }
+
+  _closeMockServerWatcher(workspacePath) {
+    if (this.mockServerWatchers[workspacePath]) {
+      this.mockServerWatchers[workspacePath].close();
+      delete this.mockServerWatchers[workspacePath];
+    }
+  }
+
+  _addMockServerWatcher(win, workspacePath, workspaceUid) {
+    const mocksDir = getMocksDirPath(workspacePath);
+    const self = this;
+
+    this._closeMockServerWatcher(workspacePath);
+
+    if (!fs.existsSync(mocksDir)) {
+      const dirWatcher = chokidar.watch(mocksDir, {
+        ignoreInitial: false,
+        persistent: true,
+        ignorePermissionErrors: true,
+        depth: 0
+      });
+
+      dirWatcher.on('addDir', () => {
+        dirWatcher.close();
+        self._addMockServerWatcher(win, workspacePath, workspaceUid);
+      });
+
+      this.mockServerWatchers[workspacePath] = dirWatcher;
+      return;
+    }
+
+    const mockServerWatcher = chokidar.watch(path.join(mocksDir, '*.yml'), {
+      ignoreInitial: true,
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 100,
+        pollInterval: 10
+      }
+    });
+
+    mockServerWatcher.on('add', (pathname) => {
+      handleMockServerFileAddOrChange(win, pathname, workspaceUid, 'main:workspace-mock-server-added');
+    });
+
+    mockServerWatcher.on('change', (pathname) => {
+      handleMockServerFileAddOrChange(win, pathname, workspaceUid, 'main:workspace-mock-server-changed');
+    });
+
+    mockServerWatcher.on('unlink', (pathname) => {
+      handleMockServerFileUnlink(win, pathname, workspaceUid);
+    });
+
+    this.mockServerWatchers[workspacePath] = mockServerWatcher;
   }
 
   addWatcher(win, workspacePath) {
@@ -140,6 +221,7 @@ class WorkspaceWatcher {
     if (this.environmentWatchers[workspacePath]) {
       this.environmentWatchers[workspacePath].close();
     }
+    this._closeMockServerWatcher(workspacePath);
 
     const self = this;
     setTimeout(() => {
@@ -162,6 +244,7 @@ class WorkspaceWatcher {
       self.watchers[workspacePath] = watcher;
 
       dotEnvWatcher.addWorkspaceWatcher(win, workspacePath, workspaceUid);
+      self._addMockServerWatcher(win, workspacePath, workspaceUid);
 
       if (fs.existsSync(environmentsDir)) {
         const envWatcher = chokidar.watch(path.join(environmentsDir, `*.yml`), {
@@ -215,6 +298,7 @@ class WorkspaceWatcher {
         this.environmentWatchers[workspacePath].close();
         delete this.environmentWatchers[workspacePath];
       }
+      this._closeMockServerWatcher(workspacePath);
       dotEnvWatcher.removeWorkspaceWatcher(workspacePath);
     } catch (error) {
       console.error('Error removing workspace watcher:', error);
@@ -239,6 +323,10 @@ class WorkspaceWatcher {
 
     for (const [watchPath, watcher] of Object.entries(this.environmentWatchers)) collect(watcher);
     this.environmentWatchers = {};
+
+    for (const workspacePath of Object.keys(this.mockServerWatchers)) {
+      this._closeMockServerWatcher(workspacePath);
+    }
 
     const dotEnvResult = dotEnvWatcher.closeAll();
     if (dotEnvResult && typeof dotEnvResult.then === 'function') pending.push(dotEnvResult);

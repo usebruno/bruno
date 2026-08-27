@@ -23,7 +23,7 @@ const getVariablesEditorContent = async (page: Page) => {
   return await editor.evaluate((el) => (el as any).CodeMirror?.getValue() || '') as string;
 };
 
-test.describe('GraphQL Query Builder', () => {
+test.describe.serial('GraphQL Query Builder', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });

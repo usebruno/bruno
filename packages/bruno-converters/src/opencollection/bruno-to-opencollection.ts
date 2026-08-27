@@ -1,8 +1,8 @@
-import { toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
+import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -53,6 +53,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           if (cert.passphrase) {
             pemCert.passphrase = cert.passphrase;
           }
+          if (cert.disabled === true) {
+            pemCert.disabled = true;
+          }
           return pemCert;
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert: Pkcs12Certificate = {
@@ -62,6 +65,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           };
           if (cert.passphrase) {
             pkcs12Cert.passphrase = cert.passphrase;
+          }
+          if (cert.disabled === true) {
+            pkcs12Cert.disabled = true;
           }
           return pkcs12Cert;
         }
@@ -78,6 +84,7 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
   return Boolean(
     request?.headers?.length ||
     request?.vars?.req?.length ||
+    request?.vars?.res?.length ||
     request?.script?.req ||
     request?.script?.res ||
     request?.tests ||
@@ -86,14 +93,20 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
 };
 
 export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollection => {
+  const brunoConfig = collection.brunoConfig as BrunoConfig | undefined;
+
+  const collectionVersion = brunoConfig?.version;
+  const hasCollectionVersion = collectionVersion != null && collectionVersion !== '';
+
   const openCollection: OpenCollection = {
     opencollection: '1.0.0',
     info: {
-      name: collection.name || 'Untitled Collection'
+      name: collection.name || 'Untitled Collection',
+      ...(hasCollectionVersion ? { version: String(collectionVersion) } : {})
     }
   };
 
-  const config = toOpenCollectionConfig(collection.brunoConfig as BrunoConfig);
+  const config = toOpenCollectionConfig(brunoConfig);
   if (config) {
     openCollection.config = config;
   }
@@ -130,6 +143,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
       openCollection.request.variables = variables;
     }
 
+    const actions = toOpenCollectionActions(request?.vars?.res);
+    if (actions) {
+      openCollection.request.actions = actions;
+    }
+
     const scripts = toOpenCollectionScripts(request as any);
     if (scripts) {
       openCollection.request.scripts = scripts;
@@ -147,18 +165,16 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
 
   const brunoExtension: {
     ignore?: string[];
-    presets?: {
-      requestType?: string;
-      requestUrl?: string;
-    };
+    presets?: BrunoPresets;
+    scripts?: { flow?: 'sandwich' | 'sequential' };
   } = {};
 
-  if ((collection.brunoConfig as BrunoConfig)?.ignore?.length) {
-    brunoExtension.ignore = (collection.brunoConfig as BrunoConfig).ignore;
+  if (brunoConfig?.ignore?.length) {
+    brunoExtension.ignore = brunoConfig.ignore;
   }
 
-  const presets = (collection.brunoConfig as BrunoConfig)?.presets;
-  if (presets?.requestType || presets?.requestUrl) {
+  const presets = brunoConfig?.presets;
+  if (presets?.requestType || presets?.requestUrl || presets?.defaultEnvironment) {
     brunoExtension.presets = {};
     if (presets.requestType) {
       brunoExtension.presets.requestType = presets.requestType;
@@ -166,6 +182,14 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     if (presets.requestUrl) {
       brunoExtension.presets.requestUrl = presets.requestUrl;
     }
+    if (presets.defaultEnvironment) {
+      brunoExtension.presets.defaultEnvironment = presets.defaultEnvironment;
+    }
+  }
+
+  const scriptFlow = brunoConfig?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoExtension.scripts = { flow: scriptFlow };
   }
 
   if (Object.keys(brunoExtension).length > 0) {

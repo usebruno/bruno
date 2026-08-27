@@ -68,7 +68,13 @@ class BrunoRequest {
             if (segment.startsWith(':')) {
               const paramName = segment.slice(1);
               const pathParam = this.req.pathParams.find((param) => param.name === paramName);
-              if (pathParam && pathParam.value) {
+              if (
+                pathParam
+                && pathParam.enabled !== false
+                && pathParam.value !== null
+                && pathParam.value !== undefined
+                && (typeof pathParam.value !== 'string' || pathParam.value.trim() !== '')
+              ) {
                 return pathParam.value;
               }
             }
@@ -131,6 +137,10 @@ class BrunoRequest {
     return this.req.headers;
   }
 
+  /**
+   * Replaces the whole header set, dropping headers set at collection/folder level.
+   * TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
+   */
   setHeaders(headers) {
     this.req.headers = headers;
   }

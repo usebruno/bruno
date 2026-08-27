@@ -1,9 +1,33 @@
 import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
+import { merge } from 'lodash-es';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
+
+const PREFERENCES_FILE = 'preferences.json';
+
+/**
+ * Default preferences for the app - preferences.json file.
+ * This is overridden by the init-user-data/preferences.json file if it exists.
+ *
+ * Uses lodash/merge to merge the default preferences with the init-user-data/preferences.json file.
+ *   - Note: arrays are merged by index, not concatenated. (e.g. lastOpenedCollections, lastOpenedWorkspaces, etc.)
+ */
+const defaultPreferences = {
+  preferences: {
+    onboarding: {
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: version
+    },
+    ai: {
+      enabled: false
+    }
+  }
+};
 
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
@@ -141,6 +165,11 @@ export async function closeElectronApp(app: ElectronApplication) {
   }
 }
 
+export type FakeClipboard = {
+  /** The text the app last copied. Throws if nothing was copied, which is never a passing state. */
+  copiedText: () => Promise<string>;
+};
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -148,6 +177,8 @@ export const test = baseTest.extend<
     newPage: Page;
     pageWithUserData: Page;
     collectionFixturePath: string | null;
+    workspaceFixturePath: string | null;
+    installFakeClipboard: (page: Page) => Promise<FakeClipboard>;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -161,7 +192,11 @@ export const test = baseTest.extend<
     async ({ }, use) => {
       const dirs: string[] = [];
       await use(async (tag?: string) => {
-        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${tag || ''}-`));
+        // Strip characters that are illegal in Windows filenames (<>:"/\|?*) and
+        // whitespace, so a descriptive tag (e.g. one derived from a test title
+        // containing quotes) can't produce a path mkdtemp refuses to create.
+        const safeTag = (tag || '').replace(/[<>:"/\\|?*\s]+/g, '-');
+        const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), `pw-${safeTag}-`));
         dirs.push(dir);
         return dir;
       });
@@ -187,6 +222,20 @@ export const test = baseTest.extend<
       // into template files (e.g. preferences.json). Windows paths with backslashes
       // produce invalid JSON escape sequences such as \U, \A, \T, etc.
       await use(tmpDir.replace(/\\/g, '/'));
+    } else {
+      await use(null);
+    }
+  },
+
+  workspaceFixturePath: async ({ createTmpDir }, use, testInfo) => {
+    const testDir = path.dirname(testInfo.file);
+    // fixtures/workspace — a workspace.yml + environments/*.yml (+ optional collections/)
+    // Copied to a tmp dir so tests can mutate it without affecting the source.
+    const srcPath = path.join(testDir, 'fixtures', 'workspace');
+    if (fs.existsSync(srcPath)) {
+      const tmpDir = await createTmpDir('workspace');
+      await fs.promises.cp(srcPath, tmpDir, { recursive: true });
+      await use(tmpDir);
     } else {
       await use(null);
     }
@@ -218,23 +267,18 @@ export const test = baseTest.extend<
                 throw new Error(`\tNo replacement for {{${key}}} in ${path.join(initUserDataPath, file)}`);
               }
             });
+            if (file === PREFERENCES_FILE) {
+              content = JSON.stringify(merge({}, defaultPreferences, JSON.parse(content)), null, 2);
+            }
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
         } else {
           // No initUserDataPath provided: create default preferences to skip onboarding
           // BUT only if preferences.json doesn't already exist
-          const prefsPath = path.join(userDataPath, 'preferences.json');
+          const prefsPath = path.join(userDataPath, PREFERENCES_FILE);
           const prefsExist = await existsAsync(prefsPath);
 
           if (!prefsExist) {
-            const defaultPreferences = {
-              preferences: {
-                onboarding: {
-                  hasLaunchedBefore: true,
-                  hasSeenWelcomeModal: true
-                }
-              }
-            };
             await fs.promises.writeFile(
               prefsPath,
               JSON.stringify(defaultPreferences, null, 2),
@@ -285,6 +329,48 @@ export const test = baseTest.extend<
     },
     { scope: 'worker' }
   ],
+
+  // Stands in for navigator.clipboard on the given page, so a spec can assert what was copied
+  // without touching the real OS clipboard, which every parallel worker shares. Takes the page
+  // rather than depending on one, so it works with `page`, `pageWithUserData` and `newPage` alike.
+  // The window is worker scoped and outlives the test, so the real clipboard is put back at teardown.
+  installFakeClipboard: async ({ }, use) => {
+    const patchedPages: Page[] = [];
+
+    await use(async (page: Page) => {
+      await page.evaluate(() => {
+        const fake = {
+          copied: null as string | null,
+          writeText(text: string) {
+            fake.copied = text;
+            return Promise.resolve();
+          },
+          readText() {
+            return Promise.resolve(fake.copied ?? '');
+          }
+        };
+        Object.defineProperty(navigator, 'clipboard', { value: fake, configurable: true });
+      });
+      patchedPages.push(page);
+
+      return {
+        copiedText: async () => {
+          const copied = await page.evaluate(() => (navigator.clipboard as { copied?: string }).copied);
+          if (typeof copied !== 'string') {
+            throw new Error('expected the app to copy text to the clipboard, but nothing was copied');
+          }
+          return copied;
+        }
+      };
+    });
+
+    // Deleting the own property put there by defineProperty unshadows the real clipboard. A page can
+    // lose its execution context while still reporting open, which rejects the evaluate, so settle
+    // every page independently and one failure can't leave the rest patched.
+    await Promise.allSettled(
+      patchedPages.map((page) => page.evaluate(() => Reflect.deleteProperty(navigator, 'clipboard')))
+    );
+  },
 
   context: async ({ electronApp }, use, testInfo) => {
     const context = await electronApp.context();
@@ -340,7 +426,7 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     await use(async ({ initUserDataPath } = {}) => {
       const testDir = path.dirname(testInfo.file);
       const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
@@ -361,6 +447,9 @@ export const test = baseTest.extend<
       if (collectionFixturePath) {
         templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
       }
+      if (workspaceFixturePath) {
+        templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
+      }
 
       // Close the previous app (from pageWithUserData) before launching a new one
       return await reuseOrLaunchElectronApp({
@@ -372,7 +461,7 @@ export const test = baseTest.extend<
     });
   },
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath }, use, testInfo) => {
+  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
     const testDir = path.dirname(testInfo.file);
     const initUserDataPath = path.join(testDir, 'init-user-data');
 
@@ -390,12 +479,14 @@ export const test = baseTest.extend<
     if (collectionFixturePath) {
       templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
     }
+    if (workspaceFixturePath) {
+      templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
+    }
 
     const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
     const context = await app.context();
     const page = await waitForReadyPage(app);
-
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

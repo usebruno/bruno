@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{workspacePath}}/collections/test-collection",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

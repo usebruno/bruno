@@ -47,13 +47,13 @@ test.describe('Timeline — runRequest network-error row shows URL and error cod
     await test.step('Outer Timeline has the runRequest row with inner URL (URL fallback)', async () => {
       await selectResponsePaneTab(page, 'Timeline');
 
-      const rows = page.locator('.timeline-container .tl-row-wrap');
+      const rows = page.getByTestId('timeline-container').getByTestId('timeline-entry');
       await expect(rows).toHaveCount(2); // main + runRequest
 
       // Without the URL fallback this column would be empty.
-      const runRequestRow = rows.filter({ has: page.locator('.tl-badge--run-request') });
+      const runRequestRow = rows.filter({ has: page.getByTestId('timeline-badge-post') });
       await expect(runRequestRow).toHaveCount(1);
-      await expect(runRequestRow.locator('.tl-col-url')).toContainText('localhost:9999');
+      await expect(runRequestRow.getByTestId('timeline-url')).toContainText('localhost:9999');
     });
   });
 });

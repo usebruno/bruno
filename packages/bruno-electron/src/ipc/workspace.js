@@ -11,6 +11,7 @@ const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
+const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
 
 const {
   createWorkspaceConfig,
@@ -25,6 +26,7 @@ const {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
@@ -183,6 +185,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:load-unopenable-workspace-collections', async (event, workspacePath) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+
+      validateWorkspacePath(workspacePath);
+      return getUnopenableWorkspaceCollections(workspacePath);
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:reorder-workspace-collections', async (event, workspacePath, collectionPaths) => {
     try {
       if (!workspacePath) {
@@ -214,7 +229,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return [];
       }
 
-      const specs = workspaceConfig.specs || [];
+      const specs = Array.isArray(workspaceConfig.specs) ? workspaceConfig.specs : [];
 
       const resolvedSpecs = specs
         .map((spec) => {
@@ -236,23 +251,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:get-last-opened-workspaces', async () => {
     try {
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const validWorkspaces = [];
-      const invalidPaths = [];
-
-      for (const workspacePath of workspacePaths) {
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-
-        if (fs.existsSync(workspaceYmlPath)) {
-          validWorkspaces.push(workspacePath);
-        } else {
-          invalidPaths.push(workspacePath);
-        }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
-      }
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        validateConfig: true
+      });
 
       return validWorkspaces;
     } catch (error) {
@@ -558,6 +559,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const { deleteFiles = false } = options;
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
+      if (result.removedCollection) {
+        // Detach and clear every cache keyed by this collection's (deterministic, path-derived)
+        // uid — otherwise re-adding the same folder later resurfaces a stale mount/config/uid
+        // cache instead of loading it fresh.
+        const { generateUidBasedOnHash } = require('../utils/common');
+        const collectionUid = generateUidBasedOnHash(collectionPath);
+        const collectionWatcher = require('../app/collection-watcher');
+        collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        await require('./mount').unmount(collectionUid).catch(() => {});
+        require('./mount').clearCollectionIndex(collectionPath);
+        require('../store/bruno-config').clearBrunoConfig(collectionUid);
+        require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+      }
+
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);
       }
@@ -691,45 +706,32 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         }
       }
 
-      const workspacePaths = lastOpenedWorkspaces.getAll();
-      const invalidPaths = [];
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+        defaultWorkspacePath
+      });
 
-      for (const workspacePath of workspacePaths) {
-        if (defaultWorkspacePath && workspacePath === defaultWorkspacePath) {
-          continue;
-        }
+      for (const workspacePath of validWorkspaces) {
+        try {
+          const workspaceConfig = readWorkspaceConfig(workspacePath);
+          const workspaceUid = getWorkspaceUid(workspacePath);
+          const isDefault = workspaceUid === 'default';
+          const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
 
-        const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
+          win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
-        if (fs.existsSync(workspaceYmlPath)) {
-          try {
-            const workspaceConfig = readWorkspaceConfig(workspacePath);
-            validateWorkspaceConfig(workspaceConfig);
-            const workspaceUid = getWorkspaceUid(workspacePath);
-            const isDefault = workspaceUid === 'default';
-            const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
-
-            win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
-
-            if (workspaceWatcher) {
-              workspaceWatcher.addWatcher(win, workspacePath);
-            }
-          } catch (error) {
-            console.error(`Error loading workspace ${workspacePath}:`, error);
-            invalidPaths.push(workspacePath);
+          if (workspaceWatcher) {
+            workspaceWatcher.addWatcher(win, workspacePath);
           }
-        } else {
-          invalidPaths.push(workspacePath);
+        } catch (error) {
+          console.error(`Error loading workspace ${workspacePath}:`, error);
+          lastOpenedWorkspaces.remove(workspacePath);
         }
-      }
-
-      for (const invalidPath of invalidPaths) {
-        lastOpenedWorkspaces.remove(invalidPath);
       }
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
 
+    win.webContents.send('main:workspaces-ready');
     ipcMain.emit('main:workspaces-ready', win);
   });
 };

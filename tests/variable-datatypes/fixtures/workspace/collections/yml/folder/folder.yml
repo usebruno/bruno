@@ -1,0 +1,20 @@
+info:
+  name: folder
+  type: folder
+
+request:
+  variables:
+    - name: fold_str
+      value: folder_string
+    - name: fold_num
+      value:
+        type: number
+        data: "200"
+    - name: fold_bool
+      value:
+        type: boolean
+        data: "true"
+    - name: fold_obj
+      value:
+        type: object
+        data: '{"scope":"folder"}'

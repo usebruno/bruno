@@ -3,9 +3,6 @@ import { mockDataFunctions } from '@usebruno/common';
 const CodeMirror = require('codemirror');
 
 // Static API hints - Bruno JavaScript API (subgrouped by category)
-// TODO: Restore the commented-out APIs once the UI update fixes are live.
-// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
-// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const STATIC_API_HINTS = {
   req: [
     'req',
@@ -109,13 +106,12 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
-    // 'bru.setCollectionVar(key, value)',
+    'bru.setCollectionVar(key, value)',
     'bru.hasCollectionVar(key)',
-    // 'bru.deleteCollectionVar(key)',
-    // 'bru.deleteAllCollectionVars()',
-    // 'bru.getAllCollectionVars()',
+    'bru.deleteCollectionVar(key)',
+    'bru.deleteAllCollectionVars()',
+    'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
-    'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
     'bru.getAllEnvVars()',
     'bru.deleteAllEnvVars()',
@@ -139,9 +135,9 @@ const STATIC_API_HINTS = {
     'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
-    // 'bru.deleteGlobalEnvVar(key)',
+    'bru.deleteGlobalEnvVar(key)',
     'bru.getAllGlobalEnvVars()',
-    // 'bru.deleteAllGlobalEnvVars()',
+    'bru.deleteAllGlobalEnvVars()',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
@@ -188,8 +184,10 @@ const STATIC_API_HINTS = {
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
-// Constants for word pattern matching
-const WORD_PATTERN = /[\w.$-/]/;
+// Constants for word pattern matching.
+// `-` is placed last so it is a literal hyphen, not a range operator — `$-/`
+// would otherwise match `( ) % & ' * + ,`
+const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
@@ -803,7 +801,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions };
+export { extractNextSegmentSuggestions, WORD_PATTERN };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

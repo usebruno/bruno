@@ -2,6 +2,8 @@ import { test, expect } from '../../../../playwright';
 import path from 'path';
 import fs from 'fs';
 
+import { readExportedJson } from '../../../utils/helpers';
+
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {
   const fullPath = path.join(__dirname, '..', '../fixtures', 'environment-exports', fixturePath);
@@ -75,7 +77,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const exportedContent = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments/local.json');
 
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
@@ -136,7 +138,7 @@ test.describe.serial('Global Environment Export Tests', () => {
           expect(fs.existsSync(filePath)).toBe(true);
 
           // Verify file content matches expected fixture
-          const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          const content = await readExportedJson(filePath);
           const expectedContent = loadExpectedFixture(`bruno-global-environments/${fileName}`);
           expect(normalizeExportedContent(content)).toEqual(expectedContent);
         }
@@ -200,7 +202,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(newExportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(newExportedFile, 'utf8'));
+        const exportedContent = await readExportedJson(newExportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments/local.json');
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
       });
@@ -259,7 +261,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const content = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const content = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('local.json');
         expect(normalizeExportedContent(content)).toEqual(expectedContent);
       });
@@ -308,7 +310,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const content = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const content = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments.json');
         expect(normalizeExportedContent(content)).toEqual(expectedContent);
       });
@@ -372,7 +374,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(uniqueExportPath)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(uniqueExportPath, 'utf8'));
+        const exportedContent = await readExportedJson(uniqueExportPath);
         const expectedContent = loadExpectedFixture('local.json');
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
       });

@@ -30,7 +30,7 @@ const TriggerButton = ({ method, methodSpanRef, showCaret, ...props }) => {
   );
 };
 
-const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret = false }) => {
+const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret = false, appendTo }) => {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const inputRef = useRef();
   const selectedMethodRef = useRef(method);
@@ -180,6 +180,7 @@ const HttpMethodSelector = ({ method = DEFAULT_METHOD, onMethodSelect, showCaret
           placement="bottom-start"
           selectedItemId={selectedItemId}
           data-testid="method-selector"
+          appendTo={appendTo}
         >
           <TriggerButton method={method} showCaret={showCaret} methodSpanRef={methodSpanRef} />
         </MenuDropdown>

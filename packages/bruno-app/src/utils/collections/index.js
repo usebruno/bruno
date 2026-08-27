@@ -1,8 +1,7 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -232,6 +231,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: param.uid,
         filePath: param.filePath,
         contentType: param.contentType,
+        description: param.description,
         selected: param.selected
       };
     });
@@ -498,6 +498,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
+            };
+            break;
           default:
             break;
         }
@@ -603,11 +615,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -691,6 +699,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
+
   // Transform examples to ensure status is a number
   const transformExamples = (examples = []) => {
     return map(examples, (example) => ({
@@ -704,13 +725,19 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
+    description: _item.description,
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
@@ -785,10 +812,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
       }))
     };
   }
@@ -887,6 +915,40 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
+};
+
+/**
+ * Orders a list of collection items exactly the way the Sidebar tree renders them:
+ * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
+ * requests by `seq`. The same ordering is applied recursively to every nested folder
+ * so an exported/serialized tree matches the sidebar at all depths.
+ *
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
+ * mirroring the sidebar. Transient items are excluded too.
+ */
+export const sortItemsBySidebarOrder = (items = []) => {
+  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
+  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+
+  return [...folderItems, ...appItems, ...requestItems].map((item) =>
+    Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
+  );
+};
+
 export const humanizeRequestBodyMode = (mode) => {
   let label = 'No Body';
   switch (mode) {
@@ -966,6 +1028,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'API Key';
       break;
     }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
+      break;
+    }
   }
 
   return label;
@@ -1014,6 +1080,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
@@ -1051,8 +1118,14 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   delete item2.draft;
 
   // get projection of both items
-  item1 = transformRequestToSaveToFilesystem(item1);
-  item2 = transformRequestToSaveToFilesystem(item2);
+  // a partial/unparseable item has no comparable request projection; treat it as
+  // changed so callers fall back to a full update instead of throwing
+  try {
+    item1 = transformRequestToSaveToFilesystem(item1);
+    item2 = transformRequestToSaveToFilesystem(item2);
+  } catch (err) {
+    return false;
+  }
 
   // delete uids from both items
   deleteUidsInItem(item1);
@@ -1166,10 +1239,11 @@ export const getEnvironmentVariables = (collection) => {
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
-      each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
+      // Apply secrets last so a secret wins over a plain variable of the same name,
+      // regardless of their order in the array.
+      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
+      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+        variables[variable.name] = variable.value;
       });
     }
   }
@@ -1206,6 +1280,10 @@ const getPathParams = (item) => {
   }
   return pathParams;
 };
+
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
@@ -1452,24 +1530,27 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, dropType = 'above' }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
-  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
-  const targetSequence = targetItem?.seq;
-  const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach((item) => {
-    const isDraggedItem = item?.uid === draggedItemUid;
-    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
-    if (isBetween) {
-      item.seq += targetSequence > draggedSequence ? -1 : 1;
-    }
-    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
-    if (newSequence !== null) {
-      item.seq = newSequence;
-    }
+  const sortedItems = [...itemsWithFixedSequences].sort((a, b) => a.seq - b.seq);
+
+  const targetIndex = sortedItems.findIndex((i) => i.uid === targetItemUid);
+  const draggedIndex = sortedItems.findIndex((i) => i.uid === draggedItemUid);
+
+  if (targetIndex === -1 || draggedIndex === -1) return [];
+
+  let newIndex = dropType === 'below' ? targetIndex + 1 : targetIndex;
+  if (draggedIndex < newIndex) {
+    newIndex -= 1;
+  }
+
+  const [draggedItem] = sortedItems.splice(draggedIndex, 1);
+  sortedItems.splice(newIndex, 0, draggedItem);
+
+  sortedItems.forEach((item, index) => {
+    item.seq = index + 1;
   });
-  // only return items that have been reordered
+
   return itemsWithFixedSequences.filter((item) =>
     items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
@@ -1491,10 +1572,66 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
     return path.join(targetItemPathname, draggedItemFilename);
-  } else if (dropType === 'adjacent') {
+  } else if (dropType === 'above' || dropType === 'below') {
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
+};
+
+export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOffset }) => {
+  if (!hoverBoundingRect || !clientOffset) return null;
+
+  const clientY = clientOffset.y - hoverBoundingRect.top;
+
+  if (isItemAFolder(item)) {
+    const folderUpperThreshold = hoverBoundingRect.height * 0.3;
+    const folderLowerThreshold = hoverBoundingRect.height * 0.7;
+
+    if (clientY < folderUpperThreshold) return 'above';
+    if (clientY > folderLowerThreshold) return 'below';
+    return 'inside';
+  }
+
+  const midpoint = hoverBoundingRect.height * 0.5;
+  return clientY < midpoint ? 'above' : 'below';
+};
+
+/**
+ * Separator-aware ancestry check between two filesystem pathnames.
+ *
+ * Returns true when `childPathname` is the same as, or a descendant of, `ancestorPathname`.
+ * Uses path-segment boundaries so siblings like "/users-archive" are NOT treated as
+ * descendants of "/users". Normalizes separators and trailing slashes for cross-platform safety.
+ */
+export const isPathOrDescendant = (childPathname, ancestorPathname) => {
+  if (!childPathname || !ancestorPathname) return false;
+  const child = normalizePath(childPathname);
+  const ancestor = normalizePath(ancestorPathname);
+  return child === ancestor || child.startsWith(`${ancestor}/`);
+};
+
+export const canCollectionItemBeDropped = ({
+  draggedItem,
+  targetItem,
+  dropType,
+  collectionUid,
+  collectionPathname
+}) => {
+  const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+  const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
+
+  if (draggedItemUid === targetItemUid) return false;
+
+  if (sourceCollectionUid !== collectionUid) {
+    return true;
+  }
+
+  const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+  if (!newPathname) return false;
+
+  if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return false;
+
+  return true;
 };
 
 // item sequence utils - END
@@ -1649,7 +1786,11 @@ export const getVariableScope = (variableName, collection, item) => {
   if (collection.activeEnvironmentUid) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment && environment.variables) {
-      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      // A name can exist as both a plain variable and a secret. The secret takes
+      // precedence (matching interpolation), so the resolved value and the secret
+      // flag stay in sync instead of coming from different entries.
+      const envVars = environment.variables.filter((v) => v.name === variableName && v.enabled);
+      const envVar = envVars.find((v) => v.secret) || envVars[0];
       if (envVar) {
         return {
           type: 'environment',
@@ -1675,7 +1816,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1685,7 +1826,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],

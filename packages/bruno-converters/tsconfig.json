@@ -22,6 +22,7 @@
     "paths": {
       "@usebruno/schema-types": ["packages/bruno-schema-types/dist/index.d.ts"],
       "@usebruno/schema-types/*": ["packages/bruno-schema-types/dist/*"],
+      "@usebruno/common/utils": ["packages/bruno-common/dist/utils/index.d.ts"],
       "@opencollection/types": ["node_modules/@opencollection/types/dist/opencollection.d.ts"],
       "@opencollection/types/*": ["node_modules/@opencollection/types/dist/*"]
     }

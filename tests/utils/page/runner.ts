@@ -1,5 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
-import { buildSandboxLocators } from './locators';
+import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -14,12 +14,17 @@ export const buildRunnerLocators = (page: Page) => ({
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  cancelExecutionButton: () => page.getByTestId('runner-cancel-button'),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
-  delayInput: () => page.getByTestId('runner-delay-input')
+  delayInput: () => page.getByTestId('runner-delay-input'),
+  resultItems: () => page.getByTestId('runner-result-item'),
+  requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
+  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
+  resultTimelineEntries: () => page.getByTestId('timeline-entry')
 });
 
 /**
@@ -49,9 +54,13 @@ export const openRunnerTab = async (page: Page, collectionName: string) => {
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     await collectionContainer.waitFor({ state: 'visible' });
 
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -81,9 +90,13 @@ export const runCollection = async (page: Page, collectionName: string) => {
     await collectionContainer.waitFor({ state: 'visible' });
 
     // Open collection actions menu - hover first to reveal the hidden actions button
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -111,6 +124,23 @@ export const runCollection = async (page: Page, collectionName: string) => {
 
     // Wait for the run to complete
     await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
+
+export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
+    const locators = buildRunnerLocators(page);
+    const result = locators.resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+
+    const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
+    await timelineTab.click();
+
+    const { timeline } = buildCommonLocators(page);
+    const entry = locators.resultTimelineEntries().first();
+    await entry.waitFor({ state: 'visible', timeout: 10000 });
+    await timeline.itemHeader(entry).click();
   });
 };
 

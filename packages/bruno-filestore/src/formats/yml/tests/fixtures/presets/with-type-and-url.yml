@@ -1,0 +1,9 @@
+opencollection: 1.0.0
+info:
+  name: My Collection
+extensions:
+  bruno:
+    presets:
+      request:
+        type: graphql
+        url: https://example.com/graphql

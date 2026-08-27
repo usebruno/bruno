@@ -2,9 +2,11 @@ name: macOS Tests
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'release/v*']
-  pull_request:
-    branches: [main, 'release/v*']
+    branches: [main, 'release/*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit-test:
@@ -49,8 +51,11 @@ jobs:
 
   e2e-test:
     name: Playwright E2E Tests (macOS)
-    timeout-minutes: 150
-    runs-on: macos-latest
+    timeout-minutes: 240
+    runs-on: 
+      - macOS
+      - self-hosted
+      - e2e
     steps:
       - uses: actions/checkout@v6
 
@@ -90,11 +95,17 @@ jobs:
       - name: Setup CA Certificates
         uses: ./.github/actions/ssl/macos/setup-ca-certs
 
+      - name: Setup Client Certificates
+        uses: ./.github/actions/ssl/macos/setup-client-certs
+
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
 
       - name: Run Custom CA Certs CLI Tests
         uses: ./.github/actions/ssl/macos/run-custom-ca-certs-cli-tests
+
+      - name: Run Client Certs CLI Tests
+        uses: ./.github/actions/ssl/macos/run-client-certs-cli-tests
 
       - name: Run Custom CA Certs E2E Tests
         uses: ./.github/actions/ssl/macos/run-ssl-e2e-tests

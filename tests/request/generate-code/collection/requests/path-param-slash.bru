@@ -1,0 +1,19 @@
+meta {
+  name: path-param-slash
+  type: http
+  seq: 14
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/users/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: aaa/bbb
+}
+
+settings {
+  encodeUrl: false
+}

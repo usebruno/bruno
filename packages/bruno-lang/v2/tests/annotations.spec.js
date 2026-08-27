@@ -17,7 +17,13 @@ assert {
 `;
     const output = parser(input);
     expect(output.assertions).toEqual([
-      { name: 'res.status', value: 'eq 200', enabled: true, annotations: [{ name: 'description', value: 'hello' }] }
+      {
+        name: 'res.status',
+        value: 'eq 200',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'hello' }],
+        description: 'hello'
+      }
     ]);
   });
 
@@ -30,7 +36,13 @@ headers {
 `;
     const output = parser(input);
     expect(output.headers).toEqual([
-      { name: 'key', value: 'value', enabled: true, annotations: [{ name: 'description', value: 'hello' }] }
+      {
+        name: 'key',
+        value: 'value',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'hello' }],
+        description: 'hello'
+      }
     ]);
   });
 
@@ -61,7 +73,8 @@ headers {
         name: 'key',
         value: 'value',
         enabled: true,
-        annotations: [{ name: 'string' }, { name: 'description', value: 'x' }]
+        annotations: [{ name: 'string' }, { name: 'description', value: 'x' }],
+        description: 'x'
       }
     ]);
   });
@@ -80,7 +93,8 @@ headers {
         name: 'key',
         value: 'value',
         enabled: true,
-        annotations: [{ name: 'string' }, { name: 'description', value: 'hello' }]
+        annotations: [{ name: 'string' }, { name: 'description', value: 'hello' }],
+        description: 'hello'
       }
     ]);
   });
@@ -288,6 +302,39 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'line one\nline two' }]);
   });
 
+  it('serializeAnnotations — multiline value with embedded triple quotes roundtrips correctly', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [{
+        name: 'x-key',
+        value: 'val',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'line one\nline two with \'\'\' inside\nline three' }]
+      }]
+    };
+    const bru = jsonToBru(json);
+    expect(bru).toContain('@description(\'\'\'\n    line one\n    line two with \\\'\\\'\\\' inside\n    line three\n  \'\'\')');
+    const parsed = parser(bru);
+    expect(parsed.headers[0].description).toBe('line one\nline two with \'\'\' inside\nline three');
+  });
+
+  it('serializeAnnotations — multiline value with backslash-quote and triple quotes roundtrips correctly', () => {
+    const json = {
+      meta: { name: 'test', type: 'http', seq: 1 },
+      http: { method: 'get', url: 'https://example.com' },
+      headers: [{
+        name: 'x-key',
+        value: 'val',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'it\\\'s multiline\nand has \'\'\' too' }]
+      }]
+    };
+    const bru = jsonToBru(json);
+    const parsed = parser(bru);
+    expect(parsed.headers[0].description).toBe('it\\\'s multiline\nand has \'\'\' too');
+  });
+
   it('serializeAnnotations — empty string value roundtrips correctly', () => {
     const json = {
       meta: { name: 'test', type: 'http', seq: 1 },
@@ -371,7 +418,14 @@ params:path {
 `;
     const output = parser(input);
     expect(output.params).toEqual([
-      { name: 'userId', value: '123', enabled: true, type: 'path', annotations: [{ name: 'description', value: 'user id' }] }
+      {
+        name: 'userId',
+        value: '123',
+        enabled: true,
+        type: 'path',
+        annotations: [{ name: 'description', value: 'user id' }],
+        description: 'user id'
+      }
     ]);
   });
 
@@ -384,7 +438,13 @@ metadata {
 `;
     const output = parser(input);
     expect(output.metadata).toEqual([
-      { name: 'trace-id', value: 'abc123', enabled: true, annotations: [{ name: 'description', value: 'trace id' }] }
+      {
+        name: 'trace-id',
+        value: 'abc123',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'trace id' }],
+        description: 'trace id'
+      }
     ]);
   });
 
@@ -397,7 +457,13 @@ body:form-urlencoded {
 `;
     const output = parser(input);
     expect(output.body.formUrlEncoded).toEqual([
-      { name: 'username', value: 'alice', enabled: true, annotations: [{ name: 'description', value: 'username field' }] }
+      {
+        name: 'username',
+        value: 'alice',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'username field' }],
+        description: 'username field'
+      }
     ]);
   });
 
@@ -415,7 +481,8 @@ vars:pre-request {
         value: 'http://localhost',
         enabled: true,
         local: false,
-        annotations: [{ name: 'description', value: 'base url' }]
+        annotations: [{ name: 'description', value: 'base url' }],
+        description: 'base url'
       }
     ]);
   });
@@ -434,7 +501,8 @@ vars:post-response {
         value: 'abc123',
         enabled: true,
         local: false,
-        annotations: [{ name: 'description', value: 'auth token' }]
+        annotations: [{ name: 'description', value: 'auth token' }],
+        description: 'auth token'
       }
     ]);
   });
@@ -453,7 +521,8 @@ vars:pre-request {
         value: 'http://localhost',
         enabled: true,
         local: true,
-        annotations: [{ name: 'description', value: 'local base url' }]
+        annotations: [{ name: 'description', value: 'local base url' }],
+        description: 'local base url'
       }
     ]);
   });
@@ -472,7 +541,8 @@ vars:post-response {
         value: 'abc123',
         enabled: true,
         local: true,
-        annotations: [{ name: 'description', value: 'local token' }]
+        annotations: [{ name: 'description', value: 'local token' }],
+        description: 'local token'
       }
     ]);
   });
@@ -492,7 +562,8 @@ body:multipart-form {
         enabled: true,
         type: 'text',
         contentType: 'text/plain',
-        annotations: [{ name: 'description', value: 'plain field' }]
+        annotations: [{ name: 'description', value: 'plain field' }],
+        description: 'plain field'
       }
     ]);
   });
@@ -512,7 +583,8 @@ body:multipart-form {
         enabled: true,
         type: 'file',
         contentType: 'image/png',
-        annotations: [{ name: 'description', value: 'upload image' }]
+        annotations: [{ name: 'description', value: 'upload image' }],
+        description: 'upload image'
       }
     ]);
   });
@@ -530,7 +602,8 @@ body:file {
         filePath: '/tmp/readme.pdf',
         selected: true,
         contentType: 'application/pdf',
-        annotations: [{ name: 'description', value: 'upload doc' }]
+        annotations: [{ name: 'description', value: 'upload doc' }],
+        description: 'upload doc'
       }
     ]);
   });
@@ -545,7 +618,8 @@ body:file {
             enabled: true,
             type: 'text',
             contentType: 'text/plain',
-            annotations: [{ name: 'description', value: 'plain field' }]
+            annotations: [{ name: 'description', value: 'plain field' }],
+            description: 'plain field'
           }
         ]
       }
@@ -609,7 +683,15 @@ body:file {
   it('serializeAnnotations — body:file with annotations', () => {
     const json = {
       body: {
-        file: [{ filePath: '/tmp/readme.pdf', selected: true, contentType: 'application/pdf', annotations: [{ name: 'description', value: 'upload doc' }] }]
+        file: [
+          {
+            filePath: '/tmp/readme.pdf',
+            selected: true,
+            contentType: 'application/pdf',
+            annotations: [{ name: 'description', value: 'upload doc' }],
+            description: 'upload doc'
+          }
+        ]
       }
     };
     const bru = jsonToBru(json);
@@ -629,7 +711,8 @@ body:file {
             enabled: true,
             type: 'file',
             contentType: 'image/png',
-            annotations: [{ name: 'description', value: 'upload image' }]
+            annotations: [{ name: 'description', value: 'upload image' }],
+            description: 'upload image'
           }
         ]
       }
@@ -711,19 +794,28 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - headers', () => {
     const input = `headers {
-  @description('hello')
+  @description('''hello''')
   key: value
 }
 `;
     const parsed = parser(input);
     const output = jsonToBru(parsed);
 
-    expect(input).toEqual(output);
+    expect(parser(output)).toEqual(parsed);
+    expect(output).toContain('@description(\'hello\')');
   });
 
   it('parseAndSerialise - json sourced roundtrip check - headers', () => {
     const input = {
-      headers: [{ name: 'x-key', value: 'val', enabled: true, annotations: [{ name: 'description', value: 'say "hello"' }] }]
+      headers: [
+        {
+          name: 'x-key',
+          value: 'val',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'say "hello"' }],
+          description: 'say "hello"'
+        }
+      ]
     };
     const stringified = jsonToBru(input);
     const output = parser(stringified);
@@ -733,7 +825,7 @@ headers {
 
   it('parseAndSerialise - bru sourced roundtrip check - asserts', () => {
     const input = `assert {
-  @description('make it rain')
+  @description('''make it rain''')
   res.status: eq 200
 }
 `;
@@ -741,7 +833,8 @@ headers {
     const parsed = parser(input);
     const output = jsonToBru(parsed);
 
-    expect(input).toEqual(output);
+    expect(parser(output)).toEqual(parsed);
+    expect(output).toContain('@description(\'make it rain\')');
   });
 
   it('parseAndSerialise - json sourced roundtrip check - asserts', () => {
@@ -749,7 +842,11 @@ headers {
       assertions: [
         {
           annotations: [{ name: 'description', value: 'hello' }],
-          name: 'res.status', value: 'eq 200', enabled: true }
+          name: 'res.status',
+          value: 'eq 200',
+          enabled: true,
+          description: 'hello'
+        }
       ]
     };
 
@@ -802,6 +899,217 @@ headers {
     expect(parsed.headers[0].annotations).toEqual([{ name: 'description', value: 'Token (JWT)' }]);
   });
 
+  it('parseAndSerialise - bru sourced roundtrip check - params:query', () => {
+    const input = `params:query {
+  @description('''search term''')
+  q: hello
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - params:query', () => {
+    const input = {
+      params: [
+        {
+          name: 'q',
+          value: 'hello',
+          enabled: true,
+          type: 'query',
+          annotations: [{ name: 'description', value: 'search term' }],
+          description: 'search term'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - params:path', () => {
+    const input = `params:path {
+  @description('''user id''')
+  userId: 123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - params:path', () => {
+    const input = {
+      params: [
+        {
+          name: 'userId',
+          value: '123',
+          enabled: true,
+          type: 'path',
+          annotations: [{ name: 'description', value: 'user id' }],
+          description: 'user id'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - metadata', () => {
+    const input = `metadata {
+  @description('''trace id''')
+  trace-id: abc123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - metadata', () => {
+    const input = {
+      metadata: [
+        {
+          name: 'trace-id',
+          value: 'abc123',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'trace id' }],
+          description: 'trace id'
+        }
+      ]
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:form-urlencoded', () => {
+    const input = `body:form-urlencoded {
+  @description('''username field''')
+  username: alice
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - body:form-urlencoded', () => {
+    const input = {
+      body: {
+        formUrlEncoded: [
+          {
+            name: 'username',
+            value: 'alice',
+            enabled: true,
+            annotations: [{ name: 'description', value: 'username field' }],
+            description: 'username field'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form text field', () => {
+    const input = `body:multipart-form {
+  @description('''plain field''')
+  field: value @contentType(text/plain)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:multipart-form file field', () => {
+    const input = `body:multipart-form {
+  @description('''upload image''')
+  upload: @file(/tmp/a.png|/tmp/b.png) @contentType(image/png)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - body:file', () => {
+    const input = `body:file {
+  @description('''upload doc''')
+  file: @file(/tmp/readme.pdf) @contentType(application/pdf)
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - vars:pre-request', () => {
+    const input = `vars:pre-request {
+  @description('''base url''')
+  BASE_URL: http://localhost
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - vars:pre-request', () => {
+    const input = {
+      vars: {
+        req: [
+          {
+            name: 'BASE_URL',
+            value: 'http://localhost',
+            enabled: true,
+            local: false,
+            annotations: [{ name: 'description', value: 'base url' }],
+            description: 'base url'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - vars:post-response', () => {
+    const input = `vars:post-response {
+  @description('''auth token''')
+  token: abc123
+}
+`;
+    const parsed = parser(input);
+    const output = jsonToBru(parsed);
+    expect(parser(output)).toEqual(parsed);
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - vars:post-response', () => {
+    const input = {
+      vars: {
+        res: [
+          {
+            name: 'token',
+            value: 'abc123',
+            enabled: true,
+            local: false,
+            annotations: [{ name: 'description', value: 'auth token' }],
+            description: 'auth token'
+          }
+        ]
+      }
+    };
+    const bru = jsonToBru(input);
+    const output = parser(bru);
+    expect(output).toEqual(input);
+  });
+
   it('inline annotation on a header is rejected', () => {
     const input = `
 headers {
@@ -821,7 +1129,14 @@ describe('env pair annotations', () => {
 `;
     const output = envParser(input);
     expect(output.variables).toEqual([
-      { name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'my api key' }] }
+      {
+        name: 'API_KEY',
+        value: 'abc123',
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'description', value: 'my api key' }],
+        description: 'my api key'
+      }
     ]);
   });
 
@@ -880,13 +1195,91 @@ describe('env pair annotations', () => {
     expect(output.variables[0]).toEqual({ name: 'API_KEY', value: 'abc123', enabled: true, secret: false });
   });
 
-  it('secret vars are unaffected by annotation support', () => {
+  it('multiple annotations on a secret var', () => {
     const input = `vars:secret [
-  SECRET_KEY
+  @string
+  @description('api token')
+  API_TOKEN
 ]
 `;
     const output = envParser(input);
-    expect(output.variables).toEqual([{ name: 'SECRET_KEY', value: '', enabled: true, secret: true }]);
+    expect(output.variables[0].annotations).toEqual([{ name: 'string' }, { name: 'description', value: 'api token' }]);
+  });
+
+  it('annotations on multiple secret vars', () => {
+    const input = `vars:secret [
+  env_secret_str,
+  @number
+  env_secret_num,
+  @object
+  env_secret_obj,
+  @boolean
+  env_secret_boolean,
+  env_secret_new
+]
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'env_secret_str', value: '', enabled: true, secret: true },
+      { name: 'env_secret_num', value: '', enabled: true, secret: true, annotations: [{ name: 'number' }], dataType: 'number' },
+      { name: 'env_secret_obj', value: '', enabled: true, secret: true, annotations: [{ name: 'object' }], dataType: 'object' },
+      { name: 'env_secret_boolean', value: '', enabled: true, secret: true, annotations: [{ name: 'boolean' }], dataType: 'boolean' },
+      { name: 'env_secret_new', value: '', enabled: true, secret: true }
+    ]);
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - multiple secret vars with annotations', () => {
+    const input = `vars:secret [
+  env_secret_str,
+  @number
+  env_secret_num,
+  @object
+  env_secret_obj,
+  @boolean
+  env_secret_boolean,
+  env_secret_new
+]
+`;
+    const parsed = envParser(input);
+    expect(jsonToEnv(parsed)).toEqual(input);
+  });
+
+  it('disabled secret var with annotation', () => {
+    const input = `vars:secret [
+  @deprecated
+  ~OLD_SECRET
+]
+`;
+    const output = envParser(input);
+    expect(output.variables).toEqual([
+      { name: 'OLD_SECRET', value: '', enabled: false, secret: true, annotations: [{ name: 'deprecated' }] }
+    ]);
+  });
+
+  it('serializeAnnotations in jsonToEnv — disabled secret var with annotation', () => {
+    const json = {
+      variables: [{ name: 'OLD_SECRET', value: '', enabled: false, secret: true, annotations: [{ name: 'deprecated' }] }]
+    };
+    const bru = jsonToEnv(json);
+    expect(bru).toContain('@deprecated\n  ~OLD_SECRET');
+  });
+
+  it('parseAndSerialise - json sourced roundtrip check - secret env vars', () => {
+    const input = {
+      variables: [
+        {
+          name: 'SECRET_KEY',
+          value: '',
+          enabled: true,
+          secret: true,
+          annotations: [{ name: 'description', value: 'my secret key' }],
+          description: 'my secret key'
+        }
+      ]
+    };
+    const bru = jsonToEnv(input);
+    const output = envParser(bru);
+    expect(output).toEqual(input);
   });
 
   it('serializeAnnotations in jsonToEnv — annotation without value', () => {
@@ -915,18 +1308,27 @@ describe('env pair annotations', () => {
 
   it('parseAndSerialise - bru sourced roundtrip check - env vars', () => {
     const input = `vars {
-  @description('api key')
+  @description('''api key''')
   API_KEY: abc123
 }
 `;
     const parsed = envParser(input);
     const output = jsonToEnv(parsed);
-    expect(output).toEqual(input);
+    expect(envParser(output)).toEqual(parsed);
   });
 
   it('parseAndSerialise - json sourced roundtrip check - env vars', () => {
     const input = {
-      variables: [{ name: 'API_KEY', value: 'abc123', enabled: true, secret: false, annotations: [{ name: 'description', value: 'api key' }] }]
+      variables: [
+        {
+          name: 'API_KEY',
+          value: 'abc123',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'description', value: 'api key' }],
+          description: 'api key'
+        }
+      ]
     };
     const bru = jsonToEnv(input);
     const output = envParser(bru);
@@ -942,6 +1344,44 @@ describe('env pair annotations', () => {
   });
 });
 
+describe('env external secrets', () => {
+  it('parses an external secrets block into { type, variables }', () => {
+    const input = `vars:externalsecrets:my-vault {
+  secret: secret/data/secret
+  password: secret/data/password
+}
+`;
+    const output = envParser(input);
+    expect(output.externalSecrets).toEqual({
+      type: 'my-vault',
+      variables: [
+        { name: 'secret', value: 'secret/data/secret' },
+        { name: 'password', value: 'secret/data/password' }
+      ]
+    });
+  });
+
+  it('parses an external secrets block with no variables', () => {
+    const input = `vars:externalsecrets:my-vault {
+}
+`;
+    const output = envParser(input);
+    expect(output.externalSecrets).toEqual({ type: 'my-vault', variables: [] });
+  });
+
+  it('parseAndSerialise - bru sourced roundtrip check - external secrets', () => {
+    const input = `vars {
+}
+vars:externalsecrets:my-vault {
+  secret: secret/data/secret
+  password: secret/data/password
+}
+`;
+    const parsed = envParser(input);
+    expect(jsonToEnv(parsed)).toEqual(input);
+  });
+});
+
 describe('collection pair annotations', () => {
   it('above-line annotation on a header (collection)', () => {
     const input = `headers {
@@ -951,7 +1391,13 @@ describe('collection pair annotations', () => {
 `;
     const output = collectionParser(input);
     expect(output.headers).toEqual([
-      { name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }
+      {
+        name: 'content-type',
+        value: 'application/json',
+        enabled: true,
+        annotations: [{ name: 'description', value: 'content type' }],
+        description: 'content type'
+      }
     ]);
   });
 
@@ -999,7 +1445,14 @@ describe('collection pair annotations', () => {
 `;
     const output = collectionParser(input);
     expect(output.vars.req).toEqual([
-      { name: 'BASE_URL', value: 'http://localhost', enabled: true, local: false, annotations: [{ name: 'description', value: 'base url' }] }
+      {
+        name: 'BASE_URL',
+        value: 'http://localhost',
+        enabled: true,
+        local: false,
+        annotations: [{ name: 'description', value: 'base url' }],
+        description: 'base url'
+      }
     ]);
   });
 
@@ -1114,18 +1567,26 @@ describe('collection pair annotations', () => {
 
   it('parseAndSerialise - bru sourced roundtrip check - collection headers', () => {
     const input = `headers {
-  @description('content type')
+  @description('''content type''')
   content-type: application/json
 }
 `;
     const parsed = collectionParser(input);
     const output = jsonToCollectionBru(parsed);
-    expect(output).toEqual(input);
+    expect(collectionParser(output)).toEqual(parsed);
   });
 
   it('parseAndSerialise - json sourced roundtrip check - collection headers', () => {
     const input = {
-      headers: [{ name: 'content-type', value: 'application/json', enabled: true, annotations: [{ name: 'description', value: 'content type' }] }]
+      headers: [
+        {
+          name: 'content-type',
+          value: 'application/json',
+          enabled: true,
+          annotations: [{ name: 'description', value: 'content type' }],
+          description: 'content type'
+        }
+      ]
     };
     const bru = jsonToCollectionBru(input);
     const output = collectionParser(bru);
@@ -1134,13 +1595,13 @@ describe('collection pair annotations', () => {
 
   it('parseAndSerialise - bru sourced roundtrip check - collection vars:pre-request', () => {
     const input = `vars:pre-request {
-  @description('base url')
+  @description('''base url''')
   BASE_URL: http://localhost
 }
 `;
     const parsed = collectionParser(input);
     const output = jsonToCollectionBru(parsed);
-    expect(output).toEqual(input);
+    expect(collectionParser(output)).toEqual(parsed);
   });
 
   it('inline annotation on a collection header is rejected', () => {

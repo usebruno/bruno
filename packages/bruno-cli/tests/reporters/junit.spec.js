@@ -103,6 +103,36 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure[0]['@type']).toBe('failure');
   });
 
+  it('should use the request path as the testcase classname instead of the request url', () => {
+    const results = [
+      {
+        name: '1st API',
+        path: 'f1/1st API.bru',
+        test: {
+          filename: 'f1/1st API.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        testResults: [
+          {
+            description: 'Status is 200',
+            status: 'pass'
+          }
+        ],
+        runDuration: 1.2345678
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+    const testcase = junit.testsuites.testsuite[0].testcase[0];
+
+    expect(testcase['@classname']).toBe('f1/1st API');
+  });
+
   it('should handle request errors', () => {
     const results = [
       {
