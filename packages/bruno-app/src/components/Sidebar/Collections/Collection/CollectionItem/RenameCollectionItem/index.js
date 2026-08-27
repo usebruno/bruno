@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
+import { getItemTypeLabel } from 'utils/collections';
 import { renameItem, saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'utils/common/path';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
@@ -24,7 +25,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
-  const itemTypeLabel = isFolder ? 'Folder' : itemType === 'app' ? 'App' : 'Request';
+  const itemTypeLabel = getItemTypeLabel(item);
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 

@@ -3,14 +3,14 @@ import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
 import { deleteItem, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import { recursivelyGetAllItemUids } from 'utils/collections';
+import { recursivelyGetAllItemUids, getItemTypeLabel } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 
 const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
-  const itemTypeLabel = isFolder ? 'Folder' : item?.type === 'app' ? 'App' : 'Request';
+  const itemTypeLabel = getItemTypeLabel(item);
   const onConfirm = () => {
     dispatch(deleteItem(item.uid, collectionUid)).then(() => {
       if (isFolder) {

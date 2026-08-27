@@ -1,10 +1,11 @@
 import React from 'react';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
+import { getItemTypeLabel } from 'utils/collections';
 
 const CollectionItemInfo = ({ item, onClose }) => {
   const { name, filename, type } = item;
-  const itemTypeLabel = type === 'folder' ? 'Folder' : type === 'app' ? 'App' : 'Request';
+  const itemTypeLabel = getItemTypeLabel(item);
 
   return (
     <Modal

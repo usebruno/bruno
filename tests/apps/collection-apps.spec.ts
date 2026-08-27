@@ -120,9 +120,10 @@ test.describe('Collection apps', () => {
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-code')).toBeVisible();
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-view-code')).toHaveClass(/active/);
       await selectAppView(page, 'preview');
-      // A new app starts with no code, so Preview shows the empty state rather
-      // than a webview. See app-empty-state.spec.ts.
       await expect(appEmptyState(page)).toBeVisible();
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-preview').locator('webview')).toHaveCount(0);
+      await expect(appEmptyState(page).getByTestId('empty-app-add-code')).toBeVisible();
+      await expect(appEmptyState(page).getByTestId('empty-app-learn-more')).toBeVisible();
     });
   });
 

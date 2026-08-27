@@ -340,8 +340,6 @@ const CollectionApp = ({ item, collection }) => {
     pushToGuest({ type: 'collection', collection: collectionInfo });
   }, [collectionInfo, pushToGuest]);
 
-  const goToAppCode = useCallback(() => setView('code'), []);
-
   return (
     <StyledWrapper data-testid="collection-app">
       <div className="app-toolbar">
@@ -404,7 +402,7 @@ const CollectionApp = ({ item, collection }) => {
         <div className="app-pane" data-testid="collection-app-preview">
           <EmptyAppState
             hint="Add HTML/JS in the Code view to render a custom UI for this app."
-            onAddCode={goToAppCode}
+            onAddCode={() => setView('code')}
           />
         </div>
       )}
