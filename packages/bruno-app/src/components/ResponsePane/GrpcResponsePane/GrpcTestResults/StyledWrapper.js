@@ -24,6 +24,12 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .message-group-label {
+    color: ${(props) => props.theme.colors.text.muted};
+    font-size: 0.75rem;
+    padding-top: 0.5rem;
+  }
+
   .dropdown-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
   }
