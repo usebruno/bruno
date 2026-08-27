@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
+  const itemTypeLabel = isFolder ? 'Folder' : item?.type === 'app' ? 'App' : 'Request';
   const onConfirm = () => {
     dispatch(deleteItem(item.uid, collectionUid)).then(() => {
       if (isFolder) {
@@ -40,7 +41,7 @@ const DeleteCollectionItem = ({ onClose, item, collectionUid }) => {
     <StyledWrapper>
       <Modal
         size="md"
-        title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
+        title={`Delete ${itemTypeLabel}`}
         confirmText="Delete"
         confirmButtonColor="danger"
         handleConfirm={onConfirm}

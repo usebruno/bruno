@@ -5,6 +5,7 @@ import {
   createApp,
   selectAppView,
   activeAppPreviewSlot,
+  appEmptyState,
   selectRequestBodyMode,
   saveRequest
 } from '../utils/page';
@@ -119,7 +120,9 @@ test.describe('Collection apps', () => {
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-code')).toBeVisible();
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-view-code')).toHaveClass(/active/);
       await selectAppView(page, 'preview');
-      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-preview').locator('webview')).toBeVisible();
+      // A new app starts with no code, so Preview shows the empty state rather
+      // than a webview. See app-empty-state.spec.ts.
+      await expect(appEmptyState(page)).toBeVisible();
     });
   });
 

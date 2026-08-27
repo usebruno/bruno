@@ -24,7 +24,7 @@ import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
-import EmptyAppState from '../AppView/EmptyAppState';
+import EmptyAppState from 'components/EmptyAppState';
 import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
@@ -340,6 +340,8 @@ const CollectionApp = ({ item, collection }) => {
     pushToGuest({ type: 'collection', collection: collectionInfo });
   }, [collectionInfo, pushToGuest]);
 
+  const goToAppCode = useCallback(() => setView('code'), []);
+
   return (
     <StyledWrapper data-testid="collection-app">
       <div className="app-toolbar">
@@ -401,8 +403,8 @@ const CollectionApp = ({ item, collection }) => {
       ) : (
         <div className="app-pane" data-testid="collection-app-preview">
           <EmptyAppState
-            title="No app yet"
-            hint="Switch to Code and write some HTML/JS"
+            hint="Add HTML/JS in the Code view to render a custom UI for this app."
+            onAddCode={goToAppCode}
           />
         </div>
       )}

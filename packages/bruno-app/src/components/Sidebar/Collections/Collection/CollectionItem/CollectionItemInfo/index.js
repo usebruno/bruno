@@ -4,6 +4,7 @@ import Help from 'components/Help';
 
 const CollectionItemInfo = ({ item, onClose }) => {
   const { name, filename, type } = item;
+  const itemTypeLabel = type === 'folder' ? 'Folder' : type === 'app' ? 'App' : 'Request';
 
   return (
     <Modal
@@ -18,7 +19,7 @@ const CollectionItemInfo = ({ item, onClose }) => {
           <tbody>
             <tr className="">
               <td className="py-2 px-2 text-left text-muted ">
-                {type == 'folder' ? 'Folder Name' : 'Request Name'}
+                {itemTypeLabel} Name
               </td>
               <td className="py-2 px-2 text-nowrap truncate max-w-[500px]" title={name}>
                 <span className="mr-2">:</span>{name}

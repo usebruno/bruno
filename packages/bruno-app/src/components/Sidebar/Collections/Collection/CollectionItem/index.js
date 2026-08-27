@@ -111,6 +111,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
+  const isApp = item.type === 'app';
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
@@ -619,7 +620,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleCopyItem = () => {
     dispatch(copyRequest(item));
-    const itemType = isFolder ? 'Folder' : 'Request';
+    const itemType = isFolder ? 'Folder' : isApp ? 'App' : 'Request';
     toast.success(`${itemType} copied`);
   };
 

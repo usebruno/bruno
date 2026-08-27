@@ -1814,36 +1814,6 @@ export const newWsRequest = (params) => (dispatch, getState) => {
   });
 };
 
-const DEFAULT_APP_STARTER = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>App</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 1rem; }
-    button { padding: 6px 10px; cursor: pointer; }
-    pre { background: #f6f7f9; padding: 8px; border-radius: 4px; overflow: auto; }
-    body.dark { color: #e0e0e0; }
-    body.dark pre { background: #1f2123; }
-  </style>
-</head>
-<body>
-  <h2>Hello from a Bruno app</h2>
-  <p>This app can list request in the collection.</p>
-  <button id="refresh">List requests</button>
-  <pre id="out">click "List requests"</pre>
-  <script>
-    const out = document.getElementById('out');
-    document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await bru.ctx.listRequests();
-      out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
-    });
-  </script>
-</body>
-</html>
-`;
-
 export const newApp = (params) => (dispatch, getState) => {
   const { appName, filename, collectionUid, itemUid } = params;
 
@@ -1859,7 +1829,7 @@ export const newApp = (params) => (dispatch, getState) => {
       type: 'app',
       name: appName,
       filename,
-      app: { code: DEFAULT_APP_STARTER },
+      app: { code: '' },
       settings: {}
     };
 

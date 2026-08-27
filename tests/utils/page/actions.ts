@@ -2516,6 +2516,25 @@ const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.act
 const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
 
 /**
+ * The shared "No app yet" empty state, rendered by both the request-level app
+ * view and the standalone collection app whenever the app has no code.
+ * @param page - The page object
+ */
+const appEmptyState = (page: Page) => activeAppPreviewSlot(page).getByTestId('empty-app-state');
+
+/**
+ * The empty state's primary action, which takes the user to the app code editor.
+ * @param page - The page object
+ */
+const appEmptyStateAddCode = (page: Page) => appEmptyState(page).getByTestId('empty-app-add-code');
+
+/**
+ * The empty state's secondary action, which opens the Apps documentation.
+ * @param page - The page object
+ */
+const appEmptyStateLearnMore = (page: Page) => appEmptyState(page).getByTestId('empty-app-learn-more');
+
+/**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
  * takes over the request/response area.
  * @param page - The page object
@@ -2855,6 +2874,9 @@ export {
   requestPaneOverflowTabItem,
   activeAppPreviewSlot,
   activeAppView,
+  appEmptyState,
+  appEmptyStateAddCode,
+  appEmptyStateLearnMore,
   previewApp,
   exitApp,
   selectViewMode,
