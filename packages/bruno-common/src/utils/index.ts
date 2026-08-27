@@ -51,6 +51,12 @@ export {
 } from './string';
 
 export {
+  sanitizeName,
+  validateName,
+  validateNameError
+} from './naming';
+
+export {
   toBool,
   toNumber
 } from './type-helpers';
