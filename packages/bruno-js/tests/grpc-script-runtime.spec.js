@@ -26,22 +26,28 @@ const makeResponse = (overrides = {}) => ({
 const onConsoleLog = () => {};
 
 const runBeforeCallStart = (script, request, runtime = 'nodevm') =>
-  new GrpcScriptRuntime({ runtime }).runGrpcRequestScript(script, request, {}, {}, '.', onConsoleLog, process.env);
+  new GrpcScriptRuntime({ runtime }).runGrpcRequestScript({
+    script,
+    request,
+    envVariables: {},
+    runtimeVariables: {},
+    collectionPath: '.',
+    onConsoleLog,
+    processEnvVars: process.env
+  });
 
 const runAfterCallEnd = (script, request, response, { sentMessages = [], runtime = 'nodevm' } = {}) =>
-  new GrpcScriptRuntime({ runtime }).runGrpcResponseScript(
+  new GrpcScriptRuntime({ runtime }).runGrpcResponseScript({
     script,
     request,
     response,
-    {},
-    {},
-    '.',
+    envVariables: {},
+    runtimeVariables: {},
+    collectionPath: '.',
     onConsoleLog,
-    process.env,
-    undefined,
-    undefined,
-    { sentMessages }
-  );
+    processEnvVars: process.env,
+    sentMessages
+  });
 
 describe('GrpcScriptRuntime', () => {
   describe('beforeCallStart (runGrpcRequestScript)', () => {

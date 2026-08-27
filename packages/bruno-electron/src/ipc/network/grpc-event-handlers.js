@@ -282,11 +282,17 @@ const registerGrpcEventHandlers = (window) => {
           pfx,
           verifyOptions,
           includeDirs,
-          proxyConfig: grpcProxyConfig
+          proxyConfig: grpcProxyConfig,
+          onBeforeMessageSend: ({ data }) =>
+            grpcScriptOrchestration.runBeforeMessageSend({ requestId: preparedRequest.uid, data })
         });
       } catch (error) {
         // The call never opened, so no terminal event will arrive to retire the session it armed.
         grpcScriptOrchestration.closeCallSession(request.uid);
+        // A `beforeMessageSend` that threw aborted the call
+        if (error.isGrpcScriptError) {
+          return { success: false, error: error.message };
+        }
         throw error;
       }
 
@@ -327,7 +333,14 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Send a message to an existing stream
-  ipcMain.handle('grpc:send-message', (event, requestId, collectionUid, message) => {
+  ipcMain.handle('grpc:send-message', async (event, requestId, collectionUid, message) => {
+    try {
+      await grpcScriptOrchestration.runBeforeMessageSend({ requestId, data: safeParseJSON(message) });
+    } catch (error) {
+      // The hook aborted this one message; the stream stays open for the next.
+      return { success: false, error: error.message };
+    }
+
     try {
       grpcClient.sendMessage(requestId, collectionUid, message);
       grpcScriptOrchestration.interceptGrpcEvent('grpc:message', requestId, collectionUid, message);

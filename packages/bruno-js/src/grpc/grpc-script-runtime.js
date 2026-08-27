@@ -19,10 +19,11 @@ const bindUnsupportedRunRequest = (bru) => {
 /**
  * Runs the gRPC lifecycle hooks
  *
- * The two methods below mirror `ScriptRuntime`'s `runRequestScript` / `runResponseScript` step for
- * step, substituting the gRPC request/response models.
+ * All four hooks share one body (`#runHook`) and differ only in what they put on `bru.grpc` and
+ * what their result object carries — `buildGrpc` and `extraResult` below.
  *
- * Two intentional differences from `ScriptRuntime`, not oversights:
+ * The shared body mirrors `ScriptRuntime`'s `runRequestScript` / `runResponseScript` step for step,
+ * substituting the gRPC request/response models. Two intentional differences, not oversights:
  * - `bru.runRequest` rejects instead of running anything (see `bindUnsupportedRunRequest`).
  * - The models live under `bru.grpc` rather than as the `req` / `res` globals HTTP scripts get.
  */
@@ -31,9 +32,18 @@ class GrpcScriptRuntime {
     this.runtime = props?.runtime || 'quickjs';
   }
 
-  async runGrpcRequestScript(
+  /**
+   * @param {object} params
+   * @param {string} params.script - The hook body, already decommented by the caller
+   * @param {object} params.request - The prepared gRPC request
+   * @param {Function} params.buildGrpc - Returns the `bru.grpc` object for this hook
+   * @param {object} [params.extraResult] - Merged into the result object this hook returns
+   */
+  async #runHook({
     script,
     request,
+    buildGrpc,
+    extraResult = {},
     envVariables,
     runtimeVariables,
     collectionPath,
@@ -41,7 +51,7 @@ class GrpcScriptRuntime {
     processEnvVars,
     scriptingConfig,
     collectionName
-  ) {
+  }) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
@@ -68,8 +78,7 @@ class GrpcScriptRuntime {
       requestUrl: request?.url
     });
 
-    // Initial scope - `request.messages` reports what the call sent, so it is still empty here.
-    bru.grpc = { request: new BrunoGrpcRequest(request, { metadataWritable: true }) };
+    bru.grpc = buildGrpc();
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -100,8 +109,8 @@ class GrpcScriptRuntime {
 
     bindUnsupportedRunRequest(bru);
 
-    const buildRequestScriptResult = () => ({
-      request,
+    const buildScriptResult = () => ({
+      ...extraResult,
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
       runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
@@ -118,8 +127,8 @@ class GrpcScriptRuntime {
     // set before it threw still reach the caller
     let scriptError = null;
 
-    if (this.runtime === SANDBOX.NODEVM) {
-      try {
+    try {
+      if (this.runtime === SANDBOX.NODEVM) {
         await runScriptInNodeVm({
           script,
           context,
@@ -127,39 +136,55 @@ class GrpcScriptRuntime {
           scriptingConfig,
           scriptPath
         });
-      } catch (error) {
-        scriptError = error;
+      } else {
+        // default runtime is `quickjs`
+        await executeQuickJsVmAsync({
+          script,
+          context,
+          collectionPath,
+          scriptPath
+        });
       }
-
-      if (scriptError) {
-        scriptError.partialResults = buildRequestScriptResult();
-        throw scriptError;
-      }
-
-      return buildRequestScriptResult();
-    }
-
-    // default runtime is `quickjs`
-    try {
-      await executeQuickJsVmAsync({
-        script: script,
-        context: context,
-        collectionPath,
-        scriptPath
-      });
     } catch (error) {
       scriptError = error;
     }
 
     if (scriptError) {
-      scriptError.partialResults = buildRequestScriptResult();
+      scriptError.partialResults = buildScriptResult();
       throw scriptError;
     }
 
-    return buildRequestScriptResult();
+    return buildScriptResult();
   }
 
-  async runGrpcResponseScript(
+  async runGrpcRequestScript({
+    script,
+    request,
+    envVariables,
+    runtimeVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars,
+    scriptingConfig,
+    collectionName
+  }) {
+    return this.#runHook({
+      script,
+      request,
+      // Initial scope - `request.messages` reports what the call sent, so it is still empty here.
+      buildGrpc: () => ({ request: new BrunoGrpcRequest(request, { metadataWritable: true }) }),
+      extraResult: { request },
+      envVariables,
+      runtimeVariables,
+      collectionPath,
+      onConsoleLog,
+      processEnvVars,
+      scriptingConfig,
+      collectionName
+    });
+  }
+
+  async runGrpcResponseScript({
     script,
     request,
     response,
@@ -170,124 +195,103 @@ class GrpcScriptRuntime {
     processEnvVars,
     scriptingConfig,
     collectionName,
-    { sentMessages = [] } = {}
-  ) {
-    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
-    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
-    const collectionVariables = request?.collectionVariables || {};
-    const folderVariables = request?.folderVariables || {};
-    const requestVariables = request?.requestVariables || {};
-    const promptVariables = request?.promptVariables || {};
-    const assertionResults = request?.assertionResults || [];
-    const certsAndProxyConfig = request?.certsAndProxyConfig;
-    const scriptPath = request?.pathname;
-    const bru = new Bru({
-      runtime: this.runtime,
+    sentMessages = []
+  }) {
+    return this.#runHook({
+      script,
+      request,
+      // Passing sentMessages so only messages sent by client is accessible
+      buildGrpc: () => ({
+        request: new BrunoGrpcRequest(request, { sentMessages }),
+        response: new BrunoGrpcResponse(response)
+      }),
+      extraResult: { response },
       envVariables,
       runtimeVariables,
-      processEnvVars,
       collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      certsAndProxyConfig,
-      requestUrl: request?.url
+      onConsoleLog,
+      processEnvVars,
+      scriptingConfig,
+      collectionName
     });
+  }
 
-    // Passing sentMessages so only messages sent by client is accessible
-    bru.grpc = {
-      request: new BrunoGrpcRequest(request, { sentMessages }),
-      response: new BrunoGrpcResponse(response)
-    };
-
-    // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
-
-    const context = {
-      bru,
-      test,
-      expect: chai.expect,
-      assert: chai.assert,
-      __brunoTestResults: __brunoTestResults,
-      __bruSetScope: createScopeSetter(bru)
-    };
-
-    if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        error: customLogger('error'),
-        debug: customLogger('debug')
-      };
-    }
-
-    bindUnsupportedRunRequest(bru);
-
-    const buildResponseScriptResult = () => ({
-      response,
-      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
-      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
-      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
-      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
-      results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest,
-      skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution,
-      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
+  /**
+   * `before-message-send`. `message` is the message about to be transmitted; it joins
+   * `request.messages` only once the send succeeds, so the two never overlap.
+   *
+   * `bru.grpc.response` is deliberately absent, matching `beforeCallStart` — even on a bidi stream
+   * where messages have already been received.
+   */
+  async runGrpcBeforeMessageSendScript({
+    script,
+    request,
+    message,
+    envVariables,
+    runtimeVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars,
+    scriptingConfig,
+    collectionName,
+    sentMessages = []
+  }) {
+    return this.#runHook({
+      script,
+      request,
+      buildGrpc: () => ({
+        request: new BrunoGrpcRequest(request, { metadataWritable: false, sentMessages, message })
+      }),
+      // `message` is carried on the result for the planned `message.set`; discarded by callers today.
+      extraResult: { request, message },
+      envVariables,
+      runtimeVariables,
+      collectionPath,
+      onConsoleLog,
+      processEnvVars,
+      scriptingConfig,
+      collectionName
     });
+  }
 
-    let scriptError = null;
-
-    if (this.runtime === SANDBOX.NODEVM) {
-      try {
-        await runScriptInNodeVm({
-          script,
-          context,
-          collectionPath,
-          scriptingConfig,
-          scriptPath
-        });
-      } catch (error) {
-        scriptError = error;
-      }
-
-      if (scriptError) {
-        scriptError.partialResults = buildResponseScriptResult();
-        throw scriptError;
-      }
-
-      return buildResponseScriptResult();
-    }
-
-    // default runtime is `quickjs`
-    try {
-      await executeQuickJsVmAsync({
-        script: script,
-        context: context,
-        collectionPath,
-        scriptPath
-      });
-    } catch (error) {
-      scriptError = error;
-    }
-
-    if (scriptError) {
-      scriptError.partialResults = buildResponseScriptResult();
-      throw scriptError;
-    }
-
-    return buildResponseScriptResult();
+  /**
+   * `after-message-receive`. `message` is the message just received, and is also the last entry of
+   * `response.messages` — the call folds it in before the hook runs.
+   *
+   * The `response` here is *partial*: the call is still open, so `statusCode`, `statusMessage`,
+   * `duration` and `trailers` are not yet known and read as `undefined` / empty. `metadata` is
+   * usually populated, since headers precede the first message.
+   */
+  async runGrpcAfterMessageReceiveScript({
+    script,
+    request,
+    response,
+    message,
+    envVariables,
+    runtimeVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars,
+    scriptingConfig,
+    collectionName,
+    sentMessages = []
+  }) {
+    return this.#runHook({
+      script,
+      request,
+      buildGrpc: () => ({
+        request: new BrunoGrpcRequest(request, { metadataWritable: false, sentMessages }),
+        response: new BrunoGrpcResponse(response, { message })
+      }),
+      extraResult: { response, message },
+      envVariables,
+      runtimeVariables,
+      collectionPath,
+      onConsoleLog,
+      processEnvVars,
+      scriptingConfig,
+      collectionName
+    });
   }
 }
 
