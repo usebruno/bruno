@@ -150,6 +150,11 @@ const simpleTranslations = {
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
   'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+  'pm.clearEnvironmentVariables': 'bru.deleteAllEnvVars',
+  'pm.setGlobalVariable': 'bru.setGlobalEnvVar',
+  'pm.getGlobalVariable': 'bru.getGlobalEnvVar',
+  'pm.clearGlobalVariable': 'bru.deleteGlobalEnvVar',
+  'pm.clearGlobalVariables': 'bru.deleteAllGlobalEnvVars',
 
   // Legacy response properties
   'responseCode.code': 'res.getStatus()',
