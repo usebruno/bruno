@@ -45,7 +45,18 @@ const EnvironmentGroup = ({
   return (
     <div className="group-container" data-testid={dataTestId}>
       <div className="group-header">
-        <div className="group-title-wrapper" onClick={toggleExpanded}>
+        <div
+          role="button"
+          tabIndex={0}
+          className="group-title-wrapper"
+          onClick={toggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleExpanded();
+            }
+          }}
+        >
           {isExpanded ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
           <input
             type="checkbox"

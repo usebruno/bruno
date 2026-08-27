@@ -96,7 +96,7 @@ export const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     line-height: 20px;
-    letter-spacing: 0%;
+    letter-spacing: normal;
     min-width: 4.5rem;
   }
 
@@ -181,7 +181,7 @@ export const StyledWrapper = styled.div`
 
   .env-name {
     color: ${(props) => props.theme.text};
-    font-family: Inter;
+    font-family: Inter, sans-serif;
     font-weight: 500;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;

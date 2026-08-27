@@ -11,7 +11,18 @@ const InvalidEnvironmentGroup = ({ invalid, hasBorderBottom, isExpanded, toggleE
       data-testid="env-import-invalid-group"
     >
       <div className="group-header">
-        <div className="group-title-wrapper" onClick={toggleExpanded}>
+        <div
+          role="button"
+          tabIndex={0}
+          className="group-title-wrapper"
+          onClick={toggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleExpanded();
+            }
+          }}
+        >
           {isExpanded ? (
             <IconChevronDown size={16} className="chevron-icon" />
           ) : (

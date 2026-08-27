@@ -42,6 +42,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
               await saveEnv(environment, existingEnv);
               replacedNames.add(normalizedName);
               importedCount++;
+            } else {
+              throw new Error(`Environment ${environment.name} not found for replacement`);
             }
           } else {
             // copy
