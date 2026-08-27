@@ -1,4 +1,4 @@
-const { createPropertyListBridge } = require('../utils/property-list-bridge');
+const { createPropertyListBridge } = require('../../utils/property-list-bridge');
 
 /**
  * Bridges a GrpcMetadataList — `bru.grpc.request.metadata`, `bru.grpc.response.metadata`,

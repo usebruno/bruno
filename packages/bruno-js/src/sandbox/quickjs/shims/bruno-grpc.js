@@ -1,5 +1,5 @@
-const addBrunoGrpcRequestShimToContext = require('./bruno-grpc-request');
-const addBrunoGrpcResponseShimToContext = require('./bruno-grpc-response');
+const addBrunoGrpcRequestShimToContext = require('./grpc/bruno-grpc-request');
+const addBrunoGrpcResponseShimToContext = require('./grpc/bruno-grpc-response');
 
 /**
  * Installs `bru.grpc` onto the `bru` object the bru shim has already put on the global, so it has
