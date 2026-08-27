@@ -171,13 +171,13 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       });
 
       await test.step('Searching filters the invalid items', async () => {
-        await page.getByTestId('env-search-input').locator('input').fill('malformed');
+        await page.getByTestId('env-search-input').fill('malformed');
         await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
         await expect(environment.importInvalidItem('invalid-schema.json')).toBeHidden();
       });
 
       await test.step('Toggling the chevron collapses the group', async () => {
-        await page.getByTestId('env-search-input').locator('input').fill(''); // clear search
+        await page.getByTestId('env-search-input').fill(''); // clear search
         await page.getByTestId('env-import-invalid-group').locator('.group-title-wrapper').click();
         await expect(environment.importInvalidItem('malformed.json')).toBeHidden();
         await expect(environment.importInvalidItem('invalid-schema.json')).toBeHidden();
