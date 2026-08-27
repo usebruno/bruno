@@ -1,5 +1,5 @@
 // Normalize & extract MIME type from full header
-const extractMimeType = (contentType = '') => {
+export const extractMimeType = (contentType = '') => {
   const cleaned = String(contentType).trim().toLowerCase();
   const match = cleaned.match(/^[^;]+/); // strip "; charset=utf-8"
   return match ? match[0] : cleaned;
@@ -275,14 +275,6 @@ export const detectContentTypeFromBase64 = (base64) => {
   if (isLikelyText(textHead)) return 'text/plain';
 
   return null;
-};
-
-/**
- * Normalizes a content-type header value to its bare lowercase mime type,
- * stripping parameters like "; charset=utf-8".
- */
-export const normalizeMime = (contentType = '') => {
-  return String(contentType).toLowerCase().split(';')[0].trim();
 };
 
 /**

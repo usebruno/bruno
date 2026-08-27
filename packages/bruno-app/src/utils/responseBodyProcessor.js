@@ -2,7 +2,7 @@
  * Utility functions for processing response body content and determining body type
  */
 
-import { normalizeMime } from './response';
+import { extractMimeType } from './response';
 
 /**
  * Determines whether a content-type denotes binary media that should be
@@ -12,7 +12,7 @@ import { normalizeMime } from './response';
  * @returns {boolean}
  */
 export const isBinaryContentType = (contentType = '') => {
-  const mime = normalizeMime(contentType);
+  const mime = extractMimeType(contentType);
 
   if (mime.endsWith('+xml')) {
     return false;
