@@ -16,20 +16,15 @@ const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
   return apiSpec;
 };
 
-const refFileWatchState = new Map();
-// Maps the root path of the spec to an object containing the watcher object and set of referenced files
-const syncRefFileWatchers = (rootPath, refFilePaths) => {
-  const state = refFileWatchState.get(rootPath);
-  if (!state) return;
-  // If any referenced file is not being watched,add it to watcher and update the state.
-  const unwatched = refFilePaths.filter((filePath) => !state.watchedRefFilePaths.has(filePath));
+const syncRefFileWatchers = ({ watcher, watchedRefFilePaths }, refFilePaths) => {
+  const unwatched = refFilePaths.filter((filePath) => !watchedRefFilePaths.has(filePath));
   if (!unwatched.length) return;
 
-  unwatched.forEach((filePath) => state.watchedRefFilePaths.add(filePath));
-  state.watcher.add(unwatched);
+  unwatched.forEach((filePath) => watchedRefFilePaths.add(filePath));
+  watcher.add(unwatched);
 };
 
-const add = async (win, pathname) => {
+const add = async (win, pathname, refWatchState) => {
   if (!hasApiSpecExtension(pathname)) return;
   try {
     const basename = path.basename(pathname);
@@ -47,13 +42,13 @@ const add = async (win, pathname) => {
     file.resolvedJson = resolvedJson;
     hydrateApiSpecWithUuid(file, pathname);
     win.webContents.send('main:apispec-tree-updated', 'addFile', file);
-    syncRefFileWatchers(pathname, refFilePaths);
+    syncRefFileWatchers(refWatchState, refFilePaths);
   } catch (err) {
     console.error(err);
   }
 };
 
-const change = async (win, pathname) => {
+const change = async (win, pathname, refWatchState) => {
   if (!hasApiSpecExtension(pathname)) return;
   try {
     const basename = path.basename(pathname);
@@ -71,7 +66,7 @@ const change = async (win, pathname) => {
     file.resolvedJson = resolvedJson;
     hydrateApiSpecWithUuid(file, pathname);
     win.webContents.send('main:apispec-tree-updated', 'changeFile', file);
-    syncRefFileWatchers(pathname, refFilePaths);
+    syncRefFileWatchers(refWatchState, refFilePaths);
   } catch (err) {
     console.error(err);
   }
@@ -89,7 +84,6 @@ class ApiSpecWatcher {
 
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
-      refFileWatchState.delete(watchPath);
     }
 
     if (workspacePath) {
@@ -133,22 +127,22 @@ class ApiSpecWatcher {
 
       const isSpecItself = (pathname) => path.resolve(pathname) === path.resolve(watchPath);
 
-      // watch the changes in the spec file and referenced file.
+      const refWatchState = { watcher, watchedRefFilePaths: new Set() };
+
       watcher
         .on('add', (pathname) => {
-          // if the added file is spec file then sends an addFile message to renderer.
-          if (isSpecItself(pathname)) add(win, watchPath);
-          // else if the added file is referenced file then refresh the spec file
-          else change(win, watchPath);
+          if (isSpecItself(pathname)) return add(win, watchPath, refWatchState);
+          if (refWatchState.watchedRefFilePaths.has(path.resolve(pathname))) return;
+          change(win, watchPath, refWatchState);
         })
-        // if there are any changes in the spec or referenced file just refresh the spec file.
-        .on('change', () => change(win, watchPath))
+        .on('change', () => change(win, watchPath, refWatchState))
         .on('unlink', (pathname) => {
-          if (!isSpecItself(pathname)) change(win, watchPath);
+          if (isSpecItself(pathname)) return;
+          refWatchState.watchedRefFilePaths.delete(path.resolve(pathname));
+          change(win, watchPath, refWatchState);
         })
         .on('error', (err) => console.error(`API spec watcher error for ${watchPath}:`, err));
 
-      refFileWatchState.set(watchPath, { watcher, watchedRefFilePaths: new Set() });
       self.watchers[watchPath] = watcher;
     }, 100);
   }
@@ -158,7 +152,6 @@ class ApiSpecWatcher {
   }
 
   removeWatcher(watchPath, win) {
-    refFileWatchState.delete(watchPath);
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
@@ -178,7 +171,6 @@ class ApiSpecWatcher {
     }
     this.watchers = {};
     this.watcherWorkspaces = {};
-    refFileWatchState.clear();
     return Promise.allSettled(pending);
   }
 }

@@ -8,7 +8,6 @@ const REF_PARSER_OPTIONS = {
   continueOnError: true
 };
 
-// regex to check whether the file path is a valid one rejects(http://,https:// ,file:// etc)
 const URI_SCHEME_REGEX = /^[a-z][a-z\d+\-.]+:/i;
 
 const parseApiSpecContent = (content, extension) => {
@@ -35,7 +34,7 @@ const externalRefTarget = (ref, specDir) => {
 
   return path.resolve(specDir, filePath);
 };
-// recursively chceks if any node contains an external reference .
+
 const containsExternalFileRef = (node, specDir, visited = new Set()) => {
   if (!node || typeof node !== 'object' || visited.has(node)) return false;
   visited.add(node);
@@ -45,7 +44,7 @@ const containsExternalFileRef = (node, specDir, visited = new Set()) => {
 
   return Object.values(node).some((value) => containsExternalFileRef(value, specDir, visited));
 };
-// returns the list of referenced files except the root spec file.
+
 const refFilePathsOf = (parser, apiSpecPath) => {
   const root = path.resolve(apiSpecPath);
 
@@ -54,7 +53,6 @@ const refFilePathsOf = (parser, apiSpecPath) => {
     .filter((refFilePath) => refFilePath !== root);
 };
 
-// This function resolves the external referencs inline and returns the resoved json and the list of referenced file paths.
 const resolveExternalApiSpecRefs = async (json, apiSpecPath) => {
   let parser;
   try {
