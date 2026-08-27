@@ -5,7 +5,6 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { getItemTypeLabel } from 'utils/collections';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
@@ -25,7 +24,6 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
-  const itemTypeLabel = getItemTypeLabel(item);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -55,11 +53,11 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
     onSubmit: (values) => {
       dispatch(cloneItem(values.name, values.filename, item.uid, collectionUid))
         .then(() => {
-          toast.success(`${itemTypeLabel} cloned!`);
+          toast.success('Request cloned!');
           onClose();
         })
         .catch((err) => {
-          toast.error(err ? err.message : `An error occurred while cloning the ${itemTypeLabel.toLowerCase()}`);
+          toast.error(err ? err.message : 'An error occurred while cloning the request');
         });
     }
   });
@@ -89,14 +87,14 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal
           size="md"
-          title={`Clone ${itemTypeLabel}`}
+          title={`Clone ${isFolder ? 'Folder' : 'Request'}`}
           handleCancel={onClose}
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="name" className="block font-medium">
-                {itemTypeLabel} Name
+                {isFolder ? 'Folder' : 'Request'} Name
               </label>
               <input
                 id="collection-item-name"
