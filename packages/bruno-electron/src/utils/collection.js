@@ -177,8 +177,8 @@ const wrapScriptInClosure = (script, scopeInfo = null, paths = null) => {
     ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
     : '';
   // Shadow sandbox globals so each segment sees its own source-file dir.
-  const dirnameParam = paths?.dirname != null ? JSON.stringify(paths.dirname) : '__dirname';
-  const filenameParam = paths?.filename != null ? JSON.stringify(paths.filename) : '__filename';
+  const dirnameParam = JSON.stringify(paths?.dirname ?? null);
+  const filenameParam = JSON.stringify(paths?.filename ?? null);
   return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
@@ -227,7 +227,7 @@ ${script}
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null, collectionPath = null) => {
   const buildScopeInfo = (i) => {
     if (i === requestIndex && requestSegmentSource?.displayPath) {
       return { type: 'request', sourceFile: requestSegmentSource.displayPath };
@@ -241,8 +241,10 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     const filePath = i === requestIndex
       ? requestSegmentSource?.filePath
       : segmentSources?.[i]?.filePath;
-    if (!filePath) return null;
-    return { dirname: path.dirname(filePath), filename: filePath };
+    if (filePath) return { dirname: path.dirname(filePath), filename: filePath };
+    // No source file - anchor __dirname to the collection dir; no honest __filename to name.
+    if (collectionPath) return { dirname: collectionPath, filename: null };
+    return null;
   };
 
   const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildPaths(i)));
@@ -353,7 +355,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
+    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource, collection?.pathname ?? null);
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }

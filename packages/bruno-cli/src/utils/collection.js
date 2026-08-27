@@ -234,8 +234,8 @@ const wrapScriptInClosure = (script, paths = null) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  const dirnameParam = paths?.dirname != null ? JSON.stringify(paths.dirname) : '__dirname';
-  const filenameParam = paths?.filename != null ? JSON.stringify(paths.filename) : '__filename';
+  const dirnameParam = JSON.stringify(paths?.dirname ?? null);
+  const filenameParam = JSON.stringify(paths?.filename ?? null);
   return `await (async (__dirname, __filename) => {
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
@@ -253,13 +253,15 @@ ${script}
  * @param {number} requestIndex - Index in scripts of the request-level segment.
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null, collectionPath = null) => {
   const buildPaths = (i) => {
     const filePath = i === requestIndex
       ? requestSegmentSource?.filePath
       : segmentSources?.[i]?.filePath;
-    if (!filePath) return null;
-    return { dirname: path.dirname(filePath), filename: filePath };
+    if (filePath) return { dirname: path.dirname(filePath), filename: filePath };
+    // No source file - anchor __dirname to the collection dir; no honest __filename to name.
+    if (collectionPath) return { dirname: collectionPath, filename: null };
+    return null;
   };
 
   const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildPaths(i)));
@@ -362,7 +364,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     request?.script?.req || ''
   ];
   const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources, requestSegmentSource);
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources, requestSegmentSource, collection.pathname);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
@@ -374,7 +376,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.script?.res || ''
     ];
     const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources, requestSegmentSource);
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources, requestSegmentSource, collection.pathname);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
@@ -385,7 +387,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionPostResScript
     ];
     const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources, requestSegmentSource);
+    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources, requestSegmentSource, collection.pathname);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
@@ -398,7 +400,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.tests || ''
     ];
     const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources, requestSegmentSource);
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources, requestSegmentSource, collection.pathname);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
@@ -409,7 +411,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources, requestSegmentSource);
+    const tests = wrapAndJoinScripts(testScripts, 0, testSources, requestSegmentSource, collection.pathname);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }

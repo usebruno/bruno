@@ -399,10 +399,23 @@ describe('wrapAndJoinScripts', () => {
     expect(withPaths.metadata.requestEndLine).toBe(withoutPaths.metadata.requestEndLine);
   });
 
-  test('falls back to __dirname/__filename identifiers when no filePath is provided', () => {
+  test('falls back to collection dir for __dirname and null __filename when a segment has no filePath', () => {
+    const colDir = path.resolve('/col');
+    const result = wrapAndJoinScripts(
+      ['', '', 'console.log("hi");'],
+      2,
+      null,
+      null,
+      colDir
+    );
+    expect(result.code).toContain('async (__dirname, __filename) => {');
+    expect(result.code).toContain(`)(${JSON.stringify(colDir)}, null);`);
+  });
+
+  test('emits null when neither filePath nor collectionPath is provided', () => {
     const result = wrapAndJoinScripts(['', '', 'console.log("hi");'], 2);
     expect(result.code).toContain('async (__dirname, __filename) => {');
-    expect(result.code).toContain(')(__dirname, __filename);');
+    expect(result.code).toContain(')(null, null);');
   });
 });
 
@@ -612,12 +625,13 @@ describe('mergeScripts metadata', () => {
     expect(code).toContain(`)(${JSON.stringify(requestDir)}, ${JSON.stringify(requestFile)});`);
   });
 
-  test('falls back to sandbox __dirname/__filename when request has no pathname', () => {
+  test('falls back to collection dir for __dirname and null __filename when request has no pathname', () => {
     const collection = makeCollection();
     const request = makeRequest({ preReq: 'let req = 1;' });
     mergeScripts(collection, request, [request], 'sequential');
 
-    expect(request.script.req).toContain(')(__dirname, __filename);');
+    const collectionDir = '/test/collection';
+    expect(request.script.req).toContain(`)(${JSON.stringify(collectionDir)}, null);`);
   });
 });
 
@@ -732,12 +746,12 @@ describe('mergeScripts → runScriptInNodeVm (integration)', () => {
     const request = makeRequest({ preReq: setVar('req') });
 
     mergeScripts(collection, request, [request], 'sequential');
-    expect(request.script.req).toContain(')(__dirname, __filename);');
+    expect(request.script.req).toContain(`)(${JSON.stringify(collectionPath)}, null);`);
 
     const bru = await run(request.script.req, collectionPath, undefined);
 
     expect(bru.setVar).toHaveBeenCalledWith('req_dir', collectionPath);
-    expect(bru.setVar).toHaveBeenCalledWith('req_file', path.join(collectionPath, 'script.js'));
+    expect(bru.setVar).toHaveBeenCalledWith('req_file', null);
   });
 
   test('post-response and tests scripts also receive per-segment __dirname/__filename', async () => {
