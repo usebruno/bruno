@@ -421,6 +421,35 @@ const GlobalStyle = createGlobalStyle`
     flex-shrink: 0;
   }
 
+  /* Scope Selector (shown instead of the badge when the variable doesn't exist yet) */
+  .CodeMirror-brunoVarInfo .var-scope-select {
+    display: inline-block;
+    padding: 0.125rem 1.25rem 0.125rem 0.375rem;
+    background: ${(props) => rgba(props.theme.brand, 0.07)};
+    border: 1px solid ${(props) => rgba(props.theme.brand, 0.08)};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.brand};
+    letter-spacing: 0.03125rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.25rem center;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.brand};
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select option {
+    background: ${(props) => props.theme.dropdown.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
   /* Value Container */
   .CodeMirror-brunoVarInfo .var-value-container {
     position: relative;
