@@ -120,7 +120,7 @@ test.describe('Import environment - name conflict handling', () => {
       });
     });
 
-    test('the select-all checkbox toggles every environment and the footer reflects the selection count', async ({ page, createTmpDir }) => {
+    test('the accordion-level select-all checkbox toggles environments in its group and updates the footer selection count', async ({ page, createTmpDir }) => {
       const { environment, modal } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-select-all', await createTmpDir('name-conflict-select-all'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
@@ -130,10 +130,16 @@ test.describe('Import environment - name conflict handling', () => {
       await expect(environment.importTotalCount()).toHaveText('2');
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
-      await environment.importSelectAllCheckbox().uncheck();
+      await environment.importNewGroupSelectAllCheckbox().uncheck();
+      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+
+      await environment.importDuplicatesGroupSelectAllCheckbox().uncheck();
       await expect(environment.importSelectedCount()).toContainText('0 of 2 selected');
 
-      await environment.importSelectAllCheckbox().check();
+      await environment.importNewGroupSelectAllCheckbox().check();
+      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+
+      await environment.importDuplicatesGroupSelectAllCheckbox().check();
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
       await modal.closeButton().click();
@@ -252,25 +258,27 @@ test.describe('Import environment - name conflict handling', () => {
       });
     });
 
-    test('an invalid or unsupported file blocks the import and reports the error', async ({ page, createTmpDir }) => {
-      const { environment, modal, toast } = buildCommonLocators(page);
-      await createCollection(page, 'name-conflict-invalid', await createTmpDir('name-conflict-invalid'));
+    test('a batch with both a name conflict and an invalid file resolves the conflict and reports the invalid file separately', async ({ page, createTmpDir }) => {
+      const { environment } = buildCommonLocators(page);
+      await createCollection(page, 'name-conflict-with-invalid', await createTmpDir('name-conflict-with-invalid'));
+      await importEnvironment(page, fixture('production-env.json'), 'collection');
 
-      await openEnvironmentSelector(page, 'collection');
-      await environment.importEmptyStateButton().click();
-      const importModal = environment.importModal('collection');
-      await expect(importModal).toBeVisible();
+      await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('malformed.json'));
 
-      const fileChooserPromise = page.waitForEvent('filechooser');
-      await environment.importFileTrigger('collection').click();
-      const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles(fixture('invalid-env.json'));
+      await test.step('The duplicate and the invalid file are both flagged, independently of each other', async () => {
+        await expect(environment.importDuplicatesCount()).toHaveText('1');
+        await expect(environment.importInvalidCount()).toHaveText('1');
+        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
+      });
 
-      await expect(toast.byMessage('One or more environment files have an invalid or unsupported format')).toBeVisible();
-      await expect(importModal).toBeVisible();
-      await expect(environment.sidebarListItem('collection', 'Invalid Env')).toHaveCount(0);
+      await environment.importReplaceButton('Production').click();
+      await environment.importSubmitButton('collection').click();
 
-      await modal.closeButton().click();
+      await test.step('Production was replaced; the invalid file did not block the import', async () => {
+        await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
+        await environment.sidebarListItem('collection', 'Production').click();
+        await expect(environment.varRowLine('api_url')).toHaveText('https://api.updated.example.com');
+      });
     });
   });
 
