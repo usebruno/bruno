@@ -11,6 +11,7 @@ const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
@@ -478,12 +479,22 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    refreshExplicitHeaderNames(request);
+    const omitConnection = shouldOmitConnection({
+      omitHeaders: request.settings?.omitHeaders,
+      headersToDelete: request.__headersToDelete,
+      explicitHeaderNames: request.__explicitHeaderNames
+    });
+
     await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
       systemProxyConfig: cachedSystemProxy,
-      httpsAgentRequestFields,
+      httpsAgentRequestFields: {
+        ...httpsAgentRequestFields,
+        keepAlive: !omitConnection
+      },
       interpolationOptions,
       disableCache
     });
@@ -722,7 +733,7 @@ const runSingleRequest = async function (
       }
 
       /** @type {import('axios').AxiosResponse} */
-      response = await axiosInstance(request);
+      response = await axiosInstance(refreshExplicitHeaderNames(request));
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
