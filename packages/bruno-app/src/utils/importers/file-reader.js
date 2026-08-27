@@ -50,10 +50,6 @@ const readFile = (file) => {
   });
 };
 
-/**
- * Reads every file independently so one unreadable or non-JSON file doesn't stop the rest
- * from being parsed — failures are reported per file in `invalidFiles` instead of throwing.
- */
 export const readMultipleFiles = async (files) => {
   if (!files || files.length === 0) {
     throw new BrunoError('No files selected');

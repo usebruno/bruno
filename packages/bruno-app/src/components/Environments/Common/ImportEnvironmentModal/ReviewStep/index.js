@@ -42,6 +42,7 @@ const ReviewStep = ({
 
   const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
   const filteredDuplicates = useMemo(() => duplicateEnvs.filter(matchesSearch), [duplicateEnvs, matchesSearch]);
+  const filteredInvalid = useMemo(() => invalidEnvs.filter(matchesSearch), [invalidEnvs, matchesSearch]);
 
   const allExpanded = expandedGroups[ENV_STATUS.INVALID] && expandedGroups[ENV_STATUS.DUPLICATE] && expandedGroups[ENV_STATUS.NEW];
 
@@ -75,12 +76,12 @@ const ReviewStep = ({
   const setGroupResolution = useCallback((res) => {
     setResolutions((prev) => {
       const newResolutions = new Map(prev);
-      duplicateEnvs.forEach((env) => {
+      filteredDuplicates.forEach((env) => {
         newResolutions.set(env.id, res);
       });
       return newResolutions;
     });
-  }, [duplicateEnvs, setResolutions]);
+  }, [filteredDuplicates, setResolutions]);
 
   const setItemResolution = useCallback((envId, res) => {
     setResolutions((prev) => new Map(prev).set(envId, res));
@@ -151,9 +152,9 @@ const ReviewStep = ({
 
                 <div className="groups-scroll-area">
                   {/* Invalid Group */}
-                  {invalidEnvs.length > 0 && (
+                  {filteredInvalid.length > 0 && (
                     <InvalidEnvironmentGroup
-                      invalid={invalidEnvs}
+                      invalid={filteredInvalid}
                       isExpanded={expandedGroups[ENV_STATUS.INVALID]}
                       toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.INVALID)}
                     />

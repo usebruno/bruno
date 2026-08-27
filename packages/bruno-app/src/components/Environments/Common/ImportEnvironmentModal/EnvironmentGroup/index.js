@@ -24,7 +24,9 @@ const EnvironmentGroup = ({
 }) => {
   if (environments.length === 0 && !searchText) return null;
 
-  const isAllSelected = environments.length > 0 && environments.every((env) => selected.has(env.id));
+  const selectedCount = environments.filter((env) => selected.has(env.id)).length;
+  const isAllSelected = environments.length > 0 && selectedCount === environments.length;
+  const isIndeterminate = selectedCount > 0 && selectedCount < environments.length;
 
   const getGroupResolutionState = () => {
     if (environments.length === 0 || !resolutions) return RESOLUTION_TYPES.CUSTOM;
@@ -45,11 +47,16 @@ const EnvironmentGroup = ({
   return (
     <div className="group-container" data-testid={dataTestId}>
       <div className="group-header">
-        <div className="group-title-wrapper" onClick={toggleExpanded}>
+        <div className="group-title-wrapper" onClick={toggleExpanded} role="button" tabIndex={0}>
           {isExpanded ? <IconChevronDown size={16} className="chevron-icon" /> : <IconChevronRight size={16} className="chevron-icon" />}
           <input
             type="checkbox"
             className="group-checkbox"
+            ref={(input) => {
+              if (input) {
+                input.indeterminate = isIndeterminate;
+              }
+            }}
             checked={isAllSelected}
             onChange={(e) => {
               toggleGroupSelection(e.target.checked);
