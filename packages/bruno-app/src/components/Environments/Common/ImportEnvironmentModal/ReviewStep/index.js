@@ -33,7 +33,7 @@ const ReviewStep = ({
 
   const totalEnvironments = newEnvs.length + duplicateEnvs.length;
   const totalParsedCount = totalEnvironments + invalidEnvs.length;
-  const isConfirmDisabled = totalEnvironments === 0;
+  const isConfirmDisabled = selected.size === 0;
 
   const normalizedSearchText = searchText.toLowerCase();
   const matchesSearch = useCallback((env) =>

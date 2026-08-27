@@ -84,11 +84,17 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       setIsImporting(true);
       const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
 
-      const filesByFormat = parsedFiles.reduce((acc, file) => {
-        const format = detectEnvironmentFormat(file.content);
-        (acc[format] = acc[format] || []).push(file);
-        return acc;
-      }, {});
+      const filesByFormat = {};
+      const detectionFailures = [];
+
+      parsedFiles.forEach((file) => {
+        try {
+          const format = detectEnvironmentFormat(file.content);
+          (filesByFormat[format] = filesByFormat[format] || []).push(file);
+        } catch (err) {
+          detectionFailures.push({ fileName: file.fileName || 'Unknown', error: 'Failed to detect environment format' });
+        }
+      });
 
       const results = await Promise.all(
         Object.entries(filesByFormat).map(([format, filesForFormat]) =>
@@ -106,7 +112,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
         .filter((env) => !env.name || env.name === 'undefined')
         .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
 
-      const allInvalid = [...invalidFiles, ...result.invalid, ...missingNameEnvs];
+      const allInvalid = [...invalidFiles, ...detectionFailures, ...result.invalid, ...missingNameEnvs];
 
       const existingNamesNormalized = existingNames.map(normalizeEnvName);
 

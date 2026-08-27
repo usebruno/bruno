@@ -23,15 +23,8 @@ export const parseFileAsJsonOrYaml = async (file) => {
   }
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
 const readFile = (file) => {
   return new Promise((resolve, reject) => {
-    if (file.size > MAX_FILE_SIZE) {
-      reject(new BrunoError(`File exceeds the 5MB size limit: ${file.name}`));
-      return;
-    }
-
     const fileReader = new FileReader();
     fileReader.onload = (e) => {
       try {

@@ -79,17 +79,11 @@ export const StyledWrapper = styled.div`
     flex: 1;
   }
 
-  .select-all-wrapper {
+  .expand-all-wrapper {
     display: flex;
     align-items: center;
     cursor: pointer;
     user-select: none;
-  }
-
-  .expand-all-checkbox {
-    margin-right: 0.5rem;
-    cursor: pointer;
-    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .expand-all-text {
@@ -135,6 +129,8 @@ export const StyledWrapper = styled.div`
   .group-checkbox {
     margin-left: 0.5rem;
     margin-right: 0.25rem;
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .chevron-icon {
