@@ -42,6 +42,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
               await saveEnv(environment, existingEnv);
               replacedNames.add(normalizedName);
               importedCount++;
+            } else {
+              throw new Error(`Environment ${environment.name} not found for replacement`);
             }
           } else {
             // copy
@@ -80,33 +82,37 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     if (isImporting) return;
     try {
       setIsImporting(true);
-      const parsedFiles = await readMultipleFiles(Array.from(files));
+      const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
 
-      const valid = [];
-      const invalid = [];
+      const filesByFormat = {};
+      const detectionFailures = [];
 
-      for (const file of parsedFiles) {
+      parsedFiles.forEach((file) => {
         try {
           const format = detectEnvironmentFormat(file.content);
-          const result = format === 'postman'
-            ? await importPostmanEnvironment([file])
-            : await importBrunoEnvironment([file]);
-          valid.push(...result.valid);
-          invalid.push(...result.invalid);
+          (filesByFormat[format] = filesByFormat[format] || []).push(file);
         } catch (err) {
-          invalid.push({ fileName: file.fileName || 'Unknown', error: 'Failed to parse environment file' });
+          detectionFailures.push({ fileName: file.fileName || 'Unknown', error: 'Failed to detect environment format' });
         }
-      }
+      });
 
-      const validEnvironments = valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
+      const results = await Promise.all(
+        Object.entries(filesByFormat).map(([format, filesForFormat]) =>
+          format === 'postman' ? importPostmanEnvironment(filesForFormat) : importBrunoEnvironment(filesForFormat)
+        )
+      );
 
-      const allInvalid = [...invalid, ...missingNameEnvs];
+      const result = {
+        valid: results.flatMap((r) => r.valid),
+        invalid: results.flatMap((r) => r.invalid)
+      };
 
-      if (validEnvironments.length === 0 && allInvalid.length > 0) {
-        toast.error('One or more environment files have an invalid or unsupported format');
-        return;
-      }
+      const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
+      const missingNameEnvs = result.valid
+        .filter((env) => !env.name || env.name === 'undefined')
+        .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
+
+      const allInvalid = [...invalidFiles, ...detectionFailures, ...result.invalid, ...missingNameEnvs];
 
       const existingNamesNormalized = existingNames.map(normalizeEnvName);
 

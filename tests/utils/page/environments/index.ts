@@ -117,11 +117,13 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
   importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
+  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
   importDuplicatesGroup: () => page.getByTestId('env-import-duplicates-group'),
   importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
   importNewGroup: () => page.getByTestId('env-import-new-group'),
   importNewCount: () => page.getByTestId('env-import-new-count'),
-  importSelectAllCheckbox: () => page.getByTestId('env-import-select-all'),
+  importDuplicatesGroupSelectAllCheckbox: () => page.getByTestId('env-import-duplicates-group-checkbox'),
+  importNewGroupSelectAllCheckbox: () => page.getByTestId('env-import-new-group-checkbox'),
   importSelectedCount: () => page.getByTestId('env-import-selected-count'),
   importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
   importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
@@ -129,7 +131,10 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
   importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
   importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
-  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace')
+  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
+  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });
 
 /**

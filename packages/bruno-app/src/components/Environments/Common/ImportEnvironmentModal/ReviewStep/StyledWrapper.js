@@ -5,7 +5,7 @@ export const StyledWrapper = styled.div`
   .modal-content {
     display: flex;
     flex-direction: column;
-    height: 600px;
+    height: 45vh;
     overflow: hidden;
   }
 
@@ -47,6 +47,10 @@ export const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     color: ${(props) => props.theme.text};
+
+    &:not(:last-child) {
+      margin-bottom: 0.75rem;
+    }
   }
 
   .warning-title {
@@ -57,6 +61,10 @@ export const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.yellow};
   }
 
+  .error-icon {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
   .search-block {
     display: flex;
     align-items: center;
@@ -64,31 +72,31 @@ export const StyledWrapper = styled.div`
     flex-shrink: 0;
     gap: 1rem;
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
-    background-color: ${(props) => props.theme.background.subtle};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
   .search-input-wrapper {
     flex: 1;
   }
 
-  .select-all-wrapper {
+  .expand-all-wrapper {
     display: flex;
     align-items: center;
     cursor: pointer;
     user-select: none;
   }
 
-  .select-all-checkbox {
-    margin-right: 0.5rem;
-    cursor: pointer;
-    accent-color: ${(props) => props.theme.primary.solid};
-  }
-
-  .select-all-text {
+  .expand-all-text {
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     line-height: 20px;
-    letter-spacing: 0%;
+    letter-spacing: normal;
+    min-width: 4.5rem;
+  }
+
+  .groups-scroll-area {
+    overflow-y: auto;
+    max-height: calc(45vh - 160px);
   }
 
   .group-container {
@@ -101,7 +109,8 @@ export const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     padding: 0.5rem;
-    background: ${(props) => props.theme.background.mantle};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
+    max-height: 2.5rem;
   }
 
   .group-title-wrapper {
@@ -117,27 +126,33 @@ export const StyledWrapper = styled.div`
     margin-left: 0.5rem;
   }
 
+  .group-checkbox {
+    margin-left: 0.5rem;
+    margin-right: 0.25rem;
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
+  }
+
   .chevron-icon {
     color: ${(props) => props.theme.colors.text.subtext0};
   }
 
   .group-list {
-    padding: 0.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* 8px */
-    max-height: 250px;
-    max-width: 100%;
-    overflow-y: auto;
-    overflow-x: auto;
+    gap: 0.25rem;
+    padding: 0.5rem 0;
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
   .env-item {
     display: flex;
     align-items: flex-start;
-    padding-left: 1.5rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-left: 0.625rem;
+  }
+
+  .env-import-invalid-item {
+    padding-left: 2.125rem;
   }
 
   .env-item-label {
@@ -146,6 +161,7 @@ export const StyledWrapper = styled.div`
     align-items: flex-start;
     cursor: pointer;
     min-width: 0;
+    margin-left: 1.375rem;
   }
 
   .env-item-checkbox {
@@ -162,7 +178,7 @@ export const StyledWrapper = styled.div`
 
   .env-name {
     color: ${(props) => props.theme.text};
-    font-family: Inter;
+    font-family: Inter, sans-serif;
     font-weight: 500;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
@@ -178,10 +194,20 @@ export const StyledWrapper = styled.div`
     margin-top: 0.125rem;
   }
 
+  .env-error {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.danger};
+    margin-top: 0.125rem;
+  }
+
   .env-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.125rem;
+    padding: 0.125rem;
+    margin-right: 0.5rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
     margin-left: 0.5rem;
     flex-shrink: 0;
   }
@@ -214,7 +240,6 @@ export const DropdownTrigger = styled.div`
   margin-left: 0.5rem;
   cursor: pointer;
   color: ${(props) => props.theme.dropdown.color};
-  
   .icon-chevron {
     color: ${(props) => props.theme.dropdown.iconColor};
     margin-left: 0.25rem;
