@@ -153,6 +153,8 @@ export default class QueryEditor extends React.Component {
     setupLinkAware(editor, {
       onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
     });
+    this._linkAwareItem = this.props.item;
+    this._linkAwareCollection = this.props.collection;
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
@@ -188,6 +190,19 @@ export default class QueryEditor extends React.Component {
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
+    }
+
+    // Reconfigure link-aware click handling when item/collection change (e.g. the editor
+    // is reused for a different request, or collection becomes available after mount) -
+    // otherwise it keeps using whichever item/collection it was set up with.
+    if (!isEqual(this.props.item, this._linkAwareItem) || !isEqual(this.props.collection, this._linkAwareCollection)) {
+      this._linkAwareItem = this.props.item;
+      this._linkAwareCollection = this.props.collection;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     this.ignoreChangeEvent = false;
   }

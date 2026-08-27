@@ -103,6 +103,8 @@ class SingleLineEditor extends Component {
         ? undefined
         : resolveLinkClickHandler(this.props.item, this.props.collection)
     });
+    this._linkAwareItem = this.props.item;
+    this._linkAwareCollection = this.props.collection;
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
@@ -184,6 +186,21 @@ class SingleLineEditor extends Component {
       if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
+    }
+
+    // Reconfigure link-aware click handling when item/collection change (e.g. the editor
+    // is reused for a different request, or collection becomes available after mount) -
+    // otherwise it keeps using whichever item/collection it was set up with.
+    if (!isEqual(this.props.item, this._linkAwareItem) || !isEqual(this.props.collection, this._linkAwareCollection)) {
+      this._linkAwareItem = this.props.item;
+      this._linkAwareCollection = this.props.collection;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: this.props.disableLinkAwareClick
+          ? undefined
+          : resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');

@@ -15,8 +15,8 @@ import {
 } from '../utils/page';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
-const responsePane = (page: Page) => page.locator('[data-testid="response-pane"]');
-const requestPane = (page: Page) => page.locator('[data-testid="request-pane"]');
+const responsePane = (page: Page) => buildCommonLocators(page).response.pane();
+const requestPane = (page: Page) => buildCommonLocators(page).request.pane();
 // HttpMethodSelector lives in the query-url-wrapper, a sibling of [data-testid="request-pane"], not inside it.
 const queryUrlWrapper = (page: Page) => page.locator('.query-url-wrapper');
 
@@ -26,10 +26,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('Body - JSON preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
-    const REMOTE_ECHO_URL = 'https://testbench-sanity.usebruno.com/api/echo/json';
-
     await createCollection(page, 'response-json-preview', await createTmpDir('response-json-preview'));
-    await createRequest(page, 'echo', 'response-json-preview', { url: REMOTE_ECHO_URL, method: 'POST' });
+    await createRequest(page, 'echo', 'response-json-preview', { url: ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-json-preview', 'echo');
 
     await selectRequestBodyMode(page, 'JSON');

@@ -298,6 +298,8 @@ class CodeEditor extends React.Component {
           ? this.handleLinkClick
           : undefined
       });
+      this._linkAwareItem = this.props.item;
+      this._linkAwareCollection = this.props.collection;
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
@@ -392,6 +394,22 @@ class CodeEditor extends React.Component {
         if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
           this.editor.options.brunoVarInfo.item = this.props.item;
         }
+      }
+
+      // Reconfigure link-aware click handling when item/collection change (e.g. the editor
+      // is reused for a different request, or collection becomes available after mount) -
+      // otherwise whether a handler is wired at all stays locked to whatever was available
+      // when setupLinkAware last ran, even though handleLinkClick itself resolves fresh props.
+      if (!isEqual(this.props.item, this._linkAwareItem) || !isEqual(this.props.collection, this._linkAwareCollection)) {
+        this._linkAwareItem = this.props.item;
+        this._linkAwareCollection = this.props.collection;
+        this.editor._destroyLinkAware?.();
+        setupLinkAware(this.editor, {
+          onLinkClick: (typeof this.props.onLinkClick === 'function' || resolveLinkClickHandler(this.props.item, this.props.collection))
+            ? this.handleLinkClick
+            : undefined
+        });
+        this.editor.refresh();
       }
     }
 

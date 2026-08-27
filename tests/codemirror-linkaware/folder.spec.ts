@@ -1,8 +1,8 @@
 import { Page, test } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensRequest, openCollectionFromDialog, openfolder, selectfolderPaneTab } from '../utils/page';
+import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openfolder, selectfolderPaneTab } from '../utils/page';
 
 const FOLDER_NAME = 'folder-fixture';
-const settings = (page: Page) => page.locator('.folder-settings-content');
+const settings = (page: Page) => buildCommonLocators(page).paneTabs.folderSettingsContent();
 const url = (path: string) => `http://link-aware.test/${path}`;
 
 test.describe('CodeMirror link-aware - Folder settings', () => {
@@ -43,11 +43,32 @@ test.describe('CodeMirror link-aware - Folder settings', () => {
     await expectLinkOpensRequest(page, cm, { type: 'http', url: url('folder-tests') });
   });
 
-  test('Docs: plain click creates a transient request', async ({ page }) => {
+  test('Docs (Markdown mode): plain click creates a transient request', async ({ page }) => {
     await selectfolderPaneTab(page, 'docs');
     const locators = buildCommonLocators(page);
-    await locators.docs.editToggle(settings(page)).click();
+    await locators.docs.folderDocsEditToggle().click();
+    await locators.docs.modeSwitchMarkdown().click();
     await expectLinkOpensRequest(page, locators.codeMirror.within(settings(page)), { type: 'http', url: url('folder-docs') });
+  });
+
+  test('Docs (Markdown mode): Cmd/Ctrl+Click opens the link externally', async ({ page }) => {
+    await selectfolderPaneTab(page, 'docs');
+    const locators = buildCommonLocators(page);
+    await locators.docs.folderDocsEditToggle().click();
+    await locators.docs.modeSwitchMarkdown().click();
+    await expectLinkOpensExternally(page, locators.codeMirror.within(settings(page)));
+  });
+
+  test('Docs (Rich Text mode): plain click creates a transient request', async ({ page }) => {
+    await selectfolderPaneTab(page, 'docs');
+    const link = buildCommonLocators(page).docs.proseMirror().locator(`a[href="${url('folder-docs')}"]`);
+    await expectRichTextLinkOpensRequest(page, link, { type: 'http', url: url('folder-docs') });
+  });
+
+  test('Docs (Rich Text mode): Cmd/Ctrl+Click opens the link externally', async ({ page }) => {
+    await selectfolderPaneTab(page, 'docs');
+    const link = buildCommonLocators(page).docs.proseMirror().locator(`a[href="${url('folder-docs')}"]`);
+    await expectRichTextLinkOpensExternally(page, link, [LINK_CLICK_MODIFIER]);
   });
 
   test('Folder Settings use the parent collections Presets (HTTP), not a folder-local default', async ({ page }) => {
