@@ -38,7 +38,7 @@ const ModalFooter = ({
   footerLeft,
   confirmButtonColor = 'primary',
   dataTestId = 'modal',
-  className
+  className = ''
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';

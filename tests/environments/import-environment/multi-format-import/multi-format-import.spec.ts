@@ -69,6 +69,26 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       });
     });
 
+    test('a file whose JSON root is null does not block the other valid files', async ({ page, createTmpDir }) => {
+      const { environment } = buildCommonLocators(page);
+      await createCollection(page, 'multi-format-null-content', await createTmpDir('multi-format-null-content'));
+
+      await openImportReviewFromEmpty(page, 'collection', fixture('null-content.json'), fixture('bruno-env.json'));
+
+      await test.step('The null-content file is flagged as invalid; the valid one still lands under New', async () => {
+        await expect(environment.importInvalidCount()).toHaveText('1');
+        await expect(environment.importInvalidItem('null-content.json')).toBeVisible();
+        await expect(environment.importNewCount()).toHaveText('1');
+        await expect(environment.importReviewItem('Bruno Env')).toBeVisible();
+      });
+
+      await environment.importSubmitButton('collection').click();
+
+      await test.step('Only the valid environment is actually imported', async () => {
+        await expect(environment.sidebarListItemExact('collection', 'Bruno Env')).toBeVisible();
+      });
+    });
+
     test('a schema-invalid file does not block valid files and shows its failure reason', async ({ page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'multi-format-schema-invalid', await createTmpDir('multi-format-schema-invalid'));
