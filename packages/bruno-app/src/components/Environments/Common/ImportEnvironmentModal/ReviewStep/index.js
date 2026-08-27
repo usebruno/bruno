@@ -28,11 +28,12 @@ const ReviewStep = ({
   const [expandedGroups, setExpandedGroups] = useState({ [ENV_STATUS.INVALID]: true, [ENV_STATUS.DUPLICATE]: true, [ENV_STATUS.NEW]: true });
 
   const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
-  const duplicates = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
-  const invalid = items.filter((env) => env.status === ENV_STATUS.INVALID);
+  const duplicateEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
+  const invalidEnvs = items.filter((env) => env.status === ENV_STATUS.INVALID);
 
-  const totalEnvironments = newEnvs.length + duplicates.length;
-  const totalParsedCount = totalEnvironments + invalid.length;
+  const totalEnvironments = newEnvs.length + duplicateEnvs.length;
+  const totalParsedCount = totalEnvironments + invalidEnvs.length;
+  const isConfirmDisabled = totalEnvironments === 0;
 
   const normalizedSearchText = searchText.toLowerCase();
   const matchesSearch = useCallback((env) =>
@@ -40,7 +41,7 @@ const ReviewStep = ({
   [normalizedSearchText]);
 
   const filteredNew = useMemo(() => newEnvs.filter(matchesSearch), [newEnvs, matchesSearch]);
-  const filteredDuplicates = useMemo(() => duplicates.filter(matchesSearch), [duplicates, matchesSearch]);
+  const filteredDuplicates = useMemo(() => duplicateEnvs.filter(matchesSearch), [duplicateEnvs, matchesSearch]);
 
   const allExpanded = expandedGroups[ENV_STATUS.INVALID] && expandedGroups[ENV_STATUS.DUPLICATE] && expandedGroups[ENV_STATUS.NEW];
 
@@ -74,12 +75,12 @@ const ReviewStep = ({
   const setGroupResolution = useCallback((res) => {
     setResolutions((prev) => {
       const newResolutions = new Map(prev);
-      duplicates.forEach((env) => {
+      duplicateEnvs.forEach((env) => {
         newResolutions.set(env.id, res);
       });
       return newResolutions;
     });
-  }, [duplicates, setResolutions]);
+  }, [duplicateEnvs, setResolutions]);
 
   const setItemResolution = useCallback((envId, res) => {
     setResolutions((prev) => new Map(prev).set(envId, res));
@@ -96,7 +97,7 @@ const ReviewStep = ({
         handleCancel={onClose}
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
-        confirmDisabled={totalEnvironments === 0}
+        confirmDisabled={isConfirmDisabled}
         footerClassName="pt-0"
         footerLeft={(
           <div className="footer-left-content" data-testid="env-import-selected-count">
@@ -112,18 +113,18 @@ const ReviewStep = ({
 
             <div className="scroll-area">
               <div className="environments-list-container">
-                {(duplicates.length > 0 || invalid.length > 0) && (
+                {(duplicateEnvs.length > 0 || invalidEnvs.length > 0) && (
                   <div className="warning-block" data-testid="import-duplicates-warning">
-                    {duplicates.length > 0 && (
+                    {duplicateEnvs.length > 0 && (
                       <div className="warning-header">
                         <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
-                        <span className="warning-title">{duplicates.length} {pluralizeWord('environment', duplicates.length)}&nbsp;</span> already {duplicates.length > 1 ? 'exist' : 'exists'} with the same name
+                        <span className="warning-title">{duplicateEnvs.length} {pluralizeWord('environment', duplicateEnvs.length)}&nbsp;</span> already {duplicateEnvs.length > 1 ? 'exist' : 'exists'} with the same name
                       </div>
                     )}
-                    {invalid.length > 0 && (
+                    {invalidEnvs.length > 0 && (
                       <div className="warning-header" data-testid="import-invalid-warning">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
-                        <span className="warning-title">{invalid.length} {pluralizeWord('file', invalid.length)}&nbsp;</span> {invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
+                        <span className="warning-title">{invalidEnvs.length} {pluralizeWord('file', invalidEnvs.length)}&nbsp;</span> {invalidEnvs.length > 1 ? 'have' : 'has'} an invalid or unsupported format
                       </div>
                     )}
                   </div>
@@ -140,7 +141,7 @@ const ReviewStep = ({
                       data-testid="env-search-input"
                       autoFocus={false}
                       inputClassName="h-[30px] text-xs"
-                      iconSize={13}
+                      iconSize={14}
                     />
                   </div>
                   <button className="min-w-20" onClick={toggleExpandAll}>
@@ -150,11 +151,13 @@ const ReviewStep = ({
 
                 <div className="groups-scroll-area">
                   {/* Invalid Group */}
-                  <InvalidEnvironmentGroup
-                    invalid={invalid}
-                    isExpanded={expandedGroups[ENV_STATUS.INVALID]}
-                    toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.INVALID)}
-                  />
+                  {invalidEnvs.length > 0 && (
+                    <InvalidEnvironmentGroup
+                      invalid={invalidEnvs}
+                      isExpanded={expandedGroups[ENV_STATUS.INVALID]}
+                      toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.INVALID)}
+                    />
+                  )}
 
                   <EnvironmentGroup
                     title="Duplicates"

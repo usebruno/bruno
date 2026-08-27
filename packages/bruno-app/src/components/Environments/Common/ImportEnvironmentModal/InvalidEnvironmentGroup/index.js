@@ -3,26 +3,13 @@ import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 
 const InvalidEnvironmentGroup = ({ invalid, hasBorderBottom, isExpanded, toggleExpanded }) => {
-  if (!invalid || invalid.length === 0) return null;
-
   return (
     <div
       className={`group-container ${hasBorderBottom ? 'has-border-bottom' : ''}`}
       data-testid="env-import-invalid-group"
     >
       <div className="group-header">
-        <div
-          role="button"
-          tabIndex={0}
-          className="group-title-wrapper"
-          onClick={toggleExpanded}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggleExpanded();
-            }
-          }}
-        >
+        <div className="group-title-wrapper" onClick={toggleExpanded}>
           {isExpanded ? (
             <IconChevronDown size={16} className="chevron-icon" />
           ) : (
