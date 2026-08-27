@@ -72,7 +72,7 @@ export const StyledWrapper = styled.div`
     flex-shrink: 0;
     gap: 1rem;
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
-    background-color: ${(props) => props.theme.background.subtle};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
   .search-input-wrapper {
@@ -115,7 +115,7 @@ export const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     padding: 0.5rem;
-    background: ${(props) => props.theme.background.mantle};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
     max-height: 2.5rem;
   }
 
@@ -146,6 +146,7 @@ export const StyledWrapper = styled.div`
     flex-direction: column;
     gap: 0.25rem;
     padding: 0.5rem 0;
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
   .env-item {
@@ -206,7 +207,11 @@ export const StyledWrapper = styled.div`
   .env-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.125rem;
+    padding: 0.125rem;
+    margin-right: 0.5rem;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
     margin-left: 0.5rem;
     flex-shrink: 0;
   }
