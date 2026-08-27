@@ -40,12 +40,11 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       case 'response': {
         return (
           <QueryResponse
-            item={item}
+            item={{ ...item, response: responseReceived }}
             collection={collection}
             width={rightPaneWidth}
             disableRunEventListener={true}
             data={responseReceived.data}
-            dataBuffer={responseReceived.dataBuffer}
             headers={responseReceived.headers}
             error={error}
             key={item.filename}

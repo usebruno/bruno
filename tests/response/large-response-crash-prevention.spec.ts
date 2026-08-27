@@ -1,40 +1,37 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../utils/page/actions';
+import { closeAllCollections, createCollection, createRequest, sendRequest } from '../utils/page/actions';
 
-test.describe('Large Response Crash/High Memory Usage Prevention', () => {
-  // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
-  // Prevents tests from failing due to timeout while waiting for the response, especially on slower internet connections.
-  test.setTimeout(1 * 60 * 1000); // 1 minute
+const UNDER_100MB_URL = 'http://localhost:8081/api/large-payload?size=15728640'; // 15 MB
+const OVER_100MB_URL = 'http://localhost:8081/api/large-payload?size=110100480'; // ~105 MB
+
+test.describe('Large response handling', () => {
+  test.setTimeout(3 * 60 * 1000);
 
   test.afterAll(async ({ page }) => {
-    // cleanup: close all collections
     await closeAllCollections(page);
   });
 
-  test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
-    const collectionName = 'size-warning-test';
-    const requestName = 'large-response';
-
-    // Create collection (auto-opens the collection)
+  test('under 100MB text shows in response pane without Large Response Warning', async ({ page, createTmpDir }) => {
+    const collectionName = 'large-under-threshold';
     await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, 'mid-large', collectionName, { url: UNDER_100MB_URL });
 
-    // Create request using the dialog/modal flow
-    await createRequest(page, requestName, collectionName, {
-      url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
-    });
+    await sendRequest(page, 200);
 
-    // Send request
-    const sendButton = page.getByTestId('send-arrow-icon');
-    await sendButton.click();
+    await expect(page.getByText('Large Response Warning')).toHaveCount(0);
+    await expect(page.getByTestId('response-preview-container')).toBeVisible({ timeout: 90000 });
+    await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload', { timeout: 90000 });
+  });
 
-    // Verify warning appears
-    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 60000 });
+  test('over 100MB text shows Large Response Warning with download', async ({ page, createTmpDir }) => {
+    const collectionName = 'large-over-threshold';
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
+    await createRequest(page, 'huge-text', collectionName, { url: OVER_100MB_URL });
 
-    // Verify warning content
-    await expect(page.getByText('Handling responses over')).toBeVisible();
-    await expect(page.getByText('could degrade performance')).toBeVisible();
+    await sendRequest(page, 200);
 
-    // Verify action button
-    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 120000 });
+    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible();
+    await expect(page.getByTestId('response-preview-container')).toHaveCount(0);
   });
 });

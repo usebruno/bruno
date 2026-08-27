@@ -5,7 +5,6 @@ const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const decomment = require('decomment');
-const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
@@ -38,6 +37,91 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
+const {
+  getResponseBodyService,
+  SPILL_THRESHOLD_BYTES,
+  STORAGE_MEMORY,
+  BodyTooLargeForScriptsError
+} = require('../../services/response-body');
+
+const getContentTypeHeader = (headers = {}) => {
+  const entries = typeof headers === 'object' ? Object.entries(headers) : [];
+  const found = entries.find(([name]) => String(name).toLowerCase() === 'content-type');
+  return found ? found[1] : undefined;
+};
+
+const isTextLikeContentType = (contentType) => {
+  if (!contentType) return true;
+  const c = String(contentType).toLowerCase();
+  return (
+    c.includes('json')
+    || c.includes('text/')
+    || c.includes('xml')
+    || c.includes('javascript')
+    || c.includes('urlencoded')
+    || c.includes('graphql')
+  );
+};
+
+/** True when post-response vars/scripts, assertions, or tests would read the body. */
+const requestNeedsResponseBodyForScripts = (request) => {
+  if (get(request, 'script.res')?.trim()) return true;
+  if (get(request, 'vars.res')?.length) return true;
+  if (get(request, 'assertions')?.length) return true;
+  const tests = get(request, 'tests');
+  return typeof tests === 'string' && Boolean(tests.trim());
+};
+
+/**
+ * Ingest axios response stream into ResponseBodyStore; attach bodyRef + parsed data for scripts when memory-backed.
+ */
+const ingestAxiosResponseBody = async (response, { disableParsingResponseJson } = {}) => {
+  const bodyService = getResponseBodyService();
+  const contentType = getContentTypeHeader(response.headers);
+  const ingested = await bodyService.store.ingestStream(response.data, {
+    contentType,
+    headers: response.headers
+  });
+
+  response.bodyRef = ingested.bodyRef;
+  response.bodyStorage = ingested.storage;
+  response.size = ingested.size;
+
+  if (ingested.storage === STORAGE_MEMORY) {
+    const buffer = bodyService.store.getBufferForScripts(ingested.bodyRef);
+    response.data = buffer;
+    const parsed = parseDataFromResponse(response, disableParsingResponseJson);
+    response.data = parsed.data;
+    response.dataBuffer = parsed.dataBuffer;
+  } else {
+    response.data = null;
+    response.dataBuffer = Buffer.alloc(0);
+  }
+
+  return ingested;
+};
+
+const shouldIncludeParsedDataInIpc = (response) => {
+  if (response.bodyStorage !== STORAGE_MEMORY) return false;
+  if (response.size > SPILL_THRESHOLD_BYTES) return false;
+  return isTextLikeContentType(getContentTypeHeader(response.headers));
+};
+
+/**
+ * Prefer raw UTF-8 from the store for IPC display so large JSON integers / exact bytes
+ * are preserved (JSON.parse would lose BigInt precision).
+ */
+const getDataForIpc = (response) => {
+  if (!shouldIncludeParsedDataInIpc(response)) {
+    return undefined;
+  }
+  try {
+    const buf = getResponseBodyService().store.getBufferForScripts(response.bodyRef);
+    return buf.toString('utf8');
+  } catch (_) {
+    return response.data;
+  }
+};
 const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
@@ -822,7 +906,8 @@ const registerNetworkIpc = (mainWindow) => {
                     statusText: res.statusText,
                     headers: res.headers,
                     data: res.data,
-                    dataBuffer: res.dataBuffer,
+                    bodyRef: res.bodyRef || null,
+                    bodyStorage: res.bodyStorage || null,
                     size: res.size,
                     duration: res.duration
                   }
@@ -1038,7 +1123,9 @@ const registerNetworkIpc = (mainWindow) => {
         isResponseStream = hasStreamHeaders(response.headers);
 
         if (!isResponseStream) {
-          response.data = await promisifyStream(response.data);
+          await ingestAxiosResponseBody(response, {
+            disableParsingResponseJson: request.__brunoDisableParsingResponseJson
+          });
         }
 
         // Prevents the duration on leaking to the actual result
@@ -1066,7 +1153,9 @@ const registerNetworkIpc = (mainWindow) => {
           response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
-            response.data = await promisifyStream(response.data);
+            await ingestAxiosResponseBody(response, {
+              disableParsingResponseJson: request.__brunoDisableParsingResponseJson
+            });
           }
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
@@ -1089,11 +1178,11 @@ const registerNetworkIpc = (mainWindow) => {
         axiosDataStream = response.data;
       }
 
-      const { data, dataBuffer } = isResponseStream
-        ? { data: '', dataBuffer: Buffer.alloc(0) }
-        : parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
-      response.data = data;
-      response.dataBuffer = dataBuffer;
+      if (isResponseStream) {
+        response.data = '';
+        response.dataBuffer = Buffer.alloc(0);
+      }
+      // non-stream: already parsed/attached in ingestAxiosResponseBody
 
       response.responseTime = responseTime;
 
@@ -1109,6 +1198,14 @@ const registerNetworkIpc = (mainWindow) => {
       cookiesStore.saveCookieJar();
 
       const runPostScripts = async () => {
+        if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY && !isResponseStream) {
+          if (requestNeedsResponseBodyForScripts(request)) {
+            const err = new BodyTooLargeForScriptsError(response.bodyRef, response.size);
+            response.postResponseScriptErrorMessage = err.message;
+          }
+          return;
+        }
+
         let postResponseScriptResult = null;
         let postResponseError = null;
         try {
@@ -1268,20 +1365,26 @@ const registerNetworkIpc = (mainWindow) => {
         await runPostScripts();
       }
 
+      const ipcData = getDataForIpc(response);
+
       return {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data,
+        data: ipcData !== undefined ? ipcData : (isResponseStream ? response.data : undefined),
         stream: isResponseStream ? axiosDataStream : null,
         sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
-        dataBuffer: response.dataBuffer.toString('base64'),
-        size: Buffer.byteLength(response.dataBuffer),
+        bodyRef: response.bodyRef || null,
+        bodyStorage: response.bodyStorage || null,
+        size: typeof response.size === 'number'
+          ? response.size
+          : (response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0),
         duration: responseTime ?? 0,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         timeline: response.timeline,
-        requestSent
+        requestSent,
+        postResponseScriptErrorMessage: response.postResponseScriptErrorMessage
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
@@ -1517,7 +1620,8 @@ const registerNetworkIpc = (mainWindow) => {
                       statusText: res.statusText,
                       headers: res.headers,
                       data: res.data,
-                      dataBuffer: res.dataBuffer,
+                      bodyRef: res.bodyRef || null,
+                      bodyStorage: res.bodyStorage || null,
                       size: res.size,
                       duration: res.duration
                     }
@@ -1873,12 +1977,11 @@ const registerNetworkIpc = (mainWindow) => {
 
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
-              response.data = await promisifyStream(response.data, currentAbortController, false);
+              await ingestAxiosResponseBody(response, {
+                disableParsingResponseJson: request.__brunoDisableParsingResponseJson
+              });
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
-              response.data = data;
-              response.dataBuffer = dataBuffer;
               response.responseTime = response.headers.get('request-duration');
               response.headers.delete('request-duration');
 
@@ -1899,9 +2002,10 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: response.statusText,
                   headers: response.headers,
                   duration: timeEnd - timeStart,
-                  dataBuffer: dataBuffer.toString('base64'),
-                  size: Buffer.byteLength(dataBuffer),
-                  data: response.data,
+                  bodyRef: response.bodyRef || null,
+                  bodyStorage: response.bodyStorage || null,
+                  size: response.size || 0,
+                  data: getDataForIpc(response),
                   responseTime: response.responseTime,
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
@@ -1915,12 +2019,9 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               if (error?.response) {
-                error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
-                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                await ingestAxiosResponseBody(error.response);
                 error.response.responseTime = error.response.headers.get('request-duration');
                 error.response.headers.delete('request-duration');
-                error.response.data = data;
-                error.response.dataBuffer = dataBuffer;
 
                 // save cookies (4XX/5XX responses can also set cookies)
                 if (preferencesUtil.shouldStoreCookies()) {
@@ -1933,9 +2034,10 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: error.response.statusText,
                   headers: error.response.headers,
                   duration: timeEnd - timeStart,
-                  dataBuffer: dataBuffer.toString('base64'),
-                  size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data,
+                  bodyRef: error.response.bodyRef || null,
+                  bodyStorage: error.response.bodyStorage || null,
+                  size: error.response.size || 0,
+                  data: getDataForIpc(error.response),
                   responseTime: error.response.responseTime,
                   timeline: error.response.timeline
                 };
@@ -1960,19 +2062,25 @@ const registerNetworkIpc = (mainWindow) => {
             let postResponseScriptResult;
             let postResponseError = null;
             try {
-              postResponseScriptResult = await runPostResponse(
-                request,
-                response,
-                requestUid,
-                envVars,
-                collectionPath,
-                collection,
-                collectionUid,
-                runtimeVariables,
-                processEnvVars,
-                scriptingConfig,
-                runRequestByItemPathname
-              );
+              if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY) {
+                if (requestNeedsResponseBodyForScripts(request)) {
+                  throw new BodyTooLargeForScriptsError(response.bodyRef, response.size);
+                }
+              } else {
+                postResponseScriptResult = await runPostResponse(
+                  request,
+                  response,
+                  requestUid,
+                  envVars,
+                  collectionPath,
+                  collection,
+                  collectionUid,
+                  runtimeVariables,
+                  processEnvVars,
+                  scriptingConfig,
+                  runRequestByItemPathname
+                );
+              }
             } catch (error) {
               console.error('Post-response script error:', error);
               postResponseError = error;
@@ -2174,55 +2282,36 @@ const registerNetworkIpc = (mainWindow) => {
     }
   );
 
-  // save response to file
+  // save response to file — prefer bodyRef from ResponseBodyStore (no base64 round-trip)
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
     try {
-      const getHeaderValue = (headerName) => {
-        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
-
-        if (headersArray.length > 0) {
-          const header = headersArray.find((header) => header[0] === headerName);
-          if (header && header.length > 1) {
-            return header[1];
-          }
+      const bodyService = getResponseBodyService();
+      if (response?.bodyRef) {
+        const { resolveResponseSaveDefaultPath } = require('../../utils/response-save-filename');
+        const defaultPath = resolveResponseSaveDefaultPath({
+          headers: response.headers,
+          url,
+          pathname
+        });
+        const filePath = await chooseFileToSave(mainWindow, defaultPath);
+        if (!filePath) {
+          return { success: false, cancelled: true };
         }
-      };
+        await bodyService.store.saveToPath(response.bodyRef, filePath);
+        return { success: true, filePath };
+      }
 
-      const getFileNameFromContentDispositionHeader = () => {
-        const contentDisposition = getHeaderValue('content-disposition');
-        try {
-          const disposition = contentDispositionParser.parse(contentDisposition);
-          return disposition && disposition.parameters['filename'];
-        } catch (error) { }
-      };
-
-      const getFileNameFromUrlPath = () => {
-        const lastPathLevel = new URL(url).pathname.split('/').pop();
-        if (lastPathLevel && /\..+/.exec(lastPathLevel)) {
-          return lastPathLevel;
-        }
-      };
-
-      const getFileNameBasedOnContentTypeHeader = () => {
-        const contentType = getHeaderValue('content-type');
-        const extension = (contentType && mime.extension(contentType)) || 'txt';
-        return `response.${extension}`;
-      };
+      // Legacy fallback: base64 dataBuffer (should not be used for new responses)
+      const { resolveResponseSaveFilename, getHeaderValue } = require('../../utils/response-save-filename');
 
       const getEncodingFormat = () => {
-        const contentType = getHeaderValue('content-type');
+        const contentType = getHeaderValue(response.headers, 'content-type');
         const extension = mime.extension(contentType) || 'txt';
         return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
       };
 
-      const determineFileName = () => {
-        return (
-          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
-        );
-      };
-
       const dirPath = path.dirname(pathname);
-      const fileName = determineFileName();
+      const fileName = resolveResponseSaveFilename({ headers: response.headers, url });
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();

@@ -19,7 +19,8 @@ type SendRequestEntry = {
     statusText: string;
     headers: Record<string, any>;
     data: any;
-    dataBuffer: string;
+    bodyRef: string | null;
+    bodyStorage: string | null;
     size: number;
     duration: number;
   } | null;
@@ -40,7 +41,8 @@ type ScriptedEntryResponseInput = {
   statusText?: string;
   headers?: any;
   data?: any;
-  dataBuffer?: string;
+  bodyRef?: string | null;
+  bodyStorage?: string | null;
   size?: number;
   duration?: number;
 } | null | undefined;
@@ -65,20 +67,20 @@ const toPlainHeaders = (headers: any): Record<string, any> => {
   return out;
 };
 
-// Build dataBuffer eagerly so the Timeline's CodeMirror can size itself on mount.
-const toResponseDataBuffer = (data: any): string => {
+const deriveSizeFromData = (data: any): number => {
   try {
-    if (data === null || data === undefined) return '';
-    if (typeof data === 'string') return Buffer.from(data).toString('base64');
-    if (Buffer.isBuffer(data)) return data.toString('base64');
-    if (data instanceof ArrayBuffer) return Buffer.from(new Uint8Array(data)).toString('base64');
-    return Buffer.from(JSON.stringify(data)).toString('base64');
+    if (data === null || data === undefined) return 0;
+    if (typeof data === 'string') return Buffer.byteLength(data);
+    if (Buffer.isBuffer(data)) return data.length;
+    if (data instanceof ArrayBuffer) return data.byteLength;
+    return Buffer.byteLength(JSON.stringify(data));
   } catch (_) {
-    return '';
+    return 0;
   }
 };
 
 // Shared with bruno-electron's runRequest so both produce identical entries.
+// Never embed dataBuffer — use bodyRef for store-backed bodies, otherwise inline `data` only.
 const buildScriptedEntry = ({
   request,
   response,
@@ -88,16 +90,18 @@ const buildScriptedEntry = ({
 }: BuildScriptedEntryArgs): SendRequestEntry => {
   let respPayload: SendRequestEntry['response'] = null;
   if (response) {
-    const dataBuffer = response.dataBuffer ?? toResponseDataBuffer(response.data);
+    const bodyRef = response.bodyRef || null;
+    const bodyStorage = response.bodyStorage || null;
     respPayload = {
       statusCode: typeof response.status === 'number' ? response.status : 0,
       statusText: response.statusText ?? '',
       headers: toPlainHeaders(response.headers),
       data: response.data,
-      dataBuffer,
+      bodyRef,
+      bodyStorage,
       size: typeof response.size === 'number'
         ? response.size
-        : (dataBuffer ? Buffer.from(dataBuffer, 'base64').length : 0),
+        : deriveSizeFromData(response.data),
       duration: typeof response.duration === 'number'
         ? response.duration
         : (completedAt - startedAt)

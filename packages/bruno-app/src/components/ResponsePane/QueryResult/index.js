@@ -3,7 +3,8 @@ import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import LargeResponseWarning from '../LargeResponseWarning';
+import { mediaUrlFor } from 'utils/response-body';
+import LargeResponseWarning, { LARGE_RESPONSE_BYTES } from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -44,11 +45,15 @@ const formatErrorMessage = (error) => {
 // Custom hook to determine the initial format and tab based on the data buffer and headers
 export const useInitialResponseFormat = (dataBuffer, headers) => {
   return useMemo(() => {
-    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const detectedContentType = dataBuffer ? detectContentTypeFromBase64(dataBuffer) : null;
     const contentType = getContentType(headers);
 
-    // Wait until both content types are available
-    if (detectedContentType === null || contentType === undefined) {
+    // Wait until content type from headers is available when we have no magic-byte sniff
+    if (contentType === undefined) {
+      return { initialFormat: null, initialTab: null, contentType: contentType };
+    }
+
+    if (detectedContentType === null && dataBuffer) {
       return { initialFormat: null, initialTab: null, contentType: contentType };
     }
 
@@ -60,14 +65,14 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
 // Custom hook to determine preview format options based on content type
 export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
   return useMemo(() => {
-    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const detectedContentType = dataBuffer ? detectContentTypeFromBase64(dataBuffer) : null;
     const contentType = getContentType(headers);
 
     const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
 
-    const isByteFormatType = (contentType) => {
-      if (contentType.toLowerCase().includes('svg')) return false; // SVG is text-based
-      return byteFormatTypes.some((type) => contentType.includes(type));
+    const isByteFormatType = (ct) => {
+      if (ct.toLowerCase().includes('svg')) return false; // SVG is text-based
+      return byteFormatTypes.some((type) => ct.includes(type));
     };
 
     const getContentTypeToCheck = () => {
@@ -108,9 +113,10 @@ const QueryResult = ({
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+  const response = item.response || {};
+  const bodyRef = response.bodyRef;
 
   const responseSize = useMemo(() => {
-    const response = item.response || {};
     if (typeof response.size === 'number') {
       return response.size;
     }
@@ -120,13 +126,15 @@ const QueryResult = ({
       return Math.floor(dataBuffer.length * 0.75);
     }
     return 0;
-  }, [dataBuffer, item.response]);
+  }, [dataBuffer, response.size]);
 
-  const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+  const isLargeResponse = responseSize > LARGE_RESPONSE_BYTES;
+  const mediaSrc = useMemo(() => mediaUrlFor(bodyRef), [bodyRef]);
 
   const detectedContentType = useMemo(() => {
-    return detectContentTypeFromBase64(dataBuffer);
-  }, [dataBuffer, isLargeResponse]);
+    if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
+    return null;
+  }, [dataBuffer]);
 
   const formattedData = useMemo(
     () => {
@@ -154,17 +162,25 @@ const QueryResult = ({
 
     // For base64/hex, check content type to determine binary preview type
     if (selectedFormat === 'base64' || selectedFormat === 'hex') {
-      if (detectedContentType) {
-        if (detectedContentType.includes('image')) return 'preview-image';
-        if (detectedContentType.includes('pdf')) return 'preview-pdf';
-        if (detectedContentType.includes('audio')) return 'preview-audio';
-        if (detectedContentType.includes('video')) return 'preview-video';
-      }
-      // for all other content types, return preview-text
+      const ct = detectedContentType || contentType || '';
+      if (ct.includes('image')) return 'preview-image';
+      if (ct.includes('pdf')) return 'preview-pdf';
+      if (ct.includes('audio')) return 'preview-audio';
+      if (ct.includes('video')) return 'preview-video';
       return 'preview-text';
     }
+
+    // Auto media preview when content-type is binary and we have bodyRef
+    const ct = (contentType || '').toLowerCase();
+    if (bodyRef && !data) {
+      if (ct.includes('image')) return 'preview-image';
+      if (ct.includes('pdf')) return 'preview-pdf';
+      if (ct.includes('audio')) return 'preview-audio';
+      if (ct.includes('video')) return 'preview-video';
+    }
+
     return 'preview-text';
-  }, [selectedFormat, detectedContentType]);
+  }, [selectedFormat, detectedContentType, contentType, bodyRef, data]);
 
   const codeMirrorMode = useMemo(() => {
     // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
@@ -217,18 +233,19 @@ const QueryResult = ({
                 disableRunEventListener={disableRunEventListener}
                 displayedTheme={displayedTheme}
                 docKey={docKey}
+                mediaSrc={mediaSrc}
               />
             </div>
-            {queryFilterEnabled && (
-              <QueryResultFilter
-                filter={filter}
-                filterExpanded={filterExpanded}
-                onChange={handleFilterChange}
-                onExpandChange={onFilterExpandChange}
-                mode={codeMirrorMode}
-              />
-            )}
           </div>
+          {queryFilterEnabled ? (
+            <QueryResultFilter
+              filter={filter}
+              filterExpanded={filterExpanded}
+              onChange={debounce(handleFilterChange, 200)}
+              onExpandChange={onFilterExpandChange}
+              mode={codeMirrorMode}
+            />
+          ) : null}
         </div>
       )}
     </StyledWrapper>

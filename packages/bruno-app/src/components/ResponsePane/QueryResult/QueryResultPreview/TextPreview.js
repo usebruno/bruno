@@ -12,6 +12,19 @@ const TextPreview = memo(({ data }) => {
         return String(data);
       }
     }
+    if (typeof data === 'string') {
+      // Historical preview for JSON bodies was JSON.stringify(parsedObject) (compact).
+      // Under bodyRef we may receive the raw UTF-8 string instead — normalize for preview.
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed !== null && typeof parsed === 'object') {
+          return JSON.stringify(parsed);
+        }
+      } catch {
+        /* not JSON — show as-is */
+      }
+      return data;
+    }
     return String(data);
   }, [data]);
 

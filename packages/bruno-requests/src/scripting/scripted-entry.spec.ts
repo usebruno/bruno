@@ -62,7 +62,7 @@ describe('buildScriptedEntry', () => {
     expect(entry.response?.headers).toEqual({ 'content-type': 'application/json', 'x-trace': 'abc' });
   });
 
-  test('encodes string body to base64 dataBuffer and derives size/duration when not supplied', () => {
+  test('derives size/duration from data when not supplied (no dataBuffer)', () => {
     const entry = buildScriptedEntry({
       request: { method: 'GET', url: 'https://example.com' },
       response: { status: 200, statusText: 'OK', headers: {}, data: 'hello' },
@@ -71,12 +71,14 @@ describe('buildScriptedEntry', () => {
       completedAt: 15
     });
 
-    expect(entry.response?.dataBuffer).toBe(Buffer.from('hello').toString('base64'));
+    expect(entry.response?.dataBuffer).toBeUndefined();
+    expect(entry.response?.data).toBe('hello');
+    expect(entry.response?.bodyRef).toBeNull();
     expect(entry.response?.size).toBe(Buffer.from('hello').length);
     expect(entry.response?.duration).toBe(10);
   });
 
-  test('JSON-stringifies object body for dataBuffer when not provided', () => {
+  test('JSON object body keeps data and derives size without dataBuffer', () => {
     const body = { foo: 'bar' };
     const entry = buildScriptedEntry({
       request: { method: 'GET', url: 'https://example.com' },
@@ -86,19 +88,21 @@ describe('buildScriptedEntry', () => {
       completedAt: 0
     });
 
-    expect(entry.response?.dataBuffer).toBe(Buffer.from(JSON.stringify(body)).toString('base64'));
+    expect(entry.response?.dataBuffer).toBeUndefined();
+    expect(entry.response?.data).toEqual(body);
+    expect(entry.response?.size).toBe(Buffer.byteLength(JSON.stringify(body)));
   });
 
-  test('honors explicit dataBuffer / size / duration on response', () => {
-    const explicitBuffer = Buffer.from('payload').toString('base64');
+  test('honors bodyRef / size / duration on response and never embeds dataBuffer', () => {
     const entry = buildScriptedEntry({
       request: { method: 'GET', url: 'https://example.com' },
       response: {
         status: 200,
         statusText: 'OK',
         headers: {},
-        data: 'ignored-for-size',
-        dataBuffer: explicitBuffer,
+        data: undefined,
+        bodyRef: 'body-abc',
+        bodyStorage: 'file',
         size: 999,
         duration: 123
       },
@@ -107,7 +111,9 @@ describe('buildScriptedEntry', () => {
       completedAt: 50
     });
 
-    expect(entry.response?.dataBuffer).toBe(explicitBuffer);
+    expect(entry.response?.dataBuffer).toBeUndefined();
+    expect(entry.response?.bodyRef).toBe('body-abc');
+    expect(entry.response?.bodyStorage).toBe('file');
     expect(entry.response?.size).toBe(999);
     expect(entry.response?.duration).toBe(123);
   });

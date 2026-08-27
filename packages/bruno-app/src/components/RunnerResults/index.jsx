@@ -3,7 +3,7 @@ import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { resetCollectionRunnerAndReleasePins } from 'providers/ReduxStore/slices/collections/actions';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
@@ -211,11 +211,7 @@ export default function RunnerResults({ collection }) {
 
   const resetRunner = () => {
     isReRunningRef.current = false;
-    dispatch(
-      resetCollectionRunner({
-        collectionUid: collection.uid
-      })
-    );
+    dispatch(resetCollectionRunnerAndReleasePins(collection.uid));
     setDelay(null);
   };
 

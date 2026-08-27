@@ -42,6 +42,7 @@ const ResponsePane = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
   // Initialize format and tab only once when data loads.
+  // Prefer headers; dataBuffer is optional (legacy / magic-byte sniff only).
   const { initialFormat, initialTab, contentType } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
 
@@ -103,17 +104,8 @@ const ResponsePane = ({ item, collection }) => {
     if (typeof response.size === 'number') {
       return response.size;
     }
-
-    if (!response.dataBuffer) return 0;
-
-    try {
-      // dataBuffer is base64 encoded, so we need to calculate the actual size
-      const buffer = Buffer.from(response.dataBuffer, 'base64');
-      return buffer.length;
-    } catch (error) {
-      return 0;
-    }
-  }, [response.size, response.dataBuffer]);
+    return 0;
+  }, [response.size]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
@@ -162,7 +154,6 @@ const ResponsePane = ({ item, collection }) => {
             item={item}
             collection={collection}
             data={response.data}
-            dataBuffer={response.dataBuffer}
             headers={response.headers}
             error={response.error}
             key={item.filename}
@@ -278,7 +269,6 @@ const ResponsePane = ({ item, collection }) => {
             selectedFormat={selectedFormat}
             selectedTab={selectedViewTab}
             data={response.data}
-            dataBuffer={response.dataBuffer}
           />
         ) : null}
       </div>
