@@ -7,7 +7,7 @@ const { createCollectionFixture } = require('../helpers/collection-fixture');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dirname-filename-cli');
 
-describe('CLI run — __dirname/__filename are bound per script segment (node-vm)', () => {
+describe('CLI run — __dirname/__filename are bound per script segment', () => {
   let server;
   let baseUrl;
   let workDir;
@@ -33,14 +33,18 @@ describe('CLI run — __dirname/__filename are bound per script segment (node-vm
     }
   });
 
-  it('collection, folder, and request scripts each see their own __dirname/__filename', async () => {
+  // Both sandboxes must bind __dirname/__filename per script segment — the segment-level
+  it.each([
+    ['developer'],
+    ['safe']
+  ])('collection, parent, child, and request scripts each see their own __dirname/__filename (--sandbox %s)', async (sandbox) => {
     workDir = createCollectionFixture(FIXTURE_DIR);
     const result = await runCli(
       [
-        'run', 'subfolder/dirname-request.yml',
+        'run', 'parent/child/dirname-request.yml',
         '--env', 'Test',
         '--env-var', `host=${baseUrl}`,
-        '--sandbox', 'developer',
+        '--sandbox', sandbox,
         '--noproxy'
       ],
       workDir
@@ -52,14 +56,23 @@ describe('CLI run — __dirname/__filename are bound per script segment (node-vm
       );
     }
 
-    const subfolderPath = path.join(workDir, 'subfolder');
+    const parentPath = path.join(workDir, 'parent');
+    const childPath = path.join(parentPath, 'child');
     const envContent = fs.readFileSync(path.join(workDir, 'environments', 'Test.yml'), 'utf8');
-    expect(envContent).toContain(`value: ${subfolderPath}\n`);
-    expect(envContent).toContain(`value: ${path.join(subfolderPath, 'folder.yml')}\n`);
-    expect(envContent).toContain(`value: ${path.join(subfolderPath, 'dirname-request.yml')}\n`);
+    expect(envContent).toContain(`value: ${parentPath}\n`);
+    expect(envContent).toContain(`value: ${path.join(parentPath, 'folder.yml')}\n`);
+    expect(envContent).toContain(`value: ${childPath}\n`);
+    expect(envContent).toContain(`value: ${path.join(childPath, 'folder.yml')}\n`);
+    expect(envContent).toContain(`value: ${path.join(childPath, 'dirname-request.yml')}\n`);
 
     const collectionContent = fs.readFileSync(path.join(workDir, 'opencollection.yml'), 'utf8');
     expect(collectionContent).toContain(`value: ${workDir}\n`);
     expect(collectionContent).toContain(`value: ${path.join(workDir, 'opencollection.yml')}\n`);
+
+    if (sandbox === 'developer') {
+      expect(envContent).toContain('value: hello\n');
+    } else {
+      expect(envContent).not.toContain('value: hello\n');
+    }
   }, 60_000);
 });

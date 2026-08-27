@@ -60,14 +60,3 @@ runtime:
         test("request __filename ends with dirname-request.yml", function() {
           expect(bru.getEnvVar("requestFile").endsWith("dirname-request.yml")).to.equal(true);
         });
-
-        test("readData is written by the pre-request script only in developer mode", function() {
-          // developer (node-vm): fs read succeeded, readData === 'hello'.
-          // safe (QuickJS): pre-request skipped the fs read via bru.isSafeMode(), readData stays unset.
-          const readData = bru.getEnvVar("readData");
-          if (bru.isSafeMode()) {
-            expect(readData == null || readData === "").to.equal(true);
-          } else {
-            expect(readData).to.equal("hello");
-          }
-        });

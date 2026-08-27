@@ -18,7 +18,7 @@ test.describe('__dirname / __filename in scripts', () => {
 
       await validateRunnerResults(page, {
         totalRequests: 1,
-        passed: 7,
+        passed: 1,
         failed: 0
       });
     });
