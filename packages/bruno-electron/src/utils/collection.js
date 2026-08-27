@@ -165,7 +165,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 
 // __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
 // counts (and stack-trace mapping) are unaffected.
-const wrapScriptInClosure = (script, scopeInfo = null, paths = null) => {
+const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -177,8 +177,8 @@ const wrapScriptInClosure = (script, scopeInfo = null, paths = null) => {
     ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
     : '';
   // Shadow sandbox globals so each segment sees its own source-file dir.
-  const dirnameParam = JSON.stringify(paths?.dirname ?? null);
-  const filenameParam = JSON.stringify(paths?.filename ?? null);
+  const dirnameParam = JSON.stringify(sourcePaths?.dirname ?? null);
+  const filenameParam = JSON.stringify(sourcePaths?.filename ?? null);
   return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
@@ -227,7 +227,7 @@ ${script}
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null, collectionPath = null) => {
+const wrapAndJoinScripts = (scripts, requestIndex, { segmentSources = null, requestSegmentSource = null, collectionPath = null } = {}) => {
   const buildScopeInfo = (i) => {
     if (i === requestIndex && requestSegmentSource?.displayPath) {
       return { type: 'request', sourceFile: requestSegmentSource.displayPath };
@@ -237,7 +237,7 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     return { type: seg.type, sourceFile: seg.displayPath };
   };
 
-  const buildPaths = (i) => {
+  const buildSourcePaths = (i) => {
     const filePath = i === requestIndex
       ? requestSegmentSource?.filePath
       : segmentSources?.[i]?.filePath;
@@ -247,7 +247,7 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     return null;
   };
 
-  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildPaths(i)));
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildSourcePaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -355,7 +355,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource, collection?.pathname ?? null);
+    const result = wrapAndJoinScripts(scripts, requestIndex, {
+      segmentSources: sources,
+      requestSegmentSource,
+      collectionPath: collection?.pathname ?? null
+    });
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }

@@ -19,8 +19,7 @@ describe('CLI wrapAndJoinScripts — hierarchical __dirname/__filename', () => {
     const result = wrapAndJoinScripts(
       ['let a = 1;', 'let b = 2;', 'let c = 3;'],
       2,
-      sources,
-      requestSegmentSource
+      { segmentSources: sources, requestSegmentSource }
     );
 
     expect(result.code).toContain('async (__dirname, __filename) => {');
@@ -33,8 +32,10 @@ describe('CLI wrapAndJoinScripts — hierarchical __dirname/__filename', () => {
     const withPaths = wrapAndJoinScripts(
       ['let x = 1;', '', 'let y = 2;'],
       2,
-      [{ filePath: collectionFile, displayPath: 'collection.bru' }, null, null],
-      { filePath: requestFile }
+      {
+        segmentSources: [{ filePath: collectionFile, displayPath: 'collection.bru' }, null, null],
+        requestSegmentSource: { filePath: requestFile }
+      }
     );
     const withoutPaths = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
     expect(withPaths.metadata.requestStartLine).toBe(withoutPaths.metadata.requestStartLine);
@@ -45,9 +46,7 @@ describe('CLI wrapAndJoinScripts — hierarchical __dirname/__filename', () => {
     const result = wrapAndJoinScripts(
       ['', '', 'console.log("hi");'],
       2,
-      null,
-      null,
-      colDir
+      { collectionPath: colDir }
     );
     expect(result.code).toContain('async (__dirname, __filename) => {');
     expect(result.code).toContain(`)(${JSON.stringify(colDir)}, null);`);

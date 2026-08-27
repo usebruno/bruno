@@ -224,18 +224,18 @@ const mergeVars = (collection, request, requestTreePath) => {
 /**
  * Wraps a script in an IIFE closure to isolate its scope
  * @param {string} script - The script code to wrap
- * @param {{ dirname: string, filename: string } | null} paths - Absolute paths bound to __dirname / __filename
+ * @param {{ dirname: string, filename: string } | null} sourcePaths - Absolute paths bound to __dirname / __filename
  * @returns {string} The wrapped script
  */
-const wrapScriptInClosure = (script, paths = null) => {
+const wrapScriptInClosure = (script, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  const dirnameParam = JSON.stringify(paths?.dirname ?? null);
-  const filenameParam = JSON.stringify(paths?.filename ?? null);
+  const dirnameParam = JSON.stringify(sourcePaths?.dirname ?? null);
+  const filenameParam = JSON.stringify(sourcePaths?.filename ?? null);
   return `await (async (__dirname, __filename) => {
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
@@ -251,10 +251,14 @@ ${script}
  *
  * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
  * @param {number} requestIndex - Index in scripts of the request-level segment.
+ * @param {object} [opts]
+ * @param {Array|null} [opts.segmentSources] - Source file info per non-request segment.
+ * @param {object|null} [opts.requestSegmentSource] - Source file info for the request segment.
+ * @param {string|null} [opts.collectionPath] - Collection dir; used as the __dirname fallback.
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null, collectionPath = null) => {
-  const buildPaths = (i) => {
+const wrapAndJoinScripts = (scripts, requestIndex, { segmentSources = null, requestSegmentSource = null, collectionPath = null } = {}) => {
+  const buildSourcePaths = (i) => {
     const filePath = i === requestIndex
       ? requestSegmentSource?.filePath
       : segmentSources?.[i]?.filePath;
@@ -264,7 +268,7 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     return null;
   };
 
-  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildPaths(i)));
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildSourcePaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -364,7 +368,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     request?.script?.req || ''
   ];
   const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources, requestSegmentSource, collection.pathname);
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, {
+    segmentSources: preReqSources,
+    requestSegmentSource,
+    collectionPath: collection.pathname
+  });
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
@@ -376,7 +384,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.script?.res || ''
     ];
     const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources, requestSegmentSource, collection.pathname);
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, {
+      segmentSources: postResSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
@@ -387,7 +399,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionPostResScript
     ];
     const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources, requestSegmentSource, collection.pathname);
+    const postRes = wrapAndJoinScripts(postResScripts, 0, {
+      segmentSources: postResSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
@@ -400,7 +416,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.tests || ''
     ];
     const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources, requestSegmentSource, collection.pathname);
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, {
+      segmentSources: testSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
@@ -411,7 +431,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources, requestSegmentSource, collection.pathname);
+    const tests = wrapAndJoinScripts(testScripts, 0, {
+      segmentSources: testSources,
+      requestSegmentSource,
+      collectionPath: collection.pathname
+    });
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }

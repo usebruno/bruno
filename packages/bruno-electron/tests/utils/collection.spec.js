@@ -331,7 +331,7 @@ describe('wrapAndJoinScripts', () => {
       null,
       null
     ];
-    const result = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2, sources);
+    const result = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2, { segmentSources: sources });
     expect(result.metadata.segments).toHaveLength(1);
     expect(result.metadata.segments[0]).toMatchObject({
       startLine: 1,
@@ -350,7 +350,7 @@ describe('wrapAndJoinScripts', () => {
     const result = wrapAndJoinScripts(
       ['let a = 1;', 'let b = 2;', 'let c = 3;'],
       2,
-      sources
+      { segmentSources: sources }
     );
     expect(result.metadata.segments).toHaveLength(2);
     expect(result.metadata.segments[0].displayPath).toBe('collection.bru');
@@ -373,8 +373,7 @@ describe('wrapAndJoinScripts', () => {
     const result = wrapAndJoinScripts(
       ['let a = 1;', 'let b = 2;', 'let c = 3;'],
       2,
-      sources,
-      requestSegmentSource
+      { segmentSources: sources, requestSegmentSource }
     );
 
     expect(result.code).toContain('async (__dirname, __filename) => {');
@@ -390,8 +389,10 @@ describe('wrapAndJoinScripts', () => {
     const withPaths = wrapAndJoinScripts(
       ['let x = 1;', '', 'let y = 2;'],
       2,
-      [{ filePath: collectionFile, displayPath: 'collection.bru' }, null, null],
-      { filePath: requestFile, displayPath: path.join('sub', 'req.bru') }
+      {
+        segmentSources: [{ filePath: collectionFile, displayPath: 'collection.bru' }, null, null],
+        requestSegmentSource: { filePath: requestFile, displayPath: path.join('sub', 'req.bru') }
+      }
     );
     const withoutPaths = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
     // Stack-trace mapping depends on line ranges staying stable.
@@ -404,9 +405,7 @@ describe('wrapAndJoinScripts', () => {
     const result = wrapAndJoinScripts(
       ['', '', 'console.log("hi");'],
       2,
-      null,
-      null,
-      colDir
+      { collectionPath: colDir }
     );
     expect(result.code).toContain('async (__dirname, __filename) => {');
     expect(result.code).toContain(`)(${JSON.stringify(colDir)}, null);`);
@@ -607,22 +606,21 @@ describe('mergeScripts metadata', () => {
   });
 
   test('injects hierarchical __dirname/__filename per script segment', () => {
-    const collection = makeCollection({ preReq: 'let col = 1;' });
-    const folder = makeFolder('subfolder', { preReq: 'let fold = 2;' });
-    const request = { ...makeRequest({ preReq: 'let req = 3;' }), pathname: '/test/collection/subfolder/req.bru' };
+    const collectionDir = path.resolve('/test/collection');
+    const folderDir = path.join(collectionDir, 'subfolder');
+    const requestFile = path.join(folderDir, 'req.bru');
+    const collection = { ...makeCollection({ preReq: 'let col = 1;' }), pathname: collectionDir };
+    const folder = { ...makeFolder('subfolder', { preReq: 'let fold = 2;' }), pathname: folderDir };
+    const request = { ...makeRequest({ preReq: 'let req = 3;' }), pathname: requestFile };
     mergeScripts(collection, request, [folder, request], 'sequential');
 
     const code = request.script.req;
-    const collectionDir = path.join('/test/collection');
-    const collectionFile = path.join('/test/collection', 'collection.bru');
-    const folderDir = path.join('/test/collection/subfolder');
-    const folderFile = path.join('/test/collection/subfolder', 'folder.bru');
-    const requestDir = path.join('/test/collection/subfolder');
-    const requestFile = '/test/collection/subfolder/req.bru';
+    const collectionFile = path.join(collectionDir, 'collection.bru');
+    const folderFile = path.join(folderDir, 'folder.bru');
 
     expect(code).toContain(`)(${JSON.stringify(collectionDir)}, ${JSON.stringify(collectionFile)});`);
     expect(code).toContain(`)(${JSON.stringify(folderDir)}, ${JSON.stringify(folderFile)});`);
-    expect(code).toContain(`)(${JSON.stringify(requestDir)}, ${JSON.stringify(requestFile)});`);
+    expect(code).toContain(`)(${JSON.stringify(folderDir)}, ${JSON.stringify(requestFile)});`);
   });
 
   test('falls back to collection dir for __dirname and null __filename when request has no pathname', () => {
@@ -693,7 +691,7 @@ describe('mergeScripts → runScriptInNodeVm (integration)', () => {
   };
 
   test('collection, folder, and request pre-request scripts each see their own __dirname/__filename', async () => {
-    const collectionPath = '/test/collection';
+    const collectionPath = path.resolve('/test/collection');
     const folderPath = path.join(collectionPath, 'subfolder');
     const requestPath = path.join(folderPath, 'req.bru');
 
@@ -741,7 +739,7 @@ describe('mergeScripts → runScriptInNodeVm (integration)', () => {
   });
 
   test('falls back to collection dir when request has no pathname', async () => {
-    const collectionPath = '/test/collection';
+    const collectionPath = path.resolve('/test/collection');
     const collection = makeCollection({}, collectionPath);
     const request = makeRequest({ preReq: setVar('req') });
 
@@ -755,7 +753,7 @@ describe('mergeScripts → runScriptInNodeVm (integration)', () => {
   });
 
   test('post-response and tests scripts also receive per-segment __dirname/__filename', async () => {
-    const collectionPath = '/test/collection';
+    const collectionPath = path.resolve('/test/collection');
     const folderPath = path.join(collectionPath, 'subfolder');
     const requestPath = path.join(folderPath, 'req.bru');
 

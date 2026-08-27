@@ -1,0 +1,11 @@
+bundled: false
+info:
+  name: parent
+  type: folder
+
+request:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("parentDir", __dirname);
+        bru.setEnvVar("parentFile", __filename);

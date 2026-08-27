@@ -1,59 +1,26 @@
-import { test, expect } from '../../../../playwright';
-import fs from 'fs';
-import path from 'path';
+import { test } from '../../../../playwright';
 import { openCollection, selectEnvironment } from '../../../utils/page';
-import { runCollection, validateRunnerResults } from '../../../utils/page/runner';
+import { runCollection, setSandboxMode, validateRunnerResults } from '../../../utils/page/runner';
 
-const PERSISTENCE_TIMEOUT = 10000;
+const COLLECTION = 'dirname-filename-test';
 
-test.describe('__dirname / __filename in node-vm scripts (developer mode)', () => {
-  test('binds per-segment paths for collection, folder, and request scripts', async ({
-    pageWithUserData: page,
-    collectionFixturePath
-  }) => {
-    await openCollection(page, 'dirname-filename-test');
-    await selectEnvironment(page, 'Test');
-    await runCollection(page, 'dirname-filename-test');
+// __dirname/__filename bind via IIFE args in wrapAndJoinScripts before sandbox dispatch,
+// so the values are available identically in both sandboxes.
+test.describe('__dirname / __filename in scripts', () => {
+  for (const mode of ['developer', 'safe'] as const) {
+    test(`${mode} mode: binds per-segment paths for collection, folder, and request scripts`, async ({
+      pageWithUserData: page
+    }) => {
+      await openCollection(page, COLLECTION);
+      await setSandboxMode(page, COLLECTION, mode);
+      await selectEnvironment(page, 'Test');
+      await runCollection(page, COLLECTION);
 
-    await validateRunnerResults(page, {
-      totalRequests: 1,
-      passed: 6,
-      failed: 0
+      await validateRunnerResults(page, {
+        totalRequests: 1,
+        passed: 7,
+        failed: 0
+      });
     });
-
-    await test.step('opencollection.yml persists a collection __filename ending in opencollection.yml', async () => {
-      const collectionYmlPath = path.join(
-        collectionFixturePath!,
-        'dirname-filename-test',
-        'opencollection.yml'
-      );
-      await expect
-        .poll(
-          () => {
-            const content = fs.readFileSync(collectionYmlPath, 'utf8');
-            return /name:\s*collectionFile[\s\S]+?value:.*opencollection\.yml/.test(content);
-          },
-          { timeout: PERSISTENCE_TIMEOUT }
-        )
-        .toBe(true);
-    });
-
-    await test.step('environments/Test.yml persists a request __filename ending in dirname-request.yml', async () => {
-      const envFilePath = path.join(
-        collectionFixturePath!,
-        'dirname-filename-test',
-        'environments',
-        'Test.yml'
-      );
-      await expect
-        .poll(
-          () => {
-            const content = fs.readFileSync(envFilePath, 'utf8');
-            return /name:\s*requestFile[\s\S]+?value:.*dirname-request\.yml/.test(content);
-          },
-          { timeout: PERSISTENCE_TIMEOUT }
-        )
-        .toBe(true);
-    });
-  });
+  }
 });
