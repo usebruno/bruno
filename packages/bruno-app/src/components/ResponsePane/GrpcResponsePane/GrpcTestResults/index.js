@@ -11,8 +11,25 @@ import {
 
 export const buildGrpcTestSections = (item) => [
   { key: 'beforeCallStart', title: 'Before Call Start Tests', results: item.beforeCallStartTestResults || [] },
+  { key: 'beforeMessageSend', title: 'Before Message Send Tests', results: item.beforeMessageSendTestResults || [] },
+  { key: 'afterMessageReceive', title: 'After Message Receive Tests', results: item.afterMessageReceiveTestResults || [] },
   { key: 'afterCallEnd', title: 'After Call End Tests', results: item.afterCallEndTestResults || [] }
 ];
+
+const groupResultsByMessage = (results) => {
+  const groups = [];
+
+  for (const result of results) {
+    const last = groups[groups.length - 1];
+    if (last && last.messageIndex === result.messageIndex) {
+      last.results.push(result);
+      continue;
+    }
+    groups.push({ messageIndex: result.messageIndex, results: [result] });
+  }
+
+  return groups;
+};
 
 const ResultIcon = ({ status }) => (
   <span
@@ -67,15 +84,22 @@ const GrpcTestSection = ({ sectionKey, title, results, isExpanded, onToggle }) =
           {title} ({results.length}), Passed: {passedCount}, Failed: {failedCount}
         </span>
       </div>
-      {isExpanded && (
-        <ul className="ml-5">
-          {results.map((result) => (
-            <li key={result.uid} className="py-1">
-              <ResultItem result={result} />
-            </li>
-          ))}
-        </ul>
-      )}
+      {isExpanded && groupResultsByMessage(results).map((group) => (
+        <div key={group.messageIndex ?? 'call'}>
+          {group.messageIndex !== undefined && (
+            <div className="message-group-label ml-5" data-testid={`grpc-test-message-group-${group.messageIndex}`}>
+              Message {group.messageIndex + 1}
+            </div>
+          )}
+          <ul className="ml-5">
+            {group.results.map((result) => (
+              <li key={result.uid} className="py-1">
+                <ResultItem result={result} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 };

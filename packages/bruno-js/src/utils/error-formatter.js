@@ -18,6 +18,8 @@ const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
   [SCRIPT_TYPES.TEST]: 'tests',
   [SCRIPT_TYPES.BEFORE_CALL_START]: 'grpc:before-call-start',
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: 'grpc:before-message-send',
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: 'grpc:after-message-receive',
   [SCRIPT_TYPES.AFTER_CALL_END]: 'grpc:after-call-end'
 };
 
@@ -37,6 +39,8 @@ const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
   [SCRIPT_TYPES.TEST]: /^tests\s*\{/,
   [SCRIPT_TYPES.BEFORE_CALL_START]: /^script:grpc:before-call-start\s*\{/,
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: /^script:grpc:before-message-send\s*\{/,
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: /^script:grpc:after-message-receive\s*\{/,
   [SCRIPT_TYPES.AFTER_CALL_END]: /^script:grpc:after-call-end\s*\{/
 };
 
