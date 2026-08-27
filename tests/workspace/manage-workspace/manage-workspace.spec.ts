@@ -5,7 +5,7 @@ import { buildCommonLocators } from '../../utils/page/locators';
 import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 test.describe('Manage Workspace', () => {
-  test('TC-3109: should open terminal from the workspace actions menu', async ({ page }) => {
+  test('TC-3109: should open terminal from the workspace actions menu', { tag: '@sanity' }, async ({ page }) => {
     const { manageWorkspace, devtools } = buildCommonLocators(page);
 
     await createWorkspace(page, 'Terminal Workspace');

@@ -10,7 +10,7 @@ import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Manage Workspace — rename', () => {
-  test('TC-2612: Verify renaming a workspace from manage workspace section', async ({
+  test('TC-2612: Verify renaming a workspace from manage workspace section', { tag: '@sanity' }, async ({
     launchElectronApp,
     createTmpDir
   }) => {

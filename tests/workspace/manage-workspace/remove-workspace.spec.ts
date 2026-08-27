@@ -9,7 +9,7 @@ import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Manage Workspace — remove', () => {
-  test('TC-2611: Verify removing a workspace from manage workspace section', async ({
+  test('TC-2611: Verify removing a workspace from manage workspace section', { tag: '@sanity' }, async ({
     launchElectronApp,
     createTmpDir
   }) => {
