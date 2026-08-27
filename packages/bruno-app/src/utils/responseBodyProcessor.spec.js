@@ -1,4 +1,4 @@
-import { getBodyType, isBinaryContentType } from './responseBodyProcessor';
+import { getBodyType, getExampleBodyType, isBinaryContentType } from './responseBodyProcessor';
 
 describe('getBodyType', () => {
   it('maps textual content types', () => {
@@ -34,5 +34,29 @@ describe('isBinaryContentType', () => {
     expect(isBinaryContentType('image/svg+xml')).toBe(false);
     expect(isBinaryContentType('application/json')).toBe(false);
     expect(isBinaryContentType('')).toBe(false);
+  });
+});
+
+describe('getExampleBodyType', () => {
+  it('keeps the structured header type when the sniff only sees generic text', () => {
+    expect(getExampleBodyType('application/json', 'text/plain')).toBe('json');
+    expect(getExampleBodyType('application/xml', 'text/plain')).toBe('xml');
+    expect(getExampleBodyType('text/html', 'text/plain')).toBe('html');
+  });
+
+  it('lets a binary sniff override a mislabeled text header', () => {
+    expect(getExampleBodyType('text/plain', 'image/png')).toBe('binary');
+    expect(getExampleBodyType('application/json', 'application/pdf')).toBe('binary');
+  });
+
+  it('falls back to the header when the bytes are not recognized', () => {
+    expect(getExampleBodyType('application/octet-stream', null)).toBe('binary');
+    expect(getExampleBodyType('application/json', null)).toBe('json');
+    expect(getExampleBodyType('', null)).toBe('text');
+  });
+
+  it('keeps SVG as text even though the sniff reports an image mime', () => {
+    expect(getExampleBodyType('image/svg+xml', 'image/svg+xml')).toBe('text');
+    expect(getExampleBodyType('text/plain', 'image/svg+xml')).toBe('text');
   });
 });

@@ -7,7 +7,7 @@ import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid, formatResponse } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
-import { getBodyType, isBinaryContentType } from 'utils/responseBodyProcessor';
+import { getExampleBodyType } from 'utils/responseBodyProcessor';
 import { detectContentTypeFromBase64 } from 'utils/response';
 import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
@@ -82,9 +82,9 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
 
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
-
     const sniffedMime = detectContentTypeFromBase64(response.dataBuffer);
-    const bodyType = isBinaryContentType(sniffedMime) ? 'binary' : getBodyType(contentType);
+
+    const bodyType = getExampleBodyType(contentType, sniffedMime);
 
     const content = bodyType === 'binary'
       ? response.dataBuffer
