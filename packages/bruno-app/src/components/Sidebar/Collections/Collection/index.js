@@ -643,6 +643,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
               strokeWidth={2}
               className={`chevron-icon ${iconClassName}`}
               style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+              data-testid="collection-chevron"
               onClick={handleCollectionCollapse}
               onDoubleClick={handleCollectionDoubleClick}
             />

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getMarkRange } from '@tiptap/core';
-import { IconEdit, IconUnlink, IconCopy, IconExternalLink } from '@tabler/icons';
+import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import ToolHint from 'components/ToolHint';
-import Button from 'ui/Button';
-import { isSafeUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
-
-const POPOVER_WIDTH = 272; // matches the popover's `width: 17rem` in StyledWrapper.js
+import Portal from 'ui/Portal';
+import { createPopper } from '@popperjs/core';
 
 /**
  * Resolves link text + doc range from the TipTap document for a given anchor element.
@@ -30,46 +29,24 @@ function resolveLinkText(editor, anchorEl) {
   return { text: anchorEl.textContent || '', range: null };
 }
 
-/**
- * Gets coordinates relative to the editor's scrollable content container.
- * This keeps the popover anchored to the link during scroll.
- */
-function getRelativeCoords(anchorEl, containerEl) {
-  const anchorRect = anchorEl.getBoundingClientRect();
-  const containerRect = containerEl.getBoundingClientRect();
-
-  const left = Math.min(
-    Math.max(8, anchorRect.left - containerRect.left), // 8px left padding
-    containerRect.width - POPOVER_WIDTH - 8 // 8px right padding
-  );
-  // Add some spacing so the top of the popover has a gap
-  const top = anchorRect.bottom - containerRect.top + containerEl.scrollTop + 6;
-
-  return { top, left };
-}
-
-/**
- * EditorLinkPopover manages:
- * 1. A lightweight hover preview that appears in BOTH edit and preview modes.
- * 2. A full edit popover (edit-mode) triggered only in edit mode.
- *
- * Both are rendered INSIDE the editor's scrollable container (not a Portal),
- * so they naturally scroll with the content.
- */
 const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   // --- Hover View Popover ---
   const [hoverOpen, setHoverOpen] = useState(false);
-  const [hoverCoords, setHoverCoords] = useState({ top: 0, left: 0 });
   const [hoverLink, setHoverLink] = useState({ text: '', url: '' });
 
   // --- Edit Popover ---
   const [editOpen, setEditOpen] = useState(false);
-  const [editCoords, setEditCoords] = useState({ top: 0, left: 0 });
   const [editLink, setEditLink] = useState({ text: '', url: '' });
 
   const hoverTimerRef = useRef(null);
   const isPointerOverHoverPopover = useRef(false);
-  const currentAnchorRef = useRef(null);
+  const [activeAnchor, setActiveAnchor] = useState(null);
+
+  const hoverPopoverElRef = useRef(null);
+  const editPopoverElRef = useRef(null);
+
+  const hoverPopperInstanceRef = useRef(null);
+  const editPopperInstanceRef = useRef(null);
 
   const isEditable = editor?.isEditable ?? false;
 
@@ -77,25 +54,93 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     return containerEl || editor?.view?.dom?.closest('.rich-text-editor-content') || document.body;
   }, [containerEl, editor]);
 
+  const getPopperModifiers = useCallback((container) => [
+    {
+      name: 'preventOverflow',
+      options: {
+        boundary: container,
+        padding: 8
+      }
+    },
+    {
+      name: 'flip',
+      options: {
+        boundary: container,
+        fallbackPlacements: ['top', 'bottom']
+      }
+    },
+    {
+      name: 'offset',
+      options: {
+        offset: [0, 4]
+      }
+    }
+  ], []);
+
+  const createVirtualElement = (coords) => ({
+    getBoundingClientRect: () => ({
+      width: 0,
+      height: 0,
+      top: coords.top,
+      right: coords.left,
+      bottom: coords.top,
+      left: coords.left
+    })
+  });
+
+  // --- Popper initialization for Hover Popover ---
+  useEffect(() => {
+    if (hoverOpen && hoverPopoverElRef.current && activeAnchor) {
+      hoverPopperInstanceRef.current = createPopper(activeAnchor, hoverPopoverElRef.current, {
+        placement: 'bottom',
+        strategy: 'fixed',
+        modifiers: getPopperModifiers(getContainer())
+      });
+    }
+
+    return () => {
+      if (hoverPopperInstanceRef.current) {
+        hoverPopperInstanceRef.current.destroy();
+        hoverPopperInstanceRef.current = null;
+      }
+    };
+  }, [hoverOpen, activeAnchor, getContainer, getPopperModifiers]);
+
+  // --- Popper initialization for Edit Popover ---
+  useEffect(() => {
+    if (editOpen && editPopoverElRef.current && activeAnchor) {
+      editPopperInstanceRef.current = createPopper(activeAnchor, editPopoverElRef.current, {
+        placement: 'bottom',
+        strategy: 'fixed',
+        modifiers: getPopperModifiers(getContainer())
+      });
+    }
+
+    return () => {
+      if (editPopperInstanceRef.current) {
+        editPopperInstanceRef.current.destroy();
+        editPopperInstanceRef.current = null;
+      }
+    };
+  }, [editOpen, activeAnchor, getContainer, getPopperModifiers]);
+
   const openHoverForAnchor = useCallback((anchorEl) => {
     if (!editor || !anchorEl) return;
     const href = anchorEl.getAttribute('href');
     if (!href) return;
 
-    const container = getContainer();
-    const coords = getRelativeCoords(anchorEl, container);
     const { text } = resolveLinkText(editor, anchorEl);
 
-    currentAnchorRef.current = anchorEl;
+    setActiveAnchor(anchorEl);
     setHoverLink({ text, url: href });
-    setHoverCoords(coords);
     setHoverOpen(true);
-  }, [editor, getContainer]);
+  }, [editor]);
 
   const closeHover = useCallback(() => {
     if (!isPointerOverHoverPopover.current) {
       setHoverOpen(false);
-      currentAnchorRef.current = null;
+      // activeAnchor is intentionally left set — openEditForAnchor reads the
+      // last-hovered anchor when the user clicks the popover's edit icon.
     }
   }, []);
 
@@ -104,39 +149,30 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     const href = anchorEl.getAttribute('href');
     if (!href) return;
 
-    const container = getContainer();
-    const coords = getRelativeCoords(anchorEl, container);
     const { text, range } = resolveLinkText(editor, anchorEl);
     if (range) {
       editor.commands.setTextSelection(range);
     }
 
+    setActiveAnchor(anchorEl);
     setEditLink({ text, url: href });
-    setEditCoords(coords);
     setEditOpen(true);
     setHoverOpen(false);
-  }, [editor, getContainer]);
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
 
-    // Expose imperative API for toolbar link button to open the edit modal
     editor.brunoOpenLinkEdit = ({ text, url } = {}) => {
-      const container = getContainer();
-      // Try to position relative to current cursor selection
-      let coords = { top: 60, left: 60 };
       try {
         const { from } = editor.state.selection;
         const posCoords = editor.view.coordsAtPos(from);
-        const containerRect = container.getBoundingClientRect();
-        coords = {
-          top: posCoords.bottom - containerRect.top + container.scrollTop + 6,
-          left: Math.min(Math.max(8, posCoords.left - containerRect.left), containerRect.width - POPOVER_WIDTH - 8)
-        };
-      } catch (e) { /* ignore */ }
+        setActiveAnchor(createVirtualElement(posCoords));
+      } catch (e) {
+        setActiveAnchor(createVirtualElement({ top: window.innerHeight / 2, left: window.innerWidth / 2 }));
+      }
 
       setEditLink({ text: text || '', url: url || '' });
-      setEditCoords(coords);
       setEditOpen(true);
       setHoverOpen(false);
     };
@@ -144,7 +180,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     return () => {
       if (editor) delete editor.brunoOpenLinkEdit;
     };
-  }, [editor, getContainer]);
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -168,11 +204,24 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     };
 
     const handleClick = (e) => {
-      if (!isEditable) return;
       const anchor = e.target.closest('a[href]');
       if (!anchor) return;
+
+      if (isEditable) {
+        e.preventDefault();
+        openEditForAnchor(anchor);
+        return;
+      }
+
+      // Always block the anchor's native navigation — anything short of a real
+      // http(s) URL (a hash route, a root-relative path, or a bare word like
+      // "abcd") resolves against the current document and would otherwise
+      // redirect the app itself instead of opening in the system browser.
+      const href = anchor.getAttribute('href');
       e.preventDefault();
-      openEditForAnchor(anchor);
+      if (isHttpUrl(href)) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
     };
 
     dom.addEventListener('mouseover', handleMouseOver);
@@ -190,12 +239,12 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   if (!editor) return null;
 
   return (
-    <>
+    <Portal>
       {/* ── Hover view popover (both modes) ── */}
       {hoverOpen && (
         <StyledWrapper
+          ref={hoverPopoverElRef}
           data-hover-popover="true"
-          style={{ top: `${hoverCoords.top}px`, left: `${hoverCoords.left}px` }}
           onMouseEnter={() => {
             isPointerOverHoverPopover.current = true;
             clearTimeout(hoverTimerRef.current);
@@ -216,9 +265,10 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                 // Always block the native anchor navigation — a link already
                 // in the document (e.g. from a shared collection) hasn't been
                 // through our own submit-time validation, so it must go
-                // through the same isSafeUrl check as everything else.
+                // through the same isHttpUrl check as everything else.
                 e.preventDefault();
-                if (!isEditable && isSafeUrl(hoverLink.url)) {
+
+                if (isHttpUrl(hoverLink.url)) {
                   window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
                 }
               }}
@@ -232,10 +282,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   <button
                     type="button"
                     className="action-icon-btn"
+                    data-testid="link-hover-edit-btn"
                     onClick={() => {
                       setHoverOpen(false);
-                      if (currentAnchorRef.current) {
-                        openEditForAnchor(currentAnchorRef.current);
+                      if (activeAnchor) {
+                        openEditForAnchor(activeAnchor);
                       }
                     }}
                   >
@@ -248,8 +299,19 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   <button
                     type="button"
                     className="action-icon-btn"
+                    data-testid="link-hover-unlink-btn"
                     onClick={() => {
                       setHoverOpen(false);
+                      if (activeAnchor && activeAnchor instanceof HTMLElement) {
+                        const { range } = resolveLinkText(editor, activeAnchor);
+                        if (range) {
+                          const previousSelection = editor.state.selection;
+                          editor.commands.setTextSelection(range);
+                          if (onUnlink) onUnlink();
+                          editor.commands.setTextSelection(previousSelection);
+                          return;
+                        }
+                      }
                       if (onUnlink) onUnlink();
                     }}
                   >
@@ -271,19 +333,6 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   <IconCopy size={14} strokeWidth={1.5} />
                 </button>
               </ToolHint>
-              <ToolHint text="Open in new tab" toolhintId="open-link">
-                <button
-                  type="button"
-                  className="action-icon-btn"
-                  onClick={() => {
-                    if (isSafeUrl(hoverLink.url)) {
-                      window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                >
-                  <IconExternalLink size={14} strokeWidth={1.5} />
-                </button>
-              </ToolHint>
             </div>
           </div>
         </StyledWrapper>
@@ -291,21 +340,17 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
       {/* ── Edit popover (edit mode only) ── */}
       <EditorLinkEditPopover
+        ref={editPopoverElRef}
         isOpen={editOpen}
-        externalCoords={editCoords}
         onClose={() => setEditOpen(false)}
         onSubmit={(data) => {
           if (onSubmit) onSubmit(data);
           setEditOpen(false);
         }}
-        onUnlink={() => {
-          if (onUnlink) onUnlink();
-          setEditOpen(false);
-        }}
         initialText={editLink.text}
         initialUrl={editLink.url}
       />
-    </>
+    </Portal>
   );
 };
 

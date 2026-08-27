@@ -11,7 +11,7 @@ const secret = (name) => ({ name, value: '', type: 'text', enabled: true, secret
 
 describe('importBrunoEnvironment — duplicate secrets', () => {
   it('collapses secrets sharing a name, keeping plain variables untouched', () => {
-    const [environment] = importBrunoEnvironment([
+    const { valid: [environment] } = importBrunoEnvironment([
       parsedFile({
         name: 'test',
         variables: [
@@ -30,7 +30,7 @@ describe('importBrunoEnvironment — duplicate secrets', () => {
   });
 
   it('leaves an environment whose secret names are already unique alone', () => {
-    const [environment] = importBrunoEnvironment([
+    const { valid: [environment] } = importBrunoEnvironment([
       parsedFile({ name: 'test', variables: [secret('token'), secret('apiKey')] })
     ]);
 
@@ -38,7 +38,7 @@ describe('importBrunoEnvironment — duplicate secrets', () => {
   });
 
   it('keeps duplicate names on plain variables, which lose nothing to a collision', () => {
-    const [environment] = importBrunoEnvironment([
+    const { valid: [environment] } = importBrunoEnvironment([
       parsedFile({
         name: 'test',
         variables: [
@@ -52,7 +52,7 @@ describe('importBrunoEnvironment — duplicate secrets', () => {
   });
 
   it('collapses duplicates in each environment of a multi-environment file', () => {
-    const environments = importBrunoEnvironment([
+    const { valid: environments } = importBrunoEnvironment([
       parsedFile({
         info: { type: 'bruno-environment' },
         environments: [

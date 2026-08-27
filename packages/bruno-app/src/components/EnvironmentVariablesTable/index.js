@@ -18,7 +18,7 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils'
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections';
 import {
   stripEnvVarUid,
   getDuplicateSecretNames,
@@ -90,6 +90,7 @@ const EnvVarValueCell = ({
   isLastEmptyRow,
   storedTheme,
   collection,
+  resolvableVariables,
   formik,
   handleRowFocus,
   handleSave,
@@ -160,7 +161,7 @@ const EnvVarValueCell = ({
             <DataTypeSelector
               compact={isCompact}
               variable={variable}
-              collection={collection}
+              resolvableVariables={resolvableVariables}
               onChange={(fields) => {
                 Object.entries(fields).forEach(([key, val]) => {
                   formik.setFieldValue(`${actualIndex}.${key}`, val, true);
@@ -318,6 +319,8 @@ const EnvironmentVariablesTable = ({
     }
     return c;
   }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
+
+  const resolvableVariables = useMemo(() => getAllVariables(_collection), [_collection]);
 
   // Reuse the previous initialValues when only uids changed but the content is
   // identical.
@@ -974,6 +977,7 @@ const EnvironmentVariablesTable = ({
                       type="checkbox"
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
+                      data-testid="env-var-enabled-checkbox"
                       checked={variable.enabled}
                       onChange={formik.handleChange}
                     />
@@ -1014,6 +1018,7 @@ const EnvironmentVariablesTable = ({
                     isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
+                    resolvableVariables={resolvableVariables}
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}

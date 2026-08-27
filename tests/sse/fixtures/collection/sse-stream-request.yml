@@ -1,0 +1,10 @@
+info:
+  name: sse-stream-request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/api/sse/stream
+  body:
+    type: none
