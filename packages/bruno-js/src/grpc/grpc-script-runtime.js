@@ -202,7 +202,7 @@ class GrpcScriptRuntime {
       request,
       // Passing sentMessages so only messages sent by client is accessible
       buildGrpc: () => ({
-        request: new BrunoGrpcRequest(request, { sentMessages }),
+        request: new BrunoGrpcRequest(request, { sentMessages, metadataWritable: false }),
         response: new BrunoGrpcResponse(response)
       }),
       extraResult: { response },
@@ -258,7 +258,7 @@ class GrpcScriptRuntime {
    * `after-message-receive`. `message` is the message just received, and is also the last entry of
    * `response.messages` — the call folds it in before the hook runs.
    *
-   * The `response` here is *partial*: the call is still open, so `statusCode`, `statusMessage`,
+   * The `response` here is *partial*: the call is still open, so `statusCode`, `statusText`,
    * `duration` and `trailers` are not yet known and read as `undefined` / empty. `metadata` is
    * usually populated, since headers precede the first message.
    */

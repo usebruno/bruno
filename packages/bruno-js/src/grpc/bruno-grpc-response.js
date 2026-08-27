@@ -8,7 +8,7 @@ const GrpcMessage = require('./grpc-message');
  * Reached from hooks as `bru.grpc.response`.
  *
  * `messages`, `metadata` and `trailers` are the same list types `bru.grpc.request` uses, always
- * read-only here, since the connection has already been completed.
+ * read-only here.
  *
  * Scalar values have interpolated values unlike the request counterpart.
  * Keep quickjs shim up to date on any updates to this class
@@ -20,7 +20,7 @@ class BrunoGrpcResponse {
    * @param {object} response - The call so far; complete in `afterCallEnd`, partial in `afterMessageReceive`
    * @param {object} [options]
    * @param {object} [options.message] - The single message just received, as `{ data, timestamp }`.
-   *   Supplied only by `afterMessageReceive`;
+   *   Supplied only by `afterMessageReceive`
    */
   constructor(response, { message } = {}) {
     this.#response = response;

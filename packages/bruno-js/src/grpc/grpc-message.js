@@ -3,8 +3,6 @@ const { cloneDeep } = require('lodash');
 /**
  * `bru.grpc.request.message` / `bru.grpc.response.message` in the message hooks — the single message
  * being sent or received, as opposed to the `GrpcMessageList` of all of them.
- *
- * Keep quickjs shim up to date on any updates to this class
  */
 class GrpcMessage {
   /**

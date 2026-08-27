@@ -24,7 +24,7 @@ const addBrunoGrpcResponseShimToContext = (vm, response, grpcObject) => {
     addGrpcMessageListShimToContext(vm, response.messages, responseObject, 'globalThis.bru.grpc.response')
   );
 
-  // response.message — present only in `afterMessageReceive`;
+  // response.message — present only in `afterMessageReceive`
   if (response.message) {
     const message = marshallToVm(response.message, vm);
     vm.setProp(responseObject, 'message', message);
