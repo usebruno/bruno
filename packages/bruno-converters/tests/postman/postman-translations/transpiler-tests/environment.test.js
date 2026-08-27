@@ -102,6 +102,12 @@ describe('Environment Variable Translation', () => {
     expect(translatedCode).toBe('bru.deleteEnvVar("tempToken");');
   });
 
+  it('should translate postman.clearEnvironmentVariables', () => {
+    const code = 'postman.clearEnvironmentVariables();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.deleteAllEnvVars();');
+  });
+
   it('should translate postman.setGlobalVariable', () => {
     const code = 'postman.setGlobalVariable("timeStamp", now);';
     const translatedCode = translateCode(code);
