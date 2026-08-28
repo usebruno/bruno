@@ -7,21 +7,25 @@ const hoverAdjust = (color, props) => (props.theme.mode === 'dark' ? lighten(0.0
 const sizeStyles = {
   sm: css`
     --checkbox-box-size: 12px;
+    --checkbox-label-size: ${(props) => props.theme.font.size.xs};
     --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `,
   md: css`
     --checkbox-box-size: 14px;
+    --checkbox-label-size: ${(props) => props.theme.font.size.sm};
     --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `,
   lg: css`
     --checkbox-box-size: 16px;
+    --checkbox-label-size: ${(props) => props.theme.font.size.base};
     --checkbox-border-radius: 4px;
     --checkbox-border-width: 1px;
   `,
   xl: css`
     --checkbox-box-size: 18px;
+    --checkbox-label-size: ${(props) => props.theme.font.size.md};
     --checkbox-border-radius: 4px;
     --checkbox-border-width: 1px;
   `
@@ -98,7 +102,7 @@ const StyledWrapper = styled.div`
   }
 
   .checkbox-label {
-    font-size: ${(props) => props.theme.font.size.sm};
+    font-size: var(--checkbox-label-size);
     color: ${(props) => props.theme.text};
     user-select: none;
   }

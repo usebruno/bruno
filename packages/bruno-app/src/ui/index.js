@@ -9,7 +9,6 @@ export { default as ErrorBanner } from './ErrorBanner';
 export { default as HeightBoundContainer } from './HeightBoundContainer';
 export { default as MenuDropdown } from './MenuDropdown';
 export { default as MethodBadge } from './MethodBadge';
-export { default as RadioGroup } from './RadioGroup';
 export { default as ResponsiveTabs } from './ResponsiveTabs';
 export { default as SegmentedControl } from './SegmentedControl';
 export { default as StatusBadge } from './StatusBadge';
