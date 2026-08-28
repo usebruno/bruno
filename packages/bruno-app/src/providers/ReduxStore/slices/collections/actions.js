@@ -23,7 +23,9 @@ import {
   isItemARequest,
   getAllVariables,
   transformRequestToSaveToFilesystem,
-  transformCollectionRootToSave
+  transformCollectionRootToSave,
+  flattenItems,
+  resolveEnabledVariable
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -93,7 +95,7 @@ import {
   isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
@@ -2078,6 +2080,21 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
 };
 
 /**
+ * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
+ *   entry that was updated, or undefined when a new one was appended instead.
+ */
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
+  const variable = resolveEnabledVariable(variables, variableName);
+  const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
+
+  const updatedVariables = variable
+    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    : [...(variables || []), newVariable];
+
+  return { variable, updatedVariables };
+};
+
+/**
  * Update a variable value in its detected scope (inline editing)
  * @param {string} variableName - Name of the variable to update
  * @param {string} newValue - New value for the variable
@@ -2113,24 +2130,19 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
       switch (type) {
         case 'environment': {
-          const { environment, variable } = data;
+          const environment = findEnvironmentInCollection(collection, data.environment?.uid);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
+          if (!environment) {
+            return reject(new Error('Environment not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
-
-          return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
+          // not pre-resolving a secret-name collision here
+          // saveEnvironment's writesCollidingSecrets guard rejects it instead.
+          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
             .then(resolve)
             .catch(reject);
@@ -2229,27 +2241,16 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
-          }
-
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
-
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
-
+          // Deliberately not pre-resolving a secret-name collision here.
+          // saveEnvironment's writesCollidingSecrets guard rejects it instead
           return dispatch(saveGlobalEnvironment({
-            variables: resolvedVariables,
+            variables: updatedVariables,
             environmentUid: activeGlobalEnvUid
           }))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
             .then(resolve)
             .catch(reject);
