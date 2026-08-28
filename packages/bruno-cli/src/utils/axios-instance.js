@@ -5,7 +5,7 @@ const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
-const { getSentHeaders, applyOmitConnectionToAxiosConfig } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -183,6 +183,8 @@ function makeAxiosInstance({
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          handleNtlmRedirect(requestConfig, error.config.url, redirectUrl, forwardAuthorizationHeader);
 
           if (!isSameOrigin(error.config.url, redirectUrl)) {
             /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
