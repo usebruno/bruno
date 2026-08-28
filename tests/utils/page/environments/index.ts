@@ -1,6 +1,8 @@
 import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
+const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
+
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -64,6 +66,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // matching on the wrapper is the only way to get the full concatenated text.
   variableValue: (name: string) =>
     page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+  settingsListItem: (name: string) => environmentItemLocator(page, name),
+  activatedCheckmark: (name: string) => environmentItemLocator(page, name).locator('.activated-checkmark'),
   createEnvButton: () => page.locator('button[id="create-env"]'),
   settingsCreateButton: () =>
     page.locator('.environments-container .sidebar button[title="Create environment"]'),
@@ -117,11 +121,13 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
   importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
+  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
   importDuplicatesGroup: () => page.getByTestId('env-import-duplicates-group'),
   importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
   importNewGroup: () => page.getByTestId('env-import-new-group'),
   importNewCount: () => page.getByTestId('env-import-new-count'),
-  importSelectAllCheckbox: () => page.getByTestId('env-import-select-all'),
+  importDuplicatesGroupSelectAllCheckbox: () => page.getByTestId('env-import-duplicates-group-checkbox'),
+  importNewGroupSelectAllCheckbox: () => page.getByTestId('env-import-new-group-checkbox'),
   importSelectedCount: () => page.getByTestId('env-import-selected-count'),
   importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
   importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
@@ -129,7 +135,10 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
   importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
   importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
-  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace')
+  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
+  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });
 
 /**

@@ -37,7 +37,8 @@ const ModalFooter = ({
   hideFooter,
   footerLeft,
   confirmButtonColor = 'primary',
-  dataTestId = 'modal'
+  dataTestId = 'modal',
+  className = ''
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -47,7 +48,7 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+    <div className={`flex justify-between items-center p-4 bruno-modal-footer ${className}`}>
       <div>{footerLeft}</div>
       <div className="flex justify-end">
         <span className={hideCancel ? 'hidden' : 'mr-2'}>
@@ -98,7 +99,8 @@ const Modal = ({
   closeModalFadeTimeout = 500,
   dataTestId,
   confirmButtonColor = 'primary',
-  noPadding
+  noPadding,
+  footerClassName
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -174,6 +176,7 @@ const Modal = ({
           footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
+          className={footerClassName}
         />
       </div>
 
