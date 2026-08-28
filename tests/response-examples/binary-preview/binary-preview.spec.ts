@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import jsyaml from 'js-yaml';
 import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { editCodeMirrorEditor } from '../../utils/page/actions';
@@ -89,7 +90,13 @@ const launchWithIsolatedCollection = async ({ launchElectronApp, createTmpDir }:
   await fs.promises.cp(fixtureCollectionPath, collectionPath, { recursive: true });
   const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
   const page = await waitForReadyPage(app);
-  return { app, page };
+  return { app, page, collectionPath };
+};
+
+// Reads the body the app persisted for a saved example straight from the request's .yml file.
+const readSavedExampleBody = (requestFilePath: string, exampleName: string) => {
+  const doc = jsyaml.load(fs.readFileSync(requestFilePath, 'utf8')) as any;
+  return doc.examples?.find((example: any) => example.name === exampleName)?.response?.body;
 };
 
 test.describe('Binary response example previews', () => {
@@ -207,6 +214,36 @@ test.describe('Binary response example previews', () => {
         await expect(responseExample.editButton()).toBeVisible();
         await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
         await expect(responseExample.responseContent()).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('should persist binary examples as base64 and json examples as formatted text', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page, collectionPath } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
+
+    try {
+      await test.step('Save a PNG example and verify the stored body is the raw base64', async () => {
+        await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+        await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+
+        await expect(async () => {
+          const body = readSavedExampleBody(path.join(collectionPath, 'images', 'binary-preview-image-png.yml'), 'PNG Example');
+          expect(body?.type).toBe('binary');
+          expect(body?.data).toMatch(/^iVBORw0KGgo[A-Za-z0-9+/=]+$/);
+        }).toPass({ timeout: 10_000 });
+      });
+
+      await test.step('Save a JSON example and verify the stored body is formatted json', async () => {
+        await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-json');
+        await sendReqAndSaveResposeExample(page, 'binary-preview-json', 'JSON Example');
+
+        await expect(async () => {
+          const body = readSavedExampleBody(path.join(collectionPath, 'binary-preview-json.yml'), 'JSON Example');
+          expect(body?.type).toBe('json');
+          expect(body?.data).toBe('{\n  "hello": "world"\n}');
+        }).toPass({ timeout: 10_000 });
       });
     } finally {
       await closeElectronApp(app);
