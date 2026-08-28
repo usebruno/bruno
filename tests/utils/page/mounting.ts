@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { test, expect, Page, ElectronApplication } from '../../../playwright';
 
 /**
@@ -131,6 +132,44 @@ export const openCollectionFromPath = async (
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
   });
 };
+
+/**
+ * Ensure a collection is open in the sidebar, opening it from disk if it is not.
+ *
+ * @param page - The Playwright page object
+ * @param collectionPath - Absolute path to the collection directory. Pass it with forward
+ *   slashes (see `toPosixPath`) so it matches the path recorded in the spec's
+ *   `collection-security.json`; the sandbox config is looked up by exact string, and a
+ *   miss puts the JavaScript sandbox modal in front of the test on Windows.
+ * @param collectionName - The name of the collection, used to wait for the sidebar row
+ */
+export const ensureCollectionOpen = async (
+  page: Page,
+  collectionPath: string,
+  collectionName: string
+): Promise<void> => {
+  await test.step(`Ensure collection "${collectionName}" is open`, async () => {
+    const result = await page.evaluate(
+      (pathname) => (window as any).ipcRenderer.invoke('renderer:open-multiple-collections', [pathname]),
+      collectionPath
+    );
+
+    const problems = [...(result?.failed ?? []), ...(result?.invalid ?? [])];
+    if (problems.length) {
+      throw new Error(`Could not open collection at "${collectionPath}": ${JSON.stringify(problems)}`);
+    }
+
+    await waitForCollectionMount(page, collectionName);
+  });
+};
+
+/**
+ * Normalize an absolute path to forward slashes, matching how collection paths are
+ * written into a spec's init-user-data (preferences.json, collection-security.json).
+ *
+ * @param pathname - The path to normalize
+ */
+export const toPosixPath = (pathname: string): string => pathname.split(path.sep).join('/');
 
 /**
  * Wait for a collection to finish mounting (loading spinner disappears and items are stable)

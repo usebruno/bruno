@@ -1,12 +1,20 @@
+import * as path from 'path';
 import { expect, test } from '../../playwright';
 import { openRequest, closeAllCollections } from '../utils/page/actions';
+import { ensureCollectionOpen, toPosixPath } from '../utils/page/mounting';
 import { buildCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
+
+const COLLECTION_PATH = toPosixPath(path.join(__dirname, 'fixtures', 'collection'));
 const SCROLL_REQ = 'ws-scroll-top';
 const TWO_MSG_REQ = 'ws-two-long-msgs';
 
 test.describe('websocket message editor scroll behaviour', () => {
+  test.beforeEach(async ({ pageWithUserData: page }) => {
+    await ensureCollectionOpen(page, COLLECTION_PATH, COLLECTION_NAME);
+  });
+
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
