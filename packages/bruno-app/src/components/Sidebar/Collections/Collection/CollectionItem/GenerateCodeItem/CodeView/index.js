@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
-import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { findCollectionByItemUid, getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
 import { generateSnippet } from '../utils/snippet-generator';
@@ -28,6 +28,7 @@ const CodeView = ({ language, item }) => {
       activeGlobalEnvironmentUid
     });
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
     return c;
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
