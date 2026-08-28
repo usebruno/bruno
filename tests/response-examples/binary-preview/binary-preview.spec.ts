@@ -250,6 +250,34 @@ test.describe('Binary response example previews', () => {
     }
   });
 
+  test('should show SVG as editable markup rather than a binary preview (binary-preview-svg)', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page, collectionPath } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
+
+    try {
+      const { responseExample } = buildCommonLocators(page);
+
+      await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-svg');
+      await sendReqAndSaveResposeExample(page, 'binary-preview-svg', 'SVG Example');
+
+      // image/svg+xml is XML text, so it is stored and edited as markup, not media.
+      await test.step('Verify the markup renders in the editor instead of an image preview', async () => {
+        await expect(responseExample.binaryPreview()).toHaveCount(0);
+        await expect(responseExample.responseContentCodeMirror()).toContainText('<svg');
+        await expect(responseExample.responseContentCodeMirror()).toContainText('Test SVG');
+      });
+
+      await test.step('Verify the stored body is text, not binary', async () => {
+        await expect(async () => {
+          const body = readSavedExampleBody(path.join(collectionPath, 'binary-preview-svg.yml'), 'SVG Example');
+          expect(body?.type).toBe('text');
+          expect(body?.data).toContain('<svg');
+        }).toPass({ timeout: 10_000 });
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
   test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ launchElectronApp, createTmpDir }) => {
     const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
