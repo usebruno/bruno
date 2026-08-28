@@ -9,6 +9,7 @@ export default {
   parameters: {
     layout: 'padded',
     docs: {
+      source: { transform: (code) => code.replace(/\bPlayground\b/g, 'Input') },
       description: {
         component:
           'A single-line text entry control. Controlled: pass value and onChange. Wrap it in Field for a label, helper text and error wiring, or use it bare inside a table cell. There is deliberately no size prop — the design specifies one height; use variant="ghost" for a borderless cell input.'
@@ -33,14 +34,26 @@ export default {
     readOnly: { control: 'boolean' },
     leftSection: { control: false, description: 'Leading content — an icon or a short prefix.' },
     rightSection: { control: false, description: 'Trailing content — a unit, an action.' },
-    onChange: { action: 'changed' }
+    onChange: {
+      action: 'changed',
+      description:
+        'Receives the native DOM event, not the value — read e.target.value. This is what lets {...formik.getFieldProps(name)} work: formik reads name and value off the event.'
+    }
   }
 };
 
-// Controlled wrapper so the playground args actually type.
-const Playground = ({ value: initial = '', ...args }) => {
+const Playground = ({ value: initial = '', onChange, ...args }) => {
   const [value, setValue] = useState(initial);
-  return <Input {...args} value={value} onChange={(e) => setValue(e.target.value)} />;
+  return (
+    <Input
+      {...args}
+      value={value}
+      onChange={(e) => {
+        setValue(e.target.value);
+        onChange?.(e);
+      }}
+    />
+  );
 };
 
 export const Default = {
@@ -94,6 +107,15 @@ const FieldExample = () => {
 /** Field owns the label and the single helper slot; the error replaces the description. */
 export const WithField = {
   tags: ['!dev'],
+  parameters: {
+    docs: {
+      source: {
+        code: `<Field label="Collection name" description="Used as the folder name on disk" required>
+                  <Input fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+                </Field>`
+      }
+    }
+  },
   render: () => <FieldExample />
 };
 
@@ -131,5 +153,14 @@ const PortExample = () => {
 
 export const NumberInput = {
   tags: ['!dev'],
+  parameters: {
+    docs: {
+      source: {
+        code: `<Field label="Port">
+          <Input type="number" min={1} max={65535} value={port} onChange={(e) => setPort(e.target.value)} />
+        </Field>`
+      }
+    }
+  },
   render: () => <PortExample />
 };
