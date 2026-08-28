@@ -388,7 +388,7 @@ describe('GrpcScriptRuntime', () => {
       metadata: [{ name: 'content-type', value: 'application/grpc' }],
       trailers: undefined,
       statusCode: undefined,
-      statusMessage: undefined,
+      statusText: undefined,
       duration: undefined,
       methodType: 'server-streaming',
       ...overrides

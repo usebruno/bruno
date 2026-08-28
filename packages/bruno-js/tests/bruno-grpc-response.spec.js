@@ -83,7 +83,7 @@ describe('BrunoGrpcResponse', () => {
       metadata: [{ name: 'content-type', value: 'application/grpc' }],
       trailers: undefined,
       statusCode: undefined,
-      statusMessage: undefined,
+      statusText: undefined,
       duration: undefined,
       methodType: 'server-streaming'
     };
@@ -91,7 +91,7 @@ describe('BrunoGrpcResponse', () => {
     const res = new BrunoGrpcResponse(partial, { message: partial.messages[0] });
 
     expect(res.statusCode).toBeUndefined();
-    expect(res.statusMessage).toBeUndefined();
+    expect(res.statusText).toBeUndefined();
     expect(res.duration).toBeUndefined();
     expect(res.trailers.count()).toBe(0);
     expect(res.metadata.get('content-type')).toBe('application/grpc');
