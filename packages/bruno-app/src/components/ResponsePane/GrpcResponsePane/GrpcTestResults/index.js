@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -112,20 +112,14 @@ const GrpcTestResults = ({ item, sections }) => {
   const [scroll, setScroll] = usePersistedState({ key: `grpc-response-tests-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
-  const expandFilledSections = () =>
-    Object.fromEntries(sections.map((section) => [section.key, section.results.length > 0]));
+  const [userToggledSections, setUserToggledSections] = useState({});
 
-  const [expandedSections, setExpandedSections] = useState(expandFilledSections);
+  const isSectionExpanded = (section) => userToggledSections[section.key] ?? section.results.length > 0;
 
-  const resultCounts = sections.map((section) => section.results.length).join(',');
-  useEffect(() => {
-    setExpandedSections(expandFilledSections());
-  }, [resultCounts]);
-
-  const toggleSection = (key) => {
-    setExpandedSections({
-      ...expandedSections,
-      [key]: !expandedSections[key]
+  const toggleSection = (section) => {
+    setUserToggledSections({
+      ...userToggledSections,
+      [section.key]: !isSectionExpanded(section)
     });
   };
 
@@ -141,8 +135,8 @@ const GrpcTestResults = ({ item, sections }) => {
           sectionKey={section.key}
           title={section.title}
           results={section.results}
-          isExpanded={expandedSections[section.key]}
-          onToggle={() => toggleSection(section.key)}
+          isExpanded={isSectionExpanded(section)}
+          onToggle={() => toggleSection(section)}
         />
       ))}
     </StyledWrapper>

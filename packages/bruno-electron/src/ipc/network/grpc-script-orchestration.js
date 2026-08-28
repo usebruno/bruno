@@ -178,7 +178,8 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     sendEvent('grpc:script-error', requestId, collectionUid, {
       scriptType,
       errorMessage: messageIndex === undefined ? errorMessage : `Message ${messageIndex + 1}: ${errorMessage}`,
-      errorContext: formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath)
+      errorContext: formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath),
+      messageIndex
     });
   };
 
@@ -480,7 +481,10 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
       && session.request.script?.afterMessageReceive?.trim().length
     ) {
       const received = session.messages[session.messages.length - 1];
-      enqueueHook(session, () => runAfterMessageReceive(session, received));
+      enqueueHook(session, () => runAfterMessageReceive(session, received))
+        .catch((error) => {
+          console.error('Error running gRPC afterMessageReceive hook:', error);
+        });
     }
 
     if (!TERMINAL_EVENTS.includes(eventName) || session.terminated) return;

@@ -106,7 +106,7 @@ const GrpcResponsePane = ({ item, collection }) => {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       case 'tests': {
-        return <GrpcTestResults item={item} sections={testSections} />;
+        return <GrpcTestResults key={item.uid} item={item} sections={testSections} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -198,7 +198,7 @@ const GrpcResponsePane = ({ item, collection }) => {
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
             ) : focusedTab?.responsePaneTab === 'tests' ? (
-              <GrpcTestResults item={item} sections={testSections} />
+              <GrpcTestResults key={item.uid} item={item} sections={testSections} />
             ) : null
           ) : (
             <>{getTabPanel(focusedTab.responsePaneTab)}</>

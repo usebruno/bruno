@@ -872,14 +872,14 @@ export const collectionsSlice = createSlice({
         item.afterCallEndTestResults = results;
       }
 
-      const taggedResults = () => results.map((result) => ({ ...result, messageIndex }));
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND || scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        const isBeforeSend = scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND;
+        const resultsKey = isBeforeSend ? 'beforeMessageSendTestResults' : 'afterMessageReceiveTestResults';
 
-      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND) {
-        item.beforeMessageSendTestResults = [...(item.beforeMessageSendTestResults || []), ...taggedResults()];
-      }
-
-      if (scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
-        item.afterMessageReceiveTestResults = [...(item.afterMessageReceiveTestResults || []), ...taggedResults()];
+        if (!item[resultsKey]) {
+          item[resultsKey] = [];
+        }
+        item[resultsKey].push(...results.map((result) => ({ ...result, messageIndex })));
       }
     },
     responseCleared: (state, action) => {
