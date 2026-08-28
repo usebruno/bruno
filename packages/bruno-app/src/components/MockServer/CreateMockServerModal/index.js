@@ -8,8 +8,9 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { areItemsLoading, isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
+import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import {
   generateMockResponsesFromSpec,
   loadMockResponses,
@@ -132,10 +133,6 @@ const syncResponsesForNewInstance = async ({
   const location = resolveMockResponseLocation(instance, workspaces, activeWorkspace);
 
   if (instance.sourceType === 'collection') {
-    if (!collection?.items?.length) {
-      throw new Error('Open the linked collection so its examples can be synced.');
-    }
-
     const exampleEntries = collectCollectionExamples(collection);
     if (!exampleEntries.length) {
       return;
@@ -339,11 +336,7 @@ const CreateMockServerModal = ({
       }
 
       const resolvedSourceType = values.sourceType;
-      // Look up from the full Redux collection list rather than the workspace-filtered
-      // dropdown options — the full record carries `items`, which the sync helper needs.
-      const selectedCollection = resolvedSourceType === 'collection'
-        ? collections.find((collection) => collection.uid === values.collectionUid) || null
-        : null;
+      const selectedCollection = resolvedSourceType === 'collection' ? linkedCollection : null;
       const specPath = resolvedSourceType === 'spec'
         ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
         : null;
@@ -420,11 +413,33 @@ const CreateMockServerModal = ({
     }
   });
 
+  const linkedCollection = formik.values.sourceType === 'collection' && formik.values.collectionUid
+    ? collections.find((collection) => collection.uid === formik.values.collectionUid) || null
+    : null;
+
+  // Collections mount lazily, the sidebar populates them only when the user
+  // opens or expands them. Treat "not mounted yet" as still loading so we can
+  // block submit until items are hydrated and the example walk is meaningful.
+  const isLinkedCollectionLoading = Boolean(linkedCollection) && (
+    linkedCollection.mountStatus !== 'mounted' || areItemsLoading(linkedCollection)
+  );
+
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
+
+  useEffect(() => {
+    if (!linkedCollection) return;
+    if (linkedCollection.mountStatus === 'mounted' || linkedCollection.mountStatus === 'mounting') return;
+
+    dispatch(mountCollection({
+      collectionUid: linkedCollection.uid,
+      collectionPathname: linkedCollection.pathname,
+      brunoConfig: linkedCollection.brunoConfig
+    }));
+  }, [dispatch, linkedCollection]);
 
   useEffect(() => {
     if (isEditing) {
@@ -477,6 +492,7 @@ const CreateMockServerModal = ({
         size="md"
         title={isEditing ? 'Mock Server Settings' : 'Create Mock Server'}
         confirmText={isEditing ? 'Save' : 'Create'}
+        confirmDisabled={isLinkedCollectionLoading}
         handleConfirm={handleConfirm}
         handleCancel={handleCancel}
         footerLeft={isEditing && onDelete ? (
@@ -574,6 +590,11 @@ const CreateMockServerModal = ({
               )}
               {formik.touched.collectionUid && formik.errors.collectionUid ? (
                 <div className="text-red-500 mt-1">{formik.errors.collectionUid}</div>
+              ) : null}
+              {isLinkedCollectionLoading ? (
+                <div className="text-xs mt-2 opacity-70" data-testid="mock-server-collection-loading">
+                  Loading collection…
+                </div>
               ) : null}
             </div>
           ) : null}
