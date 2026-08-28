@@ -231,7 +231,9 @@ const CreateMockServerModal = ({
     if (editingInstance) {
       return editingInstance.sourceType || 'manual';
     }
-    if (defaultCollectionUid) {
+    // defaultCollection instead of defaultCollectionUid: a uid the workspace can't
+    // resolve would leave the form on Collection with an empty uid and refuse submit.
+    if (defaultCollection) {
       return 'collection';
     }
     if (defaultSourceType === 'spec' && hasSpecOptions) {
@@ -288,9 +290,10 @@ const CreateMockServerModal = ({
   }), [requiresPortField, existingInstances, editingInstance?.uid]);
 
   const formik = useFormik({
-    enableReinitialize: true,
-    // Defer form-level validation to the Create/Save click so field errors don't
-    // pop up while the user is still filling the form (blur/change stay quiet).
+    // No enableReinitialize: workspace data streams in async and reinit would rewrite
+    // user edits (name, sourceType, syncOnCreate) mid-typing. Post-mount defaults
+    // (e.g. suggested port) are set explicitly via setFieldValue.
+    // validateOnBlur/Change off so errors surface at Create-click, not while typing.
     validateOnBlur: false,
     validateOnChange: false,
     initialValues: {
@@ -303,7 +306,7 @@ const CreateMockServerModal = ({
       syncOnCreate: !editingInstance
     },
     validationSchema,
-    onSubmit: async (values, { setFieldError }) => {
+    onSubmit: async (values, { setFieldError, setFieldTouched }) => {
       if (!activeWorkspaceUid) {
         toast.error('No active workspace found');
         return;
@@ -337,6 +340,13 @@ const CreateMockServerModal = ({
 
       const resolvedSourceType = values.sourceType;
       const selectedCollection = resolvedSourceType === 'collection' ? linkedCollection : null;
+
+      if (resolvedSourceType === 'collection' && !selectedCollection) {
+        setFieldTouched('collectionUid', true, false);
+        setFieldError('collectionUid', 'Selected collection is not available');
+        return;
+      }
+
       const specPath = resolvedSourceType === 'spec'
         ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
         : null;
@@ -417,11 +427,16 @@ const CreateMockServerModal = ({
     ? collections.find((collection) => collection.uid === formik.values.collectionUid) || null
     : null;
 
-  // Collections mount lazily, the sidebar populates them only when the user
-  // opens or expands them. Treat "not mounted yet" as still loading so we can
-  // block submit until items are hydrated and the example walk is meaningful.
+  // A failed mount flips the collection back to 'unmounted', which would reopen
+  // the mount effect below. Track attempts per uid so a persistent failure can't
+  // spin forever, and so isLinkedCollectionLoading can tell "yet to attempt" from
+  // "attempted and failed".
+  const attemptedMountUidsRef = useRef(new Set());
+
   const isLinkedCollectionLoading = Boolean(linkedCollection) && (
-    linkedCollection.mountStatus !== 'mounted' || areItemsLoading(linkedCollection)
+    linkedCollection.mountStatus === 'mounting'
+    || areItemsLoading(linkedCollection)
+    || (linkedCollection.mountStatus !== 'mounted' && !attemptedMountUidsRef.current.has(linkedCollection.uid))
   );
 
   useEffect(() => {
@@ -433,12 +448,14 @@ const CreateMockServerModal = ({
   useEffect(() => {
     if (!linkedCollection) return;
     if (linkedCollection.mountStatus === 'mounted' || linkedCollection.mountStatus === 'mounting') return;
+    if (attemptedMountUidsRef.current.has(linkedCollection.uid)) return;
 
+    attemptedMountUidsRef.current.add(linkedCollection.uid);
     dispatch(mountCollection({
       collectionUid: linkedCollection.uid,
       collectionPathname: linkedCollection.pathname,
       brunoConfig: linkedCollection.brunoConfig
-    }));
+    })).catch(() => {});
   }, [dispatch, linkedCollection]);
 
   useEffect(() => {
