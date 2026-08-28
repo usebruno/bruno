@@ -2,6 +2,14 @@ import { generateHtmlReport } from './generate-report';
 import htmlTemplateString, { getFilteredRequestResults } from './template';
 import vm from 'vm';
 
+const readEmbeddedIterations = (html: string) => {
+  const base64 = html.match(/decodeBase64\('([^']*)'\)/)?.[1];
+  if (!base64) {
+    throw new Error('The report did not embed its results as a base64 payload');
+  }
+  return JSON.parse(Buffer.from(base64, 'base64').toString()).results;
+};
+
 describe('getFilteredRequestResults', () => {
   it('preserves original request indexes when filtering failed results', () => {
     const results = [
@@ -40,11 +48,6 @@ describe('htmlTemplateString', () => {
     expect(template).toContain('result.skipReason === \'bail\' ? \'Request skipped due to bail\'');
   });
 });
-
-const readEmbeddedIterations = (html: string) => {
-  const base64 = html.split('decodeBase64(\'')[1].split('\'')[0];
-  return JSON.parse(Buffer.from(base64, 'base64').toString()).results;
-};
 
 describe('generateHtmlReport', () => {
   it('keeps the skip reason, method and url of bail-skipped requests', () => {
