@@ -184,6 +184,35 @@ test.describe('Binary response example previews', () => {
     }
   });
 
+  test('should keep showing the preview instead of a raw editor in edit mode (binary-preview-image-png)', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
+
+    try {
+      const { responseExample } = buildCommonLocators(page);
+
+      await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+      await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+      await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+
+      await test.step('Verify edit mode keeps the preview and does not show the code editor', async () => {
+        await responseExample.editButton().click();
+        await expect(responseExample.saveButton()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+        await expect(responseExample.responseContent()).toHaveCount(0);
+      });
+
+      await test.step('Verify the preview remains after leaving edit mode', async () => {
+        await responseExample.saveButton().click();
+        await expect(responseExample.editButton()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+        await expect(responseExample.responseContent()).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
   test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ launchElectronApp, createTmpDir }) => {
     const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
