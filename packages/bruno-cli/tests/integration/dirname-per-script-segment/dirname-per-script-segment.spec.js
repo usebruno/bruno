@@ -57,14 +57,14 @@ describe('CLI run: __dirname/__filename are bound per script segment', () => {
 
     const parentPath = path.join(workDir, 'parent');
     const childPath = path.join(parentPath, 'child');
-    const envContent = fs.readFileSync(path.join(workDir, 'environments', 'Test.yml'), 'utf8');
+    const envContent = fs.readFileSync(path.join(workDir, 'environments', 'Test.yml'), 'utf8').replace(/\r\n/g, '\n');
     expect(envContent).toContain(`value: ${parentPath}\n`);
     expect(envContent).toContain(`value: ${path.join(parentPath, 'folder.yml')}\n`);
     expect(envContent).toContain(`value: ${childPath}\n`);
     expect(envContent).toContain(`value: ${path.join(childPath, 'folder.yml')}\n`);
     expect(envContent).toContain(`value: ${path.join(childPath, 'dirname-request.yml')}\n`);
 
-    const collectionContent = fs.readFileSync(path.join(workDir, 'opencollection.yml'), 'utf8');
+    const collectionContent = fs.readFileSync(path.join(workDir, 'opencollection.yml'), 'utf8').replace(/\r\n/g, '\n');
     expect(collectionContent).toContain(`value: ${workDir}\n`);
     expect(collectionContent).toContain(`value: ${path.join(workDir, 'opencollection.yml')}\n`);
 
