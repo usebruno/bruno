@@ -102,6 +102,9 @@ export const buildCommonLocators = (page: Page) => ({
     card: () => page.locator('.bruno-modal-card'),
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
+    newRequestName: () => page.getByTestId('request-name'),
+    newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
+    newRequestMethodSelector: () => page.locator('.bruno-modal').getByTestId('method-selector'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
     backdrop: () => page.locator('.bruno-modal-backdrop')
   },
