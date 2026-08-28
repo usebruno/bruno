@@ -182,6 +182,7 @@ describe('updateGrpcScript', () => {
 
   // The hook allowlist is the only thing stopping an arbitrary key from being written into
   // request.script, which the filestore would then try to serialize.
+  // The below items are not in allow-list, hence the state remains the same after the reducer call.
   describe('hook allowlist', () => {
     it.each(['req', 'res', 'tests', 'proto', '__proto__', 'BeforeCallStart', 'beforemessagesend', 'onMessage', '', undefined, null])(
       'ignores the disallowed hook %p',

@@ -13,7 +13,7 @@ const { createScopeSetter } = require('../runtime/scripted-entries');
  * Runs the gRPC lifecycle hooks
  *
  * All four hooks share one body (`#runHook`) and differ only in what they put on `bru.grpc` and
- * what their result object carries — `buildGrpc` and `extraResult` below.
+ * what their result object carries — `buildGrpc` and `baseResult` below.
  *
  * The shared body mirrors `ScriptRuntime`'s `runRequestScript` / `runResponseScript` step for step,
  * substituting the gRPC request/response models. Two intentional differences, not oversights:
@@ -30,13 +30,13 @@ class GrpcScriptRuntime {
    * @param {string} params.script - The hook body, already decommented by the caller
    * @param {object} params.request - The prepared gRPC request
    * @param {Function} params.buildGrpc - Returns the `bru.grpc` object for this hook
-   * @param {object} [params.extraResult] - Merged into the result object this hook returns
+   * @param {object} [params.baseResult] - Hook-specific fields the shared result is built on top of
    */
   async #runHook({
     script,
     request,
     buildGrpc,
-    extraResult = {},
+    baseResult = {},
     envVariables,
     runtimeVariables,
     collectionPath,
@@ -104,7 +104,7 @@ class GrpcScriptRuntime {
     bru.runRequest = () => Promise.reject(new Error('bru.runRequest is not supported in gRPC scripts'));
 
     const buildScriptResult = () => ({
-      ...extraResult,
+      ...baseResult,
       envVariables: bru._envDirty ? cleanJson(envVariables) : null,
       runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
       collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
@@ -167,7 +167,7 @@ class GrpcScriptRuntime {
       request,
       // Initial scope - `request.messages` reports what the call sent, so it is still empty here.
       buildGrpc: () => ({ request: new BrunoGrpcRequest(request, { metadataWritable: true }) }),
-      extraResult: { request },
+      baseResult: { request },
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -199,7 +199,7 @@ class GrpcScriptRuntime {
         request: new BrunoGrpcRequest(request, { sentMessages, metadataWritable: false }),
         response: new BrunoGrpcResponse(response)
       }),
-      extraResult: { response },
+      baseResult: { response },
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -237,7 +237,7 @@ class GrpcScriptRuntime {
         request: new BrunoGrpcRequest(request, { metadataWritable: false, sentMessages, message })
       }),
       // `message` is carried on the result for the planned `message.set`; discarded by callers today.
-      extraResult: { request, message },
+      baseResult: { request, message },
       envVariables,
       runtimeVariables,
       collectionPath,
@@ -277,7 +277,7 @@ class GrpcScriptRuntime {
         request: new BrunoGrpcRequest(request, { metadataWritable: false, sentMessages }),
         response: new BrunoGrpcResponse(response, { message })
       }),
-      extraResult: { response, message },
+      baseResult: { response, message },
       envVariables,
       runtimeVariables,
       collectionPath,
