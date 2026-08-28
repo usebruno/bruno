@@ -143,6 +143,47 @@ test.describe('Binary response example previews', () => {
     }
   });
 
+  test('should keep the binary preview when the Content-Type header is edited (binary-preview-image-png)', async ({ launchElectronApp, createTmpDir }) => {
+    const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
+
+    try {
+      const { responseExample } = buildCommonLocators(page);
+
+      await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+      await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+      await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+
+      await test.step('Change the Content-Type header to application/json in edit mode', async () => {
+        await responseExample.editButton().click();
+        await responseExample.responsePaneTab('headers').click();
+
+        const contentTypeRow = responseExample.headerRow('content-type');
+        await expect(contentTypeRow).toHaveCount(1);
+
+        const valueEditor = responseExample.headerRowValueEditor(contentTypeRow);
+        await valueEditor.click();
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+        await page.keyboard.type('application/json');
+        await expect(valueEditor).toContainText('application/json');
+      });
+
+      await test.step('Verify the image preview still renders', async () => {
+        await responseExample.responsePaneTab('response').click();
+        await expect(responseExample.binaryPreview()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+        await expect(responseExample.binaryPreviewImage()).toHaveAttribute('src', /^data:image\/png;base64,/);
+      });
+
+      await test.step('Verify the preview survives saving the example', async () => {
+        await responseExample.saveButton().click();
+        await expect(responseExample.editButton()).toBeVisible();
+        await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
   test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ launchElectronApp, createTmpDir }) => {
     const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
@@ -161,7 +202,7 @@ test.describe('Binary response example previews', () => {
       });
 
       await test.step('Verify the raw body is editable in edit mode', async () => {
-        await page.getByTestId('response-example-edit-btn').click();
+        await locators.responseExample.editButton().click();
         await editCodeMirrorEditor(page, 'response-example-response-content', 'ZWRpdGVk');
         await expect(locators.responseExample.responseContentCodeMirror()).toContainText('ZWRpdGVk');
         await expect(locators.responseExample.responseContentCodeMirror()).not.toContainText('AAECAwQFBgcI');

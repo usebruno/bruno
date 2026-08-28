@@ -1,4 +1,4 @@
-import { expect, Page } from '../../../playwright';
+import { expect, Locator, Page } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 import { clickResponseAction, expandCollection, expandFolder, sendRequest } from './actions';
 
@@ -17,7 +17,16 @@ export const buildResponseExampleLocators = (page: Page) => ({
   binaryPreviewAudio: () => page.getByTestId('response-example-binary-preview').locator('audio'),
   binaryPreviewVideo: () => page.getByTestId('response-example-binary-preview').locator('video'),
   responseContent: () => page.getByTestId('response-example-response-content'),
-  responseContentCodeMirror: () => page.getByTestId('response-example-response-content').locator('.CodeMirror').first()
+  responseContentCodeMirror: () => page.getByTestId('response-example-response-content').locator('.CodeMirror').first(),
+  editButton: () => page.getByTestId('response-example-edit-btn'),
+  saveButton: () => page.getByTestId('response-example-save-btn'),
+  responsePane: () => page.getByTestId('response-pane'),
+  responsePaneTab: (key: 'response' | 'headers') => page.getByTestId('response-pane').getByTestId(`tab-${key}`),
+  headerRow: (name: string) =>
+    page.getByTestId('response-pane').locator('tbody tr').filter({
+      has: page.getByTestId('column-name').getByText(new RegExp(`^${name}$`, 'i'))
+    }),
+  headerRowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror')
 });
 
 export const openCollectionRequest = async (page: Page, collectionName: string, folderName: string | undefined, requestName: string) => {
