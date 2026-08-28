@@ -401,7 +401,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
         tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
         tokenQueryKey: 'access_token',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
+        tokenEndpointAuthMethod: findValueUsingKey('client_authentication') === 'body' ? 'client_secret_post' : 'client_secret_basic',
         credentialsId: findValueUsingKey('tokenName')
       };
 

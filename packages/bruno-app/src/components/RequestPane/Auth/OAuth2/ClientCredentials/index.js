@@ -11,6 +11,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
+import ClientAuthMethod from '../ClientAuthMethod/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
@@ -21,19 +22,12 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const {
     accessTokenUrl,
-    clientId,
-    clientSecret,
-    scope,
-    credentialsPlacement,
     credentialsId,
     tokenPlacement,
-    tokenHeaderPrefix,
-    tokenQueryKey,
     refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken,
-    tokenSource,
-    additionalParameters
+    tokenSource
   } = oAuth;
 
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
@@ -41,33 +35,22 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
 
   const handleSave = () => { save(); };
 
-  const handleChange = (key, value) => {
+  const patchOAuth = (patch) => {
     dispatch(
       updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
+          ...oAuth,
           grantType: 'client_credentials',
-          accessTokenUrl,
-          clientId,
-          clientSecret,
-          scope,
-          credentialsPlacement,
-          credentialsId,
-          tokenPlacement,
-          tokenHeaderPrefix,
-          tokenQueryKey,
-          refreshTokenUrl,
-          autoRefreshToken,
-          autoFetchToken,
-          tokenSource,
-          additionalParameters,
-          [key]: value
+          ...patch
         }
       })
     );
   };
+
+  const handleChange = (key, value) => patchOAuth({ [key]: value });
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
@@ -80,49 +63,42 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           Configuration
         </span>
       </div>
-      {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
-        const value = oAuth[key] || '';
-        const { showWarning, warningMessage } = isSensitive(value);
+      {inputsConfig
+        .filter((input) => input.key !== 'clientSecret')
+        .map((input) => {
+          const { key, label, isSecret } = input;
+          const value = oAuth[key] || '';
+          const { showWarning, warningMessage } = isSensitive(value);
 
-        return (
-          <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
-            <label className="block min-w-[140px]">{label}</label>
-            <div className="single-line-editor-wrapper flex-1 flex items-center">
-              <SingleLineEditor
-                value={value}
-                theme={storedTheme}
-                onSave={handleSave}
-                onChange={(val) => handleChange(key, val)}
-                onRun={handleRun}
-                collection={collection}
-                item={item}
-                isSecret={isSecret}
-                isCompact
-              />
-              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
+          return (
+            <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
+              <label className="block min-w-[140px]">{label}</label>
+              <div className="single-line-editor-wrapper flex-1 flex items-center">
+                <SingleLineEditor
+                  value={value}
+                  theme={storedTheme}
+                  onSave={handleSave}
+                  onChange={(val) => handleChange(key, val)}
+                  onRun={handleRun}
+                  collection={collection}
+                  item={item}
+                  isSecret={isSecret}
+                  isCompact
+                />
+                {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
+              </div>
             </div>
-          </div>
-        );
-      })}
-      <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
-        <label className="block min-w-[140px]">Add Credentials to</label>
-        <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <MenuDropdown
-            items={[
-              { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
-              { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
-            ]}
-            selectedItemId={credentialsPlacement}
-            placement="bottom-end"
-          >
-            <div className="flex items-center justify-end token-placement-label select-none">
-              {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
-              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-            </div>
-          </MenuDropdown>
-        </div>
-      </div>
+          );
+        })}
+      <ClientAuthMethod
+        oAuth={oAuth}
+        handleChange={handleChange}
+        patchOAuth={patchOAuth}
+        handleRun={handleRun}
+        handleSave={handleSave}
+        collection={collection}
+        item={item}
+      />
       <div className="flex items-center gap-2.5 mt-2">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconKey size={14} className="oauth2-icon" />

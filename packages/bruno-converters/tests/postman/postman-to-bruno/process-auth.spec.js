@@ -345,7 +345,7 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body',
+      tokenEndpointAuthMethod: 'client_secret_post',
       credentialsId: 'test-token-name'
     });
   });
@@ -383,7 +383,7 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body',
+      tokenEndpointAuthMethod: 'client_secret_post',
       credentialsId: 'test-token-name'
     });
   });
@@ -417,7 +417,7 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body',
+      tokenEndpointAuthMethod: 'client_secret_post',
       credentialsId: 'test-token-name'
     });
   });
@@ -440,7 +440,7 @@ describe('processAuth', () => {
       tokenPlacement: 'url',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'basic_auth_header',
+      tokenEndpointAuthMethod: 'client_secret_basic',
       credentialsId: ''
     });
   });
@@ -462,7 +462,7 @@ describe('processAuth', () => {
       tokenPlacement: 'url',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'basic_auth_header',
+      tokenEndpointAuthMethod: 'client_secret_basic',
       credentialsId: ''
     });
   });
@@ -501,7 +501,7 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body',
+      tokenEndpointAuthMethod: 'client_secret_post',
       credentialsId: 'test-token-name'
     });
   });
@@ -541,7 +541,7 @@ describe('processAuth', () => {
       tokenPlacement: 'header',
       tokenHeaderPrefix: '',
       tokenQueryKey: 'access_token',
-      credentialsPlacement: 'body',
+      tokenEndpointAuthMethod: 'client_secret_post',
       credentialsId: 'test-token-name'
     });
   });
