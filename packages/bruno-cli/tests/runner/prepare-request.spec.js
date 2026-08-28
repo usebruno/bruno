@@ -717,4 +717,39 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data.variables).toBe('{}');
     });
   });
+
+  describe('Surfaces queryParams for interpolate-vars to append to URL', () => {
+    // Regression coverage for https://github.com/usebruno/bruno/issues/1681
+    it('extracts enabled type=query params, dropping disabled and unnamed entries', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [
+            { name: 'a', value: '1', type: 'query', enabled: true },
+            { name: 'b', value: '2', type: 'query', enabled: false },
+            { name: '', value: '3', type: 'query', enabled: true },
+            { name: 'id', value: '42', type: 'path', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.queryParams).toEqual([{ name: 'a', value: '1', type: 'query', enabled: true }]);
+      expect(result.pathParams).toEqual([{ name: 'id', value: '42', type: 'path', enabled: true }]);
+    });
+
+    it('treats missing enabled as enabled (legacy bru files)', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [],
+          params: [{ name: 'a', value: '1', type: 'query' }]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.queryParams).toEqual([{ name: 'a', value: '1', type: 'query' }]);
+    });
+  });
 });
