@@ -4,6 +4,7 @@ import {
   IconBrandTwitter,
   IconBrandGithub,
   IconBrandDiscord,
+  IconBrandLinkedin,
   IconBook,
   IconExternalLink
 } from '@tabler/icons';
@@ -36,13 +37,6 @@ const SUPPORT_GROUPS = [
     label: 'SUPPORT.COMMUNITY',
     links: [
       {
-        key: 'discord',
-        icon: IconBrandDiscord,
-        url: 'https://discord.com/invite/KgcZUncpjq',
-        label: 'COMMON.DISCORD',
-        description: 'SUPPORT.DISCORD_DESCRIPTION'
-      },
-      {
         key: 'github',
         icon: IconBrandGithub,
         url: 'https://github.com/usebruno/bruno',
@@ -50,11 +44,25 @@ const SUPPORT_GROUPS = [
         description: 'SUPPORT.GITHUB_DESCRIPTION'
       },
       {
+        key: 'discord',
+        icon: IconBrandDiscord,
+        url: 'https://discord.com/invite/KgcZUncpjq',
+        label: 'COMMON.DISCORD',
+        description: 'SUPPORT.DISCORD_DESCRIPTION'
+      },
+      {
         key: 'twitter',
         icon: IconBrandTwitter,
         url: 'https://twitter.com/use_bruno',
         label: 'COMMON.TWITTER',
         description: 'SUPPORT.TWITTER_DESCRIPTION'
+      },
+      {
+        key: 'linkedin',
+        icon: IconBrandLinkedin,
+        url: 'https://in.linkedin.com/company/usebruno',
+        label: 'COMMON.LINKEDIN',
+        description: 'SUPPORT.LINKEDIN_DESCRIPTION'
       }
     ]
   }
@@ -80,14 +88,20 @@ const Support = () => {
                 href={url}
                 target="_blank"
                 rel="noreferrer"
+                aria-labelledby={`support-link-${key}-label`}
+                aria-describedby={`support-link-${key}-description`}
                 data-testid={`support-${key}`}
               >
                 <span className="support-link-tile">
                   <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
                 </span>
                 <span className="support-link-text">
-                  <span className="support-link-label">{t(label)}</span>
-                  <span className="support-link-description">{t(description)}</span>
+                  <span className="support-link-label" id={`support-link-${key}-label`}>
+                    {t(label)}
+                  </span>
+                  <span className="support-link-description" id={`support-link-${key}-description`}>
+                    {t(description)}
+                  </span>
                 </span>
                 <IconExternalLink className="support-link-affordance" size={16} strokeWidth={1.5} aria-hidden="true" />
               </a>
