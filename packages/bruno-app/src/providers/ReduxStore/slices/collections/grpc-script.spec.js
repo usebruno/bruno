@@ -2,7 +2,8 @@ import reducer, {
   updateGrpcScript,
   grpcScriptError,
   grpcTestResults,
-  initRunRequestEvent
+  initRunRequestEvent,
+  responseCleared
 } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
@@ -288,6 +289,54 @@ describe('grpcScriptError', () => {
     expect(itemFrom(next).afterCallEndScriptErrorContext).toEqual(errorContext);
   });
 
+  it.each([
+    ['before-message-send', 'beforeMessageSendScriptErrorMessage', 'beforeMessageSendScriptErrorContext'],
+    ['after-message-receive', 'afterMessageReceiveScriptErrorMessage', 'afterMessageReceiveScriptErrorContext']
+  ])('records a %s failure with its context', (scriptType, messageKey, contextKey) => {
+    const state = makeState();
+
+    const next = reducer(
+      state,
+      grpcScriptError({
+        itemUid: ITEM_UID,
+        collectionUid: COLLECTION_UID,
+        scriptType,
+        // The main process folds the message index into the text, since only the last error is kept.
+        errorMessage: 'Message 3: boom',
+        errorContext
+      })
+    );
+
+    expect(itemFrom(next)[messageKey]).toBe('Message 3: boom');
+    expect(itemFrom(next)[contextKey]).toEqual(errorContext);
+  });
+
+  it('keeps only the last failure of a message hook, since it runs once per message', () => {
+    const first = reducer(
+      makeState(),
+      grpcScriptError({
+        itemUid: ITEM_UID,
+        collectionUid: COLLECTION_UID,
+        scriptType: 'after-message-receive',
+        errorMessage: 'Message 1: boom',
+        errorContext
+      })
+    );
+
+    const next = reducer(
+      first,
+      grpcScriptError({
+        itemUid: ITEM_UID,
+        collectionUid: COLLECTION_UID,
+        scriptType: 'after-message-receive',
+        errorMessage: 'Message 2: bang',
+        errorContext
+      })
+    );
+
+    expect(itemFrom(next).afterMessageReceiveScriptErrorMessage).toBe('Message 2: bang');
+  });
+
   // ScriptError picks the code-snippet card over the plain banner on the truthiness of the
   // context, so a missing context has to land as null rather than undefined.
   it('normalizes a missing error context to null', () => {
@@ -428,6 +477,52 @@ describe('grpcTestResults', () => {
     }
   );
 
+  it.each([
+    ['before-message-send', 'beforeMessageSendTestResults'],
+    ['after-message-receive', 'afterMessageReceiveTestResults']
+  ])('accumulates the %s results, tagging each with the message it came from', (scriptType, field) => {
+    const first = reducer(
+      makeState(),
+      grpcTestResults({ itemUid: ITEM_UID, collectionUid: COLLECTION_UID, scriptType, results, messageIndex: 0 })
+    );
+
+    const next = reducer(
+      first,
+      grpcTestResults({ itemUid: ITEM_UID, collectionUid: COLLECTION_UID, scriptType, results, messageIndex: 1 })
+    );
+
+    expect(itemFrom(next)[field]).toEqual([
+      ...results.map((result) => ({ ...result, messageIndex: 0 })),
+      ...results.map((result) => ({ ...result, messageIndex: 1 }))
+    ]);
+  });
+
+  it('keeps the call hooks replacing while the message hooks accumulate', () => {
+    const withMessages = reducer(
+      makeState(),
+      grpcTestResults({
+        itemUid: ITEM_UID,
+        collectionUid: COLLECTION_UID,
+        scriptType: 'after-message-receive',
+        results,
+        messageIndex: 0
+      })
+    );
+
+    const next = reducer(
+      withMessages,
+      grpcTestResults({
+        itemUid: ITEM_UID,
+        collectionUid: COLLECTION_UID,
+        scriptType: 'after-call-end',
+        results
+      })
+    );
+
+    expect(itemFrom(next).afterCallEndTestResults).toEqual(results);
+    expect(itemFrom(next).afterMessageReceiveTestResults).toHaveLength(results.length);
+  });
+
   it('ignores an unknown collection or item', () => {
     const state = makeState();
 
@@ -469,34 +564,47 @@ describe('initRunRequestEvent', () => {
   const previousRun = {
     beforeCallStartScriptErrorMessage: 'undefinedVar is not defined',
     afterCallEndScriptErrorMessage: 'boom',
+    beforeMessageSendScriptErrorMessage: 'Message 1: no send',
+    afterMessageReceiveScriptErrorMessage: 'Message 1: bang',
     beforeCallStartScriptErrorContext: errorContext,
     afterCallEndScriptErrorContext: errorContext,
+    beforeMessageSendScriptErrorContext: errorContext,
+    afterMessageReceiveScriptErrorContext: errorContext,
     beforeCallStartTestResults: [{ uid: 'r1', description: 'responds with OK', status: 'pass' }],
-    afterCallEndTestResults: [{ uid: 'r2', description: 'carries a trailer', status: 'fail' }]
+    afterCallEndTestResults: [{ uid: 'r2', description: 'carries a trailer', status: 'fail' }],
+    beforeMessageSendTestResults: [{ uid: 'r3', description: 'message 1 is valid', status: 'pass', messageIndex: 0 }],
+    afterMessageReceiveTestResults: [{ uid: 'r4', description: 'reply 1 is ok', status: 'pass', messageIndex: 0 }]
   };
 
   const rerun = (state) =>
     reducer(state, initRunRequestEvent({ requestUid: 'req-2', itemUid: ITEM_UID, collectionUid: COLLECTION_UID }));
 
-  it('clears both hook test results', () => {
+  it('clears every hook test result', () => {
     const next = rerun(makeState({ item: previousRun }));
 
     expect(itemFrom(next).beforeCallStartTestResults).toEqual([]);
     expect(itemFrom(next).afterCallEndTestResults).toEqual([]);
+    // These accumulate, so a stale list would keep growing run over run.
+    expect(itemFrom(next).beforeMessageSendTestResults).toEqual([]);
+    expect(itemFrom(next).afterMessageReceiveTestResults).toEqual([]);
   });
 
-  it('clears both hook error messages', () => {
+  it('clears every hook error message', () => {
     const next = rerun(makeState({ item: previousRun }));
 
     expect(itemFrom(next).beforeCallStartScriptErrorMessage).toBeNull();
     expect(itemFrom(next).afterCallEndScriptErrorMessage).toBeNull();
+    expect(itemFrom(next).beforeMessageSendScriptErrorMessage).toBeNull();
+    expect(itemFrom(next).afterMessageReceiveScriptErrorMessage).toBeNull();
   });
 
-  it('clears both hook error contexts', () => {
+  it('clears every hook error context', () => {
     const next = rerun(makeState({ item: previousRun }));
 
     expect(itemFrom(next).beforeCallStartScriptErrorContext).toBeNull();
     expect(itemFrom(next).afterCallEndScriptErrorContext).toBeNull();
+    expect(itemFrom(next).beforeMessageSendScriptErrorContext).toBeNull();
+    expect(itemFrom(next).afterMessageReceiveScriptErrorContext).toBeNull();
   });
 
   it('leaves the hook scripts on the request alone', () => {
@@ -510,5 +618,26 @@ describe('initRunRequestEvent', () => {
     const next = rerun(state);
 
     expect(itemFrom(next).request.script.beforeCallStart).toBe('req.setMetadata("x", "1");');
+  });
+});
+
+describe('responseCleared', () => {
+  it('clears every hook test result, including the accumulating message ones', () => {
+    const state = makeState({
+      item: {
+        response: { statusCode: 0 },
+        beforeCallStartTestResults: [{ uid: 'r1', description: 'responds with OK', status: 'pass' }],
+        afterCallEndTestResults: [{ uid: 'r2', description: 'carries a trailer', status: 'fail' }],
+        beforeMessageSendTestResults: [{ uid: 'r3', description: 'message 1 is valid', status: 'pass', messageIndex: 0 }],
+        afterMessageReceiveTestResults: [{ uid: 'r4', description: 'reply 1 is ok', status: 'pass', messageIndex: 0 }]
+      }
+    });
+
+    const next = reducer(state, responseCleared({ itemUid: ITEM_UID, collectionUid: COLLECTION_UID }));
+
+    expect(itemFrom(next).beforeCallStartTestResults).toEqual([]);
+    expect(itemFrom(next).afterCallEndTestResults).toEqual([]);
+    expect(itemFrom(next).beforeMessageSendTestResults).toEqual([]);
+    expect(itemFrom(next).afterMessageReceiveTestResults).toEqual([]);
   });
 });
