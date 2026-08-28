@@ -1,7 +1,7 @@
 import { BrunoError } from 'utils/common/error';
 import { buildEnvVariable, dedupeImportedSecrets } from 'utils/environments';
 
-const validateBrunoEnvironment = (env) => {
+const validateBrunoEnvironment = (env, filePath, fileName) => {
   if (!env || typeof env !== 'object') {
     throw new BrunoError('Invalid environment: expected an object');
   }
@@ -23,56 +23,71 @@ const validateBrunoEnvironment = (env) => {
   const variables = env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }));
 
   return {
-    name: env.name || 'Imported Environment',
+    name: env.name,
     variables: dedupeImportedSecrets(variables),
-    color: env.color
+    color: env.color,
+    filePath,
+    fileName
   };
 };
 
-const processEnvironmentData = (data, fileName) => {
+const processEnvironmentData = (data, fileName, filePath) => {
+  const valid = [];
+  const invalid = [];
+
   try {
     // Handle new single-file format with environments array
     if (data.info && data.info.type === 'bruno-environment' && Array.isArray(data.environments)) {
-      return data.environments.map((env, index) => {
+      data.environments.forEach((env, index) => {
         try {
-          return validateBrunoEnvironment(env);
+          valid.push(validateBrunoEnvironment(env, filePath, fileName));
         } catch (err) {
-          throw new BrunoError(`Error in environment ${index + 1} from ${fileName}: ${err.message}`);
+          invalid.push({ fileName, error: err.message });
         }
       });
+      return { valid, invalid };
     }
 
     // Handle array of environments (old format)
     if (Array.isArray(data)) {
-      return data.map((env, index) => {
+      data.forEach((env, index) => {
         try {
-          return validateBrunoEnvironment(env);
+          valid.push(validateBrunoEnvironment(env, filePath, fileName));
         } catch (err) {
-          throw new BrunoError(`Error in environment ${index + 1} from ${fileName}: ${err.message}`);
+          invalid.push({ fileName, error: err.message });
         }
       });
+      return { valid, invalid };
     }
 
     // Handle single environment object
-    return [validateBrunoEnvironment(data)];
+    try {
+      valid.push(validateBrunoEnvironment(data, filePath, fileName));
+    } catch (err) {
+      invalid.push({ fileName, error: err.message });
+    }
+    return { valid, invalid };
   } catch (err) {
-    throw new BrunoError(`Error processing ${fileName}: ${err.message}`);
+    invalid.push({ fileName, error: `Error processing ${fileName}: ${err.message}` });
+    return { valid, invalid };
   }
 };
 
 const processFiles = (parsedFiles) => {
-  const allEnvironments = [];
+  const allValid = [];
+  const allInvalid = [];
 
   for (const parsedFile of parsedFiles) {
     try {
-      const environments = processEnvironmentData(parsedFile.content, parsedFile.fileName);
-      allEnvironments.push(...environments);
+      const { valid, invalid } = processEnvironmentData(parsedFile.content, parsedFile.fileName, parsedFile.filePath);
+      allValid.push(...valid);
+      allInvalid.push(...invalid);
     } catch (err) {
-      throw new BrunoError(`Failed to process ${parsedFile.fileName}: ${err.message}`);
+      allInvalid.push({ fileName: parsedFile.fileName, error: `Failed to process ${parsedFile.fileName}: ${err.message}` });
     }
   }
 
-  return allEnvironments;
+  return { valid: allValid, invalid: allInvalid };
 };
 
 const importBrunoEnvironment = (parsedFiles) => {
@@ -81,8 +96,8 @@ const importBrunoEnvironment = (parsedFiles) => {
       throw new BrunoError('No files provided');
     }
 
-    const environments = processFiles(parsedFiles);
-    return environments;
+    const result = processFiles(parsedFiles);
+    return result;
   } catch (err) {
     console.error(err);
     throw err instanceof BrunoError ? err : new BrunoError('Import Bruno environment failed');

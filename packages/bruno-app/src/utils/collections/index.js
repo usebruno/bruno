@@ -915,6 +915,13 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
+export const getItemTypeLabel = (item) => {
+  if (isItemAFolder(item)) {
+    return 'Folder';
+  }
+  return item?.type === 'app' ? 'App' : 'Request';
+};
+
 /**
  * Counts the folders and requests in a collection's item tree, recursively at every
  * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
