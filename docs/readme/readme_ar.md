@@ -50,7 +50,7 @@
 
 ```sh
 # على نظام Mac عبر Homebrew
-brew install bruno
+brew install --cask bruno
 
 # على نظام Windows عبر Chocolatey
 choco install bruno

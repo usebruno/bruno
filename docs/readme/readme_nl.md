@@ -34,7 +34,7 @@ Je kunt Bruno ook installeren via pakketbeheerders zoals Homebrew, Chocolatey, S
 
 ```sh
 # Op Mac via Homebrew
-brew install bruno
+brew install --cask bruno
 
 # Op Windows via Chocolatey
 choco install bruno
