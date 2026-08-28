@@ -378,6 +378,9 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     });
   };
 
+  // Unlike `beforeMessageSend`, this one does not rethrow: the message has already been delivered
+  // and forwarded to the renderer, so there is nothing left to abort. Errors are surfaced through
+  // `grpc:script-error` and the call carries on with the remaining messages.
   const runAfterMessageReceive = (session, message) => {
     const messageIndex = session.receivedCount++;
     const { request, collection, collectionUid } = session;
