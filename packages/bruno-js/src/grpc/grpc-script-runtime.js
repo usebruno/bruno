@@ -9,13 +9,6 @@ const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { createScopeSetter } = require('../runtime/scripted-entries');
 
-const RUN_REQUEST_UNSUPPORTED = 'bru.runRequest is not supported in gRPC scripts';
-
-// A gRPC request can't run another request yet, so there is no `runRequestByItemPathname` to bind.
-const bindUnsupportedRunRequest = (bru) => {
-  bru.runRequest = () => Promise.reject(new Error(RUN_REQUEST_UNSUPPORTED));
-};
-
 /**
  * Runs the gRPC lifecycle hooks
  *
@@ -24,7 +17,7 @@ const bindUnsupportedRunRequest = (bru) => {
  *
  * The shared body mirrors `ScriptRuntime`'s `runRequestScript` / `runResponseScript` step for step,
  * substituting the gRPC request/response models. Two intentional differences, not oversights:
- * - `bru.runRequest` rejects instead of running anything (see `bindUnsupportedRunRequest`).
+ * - `bru.runRequest` rejects instead of running anything.
  * - The models live under `bru.grpc` rather than as the `req` / `res` globals HTTP scripts get.
  */
 class GrpcScriptRuntime {
@@ -107,7 +100,8 @@ class GrpcScriptRuntime {
       };
     }
 
-    bindUnsupportedRunRequest(bru);
+    // A gRPC request can't run another request yet, so there is no `runRequestByItemPathname` to bind.
+    bru.runRequest = () => Promise.reject(new Error('bru.runRequest is not supported in gRPC scripts'));
 
     const buildScriptResult = () => ({
       ...extraResult,

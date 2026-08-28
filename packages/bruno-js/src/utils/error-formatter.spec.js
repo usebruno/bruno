@@ -143,9 +143,19 @@ script:grpc:after-call-end {
   const data = response.data;
   bru.setVar('userId', data.id);
   console.log(data);
+}
+
+script:grpc:before-message-send {
+  bru.setVar('outbound', bru.grpc.request.message.data.greeting);
+}
+
+script:grpc:after-message-receive {
+  const message = bru.grpc.response.message;
+  bru.setVar('inbound', message.data.reply);
 }`;
 
-// gRPC yml fixture: blockStartLine = 8 (before-call-start), 12 (after-call-end)
+// gRPC yml fixture: blockStartLine = 8 (before-call-start), 12 (after-call-end),
+// 16 (before-message-send), 19 (after-message-receive)
 const GRPC_YML = [
   'info:',
   '  name: grpc-yaml-test',
@@ -159,7 +169,14 @@ const GRPC_YML = [
   '    - type: grpc:after-call-end',
   '      code: |-',
   '        const data = response.data;',
-  '        bru.setVar(\'userId\', data.id);'
+  '        bru.setVar(\'userId\', data.id);',
+  '    - type: grpc:before-message-send',
+  '      code: |-',
+  '        bru.setVar(\'outbound\', bru.grpc.request.message.data.greeting);',
+  '    - type: grpc:after-message-receive',
+  '      code: |-',
+  '        const message = bru.grpc.response.message;',
+  '        bru.setVar(\'inbound\', message.data.reply);'
 ].join('\n');
 
 // Wrapper offsets: QuickJS = 9 (script line 1 = VM line 10), NodeVM = 2 (script line 1 = VM line 3)
@@ -203,6 +220,8 @@ describe('Error Formatter', () => {
     it('should find gRPC lifecycle hook blocks in .bru files', () => {
       expect(findScriptBlockStartLine(grpcBruPath, 'before-call-start')).toBe(12);
       expect(findScriptBlockStartLine(grpcBruPath, 'after-call-end')).toBe(17);
+      expect(findScriptBlockStartLine(grpcBruPath, 'before-message-send')).toBe(23);
+      expect(findScriptBlockStartLine(grpcBruPath, 'after-message-receive')).toBe(27);
     });
 
     it('should return null for missing block or non-.bru files', () => {
@@ -223,6 +242,8 @@ describe('Error Formatter', () => {
     it('should find last content line for gRPC lifecycle hook blocks', () => {
       expect(findScriptBlockEndLine(grpcBruPath, 'before-call-start')).toBe(13);
       expect(findScriptBlockEndLine(grpcBruPath, 'after-call-end')).toBe(19);
+      expect(findScriptBlockEndLine(grpcBruPath, 'before-message-send')).toBe(23);
+      expect(findScriptBlockEndLine(grpcBruPath, 'after-message-receive')).toBe(28);
     });
 
     it('should return null for empty block', () => {
@@ -258,6 +279,8 @@ describe('Error Formatter', () => {
     it('should find gRPC lifecycle hook blocks in .yml files', () => {
       expect(findYmlScriptBlockStartLine(grpcYmlPath, 'before-call-start')).toBe(8);
       expect(findYmlScriptBlockStartLine(grpcYmlPath, 'after-call-end')).toBe(12);
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'before-message-send')).toBe(16);
+      expect(findYmlScriptBlockStartLine(grpcYmlPath, 'after-message-receive')).toBe(19);
     });
 
     it('should return null for missing block or non-.yml files', () => {
@@ -282,6 +305,8 @@ describe('Error Formatter', () => {
     it('should find last content line for gRPC lifecycle hook blocks', () => {
       expect(findYmlScriptBlockEndLine(grpcYmlPath, 'before-call-start')).toBe(9);
       expect(findYmlScriptBlockEndLine(grpcYmlPath, 'after-call-end')).toBe(13);
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'before-message-send')).toBe(16);
+      expect(findYmlScriptBlockEndLine(grpcYmlPath, 'after-message-receive')).toBe(20);
     });
 
     it('should return null for missing block', () => {
