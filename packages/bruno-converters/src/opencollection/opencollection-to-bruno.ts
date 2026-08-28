@@ -1,4 +1,5 @@
 import { OpenCollection } from "@opencollection/types";
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
@@ -45,21 +46,12 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoConfig.scripts = { flow: scriptFlow };
   }
-  const openApiExtensions = brunoExtension?.openapi;
-  const openApiEntries = Array.isArray(openApiExtensions)
-    ? openApiExtensions.filter((entry: any) => entry !== null && typeof entry === 'object')
-    : [];
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtension?.openapi);
   if (openApiEntries.length > 0) {
-    brunoConfig.openapi = openApiEntries.map((entry: any) => ({
-      sourceUrl: entry.sourceUrl,
-      groupBy: entry.groupBy,
-      ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-      ...(entry.specHash && { specHash: entry.specHash }),
-      autoCheck: entry.autoCheck !== false,
-      autoCheckInterval: entry.autoCheckInterval || 5
-    }));
+    brunoConfig.openapi = openApiEntries;
   }
-  
+
   const config = oc.config;
   if (!config) {
     return brunoConfig;

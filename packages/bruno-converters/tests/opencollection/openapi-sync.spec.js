@@ -28,6 +28,15 @@ describe('brunoToOpenCollection (export): openapi sync config', () => {
     expect(withEmptyList.extensions?.bruno?.openapi).toBeUndefined();
   });
 
+  it('skips malformed entries and keeps the usable ones', () => {
+    const oc = brunoToOpenCollection({
+      name: 'Petstore',
+      brunoConfig: { openapi: [null, 'https://example.com/openapi.json', syncConfig] },
+      items: []
+    });
+    expect(oc.extensions.bruno.openapi).toEqual([syncConfig]);
+  });
+
   it('omits sync metadata that is absent and defaults the auto-check fields', () => {
     const oc = brunoToOpenCollection({
       name: 'Petstore',
@@ -60,6 +69,15 @@ describe('openCollectionToBruno (import): openapi sync config', () => {
         autoCheckInterval: 5
       }
     ]);
+  });
+
+  it('skips malformed entries and keeps the usable ones', () => {
+    const { brunoConfig } = openCollectionToBruno({
+      opencollection: '1.0.0',
+      info: { name: 'Petstore' },
+      extensions: { bruno: { openapi: [null, 'https://example.com/openapi.json', syncConfig] } }
+    });
+    expect(brunoConfig.openapi).toEqual([syncConfig]);
   });
 
   it('leaves the collection unlinked when the file carries no sync config', () => {

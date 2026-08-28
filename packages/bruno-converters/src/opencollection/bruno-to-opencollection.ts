@@ -1,3 +1,4 @@
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
@@ -192,19 +193,10 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoExtension.scripts = { flow: scriptFlow };
   }
-  const openApiExtensions = brunoConfig?.openapi;
-  const openApiEntries = Array.isArray(openApiExtensions)
-    ? openApiExtensions.filter((entry: any) => entry !== null && typeof entry === 'object')
-    : [];
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig?.openapi);
   if (openApiEntries.length > 0) {
-    brunoExtension.openapi = openApiEntries.map((entry: any) => ({
-      sourceUrl: entry.sourceUrl,
-      groupBy: entry.groupBy,
-      ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-      ...(entry.specHash && { specHash: entry.specHash }),
-      autoCheck: entry.autoCheck !== false,
-      autoCheckInterval: entry.autoCheckInterval || 5
-    }));
+    brunoExtension.openapi = openApiEntries;
   }
 
   if (Object.keys(brunoExtension).length > 0) {
