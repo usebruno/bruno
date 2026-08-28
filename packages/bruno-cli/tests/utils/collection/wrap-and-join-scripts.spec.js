@@ -2,7 +2,7 @@ const path = require('node:path');
 const { describe, test, expect } = require('@jest/globals');
 const { wrapAndJoinScripts } = require('../../../src/utils/collection');
 
-describe('CLI wrapAndJoinScripts — hierarchical __dirname/__filename', () => {
+describe('CLI wrapAndJoinScripts: hierarchical __dirname/__filename', () => {
   const colDir = path.resolve('/col');
   const collectionFile = path.join(colDir, 'collection.bru');
   const subDir = path.join(colDir, 'sub');

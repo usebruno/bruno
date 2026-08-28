@@ -309,7 +309,7 @@ describe('wrapAndJoinScripts', () => {
 
   test('tracks correct request line range with collection script before it', () => {
     const result = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
-    // Collection script: 3 lines (IIFE opener + body + closer — args stay on the opener)
+    // Collection script: 3 lines (IIFE opener + body + closer; args stay on the opener)
     // Empty gap: 1 line (blank line separator)
     // Request script starts at line 5
     expect(result.metadata.requestStartLine).toBe(5);
@@ -633,7 +633,7 @@ describe('mergeScripts metadata', () => {
   });
 });
 
-describe('mergeScripts → runScriptInNodeVm (integration)', () => {
+describe('mergeScripts and runScriptInNodeVm integration', () => {
   const setVar = (name) => `bru.setVar('${name}_dir', __dirname); bru.setVar('${name}_file', __filename);`;
 
   const makeCollection = (scripts = {}, pathname = '/test/collection') => ({
@@ -675,10 +675,7 @@ describe('mergeScripts → runScriptInNodeVm (integration)', () => {
 
   const run = async (mergedScript, collectionPath, scriptPath) => {
     const bru = { setVar: jest.fn() };
-    // wrapScriptInClosure injects __bruSetScope({...}) calls at the top of each
-    // segment IIFE when segmentSources is provided. In production the electron
-    // ScriptRuntime supplies this via createScopeSetter(bru); here it's a no-op
-    // since these tests don't assert on segment-scope side effects.
+    // Stubs the __bruSetScope call the wrapped IIFE emits; tests don't assert on it.
     const context = { bru, console, __bruSetScope: jest.fn() };
     await runScriptInNodeVm({
       script: mergedScript,

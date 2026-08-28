@@ -7,7 +7,7 @@ const { createCollectionFixture } = require('../helpers/collection-fixture');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dirname-filename-cli');
 
-describe('CLI run — __dirname/__filename are bound per script segment', () => {
+describe('CLI run: __dirname/__filename are bound per script segment', () => {
   let server;
   let baseUrl;
   let workDir;
@@ -33,7 +33,6 @@ describe('CLI run — __dirname/__filename are bound per script segment', () => 
     }
   });
 
-  // Both sandboxes must bind __dirname/__filename per script segment — the segment-level
   it.each([
     ['developer'],
     ['safe']
