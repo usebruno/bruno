@@ -1,5 +1,38 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { getAllVariables, mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+
+describe('getAllVariables', () => {
+  it.each([
+    ['no item is provided', undefined],
+    ['the item has no uid', {}]
+  ])('resolves collection variables without reading request items when %s', (_, item) => {
+    const collection = {
+      root: {
+        request: {
+          vars: {
+            req: [
+              {
+                name: 'baseUrl',
+                value: 'https://example.com',
+                enabled: true
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    Object.defineProperty(collection, 'items', {
+      get: () => {
+        throw new Error('collection items should not be accessed');
+      }
+    });
+
+    expect(getAllVariables(collection, item)).toMatchObject({
+      baseUrl: 'https://example.com'
+    });
+  });
+});
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {

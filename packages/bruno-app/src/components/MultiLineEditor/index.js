@@ -268,10 +268,10 @@ class MultiLineEditor extends Component {
 
     // Update collection and item when they change
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+      if (this.props.collection !== this.editor.options.brunoVarInfo.collection) {
         this.editor.options.brunoVarInfo.collection = this.props.collection;
       }
-      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+      if (this.props.item !== this.editor.options.brunoVarInfo.item) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
