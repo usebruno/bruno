@@ -534,7 +534,8 @@ describe('setupLinkAware', () => {
 
       expect(mockEditor.off).toHaveBeenCalled();
       expect(global.window.removeEventListener).toHaveBeenCalledTimes(2);
-      expect(mockWrapperElement.removeEventListener).toHaveBeenCalledTimes(3); // click, mouseover, mouseout
+      expect(mockWrapperElement.removeEventListener).toHaveBeenCalledTimes(4); // mousedown, click, mouseover, mouseout
+      expect(mockWrapperElement.removeEventListener).toHaveBeenCalledWith('mousedown', expect.any(Function), true);
       expect(mockWrapperElement.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
       expect(mockWrapperElement.removeEventListener).toHaveBeenCalledWith('mouseover', expect.any(Function));
       expect(mockWrapperElement.removeEventListener).toHaveBeenCalledWith('mouseout', expect.any(Function));

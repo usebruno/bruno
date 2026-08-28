@@ -34,7 +34,8 @@ jest.mock('utils/codemirror/resize', () => ({
 
 const mockResolveLinkClickHandler = jest.fn((item, collection) => `handler:${item?.uid}:${collection?.uid}`);
 jest.mock('utils/codemirror/linkClickHandler', () => ({
-  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args)
+  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args),
+  getPresetRequestType: jest.fn(() => undefined)
 }));
 
 const mockSetupLinkAware = jest.fn((editor) => {

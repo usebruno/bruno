@@ -27,3 +27,16 @@ export function resolveLinkClickHandler(item, collection) {
       .catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
   };
 }
+
+/**
+ * The collection's effective Presets request type - the fallback resolveLinkClickHandler uses
+ * only when item.type isn't itself a real request type (e.g. clicking from collection/folder
+ * settings, with no request in scope). Editors compare this plus item.type and collection.uid
+ * directly, instead of deep-diffing the item/collection objects themselves, to decide whether
+ * the click handler needs reconfiguring - the collection tree changes on every edit or response
+ * and none of that affects the handler.
+ */
+export function getPresetRequestType(collection) {
+  const presets = collection?.draft?.brunoConfig?.presets ?? collection?.brunoConfig?.presets;
+  return presets?.requestType;
+}

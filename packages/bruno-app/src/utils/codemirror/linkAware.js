@@ -218,6 +218,29 @@ function handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
 }
 
 /**
+ * Blocks CodeMirror's own cursor placement for a click that handleClick is about to
+ * intercept. CodeMirror places the cursor on 'mousedown' (bubble phase, on a descendant
+ * of the editor wrapper) before our 'click' listener ever runs, so calling
+ * preventDefault() there is too late - the cursor has already jumped to the click
+ * position for a moment. Listening here in the capture phase runs before CodeMirror's
+ * own handler regardless of DOM depth, and CodeMirror skips cursor placement when it
+ * sees the event already prevented.
+ * @param {Event} event - The mousedown event
+ * @param {string} linkClass - CSS class name for links
+ * @param {Function} isCmdOrCtrlPressed - Function to check if Cmd/Ctrl is pressed
+ * @param {Function} onLinkClick - Optional custom click handler
+ */
+function handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
+  if (!event.target.classList.contains(linkClass)) return;
+
+  const shouldUseCustomHandler = typeof onLinkClick === 'function';
+  const modifierPressed = isCmdOrCtrlPressed(event);
+  if (!shouldUseCustomHandler && !modifierPressed) return;
+
+  event.preventDefault();
+}
+
+/**
  * Sets up link awareness for a CodeMirror editor instance.
  * This enables automatic URL detection, styling, and click-to-open functionality.
  * @param {Object} editor - The CodeMirror editor instance
@@ -254,6 +277,7 @@ function setupLinkAware(editor, options = {}) {
   const boundMarkUrls = () => markUrls(editor, linkify, linkClass, linkHint);
   const boundUpdateCmdCtrlClass = (event) => updateCmdCtrlClass(event, editorWrapper, cmdCtrlClass, isCmdOrCtrlPressed);
   const boundHandleClick = (event) => handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
+  const boundHandleMouseDown = (event) => handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
   const boundHandleMouseEnter = (event) => handleMouseEnter(event, linkClass, linkHoverClass, boundUpdateCmdCtrlClass);
   const boundHandleMouseLeave = (event) => handleMouseLeave(event, linkClass, linkHoverClass);
 
@@ -277,6 +301,8 @@ function setupLinkAware(editor, options = {}) {
 
   window.addEventListener('keydown', boundUpdateCmdCtrlClass);
   window.addEventListener('keyup', boundUpdateCmdCtrlClass);
+  // Capture phase - must run before CodeMirror's own mousedown handler (see handleMouseDown).
+  editorWrapper.addEventListener('mousedown', boundHandleMouseDown, true);
   editorWrapper.addEventListener('click', boundHandleClick);
   editorWrapper.addEventListener('mouseover', boundHandleMouseEnter);
   editorWrapper.addEventListener('mouseout', boundHandleMouseLeave);
@@ -288,6 +314,7 @@ function setupLinkAware(editor, options = {}) {
     editor.off('scroll', debouncedMarkUrls);
     window.removeEventListener('keydown', boundUpdateCmdCtrlClass);
     window.removeEventListener('keyup', boundUpdateCmdCtrlClass);
+    editorWrapper.removeEventListener('mousedown', boundHandleMouseDown, true);
     editorWrapper.removeEventListener('click', boundHandleClick);
     editorWrapper.removeEventListener('mouseover', boundHandleMouseEnter);
     editorWrapper.removeEventListener('mouseout', boundHandleMouseLeave);

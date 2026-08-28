@@ -13,7 +13,7 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -202,8 +202,9 @@ class MultiLineEditor extends Component {
     setupLinkAware(this.editor, {
       onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
     });
-    this._linkAwareItem = this.props.item;
-    this._linkAwareCollection = this.props.collection;
+    this._linkAwareItemType = this.props.item?.type;
+    this._linkAwareCollectionUid = this.props.collection?.uid;
+    this._linkAwarePresetType = getPresetRequestType(this.props.collection);
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -283,10 +284,16 @@ class MultiLineEditor extends Component {
 
     // Reconfigure link-aware click handling when item/collection change (e.g. the editor
     // is reused for a different request, or collection becomes available after mount) -
-    // otherwise it keeps using whichever item/collection it was set up with.
-    if (!isEqual(this.props.item, this._linkAwareItem) || !isEqual(this.props.collection, this._linkAwareCollection)) {
-      this._linkAwareItem = this.props.item;
-      this._linkAwareCollection = this.props.collection;
+    // otherwise it keeps using whichever item/collection it was set up with. Compared field
+    // by field, not the item/collection objects themselves - the collection tree changes on
+    // every edit or response, and none of that affects the click handler.
+    const itemType = this.props.item?.type;
+    const collectionUid = this.props.collection?.uid;
+    const presetType = getPresetRequestType(this.props.collection);
+    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
+      this._linkAwareItemType = itemType;
+      this._linkAwareCollectionUid = collectionUid;
+      this._linkAwarePresetType = presetType;
       this.editor._destroyLinkAware?.();
       setupLinkAware(this.editor, {
         onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
