@@ -359,7 +359,7 @@ const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
-type GrpcTestSectionKey = 'beforeCallStart' | 'afterCallEnd';
+type GrpcTestSectionKey = 'beforeCallStart' | 'beforeMessageSend' | 'afterMessageReceive' | 'afterCallEnd';
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
@@ -407,7 +407,13 @@ export const buildGrpcCommonLocators = (page: Page) => ({
         page
           .getByTestId(`grpc-test-section-${hook}`)
           .getByTestId('test-result-item')
-          .filter({ has: page.getByTestId('test-result-icon-fail') })
+          .filter({ has: page.getByTestId('test-result-icon-fail') }),
+      /** The "Message N" label a message hook's results are grouped under, 0-based */
+      messageGroup: (hook: GrpcTestSectionKey, messageIndex: number) =>
+        page.getByTestId(`grpc-test-section-${hook}`).getByTestId(`grpc-test-message-group-${messageIndex}`),
+      /** Every "Message N" label in a section, so a per-message hook's run count can be asserted */
+      messageGroups: (hook: GrpcTestSectionKey) =>
+        page.getByTestId(`grpc-test-section-${hook}`).locator('[data-testid^="grpc-test-message-group-"]')
     }
   }
 });

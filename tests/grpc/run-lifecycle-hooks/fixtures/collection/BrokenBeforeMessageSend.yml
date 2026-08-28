@@ -1,0 +1,22 @@
+info:
+  name: BrokenBeforeMessageSend
+  type: grpc
+  seq: 16
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "never sent"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-message-send
+      code: |-
+        bru.setVar('sendReached', 'yes');
+        throw new Error('beforeMessageSend exploded');
