@@ -581,7 +581,7 @@ class GrpcClient {
    * @param {Object} [params.proxyConfig] - HTTP proxy configuration
    * @param {string} params.proxyConfig.proxyUrl - The HTTP proxy URL
    * @param {Function} [params.onBeforeMessageSend] - Awaited once, immediately before a unary or
-   *   server-streaming call puts its message on the wire, with `{ data, methodType, messageIndex }`.
+   *   server-streaming call puts its message on the wire, with `{ data }`.
    *   Throwing aborts the call before anything is dispatched.
    */
   async startConnection({
@@ -695,8 +695,7 @@ class GrpcClient {
     const methodType = this.#getMethodType(method);
     if (methodType === 'unary' || methodType === 'server-streaming') {
       try {
-        // Apply the result messages[0] when setter is added.
-        await onBeforeMessageSend?.({ data: messages[0], methodType, messageIndex: 0 });
+        await onBeforeMessageSend?.({ data: messages[0] });
       } catch (error) {
         client.close();
         throw error;

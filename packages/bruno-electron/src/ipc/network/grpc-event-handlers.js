@@ -334,8 +334,20 @@ const registerGrpcEventHandlers = (window) => {
 
   // Send a message to an existing stream
   ipcMain.handle('grpc:send-message', async (event, requestId, collectionUid, message) => {
+    let data;
     try {
-      await grpcScriptOrchestration.runBeforeMessageSend({ requestId, data: safeParseJSON(message) });
+      // Parsed up front so a malformed message fails here.
+      data = typeof message === 'string' ? JSON.parse(message) : message;
+    } catch (error) {
+      return { success: false, error: `Failed to parse request body: ${error.message}` };
+    }
+
+    if (!grpcClient.isConnectionActive(requestId)) {
+      return { success: false, error: 'Cannot send message: the gRPC stream is not open' };
+    }
+
+    try {
+      await grpcScriptOrchestration.runBeforeMessageSend({ requestId, data });
     } catch (error) {
       // The hook aborted this one message; the stream stays open for the next.
       return { success: false, error: error.message };
