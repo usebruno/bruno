@@ -30,11 +30,6 @@ const StyledWrapper = styled.div`
       background-color: transparent;
       border-radius: 0;
 
-      /*
-       * Deliberately no focus border: a ghost input shares a table row with
-       * SingleLineEditor cells, which show no focus ring either. Matching them is the
-       * whole point of the variant — see EditableTable/StyledWrapper.js.
-       */
       &:focus-within {
         border-color: transparent;
       }
