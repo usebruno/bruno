@@ -1,4 +1,5 @@
 const BrunoGrpcRequest = require('../src/grpc/bruno-grpc-request');
+const GrpcMessage = require('../src/grpc/grpc-message');
 
 const makeReq = (overrides = {}) => ({
   url: 'grpcb.in:9000',
@@ -80,6 +81,35 @@ describe('BrunoGrpcRequest', () => {
 
       expect(req.messages.count()).toBe(0);
       expect(req.messages.get()).toBeUndefined();
+    });
+  });
+
+  describe('message', () => {
+    test('the message option becomes a GrpcMessage carrying data and timestamp', () => {
+      const req = new BrunoGrpcRequest(makeReq(), {
+        message: { data: { greeting: 'outbound' }, timestamp: 1700000001 }
+      });
+
+      expect(req.message).toBeInstanceOf(GrpcMessage);
+      expect(req.message.data).toEqual({ greeting: 'outbound' });
+      expect(req.message.timestamp).toBe(1700000001);
+    });
+
+    test('without the option the property is absent, not undefined, so the call hooks cannot see it', () => {
+      const req = new BrunoGrpcRequest(makeReq());
+
+      expect('message' in req).toBe(false);
+    });
+
+    test('the message being sent is not yet in messages, which holds only what has been transmitted', () => {
+      const req = new BrunoGrpcRequest(makeReq(), {
+        sentMessages: [{ data: { greeting: 'first' }, timestamp: 1700000000 }],
+        message: { data: { greeting: 'second' }, timestamp: 1700000001 }
+      });
+
+      expect(req.messages.count()).toBe(1);
+      expect(req.messages.get().data).toEqual({ greeting: 'first' });
+      expect(req.message.data).toEqual({ greeting: 'second' });
     });
   });
 });
