@@ -33,7 +33,25 @@ function md5(input) {
 }
 
 export function addDigestInterceptor(axiosInstance, request) {
-  const { username, password } = request.digestConfig;
+  let { username, password } = request.digestConfig;
+
+  // If credentials are embedded in the URL (https://user:pass@host/path), extract them
+  // as a fallback. We do NOT strip the URL here — axios needs the credentials intact to
+  // send Authorization: Basic for servers that accept Basic auth. The URL is stripped
+  // inside the error handler only when a Digest challenge is confirmed, at which point
+  // the Basic header is also removed so the retry uses Digest instead.
+  let urlHasCredentials = false;
+  try {
+    const parsedUrl = new URL(request.url);
+    if (parsedUrl.username || parsedUrl.password) {
+      urlHasCredentials = true;
+      if (!isStrPresent(username)) username = decodeURIComponent(parsedUrl.username);
+      if (!isStrPresent(password)) password = decodeURIComponent(parsedUrl.password);
+    }
+  } catch (e) {
+    // Unparseable URL — continue with existing credentials
+  }
+
   console.debug('Digest Auth Interceptor Initialized');
 
   if (!isStrPresent(username) || !isStrPresent(password)) {
@@ -52,11 +70,24 @@ export function addDigestInterceptor(axiosInstance, request) {
       }
       originalRequest._retry = true;
 
-      if (
-        error.response?.status === 401
-        && containsDigestHeader(error.response)
-        && !containsAuthorizationHeader(originalRequest)
-      ) {
+      if (error.response?.status === 401 && containsDigestHeader(error.response)) {
+        // When URL-embedded credentials were present, axios auto-added Authorization: Basic
+        // on the first request. Now that we know the server wants Digest, remove that header
+        // and strip the credentials from the URL so the retry doesn't re-add Basic auth.
+        if (urlHasCredentials) {
+          delete originalRequest.headers['Authorization'];
+          delete originalRequest.headers['authorization'];
+          try {
+            const parsedUrl = new URL(originalRequest.url || request.url);
+            parsedUrl.username = '';
+            parsedUrl.password = '';
+            originalRequest.url = parsedUrl.toString();
+          } catch (e) {}
+        }
+
+        if (containsAuthorizationHeader(originalRequest)) {
+          return Promise.reject(error);
+        }
         console.debug('Processing Digest Authentication Challenge');
         console.debug(error.response.headers['www-authenticate']);
 
