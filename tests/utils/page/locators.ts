@@ -92,6 +92,9 @@ export const buildCommonLocators = (page: Page) => ({
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
   modal: {
+    any: () => page.locator('.bruno-modal'),
+    formError: (text: string | RegExp) =>
+      page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
@@ -212,6 +215,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    elapsedTime: () => page.getByTestId('response-elapsed-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),

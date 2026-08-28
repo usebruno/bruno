@@ -157,6 +157,20 @@ export const getDuplicateSecretNames = (variables) => {
   return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
 };
 
+export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
+
+export const generateCopyName = (baseName, existingNames) => {
+  const normalizedExisting = existingNames.map(normalizeEnvName);
+
+  let counter = 1;
+  let newName = `${baseName} copy`;
+  while (normalizedExisting.includes(normalizeEnvName(newName))) {
+    counter++;
+    newName = `${baseName} copy ${counter}`;
+  }
+  return newName;
+};
+
 /**
  * Strips the duplicate secrets out of an imported environment, so an import never lands the user
  * with a collision they did not author. Keeps whichever twin holds a value, since a Postman export

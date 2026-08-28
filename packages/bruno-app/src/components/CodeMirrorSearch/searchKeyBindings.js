@@ -17,22 +17,33 @@
  * @param {() => boolean} opts.isReadOnly - read at invocation time so a readOnly prop change after mount is respected
  */
 export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisible, isReadOnly }) {
-  const openSearch = (cm) => {
+  const getSelectedText = (cm) => {
     const selected = cm.getSelection();
+    return selected && !selected.includes('\n') ? selected : '';
+  };
+
+  const openSearch = (cm) => {
+    const seed = getSelectedText(cm);
     const cursor = cm.getCursor('from');
     setState({ searchBarVisible: true }, () => {
-      if (selected) {
-        searchBarRef.current?.setSearch(selected, cursor);
+      if (seed) {
+        searchBarRef.current?.setSearch(seed, cursor);
       } else {
         searchBarRef.current?.focusAtCursor(cursor);
       }
     });
   };
 
-  const openReplace = () => {
+  const openReplace = (cm) => {
     if (isReadOnly()) return;
+    const seed = getSelectedText(cm);
+    const cursor = cm.getCursor('from');
     setState({ searchBarVisible: true }, () => {
-      searchBarRef.current?.focus();
+      if (seed) {
+        searchBarRef.current?.setSearch(seed, cursor);
+      } else {
+        searchBarRef.current?.focusAtCursor(cursor);
+      }
       searchBarRef.current?.openReplace();
     });
   };

@@ -24,7 +24,9 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
+import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
@@ -32,14 +34,13 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
-import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
-import { getDefaultRequestPaneTab } from 'utils/collections';
+import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -96,7 +97,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const menuDropdownRef = useRef(null);
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
-  const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
   const [ignoreItemModalOpen, setIgnoreItemModalOpen] = useState(false);
   const [createExampleModalOpen, setCreateExampleModalOpen] = useState(false);
@@ -112,12 +112,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
+  const isCloneable = isFolder || isItemARequest(item);
+
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
   // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
-    setCloneItemModalOpen(true);
+    handleCloneItem();
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
@@ -385,20 +387,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       );
     }
 
-    items.push(
-      {
+    if (isCloneable) {
+      items.push({
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
-        onClick: () => setCloneItemModalOpen(true)
-      },
-      {
-        id: 'copy',
-        leftSection: IconCopy,
-        label: 'Copy',
-        onClick: handleCopyItem
-      }
-    );
+        onClick: handleCloneItem
+      });
+    }
+
+    items.push({
+      id: 'copy',
+      leftSection: IconCopy,
+      label: 'Copy',
+      onClick: handleCopyItem
+    });
 
     if (isFolder && hasCopiedItems) {
       items.push({
@@ -619,8 +622,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleCopyItem = () => {
     dispatch(copyRequest(item));
-    const itemType = isFolder ? 'Folder' : 'Request';
-    toast.success(`${itemType} copied`);
+    toast.success(`${getItemTypeLabel(item)} copied`);
+  };
+
+  // One-click clone: display name becomes "<source> copy"; the filesystem name
+  // uniqueness is resolved silently by electron.
+  const handleCloneItem = () => {
+    if (!isCloneable) return;
+    dispatch(cloneItem(`${item.name} copy`, sanitizeName(`${item.name} copy`), item.uid, collectionUid))
+      .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
+      .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
   };
 
   const handlePasteItem = () => {
@@ -636,7 +647,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         toast.success('Item pasted successfully');
       })
       .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the item');
+        toast.error(formatIpcError(err) || 'An error occurred while pasting the item');
       });
   };
 
@@ -655,9 +666,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
         <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
-      )}
-      {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
