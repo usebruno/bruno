@@ -45,7 +45,7 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefau
   if (isDefault) {
     return {
       ...config,
-      name: DEFAULT_WORKSPACE_NAME,
+      name: config.name || DEFAULT_WORKSPACE_NAME,
       type: 'default'
     };
   }
@@ -658,6 +658,22 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:set-default-workspace-path', async (event, workspacePath) => {
+    try {
+      validateWorkspacePath(workspacePath);
+      const workspaceConfig = readWorkspaceConfig(workspacePath);
+      validateWorkspaceConfig(workspaceConfig);
+      const previousDefaultPath = defaultWorkspaceManager.getDefaultWorkspacePath();
+      await defaultWorkspaceManager.setDefaultWorkspacePath(workspacePath);
+      return {
+        success: true,
+        previousDefaultUid: previousDefaultPath ? getWorkspaceUid(previousDefaultPath) : null
+      };
+    } catch (error) {
+      throw error;
+    }
+  });
+
   ipcMain.handle('renderer:get-default-workspace', async (event) => {
     try {
       const result = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
@@ -698,6 +714,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         defaultWorkspacePath = workspacePath;
         const workspaceConfig = readWorkspaceConfig(workspacePath);
         const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, true);
+
+        lastOpenedWorkspaces.add(workspacePath);
 
         win.webContents.send('main:workspace-opened', workspacePath, workspaceUid, configForClient);
 
