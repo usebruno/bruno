@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
+import groupBy from 'lodash/groupBy';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
@@ -21,6 +22,7 @@ import { clearPersistedDraftSession, persistDraftSession } from 'providers/Redux
 const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
+  const tabs = useSelector((state) => state.tabs.tabs);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const dispatch = useDispatch();
