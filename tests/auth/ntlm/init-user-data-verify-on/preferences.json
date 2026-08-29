@@ -1,0 +1,10 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/ntlm-tls"
+  ],
+  "preferences": {
+    "request": {
+      "sslVerification": true
+    }
+  }
+}
