@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
-import { cloneDeep, has } from 'lodash';
+import { cloneDeep } from 'lodash';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { getPersistedDraftSession } from 'providers/ReduxStore/utils/draftSession';
