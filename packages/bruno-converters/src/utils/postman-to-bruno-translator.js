@@ -1,4 +1,5 @@
 import sendRequestTransformer from './send-request-transformer';
+import wrapAndAwaitSendRequestChains from './send-request-chain-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
@@ -598,7 +599,8 @@ complexTransformations.forEach((transform) => {
 const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
 
 /**
- * Process all transformations (both simple and complex) in the AST in a single pass
+ * Process all transformations (both simple and complex) in the AST in a single pass,
+ * then finish the bru.sendRequest promise chains that pass leaves unawaited.
  * @param {Object} ast - jscodeshift AST
  * @param {Set} transformedNodes - Set of already transformed nodes
  */
@@ -655,6 +657,9 @@ function processTransformations(ast, transformedNodes) {
       }
     }
   });
+
+  // the chain shape is only final once the pass above has settled, so this runs after it
+  wrapAndAwaitSendRequestChains(j, ast);
 }
 
 // Postman provides these as sandbox globals. Bruno requires explicit require()
