@@ -102,7 +102,11 @@ export const getPersistedDraftSession = () => {
     return null;
   }
 
-  return safeParse(window.localStorage.getItem(STORAGE_KEY));
+  try {
+    return safeParse(window.localStorage.getItem(STORAGE_KEY));
+  } catch (error) {
+    return null;
+  }
 };
 
 export const getPersistedCollectionDraftSession = (pathname) => {
@@ -115,7 +119,6 @@ export const getPersistedCollectionDraftSession = (pathname) => {
 };
 
 export const persistDraftSession = (state) => {
-  console.log('[draftSession] Persisting draft session');
   if (!isStorageAvailable()) {
     return;
   }
@@ -138,12 +141,10 @@ export const persistDraftSession = (state) => {
   const hasGlobalDraft = !!snapshot.globalEnvironmentDraft;
 
   if (!hasCollectionDrafts && !hasGlobalDraft) {
-    console.log('[draftSession] clearing persisted draft session');
     window.localStorage.removeItem(STORAGE_KEY);
     return;
   }
 
-  console.log('[draftSession] writing persisted draft session', snapshot);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
 };
 
@@ -152,6 +153,5 @@ export const clearPersistedDraftSession = () => {
     return;
   }
 
-  console.log('[draftSession] removing persisted draft session');
   window.localStorage.removeItem(STORAGE_KEY);
 };
