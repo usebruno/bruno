@@ -18,6 +18,7 @@ const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
+const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
@@ -397,7 +398,9 @@ const runSingleRequest = async function (
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const disableCache = !get(options, 'cacheSslSession', false);
-    const httpsAgentRequestFields = {};
+    // NTLM authenticates the connection rather than the request, so its handshake only completes
+    // when every leg reuses one socket.
+    const httpsAgentRequestFields = request.ntlmConfig ? { keepAlive: true } : {};
 
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -678,7 +681,7 @@ const runSingleRequest = async function (
         request.timeout = requestTimeout;
       }
 
-      let axiosInstance = makeAxiosInstance({
+      const axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
@@ -692,7 +695,8 @@ const runSingleRequest = async function (
       });
 
       if (request.ntlmConfig) {
-        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+        axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
         delete request.ntlmConfig;
       }
 
