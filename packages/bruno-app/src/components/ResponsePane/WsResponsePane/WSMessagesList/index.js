@@ -1,11 +1,29 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
-import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
+import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft, IconCaretDown } from '@tabler/icons';
+import MenuDropdown from 'ui/MenuDropdown';
 import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
+
+const extractJsonFromSSE = (content) => {
+  if (typeof content !== 'string') return null;
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('data:')) {
+      const dataStr = line.slice(5).trim();
+      try {
+        const parsed = JSON.parse(dataStr);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+};
 
 const getContentMeta = (content) => {
   if (typeof content === 'object') {
@@ -35,14 +53,6 @@ const parseContent = (content) => {
   };
 };
 
-const getDataTypeText = (type) => {
-  const textMap = {
-    'text/plain': 'RAW',
-    'application/json': 'JSON'
-  };
-  return textMap[type] ?? 'RAW';
-};
-
 /**
  *
  * @param {"incoming"|"outgoing"|"info"} type
@@ -61,6 +71,7 @@ const TypeIcon = ({ type }) => {
 
 const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   const [showHex, setShowHex] = useState(false);
+  const [showFormattedJson, setShowFormattedJson] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
@@ -72,7 +83,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   const isOutgoing = message.type === 'outgoing';
   let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
-  const dataType = getDataTypeText(parsedContent.type);
+  const isSseJson = parsedContent.type === 'text/plain' && extractJsonFromSSE(message.message) !== null;
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -145,28 +156,42 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
                 'cursor-pointer': !showHex
               })}
               role="tab"
-              onClick={() => setShowHex(true)}
+              onClick={() => {
+                setShowHex(true); setShowFormattedJson(false);
+              }}
             >
               hexdump
             </div>
-            <div
-              className={classnames('select-none capitalize', {
-                'active': !showHex,
-                'cursor-pointer': showHex
-              })}
-              role="tab"
-              onClick={() => setShowHex(false)}
-            >
-              {dataType.toLowerCase()}
-            </div>
+            {isSseJson ? (
+              <MenuDropdown
+                items={[
+                  { id: 'raw', label: 'Raw', onClick: () => {
+                    setShowHex(false); setShowFormattedJson(false);
+                  } },
+                  { id: 'json', label: 'JSON', onClick: () => {
+                    setShowHex(false); setShowFormattedJson(true);
+                  } }
+                ]}
+                selectedItemId={showFormattedJson ? 'json' : 'raw'}
+                showTickMark={true}
+                placement="bottom-end"
+              >
+                <span className="ws-format-trigger flex items-center gap-1 cursor-pointer select-none">
+                  {showFormattedJson ? 'JSON' : 'Raw'}
+                  <IconCaretDown size={12} strokeWidth={2} />
+                </span>
+              </MenuDropdown>
+            ) : (
+              <span className="select-none capitalize">raw</span>
+            )}
           </div>
           <div className="mt-1 h-[300px] w-full">
             <CodeEditor
-              mode={showHex ? 'text/plain' : parsedContent.type}
+              mode={showHex ? 'text/plain' : (showFormattedJson ? 'application/json' : parsedContent.type)}
               theme={displayedTheme}
-              enableLineWrapping={showHex ? false : true}
+              enableLineWrapping={!showHex}
               font={preferences.codeFont || 'default'}
-              value={showHex ? contentHexdump : parsedContent.content}
+              value={showHex ? contentHexdump : (showFormattedJson ? extractJsonFromSSE(message.message) : parsedContent.content)}
               readOnly
             />
           </div>
