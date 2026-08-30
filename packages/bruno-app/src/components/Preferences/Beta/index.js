@@ -66,6 +66,12 @@ const BETA_FEATURES = [
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
     toggle: true
+  },
+  {
+    id: BETA_FEATURE_IDS.ISLANDS_LAYOUT,
+    label: 'Islands Layout',
+    description: 'Renders the sidebar and request/response panels as separate floating cards with rounded corners and spacing, instead of the default layout.',
+    toggle: true
   }
 ];
 
