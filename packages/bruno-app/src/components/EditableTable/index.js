@@ -11,6 +11,9 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
 const ROW_HEIGHT = 35;
+// Keep in sync with the row-focus-flash animation in StyledWrapper.
+const FOCUS_FLASH_DURATION = 2500;
+const FOCUS_SCROLL_FRAMES = 90;
 
 const findScrollParent = (element) => {
   let parent = element?.parentElement;
@@ -21,6 +24,61 @@ const findScrollParent = (element) => {
   }
   return null;
 };
+
+const findFocusRowIndex = (rows, keyColumn, { uid, name } = {}) => {
+  if (uid) {
+    const byUid = rows.findIndex((row) => row.uid === uid);
+    if (byUid !== -1) return byUid;
+  }
+
+  if (!keyColumn || !name) return -1;
+  const targetName = String(name).toLowerCase();
+  let index = -1;
+  rows.forEach((row, rowIndex) => {
+    const rowName = row[keyColumn.key];
+    if (typeof rowName === 'string' && rowName.toLowerCase() === targetName) {
+      index = rowIndex;
+    }
+  });
+  return index;
+};
+
+const findRenderedRow = (wrapper, rowIndex) =>
+  wrapper?.querySelector(`tr[data-item-index="${rowIndex}"]`) || null;
+
+const isRowInViewport = (row, scrollParent) => {
+  const rowRect = row.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
+};
+
+/**
+ * Brings the scroll parent near a row the list has not rendered yet, so the
+ * next frame mounts it and it can be centered precisely.
+ *
+ * Measured from the table wrapper, not the `<table>`: Virtuoso stickies the
+ * thead, so the table's bounding rect moves with scroll and would drift the
+ * target on every retry.
+ */
+const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
+  if (!wrapper) return;
+
+  const wrapperOffset = wrapper.getBoundingClientRect().top
+    - scrollParent.getBoundingClientRect().top
+    + scrollParent.scrollTop;
+  const headerHeight = wrapper.querySelector('thead')?.offsetHeight || ROW_HEIGHT;
+  const rowTop = wrapperOffset + headerHeight + (rowIndex * ROW_HEIGHT);
+  const nextTop = Math.max(0, rowTop - (scrollParent.clientHeight / 2));
+
+  if (Math.abs(scrollParent.scrollTop - nextTop) > 1) {
+    scrollParent.scrollTop = nextTop;
+  }
+};
+
+const defaultIsRowEditable = () => true;
+const defaultIsCheckboxDisabled = () => false;
+const defaultGetRowClassName = () => '';
+const defaultGetRowTestId = () => undefined;
 
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
@@ -36,7 +94,8 @@ const TableRow = React.memo(
       handleDragHandleMouseDown,
       isRowEditable,
       getRowClassName,
-      getRowTestId
+      getRowTestId,
+      flashedRowUid
     } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(item);
@@ -44,7 +103,8 @@ const TableRow = React.memo(
     const isBeingDragged = canDrag && draggingKey === item?.uid;
     const className = classnames(rest.className, {
       'drag-over': isDragOver,
-      'dragging-source': isBeingDragged
+      'dragging-source': isBeingDragged,
+      'row-focus-flash': !!item?.uid && flashedRowUid === item.uid
     }, getRowClassName(item));
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
@@ -97,13 +157,15 @@ const EditableTable = ({
   initialScroll = 0,
   onColumnWidthsChange,
   sortStorageKey,
-  isDraft
+  isDraft,
+  focusRow,
+  onFocusRowHandled
 }) => {
   const {
-    isEditable: isRowEditable = () => true,
-    isCheckboxDisabled = () => false,
-    className: getRowClassName = () => '',
-    testId: getRowTestId = () => undefined,
+    isEditable: isRowEditable = defaultIsRowEditable,
+    isCheckboxDisabled = defaultIsCheckboxDisabled,
+    className: getRowClassName = defaultGetRowClassName,
+    testId: getRowTestId = defaultGetRowTestId,
     renderFullWidth: renderFullWidthRow,
     renderActionCell
   } = rowConfig;
@@ -115,6 +177,7 @@ const EditableTable = ({
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
+  const [flashedRow, setFlashedRow] = useState(null);
   const widths = columnWidths || {};
 
   const sortColumn = useMemo(() => columns.find((col) => col.sortable), [columns]);
@@ -400,6 +463,88 @@ const EditableTable = ({
   }, [isLastEmptyRow, getRowError, handleValueChange]);
 
   const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
+  const rowsWithEmptyRef = useRef(rowsWithEmpty);
+  rowsWithEmptyRef.current = rowsWithEmpty;
+  const keyColumnRef = useRef(keyColumn);
+  keyColumnRef.current = keyColumn;
+  const onFocusRowHandledRef = useRef(onFocusRowHandled);
+  onFocusRowHandledRef.current = onFocusRowHandled;
+
+  const focusRowUid = focusRow?.uid;
+  const focusRowName = focusRow?.name;
+  const focusRowRequestedAt = focusRow?.requestedAt;
+
+  // Only the focus request and the scroll parent may retrigger this. Rows and
+  // columns are recreated by parents every render, and setFlashedRow would
+  // then loop until React hits maximum update depth.
+  useEffect(() => {
+    if ((!focusRowUid && !focusRowName) || !scrollParent) return;
+
+    const rows = rowsWithEmptyRef.current;
+    const index = findFocusRowIndex(rows, keyColumnRef.current, {
+      uid: focusRowUid,
+      name: focusRowName
+    });
+    if (index === -1) {
+      onFocusRowHandledRef.current?.();
+      return;
+    }
+
+    const uid = rows[index].uid;
+    setFlashedRow((prev) => (
+      prev?.uid === uid && prev?.requestedAt === focusRowRequestedAt
+        ? prev
+        : { uid, requestedAt: focusRowRequestedAt }
+    ));
+
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+
+    const finish = () => {
+      if (!cancelled) onFocusRowHandledRef.current?.();
+    };
+
+    const revealRow = () => {
+      if (cancelled) return;
+      attempts += 1;
+
+      // customScrollParent lists follow the host pane's scrollTop. Setting that
+      // directly is what actually mounts a row below the viewport; scrollToIndex
+      // alone is a no-op until the list has measured, so both run every frame.
+      virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'auto' });
+      scrollNearRow(scrollParent, wrapperRef.current, index);
+
+      const row = findRenderedRow(wrapperRef.current, index);
+      if (row) {
+        row.scrollIntoView({ block: 'center', inline: 'nearest' });
+        if (isRowInViewport(row, scrollParent)) {
+          finish();
+          return;
+        }
+      }
+
+      if (attempts >= FOCUS_SCROLL_FRAMES) {
+        finish();
+        return;
+      }
+
+      frame = requestAnimationFrame(revealRow);
+    };
+
+    frame = requestAnimationFrame(revealRow);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [focusRowUid, focusRowName, focusRowRequestedAt, scrollParent]);
+
+  useEffect(() => {
+    if (!flashedRow) return;
+
+    const timer = setTimeout(() => setFlashedRow(null), FOCUS_FLASH_DURATION);
+    return () => clearTimeout(timer);
+  }, [flashedRow]);
 
   const virtuosoContext = useMemo(() => ({
     reorderable,
@@ -412,8 +557,9 @@ const EditableTable = ({
     handleDragHandleMouseDown,
     isRowEditable,
     getRowClassName,
-    getRowTestId
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId]);
+    getRowTestId,
+    flashedRowUid: flashedRow?.uid || null
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId, flashedRow]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
@@ -543,7 +689,9 @@ const EditableTable = ({
     );
   }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, isRowEditable, renderFullWidthRow, renderActionCell, columns, showDelete, keyColumn, handleDragHandleMouseDown, checkboxKey, disableCheckbox, isCheckboxDisabled, handleCheckboxChange, renderCell, handleRemoveRow]);
 
-  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
+  const initialTopMostItemIndex = useRef(
+    (focusRow?.uid || focusRow?.name) ? 0 : Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))
+  ).current;
 
   return (
     <StyledWrapper

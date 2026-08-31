@@ -7,7 +7,7 @@ import {
   selectRequestPaneTab,
   sendRequest
 } from '../../utils/page';
-import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, showDefaultHeaders } from '../../utils/request';
+import { fillRequestHeaderName, fillRequestHeaderValue, readResponsePreviewBody, showInheritedHeaders } from '../../utils/request';
 
 const DEFAULT_HEADERS = [
   'User-Agent',
@@ -28,10 +28,10 @@ test('shows all default headers with Host disabled', async ({ page, createTmpDir
   await createCollection(page, 'default-headers-catalog', await createTmpDir('default-headers-catalog'));
   await createRequest(page, 'request-1', 'default-headers-catalog', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
-  await test.step('Show the default headers accordion', async () => {
-    await expect(headers.defaultSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+  await test.step('Show the inherited headers accordion', async () => {
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
   });
 
   await test.step('Show every known default header', async () => {
@@ -55,12 +55,12 @@ test('expands and collapses each headers accordion independently', async ({ page
   await createCollection(page, 'default-headers-accordions', await createTmpDir('default-headers-accordions'));
   await createRequest(page, 'request-1', 'default-headers-accordions', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
-  await test.step('Collapse default headers without hiding request headers', async () => {
-    await headers.defaultSectionToggle().click();
+  await test.step('Collapse inherited headers without hiding request headers', async () => {
+    await headers.inheritedSectionToggle().click();
 
-    await expect(headers.defaultSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
     await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
     await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'true');
     await expect(headers.addRow()).toBeVisible();
@@ -74,42 +74,42 @@ test('expands and collapses each headers accordion independently', async ({ page
     await headers.requestSectionToggle().click();
     await expect(headers.requestSectionToggle()).toHaveAttribute('aria-expanded', 'true');
     await expect(headers.addRow()).toBeVisible();
-    await expect(headers.defaultSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
   });
 });
 
-test('hides defaults and shows a flat editable request headers table', async ({ page, createTmpDir }) => {
+test('hides inherited headers and shows a flat editable request headers table', async ({ page, createTmpDir }) => {
   await createCollection(page, 'default-headers-hide', await createTmpDir('default-headers-hide'));
   await createRequest(page, 'request-1', 'default-headers-hide', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
   const headers = buildCommonLocators(page).request.headers;
 
-  await test.step('Start with defaults hidden', async () => {
-    await expect(headers.defaultSectionRow()).not.toBeVisible();
+  await test.step('Start with inherited headers hidden', async () => {
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
     await expect(headers.addRow()).toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
   });
 
   await test.step('Keep hide state after switching request panes', async () => {
     await selectRequestPaneTab(page, 'Params');
     await selectRequestPaneTab(page, 'Headers');
 
-    await expect(headers.defaultSectionRow()).not.toBeVisible();
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
   });
 
-  await test.step('Show defaults, then hide again', async () => {
-    await headers.toggleDefaults().click();
-    await expect(headers.defaultSectionRow()).toBeVisible();
+  await test.step('Show inherited headers, then hide again', async () => {
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionRow()).toBeVisible();
     await expect(headers.requestSectionRow()).toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
+    await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
 
-    await headers.toggleDefaults().click();
-    await expect(headers.defaultSectionRow()).not.toBeVisible();
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
   });
 });
 
@@ -117,7 +117,7 @@ test('remembers an omitted default header while the request remains open', async
   await createCollection(page, 'default-headers-omit', await createTmpDir('default-headers-omit'));
   await createRequest(page, 'request-1', 'default-headers-omit', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
   const acceptCheckbox = headers.defaultRow('Accept').getByTestId('column-checkbox');
 
   await test.step('Disable Accept', async () => {
@@ -137,7 +137,7 @@ test('shows conflict warnings and ToolHint messages for matching default and req
   await createCollection(page, 'default-headers-conflicts', await createTmpDir('default-headers-conflicts'));
   await createRequest(page, 'request-1', 'default-headers-conflicts', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
   await test.step('Add an explicit User-Agent request header', async () => {
     await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');
@@ -160,7 +160,7 @@ test('shows the runtime-default explanation through ToolHint', async ({ page, cr
   await createCollection(page, 'default-headers-toolhint', await createTmpDir('default-headers-toolhint'));
   await createRequest(page, 'request-1', 'default-headers-toolhint', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
   await test.step('Explain a default header', async () => {
     await headers.defaultInfo('Accept').hover();
@@ -177,7 +177,7 @@ test('keeps an empty request-header add row while defaults are visible', async (
   await createCollection(page, 'default-headers-add-row', await createTmpDir('default-headers-add-row'));
   await createRequest(page, 'request-1', 'default-headers-add-row', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
   await test.step('Start with one empty request header row', async () => {
     await expect(headers.addRow()).toBeVisible();
@@ -194,7 +194,7 @@ test('omits Accept from the wire request when unchecked', async ({ page, createT
   await createCollection(page, 'default-headers-omit-send', await createTmpDir('default-headers-omit-send'));
   await createRequest(page, 'request-1', 'default-headers-omit-send', { url: ECHO_HEADERS_URL });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
   await test.step('Disable Accept and send', async () => {
     await headers.defaultRow('Accept').getByTestId('column-checkbox').uncheck();
@@ -212,7 +212,7 @@ test('still sends Host even though it cannot be omitted', async ({ page, createT
   await createCollection(page, 'default-headers-host-send', await createTmpDir('default-headers-host-send'));
   await createRequest(page, 'request-1', 'default-headers-host-send', { url: ECHO_HEADERS_URL });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showDefaultHeaders(page);
+  const headers = await showInheritedHeaders(page);
 
   await test.step('Confirm Host checkbox stays disabled', async () => {
     await expect(headers.defaultRow('Host').getByTestId('column-checkbox')).toBeDisabled();

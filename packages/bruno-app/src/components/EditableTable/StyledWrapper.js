@@ -252,7 +252,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     transition: color 0.15s ease, background 0.15s ease;
 
-    &:hover:not(.headers-section-toggle) {
+    &:hover {
       color: ${(props) => props.theme.colors.text.danger};
     }
   }
@@ -277,6 +277,26 @@ const StyledWrapper = styled.div`
 
   tbody tr.dragging-source {
     opacity: 0.4;
+  }
+
+  @keyframes row-focus-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.warning.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  tbody tr.row-focus-flash td {
+    animation: row-focus-flash 2.5s ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr.row-focus-flash td {
+      animation: none;
+      background-color: ${(props) => props.theme.status.warning.background};
+    }
   }
 
   select {

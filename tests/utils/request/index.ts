@@ -1,4 +1,10 @@
 import { test, expect, Page, Locator } from '../../../playwright';
+import {
+  openCollectionSettings,
+  openFolderSettings,
+  selectCollectionPaneTab,
+  selectfolderPaneTab
+} from '../page/actions';
 import { buildCommonLocators } from '../page/locators';
 
 export const buildRequestLocators = (page: Page) => ({
@@ -32,14 +38,16 @@ export const buildRequestLocators = (page: Page) => ({
   pane: () => page.getByTestId('request-pane'),
   headers: {
     table: () => page.getByTestId('request-headers-table'),
-    defaultSectionToggle: () => page.getByTestId('default-headers-section-toggle'),
+    inheritedSectionToggle: () => page.getByTestId('inherited-headers-section-toggle'),
     requestSectionToggle: () => page.getByTestId('request-headers-section-toggle'),
-    defaultSectionRow: () => page.getByTestId('default-headers-section-row'),
+    inheritedSectionRow: () => page.getByTestId('inherited-headers-section-row'),
     requestSectionRow: () => page.getByTestId('request-headers-section-row'),
     defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
     requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
+    inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
+    inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
-    toggleDefaults: () => page.getByTestId('toggle-default-headers'),
+    toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`),
     defaultConflict: (name: string) => page.getByTestId(`default-header-conflict-${name.toLowerCase()}`),
@@ -141,12 +149,12 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 };
 
 /**
- * Reveal the Default Headers accordion (hidden by default) and return header locators.
+ * Reveal the Inherited Headers accordion (hidden by default) and return header locators.
  */
-export const showDefaultHeaders = async (page: Page) => {
+export const showInheritedHeaders = async (page: Page) => {
   const headers = buildRequestLocators(page).headers;
-  await headers.toggleDefaults().click();
-  await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
+  await headers.toggleInherited().click();
+  await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
   return headers;
 };
 
@@ -156,4 +164,50 @@ export const showDefaultHeaders = async (page: Page) => {
 export const readResponsePreviewBody = async (page: Page) => {
   const texts = await page.getByTestId('response-preview-container').locator('.CodeMirror-scroll').allInnerTexts();
   return texts.join('\n');
+};
+
+type SettingsHeaderScope = 'collection' | 'folder';
+
+const setSettingsHeadersBulk = async (page: Page, headersText: string, scope: SettingsHeaderScope) => {
+  const content = page.locator(
+    scope === 'collection' ? '.collection-settings-content' : '.folder-settings-content'
+  );
+  const savedMessage = scope === 'collection'
+    ? 'Collection Settings saved successfully'
+    : 'Folder Settings saved successfully';
+
+  await content.getByTestId('bulk-edit-toggle').click();
+  const editor = content.locator('.CodeMirror').first();
+  await expect(editor).toBeVisible();
+  await editor.evaluate((el, text) => {
+    const cm = (el as { CodeMirror?: { setValue: (value: string) => void } }).CodeMirror;
+    if (!cm) throw new Error('No CodeMirror in settings headers bulk editor');
+    cm.setValue(text);
+  }, headersText);
+  await content.getByTestId('key-value-edit-toggle').click();
+  await content.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText(savedMessage)).toBeVisible({ timeout: 5000 });
+};
+
+/**
+ * Write collection headers via Bulk Edit and save.
+ */
+export const seedCollectionHeaders = async (page: Page, collectionName: string, headersText: string) => {
+  await openCollectionSettings(page, collectionName);
+  await selectCollectionPaneTab(page, 'headers');
+  await setSettingsHeadersBulk(page, headersText, 'collection');
+};
+
+/**
+ * Write folder headers via Bulk Edit and save.
+ */
+export const seedFolderHeaders = async (
+  page: Page,
+  collectionName: string,
+  folderName: string,
+  headersText: string
+) => {
+  await openFolderSettings(page, collectionName, folderName);
+  await selectfolderPaneTab(page, 'headers');
+  await setSettingsHeadersBulk(page, headersText, 'folder');
 };

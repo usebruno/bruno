@@ -9,7 +9,7 @@ const Wrapper = styled.div`
     }
   }
 
-  .toggle-default-headers {
+  .toggle-inherited-headers {
     color: ${(props) => props.theme.text};
 
     &:hover {
@@ -48,7 +48,8 @@ const Wrapper = styled.div`
     }
   }
 
-  .default-header-row {
+  .default-header-row,
+  .inherited-header-row {
     .default-header-value {
       font-style: italic;
       color: ${(props) => props.theme.colors.text.muted};
@@ -56,6 +57,30 @@ const Wrapper = styled.div`
 
     input[type='checkbox']:disabled {
       opacity: 0.55;
+    }
+  }
+
+  .inherited-header-row {
+    .CodeMirror-line {
+      font-style: italic;
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-header-source {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
     }
   }
 
