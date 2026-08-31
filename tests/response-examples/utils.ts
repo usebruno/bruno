@@ -5,6 +5,9 @@ import { findCollectionDir } from '../utils/collection-files';
 export const requestFilePath = (testDir: string, requestName: string, format: 'bru' | 'yml'): string =>
   path.join(findCollectionDir(testDir), `${requestName}.${format}`);
 
+/** Thrown by `exampleOrderOnDisk` when a requested name is not present in the file. */
+const MISSING_EXAMPLE = 'ERR_EXAMPLE_NOT_IN_FILE';
+
 /**
  * Example names in the order they appear in the request file on disk.
  *
@@ -21,7 +24,9 @@ export const exampleOrderOnDisk = (filePath: string, names: string[]): string[] 
   return names
     .map((name) => {
       const index = content.indexOf(name);
-      if (index === -1) throw new Error(`Example "${name}" is missing from ${filePath}`);
+      if (index === -1) {
+        throw Object.assign(new Error(`Example "${name}" is missing from ${filePath}`), { code: MISSING_EXAMPLE });
+      }
       return { name, index };
     })
     .sort((a, b) => a.index - b.index)
@@ -31,10 +36,14 @@ export const exampleOrderOnDisk = (filePath: string, names: string[]): string[] 
 /**
  * Content plus modification time for a request file.
  *
- * Content alone cannot prove a file was left alone: a reorder that resolves to the order already
- * on disk would be rewritten with byte-identical content, so only the mtime distinguishes "never
- * written" from "written again with the same bytes". Autosave is disabled in tests, so nothing
- * else touches these files mid-test.
+ * Use this to assert a file was **not** rewritten. Content alone cannot show that: a reorder
+ * resolving to the order already on disk would be saved with byte-identical content, so only the
+ * mtime separates "never written" from "written again the same". Autosave is off in tests, so
+ * nothing else touches these files mid-test.
+ *
+ * Don't invert it to prove a file *was* rewritten — mtime granularity varies by filesystem, so a
+ * timestamp is not guaranteed to advance between two nearby writes. Assert the persisted order or
+ * content changed instead.
  */
 export const fileSnapshot = (filePath: string): { content: string; mtimeMs: number } => ({
   content: fs.readFileSync(filePath, 'utf8'),
@@ -42,13 +51,18 @@ export const fileSnapshot = (filePath: string): { content: string; mtimeMs: numb
 });
 
 /**
- * Poll-safe `exampleOrderOnDisk`: yields null instead of throwing while a name is still absent or
- * the file is mid-write, so it can drive `expect.poll` without aborting it.
+ * Poll-safe `exampleOrderOnDisk` for driving `expect.poll`.
+ *
+ * A save truncates before it writes, so a read landing mid-write sees content without the names
+ * yet — the one genuinely transient outcome, reported as null so the poll retries. Everything
+ * else (a wrong path, a permission error) is a bug in the test rather than a race, and is
+ * re-thrown so the poll fails immediately instead of timing out on a misleading message.
  */
 export const exampleOrderOnDiskOrNull = (filePath: string, names: string[]): string[] | null => {
   try {
     return exampleOrderOnDisk(filePath, names);
-  } catch {
-    return null;
+  } catch (error) {
+    if ((error as { code?: string }).code === MISSING_EXAMPLE) return null;
+    throw error;
   }
 };

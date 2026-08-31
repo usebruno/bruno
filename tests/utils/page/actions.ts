@@ -2229,13 +2229,7 @@ const getSidebarExampleNames = async (page: Page, requestName: string): Promise<
  * the resulting order follow the row midpoint, so 'above' aims near the top edge and
  * 'below' near the bottom edge.
  */
-const dragExample = async (
-  page: Page,
-  requestName: string,
-  fromExample: string,
-  toExample: string,
-  position: 'above' | 'below'
-) => {
+const dragExample = async (page: Page, requestName: string, fromExample: string, toExample: string, position: 'above' | 'below') => {
   await test.step(`Drag example "${fromExample}" ${position} "${toExample}"`, async () => {
     const { sidebar } = buildCommonLocators(page);
     const source = sidebar.exampleRowIn(requestName, fromExample);
@@ -2260,13 +2254,7 @@ const dragExample = async (
  * within their own request, so this is expected to be rejected — the helper exists to exercise
  * that rejection.
  */
-const dragExampleOntoOtherRequestExample = async (
-  page: Page,
-  fromRequestName: string,
-  fromExample: string,
-  toRequestName: string,
-  toExample: string
-) => {
+const dragExampleOntoOtherRequestExample = async (page: Page, fromRequestName: string, fromExample: string, toRequestName: string, toExample: string) => {
   await test.step(`Drag example "${fromExample}" onto "${toExample}" under request "${toRequestName}"`, async () => {
     const { sidebar } = buildCommonLocators(page);
     const source = sidebar.exampleRowIn(fromRequestName, fromExample);

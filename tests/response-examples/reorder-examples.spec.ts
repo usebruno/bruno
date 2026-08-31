@@ -118,9 +118,10 @@ test.describe('Reorder response examples via drag and drop', () => {
       // identical to what is already on disk, which a content-only check cannot detect.
       expect(fileSnapshot(flightsFile)).toEqual(flightsBefore);
 
-      // hotels was rewritten by the reorder above, so its mtime must have moved — proving the
-      // comparison just made can actually fail, rather than passing because mtime never changes.
-      expect(fileSnapshot(hotelsFile).mtimeMs).toBeGreaterThan(hotelsBefore.mtimeMs);
+      // The counterpart: hotels was rewritten by the reorder above, so its content must differ.
+      // Asserted through content rather than an advancing mtime, which no filesystem guarantees
+      // between two nearby writes.
+      expect(fileSnapshot(hotelsFile).content).not.toEqual(hotelsBefore.content);
     });
   });
 

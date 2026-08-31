@@ -17,13 +17,11 @@ const makeState = ({ examples, draft = null } = {}) => ({
   collections: [
     {
       uid: COLLECTION_UID,
-      pathname: '/coll',
       items: [
         {
           uid: ITEM_UID,
           name: 'Flights',
           type: 'http-request',
-          pathname: '/coll/flights.bru',
           request: { url: 'https://example.com', method: 'GET', headers: [], params: [] },
           examples: examples ?? [makeExample('ex-1', 'First'), makeExample('ex-2', 'Second'), makeExample('ex-3', 'Third')],
           draft
