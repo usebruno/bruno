@@ -99,7 +99,7 @@ describe('GrpcScriptRuntime', () => {
       async (runtime) => {
         if (runtime === 'quickjs') await quickJsLoader();
         const script = `
-        bru.grpc.request.metadata.set('x-token', 'from-hook');
+        bru.grpc.request.metadata.upsert('x-token', 'from-hook');
         bru.setVar('metadataCount', bru.grpc.request.metadata.count());
       `;
 
@@ -250,8 +250,8 @@ describe('GrpcScriptRuntime', () => {
       async (runtime) => {
         if (runtime === 'quickjs') await quickJsLoader();
         const script = `
-        try { bru.grpc.request.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('requestMetadata', e.message); }
-        try { bru.grpc.response.trailers.delete('grpc-status'); } catch (e) { bru.setVar('responseTrailers', e.message); }
+        try { bru.grpc.request.metadata.upsert('x-token', 'too-late'); } catch (e) { bru.setVar('requestMetadata', e.message); }
+        try { bru.grpc.response.trailers.remove('grpc-status'); } catch (e) { bru.setVar('responseTrailers', e.message); }
       `;
         const request = makeRequest();
 
@@ -260,10 +260,10 @@ describe('GrpcScriptRuntime', () => {
         });
 
         expect(result.runtimeVariables.requestMetadata).toContain(
-          'metadata.set() is not available'
+          'metadata.upsert() is not available'
         );
         expect(result.runtimeVariables.responseTrailers).toContain(
-          'metadata.delete() is not available'
+          'metadata.remove() is not available'
         );
         expect(request.headers).toEqual({ 'X-Token': 'authored' });
       }
@@ -351,14 +351,14 @@ describe('GrpcScriptRuntime', () => {
         const request = makeRequest();
 
         const result = await runBeforeMessageSend(
-          `try { bru.grpc.request.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('err', e.message); }`,
+          `try { bru.grpc.request.metadata.upsert('x-token', 'too-late'); } catch (e) { bru.setVar('err', e.message); }`,
           request,
           outbound,
           { runtime }
         );
 
         expect(result.runtimeVariables.err).toContain(
-          'metadata.set() is not available'
+          'metadata.upsert() is not available'
         );
         expect(request.headers).toEqual({ 'X-Token': 'authored' });
       }
@@ -478,8 +478,8 @@ describe('GrpcScriptRuntime', () => {
       async (runtime) => {
         if (runtime === 'quickjs') await quickJsLoader();
         const script = `
-        try { bru.grpc.request.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('request', e.message); }
-        try { bru.grpc.response.metadata.set('content-type', 'text/plain'); } catch (e) { bru.setVar('response', e.message); }
+        try { bru.grpc.request.metadata.upsert('x-token', 'too-late'); } catch (e) { bru.setVar('request', e.message); }
+        try { bru.grpc.response.metadata.upsert('content-type', 'text/plain'); } catch (e) { bru.setVar('response', e.message); }
       `;
 
         const result = await runAfterMessageReceive(
@@ -491,10 +491,10 @@ describe('GrpcScriptRuntime', () => {
         );
 
         expect(result.runtimeVariables.request).toContain(
-          'metadata.set() is not available'
+          'metadata.upsert() is not available'
         );
         expect(result.runtimeVariables.response).toContain(
-          'metadata.set() is not available'
+          'metadata.upsert() is not available'
         );
       }
     );

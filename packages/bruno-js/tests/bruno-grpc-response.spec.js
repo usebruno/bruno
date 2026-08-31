@@ -29,6 +29,17 @@ describe('BrunoGrpcResponse', () => {
     expect(res.trailers.get('grpc-status')).toBe('0');
   });
 
+  test('a metadata key named __proto__ is read as an entry, not as the prototype', () => {
+    const res = new BrunoGrpcResponse(
+      makeRes({ metadata: [{ name: '__proto__', value: 'polluted' }], trailers: undefined })
+    );
+
+    expect(res.metadata.get('__proto__')).toBe('polluted');
+    expect(res.metadata.count()).toBe(1);
+    expect(res.metadata.all()).toEqual([{ key: '__proto__', value: 'polluted' }]);
+    expect({}.polluted).toBeUndefined();
+  });
+
   test('messages are the { data, timestamp } envelopes the call produced', () => {
     const res = new BrunoGrpcResponse(makeRes());
     expect(res.messages.get()).toEqual({ data: { id: 1 }, timestamp: 1700000000 });
@@ -54,8 +65,8 @@ describe('BrunoGrpcResponse', () => {
   test('the metadata of a completed call cannot be edited', () => {
     const res = new BrunoGrpcResponse(makeRes());
 
-    expect(() => res.metadata.set('content-type', 'text/plain')).toThrow(/beforeCallStart/);
-    expect(() => res.trailers.delete('grpc-status')).toThrow(/beforeCallStart/);
+    expect(() => res.metadata.upsert('content-type', 'text/plain')).toThrow(/beforeCallStart/);
+    expect(() => res.trailers.remove('grpc-status')).toThrow(/beforeCallStart/);
   });
 
   describe('message', () => {

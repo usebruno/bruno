@@ -1,4 +1,5 @@
 const ReadOnlyPropertyList = require('../readonly-property-list');
+const { setMetadataKey } = require('./grpc-metadata');
 
 // Extends ReadOnlyPropertyList in dynamic mode: entries are read through the accessor (live headers) on every access.
 // Keep quickjs shim up to date on any updates to this class
@@ -143,13 +144,13 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   // ── Write methods (edit the backing map) ──────────────────────────────
 
   /**
-   * Set a key, replacing any existing entry for it.
+   * Insert a key, or update it in place when it already exists.
    *
    * @param {string} key
    * @param {*} value
    */
-  set(key, value) {
-    this.#assertWritable('set');
+  upsert(key, value) {
+    this.#assertWritable('upsert');
 
     if (typeof key !== 'string' || !key.length) {
       return;
@@ -158,17 +159,17 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
     const metadata = this.#readMetadata();
     const existing = this.#findKey(key);
 
-    // A server reads `X-Token` and `x-token` as one key, so a re-cased set replaces instead of
+    // A server reads `X-Token` and `x-token` as one key, so a re-cased upsert replaces instead of
     // leaving two entries the transport would send as duplicates.
     if (existing !== undefined && existing !== key) {
       delete metadata[existing];
     }
 
-    metadata[key] = value;
+    setMetadataKey(metadata, key, value);
   }
 
   /**
-   * Set an entry from the `{ key, value }` shape `all()` returns, so an entry read from one list
+   * Upsert an entry from the `{ key, value }` shape `all()` returns, so an entry read from one list
    * can be handed straight to another.
    *
    * @param {object} item
@@ -180,15 +181,15 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
       return;
     }
 
-    this.set(item.key, item.value);
+    this.upsert(item.key, item.value);
   }
 
   /**
    * Remove the entry with the given key.
    * @param {string} key
    */
-  delete(key) {
-    this.#assertWritable('delete');
+  remove(key) {
+    this.#assertWritable('remove');
 
     const existing = this.#findKey(key);
 
@@ -198,8 +199,8 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   }
 
   /** Remove every entry. */
-  deleteAll() {
-    this.#assertWritable('deleteAll');
+  clear() {
+    this.#assertWritable('clear');
 
     const metadata = this.#readMetadata();
 
