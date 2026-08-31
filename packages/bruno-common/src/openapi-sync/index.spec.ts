@@ -54,6 +54,44 @@ describe('normalizeOpenApiSyncConfigs', () => {
     ]);
   });
 
+  it('drops entries without a usable sourceUrl', () => {
+    expect(normalizeOpenApiSyncConfigs([
+      {},
+      [],
+      { sourceUrl: '' },
+      { sourceUrl: 42 },
+      { sourceUrl: null },
+      { groupBy: 'tags', autoCheck: true }
+    ])).toEqual([]);
+  });
+
+  it('does not let a malformed entry shadow the valid one behind it', () => {
+    expect(normalizeOpenApiSyncConfigs([
+      {},
+      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'path' }
+    ])).toEqual([
+      {
+        sourceUrl: 'https://example.com/openapi.json',
+        groupBy: 'path',
+        autoCheck: true,
+        autoCheckInterval: 5
+      }
+    ]);
+  });
+
+  it('keeps the entry but drops an unsupported groupBy', () => {
+    const [config] = normalizeOpenApiSyncConfigs([
+      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tag' }
+    ]);
+
+    expect(config).toEqual({
+      sourceUrl: 'https://example.com/openapi.json',
+      autoCheck: true,
+      autoCheckInterval: 5
+    });
+    expect('groupBy' in config).toBe(false);
+  });
+
   it('returns an empty list for anything that is not an array of entries', () => {
     expect(normalizeOpenApiSyncConfigs(undefined)).toEqual([]);
     expect(normalizeOpenApiSyncConfigs(null)).toEqual([]);
