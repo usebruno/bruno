@@ -1854,6 +1854,36 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
+ * Close every open request tab, discarding unsaved changes instead of saving them.
+ *
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllTabsDiscardingChanges = async (page: Page) => {
+  await test.step('Close all tabs, discarding changes', async () => {
+    const locators = buildCommonLocators(page);
+    const requestTabs = page.locator('.request-tab').filter({ has: page.locator('.tab-method') });
+
+    for (let remaining = await requestTabs.count(); remaining > 0; remaining--) {
+      const tab = requestTabs.first();
+      const hasChanges = await locators.tabs.tabDraftIndicator(tab).isVisible();
+
+      await tab.hover();
+      await tab.getByTestId('request-tab-close-icon').click({ force: true });
+
+      if (hasChanges) {
+        const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
+        await confirmClose.getByRole('button', { name: 'Don\'t Save' }).click();
+      }
+
+      await expect(requestTabs).toHaveCount(remaining - 1);
+    }
+
+    await expect(requestTabs).toHaveCount(0);
+  });
+};
+
+/**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
  * @returns void
@@ -3057,6 +3087,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
+  closeAllTabsDiscardingChanges,
   switchToOpenTab,
   createWorkspace,
   switchWorkspace,
