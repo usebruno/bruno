@@ -1055,8 +1055,6 @@ export const collectionsSlice = createSlice({
 
           const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
           let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
-          let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
-          let newPathParams = [];
 
           // try and connect as much as old params uid's as possible
           each(urlQueryParams, (urlQueryParam) => {
@@ -1074,27 +1072,30 @@ export const collectionsSlice = createSlice({
             }
           });
 
-          // filter the newest path param and compare with previous data that already inserted
-          newPathParams = filter(urlPathParams, (urlPath) => {
-            const existingPathParam = find(oldPathParams, (p) => p.name === urlPath.name);
+          let remainingPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
+          const pathParamsInUrlOrder = urlPathParams.map((urlPath) => {
+            const existingPathParam = find(remainingPathParams, (p) => p.name === urlPath.name);
             if (existingPathParam) {
-              return false;
+              remainingPathParams = filter(remainingPathParams, (p) => p.uid !== existingPathParam.uid);
+              return {
+                ...existingPathParam,
+                uid: existingPathParam.uid,
+                enabled: existingPathParam.enabled ?? true,
+                type: 'path'
+              };
             }
-            urlPath.uid = uuid();
-            urlPath.enabled = true;
-            urlPath.type = 'path';
-            return true;
-          });
-
-          // remove path param that not used or deleted when typing url
-          oldPathParams = filter(oldPathParams, (urlPath) => {
-            return find(urlPathParams, (p) => p.name === urlPath.name);
+            return {
+              ...urlPath,
+              uid: uuid(),
+              enabled: true,
+              type: 'path'
+            };
           });
 
           // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
-          item.draft.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
+          item.draft.request.params = concat(urlQueryParams, pathParamsInUrlOrder, disabledQueryParams);
         }
       }
     },
