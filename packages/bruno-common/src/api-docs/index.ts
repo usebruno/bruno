@@ -121,6 +121,20 @@ const augmentDocsMetadata = (openCollection: DocsOpenCollection, metadata: ApiDo
   return openCollection;
 };
 
+export const stripGitCredentials = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && (parsed.username || parsed.password)) {
+      parsed.username = '';
+      parsed.password = '';
+      return parsed.toString();
+    }
+    return url;
+  } catch {
+    return url;
+  }
+};
+
 export const buildApiDocsHtml = (
   collectionName: string,
   embeddedCollectionData: string,
@@ -128,7 +142,7 @@ export const buildApiDocsHtml = (
 ): string => {
   const baseUrl = options.rendererBaseUrl ?? DEFAULT_RENDERER_BASE_URL;
   const gitLine = options.gitCollectionUrl
-    ? `\n            gitCollectionUrl: ${hardenScriptSequences(JSON.stringify(options.gitCollectionUrl))},`
+    ? `\n            gitCollectionUrl: ${hardenScriptSequences(JSON.stringify(stripGitCredentials(options.gitCollectionUrl)))},`
     : '';
 
   return `<!DOCTYPE html>

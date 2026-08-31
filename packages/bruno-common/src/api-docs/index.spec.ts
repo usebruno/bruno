@@ -4,7 +4,8 @@ import {
   selectEnvironmentsByName,
   buildApiDocsHtml,
   generateApiDocsHtml,
-  getApiDocsFileName
+  getApiDocsFileName,
+  stripGitCredentials
 } from './index';
 
 const req = (name: string, tags?: string[]) => ({ name, type: 'http-request', tags });
@@ -81,6 +82,30 @@ describe('buildApiDocsHtml', () => {
   it('honors a custom renderer base url', () => {
     const html = buildApiDocsHtml('X', '"d"', { rendererBaseUrl: 'https://cdn.example.com' });
     expect(html).toContain('https://cdn.example.com/api-docs/api-docs.css');
+  });
+});
+
+describe('stripGitCredentials', () => {
+  it('removes a token from an https url', () => {
+    expect(stripGitCredentials('https://ghp_xxx@github.com/org/repo.git')).toBe('https://github.com/org/repo.git');
+  });
+
+  it('removes a user:password pair from an https url', () => {
+    expect(stripGitCredentials('https://user:pass@github.com/org/repo.git')).toBe('https://github.com/org/repo.git');
+    expect(stripGitCredentials('https://ghp_x:x-oauth-basic@github.com/org/repo.git')).toBe('https://github.com/org/repo.git');
+  });
+
+  it('leaves a credential-free https url unchanged', () => {
+    expect(stripGitCredentials('https://github.com/org/repo.git')).toBe('https://github.com/org/repo.git');
+  });
+
+  it('preserves the port and path while stripping credentials', () => {
+    expect(stripGitCredentials('http://token@host:8443/org/repo.git')).toBe('http://host:8443/org/repo.git');
+  });
+
+  it('leaves ssh remotes untouched (git@ is the ssh user, not a secret)', () => {
+    expect(stripGitCredentials('git@github.com:org/repo.git')).toBe('git@github.com:org/repo.git');
+    expect(stripGitCredentials('ssh://git@github.com/org/repo.git')).toBe('ssh://git@github.com/org/repo.git');
   });
 });
 
@@ -166,11 +191,12 @@ describe('generateApiDocsHtml', () => {
     ).toContain('gitCollectionUrl: "https://g/x.git"');
   });
 
-  it('embeds the git link as given, without screening its contents', () => {
+  it('strips credentials from the embedded git link so a token cannot leak into the docs', () => {
     const deps = makeDeps();
     const tokenized = 'https://ghp_0123456789abcdefghijklmnopqrstuvwxyz@github.com/org/repo.git';
     const html = generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: tokenized }, deps as any);
-    expect(html).toContain(`gitCollectionUrl: ${JSON.stringify(tokenized)}`);
+    expect(html).not.toContain('ghp_0123456789abcdefghijklmnopqrstuvwxyz');
+    expect(html).toContain('gitCollectionUrl: "https://github.com/org/repo.git"');
   });
 
   it('hardens a closing script tag in the embedded git link', () => {
