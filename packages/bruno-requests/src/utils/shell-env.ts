@@ -6,8 +6,9 @@
 
 import path from 'path';
 
-const fetchShellEnv = async (): Promise<Record<string, string>> => {
+export const fetchShellEnv = async (): Promise<Record<string, string> | null> => {
   // Windows handles environment variables differently - skip
+  // everything related to windows proxy settings is handled by the system proxy resolver i.e getSystemProxy()
   if (process.platform === 'win32') {
     return {};
   }
@@ -18,7 +19,7 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
     const env = await shellEnv();
     return env;
   } catch (error) {
-    return {};
+    return null;
   }
 };
 
@@ -30,6 +31,11 @@ const fetchShellEnv = async (): Promise<Record<string, string>> => {
  */
 export const initializeShellEnv = async (): Promise<Record<string, string>> => {
   const shellEnvVars = await fetchShellEnv();
+
+  if (shellEnvVars === null) {
+    return {};
+  }
+
   for (const [key, value] of Object.entries(shellEnvVars)) {
     if (key === 'PATH' && process.env.PATH) {
       process.env.PATH = `${value}${path.delimiter}${process.env.PATH}`;

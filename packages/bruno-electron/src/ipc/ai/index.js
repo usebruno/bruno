@@ -12,6 +12,8 @@ const {
   clearSdkCache,
   isKnownProviderId,
   isBuiltInModelId,
+  isOpenAiCompatibleProviderId,
+  isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -50,10 +52,15 @@ const buildStatus = () => {
 
   const providers = {};
   for (const provider of listProviders(aiPreferences)) {
+    const configured = provider.isCustom
+      ? Boolean(provider.baseURL)
+      : hasApiKey(provider.id);
+
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
-      configured: hasApiKey(provider.id)
+      configured,
+      hasApiKey: hasApiKey(provider.id)
     };
   }
 
@@ -92,24 +99,39 @@ const assertKnownProvider = (providerId) => {
 };
 
 const registerAiIpc = (mainWindow) => {
+  const broadcastStatus = (status) => {
+    if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('main:ai-status-changed', status);
+    }
+  };
+
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
     assertKnownProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
-      throw new Error('API key cannot be empty');
+      if (isOpenAiCompatibleProviderId(providerId)) {
+        aiKeyStore.clearKey(providerId);
+      } else {
+        throw new Error('API key cannot be empty');
+      }
+    } else {
+      aiKeyStore.setKey(providerId, trimmed);
     }
-    aiKeyStore.setKey(providerId, trimmed);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
     assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
@@ -123,7 +145,9 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
     const apiKey = aiKeyStore.getKey(providerId);
-    if (!apiKey) {
+    // Built-in providers must have a key to test. Compat endpoints can be
+    // hit without one (server may or may not require it).
+    if (!apiKey && !isOpenAiCompatibleProviderId(providerId)) {
       return { ok: false, error: 'No API key configured' };
     }
 
@@ -162,7 +186,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -344,7 +368,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {

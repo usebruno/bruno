@@ -8,6 +8,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { IconPlus, IconSettings, IconShieldLock, IconTerminal2 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
+import StatusBadge from 'ui/StatusBadge';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
@@ -179,6 +180,18 @@ const AI = () => {
 
   useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
+  const saveSecurityImmediate = (patch) => {
+    const nextSecurity = { ...formik.values.security, ...patch };
+    const nextValues = { ...formik.values, security: nextSecurity };
+
+    formik.setFieldValue('security', nextSecurity);
+    debouncedSave.cancel();
+
+    aiPreferencesSchema
+      .validate(nextValues, { abortEarly: true })
+      .then((validated) => handleSaveRef.current(validated))
+      .catch(() => {});
+  };
   const modelsByProvider = useMemo(() => {
     const grouped = {};
     (status?.models || []).forEach((model) => {
@@ -286,10 +299,15 @@ const AI = () => {
   }, [status, formik.values.providers, formik.values.models, formik.values.openaiCompatibleEndpoints]);
 
   return (
-    <StyledWrapper className="w-full flex flex-col text-xs min-h-0 max-h-[calc(100%-30px)]">
-      <div className="section-header">AI</div>
+    <StyledWrapper className="w-full flex flex-col text-xs self-stretch min-h-0">
+      <div className="flex items-center gap-2">
+        <div className="section-header">AI</div>
+        <StatusBadge status="info" size="xs">
+          Beta
+        </StatusBadge>
+      </div>
 
-      <div className="ai-tabs flex items-center gap-1" role="tablist" aria-label="AI preferences">
+      <div className="ai-tabs flex items-center" role="tablist" aria-label="AI preferences">
         <button
           type="button"
           role="tab"
@@ -497,12 +515,12 @@ const AI = () => {
             redactResponse={formik.values.security?.redactResponse !== false}
             customRedactedHeaders={formik.values.security?.customRedactedHeaders || []}
             customRedactedVariables={formik.values.security?.customRedactedVariables || []}
-            onToggleRedactHeaders={(next) => formik.setFieldValue('security.redactHeaders', next)}
-            onToggleRedactBody={(next) => formik.setFieldValue('security.redactBody', next)}
-            onToggleRedactVariables={(next) => formik.setFieldValue('security.redactVariables', next)}
-            onToggleRedactResponse={(next) => formik.setFieldValue('security.redactResponse', next)}
-            onChangeCustomRedactedHeaders={(next) => formik.setFieldValue('security.customRedactedHeaders', next)}
-            onChangeCustomRedactedVariables={(next) => formik.setFieldValue('security.customRedactedVariables', next)}
+            onToggleRedactHeaders={(next) => saveSecurityImmediate({ redactHeaders: next })}
+            onToggleRedactBody={(next) => saveSecurityImmediate({ redactBody: next })}
+            onToggleRedactVariables={(next) => saveSecurityImmediate({ redactVariables: next })}
+            onToggleRedactResponse={(next) => saveSecurityImmediate({ redactResponse: next })}
+            onChangeCustomRedactedHeaders={(next) => saveSecurityImmediate({ customRedactedHeaders: next })}
+            onChangeCustomRedactedVariables={(next) => saveSecurityImmediate({ customRedactedVariables: next })}
           />
         </div>
       )}

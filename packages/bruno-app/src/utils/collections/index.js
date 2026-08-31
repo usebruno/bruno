@@ -1,8 +1,15 @@
-import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { cloneDeep, isEqual, sortBy, filter, map, isString, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
+import { isWindowsOS } from 'utils/common/platform';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import {
+  doesRequestMatchSearchText,
+  doesFolderHaveItemsMatchSearchText,
+  doesCollectionHaveItemsMatchingSearchText
+} from 'utils/collections/search';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -26,20 +33,19 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
+const setCollapsedRecursively = (items, collapsed) => {
+  each(items, (i) => {
+    i.collapsed = collapsed;
+
+    if (i.items && i.items.length) {
+      setCollapsedRecursively(i.items, collapsed);
+    }
+  });
+};
+
 export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
-
-  const collapseItem = (items) => {
-    each(items, (i) => {
-      i.collapsed = true;
-
-      if (i.items && i.items.length) {
-        collapseItem(i.items);
-      }
-    });
-  };
-
-  collapseItem(collection.items);
+  setCollapsedRecursively(collection.items, true);
 };
 
 export const sortItems = (collection) => {
@@ -231,6 +237,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: param.uid,
         filePath: param.filePath,
         contentType: param.contentType,
+        description: param.description,
         selected: param.selected
       };
     });
@@ -724,14 +731,15 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
-  const appToSave = _item.app && _item.app.code && _item.app.code.length
-    ? { code: _item.app.code }
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
     : null;
 
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
+    description: _item.description,
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
@@ -913,6 +921,13 @@ export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
 };
 
+export const getItemTypeLabel = (item) => {
+  if (isItemAFolder(item)) {
+    return 'Folder';
+  }
+  return item?.type === 'app' ? 'App' : 'Request';
+};
+
 /**
  * Counts the folders and requests in a collection's item tree, recursively at every
  * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
@@ -930,19 +945,19 @@ export const getCollectionItemCounts = (items = []) => {
 
 /**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
- * same ordering is applied recursively to every nested folder so an exported/serialized
- * tree matches the sidebar at all depths.
+ * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
+ * requests by `seq`. The same ordering is applied recursively to every nested folder
+ * so an exported/serialized tree matches the sidebar at all depths.
  *
- * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
- * mirroring the sidebar, which only renders folders and requests. Transient items are
- * excluded too.
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
+ * mirroring the sidebar. Transient items are excluded too.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
   const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
   const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
 
-  return [...folderItems, ...requestItems].map((item) =>
+  return [...folderItems, ...appItems, ...requestItems].map((item) =>
     Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
   );
 };
@@ -1116,8 +1131,14 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   delete item2.draft;
 
   // get projection of both items
-  item1 = transformRequestToSaveToFilesystem(item1);
-  item2 = transformRequestToSaveToFilesystem(item2);
+  // a partial/unparseable item has no comparable request projection; treat it as
+  // changed so callers fall back to a full update instead of throwing
+  try {
+    item1 = transformRequestToSaveToFilesystem(item1);
+    item2 = transformRequestToSaveToFilesystem(item2);
+  } catch (err) {
+    return false;
+  }
 
   // delete uids from both items
   deleteUidsInItem(item1);
@@ -1219,7 +1240,7 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
-      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .filter((variable) => variable.name && variable.enabled && variable.secret)
       .map((variable) => variable.name);
   }
 
@@ -1231,10 +1252,11 @@ export const getEnvironmentVariables = (collection) => {
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
-      each(environment.variables, (variable) => {
-        if (variable.name && variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
+      // Apply secrets last so a secret wins over a plain variable of the same name,
+      // regardless of their order in the array.
+      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
+      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+        variables[variable.name] = variable.value;
       });
     }
   }
@@ -1256,7 +1278,7 @@ export const getEnvironmentVariablesMasked = (collection) => {
 
   // Filter the environment variables to get only the masked (secret) ones
   return environment.variables
-    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .filter((variable) => variable.name && variable.enabled && variable.secret)
     .map((variable) => variable.name);
 };
 
@@ -1521,24 +1543,27 @@ export const calculateNewSequence = (isDraggedItem, targetSequence, draggedSeque
   return targetSequence > draggedSequence ? targetSequence - 1 : targetSequence;
 };
 
-export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid }) => {
+export const getReorderedItemsInTargetDirectory = ({ items, targetItemUid, draggedItemUid, dropType = 'above' }) => {
   const itemsWithFixedSequences = resetSequencesInFolder(cloneDeep(items));
-  const targetItem = findItem(itemsWithFixedSequences, targetItemUid);
-  const draggedItem = findItem(itemsWithFixedSequences, draggedItemUid);
-  const targetSequence = targetItem?.seq;
-  const draggedSequence = draggedItem?.seq;
-  itemsWithFixedSequences?.forEach((item) => {
-    const isDraggedItem = item?.uid === draggedItemUid;
-    const isBetween = isItemBetweenSequences(item?.seq, draggedSequence, targetSequence);
-    if (isBetween) {
-      item.seq += targetSequence > draggedSequence ? -1 : 1;
-    }
-    const newSequence = calculateNewSequence(isDraggedItem, targetSequence, draggedSequence);
-    if (newSequence !== null) {
-      item.seq = newSequence;
-    }
+  const sortedItems = [...itemsWithFixedSequences].sort((a, b) => a.seq - b.seq);
+
+  const targetIndex = sortedItems.findIndex((i) => i.uid === targetItemUid);
+  const draggedIndex = sortedItems.findIndex((i) => i.uid === draggedItemUid);
+
+  if (targetIndex === -1 || draggedIndex === -1) return [];
+
+  let newIndex = dropType === 'below' ? targetIndex + 1 : targetIndex;
+  if (draggedIndex < newIndex) {
+    newIndex -= 1;
+  }
+
+  const [draggedItem] = sortedItems.splice(draggedIndex, 1);
+  sortedItems.splice(newIndex, 0, draggedItem);
+
+  sortedItems.forEach((item, index) => {
+    item.seq = index + 1;
   });
-  // only return items that have been reordered
+
   return itemsWithFixedSequences.filter((item) =>
     items?.find((originalItem) => originalItem?.uid === item?.uid)?.seq !== item?.seq
   );
@@ -1560,20 +1585,76 @@ export const calculateDraggedItemNewPathname = ({ draggedItem, targetItem, dropT
 
   if (dropType === 'inside' && (isTargetItemAFolder || isTargetTheCollection)) {
     return path.join(targetItemPathname, draggedItemFilename);
-  } else if (dropType === 'adjacent') {
+  } else if (dropType === 'above' || dropType === 'below') {
     return path.join(targetItemDirname, draggedItemFilename);
   }
   return null;
 };
 
+export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOffset }) => {
+  if (!hoverBoundingRect || !clientOffset) return null;
+
+  const clientY = clientOffset.y - hoverBoundingRect.top;
+
+  if (isItemAFolder(item)) {
+    const folderUpperThreshold = hoverBoundingRect.height * 0.3;
+    const folderLowerThreshold = hoverBoundingRect.height * 0.7;
+
+    if (clientY < folderUpperThreshold) return 'above';
+    if (clientY > folderLowerThreshold) return 'below';
+    return 'inside';
+  }
+
+  const midpoint = hoverBoundingRect.height * 0.5;
+  return clientY < midpoint ? 'above' : 'below';
+};
+
+/**
+ * Separator-aware ancestry check between two filesystem pathnames.
+ *
+ * Returns true when `childPathname` is the same as, or a descendant of, `ancestorPathname`.
+ * Uses path-segment boundaries so siblings like "/users-archive" are NOT treated as
+ * descendants of "/users". Normalizes separators and trailing slashes for cross-platform safety.
+ */
+export const isPathOrDescendant = (childPathname, ancestorPathname) => {
+  if (!childPathname || !ancestorPathname) return false;
+  const child = normalizePath(childPathname);
+  const ancestor = normalizePath(ancestorPathname);
+  return child === ancestor || child.startsWith(`${ancestor}/`);
+};
+
+export const canCollectionItemBeDropped = ({
+  draggedItem,
+  targetItem,
+  dropType,
+  collectionUid,
+  collectionPathname
+}) => {
+  const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
+  const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
+
+  if (draggedItemUid === targetItemUid) return false;
+
+  if (sourceCollectionUid !== collectionUid) {
+    return true;
+  }
+
+  const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
+  if (!newPathname) return false;
+
+  if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return false;
+
+  return true;
+};
+
 // item sequence utils - END
 
-export const getUniqueTagsFromItems = (items = []) => {
+export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}) => {
   const allTags = new Set();
   const getTags = (items) => {
     items.forEach((item) => {
       if (isItemARequest(item)) {
-        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
@@ -1672,6 +1753,24 @@ export const getInitialExampleName = (item) => {
   }
 };
 
+/**
+ * Resolves the last enabled variable matching the given name.
+ * Secret variables take precedence over plain variables, regardless of their
+ * position in the array.
+ *
+ * @param {Array} variables - `environment.variables`
+ * @param {string} variableName - Name of the variable to resolve
+ * @returns {Object|undefined} The last matching enabled variable, preferring secrets
+ */
+export const resolveEnabledVariable = (variables, variableName) => {
+  const matches = (variables || []).filter((v) => v.name === variableName && v.enabled);
+  const matchingSecrets = matches.filter((v) => v.secret);
+  if (matchingSecrets.length > 0) {
+    return matchingSecrets[matchingSecrets.length - 1];
+  }
+  return matches[matches.length - 1];
+};
+
 // Get the scope and raw value of a variable by checking all scopes in priority order
 export const getVariableScope = (variableName, collection, item) => {
   if (!variableName || !collection) {
@@ -1715,10 +1814,11 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 3. Check Environment Variables
-  if (collection.activeEnvironmentUid) {
-    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const activeEnvironmentUidForScope = collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
+  if (activeEnvironmentUidForScope) {
+    const environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
     if (environment && environment.variables) {
-      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      const envVar = resolveEnabledVariable(environment.variables, variableName);
       if (envVar) {
         return {
           type: 'environment',
@@ -1743,12 +1843,17 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 5. Check Global Environment Variables
-  const { globalEnvironmentVariables = {} } = collection;
+  const { globalEnvironmentVariables = {}, globalEnvSecrets = [] } = collection;
   if (variableName in globalEnvironmentVariables) {
+    const isSecret = globalEnvSecrets.includes(variableName);
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
-      data: { variableName, value: globalEnvironmentVariables[variableName] }
+      data: {
+        variableName,
+        value: globalEnvironmentVariables[variableName],
+        variable: { name: variableName, secret: isSecret }
+      }
     };
   }
 
@@ -1773,17 +1878,226 @@ export const isVariableSecret = (scopeInfo) => {
     return false;
   }
 
-  // Only environment variables can be marked as secret
-  if (scopeInfo.type === 'environment') {
+  // Environment and global environment variables can be marked as secret
+  if (scopeInfo.type === 'environment' || scopeInfo.type === 'global') {
     return !!scopeInfo.data.variable?.secret;
   }
 
-  // Global variables are not checked here
-  if (scopeInfo.type === 'global') {
-    return false;
+  return false;
+};
+
+const sidebarEntryCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+const getSidebarEntryName = (entry) => {
+  if (entry.kind === 'loaded') {
+    return entry.collection?.name || '';
   }
 
-  return false;
+  return entry.entry?.name || path.basename(entry.entry?.path || '');
+};
+
+/**
+ * The sidebar list in workspace.yml order: each entry is either a fully loaded collection or,
+ * for non-default workspaces, a "ghost" git-backed entry whose local folder is missing. Shared
+ * between Collections/index.js's render and the shift-select range thunk so both agree on
+ * ordering — see Collections/index.js for the rendering this mirrors.
+ */
+export const buildSidebarEntries = ({ collections = [], workspaces = [], activeWorkspace, collectionSortOrder }) => {
+  if (!activeWorkspace?.collections?.length) return [];
+
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const loadedByPath = new Map();
+  for (const c of collections) {
+    if (isScratchCollection(c, workspaces)) continue;
+    if (c.pathname) {
+      let key = normalizePath(c.pathname);
+      if (isWindowsOS()) key = key.toLowerCase();
+      loadedByPath.set(key, c);
+    }
+  }
+
+  const entries = [];
+  for (const wc of activeWorkspace.collections) {
+    if (!wc.path) continue;
+    let key = normalizePath(wc.path);
+    if (isWindowsOS()) key = key.toLowerCase();
+
+    const loaded = loadedByPath.get(key);
+    if (loaded) {
+      entries.push({ kind: 'loaded', collection: loaded, key: loaded.uid });
+    } else if (wc.remote && !isDefaultWorkspace) {
+      entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
+    }
+  }
+
+  if (collectionSortOrder === 'alphabetical') {
+    return [...entries].sort((a, b) => sidebarEntryCollator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+  }
+
+  if (collectionSortOrder === 'reverseAlphabetical') {
+    return [...entries].sort((a, b) => -sidebarEntryCollator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+  }
+
+  return entries;
+};
+
+/**
+ * Returns an ordered list of all currently visible sidebar item UIDs, reflecting collapse state and search filters.
+ *
+ * @param {Object} options
+ * @param {Array} options.sidebarEntries
+ * @param {string} options.searchText
+ * @returns {string[]}
+ */
+export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText = '' }) => {
+  const hasSearchText = Boolean(searchText && searchText.trim().length);
+  const uids = [];
+
+  const visitItems = (items = []) => {
+    const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+    const appItems = [...filter(items, (i) => i.type === 'app' && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+    const requestItems = [...filter(items, (i) => isItemARequest(i) && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+
+    folderItems.forEach((folder) => {
+      if (hasSearchText && !doesFolderHaveItemsMatchSearchText(folder, searchText)) return;
+      uids.push(folder.uid);
+      if (hasSearchText || !folder.collapsed) {
+        visitItems(folder.items);
+      }
+    });
+
+    if (!hasSearchText) {
+      appItems.forEach((app) => uids.push(app.uid));
+    }
+
+    requestItems.forEach((request) => {
+      if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
+      uids.push(request.uid);
+    });
+  };
+
+  sidebarEntries.forEach((entry) => {
+    if (entry.kind !== 'loaded') return;
+    const { collection } = entry;
+    if (hasSearchText && !doesCollectionHaveItemsMatchingSearchText(collection, searchText)) return;
+    uids.push(collection.uid);
+    if (hasSearchText || !collection.collapsed) {
+      visitItems(collection.items);
+    }
+  });
+
+  return uids;
+};
+
+const isPathnameDescendantOf = (pathname, ancestorPathname) => {
+  if (!pathname || !ancestorPathname || pathname === ancestorPathname) return false;
+
+  let normalizedPathname = normalizePath(pathname);
+  let normalizedAncestor = normalizePath(ancestorPathname);
+
+  if (isWindowsOS()) {
+    normalizedPathname = normalizedPathname.toLowerCase();
+    normalizedAncestor = normalizedAncestor.toLowerCase();
+  }
+
+  if (normalizedPathname === normalizedAncestor) return false;
+  return normalizedPathname.startsWith(`${normalizedAncestor}/`);
+};
+
+/**
+ * Resolves raw selected UIDs into a "parent wins" effective selection for bulk actions.
+ *
+ * @param {Object} options
+ * @param {Array} options.collections
+ * @param {string[]} options.selectedUids
+ * @returns {{ effectiveSelection: Array, hasCollection: boolean, hasFolder: boolean, hasRequest: boolean }}
+ */
+const getSelectionEntryType = (item) => {
+  if (isItemAFolder(item)) return 'folder';
+  if (isItemARequest(item)) return 'request';
+  if (item.type === 'app') return 'app';
+  return 'file';
+};
+
+export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  const resolved = selectedUids
+    .map((uid) => {
+      const collection = findCollectionByUid(collections, uid);
+      if (collection) {
+        return { uid, type: 'collection', collectionUid: uid, pathname: collection.pathname, collection };
+      }
+
+      const owningCollection = findCollectionByItemUid(collections, uid);
+      const item = owningCollection && findItemInCollection(owningCollection, uid);
+      if (!item) return null;
+
+      return {
+        uid,
+        type: getSelectionEntryType(item),
+        collectionUid: owningCollection.uid,
+        pathname: item.pathname,
+        item
+      };
+    })
+    .filter(Boolean);
+
+  const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
+  const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+
+  const effectiveSelection = resolved.filter((entry) => {
+    if (entry.type === 'collection') return true;
+    if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
+    return !selectedFolderPathnames.some(
+      (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
+    );
+  });
+
+  return {
+    effectiveSelection,
+    hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
+    hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
+    hasRequest: effectiveSelection.some((e) => e.type === 'request'),
+    hasApp: effectiveSelection.some((e) => e.type === 'app')
+  };
+};
+
+/**
+ * Extracts and categorizes all drafts (collections, folders, requests, transient) from a list of collections.
+ *
+ * @param {Array} collections - Array of collection objects to inspect
+ * @returns {{ requestDrafts: Array, transientDrafts: Array, folderDrafts: Array, collectionDrafts: Array }}
+ */
+export const getCollectionDrafts = (collections = []) => {
+  const requestDrafts = [];
+  const transientDrafts = [];
+  const folderDrafts = [];
+  const collectionDrafts = [];
+
+  collections.forEach((c) => {
+    if (c.draft) {
+      collectionDrafts.push({ ...c, name: c.name, collectionUid: c.uid });
+    }
+
+    const items = flattenItems(c.items);
+
+    const requests = items?.filter((item) => isItemARequest(item) && (item.isTransient || hasRequestChanges(item))) || [];
+    requests.forEach((req) => {
+      const enhancedReq = { ...req, collectionUid: c.uid };
+      if (req.isTransient) {
+        transientDrafts.push(enhancedReq);
+      } else {
+        requestDrafts.push(enhancedReq);
+      }
+    });
+
+    const folders = items?.filter((item) => isItemAFolder(item) && item.draft) || [];
+    folders.forEach((folder) => {
+      folderDrafts.push({ ...folder, name: folder.name, folderUid: folder.uid, collectionUid: c.uid });
+    });
+  });
+
+  return { requestDrafts, transientDrafts, folderDrafts, collectionDrafts };
 };
 
 /**
@@ -1841,6 +2155,71 @@ export const isItemTransientRequest = (item) => {
 };
 
 /**
+ * Generate a request name for transient requests in the pattern "Untitled {Count}"
+ * @param {Object} collection - The collection object
+ * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
+ */
+export const generateTransientRequestName = (collection) => {
+  if (!collection || !collection.items) {
+    return 'Untitled 1';
+  }
+  const allItems = flattenItems(collection.items);
+  const transientRequests = filter(allItems, (item) => {
+    return isItemTransientRequest(item);
+  });
+
+  // Find the highest "Untitled X" number among transient requests
+  let maxNumber = 0;
+  transientRequests.forEach((item) => {
+    const match = item.name?.match(/^Untitled (\d+)$/);
+    if (match) {
+      const number = parseInt(match[1], 10);
+      if (number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+  });
+
+  // Increment from the highest number found, or start at 1 if none found
+  const count = maxNumber + 1;
+
+  return `Untitled ${count}`;
+};
+
+/**
+ * Maps a collection's "Presets" request type (used to default new requests created from
+ * the sidebar) to the request item type used elsewhere in the app.
+ * @param {Object} collection - The collection object
+ * @returns {string} One of 'http-request' | 'graphql-request' | 'grpc-request' | 'ws-request'
+ */
+export const getRequestTypeFromCollectionPresets = (collection) => {
+  const presets = collection?.draft?.brunoConfig?.presets ?? collection?.brunoConfig?.presets;
+
+  switch (presets?.requestType) {
+    case 'graphql':
+      return 'graphql-request';
+    case 'grpc':
+      return 'grpc-request';
+    case 'ws':
+      return 'ws-request';
+    default:
+      return 'http-request';
+  }
+};
+
+/**
+ * S3 (and compatible) presigned "PutObject" URLs are meant to be uploaded to, not fetched.
+ * A request linked from such a URL should default to PUT instead of GET.
+ */
+export const isPutObjectPresignedUrl = (url) => {
+  try {
+    return new URL(url).searchParams.get('x-id')?.toLowerCase() === 'putobject';
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Recursively filter out transient items from a collection's items array.
  * Used for collection runner, exports, and other operations that shouldn't include transient requests.
  * @param {Array} items - The items array to filter
@@ -1873,4 +2252,156 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+const SCOPE_CONFIG = [
+  {
+    type: VARIABLE_ADD_SCOPES.GLOBAL,
+    label: ({ activeGlobalEnvironmentName }) => (
+      activeGlobalEnvironmentName ? `Global Environment (${activeGlobalEnvironmentName})` : 'Global Environment'
+    ),
+    supportsSecret: true,
+    enabled: ({ activeGlobalEnvironmentUid }) => !!activeGlobalEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.ENVIRONMENT,
+    label: ({ activeEnvironmentName }) => (
+      activeEnvironmentName ? `Collection Environment (${activeEnvironmentName})` : 'Collection Environment'
+    ),
+    supportsSecret: true,
+    isAvailable: ({ hasCollection }) => hasCollection,
+    enabled: ({ activeEnvironmentUid }) => !!activeEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.COLLECTION,
+    label: 'Collection Variable',
+    supportsSecret: false,
+    isAvailable: ({ hasCollection }) => hasCollection,
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.REQUEST,
+    label: 'Request Variable',
+    supportsSecret: false,
+    isAvailable: ({ item }) => item && isItemARequest(item),
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.FOLDER,
+    label: ({ parentFolder, isSelfFolder }) => (isSelfFolder ? 'Folder' : `Parent Folder (${parentFolder?.name || ''})`),
+    supportsSecret: false,
+    // Only the request/folder's direct containing folder is added. unless we're already in
+    // that folder's own settings, in which case the folder itself is the target.
+    isAvailable: ({ parentFolder }) => !!parentFolder,
+    enabled: () => true
+  }
+];
+
+/**
+ * Resolves which scopes an undefined `{{variable}}` can be added to.
+ * @param {Object} options
+ * @param {string} [options.activeEnvironmentUid] - The collection's active environment uid, if any.
+ * @param {string} [options.activeEnvironmentName] - The collection's active environment name, if any.
+ * @param {string} [options.activeGlobalEnvironmentUid] - The active global environment uid, if any.
+ * @param {string} [options.activeGlobalEnvironmentName] - The active global environment name, if any.
+ * @param {Object} [options.item] - The request/folder item the tooltip was opened from, if any.
+ *   Request Variable is only added when this is a request (see isItemARequest).
+ * @param {Object} [options.parentFolder] - The folder variables should be added to, if any: either
+ *   the immediate containing folder of `item`, or `item` itself when already in folder settings.
+ *   Folder Variable is only added when this is present.
+ * @param {boolean} [options.isSelfFolder] - True when `parentFolder` is the folder currently being
+ *   edited (tooltip opened from within that folder's own settings), rather than an actual parent.
+ *   Only affects the Folder scope's label ("Folder" vs "Parent Folder (...)").
+ * @param {boolean} [options.hasCollection] - when we are in Global Environment table, there is no collection context,
+ * so we don't show collection/environment scopes
+ * @returns {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>}
+ */
+export const getAvailableAddToScopes = ({
+  activeEnvironmentUid,
+  activeEnvironmentName,
+  activeGlobalEnvironmentUid,
+  activeGlobalEnvironmentName,
+  item,
+  parentFolder,
+  isSelfFolder = false,
+  hasCollection = true
+} = {}) => {
+  const context = {
+    activeEnvironmentUid,
+    activeEnvironmentName,
+    activeGlobalEnvironmentUid,
+    activeGlobalEnvironmentName,
+    item,
+    parentFolder,
+    isSelfFolder,
+    hasCollection
+  };
+
+  const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.isAvailable || scope.isAvailable(context));
+
+  return filteredScopes
+    .map(({ enabled, isAvailable, label, ...scope }) => ({
+      ...scope,
+      label: typeof label === 'function' ? label(context) : label,
+      enabled: enabled(context)
+    }));
+};
+
+/**
+ * Gets the other collections (excluding the provided uids)
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} uids - Array of uids to exclude
+ * @returns {Array} Array of other collections
+ */
+export const getOtherCollections = (allCollections, uids) => {
+  const uidsSet = new Set(uids);
+  return allCollections.filter((collection) => !uidsSet.has(collection.uid));
+};
+
+/**
+ * Gets the sorted dragged items based on the visual order
+ * @param {Object} draggedItem - The dragged item
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} workspaces - Array of workspaces
+ * @param {Object} activeWorkspace - The active workspace
+ * @param {string} collectionSortOrder - The collection sort order
+ * @param {string} searchText - The search text
+ * @returns {Array} Array of sorted dragged items
+ */
+export const getSortedDraggedItems = ({
+  draggedItem,
+  allCollections,
+  workspaces,
+  activeWorkspace,
+  collectionSortOrder,
+  searchText
+}) => {
+  let draggedItems = [];
+  if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+    // multiSelectedItems is already the parent-wins effective selection (see getSelectionInfo).
+    // The dragged item's own uid can legitimately be absent from it when a selected ancestor
+    // of the dragged item took over the selection — trust it as-is rather than re-adding the
+    // dragged item, which would move it a second time independently of its selected ancestor.
+    draggedItems = [...draggedItem.multiSelectedItems];
+  } else {
+    draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
+  }
+
+  const sidebarEntries = buildSidebarEntries({
+    collections: allCollections,
+    workspaces,
+    activeWorkspace,
+    collectionSortOrder
+  });
+
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+  const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
+
+  draggedItems.sort((a, b) => {
+    const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : Number.MAX_SAFE_INTEGER;
+    const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : Number.MAX_SAFE_INTEGER;
+    return idxA - idxB;
+  });
+
+  return draggedItems;
 };

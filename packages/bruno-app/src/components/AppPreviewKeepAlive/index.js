@@ -1,8 +1,14 @@
 import React, { useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { produce } from 'immer';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
+import {
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  getGlobalEnvironmentVariables,
+  getGlobalEnvironmentVariablesMasked
+} from 'utils/collections';
 import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
 import AppView from 'components/AppView';
@@ -21,7 +27,28 @@ const APP_CAPABLE_TAB_TYPES = new Set([
 const AppPreviewKeepAlive = () => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const collections = useSelector((state) => state.collections.collections);
+  const _collections = useSelector((state) => state.collections.collections);
+  const globalEnvironments = useSelector((state) => state.globalEnvironments?.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector(
+    (state) => state.globalEnvironments?.activeGlobalEnvironmentUid
+  );
+
+  const collections = useMemo(() => {
+    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+    return produce(_collections, (draft) => {
+      for (const collection of draft) {
+        collection.globalEnvironmentVariables = globalEnvironmentVariables;
+        collection.globalEnvSecrets = globalEnvSecrets;
+      }
+    });
+  }, [_collections, globalEnvironments, activeGlobalEnvironmentUid]);
 
   const everActiveRef = useRef(new Set());
 
@@ -43,9 +70,11 @@ const AppPreviewKeepAlive = () => {
         continue;
       }
 
-      const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
+      const itemSource = item.draft ? item.draft : item;
+      const appEnabled = get(itemSource, 'app.enabled', false) === true
+        && tab.appPreview !== false;
       if (appEnabled) {
-        const code = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+        const code = get(itemSource, 'app.code', '');
         out.push({ tabUid: tab.uid, collection, item, kind: 'request', code });
       }
     }

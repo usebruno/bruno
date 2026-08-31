@@ -35,20 +35,81 @@ const getSeparatorPositions = (widths) => {
   return positions;
 };
 
+// Container too narrow for everyone to get minColWidth — split evenly instead
+// (columns clip instead of overflow).
+const distributeEqually = (count, total) => {
+  const each = Math.floor(total / count);
+  return [
+    ...Array(count - 1).fill(each),
+    total - each * (count - 1)
+  ];
+};
+
+// Pins any column that would shrink below minColWidth, then re-checks the
+// rest (pinning one column shifts the math for the others). Returns the
+// pinned widths plus what's left for the caller to hand out.
+const pinColumnsAtMinimum = (widths, targetTotal, minColWidth) => {
+  const result = Array(widths.length).fill(null);
+  let remainingIdx = widths.map((_, i) => i);
+  let remainingTotal = targetTotal;
+
+  while (true) {
+    const remainingWidth = remainingIdx.reduce((sum, i) => sum + widths[i], 0);
+    const scale = remainingTotal / remainingWidth;
+
+    const nextRemaining = [];
+    for (const i of remainingIdx) {
+      if (widths[i] * scale < minColWidth) {
+        result[i] = minColWidth;
+        remainingTotal -= minColWidth;
+      } else {
+        nextRemaining.push(i);
+      }
+    }
+
+    if (nextRemaining.length === remainingIdx.length) {
+      return { result, remainingIdx, remainingTotal };
+    }
+    remainingIdx = nextRemaining;
+  }
+};
+
+// Largest remainder method: scales proportionally, floors each share, then
+// gives the leftover whole pixels to whoever rounded down the most, so the
+// sum always hits `total` exactly, with no single column eating the error.
+const scaleAndRound = (widths, total) => {
+  const widthSum = widths.reduce((a, b) => a + b, 0);
+  const exact = widths.map((w) => (w / widthSum) * total);
+  const rounded = exact.map(Math.floor);
+  const leftover = total - rounded.reduce((a, b) => a + b, 0);
+
+  exact
+    .map((value, i) => ({ i, remainder: value - rounded[i] }))
+    .sort((a, b) => b.remainder - a.remainder)
+    .slice(0, leftover)
+    .forEach(({ i }) => rounded[i]++);
+
+  return rounded;
+};
+
 const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
-  // When the container is too narrow to satisfy minColWidth for every column,
-  // fall back to equal distribution so the total stays exact (columns clip instead of overflow).
   if (targetTotal < minColWidth * widths.length) {
-    const each = Math.floor(targetTotal / widths.length);
-    const last = targetTotal - each * (widths.length - 1);
-    return [...Array(widths.length - 1).fill(each), last];
+    return distributeEqually(widths.length, targetTotal);
   }
 
-  const currentTotal = widths.reduce((s, w) => s + w, 0);
-  const factor = targetTotal / currentTotal;
-  const next = widths.slice(0, -1).map((w) => Math.max(minColWidth, Math.round(w * factor)));
-  const last = Math.max(minColWidth, targetTotal - next.reduce((s, w) => s + w, 0));
-  return [...next, last];
+  const { result, remainingIdx, remainingTotal }
+    = pinColumnsAtMinimum(widths, targetTotal, minColWidth);
+
+  const scaled = scaleAndRound(
+    remainingIdx.map((i) => widths[i]),
+    remainingTotal
+  );
+
+  remainingIdx.forEach((colIndex, i) => {
+    result[colIndex] = scaled[i];
+  });
+
+  return result;
 };
 
 export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {

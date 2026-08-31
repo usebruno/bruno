@@ -8,13 +8,30 @@
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
-import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
-import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import toast from 'react-hot-toast';
+import {
+  getVariableScope,
+  isVariableSecret,
+  getAllVariables,
+  findCollectionByUid,
+  findItemInCollectionByItemUid,
+  findParentItemInCollection,
+  getAvailableAddToScopes
+} from 'utils/collections';
+import {
+  updateVariableInScope,
+  addEnvironment,
+  selectEnvironment
+} from 'providers/ReduxStore/slices/collections/actions';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import { variableNameRegex } from 'utils/common/regex';
+import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
+import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -77,14 +94,49 @@ const getScopeLabel = (scopeType) => {
     'dynamic': 'Dynamic',
     'oauth2': 'OAuth2',
     'undefined': 'Undefined',
+    'unresolved': 'New',
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
 };
 
+const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
+
+// `addEnvironment` only writes the file through IPC. The store is updated later, once the
+// filesystem watcher picks up the new file and dispatches it in.
+// subscribe to the store and resolve on the exact dispatch that adds it
+const waitForEnvironmentByName = (collectionUid, name) => {
+  const findEnvironment = () => {
+    const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
+    return (freshCollection?.environments || []).find((env) => env.name === name);
+  };
+
+  return new Promise((resolve, reject) => {
+  // check if the environment already exists in the store (in case it was created before this function was called)
+    const existing = findEnvironment();
+    if (existing) {
+      return resolve(existing);
+    }
+
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Failed to create environment "${name}"`));
+    }, NEW_ENVIRONMENT_WAIT_TIMEOUT_MS);
+
+    const unsubscribe = store.subscribe(() => {
+      const found = findEnvironment();
+      if (found) {
+        clearTimeout(timeoutId);
+        unsubscribe();
+        resolve(found);
+      }
+    });
+  });
+};
+
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
-  const contentLength = (value || '').length;
+  const contentLength = (value === undefined || value === null ? '' : String(value)).length;
   return contentLength > 0 ? '*'.repeat(contentLength) : '';
 };
 
@@ -137,10 +189,16 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
+  copyButton.setAttribute('data-testid', 'var-info-copy-button');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   copyButton.type = 'button';
 
   let isCopied = false;
+
+  copyButton.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
 
   copyButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -258,15 +316,23 @@ export const renderVarInfo = (token, options) => {
             data: { item, variable: null } // variable is null since it doesn't exist yet
           };
         }
-      } else if (collection) {
-        // No item context but we have collection - create as collection variable
+      } else if (collection?.uid) {
         scopeInfo = {
           type: 'collection',
           value: '',
           data: { collection, variable: null }
         };
+      } else if (collection) {
+        // We're in the Global Environment table (no collection context).
+        // for global env colelction is {} without uid.
+        // Pass as "unresolved" so that the Add-to switcher can resolve to the first available scope.
+        scopeInfo = {
+          type: 'unresolved',
+          value: '',
+          data: { variable: null }
+        };
       } else {
-        // No context at all, show as undefined
+        // No context at all (no collection, no item) - nothing to add to, show as undefined.
         scopeInfo = {
           type: 'undefined',
           value: '',
@@ -300,20 +366,40 @@ export const renderVarInfo = (token, options) => {
 
   const varName = document.createElement('span');
   varName.className = 'var-name';
+  varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
+  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
-  // Show scope label with indication if it's a new variable
   const scopeLabel = getScopeLabel(displayScopeType);
-  const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
+  const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+  const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
+
+  // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
+  if (canGoToDefinition) {
+    varName.classList.add('var-name-link');
+    varName.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      goToVariableDefinition(scopeInfo, collection, item, variableName);
+
+      // Close the tooltip once we've navigated to the definition.
+      const popup = varName.closest('.CodeMirror-brunoVarInfo');
+      if (popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
+    });
+  }
 
   header.appendChild(varName);
+
+  scopeBadge.textContent = scopeLabel;
   header.appendChild(scopeBadge);
+
   into.appendChild(header);
 
   // Check if variable name is valid
@@ -323,6 +409,7 @@ export const renderVarInfo = (token, options) => {
   if (!isValidVariableName) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
     into.appendChild(warningNote);
 
@@ -334,6 +421,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
     into.appendChild(warningNote);
     return into;
@@ -343,6 +431,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
     readOnlyNote.textContent = scopeInfo.isTimeBased
       ? 'Generates current timestamp on each request'
       : 'Generates random value on each request';
@@ -354,6 +443,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
     into.appendChild(warningNote);
     return into;
@@ -363,20 +453,29 @@ export const renderVarInfo = (token, options) => {
   const valueContainer = document.createElement('div');
   valueContainer.className = 'var-value-container';
 
+  // Reads the Add-to switcher's pending Secret checkbox state, if a switcher is mounted.
+  const getPendingSecret = () => (
+    valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+      ? valueContainer._addToSwitcher._getPendingSecret()
+      : false
+  );
+
   // Create editable value display/editor (if editable)
-  if (!isReadOnly && scopeInfo) {
+  if (!isReadOnly) {
     // Handle secret/masked variables state
     let isRevealed = false;
 
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-editable');
     // Mask the displayed value if it contains secrets or references to secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
     editorContainer.className = 'var-value-editor';
+    editorContainer.setAttribute('data-testid', 'var-info-value-editor');
     editorContainer.style.display = 'none'; // Hidden initially
 
     // Detect current theme from DOM
@@ -458,12 +557,19 @@ export const renderVarInfo = (token, options) => {
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
 
-    // Eye toggle button (show if the displayed value is masked)
-    if (shouldMaskValue || isMasked) {
-      const toggleButton = document.createElement('button');
+    let toggleButton = null;
+    if (shouldMaskValue || isMasked || isNewVariable) {
+      toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
+      toggleButton.style.display = (shouldMaskValue || isMasked) ? '' : 'none';
+
+      toggleButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -550,54 +656,277 @@ export const renderVarInfo = (token, options) => {
       valueDisplay.style.display = 'block';
       isEditing = false;
 
-      if (newValue !== originalValue) {
-        // Dispatch Redux action to update variable
-        const dispatch = store.dispatch;
-        dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
-            originalValue = newValue;
-
-            // Re-fetch scopeInfo to get the updated variable reference after save
-            const state = store.getState();
-            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
-            if (collection) {
-              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
-              if (updatedScopeInfo) {
-                scopeInfo = updatedScopeInfo;
-              }
-            }
-
-            // Re-interpolate the new value to show the resolved value in display.
-            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
-            const interpolatedValue = interpolate(newValue, allVariables);
-            currentInterpolatedValue = interpolatedValue ?? '';
-            // Check if the NEW value contains secret references and update live mask state
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            currentShouldMaskValue = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          })
-          .catch((err) => {
-            console.error('Failed to update variable:', err);
-            // Revert on error to the last good state — currentInterpolatedValue and
-            // currentShouldMaskValue still hold pre-attempt values since the success
-            // block above never ran.
-            cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          });
+      if (newValue === originalValue) {
+        return;
       }
+
+      // Sync the displayed value with the new value (interpolated and masked if needed).
+      const interpolatedValue = interpolate(newValue, allVariables);
+      currentInterpolatedValue = interpolatedValue ?? '';
+      const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+
+      // for new variable get the secret state from the switcher
+      const ownSecret = isNewVariable ? getPendingSecret() : isSecret;
+      currentShouldMaskValue = ownSecret || newHasSecretRefs;
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+      // new variables are saved via the Add-to switcher, not on blur. so don't dispatch an update action here.
+      if (isNewVariable) {
+        return;
+      }
+
+      const dispatch = store.dispatch;
+      dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
+        .then(() => {
+          originalValue = newValue;
+
+          // Re-fetch scopeInfo to get the updated variable reference after save
+          const state = store.getState();
+          const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+          if (collection) {
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to update variable:', err);
+          toast.error(err?.message || 'Failed to update variable');
+        });
     });
 
     // Store references for cleanup
     valueContainer._cmEditor = cmEditor;
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
+
+    const applySecretMasking = (secretSelected) => {
+      const hasSecretRefs = containsSecretVariableReferences(cmEditor.getValue(), collection, item);
+      currentShouldMaskValue = secretSelected || hasSecretRefs;
+
+      if (!currentShouldMaskValue) {
+        isRevealed = false;
+      }
+
+      if (toggleButton) {
+        toggleButton.style.display = currentShouldMaskValue ? '' : 'none';
+        toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
+      }
+
+      if (currentShouldMaskValue) {
+        if (!maskedEditor) {
+          maskedEditor = new MaskedEditor(cmEditor);
+          valueContainer._maskedEditor = maskedEditor;
+        }
+        isRevealed ? maskedEditor.disable() : maskedEditor.enable();
+      } else if (maskedEditor) {
+        maskedEditor.disable();
+      }
+
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+    };
+
+    // Only the request/folder's direct containing folder is offered as a creatable scope. not
+    // any ancestor further up the tree.
+    const isInFolderSettings = !!(item && item.type === 'folder');
+    const parentFolder = item && !isInFolderSettings && collection
+      ? findParentItemInCollection(collection, item.uid)
+      : null;
+
+    // When the tooltip is opened from folder settings itself, the "Folder" scope should target
+    // that folder directly (labeled "Folder"), not an ancestor.
+    const folderScopeTarget = isInFolderSettings ? item : parentFolder;
+
+    // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
+    if (isNewVariable) {
+      const buildScopeInfoForSwitch = (scope) => {
+        switch (scope.type) {
+          case VARIABLE_ADD_SCOPES.COLLECTION:
+            return { type: 'collection', value: '', data: { collection, variable: null } };
+          case VARIABLE_ADD_SCOPES.REQUEST:
+            return { type: 'request', value: '', data: { item, variable: null } };
+          case VARIABLE_ADD_SCOPES.FOLDER:
+            return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
+          case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
+            const freshState = store.getState();
+            const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
+            const environment = (freshCollection?.environments || []).find(
+              (env) => env.uid === freshCollection?.activeEnvironmentUid
+            );
+            return { type: 'environment', value: '', data: { environment, variable: null, secret: false } };
+          }
+          case VARIABLE_ADD_SCOPES.GLOBAL: {
+            const freshGlobalState = store.getState();
+            const globalEnvironments = freshGlobalState.globalEnvironments?.globalEnvironments || [];
+            const activeGlobalEnvironmentUid = freshGlobalState.globalEnvironments?.activeGlobalEnvironmentUid;
+            const globalEnvironment = globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid);
+            return { type: 'global', value: '', data: { environment: globalEnvironment, variable: null, secret: false } };
+          }
+          default:
+            return null;
+        }
+      };
+
+      const addToScopesState = store.getState();
+      const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
+
+      // Use the latest collection state so "Add to Environment" targets the real
+      // active environment, not the environment currently being viewed in environment settings.
+      const freshCollectionForScopes = collection?.uid
+        ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
+        : null;
+      const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
+        (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
+      )?.name;
+      const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
+        (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
+      )?.name;
+      const addToScopes = getAvailableAddToScopes({
+        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
+        activeEnvironmentName,
+        activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
+        activeGlobalEnvironmentName,
+        item,
+        parentFolder: folderScopeTarget,
+        isSelfFolder: isInFolderSettings,
+        hasCollection: !!collection?.uid
+      });
+
+      // If there's only one available scope, select it by default. Otherwise, use the detected scope if it's available.
+      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type)
+        || (addToScopes.length === 1 ? addToScopes[0] : null);
+
+      // If the initial scope is different from the detected scope, rebuild the scopeInfo for the initial scope and update the badge.
+      // This can happen if adding variable in Global Table where collection is not available.
+      if (initialScope && initialScope.type !== scopeInfo.type) {
+        scopeInfo = buildScopeInfoForSwitch(initialScope);
+        scopeBadge.textContent = getScopeLabel(initialScope.type);
+      }
+
+      const removeAddToSwitcher = () => {
+        if (valueContainer._addToSwitcher) {
+          if (typeof valueContainer._addToSwitcher._destroy === 'function') {
+            valueContainer._addToSwitcher._destroy();
+          }
+          valueContainer._addToSwitcher.remove();
+          valueContainer._addToSwitcher = null;
+        }
+      };
+
+      const persistNewVariable = (secret) => {
+        const value = cmEditor.getValue();
+        const scopeInfoToSave = scopeInfo && scopeInfo.data
+          ? { ...scopeInfo, data: { ...scopeInfo.data, secret } }
+          : scopeInfo;
+
+        return store.dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
+          .then(() => {
+            originalValue = value;
+
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+              scopeBadge.textContent = getScopeLabel(updatedScopeInfo.type);
+            }
+
+            const interpolatedValue = interpolate(value, allVariables);
+            currentInterpolatedValue = interpolatedValue ?? '';
+            const newHasSecretRefs = containsSecretVariableReferences(value, collection, item);
+            // Use the secret flag actually being persisted (from the Secret checkbox).
+            currentShouldMaskValue = secret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+            removeAddToSwitcher();
+          });
+      };
+
+      const onSwitchScope = (scope, { immediate = false } = {}) => {
+        const newScopeInfo = buildScopeInfoForSwitch(scope);
+        if (!newScopeInfo) {
+          return;
+        }
+        scopeInfo = newScopeInfo;
+        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
+
+        // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
+        if (immediate) {
+          persistNewVariable(getPendingSecret()).catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+      };
+
+      const onCreateEnvironment = (scope, name) => {
+        const dispatch = store.dispatch;
+        const trimmedName = (name || '').trim();
+
+        if (!validateName(trimmedName)) {
+          return Promise.reject(new Error(validateNameError(trimmedName)));
+        }
+
+        const freshState = store.getState();
+
+        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
+          const globalEnvironments = freshState.globalEnvironments?.globalEnvironments || [];
+          const isDuplicate = globalEnvironments.some(
+            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+          );
+          if (isDuplicate) {
+            return Promise.reject(new Error('Environment already exists'));
+          }
+
+          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }));
+        }
+
+        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
+          const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
+
+          const isDuplicate = (freshCollection?.environments || []).some(
+            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+          );
+          if (isDuplicate) {
+            return Promise.reject(new Error('Environment already exists'));
+          }
+
+          return dispatch(addEnvironment(trimmedName, collection.uid))
+            .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+        }
+
+        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
+      };
+
+      const addToSwitcher = createAddToScopeSwitcher({
+        scopes: addToScopes,
+        initialScope,
+        onSwitchScope,
+        onCreateEnvironment,
+        onSecretChange: applySecretMasking
+      });
+      valueContainer._addToSwitcher = addToSwitcher;
+
+      // Called from `onDocumentClick` in showPopup when the tooltip is dismissed via an
+      // outside click. update only if user has changed the value, otherwise do nothing.
+      valueContainer._persistNewVariable = () => {
+        if (cmEditor.getValue() === originalValue) {
+          return Promise.resolve();
+        }
+
+        return persistNewVariable(getPendingSecret());
+      };
+    }
   } else {
     // Read-only display (for runtime, process.env, undefined variables)
     let isRevealed = false;
 
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-display');
     // For read-only variables, still check if they reference secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
@@ -609,6 +938,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -635,27 +965,35 @@ export const renderVarInfo = (token, options) => {
     if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'Set by scripts (read-only)';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'oauth2') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
       into.appendChild(readOnlyNote);
     }
   }
 
   into.appendChild(valueContainer);
+
+  if (valueContainer._addToSwitcher) {
+    into.appendChild(valueContainer._addToSwitcher);
+  }
 
   return into;
 };
@@ -847,6 +1185,7 @@ if (!SERVER_RENDERED) {
 
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
+    popup.setAttribute('data-testid', 'var-info-popup');
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
@@ -924,8 +1263,30 @@ if (!SERVER_RENDERED) {
 
       if (!popup.contains(e.target)) {
         isPinned = false;
-        hidePopup();
+
+        const valueContainer = popup.querySelector('.var-value-container');
+        if (valueContainer && typeof valueContainer._persistNewVariable === 'function') {
+          valueContainer._persistNewVariable().catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+
+        hidePopup({ immediate: true });
       }
+    };
+
+    // The popup is position:fixed, so any scroller around the editor strands it;
+    // scroll events do not bubble, hence the capture-phase listener on document.
+    const onScroll = function (e) {
+      if (popup.contains(e.target)) {
+        return;
+      }
+      const wrapper = cm.getWrapperElement();
+      if (!e.target.contains(wrapper) && !wrapper.contains(e.target)) {
+        return;
+      }
+      isPinned = false;
+      hidePopup({ immediate: true });
     };
 
     const hidePopup = function (options = {}) {
@@ -942,6 +1303,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('scroll', onScroll, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -962,6 +1324,12 @@ if (!SERVER_RENDERED) {
         if (valueContainer._cmEditor) {
           valueContainer._cmEditor.getWrapperElement().remove();
           valueContainer._cmEditor = null;
+        }
+
+        // Cleanup the "Add to" switcher (outside-click listener for its inline create form, etc.)
+        if (valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._destroy === 'function') {
+          valueContainer._addToSwitcher._destroy();
+          valueContainer._addToSwitcher = null;
         }
       }
 
@@ -1005,6 +1373,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
+    document.addEventListener('scroll', onScroll, true);
   }
 }
 

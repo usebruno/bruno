@@ -18,7 +18,11 @@ import toast from 'react-hot-toast';
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const { storedTheme } = useTheme();
+  const { storedTheme, theme } = useTheme();
+  const tooltipStyle = {
+    backgroundColor: theme?.background?.surface0,
+    color: theme?.text
+  };
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
@@ -157,6 +161,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               item={item}
               placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
               isCompact
+              disableLinkAwareClick={true}
             />
           </div>
         </div>
@@ -182,13 +187,23 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
       {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
+        const { key, label, isSecret, tooltip } = input;
         const value = oAuth[key] || '';
         const { showWarning, warningMessage } = isSensitive(value);
 
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
-            <label className="block min-w-[140px]">{label}</label>
+            <label className="min-w-[140px] flex items-center gap-4">
+              {label}
+              {tooltip && (
+                <div className="relative group cursor-pointer inline-flex items-center">
+                  <IconHelp size={16} className="text-gray-500" />
+                  <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 top-full mt-1 w-max p-2 text-xs rounded-md transition-opacity duration-200 z-10" style={tooltipStyle}>
+                    {tooltip}
+                  </span>
+                </div>
+              )}
+            </label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
                 value={value}
@@ -200,6 +215,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 item={item}
                 isSecret={isSecret}
                 isCompact
+                disableLinkAwareClick={true}
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
@@ -271,6 +287,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             collection={collection}
             item={item}
             isCompact
+            disableLinkAwareClick={true}
           />
         </div>
       </div>
@@ -306,6 +323,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onRun={handleRun}
                     collection={collection}
                     isCompact
+                    disableLinkAwareClick={true}
                   />
                 </div>
               </div>
@@ -322,6 +340,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onRun={handleRun}
                     collection={collection}
                     isCompact
+                    disableLinkAwareClick={true}
                   />
                 </div>
               </div>
@@ -347,6 +366,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             collection={collection}
             item={item}
             isCompact
+            disableLinkAwareClick={true}
           />
         </div>
       </div>
@@ -370,7 +390,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
               Automatically fetch a new token when you try to access a resource and don't have one.
             </span>
           </div>
@@ -390,7 +410,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
               Automatically refresh your token using the refresh URL when it expires.
             </span>
           </div>

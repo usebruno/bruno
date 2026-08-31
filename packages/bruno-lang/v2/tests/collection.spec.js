@@ -22,3 +22,36 @@ describe('jsonToCollectionBru', () => {
     expect(output).toEqual(expected);
   });
 });
+
+describe('description round-trip in collection.bru', () => {
+  it('should round-trip a multiline description on a header', () => {
+    const json = {
+      headers: [{ name: 'Authorization', value: 'Bearer token', enabled: true, description: 'Line 1\nLine 2' }]
+    };
+    const bru = jsonToCollectionBru(json);
+    const parsed = collectionBruToJson(bru);
+    expect(parsed.headers[0].description).toBe('Line 1\nLine 2');
+    expect(parsed.headers[0].value).toBe('Bearer token');
+  });
+
+  it('should round-trip a description on a var with a multiline value', () => {
+    const json = {
+      vars: {
+        req: [{ name: 'myVar', value: 'line1\nline2', enabled: true, description: 'my desc' }]
+      }
+    };
+    const bru = jsonToCollectionBru(json);
+    const parsed = collectionBruToJson(bru);
+    expect(parsed.vars.req[0].description).toBe('my desc');
+    expect(parsed.vars.req[0].value).toBe('line1\nline2');
+  });
+
+  it('should round-trip a description containing triple-quotes', () => {
+    const json = {
+      headers: [{ name: 'X-Token', value: 'abc', enabled: true, description: 'has \'\'\' quotes' }]
+    };
+    const bru = jsonToCollectionBru(json);
+    const parsed = collectionBruToJson(bru);
+    expect(parsed.headers[0].description).toBe('has \'\'\' quotes');
+  });
+});

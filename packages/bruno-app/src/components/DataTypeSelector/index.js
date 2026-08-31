@@ -1,14 +1,34 @@
 import React from 'react';
-import { IconAlertCircle, IconCaretDown } from '@tabler/icons';
+import {
+  IconAlertCircle,
+  IconBraces,
+  IconCaretDown,
+  IconNumbers,
+  IconLetterT,
+  IconToggleRight
+} from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
-import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue } from '@usebruno/common/utils';
+import { BRUNO_VARIABLE_DATATYPES, validateVariableType } from '@usebruno/common/utils';
 import MenuDropdown from 'ui/MenuDropdown';
 import StyledWrapper from './StyledWrapper';
 
-const DataTypeSelector = ({ variable, onChange }) => {
+const TYPE_ICONS = {
+  string: IconLetterT,
+  number: IconNumbers,
+  boolean: IconToggleRight,
+  object: IconBraces
+};
+
+const TYPE_ICONS_SIZES = {
+  string: 16,
+  number: 18,
+  boolean: 18,
+  object: 18
+};
+
+const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = false }) => {
   const selectedType = variable.dataType || 'string';
-  const coercedValue = parseValueByDataType(variable.value, selectedType);
-  const typeError = validateDataTypeValue(coercedValue, selectedType);
+  const typeError = validateVariableType(variable.value, selectedType, resolvableVariables);
 
   const handleTypeChange = (type) => {
     onChange({ dataType: type === 'string' ? undefined : type });
@@ -20,18 +40,29 @@ const DataTypeSelector = ({ variable, onChange }) => {
     onClick: () => handleTypeChange(type)
   }));
 
+  const TypeIcon = TYPE_ICONS[selectedType] || IconLetterT;
+
   return (
     <StyledWrapper>
-      <div className="flex items-center relative">
+      <div className="flex items-center relative shrink-0">
         <MenuDropdown
           items={items}
           selectedItemId={selectedType}
           placement="bottom-end"
           showTickMark={true}
           appendTo={() => document.body}
+          data-testid="datatype-selector-trigger"
         >
-          <div className="flex items-center cursor-pointer select-none">
-            <span className="type-label">{selectedType}</span>
+          <div
+            className="flex items-center cursor-pointer select-none"
+            data-selected-type={selectedType}
+            aria-label={`Data type: ${selectedType}`}
+          >
+            {compact ? (
+              <TypeIcon className="type-icon" size={TYPE_ICONS_SIZES[selectedType]} strokeWidth={2} />
+            ) : (
+              <span className="type-label">{selectedType}</span>
+            )}
             <IconCaretDown className="caret-icon ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>
@@ -43,6 +74,7 @@ const DataTypeSelector = ({ variable, onChange }) => {
               size={16}
             />
             <Tooltip
+              positionStrategy="absolute"
               className="tooltip-mod"
               id={`type-error-${variable.uid}`}
               content={typeError}

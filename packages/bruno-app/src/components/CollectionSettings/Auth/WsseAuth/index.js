@@ -56,6 +56,7 @@ const WsseAuth = ({ collection }) => {
           onChange={(val) => handleUserChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -69,6 +70,7 @@ const WsseAuth = ({ collection }) => {
           collection={collection}
           isSecret={true}
           isCompact
+          disableLinkAwareClick={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>

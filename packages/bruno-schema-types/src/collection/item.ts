@@ -17,6 +17,8 @@ export interface HttpItemSettings {
   followRedirects?: boolean | null;
   maxRedirects?: number | null;
   timeout?: number | 'inherit' | null;
+  forwardAuthorizationHeader?: boolean | null;
+  omitHeaders?: string[] | null;
 }
 
 export interface WebSocketItemSettings {
@@ -38,6 +40,7 @@ export interface Item {
   type: ItemType;
   seq?: number | null;
   name: string;
+  description?: string | null;
   tags?: string[] | null;
   request?: Request | null;
   settings?: ItemSettings;

@@ -43,11 +43,12 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
-  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.query ?? '');
-  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.expanded ?? false);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', query: q }));
-  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', expanded: v }));
+  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', tab: activeEnvTab, query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', tab: activeEnvTab, expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -586,6 +587,7 @@ const EnvironmentList = ({
                       handleImportClick();
                     }}
                     title="Import environment"
+                    data-testid="import-environment-btn"
                   >
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
@@ -630,6 +632,7 @@ const EnvironmentList = ({
                   <div
                     key={env.uid}
                     id={env.uid}
+                    data-testid="workspace-env-list-item"
                     className={classnames('environment-item', {
                       active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
                       renaming: renamingEnvUid === env.uid,

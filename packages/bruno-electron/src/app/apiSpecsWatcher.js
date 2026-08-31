@@ -1,27 +1,14 @@
 const _ = require('lodash');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const chokidar = require('chokidar');
 const { getApiSpecUid } = require('../cache/apiSpecUids');
-const yaml = require('js-yaml');
 const { isDirectory } = require('../utils/filesystem');
-const { safeParseJSON } = require('../utils/common');
+const { parseApiSpecContent } = require('../utils/apiSpecs');
 
 const hasApiSpecExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['yaml', 'yml', 'json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
-};
-
-const parseApiSpecContent = (pathname) => {
-  const extension = path.extname(pathname).toLowerCase();
-  let content = fs.readFileSync(pathname, 'utf8');
-
-  if (extension === '.yaml' || extension === '.yml') {
-    return yaml.load(content);
-  } else if (extension === '.json') {
-    return safeParseJSON(content);
-  }
-  return null;
 };
 
 const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
@@ -34,9 +21,11 @@ const add = async (win, pathname) => {
   try {
     const basename = path.basename(pathname);
     const file = {};
-    const apiSpecContent = parseApiSpecContent(pathname);
+    const raw = fs.readFileSync(pathname, 'utf8');
+    const extension = path.extname(pathname);
+    const apiSpecContent = parseApiSpecContent(raw, extension);
 
-    file.raw = fs.readFileSync(pathname, 'utf8');
+    file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;
@@ -53,9 +42,11 @@ const change = async (win, pathname) => {
   try {
     const basename = path.basename(pathname);
     const file = {};
-    const apiSpecContent = parseApiSpecContent(pathname);
+    const raw = fs.readFileSync(pathname, 'utf8');
+    const extension = path.extname(pathname);
+    const apiSpecContent = parseApiSpecContent(raw, extension);
 
-    file.raw = fs.readFileSync(pathname, 'utf8');
+    file.raw = raw;
     file.name = apiSpecContent?.info?.title || basename.split('.')[0];
     file.filename = basename;
     file.pathname = pathname;

@@ -403,6 +403,62 @@ const formatSearchVariablesResult = ({ items, totalMatched, limit }, query, opts
   return `${heading}\n${lines.join('\n')}${trailer}`;
 };
 
+const REQUESTS_PREVIEW_LIMIT = 25;
+const REQUESTS_SEARCH_LIMIT = 50;
+
+const methodOf = (r) => String(r?.method || (r?.type === 'app' ? 'APP' : 'GET')).toUpperCase();
+
+const labelOf = (r) => (r?.folderPath ? `${r.folderPath}/${r.name || ''}` : r?.name || '');
+
+const formatRequestsList = (requests) => {
+  if (!Array.isArray(requests) || !requests.length) return '';
+  const total = requests.length;
+  const preview = requests.slice(0, REQUESTS_PREVIEW_LIMIT);
+  const lines = preview.map((r) => {
+    const url = r.url ? ` — ${r.url}` : '';
+    return `  ${methodOf(r)} ${labelOf(r)}${url}`;
+  });
+  const trailer = total > preview.length
+    ? `\n(+${total - preview.length} more — call search_requests to find them)`
+    : '';
+  return `${lines.join('\n')}${trailer}`;
+};
+
+const searchRequests = (requests, rawQuery, limit = REQUESTS_SEARCH_LIMIT) => {
+  if (!Array.isArray(requests) || !requests.length) {
+    return { items: [], totalMatched: 0, limit };
+  }
+  const query = String(rawQuery || '').toLowerCase().trim();
+  const filtered = query
+    ? requests.filter((r) => {
+        const hay = `${r?.name || ''} ${r?.url || ''} ${r?.pathname || ''} ${r?.folderPath || ''}`.toLowerCase();
+        if (hay.includes(query)) return true;
+        // Method matches only on exact token to avoid `get` matching every URL.
+        return String(r?.method || '').toLowerCase() === query;
+      })
+    : requests.slice();
+  return { items: filtered.slice(0, limit), totalMatched: filtered.length, limit };
+};
+
+const formatSearchRequestsResult = ({ items, totalMatched, limit }, query) => {
+  if (!items.length) {
+    return query
+      ? `No requests match "${query}".`
+      : 'No requests in this collection.';
+  }
+  const lines = items.map((r) => {
+    const url = r.url || '(no url)';
+    return `  ${methodOf(r)} ${labelOf(r)}\n    url: ${url}\n    pathname: ${r.pathname || ''}`;
+  });
+  const heading = query
+    ? `Found ${items.length}${totalMatched > items.length ? ` of ${totalMatched}` : ''} request(s) matching "${query}":`
+    : `Requests (${items.length}${totalMatched > items.length ? ` of ${totalMatched}` : ''}):`;
+  const trailer = totalMatched > items.length
+    ? `\n\n(${totalMatched - items.length} more match — narrow the query to see them.)`
+    : '';
+  return `${heading}\n${lines.join('\n')}${trailer}`;
+};
+
 module.exports = {
   // patterns + helpers
   SENSITIVE_HEADER_PATTERNS,
@@ -421,5 +477,9 @@ module.exports = {
   isSecretVariable,
   formatVariablesList,
   searchVariables,
-  formatSearchVariablesResult
+  formatSearchVariablesResult,
+  // requests (collection tree)
+  formatRequestsList,
+  searchRequests,
+  formatSearchRequestsResult
 };

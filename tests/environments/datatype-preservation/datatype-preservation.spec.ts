@@ -61,7 +61,7 @@ const expectTypeLabel = async (page: Page, name: string, label: string) => {
   const locators = buildCommonLocators(page);
   const row = locators.environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 const expectMismatchVisible = async (page: Page, name: string) => {
@@ -202,6 +202,8 @@ for (const { format, collectionName } of FORMATS) {
         await page.getByTestId('import-environment').click();
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles(exportedFile);
+
+        await locators.environment.importSubmitButton('collection').click();
       });
 
       await test.step(`Select the imported "${IMPORTED_ENV_NAME}" in the env editor sidebar`, async () => {

@@ -1,9 +1,11 @@
-import { test, expect, ElectronApplication } from '../../playwright';
+import { test, expect, ElectronApplication, Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
   createApp,
   selectAppView,
+  activeAppPreviewSlot,
+  appEmptyState,
   selectRequestBodyMode,
   saveRequest
 } from '../utils/page';
@@ -40,7 +42,7 @@ const guestEval = (
       for (const guest of guests) {
         try {
           const name = await guest.executeJavaScript(
-            'window.ctx && window.ctx.collection && window.ctx.collection.name',
+            'window.bru && window.bru.ctx.collection && window.bru.ctx.collection.name',
             true
           );
           if (name === params.expectedCollectionName) {
@@ -56,15 +58,15 @@ const guestEval = (
 
 const waitForGuestReady = async (electronApp: ElectronApplication, collectionName?: string) => {
   await expect
-    .poll(async () => guestEval(electronApp, 'typeof window.ctx', collectionName), { timeout: 15000 })
+    .poll(async () => guestEval(electronApp, 'window.bru && typeof window.bru.ctx', collectionName), { timeout: 15000 })
     .toBe('object');
 };
 
 // Set the CodeMirror editor in the active CollectionApp tab. We use the API
 // directly to avoid auto-close-bracket corruption when typing HTML/JS.
-const setCollectionAppCode = async (page, code: string) => {
+const setCollectionAppCode = async (page: Page, code: string) => {
   await selectAppView(page, 'code');
-  const editor = page.getByTestId('collection-app-code').locator('.CodeMirror').first();
+  const editor = activeAppPreviewSlot(page).getByTestId('collection-app-code').locator('.CodeMirror').first();
   await editor.waitFor({ state: 'visible' });
   await editor.evaluate((el, val) => {
     const cm = (el as any).CodeMirror;
@@ -78,12 +80,12 @@ const CTX_APP = `
 <div id="out" data-result="pending">pending</div>
 <script>
   window.__listRequests = async function () {
-    const r = await ctx.listRequests();
+    const r = await bru.ctx.listRequests();
     document.getElementById('out').setAttribute('data-result', JSON.stringify(r.map(x => x.name)));
   };
   window.__runEcho = async function (pathname) {
     try {
-      const res = await ctx.runRequest(pathname, { q: 'echoed' });
+      const res = await bru.ctx.runRequest(pathname, { runtimeVariables: { q: 'echoed' } });
       const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
       document.getElementById('out').setAttribute('data-result', JSON.stringify({ status: res.status, q: data && data.q }));
     } catch (e) {
@@ -91,17 +93,17 @@ const CTX_APP = `
     }
   };
   window.__readVar = function (key) {
-    document.getElementById('out').setAttribute('data-result', String(ctx.variables[key] ?? '(missing)'));
+    document.getElementById('out').setAttribute('data-result', String(bru.ctx.variables.resolved[key] ?? '(missing)'));
   };
   window.__readCollectionName = function () {
-    document.getElementById('out').setAttribute('data-result', String(ctx.collection && ctx.collection.name));
+    document.getElementById('out').setAttribute('data-result', String(bru.ctx.collection && bru.ctx.collection.name));
   };
 </script>`;
 
 const ECHO_JSON_URL = 'http://localhost:8081/api/echo/json';
 
 test.describe('Collection apps', () => {
-  test('Create from collection menu → appears in sidebar → opens as own tab with Code/Preview', async ({ page, createTmpDir }) => {
+  test('TC-3369 TC-3373 New App menu at collection level creates an app that opens as its own tab', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-create');
     await createCollection(page, 'col-apps-create', collectionPath);
 
@@ -112,17 +114,20 @@ test.describe('Collection apps', () => {
     });
 
     await test.step('Tab opens, Code/Preview toggle works', async () => {
-      await expect(page.getByTestId('collection-app')).toBeVisible({ timeout: 5000 });
-      await expect(page.getByTestId('collection-app-view-preview')).toHaveClass(/active/);
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app')).toBeVisible({ timeout: 5000 });
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-view-preview')).toHaveClass(/active/);
       await selectAppView(page, 'code');
-      await expect(page.getByTestId('collection-app-code')).toBeVisible();
-      await expect(page.getByTestId('collection-app-view-code')).toHaveClass(/active/);
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-code')).toBeVisible();
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-view-code')).toHaveClass(/active/);
       await selectAppView(page, 'preview');
-      await expect(page.getByTestId('collection-app-preview').locator('webview')).toBeVisible();
+      await expect(appEmptyState(page)).toBeVisible();
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-preview').locator('webview')).toHaveCount(0);
+      await expect(appEmptyState(page).getByTestId('empty-app-add-code')).toBeVisible();
+      await expect(appEmptyState(page).getByTestId('empty-app-learn-more')).toBeVisible();
     });
   });
 
-  test('ctx.listRequests sees every request in the collection', async ({ page, electronApp, createTmpDir }) => {
+  test('bru.ctx.listRequests sees every request in the collection', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-list');
     await createCollection(page, 'col-apps-list', collectionPath);
     await createRequest(page, 'alpha', 'col-apps-list', { url: 'http://localhost:8081/ping' });
@@ -141,7 +146,7 @@ test.describe('Collection apps', () => {
       .toBe(JSON.stringify(['alpha', 'beta']));
   });
 
-  test('ctx.runRequest executes a request by pathname and reflects the response', async ({ page, electronApp, createTmpDir }) => {
+  test('bru.ctx.runRequest executes a request by pathname and reflects the response', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-run');
     await createCollection(page, 'col-apps-run', collectionPath);
     await createRequest(page, 'echo', 'col-apps-run', { method: 'POST', url: ECHO_JSON_URL });
@@ -164,11 +169,11 @@ test.describe('Collection apps', () => {
     await selectAppView(page, 'preview');
     await waitForGuestReady(electronApp, 'col-apps-run');
 
-    // Resolve the pathname of the 'echo' request via ctx.listRequests, then run it.
+    // Resolve the pathname of the 'echo' request via bru.ctx.listRequests, then run it.
     await guestEval(
       electronApp,
       `(async () => {
-        const requests = await ctx.listRequests();
+        const requests = await bru.ctx.listRequests();
         const echo = requests.find(r => r.name === 'echo');
         await window.__runEcho(echo.pathname);
       })()`,
@@ -180,7 +185,7 @@ test.describe('Collection apps', () => {
       .toBe(JSON.stringify({ status: 200, q: 'echoed' }));
   });
 
-  test('ctx.setRuntimeVariable persists into ctx.variables', async ({ page, electronApp, createTmpDir }) => {
+  test('bru.ctx.variables.runtime.set persists into bru.ctx.variables.resolved', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-vars');
     await createCollection(page, 'col-apps-vars', collectionPath);
 
@@ -191,13 +196,13 @@ test.describe('Collection apps', () => {
     await selectAppView(page, 'preview');
     await waitForGuestReady(electronApp, 'col-apps-vars');
 
-    await guestEval(electronApp, `ctx.setRuntimeVariable('hello', 'world')`, 'col-apps-vars');
+    await guestEval(electronApp, `bru.ctx.variables.runtime.set('hello', 'world')`, 'col-apps-vars');
     await expect
-      .poll(() => guestEval(electronApp, `ctx.variables && ctx.variables.hello`, 'col-apps-vars'), { timeout: 15000 })
+      .poll(() => guestEval(electronApp, `bru.ctx.variables.resolved && bru.ctx.variables.resolved.hello`, 'col-apps-vars'), { timeout: 15000 })
       .toBe('world');
   });
 
-  test('ctx.collection exposes the active collection', async ({ page, electronApp, createTmpDir }) => {
+  test('bru.ctx.collection exposes the active collection', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-meta');
     await createCollection(page, 'col-apps-meta', collectionPath);
 

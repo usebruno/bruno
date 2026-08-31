@@ -58,12 +58,24 @@ export const updateUidsInCollection = (_collection) => {
         each(get(example, 'response.headers'), (header) => (header.uid = uuid()));
       });
 
+      each(get(item, 'root.request.headers'), (header) => (header.uid = header.uid || uuid()));
+      each(get(item, 'root.request.vars.req'), (v) => (v.uid = v.uid || uuid()));
+      each(get(item, 'root.request.vars.res'), (v) => (v.uid = v.uid || uuid()));
+
       if (item.items && item.items.length) {
         updateItemUids(item.items);
       }
     });
   };
   updateItemUids(collection.items);
+
+  const updateRootUids = (root) => {
+    if (!root) return;
+    each(get(root, 'request.headers'), (header) => (header.uid = header.uid || uuid()));
+    each(get(root, 'request.vars.req'), (v) => (v.uid = v.uid || uuid()));
+    each(get(root, 'request.vars.res'), (v) => (v.uid = v.uid || uuid()));
+  };
+  updateRootUids(collection.root);
 
   const updateEnvUids = (envs = []) => {
     each(envs, (env) => {
