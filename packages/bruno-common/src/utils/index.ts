@@ -57,6 +57,13 @@ export {
 } from './naming';
 
 export {
+  getInheritableEnvironments,
+  getInheritedEnvironments,
+  resolveEnvironmentInheritance,
+  validatedEnvironmentExtendsFrom
+} from './environment-inheritance';
+
+export {
   toBool,
   toNumber
 } from './type-helpers';

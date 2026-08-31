@@ -364,7 +364,7 @@ class DefaultWorkspaceManager {
           }
 
           const envFilePath = path.join(environmentsDir, `${env.name}.yml`);
-          const environment = { name: env.name, variables: env.variables || [] };
+          const environment = { name: env.name, variables: env.variables || [], extends: env.extends };
           const content = stringifyEnvironment(environment, { format: 'yml' });
           await writeFile(envFilePath, content);
 

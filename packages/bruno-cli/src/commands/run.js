@@ -1,18 +1,15 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { getEnvVars } = require('../utils/bru');
-const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
-const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
+const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const Table = require('cli-table3');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
@@ -20,6 +17,7 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { loadEnvironmentFromFile } = require('../utils/environment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -388,34 +386,6 @@ const handler = async function (argv) {
       return 'bru';
     };
 
-    // Helper to load environment variables from a file
-    const loadEnvFromFile = (filePath, nameOverride) => {
-      const fileExt = path.extname(filePath).toLowerCase();
-      let result = {};
-
-      if (fileExt === '.json') {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(content);
-        const normalizedEnv = parseEnvironmentJson(parsed);
-        result = getEnvVars(normalizedEnv);
-        const rawName = normalizedEnv?.name;
-        const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
-        result.__name__ = trimmedName || path.basename(filePath, '.json');
-      } else if (fileExt === '.yml') {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const envJson = parseEnvironment(content, { format: 'yml' });
-        result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, '.yml');
-      } else {
-        const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
-        const envJson = parseEnvironment(content, { format: 'bru' });
-        result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, '.bru');
-      }
-
-      return result;
-    };
-
     // Load --env-file if provided
     if (envFile) {
       const envFilePath = path.resolve(collectionPath, envFile);
@@ -424,8 +394,13 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        envVars = loadEnvFromFile(envFilePath);
-        envFileDescriptor = { path: envFilePath, format: resolveEnvFileFormat(envFilePath) };
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(envFilePath);
+        envVars = environmentVariables;
+        envFileDescriptor = {
+          path: envFilePath,
+          format: resolveEnvFileFormat(envFilePath),
+          inheritedEnvironmentVariables
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -449,9 +424,13 @@ const handler = async function (argv) {
         const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
         if (await exists(defaultEnvFilePath)) {
           try {
-            const defaultEnvVars = loadEnvFromFile(defaultEnvFilePath, defaultEnvironment);
-            envVars = { ...envVars, ...defaultEnvVars };
-            envFileDescriptor = { path: defaultEnvFilePath, format: collection.format };
+            const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(defaultEnvFilePath, defaultEnvironment);
+            envVars = { ...envVars, ...environmentVariables };
+            envFileDescriptor = {
+              path: defaultEnvFilePath,
+              format: collection.format,
+              inheritedEnvironmentVariables
+            };
             console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
           } catch (err) {
             console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
@@ -475,9 +454,13 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
-        envVars = { ...envVars, ...collectionEnvVars };
-        envFileDescriptor = { path: collectionEnvFilePath, format: collection.format };
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(collectionEnvFilePath, env);
+        envVars = { ...envVars, ...environmentVariables };
+        envFileDescriptor = {
+          path: collectionEnvFilePath,
+          format: collection.format,
+          inheritedEnvironmentVariables
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -528,11 +511,13 @@ const handler = async function (argv) {
       }
 
       try {
-        const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
-        const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
-        globalEnvVars = getEnvVars(globalEnvJson);
-        globalEnvVars.__name__ = globalEnv;
-        globalEnvFileDescriptor = { path: globalEnvFilePath, format: 'yml' };
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(globalEnvFilePath, globalEnv);
+        globalEnvVars = environmentVariables;
+        globalEnvFileDescriptor = {
+          path: globalEnvFilePath,
+          format: 'yml',
+          inheritedEnvironmentVariables
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);

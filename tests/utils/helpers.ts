@@ -2,6 +2,9 @@ import fs from 'fs';
 
 export const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+export const findEnvironmentByName = (environments: any[], name: string) =>
+  environments.find((environment) => environment.name === name);
+
 /**
  * Read and JSON-parse a file, retrying until it has parseable content.
  *

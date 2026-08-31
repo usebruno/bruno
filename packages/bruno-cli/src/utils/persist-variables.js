@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { isEqual } = require('lodash');
 const { stringifyEnvironment, stringifyCollection, parseEnvironment } = require('@usebruno/filestore');
 const { getDataTypeFromValue } = require('@usebruno/common').utils;
 const { parseEnvironmentJson } = require('./environment');
@@ -140,7 +141,10 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * @param {Array<{ name: string, value: any, enabled?: boolean, type?: string, secret?: boolean, dataType?: string }>} variables
  *   Existing entries from the env file.
  * @param {Object<string, any>} scriptVarsRaw - Flat map from the script runtime; may include `__name__`.
- * @param {{ overrides?: Map<string, string> }} [options] - Names → injected override values.
+ * @param {{ overrides?: Map<string, string>, skipKeys?: string[], inheritedVariables?: Array<object> }} [options] -
+ *   Names → injected override values, names that must never be written to this file (e.g. inherited
+ *   from a parent env), and the resolved parent-chain entries an appended override inherits its
+ *   `secret` flag from.
  * @returns {Array<object>} New array of merged variable entries.
  *
  * @example
@@ -182,6 +186,15 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
 const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
   const overrides = options.overrides instanceof Map ? options.overrides : new Map();
   const scriptVars = stripInternal(scriptVarsRaw);
+  // A name the script still reported is a live name, whatever the reason it must not be written
+  // here. Absence from this set — and only that — is what marks a `bru.deleteEnvVar` below, so it
+  // is captured before any key is withheld.
+  const declaredKeys = new Set(Object.keys(scriptVars));
+  // Inherited names reach the runtime map but are declared in the parent file. Writing them here
+  // would fork a private copy that shadows the parent — and strip a parent secret down to a plain row.
+  for (const name of options.skipKeys || []) {
+    delete scriptVars[name];
+  }
   // Drop a script value only when it still matches the injected override — a different
   // value means the script deliberately wrote it (e.g. `bru.setEnvVar('token', 'rotated')`)
   // and must reach disk.
@@ -191,25 +204,35 @@ const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
     }
   }
   const scriptKeys = new Set(Object.keys(scriptVars));
+  // A rotated inherited secret lands here as an override; as a plain row its value would reach
+  // disk in cleartext, so the parent's secret flag has to come with it.
+  const inheritedSecretNames = new Set((options.inheritedVariables || []).filter((v) => v.secret).map((v) => v.name));
 
   const next = (variables || [])
     .filter((v) => {
       if (v.enabled === false) return true;
-      if (scriptKeys.has(v.name)) return true;
+      if (declaredKeys.has(v.name)) return true;
       // Keep the file's entry for an overridden name even if the script didn't echo it back.
       if (overrides.has(v.name)) return true;
       return false;
     })
     .map((v) => {
       if (v.enabled === false || !scriptKeys.has(v.name)) return v;
-      return applyInferredDataType({ ...v, value: scriptVars[v.name] }, scriptVars[v.name]);
+      const entry = { ...v, value: scriptVars[v.name] };
+      // A plain row of the same name shadows the parent's secret rather than replacing it, so the
+      // rotated value would otherwise land on that plain row and reach disk in cleartext. The row
+      // becoming a secret is the cost of keeping the value off disk.
+      if (inheritedSecretNames.has(v.name)) {
+        entry.secret = true;
+      }
+      return applyInferredDataType(entry, scriptVars[v.name]);
     });
 
   // Skip names that already appear as enabled entries; a same-named disabled entry still gets a fresh enabled row appended.
   const presentEnabled = new Set(next.filter((v) => v.enabled !== false).map((v) => v.name));
   for (const key of scriptKeys) {
     if (presentEnabled.has(key)) continue;
-    const entry = { name: key, value: scriptVars[key], type: 'text', enabled: true, secret: false };
+    const entry = { name: key, value: scriptVars[key], type: 'text', enabled: true, secret: inheritedSecretNames.has(key) };
     next.push(applyInferredDataType(entry, scriptVars[key]));
   }
   return next;
@@ -271,6 +294,26 @@ const writeIfChanged = (filePath, content, existing) => {
 };
 
 /**
+ * @param {Array<{ name: string, value: any }>} [inheritedVariables] - Vars resolved from the `extends` chain.
+ * @param {Object<string, any>} scriptVars - Flat map from the script runtime.
+ * @returns {string[]} Inherited names to keep off disk.
+ *
+ * @example
+ * inheritedKeysLeftUnchanged(
+ *   [{ name: 'host', value: 'parent' }, { name: 'token', value: 'secret' }],
+ *   { host: 'parent', token: 'rotated' }
+ * );
+ *  → ['host']   // `token` was rewritten by the script, so it persists here as an override
+ */
+const inheritedKeysLeftUnchanged = (inheritedVariables, scriptVars) => {
+  const inherited = inheritedVariables || [];
+  if (!inherited.length) return [];
+  return Object.entries(scriptVars || {})
+    .filter(([name, value]) => inherited.some((v) => v.name === name && isEqual(v.value, value)))
+    .map(([name]) => name);
+};
+
+/**
  * Read → merge → write one env file. Used for both per-env and global-env files
  * (same shape, different descriptor).
  *
@@ -299,6 +342,11 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
   // No descriptor means no `--env` flag was passed — nothing to persist to.
   if (!envFile || !envFile.path) return;
   const { path: filePath, format } = envFile;
+  const mergeOptions = {
+    ...options,
+    skipKeys: inheritedKeysLeftUnchanged(envFile.inheritedEnvironmentVariables, scriptVars),
+    inheritedVariables: envFile.inheritedEnvironmentVariables
+  };
   if (!fs.existsSync(filePath)) return;
 
   if (format === 'json') {
@@ -310,7 +358,7 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
     parseEnvironmentJson(parsed);
 
     const rawVariables = Array.isArray(parsed.variables) ? parsed.variables.filter(Boolean) : [];
-    const mergedVars = mergeScriptVarsIntoEnvList(rawVariables, scriptVars, options);
+    const mergedVars = mergeScriptVarsIntoEnvList(rawVariables, scriptVars, mergeOptions);
     // Spread preserves any top-level fields the user has beyond `variables` (name, metadata, etc.).
     const next = { ...parsed, variables: mergedVars };
     const content = JSON.stringify(next, null, 2) + '\n';
@@ -322,7 +370,7 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
   // Bru parser expects \n line endings; yml parser is tolerant.
   const sourceForParse = format === 'bru' ? existingRaw.replace(/\r\n/g, '\n') : existingRaw;
   const parsed = parseEnvironment(sourceForParse, { format });
-  const mergedVars = mergeScriptVarsIntoEnvList(parsed.variables || [], scriptVars, options);
+  const mergedVars = mergeScriptVarsIntoEnvList(parsed.variables || [], scriptVars, mergeOptions);
   const next = { ...parsed, variables: mergedVars };
   const content = stringifyEnvironment(next, { format });
   writeIfChanged(filePath, content, existingRaw);

@@ -4,6 +4,7 @@ const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
+const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
@@ -120,7 +121,7 @@ class GlobalEnvironmentsManager {
     }
   }
 
-  async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
+  async createGlobalEnvironment(workspacePath, { uid, name, variables, color, extends: inheritedGlobalEnvironmentName }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -144,6 +145,10 @@ class GlobalEnvironmentsManager {
         color
       };
 
+      if (inheritedGlobalEnvironmentName) {
+        environment.extends = inheritedGlobalEnvironmentName;
+      }
+
       if (this.envHasSecrets(environment)) {
         environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
       }
@@ -162,7 +167,7 @@ class GlobalEnvironmentsManager {
     }
   }
 
-  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color }) {
+  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color, extends: inheritedGlobalEnvironmentName }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -181,6 +186,10 @@ class GlobalEnvironmentsManager {
 
       if (color) {
         environment.color = color;
+      }
+
+      if (inheritedGlobalEnvironmentName) {
+        environment.extends = inheritedGlobalEnvironmentName;
       }
 
       // Serialize concurrent writes per env file. Two rapid scripted
@@ -240,6 +249,13 @@ class GlobalEnvironmentsManager {
         fs.unlinkSync(envFile.filePath);
       }
 
+      await renameEnvironmentExtendsReferences({
+        environmentsDirPath: this.getEnvironmentsDir(workspacePath),
+        format: 'yml',
+        oldName,
+        newName
+      });
+
       const newUid = generateUidBasedOnHash(newFilePath);
       return { uid: newUid, name: newName };
     } catch (error) {
@@ -293,6 +309,37 @@ class GlobalEnvironmentsManager {
     }
   }
 
+  async saveGlobalEnvironmentExtends(workspacePath, environmentUid, inheritedGlobalEnvironmentName) {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is required');
+      }
+
+      const envFile = this.findEnvironmentFileByUid(workspacePath, environmentUid);
+
+      if (!envFile) {
+        throw new Error(`Environment file not found for uid: ${environmentUid}`);
+      }
+
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+
+        if (inheritedGlobalEnvironmentName) {
+          environment.extends = inheritedGlobalEnvironmentName;
+        } else {
+          delete environment.extends;
+        }
+
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
+
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getGlobalEnvironmentsByPath(workspacePath) {
     return this.getGlobalEnvironments(workspacePath);
   }
@@ -315,6 +362,10 @@ class GlobalEnvironmentsManager {
 
   async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {
     return this.updateGlobalEnvironmentColor(workspacePath, environmentUid, color);
+  }
+
+  async saveGlobalEnvironmentExtendsByPath(workspacePath, { environmentUid, extends: inheritedGlobalEnvironmentName }) {
+    return this.saveGlobalEnvironmentExtends(workspacePath, environmentUid, inheritedGlobalEnvironmentName);
   }
 }
 

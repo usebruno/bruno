@@ -65,3 +65,74 @@ describe('importBrunoEnvironment — duplicate secrets', () => {
     expect(environments.map((env) => env.variables.length)).toEqual([1, 1]);
   });
 });
+
+describe('importBrunoEnvironment — inheritance', () => {
+  const importSingleEnvironment = (env) => importBrunoEnvironment([parsedFile(env)]);
+
+  it('carries the extends reference of a single environment', () => {
+    const { valid: [environment] } = importBrunoEnvironment([
+      parsedFile({ name: 'dev', variables: [], extends: 'Base', info: { type: 'bruno-environment' } })
+    ]);
+
+    expect(environment.extends).toBe('Base');
+  });
+
+  it('carries the extends reference of each environment of a multi-environment file', () => {
+    const { valid: environments } = importBrunoEnvironment([
+      parsedFile({
+        info: { type: 'bruno-environment' },
+        environments: [
+          { name: 'base', variables: [] },
+          { name: 'dev', variables: [], extends: 'base' }
+        ]
+      })
+    ]);
+
+    expect(environments.map((env) => env.extends)).toEqual([undefined, 'base']);
+  });
+
+  it('keeps a reference to an environment absent from the import', () => {
+    const { valid: [environment] } = importBrunoEnvironment([
+      parsedFile({ name: 'dev', variables: [], extends: 'NotImported' })
+    ]);
+
+    expect(environment.extends).toBe('NotImported');
+  });
+
+  it('carries a list of extends references', () => {
+    const { valid: [environment] } = importBrunoEnvironment([
+      parsedFile({ name: 'dev', variables: [], extends: ['base', 'shared'] })
+    ]);
+
+    expect(environment.extends).toEqual(['base', 'shared']);
+  });
+
+  it('rejects an extends reference carrying a newline, which would inject directives into the file', () => {
+    const { valid, invalid } = importSingleEnvironment({
+      name: 'dev',
+      variables: [],
+      extends: 'base\nvars {\n  injected: pwned\n}'
+    });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/not a valid environment name/);
+  });
+
+  it('rejects a list holding an extends reference carrying a newline', () => {
+    const { valid, invalid } = importSingleEnvironment({
+      name: 'dev',
+      variables: [],
+      extends: ['base', 'shared\nvars {\n  injected: pwned\n}']
+    });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/not a valid environment name/);
+  });
+
+  it('rejects an extends reference that is not a string', () => {
+    const { valid, invalid } = importSingleEnvironment({ name: 'dev', variables: [], extends: 42 });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/not a valid environment name/);
+  });
+});

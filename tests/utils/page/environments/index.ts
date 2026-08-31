@@ -2,6 +2,7 @@ import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
+const exportModalRoot = (page: Page) => page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
@@ -51,6 +52,10 @@ export const buildEnvironmentLocators = (page: Page) => ({
   varErrors: () => page.getByTestId('env-var-name-error'),
   // The trailing empty "add new variable" row's name input.
   addRowNameInput: () => page.getByTestId('env-var-name-input').last(),
+  // A row addressed by its formik index rather than its name — the only handle on a row that
+  // has no name yet, and one that survives the empty row the table appends while it is filled in.
+  variableValueEditor: (index: number) =>
+    page.locator(`[data-testid="test-multiline-editor-${index}.value"]`).locator('.CodeMirror').first(),
   addVariableButton: () => page.getByTestId('add-variable'),
   variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
   variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
@@ -84,13 +89,42 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // measurement copy (which carries no responsive-tab testid) is excluded.
   tabCount: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-count'),
   saveTab: () => page.getByTestId('save-env'),
+  resetTab: () => page.getByTestId('reset-env'),
   saveAll: () => page.getByTestId('save-all-env'),
   searchInput: () => page.getByTestId('env-search-input'),
   searchClearBtn: () => page.locator('.env-list-search .close-icon'),
   listItem: (name?: string) => name ? page.getByTestId('env-list-item').filter({ hasText: name }) : page.getByTestId('env-list-item'),
+  // "Inherits from" picker in the environment editor header, and its menu options.
+  // Menu item ids are the parent environment names, lowercased by MenuDropdown.
+  inheritsFromAction: () => page.getByTestId('env-inherits-from-action'),
+  inheritsFromName: () => page.getByTestId('env-inherits-from-action').locator('.inherits-from-name'),
+  inheritsFromOption: (name: string) => page.getByTestId(`env-inherits-from-${name.toLowerCase()}`),
+  inheritsFromNoneOption: () => page.getByTestId('env-inherits-from-no-environment'),
+  missingInheritedEnvironment: () => page.getByTestId('env-missing-inherited-environment'),
+  // Rows merged in from an ancestor environment; they are read-only.
+  inheritedSection: () => page.getByTestId('env-var-section-inherited'),
+  inheritedSectionToggle: () => page.getByTestId('env-var-section-toggle-inherited'),
+  sectionCount: (section: string) => page.getByTestId(`env-var-section-${section}`).locator('.section-count'),
+  inheritedVarRow: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`),
+  inheritedVarValue: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`).locator('.inherited-value'),
+  inheritedVarDataType: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-data-type'),
+  inheritedVarSource: (name: string) => page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-source'),
+  inheritedVarEyeToggle: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).getByTestId('inherited-secret-reveal-toggle'),
+  inheritedVarEnabledCheckbox: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).locator('input[type="checkbox"]'),
+  inheritedVarEditableFields: (name: string) =>
+    page.getByTestId(`env-inherited-var-row-${name}`).locator('input:not([type="checkbox"]), .CodeMirror'),
+  detailsTitle: () => page.getByTestId('env-details-title'),
+  copyAction: () => page.getByTestId('env-copy-action'),
+  deleteAction: () => page.getByTestId('env-delete-action'),
   noResults: () => page.getByTestId('env-no-results'),
+  varsNoResults: () => page.getByTestId('env-vars-no-results'),
   noEnvironmentItem: () => page.getByTestId('env-no-environment-item'),
   searchAction: () => page.getByTestId('env-search-action'),
+  renameAction: () => page.getByTestId('env-rename-action'),
+  renameInput: () => page.getByTestId('env-rename-input'),
   savedToast: () => page.getByText('Changes saved successfully').last(),
   collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
   globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
@@ -115,6 +149,19 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page
       .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
       .filter({ has: page.getByText(name, { exact: true }) }),
+  exportAction: () => page.locator('button[title="Export environment"]'),
+  exportModal: {
+    root: () => exportModalRoot(page),
+    deselectAll: () => exportModalRoot(page).getByRole('button', { name: 'Deselect All' }),
+    environmentCheckbox: (name: string) =>
+      exportModalRoot(page)
+        .locator('label.environment-item')
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .locator('input[type="checkbox"]'),
+    inheritanceWarning: () => exportModalRoot(page).getByTestId('env-export-inheritance-warning'),
+    location: () => exportModalRoot(page).locator('#export-location'),
+    submit: () => exportModalRoot(page).getByRole('button', { name: /^Export \d+ Environments?$/ })
+  },
   varRowEnabledCheckbox: (name: string) =>
     page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox'),
   importSubmitButton: (scope: 'collection' | 'global') =>

@@ -25,6 +25,7 @@ import StyledWrapper from './StyledWrapper';
 import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
@@ -73,7 +74,10 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const environment = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+  });
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment, request, collection);

@@ -1,6 +1,6 @@
-import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
+import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -468,6 +468,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    saveEnvironmentExtends: (state, action) => {
+      const { environmentUid, collectionUid, extends: inheritedEnvironmentName } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if (environment) {
+          environment.extends = inheritedEnvironmentName;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -526,6 +538,23 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
+          const { inheritedVariables } = resolveEnvironmentInheritance({
+            environments: collection.environments,
+            targetEnvironment: activeEnvironment
+          });
+
+          const skipKeys = ['__name__'];
+
+          // add inherited variables names to `skipKeys` to avoid the `create new variable` path
+          // except the variables whose values have been updated.
+          // An inherited row holds the value as the file spells it — a string — while the script
+          // reports it parsed by its `dataType`, so the inherited value has to be parsed to compare.
+          Object.entries(envVariables).forEach(([key, value]) => {
+            if (inheritedVariables.find((iv) => (iv.name === key) && isEqual(parseValueByDataType(iv.value, iv.dataType), value))) {
+              skipKeys.push(key);
+            }
+          });
+
           const draft = collection.environmentsDraft;
           if (draft && draft.environmentUid === activeEnvironment.uid && draft.variables) {
             const baseline = {};
@@ -542,12 +571,12 @@ export const collectionsSlice = createSlice({
             activeEnvironment.variables,
             envVariables,
             collection._scriptEnvBaseline,
-            { skipKeys: ['__name__'] }
+            { skipKeys, inheritedVariables }
           );
 
           // Re-infer dataType only for vars the script actually modified — otherwise a no-op
           // script re-write would clobber a user's in-progress draft type change.
-          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys });
           activeEnvironment.variables.forEach((v) => {
             if (!modifiedKeys.has(v.name)) return;
             const inferred = getDataTypeFromValue(envVariables[v.name]);
@@ -3300,6 +3329,7 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
+          existingEnv.extends = environment.extends;
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -4204,6 +4234,7 @@ export const {
   selectEnvironment,
   applyDefaultEnvironment,
   updateEnvironmentColor,
+  saveEnvironmentExtends,
   newItem,
   deleteItem,
   renameItem,
