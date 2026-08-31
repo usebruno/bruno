@@ -38,6 +38,18 @@ describe('BrunoGrpcRequest', () => {
       expect(raw.headers).toEqual({ 'x-token': 'from-hook', 'x-request-id': 'req-1' });
     });
 
+    test('a key named __proto__ becomes a real entry instead of touching the prototype', () => {
+      const raw = makeReq({ headers: {} });
+      const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
+
+      req.metadata.set('__proto__', 'polluted');
+
+      expect(Object.keys(raw.headers)).toEqual(['__proto__']);
+      expect(Object.getPrototypeOf(raw.headers)).toBe(Object.prototype);
+      expect(req.metadata.get('__proto__')).toBe('polluted');
+      expect(req.metadata.count()).toBe(1);
+    });
+
     test('a request that carries no headers gets them on first write', () => {
       const raw = makeReq({ headers: undefined });
       const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
