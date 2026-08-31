@@ -40,7 +40,7 @@ export const openCollectionRequest = async (page: Page, collectionName: string, 
   }
 };
 
-export const sendReqAndSaveResposeExample = async (page: Page, requestName: string, exampleName: string) => {
+export const sendRequestAndSaveResposeExample = async (page: Page, requestName: string, exampleName: string) => {
   const { responseExample } = buildCommonLocators(page);
   await sendRequest(page);
   await clickResponseAction(page, 'response-bookmark-btn');

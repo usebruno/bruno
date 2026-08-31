@@ -4,7 +4,7 @@ import jsyaml from 'js-yaml';
 import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { editCodeMirrorEditor } from '../../utils/page/actions';
-import { openCollectionRequest, sendReqAndSaveResposeExample } from '../../utils/page/response-example';
+import { openCollectionRequest, sendRequestAndSaveResposeExample } from '../../utils/page/response-example';
 
 const binaryPreviewCases = [
   {
@@ -108,7 +108,7 @@ test.describe('Binary response example previews', () => {
 
       try {
         await openCollectionRequest(page, 'binary-preview', folderName, requestName);
-        await sendReqAndSaveResposeExample(page, requestName, exampleName);
+        await sendRequestAndSaveResposeExample(page, requestName, exampleName);
 
         await test.step('Verify the binary preview renders', async () => {
           const { responseExample } = buildCommonLocators(page);
@@ -137,7 +137,7 @@ test.describe('Binary response example previews', () => {
 
     try {
       await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-mislabeled');
-      await sendReqAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
+      await sendRequestAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
 
       await test.step('Verify the sniffed image preview renders', async () => {
         const { responseExample } = buildCommonLocators(page);
@@ -157,7 +157,7 @@ test.describe('Binary response example previews', () => {
       const { responseExample } = buildCommonLocators(page);
 
       await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
-      await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+      await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
       await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
 
       await test.step('Change the Content-Type header to application/json in edit mode', async () => {
@@ -198,7 +198,7 @@ test.describe('Binary response example previews', () => {
       const { responseExample } = buildCommonLocators(page);
 
       await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
-      await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+      await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
       await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
 
       await test.step('Verify edit mode keeps the preview and does not show the code editor', async () => {
@@ -226,7 +226,7 @@ test.describe('Binary response example previews', () => {
     try {
       await test.step('Save a PNG example and verify the stored body is the raw base64', async () => {
         await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
-        await sendReqAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
+        await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
 
         await expect(async () => {
           const body = readSavedExampleBody(path.join(collectionPath, 'images', 'binary-preview-image-png.yml'), 'PNG Example');
@@ -237,7 +237,7 @@ test.describe('Binary response example previews', () => {
 
       await test.step('Save a JSON example and verify the stored body is formatted json', async () => {
         await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-json');
-        await sendReqAndSaveResposeExample(page, 'binary-preview-json', 'JSON Example');
+        await sendRequestAndSaveResposeExample(page, 'binary-preview-json', 'JSON Example');
 
         await expect(async () => {
           const body = readSavedExampleBody(path.join(collectionPath, 'binary-preview-json.yml'), 'JSON Example');
@@ -257,7 +257,7 @@ test.describe('Binary response example previews', () => {
       const { responseExample } = buildCommonLocators(page);
 
       await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-svg');
-      await sendReqAndSaveResposeExample(page, 'binary-preview-svg', 'SVG Example');
+      await sendRequestAndSaveResposeExample(page, 'binary-preview-svg', 'SVG Example');
 
       // image/svg+xml is XML text, so it is stored and edited as markup, not media.
       await test.step('Verify the markup renders in the editor instead of an image preview', async () => {
@@ -285,7 +285,7 @@ test.describe('Binary response example previews', () => {
       const locators = buildCommonLocators(page);
 
       await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-unknown-binary');
-      await sendReqAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
+      await sendRequestAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
 
       // application/octet-stream bytes with no recognizable signature have no
       // visual preview — the raw base64 body renders in the editor instead.
