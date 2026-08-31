@@ -17,8 +17,9 @@ import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
@@ -79,7 +80,7 @@ class CodeEditor extends React.Component {
      * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
      * would re-introduce the newline in collection/folder-level editors.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -153,7 +154,7 @@ class CodeEditor extends React.Component {
             } else var toParse = '{' + internal + '}';
             try {
               count = Object.keys(JSON.parse(toParse)).length;
-            } catch (e) {}
+            } catch (e) { }
           } else if (this.props.mode == 'application/xml') {
             const doc = new DOMParser();
             try {
@@ -163,7 +164,7 @@ class CodeEditor extends React.Component {
                 'application/xml'
               );
               count = dcm.documentElement.children.length;
-            } catch (e) {}
+            } catch (e) { }
           }
           return count ? `\u21A4${count}\u21A6` : '\u2194';
         }
@@ -292,7 +293,15 @@ class CodeEditor extends React.Component {
         });
       }
 
-      setupLinkAware(editor);
+      setupLinkAware(editor, {
+        onLinkClick: (typeof this.props.onLinkClick === 'function' || resolveLinkClickHandler(this.props.item, this.props.collection))
+          ? this.handleLinkClick
+          : undefined
+      });
+      this._linkAwareItemType = this.props.item?.type;
+      this._linkAwareCollectionUid = this.props.collection?.uid;
+      this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+      this._linkAwareHasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
@@ -387,6 +396,30 @@ class CodeEditor extends React.Component {
         if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
           this.editor.options.brunoVarInfo.item = this.props.item;
         }
+      }
+
+      // Re-wire link handler when item/collection context changes.
+      const itemType = this.props.item?.type;
+      const collectionUid = this.props.collection?.uid;
+      const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
+      const hasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
+      if (
+        itemType !== this._linkAwareItemType
+        || collectionUid !== this._linkAwareCollectionUid
+        || presetType !== this._linkAwarePresetType
+        || hasOnLinkClickProp !== this._linkAwareHasOnLinkClickProp
+      ) {
+        this._linkAwareItemType = itemType;
+        this._linkAwareCollectionUid = collectionUid;
+        this._linkAwarePresetType = presetType;
+        this._linkAwareHasOnLinkClickProp = hasOnLinkClickProp;
+        this.editor._destroyLinkAware?.();
+        setupLinkAware(this.editor, {
+          onLinkClick: (typeof this.props.onLinkClick === 'function' || resolveLinkClickHandler(this.props.item, this.props.collection))
+            ? this.handleLinkClick
+            : undefined
+        });
+        this.editor.refresh();
       }
     }
 
@@ -512,6 +545,13 @@ class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  handleLinkClick = (url) => {
+    const onLinkClick = typeof this.props.onLinkClick === 'function'
+      ? this.props.onLinkClick
+      : resolveLinkClickHandler(this.props.item, this.props.collection);
+    onLinkClick?.(url);
   };
 }
 

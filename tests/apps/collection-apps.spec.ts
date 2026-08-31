@@ -1,4 +1,4 @@
-import { test, expect, ElectronApplication } from '../../playwright';
+import { test, expect, ElectronApplication, Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
@@ -64,7 +64,7 @@ const waitForGuestReady = async (electronApp: ElectronApplication, collectionNam
 
 // Set the CodeMirror editor in the active CollectionApp tab. We use the API
 // directly to avoid auto-close-bracket corruption when typing HTML/JS.
-const setCollectionAppCode = async (page, code: string) => {
+const setCollectionAppCode = async (page: Page, code: string) => {
   await selectAppView(page, 'code');
   const editor = activeAppPreviewSlot(page).getByTestId('collection-app-code').locator('.CodeMirror').first();
   await editor.waitFor({ state: 'visible' });
@@ -103,7 +103,7 @@ const CTX_APP = `
 const ECHO_JSON_URL = 'http://localhost:8081/api/echo/json';
 
 test.describe('Collection apps', () => {
-  test('Create from collection menu → appears in sidebar → opens as own tab with Code/Preview', async ({ page, createTmpDir }) => {
+  test('TC-3369 TC-3373 New App menu at collection level creates an app that opens as its own tab', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-create');
     await createCollection(page, 'col-apps-create', collectionPath);
 
