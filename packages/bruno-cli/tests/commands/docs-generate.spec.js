@@ -35,7 +35,7 @@ describe('bru docs generate', () => {
 
   it('uses the collection name as the document title', async () => {
     const output = path.join(outDir, 'a.html');
-    await generate.handler({ output, gitLink: false, format: 'html' });
+    await generate.handler({ output, gitLink: false });
 
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('<title>collection - API Documentation</title>');
@@ -45,15 +45,15 @@ describe('bru docs generate', () => {
 
   it('leaves out the git repo url when --no-git-link is used', async () => {
     const output = path.join(outDir, 'b.html');
-    await generate.handler({ output, gitLink: false, format: 'html' });
+    await generate.handler({ output, gitLink: false });
     expect(fs.readFileSync(output, 'utf8')).not.toContain('gitCollectionUrl');
   });
 
   it('still writes a smaller but valid doc when no request matches the tag filter', async () => {
     const all = path.join(outDir, 'all.html');
     const filtered = path.join(outDir, 'filtered.html');
-    await generate.handler({ output: all, gitLink: false, format: 'html' });
-    await generate.handler({ output: filtered, gitLink: false, format: 'html', tags: 'nonexistent-tag' });
+    await generate.handler({ output: all, gitLink: false });
+    await generate.handler({ output: filtered, gitLink: false, tags: 'nonexistent-tag' });
 
     const allHtml = fs.readFileSync(all, 'utf8');
     const filteredHtml = fs.readFileSync(filtered, 'utf8');
@@ -63,22 +63,15 @@ describe('bru docs generate', () => {
 
   it('creates any missing folders in the output path', async () => {
     const output = path.join(outDir, 'nested', 'deep', 'c.html');
-    await generate.handler({ output, gitLink: false, format: 'html' });
+    await generate.handler({ output, gitLink: false });
     expect(fs.existsSync(output)).toBe(true);
-  });
-
-  it('exits with an error when the format is not html', async () => {
-    const exitSpy = mockExit();
-
-    await expect(generate.handler({ format: 'pdf' })).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 9);
   });
 
   it('errors when the same tag is both included and excluded', async () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ gitLink: false, format: 'html', tags: 'smoke', excludeTags: 'smoke' })
+      generate.handler({ gitLink: false, tags: 'smoke', excludeTags: 'smoke' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
   });
@@ -87,7 +80,7 @@ describe('bru docs generate', () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ gitLink: false, format: 'html', envs: 'Production', excludeEnvs: 'Production' })
+      generate.handler({ gitLink: false, envs: 'Production', excludeEnvs: 'Production' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
   });
@@ -102,7 +95,7 @@ describe('bru docs generate', () => {
     process.chdir(badDir);
     try {
       await expect(
-        generate.handler({ output: path.join(badDir, 'x.html'), gitLink: false, format: 'html' })
+        generate.handler({ output: path.join(badDir, 'x.html'), gitLink: false })
       ).rejects.toThrow();
       expect(exitSpy).toHaveBeenNthCalledWith(1, 10);
     } finally {
@@ -147,7 +140,7 @@ describe('bru docs generate: environment selection', () => {
 
   it('includes only the environments listed in --envs', async () => {
     const output = path.join(outDir, 'envs.html');
-    await generate.handler({ output, gitLink: false, format: 'html', envs: 'Production' });
+    await generate.handler({ output, gitLink: false, envs: 'Production' });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Production');
     expect(html).not.toContain('Staging');
@@ -155,31 +148,48 @@ describe('bru docs generate: environment selection', () => {
 
   it('embeds the environments in the order given to --envs', async () => {
     const output = path.join(outDir, 'order.html');
-    await generate.handler({ output, gitLink: false, format: 'html', envs: 'Staging,Production' });
+    await generate.handler({ output, gitLink: false, envs: 'Staging,Production' });
     const html = fs.readFileSync(output, 'utf8');
     expect(html.indexOf('Staging')).toBeLessThan(html.indexOf('Production'));
   });
 
   it('embeds an environment once even when --envs repeats it', async () => {
     const output = path.join(outDir, 'dup.html');
-    await generate.handler({ output, gitLink: false, format: 'html', envs: 'Production,Production' });
+    await generate.handler({ output, gitLink: false, envs: 'Production,Production' });
     const html = fs.readFileSync(output, 'utf8');
     expect((html.match(/name: Production/g) || []).length).toBe(1);
   });
 
   it('includes every environment except the ones in --exclude-envs', async () => {
     const output = path.join(outDir, 'exclude.html');
-    await generate.handler({ output, gitLink: false, format: 'html', excludeEnvs: 'Production' });
+    await generate.handler({ output, gitLink: false, excludeEnvs: 'Production' });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Staging');
     expect(html).not.toContain('Production');
+  });
+
+  it('embeds every environment with --env-all', async () => {
+    const output = path.join(outDir, 'env-all.html');
+    await generate.handler({ output, gitLink: false, envAll: true });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).toContain('Staging');
+  });
+
+  it('rejects --env-all combined with --envs', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, envAll: true, envs: 'Production' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
   });
 
   it('errors when --envs names an environment that does not exist', async () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, format: 'html', envs: 'DoesNotExist' })
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, envs: 'DoesNotExist' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
   });
@@ -188,7 +198,7 @@ describe('bru docs generate: environment selection', () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, format: 'html', envs: 'NopeOne,NopeTwo' })
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, envs: 'NopeOne,NopeTwo' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
     const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
@@ -200,7 +210,7 @@ describe('bru docs generate: environment selection', () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ output: path.join(outDir, 'y.html'), gitLink: false, format: 'html', excludeEnvs: 'DoesNotExist' })
+      generate.handler({ output: path.join(outDir, 'y.html'), gitLink: false, excludeEnvs: 'DoesNotExist' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
   });
@@ -244,7 +254,7 @@ describe('bru docs generate: tag filtering', () => {
 
   it('keeps only the requests that have the included tag', async () => {
     const output = path.join(outDir, 'include.html');
-    await generate.handler({ output, gitLink: false, format: 'html', tags: 'smoke' });
+    await generate.handler({ output, gitLink: false, tags: 'smoke' });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('SmokeReq');
     expect(html).not.toContain('PlainReq');
@@ -252,7 +262,7 @@ describe('bru docs generate: tag filtering', () => {
 
   it('drops the requests that have the excluded tag and keeps the others', async () => {
     const output = path.join(outDir, 'exclude.html');
-    await generate.handler({ output, gitLink: false, format: 'html', excludeTags: 'smoke' });
+    await generate.handler({ output, gitLink: false, excludeTags: 'smoke' });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('PlainReq');
     expect(html).not.toContain('SmokeReq');
@@ -286,7 +296,7 @@ describe('bru docs generate: git link', () => {
 
   it('includes the git repo url when --git-link is on', async () => {
     const output = path.join(outDir, 'git.html');
-    await generate.handler({ output, gitLink: true, format: 'html' });
+    await generate.handler({ output, gitLink: true });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('gitCollectionUrl');
     expect(html).toContain('https://example.com/team/repo.git');
@@ -314,7 +324,7 @@ describe('bru docs generate: default output path', () => {
   });
 
   it('writes <collection-name>-documentation.html to the cwd when --output is not given', async () => {
-    await generate.handler({ gitLink: false, format: 'html' });
+    await generate.handler({ gitLink: false });
     expect(fs.existsSync(path.join(collDir, 'collection-documentation.html'))).toBe(true);
   });
 });

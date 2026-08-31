@@ -20,12 +20,6 @@ const builder = (yargs) => {
       type: 'string',
       description: 'Path to write the documentation file to'
     })
-    .option('format', {
-      alias: 'f',
-      type: 'string',
-      default: 'html',
-      description: 'Output format; only "html" is supported today'
-    })
     .option('envs', {
       type: 'string',
       description: 'Comma-separated environment names to embed'
@@ -33,6 +27,11 @@ const builder = (yargs) => {
     .option('exclude-envs', {
       type: 'string',
       description: 'Comma-separated environment names to leave out'
+    })
+    .option('env-all', {
+      type: 'boolean',
+      default: false,
+      description: 'Embed every environment in the collection'
     })
     .option('tags', {
       type: 'string',
@@ -49,17 +48,12 @@ const builder = (yargs) => {
     })
     .example('$0 docs generate', 'Generate docs for the collection in the current directory')
     .example('$0 docs generate --envs Production -o docs/api.html', 'Embed one environment and set the output path')
+    .example('$0 docs generate --env-all', 'Embed every environment in the collection')
     .example('$0 docs generate --exclude-tags WIP --no-git-link', 'Drop WIP requests and omit the git link');
 };
 
 const handler = async (argv) => {
   try {
-    const format = String(argv.format || 'html').toLowerCase();
-    if (format !== 'html') {
-      console.error(chalk.red(`Invalid output format "${format}". Only "html" is supported.`));
-      process.exit(EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
-    }
-
     global.brunoSkippedFiles = [];
     const collectionPath = process.cwd();
     const collection = createCollectionJsonFromPathname(collectionPath);
@@ -76,6 +70,7 @@ const handler = async (argv) => {
     const excludeTags = splitCsv(argv.excludeTags);
     const includeEnvs = [...new Set(splitCsv(argv.envs))];
     const excludeEnvs = [...new Set(splitCsv(argv.excludeEnvs))];
+    const allEnvs = Boolean(argv.envAll);
 
     const conflictingTag = findConflict(includeTags, excludeTags);
     if (conflictingTag) {
@@ -85,6 +80,10 @@ const handler = async (argv) => {
     const conflictingEnv = findConflict(includeEnvs, excludeEnvs);
     if (conflictingEnv) {
       console.error(chalk.red('Environment cannot be both included and excluded: ') + chalk.dim(conflictingEnv));
+      process.exit(EXIT_STATUS.ERROR_GENERIC);
+    }
+    if (allEnvs && (includeEnvs.length > 0 || excludeEnvs.length > 0)) {
+      console.error(chalk.red('--env-all cannot be combined with --envs or --exclude-envs'));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
 
@@ -101,7 +100,7 @@ const handler = async (argv) => {
     } else if (excludeEnvs.length > 0) {
       const excluded = new Set(excludeEnvs);
       collection.environments = collection.environments.filter((env) => !excluded.has(env.name));
-    } else {
+    } else if (!allEnvs) {
       collection.environments = [];
     }
 
