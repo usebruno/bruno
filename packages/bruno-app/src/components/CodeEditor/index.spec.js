@@ -156,8 +156,6 @@ describe('CodeEditor', () => {
       expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
       expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeDefined();
 
-      // handleLinkClick (the stable handler wired above) resolves item/collection
-      // fresh at click time, so simulating a click here proves it now targets B.
       mockSetupLinkAware.mock.calls[1][1].onLinkClick('http://example.test/foo');
       expect(mockResolveLinkClickHandler).toHaveBeenLastCalledWith(itemB, collectionB);
     });
