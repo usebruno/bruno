@@ -67,7 +67,7 @@ import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText, collectionIndex, allCollections, openBulkMenu }) => {
+const Collection = ({ collection, searchText, openBulkMenu }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);

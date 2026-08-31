@@ -85,7 +85,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('A single selected request shows the normal menu', async () => {
       await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
       await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
-      await expect(locators.dropdown.item('Rename', true)).toBeVisible();
+      await expect(locators.dropdown.item('Rename')).toBeVisible();
       await page.keyboard.press('Escape');
       await clickEmptySidebarSpace(page);
     });
@@ -93,7 +93,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('A single selected folder shows the normal menu', async () => {
       await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
       await locators.sidebar.itemRow('Folder A').click({ button: 'right' });
-      await expect(locators.dropdown.item('Rename', true)).toBeVisible();
+      await expect(locators.dropdown.item('Rename')).toBeVisible();
       await page.keyboard.press('Escape');
       await clickEmptySidebarSpace(page);
     });
@@ -101,7 +101,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('A single selected collection shows the normal menu', async () => {
       await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
       await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
-      await expect(locators.dropdown.item('Rename', true)).toBeVisible();
+      await expect(locators.dropdown.item('Rename')).toBeVisible();
       await page.keyboard.press('Escape');
       await clickEmptySidebarSpace(page);
     });
@@ -267,8 +267,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('Right-click shows Delete only, no Collapse/Expand', async () => {
       await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
       await expect(locators.dropdown.item('Delete')).toBeVisible();
-      await expect(locators.dropdown.item('Collapse', true)).not.toBeVisible();
-      await expect(locators.dropdown.item('Expand', true)).not.toBeVisible();
+      await expect(locators.dropdown.item('Collapse')).not.toBeVisible();
+      await expect(locators.dropdown.item('Expand')).not.toBeVisible();
     });
 
     await test.step('Deleting shows a "Delete Requests" modal naming both, and removes them', async () => {

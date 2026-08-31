@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 
 jest.mock('electron', () => {
   const handlers = {};
@@ -14,7 +15,7 @@ jest.mock('electron', () => {
       _getHandler: (channel) => handlers[channel]
     },
     app: {
-      getPath: jest.fn(() => '/tmp'),
+      getPath: jest.fn(() => require('node:os').tmpdir()),
       getVersion: jest.fn(() => '2.0.0')
     },
     dialog: {
@@ -42,9 +43,16 @@ jest.mock('../utils/constants', () => ({
   REQUEST_TYPES: ['http-request', 'graphql-request', 'grpc-request', 'ws-request']
 }));
 
-jest.mock('../app/collection-watcher', () => ({
-  getAllWatcherPaths: jest.fn(() => ['/fake/source', '/fake/target'])
-}));
+jest.mock('../app/collection-watcher', () => {
+  const path = require('node:path');
+  const os = require('node:os');
+  return {
+    getAllWatcherPaths: jest.fn(() => [
+      path.join(os.tmpdir(), 'fake', 'source'),
+      path.join(os.tmpdir(), 'fake', 'target')
+    ])
+  };
+});
 
 jest.mock('@usebruno/filestore', () => ({
   parseRequest: jest.fn(() => ({})),
@@ -78,8 +86,8 @@ describe('IPC collection handlers', () => {
       copyPathTo.mockImplementation(async () => callOrder.push('copyPathTo'));
 
       await moveItemHandler({}, {
-        targetDirname: '/fake/target',
-        sourcePathname: '/fake/source/request.bru'
+        targetDirname: path.join(os.tmpdir(), 'fake', 'target'),
+        sourcePathname: path.join(os.tmpdir(), 'fake', 'source', 'request.bru')
       });
 
       expect(callOrder).toEqual(['moveRequestUid', 'copyPathTo']);
@@ -97,8 +105,8 @@ describe('IPC collection handlers', () => {
       fsPromises.writeFile.mockImplementation(async () => callOrder.push('writeFile'));
 
       await moveItemCrossFormatHandler({}, {
-        targetDirname: '/fake/target',
-        sourcePathname: '/fake/source/request.bru',
+        targetDirname: path.join(os.tmpdir(), 'fake', 'target'),
+        sourcePathname: path.join(os.tmpdir(), 'fake', 'source', 'request.bru'),
         sourceFormat: 'bru',
         targetFormat: 'yml'
       });

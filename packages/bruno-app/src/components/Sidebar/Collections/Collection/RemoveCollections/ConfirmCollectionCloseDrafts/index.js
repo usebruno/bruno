@@ -55,8 +55,10 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
       toast.success(`${removedCount} ${pluralizeWord('Collection', removedCount)} removed from workspace`);
     }
 
-    dispatch(clearSidebarSelection());
-    onClose();
+    if (removedCount === activeCollections.length) {
+      dispatch(clearSidebarSelection());
+      onClose();
+    }
   };
 
   const handleSaveAll = async () => {
