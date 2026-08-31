@@ -217,19 +217,7 @@ function handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
   }
 }
 
-/**
- * Blocks CodeMirror's own cursor placement for a click that handleClick is about to
- * intercept. CodeMirror places the cursor on 'mousedown' (bubble phase, on a descendant
- * of the editor wrapper) before our 'click' listener ever runs, so calling
- * preventDefault() there is too late - the cursor has already jumped to the click
- * position for a moment. Listening here in the capture phase runs before CodeMirror's
- * own handler regardless of DOM depth, and CodeMirror skips cursor placement when it
- * sees the event already prevented.
- * @param {Event} event - The mousedown event
- * @param {string} linkClass - CSS class name for links
- * @param {Function} isCmdOrCtrlPressed - Function to check if Cmd/Ctrl is pressed
- * @param {Function} onLinkClick - Optional custom click handler
- */
+// Capture-phase mousedown: preventDefault before CodeMirror moves the cursor.
 function handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
   if (!event.target.classList.contains(linkClass)) return;
 
