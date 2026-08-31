@@ -3,8 +3,8 @@ import * as path from 'path';
 import jsyaml from 'js-yaml';
 import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { editCodeMirrorEditor } from '../../utils/page/actions';
-import { openCollectionRequest, sendRequestAndSaveResposeExample } from '../../utils/page/response-example';
+import { editCodeMirrorEditor, expandCollection, openRequest, openRequestInFolder } from '../../utils/page/actions';
+import { sendRequestAndSaveResposeExample } from '../../utils/page/response-example';
 
 const binaryPreviewCases = [
   {
@@ -106,7 +106,12 @@ test.describe('Binary response example previews', () => {
     test(`should preview a saved ${previewType} response (${requestName})`, async ({ launchElectronApp, createTmpDir }) => {
       const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
-      await openCollectionRequest(page, 'binary-preview', folderName, requestName);
+      if (folderName) {
+        await expandCollection(page, 'binary-preview');
+        await openRequestInFolder(page, folderName, requestName);
+      } else {
+        await openRequest(page, 'binary-preview', requestName);
+      }
       await sendRequestAndSaveResposeExample(page, requestName, exampleName);
 
       await test.step('Verify the binary preview renders', async () => {
@@ -133,7 +138,7 @@ test.describe('Binary response example previews', () => {
   test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ launchElectronApp, createTmpDir }) => {
     const { app, page } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
-    await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-mislabeled');
+    await openRequest(page, 'binary-preview', 'binary-preview-mislabeled');
     await sendRequestAndSaveResposeExample(page, 'binary-preview-mislabeled', 'Mislabeled Example');
 
     await test.step('Verify the sniffed image preview renders', async () => {
@@ -151,7 +156,8 @@ test.describe('Binary response example previews', () => {
 
     const { responseExample } = buildCommonLocators(page);
 
-    await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+    await expandCollection(page, 'binary-preview');
+    await openRequestInFolder(page, 'images', 'binary-preview-image-png');
     await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
     await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
 
@@ -190,7 +196,8 @@ test.describe('Binary response example previews', () => {
 
     const { responseExample } = buildCommonLocators(page);
 
-    await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+    await expandCollection(page, 'binary-preview');
+    await openRequestInFolder(page, 'images', 'binary-preview-image-png');
     await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
     await expect(responseExample.binaryPreview()).toHaveAttribute('data-preview-type', 'image');
 
@@ -216,7 +223,8 @@ test.describe('Binary response example previews', () => {
     const { app, page, collectionPath } = await launchWithIsolatedCollection({ launchElectronApp, createTmpDir });
 
     await test.step('Save a PNG example and verify the stored body is the raw base64', async () => {
-      await openCollectionRequest(page, 'binary-preview', 'images', 'binary-preview-image-png');
+      await expandCollection(page, 'binary-preview');
+      await openRequestInFolder(page, 'images', 'binary-preview-image-png');
       await sendRequestAndSaveResposeExample(page, 'binary-preview-image-png', 'PNG Example');
 
       await expect(async () => {
@@ -227,7 +235,7 @@ test.describe('Binary response example previews', () => {
     });
 
     await test.step('Save a JSON example and verify the stored body is formatted json', async () => {
-      await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-json');
+      await openRequest(page, 'binary-preview', 'binary-preview-json');
       await sendRequestAndSaveResposeExample(page, 'binary-preview-json', 'JSON Example');
 
       await expect(async () => {
@@ -245,7 +253,7 @@ test.describe('Binary response example previews', () => {
 
     const { responseExample } = buildCommonLocators(page);
 
-    await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-svg');
+    await openRequest(page, 'binary-preview', 'binary-preview-svg');
     await sendRequestAndSaveResposeExample(page, 'binary-preview-svg', 'SVG Example');
 
     // image/svg+xml is XML text, so it is stored and edited as markup, not media.
@@ -271,7 +279,7 @@ test.describe('Binary response example previews', () => {
 
     const locators = buildCommonLocators(page);
 
-    await openCollectionRequest(page, 'binary-preview', undefined, 'binary-preview-unknown-binary');
+    await openRequest(page, 'binary-preview', 'binary-preview-unknown-binary');
     await sendRequestAndSaveResposeExample(page, 'binary-preview-unknown-binary', 'Unknown Binary Example');
 
     // application/octet-stream bytes with no recognizable signature have no

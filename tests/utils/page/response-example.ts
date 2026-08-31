@@ -1,6 +1,6 @@
 import { expect, Locator, Page } from '../../../playwright';
 import { buildCommonLocators } from './locators';
-import { clickResponseAction, expandCollection, expandFolder, sendRequest } from './actions';
+import { clickResponseAction, sendRequest } from './actions';
 
 /**
  * Locators for the response-example view — the Create Example modal input,
@@ -28,17 +28,6 @@ export const buildResponseExampleLocators = (page: Page) => ({
     }),
   headerRowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror')
 });
-
-export const openCollectionRequest = async (page: Page, collectionName: string, folderName: string | undefined, requestName: string) => {
-  const locators = buildCommonLocators(page);
-  await expandCollection(page, collectionName);
-  if (folderName) {
-    await expandFolder(page, folderName);
-    await locators.sidebar.folderRequest(folderName, requestName).click();
-  } else {
-    await locators.sidebar.request(requestName).click();
-  }
-};
 
 export const sendRequestAndSaveResposeExample = async (page: Page, requestName: string, exampleName: string) => {
   const { responseExample } = buildCommonLocators(page);
