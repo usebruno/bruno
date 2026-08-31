@@ -43,13 +43,14 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
-const splitCsv = (value) =>
-  value
-    ? String(value)
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    : [];
+const splitCsv = (value) => {
+  if (value == null) return [];
+  const parts = Array.isArray(value) ? value : [value];
+  return parts
+    .flatMap((part) => String(part).split(','))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+};
 
 const findConflict = (include, exclude) => {
   const excluded = new Set(exclude);

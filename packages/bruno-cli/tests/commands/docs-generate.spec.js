@@ -146,6 +146,30 @@ describe('bru docs generate: environment selection', () => {
     expect(html).not.toContain('Staging');
   });
 
+  it('accepts repeated env flags (an array of names) and embeds each', async () => {
+    const output = path.join(outDir, 'repeat.html');
+    await generate.handler({ output, gitLink: false, envs: ['Production', 'Staging'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).toContain('Staging');
+  });
+
+  it('splits comma-separated values within a repeated flag too', async () => {
+    const output = path.join(outDir, 'mixed.html');
+    await generate.handler({ output, gitLink: false, envs: ['Production,Staging'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).toContain('Staging');
+  });
+
+  it('accepts repeated exclude-env flags (an array of names)', async () => {
+    const output = path.join(outDir, 'exclude-repeat.html');
+    await generate.handler({ output, gitLink: false, excludeEnvs: ['Production'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Staging');
+    expect(html).not.toContain('Production');
+  });
+
   it('embeds the environments in the order given to --envs', async () => {
     const output = path.join(outDir, 'order.html');
     await generate.handler({ output, gitLink: false, envs: 'Staging,Production' });
@@ -168,21 +192,36 @@ describe('bru docs generate: environment selection', () => {
     expect(html).not.toContain('Production');
   });
 
-  it('embeds every environment with --env-all', async () => {
-    const output = path.join(outDir, 'env-all.html');
-    await generate.handler({ output, gitLink: false, envAll: true });
+  it('embeds every environment with --all-envs', async () => {
+    const output = path.join(outDir, 'all-envs.html');
+    await generate.handler({ output, gitLink: false, allEnvs: true });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Production');
     expect(html).toContain('Staging');
   });
 
-  it('rejects --env-all combined with --envs', async () => {
+  it('rejects --all-envs combined with the include flag and names it in both forms', async () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, envAll: true, envs: 'Production' })
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, allEnvs: true, envs: 'Production' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('--env/--envs');
+    expect(message).not.toContain('--exclude-env');
+  });
+
+  it('rejects --all-envs combined with the exclude flag and names it in both forms', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, allEnvs: true, excludeEnvs: 'Production' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('--exclude-env/--exclude-envs');
+    expect(message).not.toContain('--env/--envs');
   });
 
   it('errors when --envs names an environment that does not exist', async () => {
@@ -237,6 +276,7 @@ describe('bru docs generate: tag filtering', () => {
       JSON.stringify({ version: '1', name: 'tagcoll', type: 'collection' })
     );
     writeRequest(collDir, 'SmokeReq', ['smoke']);
+    writeRequest(collDir, 'WipReq', ['wip']);
     writeRequest(collDir, 'PlainReq', null);
     outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-tags-out-'));
     process.chdir(collDir);
@@ -266,6 +306,33 @@ describe('bru docs generate: tag filtering', () => {
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('PlainReq');
     expect(html).not.toContain('SmokeReq');
+  });
+
+  it('keeps requests matching any tag given as repeated --tag flags', async () => {
+    const output = path.join(outDir, 'include-repeat.html');
+    await generate.handler({ output, gitLink: false, tags: ['smoke', 'wip'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).toContain('WipReq');
+    expect(html).not.toContain('PlainReq');
+  });
+
+  it('splits comma-separated tags within a repeated --tag flag too', async () => {
+    const output = path.join(outDir, 'include-mixed.html');
+    await generate.handler({ output, gitLink: false, tags: ['smoke,wip'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).toContain('WipReq');
+    expect(html).not.toContain('PlainReq');
+  });
+
+  it('drops requests matching any tag given as repeated --exclude-tag flags', async () => {
+    const output = path.join(outDir, 'exclude-repeat.html');
+    await generate.handler({ output, gitLink: false, excludeTags: ['smoke', 'wip'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('PlainReq');
+    expect(html).not.toContain('SmokeReq');
+    expect(html).not.toContain('WipReq');
   });
 });
 

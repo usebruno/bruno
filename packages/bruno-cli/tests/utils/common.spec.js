@@ -331,6 +331,21 @@ describe('splitCsv', () => {
   it('drops empty entries left by extra or trailing commas', () => {
     expect(splitCsv('smoke,,regression,')).toEqual(['smoke', 'regression']);
   });
+
+  it('accepts an array of values (repeated flags) and flattens them', () => {
+    expect(splitCsv(['prod', 'staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+    expect(splitCsv([])).toEqual([]);
+  });
+
+  it('splits commas within array elements too (mixed repeat and comma)', () => {
+    expect(splitCsv(['prod,staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+  });
+
+  it('preserves spaces inside a name, trimming only the ends', () => {
+    expect(splitCsv(['Prod Env'])).toEqual(['Prod Env']);
+    expect(splitCsv('Prod Env, Staging Env')).toEqual(['Prod Env', 'Staging Env']);
+    expect(splitCsv([' Prod Env '])).toEqual(['Prod Env']);
+  });
 });
 
 describe('findConflict', () => {

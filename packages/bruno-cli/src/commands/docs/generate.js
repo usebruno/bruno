@@ -21,25 +21,29 @@ const builder = (yargs) => {
       description: 'Path to write the documentation file to'
     })
     .option('envs', {
-      type: 'string',
-      description: 'Comma-separated environment names to embed'
+      alias: 'env',
+      type: 'array',
+      description: 'Environment names to embed; comma-separated or repeat the flag (also --env)'
     })
     .option('exclude-envs', {
-      type: 'string',
-      description: 'Comma-separated environment names to leave out'
+      alias: 'exclude-env',
+      type: 'array',
+      description: 'Environment names to leave out; comma-separated or repeat the flag (also --exclude-env)'
     })
-    .option('env-all', {
+    .option('all-envs', {
       type: 'boolean',
       default: false,
       description: 'Embed every environment in the collection'
     })
     .option('tags', {
-      type: 'string',
-      description: 'Comma-separated tags; only requests carrying one are included'
+      alias: 'tag',
+      type: 'array',
+      description: 'Only include requests carrying one of these tags; comma-separated or repeat the flag (also --tag)'
     })
     .option('exclude-tags', {
-      type: 'string',
-      description: 'Comma-separated tags; requests carrying one are dropped'
+      alias: 'exclude-tag',
+      type: 'array',
+      description: 'Drop requests carrying one of these tags; comma-separated or repeat the flag (also --exclude-tag)'
     })
     .option('git-link', {
       type: 'boolean',
@@ -48,7 +52,7 @@ const builder = (yargs) => {
     })
     .example('$0 docs generate', 'Generate docs for the collection in the current directory')
     .example('$0 docs generate --envs Production -o docs/api.html', 'Embed one environment and set the output path')
-    .example('$0 docs generate --env-all', 'Embed every environment in the collection')
+    .example('$0 docs generate --all-envs', 'Embed every environment in the collection')
     .example('$0 docs generate --exclude-tags WIP --no-git-link', 'Drop WIP requests and omit the git link');
 };
 
@@ -70,7 +74,7 @@ const handler = async (argv) => {
     const excludeTags = splitCsv(argv.excludeTags);
     const includeEnvs = [...new Set(splitCsv(argv.envs))];
     const excludeEnvs = [...new Set(splitCsv(argv.excludeEnvs))];
-    const allEnvs = Boolean(argv.envAll);
+    const allEnvs = Boolean(argv.allEnvs);
 
     const conflictingTag = findConflict(includeTags, excludeTags);
     if (conflictingTag) {
@@ -83,7 +87,10 @@ const handler = async (argv) => {
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
     if (allEnvs && (includeEnvs.length > 0 || excludeEnvs.length > 0)) {
-      console.error(chalk.red('--env-all cannot be combined with --envs or --exclude-envs'));
+      const conflictingFlags = [];
+      if (includeEnvs.length > 0) conflictingFlags.push('--env/--envs');
+      if (excludeEnvs.length > 0) conflictingFlags.push('--exclude-env/--exclude-envs');
+      console.error(chalk.red(`--all-envs cannot be combined with ${conflictingFlags.join(' or ')}`));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
 
