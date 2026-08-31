@@ -342,8 +342,10 @@ const registerGrpcEventHandlers = (window) => {
       return { success: false, error: `Failed to parse request body: ${error.message}` };
     }
 
+    const streamNotOpen = { success: false, error: 'Cannot send message: the gRPC stream is not open' };
+
     if (!grpcClient.isConnectionActive(requestId)) {
-      return { success: false, error: 'Cannot send message: the gRPC stream is not open' };
+      return streamNotOpen;
     }
 
     try {
@@ -351,6 +353,12 @@ const registerGrpcEventHandlers = (window) => {
     } catch (error) {
       // The hook aborted this one message; the stream stays open for the next.
       return { success: false, error: error.message };
+    }
+
+    // The stream may have been ended or cancelled while it ran.
+    // `sendMessage` no-ops silently on a closed stream, so recheck before reporting success.
+    if (!grpcClient.isConnectionActive(requestId)) {
+      return streamNotOpen;
     }
 
     try {

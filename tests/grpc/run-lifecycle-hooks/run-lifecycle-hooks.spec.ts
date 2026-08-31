@@ -347,6 +347,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the first message is refused, so nothing comes back for it', async () => {
         await locators.request.sendMessage(0).click();
 
+        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
         await expect(locators.response.content()).toHaveCount(0);
       });
 
