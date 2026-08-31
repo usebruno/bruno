@@ -1862,7 +1862,7 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 const closeAllTabsDiscardingChanges = async (page: Page) => {
   await test.step('Close all tabs, discarding changes', async () => {
     const locators = buildCommonLocators(page);
-    const requestTabs = locators.tabs.requestTabsWithMethod();
+    const requestTabs = locators.tabs.closableTabs();
     const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
 
     for (let remaining = await requestTabs.count(); remaining > 0; remaining--) {
