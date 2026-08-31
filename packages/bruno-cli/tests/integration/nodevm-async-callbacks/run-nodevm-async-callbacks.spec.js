@@ -4,28 +4,13 @@ const path = require('path');
 const http = require('http');
 const { runCli } = require('../helpers/run-cli');
 const { createCollectionFixture } = require('../helpers/collection-fixture');
+const { stripAnsi } = require('../helpers/strip-ansi');
 
 const FIXTURE_COLLECTION = path.join(__dirname, 'fixtures', 'collection');
 
-// `logResults` prints a checkmark and its message as two separately-chalked pieces
-// (`chalk.green('✓ ') + chalk.dim(message)`), so if the invoking shell has color forced
-// on (e.g. FORCE_COLOR set), the raw output has ANSI codes spliced between them - breaking
-// a literal `toContain('✓ message')` check even though the text reads the same on screen.
-// Stripping codes here keeps the assertions below agnostic to the runner's environment.
-
-const stripAnsi = (text) => text.replace(/\x1b\[[0-9;]*m/g, '');
-
 /**
- * `--sandbox developer` runs pre-request, post-response, and test scripts in Node's `vm`
- * module rather than QuickJS. Each script pairs a sync test() with an async one that only
- * resolves after a real timer, so a result missing from that phase's own tally means its
- * callback wasn't awaited before the run moved on - `bru run` only ever prints a checkmark
- * line for a result it actually received.
- *
- * 01/02 additionally chain an async test() result across two separate requests via a var
- * (mirroring the safe-mode pattern in quickjs-trap-containment/), 03 proves all three
- * script phases are awaited independently within a single request, and 04 waits on a real
- * outgoing HTTP call (bru.sendRequest) instead of a timer.
+ * Each fixture pairs a sync test() with an async one, so a missing checkmark for the
+ * async one means its callback wasn't awaited before `bru run` printed results.
  */
 describe('CLI run — async test() callbacks in developer sandbox', () => {
   let server;

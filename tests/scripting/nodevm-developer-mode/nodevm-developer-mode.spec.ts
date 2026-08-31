@@ -21,9 +21,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Tests (4), Passed: 2, Failed: 2');
-    // Settlement order, not script order: a throwing sync callback fails before its first
-    // `await`, while a passing one still needs a microtask tick to continue past
-    // `await callback()` - so "sync fail" settles before "sync pass".
+    // Settlement order, not script order: a sync failure settles before a sync pass.
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync fail (control)',
       'sync pass (control)',
@@ -69,9 +67,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    // The default testSummary() filter is ambiguous once all three sections coexist (it
-    // matches "Pre-Request Tests"/"Post-Response Tests" too), so each section is selected
-    // by its own anchored prefix instead.
+    // Default testSummary() is ambiguous with all three sections on screen, so anchor each.
     await expect(locators.response.testSummary(/^Pre-Request Tests/)).toContainText(
       'Pre-Request Tests (2), Passed: 2, Failed: 0'
     );
@@ -101,24 +97,6 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     ]);
   });
 
-  test('A hung test() callback times out instead of blocking the run forever', async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    await setSandboxMode(page, COLLECTION, 'developer');
-    await openRequest(page, COLLECTION, '06-hung-test-timeout');
-    await sendRequest(page, 200);
-
-    await selectResponsePaneTabViaOverflow(page, 'Tests');
-
-    // TEST_AWAIT_TIMEOUT_MS is 5s; give the UI room to actually render after that.
-    await expect(locators.response.testSummary()).toContainText('Tests (3), Passed: 2, Failed: 1');
-    await expect(locators.response.assertionResults.rows()).toContainText([
-      'sync control (before hang)',
-      'sync control (after hang)',
-      'hung test - never resolves (bug check)'
-    ]);
-  });
-
   test('An async test() callback awaiting a real outgoing request (bru.sendRequest) is not dropped', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
@@ -126,9 +104,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await openRequest(page, COLLECTION, '07-real-request-async-test');
     await sendRequest(page, 200);
 
-    // At this window size the response pane's tab bar never has room for "Tests"
-    // directly - it's always behind the ">>" overflow arrow, so open that first and
-    // pick "Tests" from its dropdown rather than going through selectResponsePaneTab.
+    // "Tests" never fits directly at this window size, so go straight to the overflow.
     await selectResponsePaneTabViaOverflow(page, 'Tests');
     await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([

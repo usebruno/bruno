@@ -1,6 +1,7 @@
 const TestResults = require('../test-results');
 const Test = require('../test');
 
+// Calculate summary statistics for test results
 const getResultsSummary = (results) => {
   const summary = {
     total: results.length,
@@ -19,82 +20,46 @@ const getResultsSummary = (results) => {
   return summary;
 };
 
-const TEST_AWAIT_TIMEOUT_MS = 5000;
+const TEST_POLL_INTERVAL_MS = 2000;
 
 const createBruTestResultMethods = (bru, assertionResults, chai) => {
   const __brunoTestResults = new TestResults();
+  const baseTest = Test(__brunoTestResults, chai);
 
-  const pendingTests = [];
+  const pendingTestPromises = [];
 
   const test = (description, callback) => {
-    const entry = { description, settled: false, abandoned: false };
-
-    const recorder = {
-      addResult: (result) => {
-        entry.settled = true;
-        if (entry.abandoned) return;
-        __brunoTestResults.addResult(result);
-      }
-    };
-
-    const promise = Test(recorder, chai)(description, callback);
-
-    entry.promise = promise.catch(() => {});
-    pendingTests.push(entry);
-
+    const promise = baseTest(description, callback);
+    pendingTestPromises.push(promise.catch(() => {}));
     return promise;
   };
 
   /**
-   * A script's test() calls aren't awaited by the script itself, so a slow async test()
-   * can still be running when the script finishes and its results get read - meaning that
-   * test silently never shows up as passed, failed, or anything else. This function is
-   * called before results are read, and waits for every test() callback registered so far
-   * to actually finish (including ones a test() callback registers itself, after an await,
-   * while this wait is already in progress) before letting the caller continue.
-   *
-   * That wait is capped at `timeoutMs` so one stuck test() can't hang the whole run
-   * forever - anything still unfinished at that point is recorded as a failed, timed-out
-   * result instead of just disappearing, and its eventual real result (it keeps running
-   * in the background even after we stop waiting on it) is ignored so it doesn't show up
-   * a second time later.
+   * Waits for every test() call registered so far to settle, including ones registered
+   * mid-wait. No cap or cancellation - mirrors QuickJS's own waitForPendingDeferreds().
    */
-  const waitForPendingTests = async (timeoutMs = TEST_AWAIT_TIMEOUT_MS) => {
-    if (!pendingTests.length) return;
+  const waitForPendingTests = async () => {
+    let cursor = 0;
+    while (cursor < pendingTestPromises.length) {
+      // Captured before awaiting, so a test() pushed during the wait stays past the
+      // cursor and is picked up next pass, instead of being skipped.
+      const batchEnd = pendingTestPromises.length;
+      const batch = pendingTestPromises.slice(cursor, batchEnd);
 
-    let timedOut = false;
-    let timeoutId;
-    const deadline = new Promise((resolve) => {
-      timeoutId = setTimeout(() => {
-        timedOut = true;
-        resolve();
-      }, timeoutMs);
-    });
-
-    try {
-      let cursor = 0;
-      while (!timedOut && cursor < pendingTests.length) {
-        const batch = pendingTests.slice(cursor).map((entry) => entry.promise);
-        cursor = pendingTests.length;
-        await Promise.race([Promise.all(batch), deadline]);
-      }
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (!timedOut) return;
-
-    pendingTests
-      .filter((entry) => !entry.settled)
-      .forEach((entry) => {
-        entry.abandoned = true;
-        __brunoTestResults.addResult({
-          description: entry.description,
-          status: 'fail',
-          error: `Test callback did not complete within ${timeoutMs}ms and was abandoned.`,
-          errorName: 'TestTimeoutError'
-        });
+      let pollId;
+      const poll = new Promise((resolve) => {
+        pollId = setTimeout(() => resolve(false), TEST_POLL_INTERVAL_MS);
       });
+
+      let settled;
+      try {
+        settled = await Promise.race([Promise.all(batch).then(() => true), poll]);
+      } finally {
+        clearTimeout(pollId);
+      }
+
+      if (settled) cursor = batchEnd;
+    }
   };
 
   setupBruTestMethods(bru, __brunoTestResults, assertionResults);

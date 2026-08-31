@@ -158,57 +158,6 @@ describe('utils/results - createBruTestResultMethods', () => {
       await expect(waitForPendingTests()).resolves.toBeUndefined();
     });
 
-    it('records a failed "timed out" result for a callback that never settles, without losing sibling results', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      test('sync control (before hang)', () => {
-        chai.expect(1).to.equal(1);
-      });
-      test('hung test - never resolves', () => new Promise(() => {}));
-      test('sync control (after hang)', () => {
-        chai.expect(2).to.equal(2);
-      });
-
-      await waitForPendingTests(50);
-
-      const results = __brunoTestResults.getResults();
-      expect(results).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ description: 'sync control (before hang)', status: 'pass' }),
-          expect.objectContaining({ description: 'sync control (after hang)', status: 'pass' }),
-          expect.objectContaining({
-            description: 'hung test - never resolves',
-            status: 'fail',
-            errorName: 'TestTimeoutError'
-          })
-        ])
-      );
-      expect(results).toHaveLength(3);
-    });
-
-    it('does not record a second result when a timed-out callback goes on to settle on its own', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      test('eventually passes, too late to matter', async () => {
-        await delay(60);
-        chai.expect(1).to.equal(1);
-      });
-
-      await waitForPendingTests(20);
-      // The abandoned callback is still running in the background at this point -
-      // give it time to settle and attempt its own (now-suppressed) result write.
-      await delay(80);
-
-      const results = __brunoTestResults.getResults();
-      expect(results).toEqual([
-        expect.objectContaining({
-          description: 'eventually passes, too late to matter',
-          status: 'fail',
-          errorName: 'TestTimeoutError'
-        })
-      ]);
-    });
-
     it('waits for a test() registered from inside another callback after an await, not just the initial batch', async () => {
       const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
@@ -231,12 +180,12 @@ describe('utils/results - createBruTestResultMethods', () => {
     });
   });
 
-  describe('waitForPendingTests() timer cleanup', () => {
+  describe('waitForPendingTests() with fake timers', () => {
     afterEach(() => {
       jest.useRealTimers();
     });
 
-    it('clears its internal timer once every test settles before the timeout (Promise.all wins the race)', async () => {
+    it('clears its poll timer once a batch settles, rather than leaving it dangling', async () => {
       jest.useFakeTimers({ doNotFake: ['nextTick'] });
       const { test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
@@ -244,16 +193,60 @@ describe('utils/results - createBruTestResultMethods', () => {
         await delay(5);
       });
 
-      const pending = waitForPendingTests(5000);
+      const pending = waitForPendingTests();
       await jest.advanceTimersByTimeAsync(5);
       await pending;
 
       expect(jest.getTimerCount()).toBe(0);
     });
 
-    // No equivalent test for the timeout-winning path: by the time that side of the race
-    // settles, the timer has already fired on its own, so `getTimerCount()` reads 0 whether
-    // or not `clearTimeout` runs afterward - that path has nothing left to discriminate.
+    it('keeps waiting well past a single poll interval for a callback that eventually settles - there is no fixed cap', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick'] });
+      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+      // Spans several poll ticks (TEST_POLL_INTERVAL_MS is 2s), unlike the other tests here.
+      test('slower than several poll intervals', async () => {
+        await delay(6000);
+        chai.expect(1).to.equal(1);
+      });
+
+      const pending = waitForPendingTests();
+      await jest.advanceTimersByTimeAsync(6000);
+      await pending;
+
+      expect(__brunoTestResults.getResults()).toEqual([
+        expect.objectContaining({ description: 'slower than several poll intervals', status: 'pass' })
+      ]);
+    });
+  });
+
+  describe('Negative Test', () => {
+    it('misses a test() registered from a detached setTimeout, unlike one chained through an awaited callback', async () => {
+      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+      // A's callback is synchronous, so its own tracked promise settles before the timer
+      // fires - nothing connects B's later test() call back to anything being watched.
+      test('A (starts a detached timer)', () => {
+        setTimeout(() => {
+          test('B (registered later, detached from A)', () => {
+            chai.expect(1).to.equal(1);
+          });
+        }, 50);
+      });
+
+      await waitForPendingTests();
+
+      // Known, accepted gap - see "Detached-trigger test() registration" in findings/async-await.md.
+      const descriptionsAtWaitExit = __brunoTestResults.getResults().map((r) => r.description);
+      expect(descriptionsAtWaitExit).toEqual(['A (starts a detached timer)']);
+
+      // B still runs eventually - it's just too late for anyone still reading results.
+      await delay(80);
+      const descriptionsLater = __brunoTestResults.getResults().map((r) => r.description);
+      expect(descriptionsLater).toEqual(
+        expect.arrayContaining(['A (starts a detached timer)', 'B (registered later, detached from A)'])
+      );
+    });
   });
 
   describe('isolation between instances', () => {
