@@ -166,8 +166,6 @@ describe('CodeEditor', () => {
       const { rerender } = renderEditor({ item: itemA, collection: undefined });
 
       expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-      // No item/collection/onLinkClick prop yet - resolveLinkClickHandler(itemA, undefined)
-      // returns undefined, so no handler is wired at all.
       expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
 
       rerender(
