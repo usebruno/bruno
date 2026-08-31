@@ -105,23 +105,18 @@ test.describe('Apps - creation flows', () => {
     });
   });
 
-  test('TC-4171 Duplicate collection-level app name is rejected with an error toast', async ({ page, createTmpDir }) => {
+  test('TC-4171 Duplicate collection-level app name is allowed (filename resolved silently)', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-create-tc4171');
     const collectionName = 'apps-create-tc4171';
     await createCollection(page, collectionName, collectionPath);
 
     await createApp(page, 'collectionapp', { collectionName });
+    await createApp(page, 'collectionapp', { collectionName });
 
-    const modal = await openNewAppModal(page, () => openCollectionMenu(page, collectionName));
-    await modal.locator('input[name="appName"]').fill('collectionapp');
-    await submitNewAppModal(modal);
-
-    const { toast } = buildCommonLocators(page);
-    await expect(toast.byMessage(/An item with this name already exists in this folder/)).toBeVisible({ timeout: 5000 });
-    await expect(modal).toBeVisible();
+    await expect(appSidebarItem(page, collectionName, 'collectionapp')).toHaveCount(2);
   });
 
-  test('TC-4172 Duplicate folder-level app name is rejected with an error toast', async ({ page, createTmpDir }) => {
+  test('TC-4172 Duplicate folder-level app name is allowed (filename resolved silently)', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-create-tc4172');
     const collectionName = 'apps-create-tc4172';
     const folderName = 'folder-tc4172';
@@ -129,14 +124,10 @@ test.describe('Apps - creation flows', () => {
     await createFolder(page, folderName, collectionName, true);
 
     await createApp(page, 'folderapp', { collectionName, folderName });
+    await createApp(page, 'folderapp', { collectionName, folderName });
 
-    const modal = await openNewAppModal(page, () => openFolderMenu(page, collectionName, folderName));
-    await modal.locator('input[name="appName"]').fill('folderapp');
-    await submitNewAppModal(modal);
-
-    const { toast } = buildCommonLocators(page);
-    await expect(toast.byMessage(/An item with this name already exists in this folder/)).toBeVisible({ timeout: 5000 });
-    await expect(modal).toBeVisible();
+    await expandFolder(page, folderName);
+    await expect(appSidebarItem(page, collectionName, 'folderapp')).toHaveCount(2);
   });
 
   test('TC-4173 Same app name is allowed when parents differ', async ({ page, createTmpDir }) => {

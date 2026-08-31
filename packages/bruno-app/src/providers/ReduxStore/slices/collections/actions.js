@@ -1791,14 +1791,6 @@ export const newApp = (params) => (dispatch, getState) => {
     const parentPath = parent.pathname;
     const siblings = parent.items || [];
 
-    const dupe = find(
-      siblings,
-      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-    );
-    if (dupe) {
-      return reject(new Error('An item with this name already exists in this folder'));
-    }
-
     const orderableSiblings = filter(
       siblings,
       (i) => isItemAFolder(i) || isItemARequest(i) || i.type === 'app'

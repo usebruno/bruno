@@ -112,7 +112,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
-  const isCloneable = isFolder || isItemARequest(item);
+  const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
