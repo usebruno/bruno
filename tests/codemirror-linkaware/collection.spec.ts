@@ -1,7 +1,7 @@
 import { Page, test } from '../../playwright';
 import { buildCommonLocators, closeAllCollections, closeAllTabs, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensRequest, openCollectionFromDialog, openRequest } from '../utils/page';
 
-const settings = (page: Page) => page.locator('.collection-settings-content');
+const settings = (page: Page) => buildCommonLocators(page).paneTabs.collectionSettingsContent();
 const url = (path: string) => `http://link-aware.test/${path}`;
 
 const openCollectionSettingsTab = async (page: Page, key: string) => {
@@ -64,7 +64,7 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
   for (const { radio, type } of presets) {
     test(`Presets = ${radio}: Vars link resolves to a transient ${type} request`, async ({ page }) => {
       await openCollectionSettingsTab(page, 'presets');
-      await page.locator(`#${radio}`).check();
+      await buildCommonLocators(page).presets.requestType(type).check();
       await openCollectionSettingsTab(page, 'vars');
       const cm = buildCommonLocators(page).codeMirror.valueCellAt(settings(page));
       await expectLinkOpensRequest(page, cm, { type, url: url('collection-vars') });

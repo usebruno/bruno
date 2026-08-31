@@ -202,6 +202,9 @@ class MultiLineEditor extends Component {
     setupLinkAware(this.editor, {
       onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
     });
+    this._linkAwareItemType = this.props.item?.type;
+    this._linkAwareCollectionUid = this.props.collection?.uid;
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -277,6 +280,21 @@ class MultiLineEditor extends Component {
       if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
+    }
+
+    // Re-wire link handler when item/collection context changes.
+    const itemType = this.props.item?.type;
+    const collectionUid = this.props.collection?.uid;
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
+      this._linkAwareItemType = itemType;
+      this._linkAwareCollectionUid = collectionUid;
+      this._linkAwarePresetType = presetType;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');

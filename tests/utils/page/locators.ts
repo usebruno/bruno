@@ -78,7 +78,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
-    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
+    collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
   aiAssist: {
@@ -127,10 +129,6 @@ export const buildCommonLocators = (page: Page) => ({
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
     valueCellAt: (scope: Locator, rowIndex: number = 0) =>
       scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
-  },
-  docs: {
-    /** Docs tabs default to preview mode — this toggles into edit mode. */
-    editToggle: (scope: Locator) => scope.locator('.editing-mode')
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.

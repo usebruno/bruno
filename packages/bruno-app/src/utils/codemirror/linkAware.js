@@ -217,6 +217,17 @@ function handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
   }
 }
 
+// Capture-phase mousedown: preventDefault before CodeMirror moves the cursor.
+function handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
+  if (!event.target.classList.contains(linkClass)) return;
+
+  const shouldUseCustomHandler = typeof onLinkClick === 'function';
+  const modifierPressed = isCmdOrCtrlPressed(event);
+  if (!shouldUseCustomHandler && !modifierPressed) return;
+
+  event.preventDefault();
+}
+
 /**
  * Sets up link awareness for a CodeMirror editor instance.
  * This enables automatic URL detection, styling, and click-to-open functionality.
@@ -254,6 +265,7 @@ function setupLinkAware(editor, options = {}) {
   const boundMarkUrls = () => markUrls(editor, linkify, linkClass, linkHint);
   const boundUpdateCmdCtrlClass = (event) => updateCmdCtrlClass(event, editorWrapper, cmdCtrlClass, isCmdOrCtrlPressed);
   const boundHandleClick = (event) => handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
+  const boundHandleMouseDown = (event) => handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
   const boundHandleMouseEnter = (event) => handleMouseEnter(event, linkClass, linkHoverClass, boundUpdateCmdCtrlClass);
   const boundHandleMouseLeave = (event) => handleMouseLeave(event, linkClass, linkHoverClass);
 
@@ -277,6 +289,8 @@ function setupLinkAware(editor, options = {}) {
 
   window.addEventListener('keydown', boundUpdateCmdCtrlClass);
   window.addEventListener('keyup', boundUpdateCmdCtrlClass);
+  // Capture phase — before CodeMirror's mousedown handler.
+  editorWrapper.addEventListener('mousedown', boundHandleMouseDown, true);
   editorWrapper.addEventListener('click', boundHandleClick);
   editorWrapper.addEventListener('mouseover', boundHandleMouseEnter);
   editorWrapper.addEventListener('mouseout', boundHandleMouseLeave);
@@ -288,6 +302,7 @@ function setupLinkAware(editor, options = {}) {
     editor.off('scroll', debouncedMarkUrls);
     window.removeEventListener('keydown', boundUpdateCmdCtrlClass);
     window.removeEventListener('keyup', boundUpdateCmdCtrlClass);
+    editorWrapper.removeEventListener('mousedown', boundHandleMouseDown, true);
     editorWrapper.removeEventListener('click', boundHandleClick);
     editorWrapper.removeEventListener('mouseover', boundHandleMouseEnter);
     editorWrapper.removeEventListener('mouseout', boundHandleMouseLeave);

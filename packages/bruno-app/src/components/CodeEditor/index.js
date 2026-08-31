@@ -19,7 +19,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
@@ -298,6 +298,10 @@ class CodeEditor extends React.Component {
           ? this.handleLinkClick
           : undefined
       });
+      this._linkAwareItemType = this.props.item?.type;
+      this._linkAwareCollectionUid = this.props.collection?.uid;
+      this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+      this._linkAwareHasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
@@ -392,6 +396,30 @@ class CodeEditor extends React.Component {
         if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
           this.editor.options.brunoVarInfo.item = this.props.item;
         }
+      }
+
+      // Re-wire link handler when item/collection context changes.
+      const itemType = this.props.item?.type;
+      const collectionUid = this.props.collection?.uid;
+      const presetType = getPresetRequestType(this.props.collection);
+      const hasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
+      if (
+        itemType !== this._linkAwareItemType
+        || collectionUid !== this._linkAwareCollectionUid
+        || presetType !== this._linkAwarePresetType
+        || hasOnLinkClickProp !== this._linkAwareHasOnLinkClickProp
+      ) {
+        this._linkAwareItemType = itemType;
+        this._linkAwareCollectionUid = collectionUid;
+        this._linkAwarePresetType = presetType;
+        this._linkAwareHasOnLinkClickProp = hasOnLinkClickProp;
+        this.editor._destroyLinkAware?.();
+        setupLinkAware(this.editor, {
+          onLinkClick: (typeof this.props.onLinkClick === 'function' || resolveLinkClickHandler(this.props.item, this.props.collection))
+            ? this.handleLinkClick
+            : undefined
+        });
+        this.editor.refresh();
       }
     }
 

@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -103,6 +103,10 @@ class SingleLineEditor extends Component {
         ? undefined
         : resolveLinkClickHandler(this.props.item, this.props.collection)
     });
+    this._linkAwareItemType = this.props.item?.type;
+    this._linkAwareCollectionUid = this.props.collection?.uid;
+    this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+    this._linkAwareDisabled = this.props.disableLinkAwareClick;
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
@@ -184,6 +188,29 @@ class SingleLineEditor extends Component {
       if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
+    }
+
+    // Re-wire link handler when item/collection context changes.
+    const itemType = this.props.item?.type;
+    const collectionUid = this.props.collection?.uid;
+    const presetType = getPresetRequestType(this.props.collection);
+    if (
+      itemType !== this._linkAwareItemType
+      || collectionUid !== this._linkAwareCollectionUid
+      || presetType !== this._linkAwarePresetType
+      || this.props.disableLinkAwareClick !== this._linkAwareDisabled
+    ) {
+      this._linkAwareItemType = itemType;
+      this._linkAwareCollectionUid = collectionUid;
+      this._linkAwarePresetType = presetType;
+      this._linkAwareDisabled = this.props.disableLinkAwareClick;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: this.props.disableLinkAwareClick
+          ? undefined
+          : resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
