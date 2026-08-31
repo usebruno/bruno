@@ -13,7 +13,7 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
