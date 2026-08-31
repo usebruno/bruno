@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -11,8 +11,25 @@ import {
 
 export const buildGrpcTestSections = (item) => [
   { key: 'beforeCallStart', title: 'Before Call Start Tests', results: item.beforeCallStartTestResults || [] },
+  { key: 'beforeMessageSend', title: 'Before Message Send Tests', results: item.beforeMessageSendTestResults || [] },
+  { key: 'afterMessageReceive', title: 'After Message Receive Tests', results: item.afterMessageReceiveTestResults || [] },
   { key: 'afterCallEnd', title: 'After Call End Tests', results: item.afterCallEndTestResults || [] }
 ];
+
+const groupResultsByMessage = (results) => {
+  const groups = [];
+
+  for (const result of results) {
+    const last = groups[groups.length - 1];
+    if (last && last.messageIndex === result.messageIndex) {
+      last.results.push(result);
+      continue;
+    }
+    groups.push({ messageIndex: result.messageIndex, results: [result] });
+  }
+
+  return groups;
+};
 
 const ResultIcon = ({ status }) => (
   <span
@@ -67,15 +84,22 @@ const GrpcTestSection = ({ sectionKey, title, results, isExpanded, onToggle }) =
           {title} ({results.length}), Passed: {passedCount}, Failed: {failedCount}
         </span>
       </div>
-      {isExpanded && (
-        <ul className="ml-5">
-          {results.map((result) => (
-            <li key={result.uid} className="py-1">
-              <ResultItem result={result} />
-            </li>
-          ))}
-        </ul>
-      )}
+      {isExpanded && groupResultsByMessage(results).map((group) => (
+        <div key={group.messageIndex ?? 'call'}>
+          {group.messageIndex !== undefined && (
+            <div className="message-group-label ml-5" data-testid={`grpc-test-message-group-${group.messageIndex}`}>
+              Message {group.messageIndex + 1}
+            </div>
+          )}
+          <ul className="ml-5">
+            {group.results.map((result) => (
+              <li key={result.uid} className="py-1">
+                <ResultItem result={result} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 };
@@ -88,20 +112,14 @@ const GrpcTestResults = ({ item, sections }) => {
   const [scroll, setScroll] = usePersistedState({ key: `grpc-response-tests-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
-  const expandFilledSections = () =>
-    Object.fromEntries(sections.map((section) => [section.key, section.results.length > 0]));
+  const [userToggledSections, setUserToggledSections] = useState({});
 
-  const [expandedSections, setExpandedSections] = useState(expandFilledSections);
+  const isSectionExpanded = (section) => userToggledSections[section.key] ?? section.results.length > 0;
 
-  const resultCounts = sections.map((section) => section.results.length).join(',');
-  useEffect(() => {
-    setExpandedSections(expandFilledSections());
-  }, [resultCounts]);
-
-  const toggleSection = (key) => {
-    setExpandedSections({
-      ...expandedSections,
-      [key]: !expandedSections[key]
+  const toggleSection = (section) => {
+    setUserToggledSections({
+      ...userToggledSections,
+      [section.key]: !isSectionExpanded(section)
     });
   };
 
@@ -117,8 +135,8 @@ const GrpcTestResults = ({ item, sections }) => {
           sectionKey={section.key}
           title={section.title}
           results={section.results}
-          isExpanded={expandedSections[section.key]}
-          onToggle={() => toggleSection(section.key)}
+          isExpanded={isSectionExpanded(section)}
+          onToggle={() => toggleSection(section)}
         />
       ))}
     </StyledWrapper>

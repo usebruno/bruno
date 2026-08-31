@@ -18,6 +18,18 @@ const HOOKS = {
     showHintsFor: ['req', 'bru'],
     errorMessageKey: 'beforeCallStartScriptErrorMessage'
   },
+  beforeMessageSend: {
+    label: 'Before Message Send',
+    scriptType: SCRIPT_TYPES.BEFORE_MESSAGE_SEND,
+    showHintsFor: ['req', 'bru'],
+    errorMessageKey: 'beforeMessageSendScriptErrorMessage'
+  },
+  afterMessageReceive: {
+    label: 'After Message Receive',
+    scriptType: SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE,
+    showHintsFor: ['req', 'res', 'bru'],
+    errorMessageKey: 'afterMessageReceiveScriptErrorMessage'
+  },
   afterCallEnd: {
     label: 'After Call End',
     scriptType: SCRIPT_TYPES.AFTER_CALL_END,

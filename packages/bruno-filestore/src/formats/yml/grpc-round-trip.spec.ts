@@ -24,15 +24,24 @@ const grpcItem = (script: Record<string, string | null>, tests: string | null = 
 }) as any;
 
 describe('grpc lifecycle hooks — stringify/parse round trip', () => {
-  it('writes both hooks as grpc-prefixed script types and reads them back', () => {
-    const yml = stringifyItem(grpcItem({ beforeCallStart: 'bru.setVar("a", 1);', afterCallEnd: 'bru.setVar("b", 2);' }));
+  it('writes every hook as a grpc-prefixed script type and reads them back', () => {
+    const yml = stringifyItem(grpcItem({
+      beforeCallStart: 'bru.setVar("a", 1);',
+      afterCallEnd: 'bru.setVar("b", 2);',
+      beforeMessageSend: 'bru.setVar("c", 3);',
+      afterMessageReceive: 'bru.setVar("d", 4);'
+    }));
 
     expect(yml).toContain('grpc:before-call-start');
     expect(yml).toContain('grpc:after-call-end');
+    expect(yml).toContain('grpc:before-message-send');
+    expect(yml).toContain('grpc:after-message-receive');
 
     const { script } = parseGrpcItem(yml);
     expect(script!.beforeCallStart).toBe('bru.setVar("a", 1);');
     expect(script!.afterCallEnd).toBe('bru.setVar("b", 2);');
+    expect(script!.beforeMessageSend).toBe('bru.setVar("c", 3);');
+    expect(script!.afterMessageReceive).toBe('bru.setVar("d", 4);');
   });
 
   it('preserves a multiline hook verbatim', () => {
@@ -44,24 +53,35 @@ describe('grpc lifecycle hooks — stringify/parse round trip', () => {
     expect(script!.beforeCallStart).toBe(beforeCallStart);
   });
 
-  it('round-trips one hook without inventing the other', () => {
+  it('round-trips one hook without inventing the others', () => {
     const yml = stringifyItem(grpcItem({ beforeCallStart: null, afterCallEnd: 'bru.setVar("b", 2);' }));
 
     expect(yml).not.toContain('grpc:before-call-start');
+    expect(yml).not.toContain('grpc:before-message-send');
+    expect(yml).not.toContain('grpc:after-message-receive');
 
     const { script } = parseGrpcItem(yml);
     expect(script!.beforeCallStart).toBeNull();
     expect(script!.afterCallEnd).toBe('bru.setVar("b", 2);');
+    expect(script!.beforeMessageSend).toBeNull();
+    expect(script!.afterMessageReceive).toBeNull();
   });
 
-  it('writes no scripts block when both hooks are empty', () => {
-    const yml = stringifyItem(grpcItem({ beforeCallStart: null, afterCallEnd: '   ' }));
+  it('writes no scripts block when every hook is empty', () => {
+    const yml = stringifyItem(grpcItem({
+      beforeCallStart: null,
+      afterCallEnd: '   ',
+      beforeMessageSend: null,
+      afterMessageReceive: '   '
+    }));
 
     expect(yml).not.toContain('scripts:');
 
     const { script } = parseGrpcItem(yml);
     expect(script!.beforeCallStart).toBeNull();
     expect(script!.afterCallEnd).toBeNull();
+    expect(script!.beforeMessageSend).toBeNull();
+    expect(script!.afterMessageReceive).toBeNull();
   });
 
   it('keeps tests alongside the hooks', () => {
@@ -75,7 +95,12 @@ describe('grpc lifecycle hooks — stringify/parse round trip', () => {
   });
 
   it('survives a second round trip unchanged', () => {
-    const item = grpcItem({ beforeCallStart: 'bru.setVar("a", 1);', afterCallEnd: 'bru.setVar("b", 2);' });
+    const item = grpcItem({
+      beforeCallStart: 'bru.setVar("a", 1);',
+      afterCallEnd: 'bru.setVar("b", 2);',
+      beforeMessageSend: 'bru.setVar("c", 3);',
+      afterMessageReceive: 'bru.setVar("d", 4);'
+    });
 
     const firstPass = stringifyItem(item);
     const secondPass = stringifyItem(parseItem(firstPass));

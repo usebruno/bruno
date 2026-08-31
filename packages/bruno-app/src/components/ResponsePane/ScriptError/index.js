@@ -216,6 +216,8 @@ const SCRIPT_PHASES = [
   { phase: SCRIPT_TYPES.POST_RESPONSE, title: 'Post-Response Script Error', messageKey: 'postResponseScriptErrorMessage', contextKey: 'postResponseScriptErrorContext' },
   { phase: SCRIPT_TYPES.TEST, title: 'Test Script Error', messageKey: 'testScriptErrorMessage', contextKey: 'testScriptErrorContext' },
   { phase: SCRIPT_TYPES.BEFORE_CALL_START, title: 'Before Call Start Script Error', messageKey: 'beforeCallStartScriptErrorMessage', contextKey: 'beforeCallStartScriptErrorContext' },
+  { phase: SCRIPT_TYPES.BEFORE_MESSAGE_SEND, title: 'Before Message Send Script Error', messageKey: 'beforeMessageSendScriptErrorMessage', contextKey: 'beforeMessageSendScriptErrorContext' },
+  { phase: SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE, title: 'After Message Receive Script Error', messageKey: 'afterMessageReceiveScriptErrorMessage', contextKey: 'afterMessageReceiveScriptErrorContext' },
   { phase: SCRIPT_TYPES.AFTER_CALL_END, title: 'After Call End Script Error', messageKey: 'afterCallEndScriptErrorMessage', contextKey: 'afterCallEndScriptErrorContext' }
 ];
 

@@ -21,6 +21,8 @@ const BLOCK_TAGS = [
   'script:pre-request',
   'script:post-response',
   'script:grpc:before-call-start',
+  'script:grpc:before-message-send',
+  'script:grpc:after-message-receive',
   'script:grpc:after-call-end',
   'tests',
   'docs',

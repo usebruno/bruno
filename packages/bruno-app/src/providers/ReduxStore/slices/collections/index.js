@@ -843,9 +843,19 @@ export const collectionsSlice = createSlice({
         item.afterCallEndScriptErrorMessage = errorMessage;
         item.afterCallEndScriptErrorContext = errorContext || null;
       }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND) {
+        item.beforeMessageSendScriptErrorMessage = errorMessage;
+        item.beforeMessageSendScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        item.afterMessageReceiveScriptErrorMessage = errorMessage;
+        item.afterMessageReceiveScriptErrorContext = errorContext || null;
+      }
     },
     grpcTestResults: (state, action) => {
-      const { itemUid, collectionUid, scriptType, results } = action.payload;
+      const { itemUid, collectionUid, scriptType, results, messageIndex } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
@@ -858,6 +868,16 @@ export const collectionsSlice = createSlice({
 
       if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
         item.afterCallEndTestResults = results;
+      }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND || scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        const isBeforeSend = scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND;
+        const resultsKey = isBeforeSend ? 'beforeMessageSendTestResults' : 'afterMessageReceiveTestResults';
+
+        if (!item[resultsKey]) {
+          item[resultsKey] = [];
+        }
+        item[resultsKey].push(...results.map((result) => ({ ...result, messageIndex })));
       }
     },
     responseCleared: (state, action) => {
@@ -878,6 +898,8 @@ export const collectionsSlice = createSlice({
           item.testResults = [];
           item.beforeCallStartTestResults = [];
           item.afterCallEndTestResults = [];
+          item.beforeMessageSendTestResults = [];
+          item.afterMessageReceiveTestResults = [];
         }
       }
     },
@@ -3295,10 +3317,16 @@ export const collectionsSlice = createSlice({
       item.testScriptErrorContext = null;
       item.beforeCallStartScriptErrorMessage = null;
       item.afterCallEndScriptErrorMessage = null;
+      item.beforeMessageSendScriptErrorMessage = null;
+      item.afterMessageReceiveScriptErrorMessage = null;
       item.beforeCallStartScriptErrorContext = null;
       item.afterCallEndScriptErrorContext = null;
+      item.beforeMessageSendScriptErrorContext = null;
+      item.afterMessageReceiveScriptErrorContext = null;
       item.beforeCallStartTestResults = [];
       item.afterCallEndTestResults = [];
+      item.beforeMessageSendTestResults = [];
+      item.afterMessageReceiveTestResults = [];
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;

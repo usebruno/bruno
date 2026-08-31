@@ -186,6 +186,238 @@ for (const mode of SANDBOX_MODES) {
       });
     });
 
+    test('both message hooks run on a unary call, each handed the message it is about', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const tests = locators.response.tests;
+
+      await test.step('the call completes', async () => {
+        await sendGrpcRequest(page, 'MessageHooksUnary', 'HelloService/SayHello');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.content()).toContainText('hello unary-hooks');
+      });
+
+      await test.step('each message hook gets its own section, and every assertion passed', async () => {
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.passedCount()).toHaveText('10');
+        await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (4), Passed: 4, Failed: 0');
+        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (4), Passed: 4, Failed: 0');
+        await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (2), Passed: 2, Failed: 0');
+        await expect(tests.failedRows('beforeMessageSend')).toHaveCount(0);
+        await expect(tests.failedRows('afterMessageReceive')).toHaveCount(0);
+      });
+
+      // One message went out and one came back, so each message hook ran exactly once.
+      await test.step('the results of both hooks sit under the one message the call carried', async () => {
+        await expect(tests.messageGroups('beforeMessageSend')).toHaveCount(1);
+        await expect(tests.messageGroup('beforeMessageSend', 0)).toHaveText('Message 1');
+        await expect(tests.messageGroups('afterMessageReceive')).toHaveCount(1);
+        await expect(tests.messageGroup('afterMessageReceive', 0)).toHaveText('Message 1');
+      });
+
+      // afterCallEnd runs once per call, not once per message, so its results carry no index.
+      await test.step('the call hook results stay ungrouped', async () => {
+        await expect(tests.messageGroups('afterCallEnd')).toHaveCount(0);
+      });
+
+      await test.step('a following request sees the variable afterMessageReceive wrote', async () => {
+        await sendGrpcRequest(page, 'EchoLastReply', 'HelloService/SayHello');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.content()).toContainText('hello hello unary-hooks');
+      });
+    });
+
+    test('afterMessageReceive runs once per reply of a server stream, beforeMessageSend once', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const tests = locators.response.tests;
+
+      await test.step('receive the whole stream', async () => {
+        await sendGrpcRequest(page, 'MessageHooksServerStream', 'HelloService/LotsOfReplies');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.responseItems()).toHaveCount(10);
+      });
+
+      // Ten replies came back over one outgoing message, so the two hooks run a different number of times.
+      await test.step('the send hook ran once and the receive hook ten times', async () => {
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (1), Passed: 1, Failed: 0');
+        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (10), Passed: 10, Failed: 0');
+        await expect(tests.failedRows('afterMessageReceive')).toHaveCount(0);
+      });
+
+      await test.step('every run is grouped under the reply it handled, in order', async () => {
+        await expect(tests.messageGroups('afterMessageReceive')).toHaveCount(10);
+        await expect(tests.messageGroup('afterMessageReceive', 0)).toHaveText('Message 1');
+        await expect(tests.messageGroup('afterMessageReceive', 9)).toHaveText('Message 10');
+        await expect(tests.rows('afterMessageReceive').first()).toContainText('reply 1 is handed to its own run of the hook');
+        await expect(tests.rows('afterMessageReceive').last()).toContainText('reply 10 is handed to its own run of the hook');
+      });
+
+      await test.step('a following request sees the count the receive hook accumulated', async () => {
+        await sendGrpcRequest(page, 'EchoReceivedCount', 'HelloService/SayHello');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.content()).toContainText('received-10');
+      });
+    });
+
+    test('both hooks run per message on a bidi stream, and a rerun does not double the results', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const tests = locators.response.tests;
+
+      await test.step('stream both messages, then end the call', async () => {
+        await streamGrpcMessagesAndEndCall(page, 'MessageHooksBidi', 'HelloService/BidiHello', [0, 1]);
+      });
+
+      await test.step('each hook ran once per message', async () => {
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (2), Passed: 2, Failed: 0');
+        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (4), Passed: 4, Failed: 0');
+        await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (1), Passed: 1, Failed: 0');
+      });
+
+      await test.step('the send hook results name the message each run saw', async () => {
+        await expect(tests.messageGroups('beforeMessageSend')).toHaveCount(2);
+        await expect(tests.messageGroup('beforeMessageSend', 0)).toHaveText('Message 1');
+        await expect(tests.messageGroup('beforeMessageSend', 1)).toHaveText('Message 2');
+        await expect(tests.rows('beforeMessageSend').first()).toContainText('outgoing message 1 reaches the hook before it is streamed');
+        await expect(tests.rows('beforeMessageSend').last()).toContainText('outgoing message 2 reaches the hook before it is streamed');
+      });
+
+      // Message hook results accumulate as the call runs, so a rerun has to clear them first.
+      await test.step('rerunning the request replaces the accumulated results rather than adding to them', async () => {
+        await streamGrpcMessagesAndEndCall(page, 'MessageHooksBidi', 'HelloService/BidiHello', [0, 1]);
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (2), Passed: 2, Failed: 0');
+        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (4), Passed: 4, Failed: 0');
+        await expect(tests.messageGroups('beforeMessageSend')).toHaveCount(2);
+      });
+    });
+
+    test('a throwing beforeMessageSend aborts the unary call before it opens', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const scriptError = buildScriptErrorLocators(page);
+
+      await test.step('the card names the hook that failed and the message it failed on', async () => {
+        await sendGrpcRequest(page, 'BrokenBeforeMessageSend', 'HelloService/SayHello');
+
+        await expect(scriptError.card()).toBeVisible({ timeout: 30000 });
+        await expect(scriptError.title()).toHaveText('Before Message Send Script Error');
+        await expect(scriptError.message()).toContainText('Message 1: beforeMessageSend exploded');
+        await expect(scriptError.filePath()).toHaveText('BrokenBeforeMessageSend.yml');
+      });
+
+      await test.step('nothing was put on the wire', async () => {
+        await expect(locators.response.statusCode()).toHaveCount(0);
+      });
+
+      await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
+        await scriptError.filePath().click();
+
+        const editor = page.getByTestId('before-message-send-script-editor');
+        await expect(editor).toBeVisible();
+        await expect(editor.locator(FLASHED_LINE_NUMBER)).toHaveText('2');
+        await expect(editor.locator(FLASHED_LINE)).toContainText('throw new Error(\'beforeMessageSend exploded\');');
+      });
+
+      await test.step('a following request sees the variable the hook set before it threw', async () => {
+        await sendGrpcRequest(page, 'EchoSendReached', 'HelloService/SayHello');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.content()).toContainText('send-yes');
+      });
+    });
+
+    test('a throwing beforeMessageSend drops one streamed message and leaves the stream open', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const scriptError = buildScriptErrorLocators(page);
+      const tests = locators.response.tests;
+
+      await test.step('open the stream', async () => {
+        await sendGrpcRequest(page, 'BrokenSendOnBidiStream', 'HelloService/BidiHello');
+        await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
+      });
+
+      await test.step('the first message is refused, so nothing comes back for it', async () => {
+        await locators.request.sendMessage(0).click();
+
+        await expect(locators.response.content()).toHaveCount(0);
+      });
+
+      await test.step('the stream survived, so the next message still goes out and is replied to', async () => {
+        await locators.request.sendMessage(1).click();
+
+        await expect(locators.response.singleResponse()).toBeVisible();
+        await expect(locators.response.content()).toContainText('hello let-me-through');
+        await expect(locators.request.endConnectionButton()).toBeVisible();
+      });
+
+      await test.step('ending the call still reports OK', async () => {
+        await locators.request.endConnectionButton().click();
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+      });
+
+      await test.step('the card names the message the hook refused', async () => {
+        await expect(scriptError.card()).toBeVisible();
+        await expect(scriptError.title()).toHaveText('Before Message Send Script Error');
+        await expect(scriptError.message()).toContainText('Message 1: this message is not going out');
+      });
+
+      // The refused run still consumed an index, so the run that passed is the second one.
+      await test.step('the surviving run is grouped under the second message', async () => {
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (1), Passed: 1, Failed: 0');
+        await expect(tests.messageGroups('beforeMessageSend')).toHaveCount(1);
+        await expect(tests.messageGroup('beforeMessageSend', 1)).toHaveText('Message 2');
+        await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (1), Passed: 1, Failed: 0');
+      });
+    });
+
+    test('a throwing afterMessageReceive keeps the stream and afterCallEnd alive', async ({ pageWithUserData: page }) => {
+      const locators = await openCollection(page);
+      const scriptError = buildScriptErrorLocators(page);
+      const tests = locators.response.tests;
+
+      await test.step('every reply still arrives', async () => {
+        await sendGrpcRequest(page, 'BrokenAfterMessageReceive', 'HelloService/LotsOfReplies');
+
+        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.responseItems()).toHaveCount(10);
+      });
+
+      // Only the last failure is kept, and the hook ran once per reply, so it is the tenth.
+      await test.step('the card reports the last of the ten failures', async () => {
+        await expect(scriptError.card()).toBeVisible();
+        await expect(scriptError.title()).toHaveText('After Message Receive Script Error');
+        await expect(scriptError.message()).toContainText('Message 10: afterMessageReceive exploded');
+        await expect(scriptError.filePath()).toHaveText('BrokenAfterMessageReceive.yml');
+      });
+
+      await test.step('afterCallEnd still ran behind the ten failures', async () => {
+        await selectResponsePaneTab(page, 'Tests');
+
+        await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (1), Passed: 1, Failed: 0');
+        await expect(tests.section('afterCallEnd')).toContainText('afterCallEnd still runs once every message hook has thrown');
+      });
+
+      await test.step('clicking the file path opens the failing hook editor at the failing line', async () => {
+        await scriptError.filePath().click();
+
+        const editor = page.getByTestId('after-message-receive-script-editor');
+        await expect(editor).toBeVisible();
+        await expect(editor.locator(FLASHED_LINE_NUMBER)).toHaveText('2');
+        await expect(editor.locator(FLASHED_LINE)).toContainText('throw new Error(\'afterMessageReceive exploded\');');
+      });
+    });
+
     test('a throwing afterCallEnd shows a card without taking the response with it', async ({ pageWithUserData: page }) => {
       const locators = await openCollection(page);
       const scriptError = buildScriptErrorLocators(page);

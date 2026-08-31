@@ -124,6 +124,14 @@ script:grpc:after-call-end {
   bru.setVar("endedAt", 2);
 }
 
+script:grpc:before-message-send {
+  bru.setVar("sentAt", bru.grpc.request.message.timestamp);
+}
+
+script:grpc:after-message-receive {
+  bru.setVar("receivedAt", bru.grpc.response.message.timestamp);
+}
+
 tests {
   test("hook ran", function() {
     expect(bru.getVar("startedAt")).to.equal(1);
@@ -376,8 +384,8 @@ describe('redactLargeBruTextBlocks', () => {
 
   it('extracts the grpc lifecycle hooks and leaves the dictionary message block in place', () => {
     const { skeleton, blocks } = redactLargeBruTextBlocks(grpcBru);
-    // both lifecycle hooks + tests; `body:grpc` is a dictionary and stays in the skeleton
-    expect(blocks.length).toBe(3);
+    // all four lifecycle hooks + tests; `body:grpc` is a dictionary and stays in the skeleton
+    expect(blocks.length).toBe(5);
     expect(skeleton.length).toBeLessThan(grpcBru.length);
     blocks.forEach((block) => {
       expect(skeleton).toContain(block.token);

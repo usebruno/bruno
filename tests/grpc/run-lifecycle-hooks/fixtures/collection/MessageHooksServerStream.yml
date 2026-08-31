@@ -1,0 +1,42 @@
+info:
+  name: MessageHooksServerStream
+  type: grpc
+  seq: 13
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/LotsOfReplies
+  methodType: server-streaming
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "stream-hooks"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: bru.setVar('receivedCount', '');
+    - type: grpc:before-message-send
+      code: |-
+        // A server stream sends exactly one message, so this hook runs once however many replies come back.
+        test('the one outgoing message reaches the hook', () => {
+          expect(bru.grpc.request.message.data.greeting).to.equal('stream-hooks');
+          expect(bru.grpc.request.messages.count()).to.equal(0);
+        });
+    - type: grpc:after-message-receive
+      code: |-
+        // The hook runs once per reply, and the runs are queued, so this counts them in order.
+        const seen = Number(bru.getVar('receivedCount') || 0) + 1;
+        bru.setVar('receivedCount', String(seen));
+
+        test('reply ' + seen + ' is handed to its own run of the hook', () => {
+          expect(bru.grpc.response.message.data.reply).to.equal('hello stream-hooks #' + seen);
+        });
+    - type: grpc:after-call-end
+      code: |-
+        test('the hook ran once for each of the ten replies', () => {
+          expect(bru.getVar('receivedCount')).to.equal('10');
+          expect(bru.grpc.response.messages.count()).to.equal(10);
+        });

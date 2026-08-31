@@ -22,6 +22,8 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   pushScript('req', 'before-request', script?.req);
   pushScript('res', 'after-response', script?.res);
   pushScript('beforeCallStart', 'grpc:before-call-start', script?.beforeCallStart);
+  pushScript('beforeMessageSend', 'grpc:before-message-send', script?.beforeMessageSend);
+  pushScript('afterMessageReceive', 'grpc:after-message-receive', script?.afterMessageReceive);
   pushScript('afterCallEnd', 'grpc:after-call-end', script?.afterCallEnd);
 
   if (request?.tests?.trim().length) {
@@ -71,6 +73,12 @@ export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined, a
         break;
       case 'grpc:before-call-start':
         setScript('beforeCallStart', script.code);
+        break;
+      case 'grpc:before-message-send':
+        setScript('beforeMessageSend', script.code);
+        break;
+      case 'grpc:after-message-receive':
+        setScript('afterMessageReceive', script.code);
         break;
       case 'grpc:after-call-end':
         setScript('afterCallEnd', script.code);

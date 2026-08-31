@@ -466,6 +466,8 @@ describe('jsonToBru stringify', () => {
           req: 'req.setHeader(\'Content-Type\', \'application/json\');',
           res: 'expect(res.status).to.equal(200);',
           beforeCallStart: 'req.setMetadata(\'authorization\', \'Bearer token\');',
+          beforeMessageSend: 'bru.setVar(\'sent\', bru.grpc.request.message.timestamp);',
+          afterMessageReceive: 'expect(bru.grpc.response.message.data).to.be.an(\'object\');',
           afterCallEnd: 'expect(res.getStatusCode()).to.equal(0);'
         }
       });
@@ -480,6 +482,14 @@ script:post-response {
 
 script:grpc:before-call-start {
   req.setMetadata('authorization', 'Bearer token');
+}
+
+script:grpc:before-message-send {
+  bru.setVar('sent', bru.grpc.request.message.timestamp);
+}
+
+script:grpc:after-message-receive {
+  expect(bru.grpc.response.message.data).to.be.an('object');
 }
 
 script:grpc:after-call-end {

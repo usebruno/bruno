@@ -82,10 +82,19 @@ const exportItems = (items) => brunoToOpenCollection({ name: 'API', brunoConfig:
 
 describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
   it('writes the lifecycle hooks as grpc-prefixed script types', () => {
-    const oc = exportItems([grpcItem({ beforeCallStart: 'before()', afterCallEnd: 'after()' })]);
+    const oc = exportItems([
+      grpcItem({
+        beforeCallStart: 'before()',
+        beforeMessageSend: 'beforeSend()',
+        afterMessageReceive: 'afterReceive()',
+        afterCallEnd: 'after()'
+      })
+    ]);
 
     expect(oc.items[0].runtime.scripts).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
+      { type: 'grpc:before-message-send', code: 'beforeSend()' },
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
       { type: 'grpc:after-call-end', code: 'after()' }
     ]);
   });
@@ -100,24 +109,40 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
   });
 
   it('trims the whitespace around the hooks', () => {
-    const oc = exportItems([grpcItem({ beforeCallStart: '  before()\n', afterCallEnd: '\n\tafter()  ' })]);
+    const oc = exportItems([
+      grpcItem({
+        beforeCallStart: '  before()\n',
+        beforeMessageSend: ' beforeSend() ',
+        afterMessageReceive: '\n afterReceive() \n',
+        afterCallEnd: '\n\tafter()  '
+      })
+    ]);
 
     expect(oc.items[0].runtime.scripts).toEqual([
       { type: 'grpc:before-call-start', code: 'before()' },
+      { type: 'grpc:before-message-send', code: 'beforeSend()' },
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
       { type: 'grpc:after-call-end', code: 'after()' }
     ]);
   });
 
   it('drops hooks whose code is only whitespace', () => {
-    const oc = exportItems([grpcItem({ beforeCallStart: '   ', afterCallEnd: '\n\t\n' })]);
+    const oc = exportItems([
+      grpcItem({ beforeCallStart: '   ', beforeMessageSend: ' ', afterMessageReceive: '\t', afterCallEnd: '\n\t\n' })
+    ]);
 
     expect(oc.items[0].runtime?.scripts).toBeUndefined();
   });
 
   it('drops a blank hook while keeping its populated sibling', () => {
-    const oc = exportItems([grpcItem({ beforeCallStart: '   ', afterCallEnd: 'after()' })]);
+    const oc = exportItems([
+      grpcItem({ beforeCallStart: '   ', beforeMessageSend: '  ', afterMessageReceive: 'afterReceive()', afterCallEnd: 'after()' })
+    ]);
 
-    expect(oc.items[0].runtime.scripts).toEqual([{ type: 'grpc:after-call-end', code: 'after()' }]);
+    expect(oc.items[0].runtime.scripts).toEqual([
+      { type: 'grpc:after-message-receive', code: 'afterReceive()' },
+      { type: 'grpc:after-call-end', code: 'after()' }
+    ]);
   });
 
   it('drops req/res carried by a grpc request', () => {
@@ -127,7 +152,7 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
   });
 
   it('drops grpc hooks carried by an http request', () => {
-    const oc = exportItems([httpItem({ req: 'pre()', beforeCallStart: 'before()' })]);
+    const oc = exportItems([httpItem({ req: 'pre()', beforeCallStart: 'before()', afterMessageReceive: 'afterReceive()' })]);
 
     expect(oc.items[0].runtime.scripts).toEqual([{ type: 'before-request', code: 'pre()' }]);
   });
@@ -168,6 +193,8 @@ describe('openCollectionToBruno (import): grpc lifecycle scripts', () => {
       items: [
         ocGrpcItem([
           { type: 'grpc:before-call-start', code: 'before()' },
+          { type: 'grpc:before-message-send', code: 'beforeSend()' },
+          { type: 'grpc:after-message-receive', code: 'afterReceive()' },
           { type: 'grpc:after-call-end', code: 'after()' },
           { type: 'tests', code: 'test()' }
         ])
@@ -176,6 +203,8 @@ describe('openCollectionToBruno (import): grpc lifecycle scripts', () => {
 
     expect(collection.items[0].request.script).toEqual({
       beforeCallStart: 'before()',
+      beforeMessageSend: 'beforeSend()',
+      afterMessageReceive: 'afterReceive()',
       afterCallEnd: 'after()'
     });
     expect(collection.items[0].request.tests).toBe('test()');
@@ -219,12 +248,17 @@ describe('openCollectionToBruno (import): grpc lifecycle scripts', () => {
       items: [
         ocGrpcItem([
           { type: 'grpc:before-call-start', code: '' },
+          { type: 'grpc:before-message-send', code: '' },
+          { type: 'grpc:after-message-receive', code: 'afterReceive()' },
           { type: 'grpc:after-call-end', code: 'after()' }
         ])
       ]
     });
 
-    expect(collection.items[0].request.script).toEqual({ afterCallEnd: 'after()' });
+    expect(collection.items[0].request.script).toEqual({
+      afterMessageReceive: 'afterReceive()',
+      afterCallEnd: 'after()'
+    });
   });
 
   it('leaves the hooks unset when every hook has empty code', () => {
@@ -234,6 +268,8 @@ describe('openCollectionToBruno (import): grpc lifecycle scripts', () => {
       items: [
         ocGrpcItem([
           { type: 'grpc:before-call-start', code: '' },
+          { type: 'grpc:before-message-send', code: '' },
+          { type: 'grpc:after-message-receive', code: '' },
           { type: 'grpc:after-call-end', code: '' }
         ])
       ]
@@ -350,12 +386,24 @@ describe('graphql and websocket requests: grpc lifecycle scripts', () => {
 });
 
 describe('grpc lifecycle scripts: export then import keeps them the same', () => {
-  it('preserves both hooks across a round trip', () => {
-    const oc = exportItems([grpcItem({ beforeCallStart: 'before()', afterCallEnd: 'after()' }, 'test()')]);
+  it('preserves every hook across a round trip', () => {
+    const oc = exportItems([
+      grpcItem(
+        {
+          beforeCallStart: 'before()',
+          beforeMessageSend: 'beforeSend()',
+          afterMessageReceive: 'afterReceive()',
+          afterCallEnd: 'after()'
+        },
+        'test()'
+      )
+    ]);
     const collection = openCollectionToBruno(oc);
 
     expect(collection.items[0].request.script).toEqual({
       beforeCallStart: 'before()',
+      beforeMessageSend: 'beforeSend()',
+      afterMessageReceive: 'afterReceive()',
       afterCallEnd: 'after()'
     });
     expect(collection.items[0].request.tests).toBe('test()');

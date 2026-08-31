@@ -1,4 +1,4 @@
-const { marshallToVm } = require('../utils');
+const { marshallToVm } = require('../../utils');
 const addGrpcMetadataListShimToContext = require('./grpc-metadata-list');
 const addGrpcMessageListShimToContext = require('./grpc-message-list');
 
@@ -23,6 +23,13 @@ const addBrunoGrpcResponseShimToContext = (vm, response, grpcObject) => {
   listEvalCode.push(
     addGrpcMessageListShimToContext(vm, response.messages, responseObject, 'globalThis.bru.grpc.response')
   );
+
+  // response.message — present only in `afterMessageReceive`
+  if (response.message) {
+    const message = marshallToVm(response.message, vm);
+    vm.setProp(responseObject, 'message', message);
+    message.dispose();
+  }
 
   vm.setProp(grpcObject, 'response', responseObject);
   responseObject.dispose();

@@ -64,17 +64,38 @@ const buildSentMessages = (session) => {
   return firstAuthored ? [{ data: safeParseJSON(firstAuthored.content), timestamp: session.startedAt }] : [];
 };
 
-const buildCallResult = (session) => ({
+// partial results for message hooks
+const buildPartialCallResult = (session) => ({
   messages: session.messages,
   metadata: session.metadata,
   trailers: session.trailers,
-  statusCode: session.statusCode ?? UNKNOWN_STATUS_CODE,
+  statusCode: session.statusCode,
   statusText: session.statusText,
-  duration: Date.now() - session.startedAt,
+  duration: undefined,
   url: session.request.url,
   method: session.request.method,
   methodType: session.request.methodType
 });
+
+const buildCallResult = (session) => ({
+  ...buildPartialCallResult(session),
+  statusCode: session.statusCode ?? UNKNOWN_STATUS_CODE,
+  duration: Date.now() - session.startedAt
+});
+
+// hooks that need session information. BeforeCallStart is excluded since session is not armed at that point
+const SESSION_HOOK_KEYS = ['afterCallEnd', 'beforeMessageSend', 'afterMessageReceive'];
+
+const hasSessionHook = (request) =>
+  SESSION_HOOK_KEYS.some((key) => get(request, `script.${key}`)?.trim().length);
+
+// Runs the hooks in a queue for a session/request so messages and timeline are in received order.
+const enqueueHook = (session, run) => {
+  // Both handlers are `run` so a rejection cannot poison the chain for later messages.
+  session.hookQueue = session.hookQueue.then(run, run);
+
+  return session.hookQueue;
+};
 
 const createGrpcScriptOrchestration = ({ sendEvent }) => {
   const callSessions = new Map();
@@ -143,15 +164,26 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     }
   };
 
-  const emitScriptError = ({ requestId, collectionUid, scriptType, error, scriptMetadata, collectionPath }) => {
+  const emitScriptError = ({
+    requestId,
+    collectionUid,
+    scriptType,
+    error,
+    scriptMetadata,
+    collectionPath,
+    messageIndex
+  }) => {
+    const errorMessage = error.message || `An error occurred in ${scriptType.replaceAll('-', ' ')} script`;
+
     sendEvent('grpc:script-error', requestId, collectionUid, {
       scriptType,
-      errorMessage: error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`,
-      errorContext: formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath)
+      errorMessage: messageIndex === undefined ? errorMessage : `Message ${messageIndex + 1}: ${errorMessage}`,
+      errorContext: formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath),
+      messageIndex
     });
   };
 
-  const applyScriptResult = ({ scriptResult, request, collection, collectionUid, scriptType }) => {
+  const applyScriptResult = ({ scriptResult, request, collection, collectionUid, scriptType, messageIndex }) => {
     sendVariableUpdates(scriptResult, { collectionUid, requestUid: request.uid, collection });
     resetOauth2Credentials({
       oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset,
@@ -162,7 +194,8 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     if (scriptResult.results) {
       sendEvent('grpc:test-results', request.uid, collectionUid, {
         scriptType,
-        results: scriptResult.results
+        results: scriptResult.results,
+        messageIndex
       });
     }
   };
@@ -178,17 +211,17 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     let scriptError = null;
 
     try {
-      scriptResult = await scriptRuntime.runGrpcRequestScript(
-        decomment(hookScript, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcRequestScript({
+        script: decomment(hookScript, { space: true }),
         request,
-        envVars,
+        envVariables: envVars,
         runtimeVariables,
-        collection.pathname,
+        collectionPath: collection.pathname,
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        collection.name
-      );
+        collectionName: collection.name
+      });
     } catch (error) {
       scriptError = error;
       // Variables the hook set before throwing still have to reach the app.
@@ -231,25 +264,28 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
   const runAfterCallEnd = async (session) => {
     const { request, collection, collectionUid } = session;
+
+    if (!request.script?.afterCallEnd?.trim().length) return;
+
     const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
 
     let scriptResult = null;
     let scriptError = null;
 
     try {
-      scriptResult = await scriptRuntime.runGrpcResponseScript(
-        decomment(request.script.afterCallEnd, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcResponseScript({
+        script: decomment(request.script.afterCallEnd, { space: true }),
         request,
-        buildCallResult(session),
-        session.envVars,
-        session.runtimeVariables,
-        collection.pathname,
+        response: buildCallResult(session),
+        envVariables: session.envVars,
+        runtimeVariables: session.runtimeVariables,
+        collectionPath: collection.pathname,
         onConsoleLog,
-        session.processEnvVars,
-        session.scriptingConfig,
-        collection.name,
-        { sentMessages: buildSentMessages(session) }
-      );
+        processEnvVars: session.processEnvVars,
+        scriptingConfig: session.scriptingConfig,
+        collectionName: collection.name,
+        sentMessages: buildSentMessages(session)
+      });
     } catch (error) {
       scriptError = error;
       scriptResult = error.partialResults ?? null;
@@ -275,14 +311,134 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
         collectionPath: collection.pathname
       });
     }
+  };
 
-    closeSessionIfCurrent(session);
+  /**
+   * @param {object} params
+   * @param {string} params.requestId
+   * @param {*} params.data - The message payload about to be transmitted
+   */
+  const runBeforeMessageSend = ({ requestId, data }) => {
+    const session = callSessions.get(requestId);
+    const hookScript = get(session, 'request.script.beforeMessageSend');
+    if (!hookScript?.trim().length) return Promise.resolve();
+
+    return enqueueHook(session, async () => {
+      const { request, collection, collectionUid } = session;
+      const messageIndex = session.sentCount++;
+      const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
+
+      let scriptResult = null;
+      let scriptError = null;
+
+      try {
+        scriptResult = await scriptRuntime.runGrpcBeforeMessageSendScript({
+          script: decomment(hookScript, { space: true }),
+          request,
+          message: { data, timestamp: Date.now() },
+          envVariables: session.envVars,
+          runtimeVariables: session.runtimeVariables,
+          collectionPath: collection.pathname,
+          onConsoleLog,
+          processEnvVars: session.processEnvVars,
+          scriptingConfig: session.scriptingConfig,
+          collectionName: collection.name,
+          sentMessages: session.sentMessages
+        });
+      } catch (error) {
+        scriptError = error;
+        scriptResult = error.partialResults ?? null;
+      }
+
+      if (scriptResult) {
+        applyScriptResult({
+          scriptResult,
+          request,
+          collection,
+          collectionUid,
+          scriptType: SCRIPT_TYPES.BEFORE_MESSAGE_SEND,
+          messageIndex
+        });
+      }
+
+      if (scriptError) {
+        emitScriptError({
+          requestId: session.requestId,
+          collectionUid,
+          scriptType: SCRIPT_TYPES.BEFORE_MESSAGE_SEND,
+          error: scriptError,
+          scriptMetadata: request.script?.beforeMessageSendMetadata,
+          collectionPath: collection.pathname,
+          messageIndex
+        });
+        // Marked so the IPC handlers can answer `{ success: false }`
+        scriptError.isGrpcScriptError = true;
+        throw scriptError;
+      }
+    });
+  };
+
+  // Unlike `beforeMessageSend`, this one does not rethrow: the message has already been delivered
+  // and forwarded to the renderer, so there is nothing left to abort. Errors are surfaced through
+  // `grpc:script-error` and the call carries on with the remaining messages.
+  const runAfterMessageReceive = (session, message) => {
+    const messageIndex = session.receivedCount++;
+    const { request, collection, collectionUid } = session;
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
+
+    return (async () => {
+      let scriptResult = null;
+      let scriptError = null;
+
+      try {
+        scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
+          script: decomment(request.script.afterMessageReceive, { space: true }),
+          request,
+          response: buildPartialCallResult(session),
+          message,
+          envVariables: session.envVars,
+          runtimeVariables: session.runtimeVariables,
+          collectionPath: collection.pathname,
+          onConsoleLog,
+          processEnvVars: session.processEnvVars,
+          scriptingConfig: session.scriptingConfig,
+          collectionName: collection.name,
+          sentMessages: buildSentMessages(session)
+        });
+      } catch (error) {
+        scriptError = error;
+        scriptResult = error.partialResults ?? null;
+      }
+
+      if (scriptResult) {
+        applyScriptResult({
+          scriptResult,
+          request,
+          collection,
+          collectionUid,
+          scriptType: SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE,
+          messageIndex
+        });
+      }
+
+      if (scriptError) {
+        emitScriptError({
+          requestId: session.requestId,
+          collectionUid,
+          scriptType: SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE,
+          error: scriptError,
+          scriptMetadata: request.script?.afterMessageReceiveMetadata,
+          collectionPath: collection.pathname,
+          messageIndex
+        });
+      }
+    })();
   };
 
   // Arms the aggregator for a call. Must run before the connection opens.
   const openCallSession = ({ request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig }) => {
-    // A request with no `afterCallEnd` gets no session
-    if (!get(request, 'script.afterCallEnd')?.trim().length) return;
+    // A request with none of the hooks that read from the session gets no session
+    if (!hasSessionHook(request)) return;
 
     callSessions.set(request.uid, {
       requestId: request.uid,
@@ -300,12 +456,17 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
       trailers: undefined,
       statusCode: undefined,
       statusText: undefined,
-      terminated: false
+      terminated: false,
+      hookQueue: Promise.resolve(),
+      sentCount: 0,
+      receivedCount: 0
     });
   };
 
   // Wraps the GrpcClient event callback. Forwards to the renderer first
   const interceptGrpcEvent = (eventName, ...args) => {
+    // If AfterMessageReceive transforms the received message then the ordering has to change,
+    // since a message is already transferred to response pane before transformation
     sendEvent(eventName, ...args);
 
     if (!CALL_EVENTS.has(eventName)) return;
@@ -316,21 +477,42 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
     applyEventToSession(session, eventName, payload);
 
+    if (
+      eventName === 'grpc:response'
+      && payload?.res !== undefined
+      && !payload?.error
+      && session.request.script?.afterMessageReceive?.trim().length
+    ) {
+      const received = session.messages[session.messages.length - 1];
+      enqueueHook(session, () => runAfterMessageReceive(session, received))
+        .catch((error) => {
+          console.error('Error running gRPC afterMessageReceive hook:', error);
+        });
+    }
+
     if (!TERMINAL_EVENTS.includes(eventName) || session.terminated) return;
 
     session.terminated = true;
     // A server stream emits both `end` and `status`. Hence running 'afterCallEnd' after a tick to get trailers and status code.
     setImmediate(() => {
-      runAfterCallEnd(session).catch((error) => {
-        console.error('Error running gRPC afterCallEnd hook:', error);
-        closeSessionIfCurrent(session);
-      });
+      enqueueHook(session, () => runAfterCallEnd(session))
+        .catch((error) => {
+          console.error('Error running gRPC afterCallEnd hook:', error);
+        })
+        .finally(() => closeSessionIfCurrent(session));
     });
   };
 
   const closeAllCallSessions = () => callSessions.clear();
 
-  return { runBeforeCallStart, openCallSession, closeCallSession, interceptGrpcEvent, closeAllCallSessions };
+  return {
+    runBeforeCallStart,
+    runBeforeMessageSend,
+    openCallSession,
+    closeCallSession,
+    interceptGrpcEvent,
+    closeAllCallSessions
+  };
 };
 
 module.exports = { createGrpcScriptOrchestration };
