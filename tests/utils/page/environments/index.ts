@@ -22,6 +22,8 @@ const varRowByName = (page: Page, name: string) =>
 
 // CodeMirror builds its own DOM inside the editor's testid wrapper, so its classes are
 // the only handle on a cell's value — everything else here is located by testid.
+const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
+
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -89,6 +91,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   createModalNameInput: () => page.getByTestId('environment-name-input'),
   createModalCreateButton: () => createEnvModal(page).getByRole('button', { name: 'Create', exact: true }),
   envNameInput: () => page.getByTestId('environment-name-input'),
+  settingsListItem: (name: string) => environmentItemLocator(page, name),
+  activatedCheckmark: (name: string) => environmentItemLocator(page, name).locator('.activated-checkmark'),
   // Variables and secrets each live on their own tab in the environment editor.
   variablesTab: () => page.getByTestId('responsive-tab-variables'),
   secretsTab: () => page.getByTestId('responsive-tab-secrets'),
@@ -144,7 +148,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
   dotEnvVarValueEditor: (name: string) =>
     page.getByTestId(`dotenv-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
   saveDotEnvButton: () => page.getByTestId('save-dotenv'),
-  resetDotEnvButton: () => page.getByTestId('reset-dotenv')
+  resetDotEnvButton: () => page.getByTestId('reset-dotenv'),
   importSubmitButton: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
