@@ -1,4 +1,5 @@
 const ReadOnlyPropertyList = require('../readonly-property-list');
+const { setMetadataKey } = require('./grpc-metadata');
 
 // Extends ReadOnlyPropertyList in dynamic mode: entries are read through the accessor (live headers) on every access.
 // Keep quickjs shim up to date on any updates to this class
@@ -164,7 +165,7 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
       delete metadata[existing];
     }
 
-    metadata[key] = value;
+    setMetadataKey(metadata, key, value);
   }
 
   /**

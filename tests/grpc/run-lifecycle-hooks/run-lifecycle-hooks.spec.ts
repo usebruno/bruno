@@ -32,7 +32,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the message carries the value the hook set', async () => {
         await sendGrpcRequest(page, 'SayHello', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('set-by-hook');
       });
 
@@ -49,7 +49,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('a following request sees the variable afterCallEnd wrote', async () => {
         await sendGrpcRequest(page, 'EchoCapturedReply', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('set-by-hook');
       });
     });
@@ -61,7 +61,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('receive the whole stream', async () => {
         await sendGrpcRequest(page, 'LotsOfReplies', 'HelloService/LotsOfReplies');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.responseItems()).toHaveCount(10);
       });
 
@@ -79,7 +79,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the hook counted all ten messages', async () => {
         await sendGrpcRequest(page, 'EchoReplyCount', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('replies-10');
       });
     });
@@ -126,7 +126,7 @@ for (const mode of SANDBOX_MODES) {
 
       await test.step('send a request whose hooks both run tests', async () => {
         await sendGrpcRequest(page, 'HookTests', 'HelloService/SayHello');
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
       });
 
       await test.step('the tab label reports the failure, not the pass count', async () => {
@@ -181,7 +181,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('a following request sees the variable the hook set before it threw', async () => {
         await sendGrpcRequest(page, 'EchoReachedVar', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('reached-yes');
       });
     });
@@ -193,7 +193,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('the call completes', async () => {
         await sendGrpcRequest(page, 'MessageHooksUnary', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('hello unary-hooks');
       });
 
@@ -224,7 +224,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('a following request sees the variable afterMessageReceive wrote', async () => {
         await sendGrpcRequest(page, 'EchoLastReply', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('hello hello unary-hooks');
       });
     });
@@ -236,7 +236,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('receive the whole stream', async () => {
         await sendGrpcRequest(page, 'MessageHooksServerStream', 'HelloService/LotsOfReplies');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.responseItems()).toHaveCount(10);
       });
 
@@ -260,7 +260,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('a following request sees the count the receive hook accumulated', async () => {
         await sendGrpcRequest(page, 'EchoReceivedCount', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('received-10');
       });
     });
@@ -329,7 +329,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('a following request sees the variable the hook set before it threw', async () => {
         await sendGrpcRequest(page, 'EchoSendReached', 'HelloService/SayHello');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('send-yes');
       });
     });
@@ -361,7 +361,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('ending the call still reports OK', async () => {
         await locators.request.endConnectionButton().click();
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
       });
 
       await test.step('the card names the message the hook refused', async () => {
@@ -389,7 +389,7 @@ for (const mode of SANDBOX_MODES) {
       await test.step('every reply still arrives', async () => {
         await sendGrpcRequest(page, 'BrokenAfterMessageReceive', 'HelloService/LotsOfReplies');
 
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.responseItems()).toHaveCount(10);
       });
 
@@ -432,7 +432,7 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('the response arrived and is still readable behind the card', async () => {
-        await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+        await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
         await expect(locators.response.content()).toContainText('after-hook-throws');
       });
 

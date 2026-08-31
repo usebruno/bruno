@@ -20,6 +20,14 @@ import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import StatusBadge from 'ui/StatusBadge';
 
+const hasGrpcScriptError = (item) =>
+  Boolean(
+    item.beforeCallStartScriptErrorMessage
+    || item.beforeMessageSendScriptErrorMessage
+    || item.afterMessageReceiveScriptErrorMessage
+    || item.afterCallEndScriptErrorMessage
+  );
+
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -65,12 +73,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const script = getPropertyFromDraftOrRequest(item, 'request.script');
   const hasScript = GRPC_SCRIPT_KEYS.some((hook) => script?.[hook]?.trim().length > 0);
-  // keys spelled out so they stay greppable
-  const hasScriptError
-    = item.beforeCallStartScriptErrorMessage
-      || item.beforeMessageSendScriptErrorMessage
-      || item.afterMessageReceiveScriptErrorMessage
-      || item.afterCallEndScriptErrorMessage;
+  const hasScriptError = hasGrpcScriptError(item);
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),

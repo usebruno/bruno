@@ -1903,6 +1903,7 @@ const sendGrpcRequest = async (page: Page, requestName: string, method: string) 
     const locators = buildGrpcCommonLocators(page);
 
     await locators.sidebar.request(requestName).click();
+    await expect(locators.tabs.activeRequestTab()).toContainText(requestName, { timeout: 30000 });
     await expect(locators.method.dropdownTrigger()).toContainText(method, { timeout: 30000 });
     await locators.request.sendButton().click();
   });
@@ -1933,7 +1934,7 @@ const streamGrpcMessagesAndEndCall = async (
     }
 
     await locators.request.endConnectionButton().click();
-    await expect(locators.response.statusCode()).toHaveText(/0/, { timeout: 30000 });
+    await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
   });
 };
 
