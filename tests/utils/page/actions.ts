@@ -1854,32 +1854,33 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
- * Close every open request tab, discarding unsaved changes instead of saving them.
+ * Close every open request tab, discarding or saving based on the saveChanges flag.
  *
  * @param page - The page object
  * @returns void
  */
-const closeAllTabsDiscardingChanges = async (page: Page) => {
-  await test.step('Close all tabs, discarding changes', async () => {
+const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
+  await test.step(`Close all tabs, ${saveChanges ? 'saving' : 'discarding'} changes`, async () => {
     const locators = buildCommonLocators(page);
-    const requestTabs = locators.tabs.closableTabs();
+    const closableTabs = locators.tabs.closableTabs();
     const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
+    const resolveButton = saveChanges
+      ? confirmClose.getByRole('button', { name: /^Save( All)?$/ })
+      : confirmClose.getByRole('button', { name: 'Don\'t Save' });
 
-    for (let remaining = await requestTabs.count(); remaining > 0; remaining--) {
-      const tab = requestTabs.first();
+    const pressCloseAllTabs = async () => {
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('ControlOrMeta+Shift+W');
+    };
 
-      await tab.hover();
-      await locators.tabs.closeTabIcon(tab).click({ force: true });
+    await pressCloseAllTabs();
 
-      await expect(async () => {
-        if (await confirmClose.isVisible()) {
-          await confirmClose.getByRole('button', { name: 'Don\'t Save' }).click();
-        }
-        await expect(requestTabs).toHaveCount(remaining - 1, { timeout: 1000 });
-      }).toPass({ timeout: 15000 });
-    }
-
-    await expect(requestTabs).toHaveCount(0);
+    await expect(async () => {
+      if (await confirmClose.isVisible()) {
+        await resolveButton.click();
+      }
+      await expect(closableTabs).toHaveCount(0, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -3087,7 +3088,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
-  closeAllTabsDiscardingChanges,
+  closeAllOpenTabs,
   switchToOpenTab,
   createWorkspace,
   switchWorkspace,
