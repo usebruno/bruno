@@ -6,6 +6,7 @@ export * from './runner';
 export * from './locators';
 export * from './websocket';
 export * from './sidebar';
+export * from './response-example';
 export * from './mounting';
 export * from './collection/migrate-to-yml';
 export * from './preferences';

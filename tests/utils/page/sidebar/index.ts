@@ -12,6 +12,10 @@ export const buildSidebarLocators = (page: Page) => {
 
   const collectionScope = (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`);
 
+  // A request's CollectionItem wrapper holds both its own row and its expanded example
+  // rows, so it is the scope that ties examples to the request they belong to.
+  const requestWrapper = (requestName: string) => itemRow(requestName).locator('..');
+
   return {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
@@ -48,6 +52,11 @@ export const buildSidebarLocators = (page: Page) => {
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
+    // Example rows scoped to one request, in sidebar (DOM) order.
+    exampleRowsIn: (requestName: string) =>
+      requestWrapper(requestName).getByTestId('sidebar-response-example-item'),
+    exampleRowIn: (requestName: string, exampleName: string) =>
+      requestWrapper(requestName).getByTestId('sidebar-response-example-item').filter({ hasText: exampleName }),
     collectionScope,
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),

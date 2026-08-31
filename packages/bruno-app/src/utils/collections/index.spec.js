@@ -9,7 +9,9 @@ import {
   getGlobalEnvironmentVariablesMasked,
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
-  getEnvironmentVariables
+  getEnvironmentVariables,
+  determineExampleDrop,
+  getReorderedExampleUids
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -387,5 +389,80 @@ describe('resolveEnabledVariable — precedence matches getEnvironmentVariables 
     const variables = [{ uid: 'u1', name: 'x', value: 'off', enabled: false }];
 
     expect(resolveEnabledVariable(variables, 'x')).toBeUndefined();
+  });
+});
+
+describe('determineExampleDrop', () => {
+  // A 20px-tall example row starting at y=100, so the midpoint sits at y=110.
+  const hoverBoundingRect = { top: 100, height: 20 };
+
+  it('returns above when the cursor is in the upper half of the row', () => {
+    expect(determineExampleDrop({ hoverBoundingRect, clientOffset: { y: 104 } })).toBe('above');
+  });
+
+  it('returns below when the cursor is in the lower half of the row', () => {
+    expect(determineExampleDrop({ hoverBoundingRect, clientOffset: { y: 116 } })).toBe('below');
+  });
+
+  it('returns below exactly at the midpoint', () => {
+    // Ties go to below so the boundary is deterministic rather than dependent on rounding.
+    expect(determineExampleDrop({ hoverBoundingRect, clientOffset: { y: 110 } })).toBe('below');
+  });
+
+  it('returns null when the row geometry is unavailable', () => {
+    // react-dnd hands us a null ref on the first hover event after a re-render.
+    expect(determineExampleDrop({ hoverBoundingRect: null, clientOffset: { y: 104 } })).toBeNull();
+  });
+
+  it('returns null when the cursor offset is unavailable', () => {
+    expect(determineExampleDrop({ hoverBoundingRect, clientOffset: null })).toBeNull();
+  });
+});
+
+describe('getReorderedExampleUids', () => {
+  const examples = [{ uid: 'ex-1' }, { uid: 'ex-2' }, { uid: 'ex-3' }];
+
+  const reorder = (draggedExampleUid, targetExampleUid, dropType) =>
+    getReorderedExampleUids({ examples, draggedExampleUid, targetExampleUid, dropType });
+
+  it('places the dragged uid before the target', () => {
+    expect(reorder('ex-3', 'ex-1', 'above')).toEqual(['ex-3', 'ex-1', 'ex-2']);
+  });
+
+  it('places the dragged uid after the target', () => {
+    expect(reorder('ex-1', 'ex-3', 'below')).toEqual(['ex-2', 'ex-3', 'ex-1']);
+  });
+
+  it('resolves the target index after removing the dragged uid', () => {
+    // Without removing first, 'above ex-3' would land at index 2 instead of 1.
+    expect(reorder('ex-1', 'ex-3', 'above')).toEqual(['ex-2', 'ex-1', 'ex-3']);
+  });
+
+  it('returns null when dropped on itself', () => {
+    expect(reorder('ex-2', 'ex-2', 'above')).toBeNull();
+  });
+
+  it('returns null when dropping above the immediate successor leaves the order intact', () => {
+    expect(reorder('ex-2', 'ex-3', 'above')).toBeNull();
+  });
+
+  it('returns null when dropping below the immediate predecessor leaves the order intact', () => {
+    expect(reorder('ex-2', 'ex-1', 'below')).toBeNull();
+  });
+
+  it('returns null when the dragged example is not in the list', () => {
+    expect(reorder('ex-elsewhere', 'ex-1', 'above')).toBeNull();
+  });
+
+  it('returns null when the target example is not in the list', () => {
+    expect(reorder('ex-1', 'ex-elsewhere', 'above')).toBeNull();
+  });
+
+  it('returns null for an empty example list', () => {
+    expect(getReorderedExampleUids({ examples: [], draggedExampleUid: 'ex-1', targetExampleUid: 'ex-2', dropType: 'above' })).toBeNull();
+  });
+
+  it('returns null when there are no examples at all', () => {
+    expect(getReorderedExampleUids({ draggedExampleUid: 'ex-1', targetExampleUid: 'ex-2', dropType: 'above' })).toBeNull();
   });
 });

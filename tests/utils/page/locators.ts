@@ -7,6 +7,7 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
+import { buildResponseExampleLocators } from './response-example';
 import { buildDocsLocators } from './docs';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -46,6 +47,7 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  responseExample: buildResponseExampleLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
