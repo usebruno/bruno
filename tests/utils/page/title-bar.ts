@@ -5,7 +5,8 @@ export const buildTitleBarLocators = (page: Page) => ({
   activeWorkspaceName: () => page.getByTestId('workspace-name'),
   createWorkspaceOption: () => page.getByTestId('workspace-menu-create-workspace'),
   openWorkspaceOption: () => page.getByTestId('workspace-menu-open-workspace'),
-  importWorkspaceOption: () => page.getByTestId('workspace-menu-import-workspace')
+  importWorkspaceOption: () => page.getByTestId('workspace-menu-import-workspace'),
+  manageWorkspacesOption: () => page.getByTestId('workspace-menu-manage-workspaces')
 });
 
 export const clickImportWorkspace = async (page: Page) => {
