@@ -97,11 +97,11 @@ const applyEditorProfile = (
   editor.setOption('matchBrackets', !degraded);
   editor.setOption('foldGutter', !degraded);
   editor.setOption('gutters', degraded ? [] : NORMAL_GUTTERS);
-  editor.setOption('brunoVarInfo', degraded ? false : {
+  editor.setOption('brunoVarInfo', !degraded && props.enableBrunoVarInfo !== false ? {
     variables,
     collection: props.collection,
     item: props.item
-  });
+  } : false);
   editor.setOption('mode', degraded ? null : (props.mode || 'application/ld+json'));
 
   if (degraded) {
