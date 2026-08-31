@@ -176,8 +176,8 @@ const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
   const scopeSetter = scopeInfo
     ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
     : '';
-  const dirnameParam = JSON.stringify(sourcePaths?.dirname ?? null);
-  const filenameParam = JSON.stringify(sourcePaths?.filename ?? null);
+  const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
+  const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
   return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
@@ -307,10 +307,12 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   const requestItem = requestTreePath?.[requestTreePath.length - 1];
   const requestPathname = request?.pathname || requestItem?.pathname;
-  const requestSegmentSource = requestPathname && collection?.pathname
+  const requestSegmentSource = requestPathname
     ? {
-        displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)),
-        filePath: requestPathname
+        filePath: requestPathname,
+        ...(collection?.pathname
+          ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+          : {})
       }
     : null;
 

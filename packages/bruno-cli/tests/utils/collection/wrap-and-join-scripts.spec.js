@@ -42,19 +42,19 @@ describe('CLI wrapAndJoinScripts: hierarchical __dirname/__filename', () => {
     expect(withPaths.metadata.requestEndLine).toBe(withoutPaths.metadata.requestEndLine);
   });
 
-  test('falls back to collection dir for __dirname and null __filename when a segment has no filePath', () => {
+  test('falls back to collection dir for __dirname and leaves __filename undefined when a segment has no filePath', () => {
     const result = wrapAndJoinScripts(
       ['', '', 'console.log("hi");'],
       2,
       { collectionPath: colDir }
     );
     expect(result.code).toContain('async (__dirname, __filename) => {');
-    expect(result.code).toContain(`)(${JSON.stringify(colDir)}, null);`);
+    expect(result.code).toContain(`)(${JSON.stringify(colDir)}, undefined);`);
   });
 
-  test('emits null when neither filePath nor collectionPath is provided', () => {
+  test('binds both __dirname and __filename to undefined when neither filePath nor collectionPath is provided', () => {
     const result = wrapAndJoinScripts(['', '', 'console.log("hi");'], 2);
     expect(result.code).toContain('async (__dirname, __filename) => {');
-    expect(result.code).toContain(')(null, null);');
+    expect(result.code).toContain(')(undefined, undefined);');
   });
 });

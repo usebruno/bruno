@@ -1,8 +1,9 @@
-import { test } from '../../../../playwright';
+import { expect, test } from '../../../../playwright';
 import { openCollection, selectEnvironment } from '../../../utils/page';
-import { runCollection, setSandboxMode, validateRunnerResults } from '../../../utils/page/runner';
+import { buildRunnerLocators, runCollection, setSandboxMode, validateRunnerResults } from '../../../utils/page/runner';
 
 const COLLECTION = 'dirname-filename-test';
+const EXPECTED_PASSING_TESTS = 8;
 
 test.describe('__dirname / __filename in scripts', () => {
   for (const mode of ['developer', 'safe'] as const) {
@@ -19,6 +20,10 @@ test.describe('__dirname / __filename in scripts', () => {
         passed: 1,
         failed: 0
       });
+
+      const { passedTestRows, failedTestRows } = buildRunnerLocators(page);
+      await expect(passedTestRows()).toHaveCount(EXPECTED_PASSING_TESTS);
+      await expect(failedTestRows()).toHaveCount(0);
     });
   }
 });

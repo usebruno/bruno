@@ -28,15 +28,12 @@ describe('CLI run: __dirname/__filename are bound per script segment', () => {
 
   afterEach(() => {
     if (workDir) {
-      fs.rmSync(workDir, { recursive: true, force: true });
+      fs.rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
       workDir = null;
     }
   });
 
-  it.each([
-    ['developer'],
-    ['safe']
-  ])('collection, parent, child, and request scripts each see their own __dirname/__filename (--sandbox %s)', async (sandbox) => {
+  it.each(['developer', 'safe'])('collection, parent, child, and request scripts each see their own __dirname/__filename (--sandbox %s)', async (sandbox) => {
     workDir = createCollectionFixture(FIXTURE_DIR);
     const result = await runCli(
       [

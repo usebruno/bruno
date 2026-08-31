@@ -234,8 +234,8 @@ const wrapScriptInClosure = (script, sourcePaths = null) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  const dirnameParam = JSON.stringify(sourcePaths?.dirname ?? null);
-  const filenameParam = JSON.stringify(sourcePaths?.filename ?? null);
+  const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
+  const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
   return `await (async (__dirname, __filename) => {
 ${script}
 })(${dirnameParam}, ${filenameParam});`;
