@@ -1,4 +1,4 @@
-import reducer, { moveResponseExample } from 'providers/ReduxStore/slices/collections';
+import reducer, { moveResponseExample, saveRequest } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
 const ITEM_UID = 'req-1';
@@ -148,6 +148,28 @@ describe('moveResponseExample', () => {
 
     expect(item(state).examples.map((e) => e.name)).toEqual(['First', 'Second', 'Third']);
     expect(item(state).draft).toBeNull();
+  });
+
+  it('keeps the reordered examples when saving clears the draft', () => {
+    // The draft is cleared the moment the save is acknowledged, well before the file watcher
+    // reports the rewritten file. Without promoting the draft's examples the store falls back
+    // to the pre-reorder order for that window.
+    const reordered = move(makeState(), 'ex-3', 'ex-1', 'above');
+
+    const saved = reducer(reordered, saveRequest({ itemUid: ITEM_UID, collectionUid: COLLECTION_UID }));
+
+    expect(item(saved).draft).toBeNull();
+    expect(item(saved).examples.map((e) => e.name)).toEqual(['Third', 'First', 'Second']);
+  });
+
+  it('resolves a second reorder against the order the previous save left behind', () => {
+    const first = move(makeState(), 'ex-3', 'ex-1', 'above');
+    const saved = reducer(first, saveRequest({ itemUid: ITEM_UID, collectionUid: COLLECTION_UID }));
+
+    // Reading a stale order here makes this drop look like a no-op and silently discards it.
+    const second = move(saved, 'ex-3', 'ex-2', 'below');
+
+    expect(exampleNames(second)).toEqual(['First', 'Second', 'Third']);
   });
 
   it('preserves example uids so the saved file keeps its position-derived uid mapping', () => {
