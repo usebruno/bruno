@@ -51,7 +51,7 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     scopedItem: function (collectionName: string, itemName: string) {
-      return this.collectionScope(collectionName).locator('.collection-item-name').filter({ hasText: itemName });
+      return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),

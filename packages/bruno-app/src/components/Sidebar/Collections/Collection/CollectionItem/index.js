@@ -287,7 +287,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
       const dropType = resolveDropFromMonitor(monitor);
       if (!dropType) return false;
 
-      return canItemBeDropped({ draggedItem, targetItem: item, dropType });
+      return canAnyItemBeDropped({ draggedItem, targetItem: item, dropType });
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),

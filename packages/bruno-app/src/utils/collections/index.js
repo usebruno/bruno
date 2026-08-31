@@ -2081,7 +2081,7 @@ export const getCollectionDrafts = (collections = []) => {
 
     const items = flattenItems(c.items);
 
-    const requests = items?.filter((item) => isItemARequest(item) && hasRequestChanges(item)) || [];
+    const requests = items?.filter((item) => isItemARequest(item) && (item.isTransient || hasRequestChanges(item))) || [];
     requests.forEach((req) => {
       const enhancedReq = { ...req, collectionUid: c.uid };
       if (req.isTransient) {

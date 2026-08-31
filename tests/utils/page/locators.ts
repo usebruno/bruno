@@ -61,7 +61,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   dropdown: {
     item: (text: string, exact?: boolean) => exact
-      ? page.locator('.dropdown-item').filter({ hasText: new RegExp(`^\\s*${text}\\s*$`) })
+      ? page.locator('.dropdown-item').filter({ hasText: new RegExp(`^\\s*${text.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*$`) })
       : page.locator('.dropdown-item').filter({ hasText: text }),
     tippyItem: (text: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: text })
   },

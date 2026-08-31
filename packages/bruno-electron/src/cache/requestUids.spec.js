@@ -1,8 +1,9 @@
 const path = require('node:path');
+const os = require('node:os');
 const { getRequestUid, moveRequestUid, deleteRequestUid, clearRequestUidsForCollection } = require('./requestUids');
 
 describe('requestUids cache', () => {
-  const collectionRoot = path.resolve('/tmp/requestUids-spec-collection');
+  const collectionRoot = path.join(os.tmpdir(), 'requestUids-spec-collection');
 
   afterEach(() => {
     clearRequestUidsForCollection(collectionRoot);
