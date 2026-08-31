@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
   .actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
     margin-bottom: 16px;
     width: 100%;
@@ -17,111 +17,50 @@ const StyledWrapper = styled.div`
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    width: 100%;
   }
 
-  .search-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    margin-top: 10px;
-    padding: 8px 10px;
-    border: 1px solid ${(props) => props.theme.table.border};
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    background: ${(props) => props.theme.input?.bg || 'transparent'};
-
-    input {
-      width: 100%;
-      border: none;
-      background: transparent;
-      color: inherit;
-      font-size: 13px;
-
-      &:focus {
-        outline: none;
-      }
-    }
-  }
-
-  .create-panel {
-    flex: 0 0 auto;
-    width: auto;
-  }
-
-  .create-panel.expanded {
-    flex: 1 1 100%;
-    width: 100%;
-  }
-
-  .response-list {
-    width: 100%;
-    border: 1px solid ${(props) => props.theme.table.border};
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    overflow: hidden;
-  }
-
-  .response-item {
-    width: 100%;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    text-align: left;
-    padding: 12px 12px 12px 16px;
-    border-bottom: 1px solid ${(props) => props.theme.table.border};
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      background: ${(props) => props.theme.bg.hover || props.theme.sidebar.collection.item.hoverBg};
-
-      .response-item-copy,
-      .response-item-delete {
-        opacity: 1;
-      }
-    }
-  }
-
-  .response-item-body {
+  .response-search {
     flex: 1;
-    min-width: 0;
-  }
-
-  .response-item-copy,
-  .response-item-delete {
-    flex-shrink: 0;
-    opacity: 0.55;
-    margin-top: 2px;
-    transition: opacity 0.15s;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
-  .response-item-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+    min-width: 220px;
+    margin-left: auto;
   }
 
   .response-item-icon {
-    color: ${(props) => props.theme.requestTabs?.special?.iconColor || props.theme.text};
-    flex-shrink: 0;
-    opacity: 0.85;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .response-item-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.input.focusBorder};
+      outline-offset: -2px;
+      border-radius: ${(props) => props.theme.border.radius.sm};
+    }
   }
 
   .response-item-name {
     font-weight: 500;
-    font-size: 0.875rem;
-    min-width: 0;
+    font-size: ${(props) => props.theme.font.size.base};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .response-item-endpoint,
+  .response-item-rules {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 `;
 

@@ -29,13 +29,16 @@ const readFile = (file) => {
     fileReader.onload = (e) => {
       try {
         const parsed = JSON.parse(e.target.result);
-        resolve({ fileName: file.name, content: parsed });
+        if (parsed === null || typeof parsed !== 'object') {
+          reject(new BrunoError(`Unable to parse JSON file: ${file.name}`));
+          return;
+        }
+        resolve({ fileName: file.name, filePath: file.path || file.webkitRelativePath || '', content: parsed });
       } catch (err) {
-        console.error(err);
         reject(new BrunoError(`Unable to parse JSON file: ${file.name}`));
       }
     };
-    fileReader.onerror = (err) => reject(err);
+    fileReader.onerror = () => reject(new BrunoError(`Unable to read file: ${file.name}`));
     fileReader.readAsText(file);
   });
 };
@@ -46,19 +49,21 @@ export const readMultipleFiles = async (files) => {
   }
 
   const parsedFiles = [];
+  const invalidFiles = [];
 
   for (const file of files) {
     if (!file.name.toLowerCase().endsWith('.json')) {
-      throw new BrunoError(`Invalid file type: ${file.name}. Only JSON files are supported.`);
+      invalidFiles.push({ fileName: file.name, error: 'Only JSON files are supported' });
+      continue;
     }
 
     try {
       const parsedFile = await readFile(file);
       parsedFiles.push(parsedFile);
     } catch (err) {
-      throw new BrunoError(`Failed to read ${file.name}: ${err.message}`);
+      invalidFiles.push({ fileName: file.name, error: err.message });
     }
   }
 
-  return parsedFiles;
+  return { parsedFiles, invalidFiles };
 };

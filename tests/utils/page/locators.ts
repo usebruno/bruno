@@ -15,11 +15,23 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildDevToolsLocators } from './devtools-console';
+import { buildVariablesTabLocators } from './variables-tab';
+import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+
+export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
+  popup.getByTestId('var-info-add-to-no-env-note')
+    .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
+  devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
@@ -34,9 +46,11 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
+  variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -58,15 +72,19 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
-    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
+    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
-    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
+    collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
   aiAssist: {
@@ -80,6 +98,9 @@ export const buildCommonLocators = (page: Page) => ({
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
   modal: {
+    any: () => page.locator('.bruno-modal'),
+    formError: (text: string | RegExp) =>
+      page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
@@ -107,7 +128,11 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
+    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
+    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
+    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
+    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
@@ -136,7 +161,22 @@ export const buildCommonLocators = (page: Page) => ({
     warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
     // The editor container itself (hidden until the value display is clicked).
     editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
-    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror')
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror'),
+    // The "Add to" switcher, shown in place of an editable value for undefined variables.
+    addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
+    addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
+    addToActiveOption: (popup: Locator, scopeType?: string) => {
+      const activeRow = popup.locator('.var-add-to-option-active');
+      return scopeType ? activeRow.getByTestId(`var-info-add-to-option-${scopeType}`) : activeRow;
+    },
+    addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
+    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
+    addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
+      addToNoEnvNoteLocator(popup, scopeType).getByTestId('var-info-add-to-create-env-button'),
+    addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
+    addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
+    addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
   auth: {
     apiKey: {
@@ -154,7 +194,7 @@ export const buildCommonLocators = (page: Page) => ({
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {
-    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+    requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
     saveBtn: () => page.getByTestId('presets-save-btn'),
@@ -193,13 +233,22 @@ export const buildCommonLocators = (page: Page) => ({
         .locator('.bruno-modal')
         .getByTestId('env-row')
         .filter({ has: page.getByText(name, { exact: true }) })
-        .getByRole('checkbox')
+        .getByRole('checkbox'),
+    advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
+    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    status: () => page.getByTestId('response-pane-status'),
+    elapsedTime: () => page.getByTestId('response-elapsed-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
@@ -214,6 +263,11 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    xmlTree: () => page.getByTestId('xml-tree'),
+    // Only the XML tree's expand/collapse buttons carry aria-expanded, so this matches
+    // every still-collapsed node regardless of depth.
+    xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
+    previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
@@ -233,10 +287,14 @@ export const buildCommonLocators = (page: Page) => ({
     container: () => page.getByTestId('timeline-container'),
     entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container')
+    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+    headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+    headerValue: (item: Locator, name: string) =>
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
+    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
@@ -299,14 +357,29 @@ export const buildCommonLocators = (page: Page) => ({
         return row.getByTestId(`column-${columnKey}`);
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowCheckboxByName: (name: string) =>
+        container().locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
-      allRows: () => container().locator('tbody tr')
+      allRows: () => container().locator('tbody tr'),
+      rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
+      rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
     };
   },
   /**
    * Assertions table locators (extends generic table with assertion-specific helpers)
    * @returns Assertions table locators object
    */
+  /**
+   * @param scope - Which panel to target
+   * @returns Panel locators object
+   */
+  varsPanel: (scope: 'folder' | 'collection') => {
+    const container = () => page.getByTestId(`${scope}-vars-panel`);
+    return {
+      container,
+      saveButton: () => container().getByRole('button', { name: 'Save', exact: true })
+    };
+  },
   assertionsTable: () => {
     const baseTable = buildCommonLocators(page).table('assertions-table');
     return {
@@ -326,6 +399,11 @@ export const buildCommonLocators = (page: Page) => ({
   }
 });
 
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
+  });
+
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
@@ -342,6 +420,7 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    messages: () => page.getByTestId('grpc-messages-container').locator('.message-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
     regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),

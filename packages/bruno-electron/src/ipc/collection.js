@@ -26,13 +26,20 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
   DEFAULT_GITIGNORE,
   writeFile,
+  writeFileUnique,
+  mkdirUnique,
+  getUniqueRenamePath,
+  getUniqueTargetPath,
+  copyPathTo,
+  canonicalPath,
+  withDirLock,
   hasBruExtension,
   isDirectory,
   createDirectory,
@@ -47,7 +54,6 @@ const {
   getCollectionStats,
   sizeInMB,
   safeWriteFileSync,
-  copyPath,
   removePath,
   moveCollectionDirectory,
   getPaths,
@@ -196,20 +202,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       try {
         const format = options.format || DEFAULT_COLLECTION_FORMAT;
         collectionFolderName = sanitizeName(collectionFolderName);
-        const dirPath = path.join(collectionLocation, collectionFolderName);
-        if (fs.existsSync(dirPath)) {
-          const files = fs.readdirSync(dirPath);
 
-          if (files.length > 0) {
-            throw new Error(`collection: ${dirPath} already exists and is not empty`);
+        if (!validateName(collectionFolderName)) {
+          throw new Error(utils.validateNameError(collectionFolderName));
+        }
+
+        // Reuse an existing empty directory; suffix the name if it's non-empty.
+        // Create it when the directory doesn't exist.
+        const desiredPath = path.join(collectionLocation, collectionFolderName);
+        let dirPath;
+        if (fs.existsSync(desiredPath)) {
+          const isEmpty = fs.readdirSync(desiredPath).length === 0;
+          if (isEmpty) {
+            dirPath = desiredPath;
+          } else {
+            ({ pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName));
           }
-        }
-
-        if (!validateName(path.basename(dirPath))) {
-          throw new Error(`collection: invalid pathname - ${dirPath}`);
-        }
-
-        if (!fs.existsSync(dirPath)) {
+        } else {
+          dirPath = desiredPath;
           await createDirectory(dirPath);
         }
 
@@ -263,17 +273,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
       collectionFolderName = sanitizeName(collectionFolderName);
-      const dirPath = path.join(collectionLocation, collectionFolderName);
-      if (fs.existsSync(dirPath)) {
-        throw new Error(`collection: ${dirPath} already exists`);
+
+      if (!validateName(collectionFolderName)) {
+        throw new Error(utils.validateNameError(collectionFolderName));
       }
 
-      if (!validateName(path.basename(dirPath))) {
-        throw new Error(`collection: invalid pathname - ${dirPath}`);
-      }
-
-      // create dir
-      await createDirectory(dirPath);
+      // resolve name collisions silently with a numeric suffix.
+      const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
       let brunoConfig;
@@ -329,6 +335,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
+
+      return { pathname: dirPath, name: path.basename(dirPath) };
     }
   );
 
@@ -362,9 +370,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // tear down the old watcher before moving the collection directory
       if (watcher && mainWindow) {
         watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-        if (wsClient) {
-          wsClient.closeForCollection(collectionUid);
-        }
+        getWsClient()?.closeForCollection(collectionUid);
       }
 
       // move the collection directory into the workspace
@@ -538,10 +544,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
-      if (fs.existsSync(pathname)) {
-        throw new Error(`path: ${pathname} already exists`);
-      }
-
       const collectionPath = findCollectionPathByItemPath(pathname);
       if (!collectionPath) {
         throw new Error('Collection not found for the given pathname');
@@ -556,7 +558,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       validatePathIsInsideCollection(pathname);
 
       const content = await stringifyRequestViaWorker(request, { format });
-      await writeFile(pathname, content);
+      // Resolve filename collisions silently and atomically (race-safe).
+      // Returns the path actually created so the renderer can target the right tab.
+      const { pathname: createdPathname, filename } = await writeFileUnique(
+        path.dirname(pathname),
+        baseFilename,
+        format,
+        content
+      );
+      return { pathname: createdPathname, filename };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -601,11 +611,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      const finalFilename = `${filenameWithoutExt}.${targetFormat}`;
-      const targetPathname = path.join(targetDirname, finalFilename);
 
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
+      if (!validateName(filenameWithoutExt)) {
+        throw new Error(`${filenameWithoutExt} is not a valid filename`);
       }
 
       const actualSourceFormat = sourceFormat || 'yml';
@@ -624,7 +632,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         finalContent = await stringifyRequestViaWorker(request, { format: targetFormat });
       }
 
-      await writeFile(targetPathname, finalContent);
+      // Resolve collisions silently with a numeric suffix instead of erroring.
+      const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetFormat, finalContent);
       return { newPathname: targetPathname };
     } catch (error) {
       return Promise.reject(error);
@@ -634,7 +643,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
-      for (let r of requestsToSave) {
+      for (const r of requestsToSave) {
         const request = r.item;
         const pathname = r.pathname;
 
@@ -1100,11 +1109,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`path: ${oldPath} does not exist`);
       }
 
-      if (!safeToRename(oldPath, newPath)) {
-        throw new Error(`path: ${newPath} already exists`);
-      }
-
       const format = getCollectionFormat(collectionPathname);
+
+      if (!validateName(newFilename)) {
+        throw new Error(`${newFilename} is not a valid filename`);
+      }
+      const derivedFilename = isDirectory(oldPath) ? newFilename : `${newFilename}.${format}`;
+      newPath = getUniqueRenamePath(oldPath, path.join(path.dirname(oldPath), derivedFilename));
 
       if (isDirectory(oldPath)) {
         const folderFilePath = path.join(oldPath, `folder.${format}`);
@@ -1126,10 +1137,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
-        for (let requestFile of requestFilesAtSource) {
+        for (const requestFile of requestFilesAtSource) {
           const newRequestFilePath = requestFile.replace(oldPath, newPath);
           moveRequestUid(requestFile, newRequestFilePath);
         }
+        // Preserve the folder's uid across the rename. Otherwise, the watcher's
+        // addDir event creates a new uid for the renamed path, resulting in a
+        // duplicate folder in the sidebar. This is especially relevant for
+        // case-only renames on case-insensitive filesystems.
+        moveRequestUid(oldPath, newPath);
 
         /**
          * If it is windows OS
@@ -1154,10 +1170,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       if (!hasRequestExtension(oldPath, format)) {
         throw new Error(`path: ${oldPath} is not a valid request file`);
-      }
-
-      if (!validateName(newFilename)) {
-        throw new Error(`path: ${newFilename} is not a valid filename`);
       }
 
       // update name in file and save new copy, then delete old copy
@@ -1192,18 +1204,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, { pathname, folderData, format }) => {
     const resolvedFolderName = sanitizeName(path.basename(pathname));
-    pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       validatePathIsInsideCollection(pathname);
 
-      if (!fs.existsSync(pathname)) {
-        fs.mkdirSync(pathname);
-        const folderFilePath = path.join(pathname, `folder.${format}`);
-        const content = await stringifyFolder(folderData, { format });
-        await writeFile(folderFilePath, content);
-      } else {
-        return Promise.reject(new Error('The directory already exists'));
+      // Validate the IPC boundary too. an empty or reserved name must be rejected,
+      if (!validateName(resolvedFolderName)) {
+        throw new Error(utils.validateNameError(resolvedFolderName));
       }
+
+      const { pathname: createdPath } = await mkdirUnique(path.dirname(pathname), resolvedFolderName);
+
+      const folderFilePath = path.join(createdPath, `folder.${format}`);
+      const content = await stringifyFolder(folderData, { format });
+      await writeFile(folderFilePath, content);
+      return { pathname: createdPath, name: path.basename(createdPath) };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1221,7 +1235,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // delete the request uid mappings
         const requestFilesAtSource = await searchForRequestFiles(pathname, collectionPathname);
-        for (let requestFile of requestFilesAtSource) {
+        for (const requestFile of requestFilesAtSource) {
           deleteRequestUid(requestFile);
         }
 
@@ -1321,10 +1335,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath) => {
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-
-      if (wsClient) {
-        wsClient.closeForCollection(collectionUid);
-      }
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
@@ -1352,12 +1362,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
     const format = options.format || DEFAULT_COLLECTION_FORMAT;
     const rawOpenAPISpec = options.rawOpenAPISpec;
-    let collections = Array.isArray(collection) ? collection : [collection];
+    const collections = Array.isArray(collection) ? collection : [collection];
     let completedImports = 0;
     let failedImports = 0;
-    let successfulImports = [];
+    const successfulImports = [];
 
-    for (let coll of collections) {
+    for (const coll of collections) {
       try {
         // Sending a "started" and "ended" event to renderer to start and stop the spinner.
         mainWindow.webContents.send('main:collection-import-started', coll.uid);
@@ -1388,13 +1398,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
             }
             if (item.type === 'folder') {
-              let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+              const sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
               fs.mkdirSync(folderPath, { recursive: true });
 
@@ -1411,7 +1421,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
             // Handle items of type 'js'
             if (item.type === 'js') {
-              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              const sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
@@ -1426,7 +1436,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           await Promise.all(environments.map(async (env) => {
             const content = await stringifyEnvironment(env, { format });
-            let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+            const sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
             safeWriteFileSync(filePath, content);
           }));
@@ -1545,27 +1555,36 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       validatePathIsInsideCollection(collectionPath);
 
-      if (fs.existsSync(collectionPath)) {
-        throw new Error(`folder: ${collectionPath} already exists`);
-      }
-
       const format = getCollectionFormat(collectionPathname);
 
-      // Recursive function to parse the folder and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach(async (item) => {
+      // Recursive function to parse the folder and create files/folders.
+      const parseCollectionItems = async (items = [], currentPath) => {
+        for (const item of items) {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
             // Use the correct file extension based on target format
             const baseName = path.parse(item.filename).name;
+
+            if (!validateName(baseName)) {
+              throw new Error(`${baseName} is not a valid filename`);
+            }
+
             const newFilename = format === 'yml' ? `${baseName}.yml` : `${baseName}.bru`;
             const filePath = path.join(currentPath, newFilename);
 
+            validatePathIsInsideCollection(filePath);
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.filename);
+            const folderName = path.basename(item.filename);
+
+            if (!validateName(folderName)) {
+              throw new Error(`${folderName} is not a valid folder name`);
+            }
+
+            const folderPath = path.join(currentPath, folderName);
+            validatePathIsInsideCollection(folderPath);
             fs.mkdirSync(folderPath);
 
             // If folder has a root element, then I should write its folder file
@@ -1579,25 +1598,29 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
 
             if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
+              await parseCollectionItems(item.items, folderPath);
             }
           }
-        });
+        }
       };
 
-      await createDirectory(collectionPath);
+      // Resolve the top-level folder name atomically; collisions get a numeric
+      // suffix instead of throwing. Children go into the freshly-created dir.
+      const { pathname: resolvedPath } = await mkdirUnique(path.dirname(collectionPath), path.basename(collectionPath));
 
       // If initial folder has a root element, then I should write its folder file
       if (itemFolder.root) {
         const folderContent = await stringifyFolder(itemFolder.root, { format });
         if (folderContent) {
-          const folderFilePath = path.join(collectionPath, `folder.${format}`);
+          const folderFilePath = path.join(resolvedPath, `folder.${format}`);
           safeWriteFileSync(folderFilePath, folderContent);
         }
       }
 
       // create folder and files based on another folder
-      await parseCollectionItems(itemFolder.items, collectionPath);
+      await parseCollectionItems(itemFolder.items, resolvedPath);
+
+      return { pathname: resolvedPath, filename: path.basename(resolvedPath) };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1607,7 +1630,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const format = getCollectionFormat(collectionPathname);
 
-      for (let item of itemsToResequence) {
+      for (const item of itemsToResequence) {
         validatePathIsInsideCollection(item.pathname);
 
         if (item?.type === 'folder') {
@@ -1678,61 +1701,78 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
-    try {
-      validatePathIsInsideCollection(sourcePathname);
-      validatePathIsInsideCollection(targetDirname);
+    validatePathIsInsideCollection(sourcePathname);
+    validatePathIsInsideCollection(targetDirname);
 
-      if (fs.existsSync(targetDirname)) {
-        const sourceDirname = path.dirname(sourcePathname);
+    // Serialize per destination dir: move is copy-then-delete (multi-step).
+    return withDirLock(targetDirname, async () => {
+      try {
+        if (!fs.existsSync(targetDirname)) {
+          throw new Error(`Target directory: ${targetDirname} does not exist`);
+        }
+
+        // No-op if the item is already in the destination directory (e.g. a
+        // same-folder drop).
+        if (canonicalPath(path.dirname(sourcePathname)) === canonicalPath(targetDirname)) {
+          return { newPathname: sourcePathname };
+        }
+
+        // Resolve a collision-free target; silently suffix instead of throwing.
+        const targetPathname = getUniqueTargetPath(sourcePathname, targetDirname);
+
         const pathnamesBefore = await getPaths(sourcePathname);
-        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourceDirname, targetDirname));
-        await copyPath(sourcePathname, targetDirname);
+        // Remap by the source→target prefix so the (possibly suffixed) basename
+        // is reflected in every nested path.
+        const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourcePathname, targetPathname));
+
+        await copyPathTo(sourcePathname, targetPathname);
         await removePath(sourcePathname);
+
         // move the request uids of the previous file/folders to the new file/folder items
         pathnamesAfter?.forEach((_, index) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
+
+        return { newPathname: targetPathname };
+      } catch (error) {
+        return Promise.reject(error);
       }
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    });
   });
 
   ipcMain.handle('renderer:move-item-cross-format', async (event, { targetDirname, sourcePathname, sourceFormat, targetFormat }) => {
-    try {
-      if (!fs.existsSync(sourcePathname)) {
-        throw new Error(`Source path: ${sourcePathname} does not exist`);
+    validatePathIsInsideCollection(sourcePathname);
+    validatePathIsInsideCollection(targetDirname);
+
+    // Serialize per destination dir: this is a write-then-delete (multi-step).
+    return withDirLock(targetDirname, async () => {
+      try {
+        if (!fs.existsSync(sourcePathname)) {
+          throw new Error('The item you are moving no longer exists.');
+        }
+        if (!fs.existsSync(targetDirname)) {
+          throw new Error('The destination folder no longer exists.');
+        }
+
+        const sourceBasename = path.basename(sourcePathname);
+        const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
+        const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
+
+        const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+        const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
+        const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
+
+        // Resolve collisions silently with a numeric suffix instead of erroring.
+        const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetExt, finalContent);
+        await removePath(sourcePathname);
+
+        moveRequestUid(sourcePathname, targetPathname);
+
+        return { newPathname: targetPathname };
+      } catch (error) {
+        return Promise.reject(error);
       }
-      if (!fs.existsSync(targetDirname)) {
-        throw new Error(`Target directory: ${targetDirname} does not exist`);
-      }
-
-      validatePathIsInsideCollection(sourcePathname);
-      validatePathIsInsideCollection(targetDirname);
-
-      const sourceBasename = path.basename(sourcePathname);
-      const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
-      const targetExt = targetFormat === 'yml' ? 'yml' : 'bru';
-      const targetFilename = `${filenameWithoutExt}.${targetExt}`;
-      const targetPathname = path.join(targetDirname, targetFilename);
-
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${targetFilename}" already exists in the target location`);
-      }
-
-      const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
-      const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
-      const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
-
-      await writeFile(targetPathname, finalContent);
-      await removePath(sourcePathname);
-
-      moveRequestUid(sourcePathname, targetPathname);
-
-      return { newPathname: targetPathname };
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    });
   });
 
   ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
@@ -1753,7 +1793,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const requestFilesAtSource = await searchForRequestFiles(folderPath);
 
-      for (let requestFile of requestFilesAtSource) {
+      for (const requestFile of requestFilesAtSource) {
         const newRequestFilePath = requestFile.replace(folderPath, newFolderPath);
         moveRequestUid(requestFile, newRequestFilePath);
       }
@@ -1941,7 +1981,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
+        const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -1969,7 +2009,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
           certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -1995,7 +2035,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
           certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -2072,7 +2112,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
+        const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -2094,7 +2134,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           globalEnvironmentVariables
         });
 
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        const { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
         return { credentials, url, collectionUid, credentialsId, debugInfo };
       }
     } catch (error) {
@@ -2128,7 +2168,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2152,7 +2192,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2178,7 +2218,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2202,7 +2242,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2382,16 +2422,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      const finalFilename = `${filenameWithoutExt}.${format}`;
-      const targetPathname = path.join(targetDirname, finalFilename);
 
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
+      if (!validateName(filenameWithoutExt)) {
+        throw new Error(`${filenameWithoutExt} is not a valid filename`);
       }
 
       const content = await stringifyRequestViaWorker(request, { format });
 
-      await writeFile(targetPathname, content);
+      const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, format, content);
 
       if (request.examples) {
         syncExampleUidsCache(collectionPath, request.examples);
@@ -2512,10 +2550,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isBruEnvironmentConfig(filePath, collectionPath)) {
               try {
-                let bruContent = fs.readFileSync(filePath, 'utf8');
+                const bruContent = fs.readFileSync(filePath, 'utf8');
                 const environmentFilepathBasename = path.basename(filePath);
                 const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
-                let data = await parseEnvironment(bruContent);
+                const data = await parseEnvironment(bruContent);
                 variables = {
                   ...variables,
                   envVariables: {
@@ -2531,8 +2569,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isCollectionRootBruFile(filePath, collectionPath)) {
               try {
-                let bruContent = fs.readFileSync(filePath, 'utf8');
-                let data = await parseCollection(bruContent);
+                const bruContent = fs.readFileSync(filePath, 'utf8');
+                const data = await parseCollection(bruContent);
                 // TODO
                 continue;
               } catch (err) {

@@ -32,7 +32,7 @@ export const buildMockResponseEditorItem = (mockResponse) => {
     description: mockResponse.description || '',
     type: 'http-request',
     request: {
-      url: extractMockResponseRoutePath(mockResponse.request?.url || '/'),
+      url: extractMockResponseRoutePath(mockResponse.request?.url || '/', { preserveTemplateVars: true }),
       method: (mockResponse.request?.method || 'GET').toUpperCase(),
       headers: cloneDeep(mockResponse.request?.headers || []),
       params: cloneDeep(mockResponse.request?.params || []),
@@ -40,7 +40,7 @@ export const buildMockResponseEditorItem = (mockResponse) => {
     },
     response: {
       status: Number(mockResponse.response?.status) || 200,
-      statusText: mockResponse.response?.statusText || 'OK',
+      statusText: mockResponse.response?.statusText || '',
       headers: cloneDeep(mockResponse.response?.headers || []),
       body: cloneDeep(mockResponse.response?.body || { type: 'json', content: '' })
     }
@@ -62,6 +62,16 @@ export const buildMockResponseEditorItem = (mockResponse) => {
   };
 };
 
+const stripConditionUids = (rules) => {
+  const cloned = cloneDeep(rules || { operator: 'AND', conditions: [] });
+
+  if (Array.isArray(cloned.conditions)) {
+    cloned.conditions = cloned.conditions.map(({ uid, ...condition }) => condition);
+  }
+
+  return cloned;
+};
+
 export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockResponse = {}) => {
   const examples = item.draft?.examples || item.examples || [];
   const example = examples.find((entry) => entry.uid === responseUid);
@@ -76,10 +86,10 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
     description: example.description || '',
     request: {
       ...cloneDeep(example.request),
-      url: extractMockResponseRoutePath(example.request?.url)
+      url: extractMockResponseRoutePath(example.request?.url, { preserveTemplateVars: true })
     },
     response: cloneDeep(example.response),
-    rules: cloneDeep(rules || { operator: 'AND', conditions: [] }),
+    rules: stripConditionUids(rules),
     ...(savedMockResponse.copiedFrom ? { copiedFrom: cloneDeep(savedMockResponse.copiedFrom) } : {})
   };
 };

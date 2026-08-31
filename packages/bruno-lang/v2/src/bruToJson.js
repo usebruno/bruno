@@ -561,11 +561,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       parsedSettings.forwardAuthorizationHeader = toBool(settings.forwardAuthorizationHeader);
     }
 
-    // Parse maxRedirects as number
-    if (settings.maxRedirects !== undefined) {
-      const maxRedirects = parseInt(settings.maxRedirects, 10);
-      if (!isNaN(maxRedirects)) {
-        parsedSettings.maxRedirects = maxRedirects;
+    // Number, not parseInt: parseInt stops at the exponent, so 1e+21 reads back as 1. The truthy
+    // check skips a blank, which Number reads as 0, meaning "no redirects" rather than "unset"; a
+    // real 0 survives as '0'. Mirrors toMaxRedirects in @usebruno/common (unimportable: bruno-lang
+    // is a leaf), but leaves the key unset instead of defaulting, since jsonToBru writes back only
+    // the keys it is given.
+    if (settings.maxRedirects) {
+      const maxRedirects = Number(settings.maxRedirects);
+      if (Number.isFinite(maxRedirects) && maxRedirects >= 0) {
+        parsedSettings.maxRedirects = Math.trunc(maxRedirects);
       }
     }
 
@@ -600,6 +604,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (keepAliveInterval) {
       _settings.keepAliveInterval = keepAliveInterval;
+    }
+
+    if (Array.isArray(settings.omitHeaders) && settings.omitHeaders.length) {
+      _settings.omitHeaders = settings.omitHeaders
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter((name) => name.length > 0);
     }
 
     return {
@@ -802,7 +812,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const username = usernameKey ? usernameKey.value : '';
     const password = passwordKey ? passwordKey.value : '';
-    const domain = passwordKey ? domainKey.value : '';
+    const domain = domainKey ? domainKey.value : '';
 
     return {
       auth: {

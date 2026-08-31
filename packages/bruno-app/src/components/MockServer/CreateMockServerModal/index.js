@@ -3,24 +3,39 @@ import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { IconCaretDown, IconTrash } from '@tabler/icons';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import { validateName, validateNameError } from 'utils/common/regex';
 import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { areItemsLoading, isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
+import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  generateMockResponsesFromSpec,
+  loadMockResponses,
+  syncMockResponsesFromExamples
+} from 'providers/ReduxStore/slices/mock-server/index';
+import {
+  collectCollectionExamples,
+  resolveMockResponseLocation,
+  syncMockResponsesFromExamples as mergeMockResponsesFromExamples
+} from 'utils/mock-server/mock-responses';
 import {
   DEFAULT_MOCK_SERVER_PORT,
   createMockServerInstance,
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerPortRangeError,
+  getMockServerNameError,
   openMockServerDashboard,
   resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -40,18 +55,12 @@ const toSpecOption = (spec, fallbackName = null) => ({
   pathname: spec.pathname
 });
 
-const buildSpecSelectOptions = (workspaceSpecs, apiSpecs, editingInstance = null) => {
+const buildSpecSelectOptions = (workspaceSpecs, editingInstance = null) => {
   const optionsByUid = new Map(
     workspaceSpecs.map((spec) => [spec.uid, toSpecOption(spec)])
   );
 
-  apiSpecs.forEach((spec) => {
-    if (!optionsByUid.has(spec.uid)) {
-      optionsByUid.set(spec.uid, toSpecOption(spec));
-    }
-  });
-
-  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, apiSpecs);
+  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, workspaceSpecs);
   if (!selectedSpecUid && editingInstance?.specPath) {
     optionsByUid.set(editingInstance.specPath, {
       uid: editingInstance.specPath,
@@ -95,6 +104,60 @@ const buildCollectionSelectOptions = (workspaceCollections, collections, editing
   return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
+const SourceRadio = ({ value, label, checked, disabled, onChange, dataTestId }) => (
+  <div className="flex items-center gap-2">
+    <input
+      id={dataTestId}
+      type="radio"
+      name="sourceType"
+      value={value}
+      checked={checked}
+      onChange={onChange}
+      disabled={disabled}
+      data-testid={dataTestId}
+    />
+    <label htmlFor={dataTestId} className="cursor-pointer select-none">
+      {label}
+    </label>
+  </div>
+);
+
+const syncResponsesForNewInstance = async ({
+  dispatch,
+  instance,
+  workspaces,
+  activeWorkspace,
+  collection,
+  specPath
+}) => {
+  const location = resolveMockResponseLocation(instance, workspaces, activeWorkspace);
+
+  if (instance.sourceType === 'collection') {
+    const exampleEntries = collectCollectionExamples(collection);
+    if (!exampleEntries.length) {
+      return;
+    }
+
+    const responses = mergeMockResponsesFromExamples([], exampleEntries);
+    await dispatch(syncMockResponsesFromExamples({
+      ...location,
+      responses
+    })).unwrap();
+  } else if (instance.sourceType === 'spec' && specPath) {
+    await dispatch(generateMockResponsesFromSpec({
+      ...location,
+      specPath,
+      generateFromSchema: true
+    })).unwrap();
+  } else {
+    return;
+  }
+
+  // Reload from disk so the dashboard renders the just-persisted routes even if it
+  // subscribed after the fulfilled action fired.
+  await dispatch(loadMockResponses(location));
+};
+
 const CreateMockServerModal = ({
   onClose,
   onDelete,
@@ -105,7 +168,6 @@ const CreateMockServerModal = ({
   const dispatch = useDispatch();
   const inputRef = useRef();
   const [showAdvancedPort, setShowAdvancedPort] = useState(Boolean(editingInstance));
-  const [portError, setPortError] = useState(null);
   // Kept in state so enableReinitialize cannot wipe a suggested free port back to 4000
   // when collections/specs finish loading after the modal opens.
   const [suggestedPort, setSuggestedPort] = useState(editingInstance?.port || DEFAULT_MOCK_SERVER_PORT);
@@ -144,76 +206,107 @@ const CreateMockServerModal = ({
   }, [activeWorkspace, apiSpecs]);
 
   const specSelectOptions = useMemo(() => (
-    buildSpecSelectOptions(workspaceApiSpecs, apiSpecs, editingInstance)
-  ), [workspaceApiSpecs, apiSpecs, editingInstance]);
+    buildSpecSelectOptions(workspaceApiSpecs, editingInstance)
+  ), [workspaceApiSpecs, editingInstance]);
 
   const collectionSelectOptions = useMemo(() => (
     buildCollectionSelectOptions(workspaceCollections, collections, editingInstance)
   ), [workspaceCollections, collections, editingInstance]);
 
-  const defaultCollection = workspaceCollections.find((collection) => collection.uid === defaultCollectionUid)
-    || workspaceCollections[0]
-    || null;
-  const defaultSpec = specSelectOptions.find((spec) => spec.uid === resolveSelectedSpecUid(editingInstance, apiSpecs))
-    || specSelectOptions[0]
-    || null;
+  const defaultCollection = defaultCollectionUid
+    ? workspaceCollections.find((collection) => collection.uid === defaultCollectionUid) || null
+    : null;
 
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
-  // getMockServerInstances rebuilds a new array wrapper each call; shallowEqual keeps the
-  // reference stable across renders as long as the underlying instances haven't changed
+
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
-  const canLinkSource = hasCollectionOptions || hasSpecOptions;
+  const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
-    ? resolveSelectedSpecUid(editingInstance, apiSpecs)
-    : (defaultSpec?.uid || '');
+    ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
+    : '';
+
+  const initialSourceType = (() => {
+    if (editingInstance) {
+      return editingInstance.sourceType || 'manual';
+    }
+    // defaultCollection instead of defaultCollectionUid: a uid the workspace can't
+    // resolve would leave the form on Collection with an empty uid and refuse submit.
+    if (defaultCollection) {
+      return 'collection';
+    }
+    if (defaultSourceType === 'spec' && hasSpecOptions) {
+      return 'spec';
+    }
+    if (hasCollectionOptions) {
+      return 'collection';
+    }
+    if (hasSpecOptions) {
+      return 'spec';
+    }
+    return 'manual';
+  })();
+
+  const requiresPortField = showAdvancedPort || isEditing;
+
+  const validationSchema = useMemo(() => Yup.object({
+    name: Yup.string()
+      .trim()
+      .min(1, 'Must be at least 1 character')
+      .max(255, 'Must be 255 characters or less')
+      .test('is-valid-name', function (value) {
+        const error = getMockServerNameError(value);
+        return error ? this.createError({ message: error }) : true;
+      })
+      .required('Name is required')
+      .test('duplicate-name', 'A mock server with this name already exists', (value) => {
+        const normalized = value?.trim().toLowerCase();
+        return !existingInstances.some((instance) => (
+          instance.name.trim().toLowerCase() === normalized && instance.uid !== editingInstance?.uid
+        ));
+      }),
+    sourceType: Yup.string().oneOf(['collection', 'spec', 'manual']),
+    collectionUid: Yup.string().when('sourceType', {
+      is: 'collection',
+      then: (schema) => schema.required('Collection is required'),
+      otherwise: (schema) => schema.notRequired()
+    }),
+    specUid: Yup.string().when('sourceType', {
+      is: 'spec',
+      then: (schema) => schema.required('API spec is required'),
+      otherwise: (schema) => schema.notRequired()
+    }),
+    port: Yup.mixed().test('port-range', function (value) {
+      if (!requiresPortField) {
+        return true;
+      }
+
+      const error = getMockServerPortRangeError(value);
+      return error ? this.createError({ message: error }) : true;
+    }),
+    globalDelay: Yup.number().min(0, 'Delay cannot be negative'),
+    syncOnCreate: Yup.boolean()
+  }), [requiresPortField, existingInstances, editingInstance?.uid]);
 
   const formik = useFormik({
-    enableReinitialize: true,
+    // No enableReinitialize: workspace data streams in async and reinit would rewrite
+    // user edits (name, sourceType, syncOnCreate) mid-typing. Post-mount defaults
+    // (e.g. suggested port) are set explicitly via setFieldValue.
+    // validateOnBlur/Change off so errors surface at Create-click, not while typing.
+    validateOnBlur: false,
+    validateOnChange: false,
     initialValues: {
-      name: editingInstance?.name || 'New Mock Server',
-      sourceType: editingInstance?.sourceType === 'manual' ? 'collection' : (editingInstance?.sourceType || defaultSourceType),
-      collectionUid: editingInstance?.collectionUid || defaultCollection?.uid || '',
+      name: editingInstance?.name || '',
+      sourceType: initialSourceType,
+      collectionUid: initialCollectionUid,
       specUid: initialSpecUid,
       port: editingInstance?.port || suggestedPort,
       globalDelay: editingInstance?.globalDelay || 0,
-      linkSource: editingInstance ? editingInstance.sourceType !== 'manual' : canLinkSource
+      syncOnCreate: !editingInstance
     },
-    validationSchema: Yup.object({
-      name: Yup.string()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
-        .test('is-valid-name', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
-        })
-        .required('Name is required')
-        .test('duplicate-name', 'A mock server with this name already exists', (value) => {
-          const normalized = value?.trim().toLowerCase();
-          return !existingInstances.some((instance) => (
-            instance.name.trim().toLowerCase() === normalized && instance.uid !== editingInstance?.uid
-          ));
-        }),
-      linkSource: Yup.boolean(),
-      sourceType: Yup.string().oneOf(['collection', 'spec']),
-      collectionUid: Yup.string().when(['linkSource', 'sourceType'], {
-        is: (linked, sourceType) => linked && sourceType === 'collection',
-        then: (schema) => schema.required('Collection is required'),
-        otherwise: (schema) => schema.notRequired()
-      }),
-      specUid: Yup.string().when(['linkSource', 'sourceType'], {
-        is: (linked, sourceType) => linked && sourceType === 'spec',
-        then: (schema) => schema.required('API spec is required'),
-        otherwise: (schema) => schema.notRequired()
-      }),
-      port: Yup.number()
-        .min(1, 'Port must be at least 1')
-        .max(65535, 'Port must be 65535 or less')
-        .required('Port is required'),
-      globalDelay: Yup.number().min(0, 'Delay cannot be negative')
-    }, [['sourceType', 'linkSource']]),
-    onSubmit: async (values) => {
+    validationSchema,
+    onSubmit: async (values, { setFieldError, setFieldTouched }) => {
       if (!activeWorkspaceUid) {
         toast.error('No active workspace found');
         return;
@@ -230,21 +323,34 @@ const CreateMockServerModal = ({
           excludeUid: editingInstance?.uid
         });
       } else if (!portUnchanged) {
-        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
-          excludeUid: editingInstance?.uid
-        });
-        const error = getMockServerPortError(portCheck, resolvedPort);
-        if (error) {
-          setPortError(error);
-          toast.error(error);
+        try {
+          const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
+            excludeUid: editingInstance?.uid
+          });
+          const availabilityError = getMockServerPortError(portCheck, resolvedPort);
+          if (availabilityError) {
+            setFieldError('port', availabilityError);
+            return;
+          }
+        } catch (err) {
+          setFieldError('port', err.message || 'Failed to validate port');
           return;
         }
       }
 
-      const resolvedSourceType = values.linkSource ? values.sourceType : 'manual';
+      const resolvedSourceType = values.sourceType;
+      const selectedCollection = resolvedSourceType === 'collection' ? linkedCollection : null;
+
+      if (resolvedSourceType === 'collection' && !selectedCollection) {
+        setFieldTouched('collectionUid', true, false);
+        setFieldError('collectionUid', 'Selected collection is not available');
+        return;
+      }
+
       const specPath = resolvedSourceType === 'spec'
         ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
         : null;
+      const collectionPathname = selectedCollection?.pathname || null;
 
       const instance = editingInstance
         ? {
@@ -253,6 +359,7 @@ const CreateMockServerModal = ({
             name: values.name.trim(),
             sourceType: resolvedSourceType,
             collectionUid: resolvedSourceType === 'collection' ? values.collectionUid : null,
+            collectionPathname,
             specPath: resolvedSourceType === 'spec' ? specPath : null,
             port: resolvedPort,
             globalDelay: Number(values.globalDelay) || 0
@@ -261,6 +368,7 @@ const CreateMockServerModal = ({
             name: values.name,
             sourceType: resolvedSourceType,
             collectionUid: values.collectionUid,
+            collectionPathname,
             specPath,
             port: resolvedPort,
             globalDelay: values.globalDelay,
@@ -268,7 +376,27 @@ const CreateMockServerModal = ({
           });
 
       try {
-        await dispatch(saveMockServerInstance(instance));
+        const savedInstance = await dispatch(saveMockServerInstance(instance));
+
+        const shouldSyncOnCreate = !isEditing
+          && values.syncOnCreate
+          && resolvedSourceType !== 'manual';
+        let syncError = null;
+
+        if (shouldSyncOnCreate) {
+          try {
+            await syncResponsesForNewInstance({
+              dispatch,
+              instance: savedInstance,
+              workspaces,
+              activeWorkspace,
+              collection: selectedCollection,
+              specPath
+            });
+          } catch (err) {
+            syncError = err;
+          }
+        }
 
         const tabCollectionUid = resolveTabCollectionUid({
           sourceType: resolvedSourceType,
@@ -278,12 +406,16 @@ const CreateMockServerModal = ({
         });
 
         if (isEditing) {
-          dispatch(updateMockServerTabName(instance));
+          dispatch(updateMockServerTabName(savedInstance));
         } else {
-          dispatch(openMockServerDashboard(instance, tabCollectionUid));
+          dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
         }
 
-        toast.success(isEditing ? 'Mock server settings saved' : 'Mock server created');
+        if (syncError) {
+          toast.error(syncError.message || 'Mock server created, but syncing responses failed');
+        } else {
+          toast.success(isEditing ? 'Mock server settings saved' : 'Mock server created');
+        }
         onClose();
       } catch {
         toast.error('Failed to save mock server');
@@ -291,11 +423,40 @@ const CreateMockServerModal = ({
     }
   });
 
+  const linkedCollection = formik.values.sourceType === 'collection' && formik.values.collectionUid
+    ? collections.find((collection) => collection.uid === formik.values.collectionUid) || null
+    : null;
+
+  // A failed mount flips the collection back to 'unmounted', which would reopen
+  // the mount effect below. Track attempts per uid so a persistent failure can't
+  // spin forever, and so isLinkedCollectionLoading can tell "yet to attempt" from
+  // "attempted and failed".
+  const attemptedMountUidsRef = useRef(new Set());
+
+  const isLinkedCollectionLoading = Boolean(linkedCollection) && (
+    linkedCollection.mountStatus === 'mounting'
+    || areItemsLoading(linkedCollection)
+    || (linkedCollection.mountStatus !== 'mounted' && !attemptedMountUidsRef.current.has(linkedCollection.uid))
+  );
+
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
+
+  useEffect(() => {
+    if (!linkedCollection) return;
+    if (linkedCollection.mountStatus === 'mounted' || linkedCollection.mountStatus === 'mounting') return;
+    if (attemptedMountUidsRef.current.has(linkedCollection.uid)) return;
+
+    attemptedMountUidsRef.current.add(linkedCollection.uid);
+    dispatch(mountCollection({
+      collectionUid: linkedCollection.uid,
+      collectionPathname: linkedCollection.pathname,
+      brunoConfig: linkedCollection.brunoConfig
+    })).catch(() => {});
+  }, [dispatch, linkedCollection]);
 
   useEffect(() => {
     if (isEditing) {
@@ -319,12 +480,21 @@ const CreateMockServerModal = ({
   }, [isEditing, configuredInstances, editingInstance?.uid]);
 
   const handleConfirm = async () => {
-    if (portError) {
-      toast.error(portError);
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length > 0) {
+      formik.setTouched(Object.keys(errors).reduce((touched, key) => ({
+        ...touched,
+        [key]: true
+      }), formik.touched));
       return;
     }
 
     formik.handleSubmit();
+  };
+
+  const handleCancel = () => {
+    formik.resetForm({ values: formik.values });
+    onClose();
   };
 
   const handleDelete = () => {
@@ -339,15 +509,26 @@ const CreateMockServerModal = ({
         size="md"
         title={isEditing ? 'Mock Server Settings' : 'Create Mock Server'}
         confirmText={isEditing ? 'Save' : 'Create'}
+        confirmDisabled={isLinkedCollectionLoading}
         handleConfirm={handleConfirm}
-        handleCancel={onClose}
+        handleCancel={handleCancel}
         footerLeft={isEditing && onDelete ? (
-          <Button type="button" color="danger" variant="ghost" onClick={handleDelete} data-testid="mock-server-delete-btn">
+          <Button
+            type="button"
+            color="danger"
+            variant="outline"
+            icon={<IconTrash size={15} stroke={1.5} />}
+            onClick={handleDelete}
+            data-testid="mock-server-delete-btn"
+          >
             Delete
           </Button>
         ) : null}
       >
-        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+        <form
+          className="bruno-form w-[500px] max-w-full"
+          onSubmit={(e) => e.preventDefault()}
+        >
           <div>
             <label htmlFor="mock-server-name" className="block font-medium">
               Name
@@ -373,132 +554,136 @@ const CreateMockServerModal = ({
           </div>
 
           <div className="mt-4">
-            <label className="flex items-start gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="mt-1 cursor-pointer"
-                checked={formik.values.linkSource}
-                onChange={(event) => {
-                  formik.setFieldValue('linkSource', event.target.checked);
-                }}
-                data-testid="mock-server-link-source-checkbox"
+            <label className="block font-medium mb-2">Source</label>
+            <div className="flex items-center gap-4 flex-wrap">
+              <SourceRadio
+                value="collection"
+                label="Collection"
+                checked={formik.values.sourceType === 'collection'}
+                disabled={!hasCollectionOptions}
+                onChange={formik.handleChange}
+                dataTestId="mock-server-source-collection"
               />
-              <span>
-                <span className="block font-medium">Link to a collection or API spec</span>
-                <span className="block text-xs opacity-70 mt-1">
-                  Turn this off to create a standalone mock server and add responses manually.
-                </span>
-              </span>
-            </label>
+              <SourceRadio
+                value="spec"
+                label="API Spec"
+                checked={formik.values.sourceType === 'spec'}
+                disabled={!hasSpecOptions}
+                onChange={formik.handleChange}
+                dataTestId="mock-server-source-spec"
+              />
+              <SourceRadio
+                value="manual"
+                label="Standalone"
+                checked={formik.values.sourceType === 'manual'}
+                onChange={formik.handleChange}
+                dataTestId="mock-server-source-manual"
+              />
+            </div>
           </div>
 
-          {formik.values.linkSource ? (
-            <>
-              <div className="mt-4">
-                <label className="block font-medium mb-2">Source</label>
-                <div className="flex items-center">
-                  <input
-                    id="mock-server-source-collection"
-                    className="cursor-pointer"
-                    type="radio"
-                    name="sourceType"
-                    value="collection"
-                    checked={formik.values.sourceType === 'collection'}
-                    onChange={formik.handleChange}
-                    disabled={!hasCollectionOptions}
-                    data-testid="mock-server-source-collection"
-                  />
-                  <label htmlFor="mock-server-source-collection" className="ml-1 cursor-pointer select-none">
-                    Collection
-                  </label>
-                  <input
-                    id="mock-server-source-spec"
-                    className="ml-4 cursor-pointer"
-                    type="radio"
-                    name="sourceType"
-                    value="spec"
-                    checked={formik.values.sourceType === 'spec'}
-                    onChange={formik.handleChange}
-                    disabled={!hasSpecOptions}
-                    data-testid="mock-server-source-spec"
-                  />
-                  <label htmlFor="mock-server-source-spec" className="ml-1 cursor-pointer select-none">
-                    API Spec
-                  </label>
-                </div>
-              </div>
-
-              {formik.values.sourceType === 'collection' ? (
-                <div className="mt-4">
-                  <label htmlFor="mock-server-collection" className="block font-medium">
-                    Collection
-                  </label>
-                  {hasCollectionOptions ? (
-                    <select
-                      id="mock-server-collection"
-                      name="collectionUid"
-                      className="textbox w-full mt-2"
-                      value={formik.values.collectionUid}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      data-testid="mock-server-collection-select"
-                    >
-                      <option value="">Select a collection</option>
-                      {collectionSelectOptions.map((collection) => (
-                        <option key={collection.uid} value={collection.uid}>{collection.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="text-xs mt-2 opacity-70">Open a collection in this workspace to link it here.</div>
-                  )}
-                  {formik.touched.collectionUid && formik.errors.collectionUid ? (
-                    <div className="text-red-500 mt-1">{formik.errors.collectionUid}</div>
-                  ) : null}
-                </div>
+          {formik.values.sourceType === 'collection' ? (
+            <div className="mt-4">
+              <label htmlFor="mock-server-collection" className="block font-medium">
+                Collection
+              </label>
+              {hasCollectionOptions ? (
+                <select
+                  id="mock-server-collection"
+                  name="collectionUid"
+                  className="textbox w-full mt-2"
+                  value={formik.values.collectionUid}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  data-testid="mock-server-collection-select"
+                >
+                  <option value="">Select a collection</option>
+                  {collectionSelectOptions.map((collection) => (
+                    <option key={collection.uid} value={collection.uid}>{collection.name}</option>
+                  ))}
+                </select>
               ) : (
-                <div className="mt-4">
-                  <label htmlFor="mock-server-spec" className="block font-medium">
-                    API Spec
-                  </label>
-                  {hasSpecOptions ? (
-                    <select
-                      id="mock-server-spec"
-                      name="specUid"
-                      className="textbox w-full mt-2"
-                      value={formik.values.specUid}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      data-testid="mock-server-spec-select"
-                    >
-                      <option value="">Select an API spec</option>
-                      {specSelectOptions.map((spec) => (
-                        <option key={spec.uid} value={spec.uid}>{spec.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="text-xs mt-2 opacity-70">Open an API spec in this workspace to link it here.</div>
-                  )}
-                  {formik.touched.specUid && formik.errors.specUid ? (
-                    <div className="text-red-500 mt-1">{formik.errors.specUid}</div>
-                  ) : null}
-                </div>
+                <div className="text-xs mt-2 opacity-70">Open a collection in this workspace to link it here.</div>
               )}
-            </>
+              {formik.touched.collectionUid && formik.errors.collectionUid ? (
+                <div className="text-red-500 mt-1">{formik.errors.collectionUid}</div>
+              ) : null}
+              {isLinkedCollectionLoading ? (
+                <div className="text-xs mt-2 opacity-70" data-testid="mock-server-collection-loading">
+                  Loading collection…
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {formik.values.sourceType === 'spec' ? (
+            <div className="mt-4">
+              <label htmlFor="mock-server-spec" className="block font-medium">
+                API Spec
+              </label>
+              {hasSpecOptions ? (
+                <select
+                  id="mock-server-spec"
+                  name="specUid"
+                  className="textbox w-full mt-2"
+                  value={formik.values.specUid}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  data-testid="mock-server-spec-select"
+                >
+                  <option value="">Select an API spec</option>
+                  {specSelectOptions.map((spec) => (
+                    <option key={spec.uid} value={spec.uid}>{spec.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="text-xs mt-2 opacity-70">Open an API spec in this workspace to link it here.</div>
+              )}
+              {formik.touched.specUid && formik.errors.specUid ? (
+                <div className="text-red-500 mt-1">{formik.errors.specUid}</div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {formik.values.sourceType === 'manual' ? (
+            <div className="mt-4 text-xs opacity-70">
+              A standalone mock server has no source. Add responses manually from the dashboard.
+            </div>
+          ) : null}
+
+          {!isEditing && formik.values.sourceType !== 'manual' ? (
+            <div className="mt-4">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="cursor-pointer"
+                  checked={formik.values.syncOnCreate}
+                  onChange={(event) => formik.setFieldValue('syncOnCreate', event.target.checked)}
+                  data-testid="mock-server-sync-on-create-checkbox"
+                />
+                <span className="font-medium">
+                  {formik.values.sourceType === 'spec'
+                    ? 'Sync mock responses with API spec'
+                    : 'Sync mock responses with collection examples'}
+                </span>
+              </label>
+            </div>
           ) : null}
 
           <div className="mt-4">
             <button
               type="button"
-              className="text-sm opacity-80 hover:opacity-100"
+              className="flex items-center text-link"
               onClick={() => setShowAdvancedPort((value) => !value)}
               data-testid="mock-server-advanced-settings-toggle"
             >
-              {showAdvancedPort ? 'Hide advanced settings' : 'Advanced settings'}
+              Advanced settings
+              <IconCaretDown className={`ml-1 ${showAdvancedPort ? 'rotate-180' : ''}`} size={14} strokeWidth={2} />
             </button>
             {showAdvancedPort ? (
               <>
-                <>
-                  <label htmlFor="mock-server-port" className="block font-medium mt-2">
+                <div className="mt-4">
+                  <label htmlFor="mock-server-port" className="block font-medium">
                     Port
                   </label>
                   <input
@@ -508,51 +693,63 @@ const CreateMockServerModal = ({
                     className="block textbox w-full mt-2"
                     min={1}
                     max={65535}
-                    value={formik.values.port}
+                    value={formik.values.port || ''}
                     onChange={(event) => {
-                      formik.handleChange(event);
-                      if (portError) {
-                        setPortError(null);
+                      formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
+                      if (formik.errors.port) {
+                        formik.setFieldError('port', undefined);
                       }
                     }}
                     onBlur={async (event) => {
                       formik.handleBlur(event);
-                      if (editingInstance && Number(editingInstance.port) === Number(event.target.value)) {
-                        setPortError(null);
+                      const rangeError = getMockServerPortRangeError(event.target.value);
+                      if (rangeError) {
+                        formik.setFieldError('port', rangeError);
                         return;
                       }
-                      const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
-                        excludeUid: editingInstance?.uid
-                      });
-                      setPortError(getMockServerPortError(portCheck, event.target.value));
+
+                      if (editingInstance && Number(editingInstance.port) === Number(event.target.value)) {
+                        formik.setFieldError('port', undefined);
+                        return;
+                      }
+
+                      try {
+                        const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
+                          excludeUid: editingInstance?.uid
+                        });
+                        formik.setFieldError('port', getMockServerPortError(portCheck, event.target.value) || undefined);
+                      } catch (err) {
+                        formik.setFieldError('port', err.message || 'Failed to validate port');
+                      }
                     }}
                     data-testid="mock-server-port-input"
                   />
-                  {portError ? (
-                    <div className="text-red-500 mt-1">{portError}</div>
-                  ) : null}
                   {formik.touched.port && formik.errors.port ? (
                     <div className="text-red-500 mt-1">{formik.errors.port}</div>
                   ) : null}
-                </>
-                <label htmlFor="mock-server-delay" className="block font-medium mt-4">
-                  Response delay (ms)
-                </label>
-                <input
-                  id="mock-server-delay"
-                  type="number"
-                  name="globalDelay"
-                  className="block textbox w-full mt-2"
-                  min={0}
-                  step={100}
-                  value={formik.values.globalDelay}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  data-testid="mock-server-delay-input"
-                />
-                {formik.touched.globalDelay && formik.errors.globalDelay ? (
-                  <div className="text-red-500 mt-1">{formik.errors.globalDelay}</div>
-                ) : null}
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="mock-server-delay" className="block font-medium">
+                    Response delay (ms)
+                  </label>
+                  <input
+                    id="mock-server-delay"
+                    type="number"
+                    name="globalDelay"
+                    className="block textbox w-full mt-2"
+                    min={0}
+                    step={100}
+                    value={formik.values.globalDelay}
+                    onChange={(event) => formik.setFieldValue('globalDelay', toMockServerDelayInputValue(event.target.value))}
+                    onKeyDown={blockMockServerDelayKeys}
+                    onBlur={formik.handleBlur}
+                    data-testid="mock-server-settings-delay-input"
+                  />
+                  {formik.touched.globalDelay && formik.errors.globalDelay ? (
+                    <div className="text-red-500 mt-1">{formik.errors.globalDelay}</div>
+                  ) : null}
+                </div>
               </>
             ) : (
               <div className="text-xs mt-2 opacity-70">

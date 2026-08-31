@@ -49,6 +49,7 @@ jest.mock('../../src/utils/form-data', () => ({
 }));
 jest.mock('@usebruno/requests', () => ({
   addDigestInterceptor: jest.fn(),
+  applySentHeadersToRequest: jest.fn(),
   getHttpHttpsAgents: jest.fn(() => ({})),
   makeAxiosInstance: jest.fn(),
   getCACertificates: jest.fn(() => ({ caCertificates: [] })),
@@ -69,8 +70,11 @@ jest.mock('../../src/store/tokenStore', () => ({
 // Default: no prompt variables detected
 const mockExtractPromptVariables = jest.fn(() => []);
 jest.mock('@usebruno/common', () => {
-  const ogUtils = jest.requireActual('@usebruno/common').utils;
+  const ogCommon = jest.requireActual('@usebruno/common');
+  const ogUtils = ogCommon.utils;
   return {
+    shouldOmitConnection: ogCommon.shouldOmitConnection,
+    refreshExplicitHeaderNames: ogCommon.refreshExplicitHeaderNames,
     utils: {
       encodeUrl: jest.fn((u) => u),
       buildFormUrlEncodedPayload: jest.fn(),

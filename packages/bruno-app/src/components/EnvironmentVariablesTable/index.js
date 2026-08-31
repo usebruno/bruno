@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconInfoCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -18,7 +18,7 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils'
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getAllVariables, getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections';
 import {
   stripEnvVarUid,
   getDuplicateSecretNames,
@@ -31,7 +31,7 @@ import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
-import { reconcileSavedChange } from './reconcile';
+import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -90,6 +90,7 @@ const EnvVarValueCell = ({
   isLastEmptyRow,
   storedTheme,
   collection,
+  resolvableVariables,
   formik,
   handleRowFocus,
   handleSave,
@@ -160,7 +161,7 @@ const EnvVarValueCell = ({
             <DataTypeSelector
               compact={isCompact}
               variable={variable}
-              collection={collection}
+              resolvableVariables={resolvableVariables}
               onChange={(fields) => {
                 Object.entries(fields).forEach(([key, val]) => {
                   formik.setFieldValue(`${actualIndex}.${key}`, val, true);
@@ -228,8 +229,10 @@ const EnvironmentVariablesTable = ({
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
   const isSearchActive = !!searchQuery?.trim();
 
-  const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey: `env-var-sort::${environment.uid}` });
-  const dragEnabled = sortMode === 'default' && !isSecretTab && !isSearchActive;
+  const variablesSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::variables` });
+  const secretsSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::secrets` });
+  const { sortMode, cycleSortMode, SortIcon, sortLabel } = isSecretTab ? secretsSort : variablesSort;
+  const dragEnabled = sortMode === 'default' && !isSearchActive;
 
   const handleColumnWidthsChange = (id, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
@@ -300,7 +303,14 @@ const EnvironmentVariablesTable = ({
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
 
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const globalEnvironmentVariables = useMemo(
+    () => getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
+  const globalEnvSecrets = useMemo(
+    () => getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
   // context. Without memoization, `cloneDeep(collection)` runs on every render —
@@ -310,12 +320,18 @@ const EnvironmentVariablesTable = ({
   const _collection = useMemo(() => {
     const c = collection ? cloneDeep(collection) : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.globalEnvSecrets = globalEnvSecrets;
+    // Preserve the actual active environment so variable existence and
+    // interpolation environment can be resolved independently.
+    c.realActiveEnvironmentUid = collection?.activeEnvironmentUid;
     c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
+  }, [collection, globalEnvironmentVariables, globalEnvSecrets, workspaceProcessEnvVariables, environment.uid]);
+
+  const resolvableVariables = useMemo(() => getAllVariables(_collection), [_collection]);
 
   // Reuse the previous initialValues when only uids changed but the content is
   // identical.
@@ -410,13 +426,16 @@ const EnvironmentVariablesTable = ({
 
   const sortOrderRef = useRef(null);
   const prevSortModeRef = useRef();
+  const prevIsSecretTabRef = useRef(isSecretTab);
   const prevIsDraftRef = useRef(hasDraftForThisEnv);
   const prevEnvironmentVariablesRef = useRef(environment.variables);
   const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
   const savedVariablesChanged = prevEnvironmentVariablesRef.current !== environment.variables;
+  const tabChanged = prevIsSecretTabRef.current !== isSecretTab;
+  prevIsSecretTabRef.current = isSecretTab;
   prevIsDraftRef.current = hasDraftForThisEnv;
   prevEnvironmentVariablesRef.current = environment.variables;
-  if (prevSortModeRef.current !== sortMode || justCommitted || savedVariablesChanged) {
+  if (prevSortModeRef.current !== sortMode || tabChanged || justCommitted || savedVariablesChanged) {
     prevSortModeRef.current = sortMode;
     // After a save/reparse, `environment.variables` gets new uids; `initialValues` keeps stable ones for reorder.
     sortOrderRef.current = buildSortOrder(savedVariablesChanged ? initialValues : formik.values, sortMode);
@@ -475,23 +494,13 @@ const EnvironmentVariablesTable = ({
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
 
-  // Controlled replacement for enableReinitialize. When the persisted snapshot
-  // changes (autosave echo, script env update, external file reload, or an edit
-  // made outside the table) adopt it ONLY if the form has no unsaved edits.
-  // If the user is typing ahead, keep their edits — the draft/autosave cycle
-  // persists them — so nothing typed during an async save is lost.
-  const prevSavedValuesJsonRef = useRef(savedValuesJson);
-  useEffect(() => {
-    const prevSaved = prevSavedValuesJsonRef.current;
-    prevSavedValuesJsonRef.current = savedValuesJson;
-
-    const currentNamed = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-    const currentJson = JSON.stringify(currentNamed.map(stripEnvVarUid));
-
-    if (reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson }) === 'adopt') {
-      formik.resetForm({ values: initialValues });
-    }
-  }, [savedValuesJson]);
+  // Controlled replacement for Formik's `enableReinitialize`.
+  useReconcileSavedEnvironment({
+    formik,
+    savedValuesJson,
+    savedVariables: environment.variables,
+    initialValues
+  });
 
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
@@ -881,7 +890,7 @@ const EnvironmentVariablesTable = ({
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
   const displayedVariables = (() => {
-    if (isSecretTab || sortMode === 'default' || !sortOrderRef.current) {
+    if (sortMode === 'default' || !sortOrderRef.current) {
       return filteredVariables;
     }
 
@@ -920,14 +929,12 @@ const EnvironmentVariablesTable = ({
               <td className="text-center"></td>
               <td
                 style={{ width: columnWidths.name }}
-                className={!isSecretTab ? 'sortable-header' : ''}
-                onClick={!isSecretTab ? (e) => {
+                className="sortable-header"
+                onClick={(e) => {
                   if (!e.target.closest('.resize-handle')) cycleSortMode();
-                } : undefined}
+                }}
               >
-                {isSecretTab ? 'Name' : (
-                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
-                )}
+                <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
@@ -971,6 +978,7 @@ const EnvironmentVariablesTable = ({
                       type="checkbox"
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
+                      data-testid="env-var-enabled-checkbox"
                       checked={variable.enabled}
                       onChange={formik.handleChange}
                     />
@@ -1011,6 +1019,7 @@ const EnvironmentVariablesTable = ({
                     isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
+                    resolvableVariables={resolvableVariables}
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}

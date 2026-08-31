@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconInfoCircle } from '@tabler/icons';
+import { IconInfoCircle, IconTrash } from '@tabler/icons';
 import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { subscribeMockServerLog } from 'utils/mock-server/mock-server-log-subscription';
 import FilterDropdown from 'components/FilterDropdown';
+import Button from 'ui/Button';
 import MethodBadge from 'ui/MethodBadge';
 import StyledWrapper from './StyledWrapper';
 
@@ -84,7 +85,11 @@ const MatchTracePanel = ({ entry }) => {
   if (!trace) {
     return (
       <div className="match-trace-panel" data-testid="mock-server-match-trace">
-        <div className="match-trace-empty">No match trace for this entry.</div>
+        {entry?.error ? (
+          <div className="match-trace-error" data-testid="mock-server-log-error">{entry.error}</div>
+        ) : (
+          <div className="match-trace-empty">No match trace for this entry.</div>
+        )}
       </div>
     );
   }
@@ -105,6 +110,10 @@ const MatchTracePanel = ({ entry }) => {
             )
           : <span className="match-trace-result match-trace-result-fail">{failureLabel || 'No match'}</span>}
       </div>
+
+      {entry.error ? (
+        <div className="match-trace-error" data-testid="mock-server-log-error">{entry.error}</div>
+      ) : null}
 
       {trace.availableRoutes?.length ? (
         <div className="match-trace-section">
@@ -178,7 +187,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: '5xx', label: '5xx Server Error' }
 ];
 
-const RequestLog = ({ mockServerUid }) => {
+const RequestLog = ({ mockServerUid, location }) => {
   const dispatch = useDispatch();
   const logs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [matchFilter, setMatchFilter] = useState(null);
@@ -188,10 +197,10 @@ const RequestLog = ({ mockServerUid }) => {
 
   useEffect(() => {
     const unsubscribe = subscribeMockServerLog(mockServerUid);
-    dispatch(syncMockServerState({ mockServerUid }));
+    dispatch(syncMockServerState(location));
 
     return unsubscribe;
-  }, [dispatch, mockServerUid]);
+  }, [dispatch, mockServerUid, location.workspacePath]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((entry) => {
@@ -261,9 +270,16 @@ const RequestLog = ({ mockServerUid }) => {
         />
         <div className="flex-grow" />
         <span className="text-xs text-muted" data-testid="mock-server-log-count">{logs.length} requests</span>
-        <button className="text-link select-none" onClick={handleClear} data-testid="mock-server-log-clear">
+        <Button
+          variant="ghost"
+          color="secondary"
+          size="xs"
+          icon={<IconTrash size={14} stroke={1.5} />}
+          onClick={handleClear}
+          data-testid="mock-server-log-clear"
+        >
           Clear
-        </button>
+        </Button>
       </div>
 
       <div className="log-table-container">
@@ -310,7 +326,7 @@ const RequestLog = ({ mockServerUid }) => {
                       </button>
                     </td>
                     <td><span className="log-timestamp">{formatTimestamp(entry.timestamp)}</span></td>
-                    <td><MethodBadge method={entry.method} size="sm" className="method-badge" /></td>
+                    <td><MethodBadge method={entry.method} className="method-badge" /></td>
                     <td><span className="log-path">{entry.path}</span></td>
                     <td>
                       {entry.matched

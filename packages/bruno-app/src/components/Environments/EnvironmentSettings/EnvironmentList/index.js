@@ -578,6 +578,7 @@ const EnvironmentList = ({
                       handleImportClick();
                     }}
                     title="Import environment"
+                    data-testid="import-environment-btn"
                   >
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
@@ -625,6 +626,7 @@ const EnvironmentList = ({
                   <div
                     key={env.uid}
                     id={env.uid}
+                    data-testid="collection-env-list-item"
                     className={classnames('environment-item', {
                       active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
                       renaming: renamingEnvUid === env.uid,
