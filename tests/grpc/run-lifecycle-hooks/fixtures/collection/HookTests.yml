@@ -48,8 +48,8 @@ runtime:
         });
 
         test('metadata can be changed before the call starts', () => {
-          bru.grpc.request.metadata.delete('x-remove');
-          bru.grpc.request.metadata.set('x-hook', 'set-by-hook');
+          bru.grpc.request.metadata.remove('x-remove');
+          bru.grpc.request.metadata.upsert('x-hook', 'set-by-hook');
 
           expect(bru.grpc.request.metadata.has('x-remove')).to.be.false;
           expect(bru.grpc.request.metadata.get('x-hook')).to.equal('set-by-hook');
@@ -86,8 +86,8 @@ runtime:
         });
 
         test('metadata is read-only once the call has been sent', () => {
-          expect(() => bru.grpc.response.metadata.set('x-late', '1')).to.throw();
-          expect(() => bru.grpc.request.metadata.set('x-late', '1')).to.throw();
+          expect(() => bru.grpc.response.metadata.upsert('x-late', '1')).to.throw();
+          expect(() => bru.grpc.request.metadata.upsert('x-late', '1')).to.throw();
         });
 
         // Deliberately failing, so the failure count on the tab label and the failed row are covered.

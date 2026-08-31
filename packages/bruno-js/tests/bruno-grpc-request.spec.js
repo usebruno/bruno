@@ -32,8 +32,8 @@ describe('BrunoGrpcRequest', () => {
       const raw = makeReq();
       const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
 
-      req.metadata.set('x-token', 'from-hook');
-      req.metadata.set('x-request-id', 'req-1');
+      req.metadata.upsert('x-token', 'from-hook');
+      req.metadata.upsert('x-request-id', 'req-1');
 
       expect(raw.headers).toEqual({ 'x-token': 'from-hook', 'x-request-id': 'req-1' });
     });
@@ -42,7 +42,7 @@ describe('BrunoGrpcRequest', () => {
       const raw = makeReq({ headers: {} });
       const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
 
-      req.metadata.set('__proto__', 'polluted');
+      req.metadata.upsert('__proto__', 'polluted');
 
       expect(Object.keys(raw.headers)).toEqual(['__proto__']);
       expect(Object.getPrototypeOf(raw.headers)).toBe(Object.prototype);
@@ -54,7 +54,7 @@ describe('BrunoGrpcRequest', () => {
       const raw = makeReq({ headers: undefined });
       const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
 
-      req.metadata.set('x-token', 'from-hook');
+      req.metadata.upsert('x-token', 'from-hook');
 
       expect(raw.headers).toEqual({ 'x-token': 'from-hook' });
     });

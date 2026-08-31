@@ -67,22 +67,22 @@ describe('GrpcMetadataList', () => {
   });
 
   describe('write methods', () => {
-    test('set() adds a new key to the backing map', () => {
+    test('upsert() adds a new key to the backing map', () => {
       const { list, metadata } = createList();
-      list.set('x-request-id', 'req-1');
+      list.upsert('x-request-id', 'req-1');
       expect(metadata['x-request-id']).toBe('req-1');
     });
 
-    test('set() with different casing replaces the existing entry instead of duplicating it', () => {
+    test('upsert() with different casing replaces the existing entry instead of duplicating it', () => {
       const { list, metadata } = createList();
-      list.set('x-token', 'updated');
+      list.upsert('x-token', 'updated');
       expect(metadata).toEqual({ 'x-token': 'updated', 'content-type': 'application/grpc' });
     });
 
-    test('set() ignores an empty or non-string key', () => {
+    test('upsert() ignores an empty or non-string key', () => {
       const { list, metadata } = createList();
-      list.set('', 'value');
-      list.set(42, 'value');
+      list.upsert('', 'value');
+      list.upsert(42, 'value');
       expect(metadata).toEqual(defaultMetadata);
     });
 
@@ -93,16 +93,16 @@ describe('GrpcMetadataList', () => {
       expect(metadata['x-request-id']).toBe('req-1');
     });
 
-    test('delete() matches case-insensitively', () => {
+    test('remove() matches case-insensitively', () => {
       const { list, metadata } = createList();
-      list.delete('X-TOKEN');
-      list.delete('missing');
+      list.remove('X-TOKEN');
+      list.remove('missing');
       expect(metadata).toEqual({ 'content-type': 'application/grpc' });
     });
 
-    test('deleteAll() empties the backing map in place', () => {
+    test('clear() empties the backing map in place', () => {
       const { list, metadata } = createList();
-      list.deleteAll();
+      list.clear();
       expect(metadata).toEqual({});
     });
   });
@@ -110,7 +110,7 @@ describe('GrpcMetadataList', () => {
   test('every write method throws on a read-only list', () => {
     const { list, metadata } = createList({ writable: false });
 
-    for (const method of ['set', 'add', 'delete', 'deleteAll']) {
+    for (const method of ['upsert', 'add', 'remove', 'clear']) {
       expect(() => list[method]('x-token', 'value')).toThrow(
         `metadata.${method}() is not available once the call has been sent`
       );
