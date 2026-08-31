@@ -10,6 +10,8 @@ import {
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
   getEnvironmentVariables,
+  getVisibleSidebarUidsInOrder,
+  getSelectionInfo,
   getUniqueTagsFromItems,
   getCollectionVersion
 } from './index';
@@ -417,5 +419,101 @@ describe('resolveEnabledVariable — precedence matches getEnvironmentVariables 
     const variables = [{ uid: 'u1', name: 'x', value: 'off', enabled: false }];
 
     expect(resolveEnabledVariable(variables, 'x')).toBeUndefined();
+  });
+});
+
+const buildFolderA = (overrides = {}) => ({
+  uid: 'folderA',
+  type: 'folder',
+  name: 'folderA',
+  pathname: '/colA/folderA',
+  collapsed: false,
+  items: [
+    { uid: 'reqA1', type: 'http-request', request: {}, name: 'Alpha', seq: 1, pathname: '/colA/folderA/Alpha.bru' }
+  ],
+  ...overrides
+});
+
+const buildCollectionA = (overrides = {}) => ({
+  uid: 'colA',
+  pathname: '/colA',
+  collapsed: false,
+  items: [
+    buildFolderA(overrides.folderA),
+    { uid: 'reqRoot', type: 'http-request', request: {}, name: 'Root', seq: 2, pathname: '/colA/Root.bru' }
+  ],
+  ...overrides.collection
+});
+
+const buildCollectionB = () => ({
+  uid: 'colB',
+  pathname: '/colB',
+  collapsed: true,
+  items: [
+    { uid: 'reqB1', type: 'http-request', request: {}, name: 'Bravo', seq: 1, pathname: '/colB/Bravo.bru' }
+  ]
+});
+
+describe('getVisibleSidebarUidsInOrder', () => {
+  it('lists loaded collections and their expanded items in render order, skipping ghost entries and collapsed subtrees', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA() },
+      { kind: 'ghost', entry: { name: 'Missing', path: '/ghost' } },
+      { kind: 'loaded', collection: buildCollectionB() }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'colB']);
+  });
+
+  it('hides a collapsed folder\'s children even though the collection itself is expanded', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA({ folderA: { collapsed: true } }) }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqRoot']);
+  });
+
+  it('while searching, only includes matching requests and force-expands folders that contain a match', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA({ folderA: { collapsed: true } }) },
+      { kind: 'loaded', collection: buildCollectionB() }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'alpha' }))
+      .toEqual(['colA', 'folderA', 'reqA1']);
+  });
+});
+
+describe('getSelectionInfo', () => {
+  const collections = [buildCollectionA(), buildCollectionB()];
+
+  it('collapses a collection and anything selected inside it down to just the collection (parent wins)', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['colA', 'folderA', 'reqA1'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
+    expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+
+  it('collapses a folder and its own descendant request down to just the folder', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['folderA', 'reqA1'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['folderA']);
+    expect(info).toMatchObject({ hasCollection: false, hasFolder: true, hasRequest: false });
+  });
+
+  it('keeps a folder and an unrelated sibling request both selected', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['folderA', 'reqRoot'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['folderA', 'reqRoot']);
+    expect(info).toMatchObject({ hasCollection: false, hasFolder: true, hasRequest: true });
+  });
+
+  it('keeps two independently-selected collections both selected', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['colA', 'colB'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+    expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
   });
 });

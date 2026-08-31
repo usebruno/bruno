@@ -24,10 +24,11 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
+  resolveEnabledVariable,
+  buildSidebarEntries,
+  getVisibleSidebarUidsInOrder,
   generateTransientRequestName,
-  isPutObjectPresignedUrl,
-  flattenItems,
-  resolveEnabledVariable
+  isPutObjectPresignedUrl
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -74,7 +75,8 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  toggleCollection,
+  setSidebarSelection
 } from './index';
 
 import { each } from 'lodash';
@@ -1128,152 +1130,225 @@ export const moveItem
       });
     };
 
-export const handleCollectionItemDrop
-  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
+export const handleMultipleCollectionItemsDrop
+  = ({ targetItem, draggedItems, dropType, collectionUid }) =>
     (dispatch, getState) => {
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
-      // if its withincollection set the source to current collection,
-      // if its cross collection set the source to the source collection
-      const sourceCollectionUid = draggedItem.sourceCollectionUid;
-      const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
-      const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
-      const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
       const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-      const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
-      const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
-      const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
-      const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
-      const sourceFormat = sourceCollection?.format || 'bru';
-      const targetFormat = collection?.format || 'bru';
-      const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
-
-      const handleMoveToNewLocation = async ({
-        draggedItem,
-        draggedItemDirectoryItems,
-        targetItem,
-        targetItemDirectoryItems,
-        newPathname,
-        dropType
-      }) => {
-        const { uid: targetItemUid } = targetItem;
-        const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
-
-        const newDirname = path.dirname(newPathname);
-
-        if (isCrossFormatMove && isItemARequest(draggedItem)) {
-          const { ipcRenderer } = window;
-          const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
-            targetDirname: newDirname,
-            sourcePathname: draggedItemPathname,
-            sourceFormat,
-            targetFormat
-          });
-          newPathname = result.newPathname;
-        } else {
-          const result = await dispatch(moveItem({
-            targetDirname: newDirname,
-            sourcePathname: draggedItemPathname
-          }));
-          // Reconcile to the path electron actually used (it may have suffixed
-          // the name to resolve a collision), so the optimistic node is correct.
-          if (result?.newPathname) {
-            newPathname = result.newPathname;
-          }
+      // cache of directories by uid -> items array
+      const directoryCache = new Map();
+      const getDirectoryItems = (coll, itemUid) => {
+        const dir = findParentItemInCollection(coll, itemUid) || coll;
+        if (!directoryCache.has(dir.uid)) {
+          directoryCache.set(dir.uid, cloneDeep(dir.items));
         }
-
-        // Update sequences in the source directory
-        if (draggedItemDirectoryItems?.length) {
-          // reorder items in the source directory
-          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
-          const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-            items: draggedItemDirectoryItemsWithoutDraggedItem
-          });
-          if (reorderedSourceItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
-          }
-        }
-
-        // Update sequences in the target directory (if dropping above/below)
-        if (dropType === 'above' || dropType === 'below') {
-          const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
-
-          const draggedItemWithNewPathAndSequence = {
-            ...draggedItem,
-            pathname: newPathname,
-            seq: targetItemSequence
-          };
-
-          // draggedItem is added to the targetItem's directory
-          const reorderedTargetItems = getReorderedItemsInTargetDirectory({
-            items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
-            targetItemUid,
-            draggedItemUid,
-            dropType
-          });
-
-          if (reorderedTargetItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems, collectionUid }));
-          }
-        }
+        return directoryCache.get(dir.uid);
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
-        const { uid: targetItemUid } = targetItem;
-        const { uid: draggedItemUid } = draggedItem;
+      const isDropInside = dropType === 'inside';
+      const targetDir = isDropInside ? targetItem : (findParentItemInCollection(collection, targetItemUid) || collection);
+      if (!directoryCache.has(targetDir.uid)) {
+        directoryCache.set(targetDir.uid, cloneDeep(targetDir.items || []));
+      }
 
-        // reorder items in the targetItem's directory
-        const reorderedItems = getReorderedItemsInTargetDirectory({
-          items: targetItemDirectoryItems,
-          targetItemUid,
-          draggedItemUid,
-          dropType
-        });
+      let currentTargetItemUid = targetItemUid;
 
-        if (reorderedItems?.length) {
-          await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems, collectionUid }));
+      const itemsToResequenceMap = new Map();
+      const trackResequence = (collUid, changedItems) => {
+        if (!itemsToResequenceMap.has(collUid)) {
+          itemsToResequenceMap.set(collUid, new Map());
         }
+        const collMap = itemsToResequenceMap.get(collUid);
+        changedItems.forEach((item) => collMap.set(item.uid, item));
       };
 
       return new Promise(async (resolve, reject) => {
         try {
-          const newPathname = calculateDraggedItemNewPathname({
+          const { ipcRenderer } = window;
+          const uidsToClose = [];
+
+          // Moves the dragged item to a different directory (cross-folder or cross-collection),
+          // then updates sequences in both the source and (if dropping above/below) target directory.
+          const handleMoveToNewLocation = async ({
             draggedItem,
-            targetItem,
-            dropType,
-            collectionPathname: collection.pathname
-          });
-          if (!newPathname) return;
-          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
+            draggedItemUid,
+            draggedItemPathname,
+            draggedItemDirectory,
+            newPathname,
+            sourceCollectionUid,
+            sourceFormat,
+            targetFormat,
+            isCrossFormatMove,
+            currentSourceItems,
+            currentTargetItems
+          }) => {
+            const newDirname = path.dirname(newPathname);
+            let finalNewPathname = newPathname;
 
-          if (isCrossFormatMove && isItemAFolder(draggedItem)) {
-            toast.error('Moving folders between collections with different formats is not supported');
-            return;
-          }
+            if (isCrossFormatMove && isItemARequest(draggedItem)) {
+              const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
+                targetDirname: newDirname,
+                sourcePathname: draggedItemPathname,
+                sourceFormat,
+                targetFormat
+              });
+              finalNewPathname = result.newPathname;
+            } else {
+              const result = await dispatch(moveItem({
+                targetDirname: newDirname,
+                sourcePathname: draggedItemPathname
+              }));
+              // Reconcile to the path electron actually used (it may have suffixed
+              // the name to resolve a collision), so the optimistic node is correct.
+              if (result?.newPathname) {
+                finalNewPathname = result.newPathname;
+              }
+            }
 
-          // Discard operation if dragging a root item to the collection name (same location)
-          const isTargetTheCollection = targetItemPathname === collection.pathname;
-          const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
-          if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
-            return;
-          }
+            // Update sequences in the source directory
+            if (currentSourceItems?.length) {
+              // reorder items in the source directory
+              const currentSourceItemsWithoutDraggedItem = currentSourceItems.filter((i) => i.uid !== draggedItemUid);
+              const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+                items: currentSourceItemsWithoutDraggedItem
+              });
 
-          if (newPathname !== draggedItemPathname) {
-            await handleMoveToNewLocation({
-              targetItem,
-              targetItemDirectoryItems,
-              draggedItem,
-              draggedItemDirectoryItems,
-              newPathname,
+              directoryCache.set(draggedItemDirectory.uid, currentSourceItemsWithoutDraggedItem);
+
+              if (reorderedSourceItems?.length) {
+                trackResequence(sourceCollectionUid || collectionUid, reorderedSourceItems);
+              }
+            }
+
+            // Update sequences in the target directory (if dropping above/below)
+            if (dropType === 'above' || dropType === 'below') {
+              const targetItemSequence = currentTargetItems.find((i) => i.uid === currentTargetItemUid)?.seq;
+              const draggedItemWithNewPathAndSequence = {
+                ...draggedItem,
+                pathname: finalNewPathname,
+                seq: targetItemSequence
+              };
+              const newTargetItems = [...currentTargetItems, draggedItemWithNewPathAndSequence];
+              const reorderedTargetItems = getReorderedItemsInTargetDirectory({
+                items: newTargetItems,
+                targetItemUid: currentTargetItemUid,
+                draggedItemUid,
+                dropType
+              });
+
+              reorderedTargetItems?.forEach((reordered) => {
+                const item = newTargetItems.find((i) => i.uid === reordered.uid);
+                if (item) item.seq = reordered.seq;
+              });
+              directoryCache.set(targetDir.uid, newTargetItems);
+
+              if (reorderedTargetItems?.length) {
+                trackResequence(collectionUid, reorderedTargetItems);
+              }
+            }
+          };
+
+          // Reorders the dragged item within the directory it already lives in.
+          const handleReorderInSameLocation = ({ draggedItemUid, currentTargetItems }) => {
+            // Re-sort currentTargetItems by strict sequence so getReorderedItemsInTargetDirectory evaluates the true relative order
+            const sortedTargetItems = [...currentTargetItems].sort((a, b) => a.seq - b.seq);
+            const reorderedItems = getReorderedItemsInTargetDirectory({
+              items: sortedTargetItems,
+              targetItemUid: currentTargetItemUid,
+              draggedItemUid,
               dropType
             });
-          } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
+
+            reorderedItems?.forEach((reordered) => {
+              const item = currentTargetItems.find((i) => i.uid === reordered.uid);
+              if (item) item.seq = reordered.seq;
+            });
+
+            directoryCache.set(targetDir.uid, currentTargetItems);
+
+            if (reorderedItems?.length) {
+              trackResequence(collectionUid, reorderedItems);
+            }
+          };
+
+          for (const draggedItem of draggedItems) {
+            const sourceCollectionUid = draggedItem.sourceCollectionUid;
+            const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
+            const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
+            const sourceFormat = sourceCollection?.format || 'bru';
+            const targetFormat = collection?.format || 'bru';
+            const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
+
+            const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+
+            // Remove the dragged item from any pending resequences (from previous iterations)
+            // so we don't accidentally write to its old pathname and recreate it.
+            for (const collMap of itemsToResequenceMap.values()) {
+              collMap.delete(draggedItemUid);
+            }
+
+            const newPathname = calculateDraggedItemNewPathname({
+              draggedItem,
+              targetItem,
+              dropType,
+              collectionPathname: collection.pathname
+            });
+
+            if (!newPathname) continue;
+            if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) continue;
+            if (isCrossFormatMove && isItemAFolder(draggedItem)) {
+              toast.error('Moving folders between collections with different formats is not supported');
+              continue;
+            }
+
+            const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
+            const isTargetTheCollection = targetItemPathname === collection.pathname;
+            const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
+            if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
+              continue;
+            }
+
+            const currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
+            const currentTargetItems = directoryCache.get(targetDir.uid) || [];
+
+            if (newPathname !== draggedItemPathname) {
+              await handleMoveToNewLocation({
+                draggedItem,
+                draggedItemUid,
+                draggedItemPathname,
+                draggedItemDirectory,
+                newPathname,
+                sourceCollectionUid,
+                sourceFormat,
+                targetFormat,
+                isCrossFormatMove,
+                currentSourceItems,
+                currentTargetItems
+              });
+            } else {
+              handleReorderInSameLocation({ draggedItemUid, currentTargetItems });
+            }
+
+            if (dropType === 'below') {
+              currentTargetItemUid = draggedItemUid;
+            }
+
+            if (isCrossCollectionMove) {
+              uidsToClose.push(draggedItemUid);
+            }
           }
 
-          if (isCrossCollectionMove) {
-            dispatch(closeTabs({ tabUids: [draggedItemUid] }));
+          for (const [collUid, collMap] of itemsToResequenceMap.entries()) {
+            const itemsToResequence = Array.from(collMap.values());
+            if (itemsToResequence.length > 0) {
+              await dispatch(updateItemsSequences({ itemsToResequence, collectionUid: collUid }));
+            }
+          }
+
+          if (uidsToClose.length > 0) {
+            dispatch(closeTabs({ tabUids: uidsToClose }));
           }
 
           resolve();
@@ -2486,6 +2561,25 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();
   });
+};
+
+export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) => {
+  const state = getState();
+  const { collections, collectionSortOrder, lastClickedSidebarUid } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+
+  const sidebarEntries = buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder });
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+
+  const clickedIndex = visibleUids.indexOf(uid);
+  if (clickedIndex === -1) return;
+
+  const lastClickedIndex = visibleUids.indexOf(lastClickedSidebarUid);
+  const anchorIndex = lastClickedIndex === -1 ? clickedIndex : lastClickedIndex;
+  const start = Math.min(anchorIndex, clickedIndex);
+  const end = Math.max(anchorIndex, clickedIndex);
+  dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
 export const removeCollection = (collectionUid) => (dispatch, getState) => {

@@ -27,6 +27,7 @@ export const buildSidebarLocators = (page: Page) => {
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
+    collectionRows: () => page.getByTestId('sidebar-collection-row'),
     itemRow,
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>
@@ -49,6 +50,9 @@ export const buildSidebarLocators = (page: Page) => {
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
+    scopedItem: function (collectionName: string, itemName: string) {
+      return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
+    },
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar'),

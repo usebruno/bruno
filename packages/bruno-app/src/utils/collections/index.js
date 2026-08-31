@@ -2,8 +2,14 @@ import { cloneDeep, isEqual, sortBy, filter, map, isString, find, each, get } fr
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
+import { isWindowsOS } from 'utils/common/platform';
 import { isRequestTagsIncluded } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import {
+  doesRequestMatchSearchText,
+  doesFolderHaveItemsMatchSearchText,
+  doesCollectionHaveItemsMatchingSearchText
+} from 'utils/collections/search';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -27,20 +33,19 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
+const setCollapsedRecursively = (items, collapsed) => {
+  each(items, (i) => {
+    i.collapsed = collapsed;
+
+    if (i.items && i.items.length) {
+      setCollapsedRecursively(i.items, collapsed);
+    }
+  });
+};
+
 export const collapseAllItemsInCollection = (collection) => {
   collection.collapsed = true;
-
-  const collapseItem = (items) => {
-    each(items, (i) => {
-      i.collapsed = true;
-
-      if (i.items && i.items.length) {
-        collapseItem(i.items);
-      }
-    });
-  };
-
-  collapseItem(collection.items);
+  setCollapsedRecursively(collection.items, true);
 };
 
 export const sortItems = (collection) => {
@@ -1881,6 +1886,220 @@ export const isVariableSecret = (scopeInfo) => {
   return false;
 };
 
+const sidebarEntryCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+const getSidebarEntryName = (entry) => {
+  if (entry.kind === 'loaded') {
+    return entry.collection?.name || '';
+  }
+
+  return entry.entry?.name || path.basename(entry.entry?.path || '');
+};
+
+/**
+ * The sidebar list in workspace.yml order: each entry is either a fully loaded collection or,
+ * for non-default workspaces, a "ghost" git-backed entry whose local folder is missing. Shared
+ * between Collections/index.js's render and the shift-select range thunk so both agree on
+ * ordering — see Collections/index.js for the rendering this mirrors.
+ */
+export const buildSidebarEntries = ({ collections = [], workspaces = [], activeWorkspace, collectionSortOrder }) => {
+  if (!activeWorkspace?.collections?.length) return [];
+
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+
+  const loadedByPath = new Map();
+  for (const c of collections) {
+    if (isScratchCollection(c, workspaces)) continue;
+    if (c.pathname) {
+      let key = normalizePath(c.pathname);
+      if (isWindowsOS()) key = key.toLowerCase();
+      loadedByPath.set(key, c);
+    }
+  }
+
+  const entries = [];
+  for (const wc of activeWorkspace.collections) {
+    if (!wc.path) continue;
+    let key = normalizePath(wc.path);
+    if (isWindowsOS()) key = key.toLowerCase();
+
+    const loaded = loadedByPath.get(key);
+    if (loaded) {
+      entries.push({ kind: 'loaded', collection: loaded, key: loaded.uid });
+    } else if (wc.remote && !isDefaultWorkspace) {
+      entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
+    }
+  }
+
+  if (collectionSortOrder === 'alphabetical') {
+    return [...entries].sort((a, b) => sidebarEntryCollator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+  }
+
+  if (collectionSortOrder === 'reverseAlphabetical') {
+    return [...entries].sort((a, b) => -sidebarEntryCollator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
+  }
+
+  return entries;
+};
+
+/**
+ * Returns an ordered list of all currently visible sidebar item UIDs, reflecting collapse state and search filters.
+ *
+ * @param {Object} options
+ * @param {Array} options.sidebarEntries
+ * @param {string} options.searchText
+ * @returns {string[]}
+ */
+export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText = '' }) => {
+  const hasSearchText = Boolean(searchText && searchText.trim().length);
+  const uids = [];
+
+  const visitItems = (items = []) => {
+    const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+    const appItems = [...filter(items, (i) => i.type === 'app' && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+    const requestItems = [...filter(items, (i) => isItemARequest(i) && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+
+    folderItems.forEach((folder) => {
+      if (hasSearchText && !doesFolderHaveItemsMatchSearchText(folder, searchText)) return;
+      uids.push(folder.uid);
+      if (hasSearchText || !folder.collapsed) {
+        visitItems(folder.items);
+      }
+    });
+
+    if (!hasSearchText) {
+      appItems.forEach((app) => uids.push(app.uid));
+    }
+
+    requestItems.forEach((request) => {
+      if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
+      uids.push(request.uid);
+    });
+  };
+
+  sidebarEntries.forEach((entry) => {
+    if (entry.kind !== 'loaded') return;
+    const { collection } = entry;
+    if (hasSearchText && !doesCollectionHaveItemsMatchingSearchText(collection, searchText)) return;
+    uids.push(collection.uid);
+    if (hasSearchText || !collection.collapsed) {
+      visitItems(collection.items);
+    }
+  });
+
+  return uids;
+};
+
+const isPathnameDescendantOf = (pathname, ancestorPathname) => {
+  if (!pathname || !ancestorPathname || pathname === ancestorPathname) return false;
+
+  let normalizedPathname = normalizePath(pathname);
+  let normalizedAncestor = normalizePath(ancestorPathname);
+
+  if (isWindowsOS()) {
+    normalizedPathname = normalizedPathname.toLowerCase();
+    normalizedAncestor = normalizedAncestor.toLowerCase();
+  }
+
+  if (normalizedPathname === normalizedAncestor) return false;
+  return normalizedPathname.startsWith(`${normalizedAncestor}/`);
+};
+
+/**
+ * Resolves raw selected UIDs into a "parent wins" effective selection for bulk actions.
+ *
+ * @param {Object} options
+ * @param {Array} options.collections
+ * @param {string[]} options.selectedUids
+ * @returns {{ effectiveSelection: Array, hasCollection: boolean, hasFolder: boolean, hasRequest: boolean }}
+ */
+const getSelectionEntryType = (item) => {
+  if (isItemAFolder(item)) return 'folder';
+  if (isItemARequest(item)) return 'request';
+  if (item.type === 'app') return 'app';
+  return 'file';
+};
+
+export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  const resolved = selectedUids
+    .map((uid) => {
+      const collection = findCollectionByUid(collections, uid);
+      if (collection) {
+        return { uid, type: 'collection', collectionUid: uid, pathname: collection.pathname, collection };
+      }
+
+      const owningCollection = findCollectionByItemUid(collections, uid);
+      const item = owningCollection && findItemInCollection(owningCollection, uid);
+      if (!item) return null;
+
+      return {
+        uid,
+        type: getSelectionEntryType(item),
+        collectionUid: owningCollection.uid,
+        pathname: item.pathname,
+        item
+      };
+    })
+    .filter(Boolean);
+
+  const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
+  const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+
+  const effectiveSelection = resolved.filter((entry) => {
+    if (entry.type === 'collection') return true;
+    if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
+    return !selectedFolderPathnames.some(
+      (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
+    );
+  });
+
+  return {
+    effectiveSelection,
+    hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
+    hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
+    hasRequest: effectiveSelection.some((e) => e.type === 'request'),
+    hasApp: effectiveSelection.some((e) => e.type === 'app')
+  };
+};
+
+/**
+ * Extracts and categorizes all drafts (collections, folders, requests, transient) from a list of collections.
+ *
+ * @param {Array} collections - Array of collection objects to inspect
+ * @returns {{ requestDrafts: Array, transientDrafts: Array, folderDrafts: Array, collectionDrafts: Array }}
+ */
+export const getCollectionDrafts = (collections = []) => {
+  const requestDrafts = [];
+  const transientDrafts = [];
+  const folderDrafts = [];
+  const collectionDrafts = [];
+
+  collections.forEach((c) => {
+    if (c.draft) {
+      collectionDrafts.push({ ...c, name: c.name, collectionUid: c.uid });
+    }
+
+    const items = flattenItems(c.items);
+
+    const requests = items?.filter((item) => isItemARequest(item) && (item.isTransient || hasRequestChanges(item))) || [];
+    requests.forEach((req) => {
+      const enhancedReq = { ...req, collectionUid: c.uid };
+      if (req.isTransient) {
+        transientDrafts.push(enhancedReq);
+      } else {
+        requestDrafts.push(enhancedReq);
+      }
+    });
+
+    const folders = items?.filter((item) => isItemAFolder(item) && item.draft) || [];
+    folders.forEach((folder) => {
+      folderDrafts.push({ ...folder, name: folder.name, folderUid: folder.uid, collectionUid: c.uid });
+    });
+  });
+
+  return { requestDrafts, transientDrafts, folderDrafts, collectionDrafts };
+};
+
 /**
  * Generate a unique request name by checking existing filenames in the collection and filesystem
  * @param {Object} collection - The collection object
@@ -2126,4 +2345,63 @@ export const getAvailableAddToScopes = ({
       label: typeof label === 'function' ? label(context) : label,
       enabled: enabled(context)
     }));
+};
+
+/**
+ * Gets the other collections (excluding the provided uids)
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} uids - Array of uids to exclude
+ * @returns {Array} Array of other collections
+ */
+export const getOtherCollections = (allCollections, uids) => {
+  const uidsSet = new Set(uids);
+  return allCollections.filter((collection) => !uidsSet.has(collection.uid));
+};
+
+/**
+ * Gets the sorted dragged items based on the visual order
+ * @param {Object} draggedItem - The dragged item
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} workspaces - Array of workspaces
+ * @param {Object} activeWorkspace - The active workspace
+ * @param {string} collectionSortOrder - The collection sort order
+ * @param {string} searchText - The search text
+ * @returns {Array} Array of sorted dragged items
+ */
+export const getSortedDraggedItems = ({
+  draggedItem,
+  allCollections,
+  workspaces,
+  activeWorkspace,
+  collectionSortOrder,
+  searchText
+}) => {
+  let draggedItems = [];
+  if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+    // multiSelectedItems is already the parent-wins effective selection (see getSelectionInfo).
+    // The dragged item's own uid can legitimately be absent from it when a selected ancestor
+    // of the dragged item took over the selection — trust it as-is rather than re-adding the
+    // dragged item, which would move it a second time independently of its selected ancestor.
+    draggedItems = [...draggedItem.multiSelectedItems];
+  } else {
+    draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
+  }
+
+  const sidebarEntries = buildSidebarEntries({
+    collections: allCollections,
+    workspaces,
+    activeWorkspace,
+    collectionSortOrder
+  });
+
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+  const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
+
+  draggedItems.sort((a, b) => {
+    const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : Number.MAX_SAFE_INTEGER;
+    const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : Number.MAX_SAFE_INTEGER;
+    return idxA - idxB;
+  });
+
+  return draggedItems;
 };
