@@ -1,0 +1,22 @@
+meta {
+  name: ws-request
+  type: ws
+  seq: 4
+}
+
+ws {
+  url: ws://link-aware.test/ws-url
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "link": "http://link-aware.test/ws-body"
+    }
+  '''
+}
+
+docs {
+  See http://link-aware.test/ws-docs for details.
+}

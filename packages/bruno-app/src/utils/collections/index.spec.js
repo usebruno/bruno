@@ -11,7 +11,9 @@ import {
   resolveEnabledVariable,
   getEnvironmentVariables,
   determineExampleDrop,
-  getReorderedExampleUids
+  getReorderedExampleUids,
+  getUniqueTagsFromItems,
+  getCollectionVersion
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -143,6 +145,34 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('getUniqueTagsFromItems', () => {
+  const items = [
+    { type: 'http-request', request: {}, tags: ['saved'] },
+    { type: 'http-request', request: {}, tags: ['other-saved'], draft: { tags: ['draft-only', 'saved'] } },
+    { type: 'folder', items: [{ type: 'http-request', request: {}, tags: ['nested'] }] }
+  ];
+
+  it('includes draft tags by default', () => {
+    expect(getUniqueTagsFromItems(items)).toEqual(['draft-only', 'nested', 'saved']);
+  });
+
+  it('reads only saved tags when includeDrafts is false', () => {
+    expect(getUniqueTagsFromItems(items, { includeDrafts: false })).toEqual(['nested', 'other-saved', 'saved']);
+  });
+});
+
+describe('getCollectionVersion', () => {
+  it('reads the user-facing version from the normalized brunoConfig.version, for both formats', () => {
+    expect(getCollectionVersion({ brunoConfig: { opencollection: '1.0.0', version: '2.5' } })).toBe('2.5');
+    expect(getCollectionVersion({ brunoConfig: { version: 'v3.0' } })).toBe('v3.0');
+  });
+
+  it('returns an empty string when the version is unset', () => {
+    expect(getCollectionVersion({ brunoConfig: {} })).toBe('');
+    expect(getCollectionVersion(null)).toBe('');
   });
 });
 
