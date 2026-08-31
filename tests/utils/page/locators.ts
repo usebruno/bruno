@@ -233,7 +233,14 @@ export const buildCommonLocators = (page: Page) => ({
         .locator('.bruno-modal')
         .getByTestId('env-row')
         .filter({ has: page.getByText(name, { exact: true }) })
-        .getByRole('checkbox')
+        .getByRole('checkbox'),
+    advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
+    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })

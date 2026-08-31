@@ -1644,12 +1644,12 @@ export const canCollectionItemBeDropped = ({
 
 // item sequence utils - END
 
-export const getUniqueTagsFromItems = (items = []) => {
+export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}) => {
   const allTags = new Set();
   const getTags = (items) => {
     items.forEach((item) => {
       if (isItemARequest(item)) {
-        const tags = item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
+        const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
       if (item.items) {
