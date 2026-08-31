@@ -50,10 +50,7 @@ export const getBodyType = (contentType = '') => {
 };
 
 /**
- * Resolves the body type to persist for a response example. The sniffed mime
- * (from the response's magic bytes) wins only when it identifies binary media,
- * so a mislabeled image is stored as binary; otherwise the content-type header
- * decides, so a JSON body sniffed as generic text still lands as json.
+ * Determines body type for response examples: uses sniffed mime if binary, else uses content-type header.
  * @param {string} contentType - The content-type header value
  * @param {string|null} sniffedMime - Mime type detected from the response bytes
  * @returns {string} - The body type (json, xml, html, text, binary)

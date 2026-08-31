@@ -83,7 +83,6 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
     const sniffedMime = detectContentTypeFromBase64(response.dataBuffer);
-
     const bodyType = getExampleBodyType(contentType, sniffedMime);
 
     const content = bodyType === 'binary'
