@@ -308,6 +308,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           collection={collection}
           highlightPathParams={true}
           item={item}
+          disableLinkAwareClick={true}
         />
 
       </div>

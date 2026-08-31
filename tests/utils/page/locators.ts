@@ -80,7 +80,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
-    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
+    collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    folderSettingsContent: () => page.locator('.folder-settings-content')
   },
   docs: buildDocsLocators(page),
   aiAssist: {
@@ -124,7 +126,11 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
+    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
+    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
+    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
+    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
@@ -225,7 +231,14 @@ export const buildCommonLocators = (page: Page) => ({
         .locator('.bruno-modal')
         .getByTestId('env-row')
         .filter({ has: page.getByText(name, { exact: true }) })
-        .getByRole('checkbox')
+        .getByRole('checkbox'),
+    advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
+    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
@@ -279,6 +292,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
+    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },

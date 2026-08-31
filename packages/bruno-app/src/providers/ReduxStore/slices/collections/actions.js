@@ -26,7 +26,9 @@ import {
   transformCollectionRootToSave,
   resolveEnabledVariable,
   buildSidebarEntries,
-  getVisibleSidebarUidsInOrder
+  getVisibleSidebarUidsInOrder,
+  generateTransientRequestName,
+  isPutObjectPresignedUrl
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -1388,6 +1390,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     body,
     auth,
     settings,
+    requestPaneTab,
     isTransient = false
   } = params;
 
@@ -1471,7 +1474,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
               type: 'OPEN_REQUEST',
               collectionUid,
               itemPathname: result?.pathname || fullName,
-              preview: false
+              preview: false,
+              ...(requestPaneTab ? { requestPaneTab } : {})
             })
           );
           resolve();
@@ -1494,7 +1498,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               type: 'OPEN_REQUEST',
               collectionUid,
-              itemPathname: result?.pathname || fullName
+              itemPathname: result?.pathname || fullName,
+              ...(requestPaneTab ? { requestPaneTab } : {})
             })
           );
           resolve();
@@ -1516,7 +1521,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 uid: uuid(),
                 type: 'OPEN_REQUEST',
                 collectionUid,
-                itemPathname: result?.pathname || fullName
+                itemPathname: result?.pathname || fullName,
+                ...(requestPaneTab ? { requestPaneTab } : {})
               })
             );
             resolve();
@@ -1741,6 +1747,93 @@ export const newWsRequest = (params) => (dispatch, getState) => {
     }
   });
 };
+
+/**
+ * Opens a URL clicked inside a CodeMirror editor (see utils/codemirror/linkAware.js) as a new
+ * transient request in the same collection. `requestType` is decided by the caller - either the
+ * type of the request tab the link was clicked from, or the collection's presets when clicked
+ * from collection/folder settings.
+ */
+export const openLinkedRequest = ({ url, collectionUid, requestType }) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection || !url) {
+    return Promise.reject(new Error('Collection not found'));
+  }
+
+  const requestName = generateTransientRequestName(collection);
+  const filename = sanitizeName(requestName);
+
+  if (requestType === 'grpc-request') {
+    return dispatch(
+      newGrpcRequest({ requestName, filename, requestUrl: url, collectionUid, itemUid: null, isTransient: true })
+    );
+  }
+
+  if (requestType === 'ws-request') {
+    return dispatch(
+      newWsRequest({
+        requestName,
+        requestMethod: 'ws',
+        filename,
+        requestUrl: url,
+        collectionUid,
+        itemUid: null,
+        isTransient: true
+      })
+    );
+  }
+
+  const isGraphqlRequest = requestType === 'graphql-request';
+  const isPutObject = !isGraphqlRequest && isPutObjectPresignedUrl(url);
+
+  return dispatch(
+    newHttpRequest({
+      requestName,
+      filename,
+      requestType, // 'http-request' | 'graphql-request'
+      requestUrl: url,
+      requestMethod: isGraphqlRequest ? 'POST' : (isPutObject ? 'PUT' : 'GET'),
+      collectionUid,
+      itemUid: null,
+      isTransient: true,
+      auth: { mode: 'none' },
+      settings: { encodeUrl: false },
+      ...(isGraphqlRequest ? { body: { mode: 'graphql', graphql: { query: '', variables: '' } } } : {}),
+      ...(isPutObject ? { requestPaneTab: 'body' } : {})
+    })
+  );
+};
+
+const DEFAULT_APP_STARTER = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 1rem; }
+    button { padding: 6px 10px; cursor: pointer; }
+    pre { background: #f6f7f9; padding: 8px; border-radius: 4px; overflow: auto; }
+    body.dark { color: #e0e0e0; }
+    body.dark pre { background: #1f2123; }
+  </style>
+</head>
+<body>
+  <h2>Hello from a Bruno app</h2>
+  <p>This app can list request in the collection.</p>
+  <button id="refresh">List requests</button>
+  <pre id="out">click "List requests"</pre>
+  <script>
+    const out = document.getElementById('out');
+    document.getElementById('refresh').addEventListener('click', async () => {
+      const requests = await bru.ctx.listRequests();
+      out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
+    });
+  </script>
+</body>
+</html>
+`;
 
 export const newApp = (params) => (dispatch, getState) => {
   const { appName, filename, collectionUid, itemUid } = params;
