@@ -200,8 +200,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
-  selectedCollections: [], // Array of selected collection UIDs for multi-selection
-  lastClickedCollectionIndex: null, // Index of last clicked collection for shift-select
+  selectedSidebarUids: [],
+  lastClickedSidebarUid: null,
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
@@ -1017,6 +1017,35 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = false;
+      }
+    },
+    collapseCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = true;
+      }
+    },
+    expandItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
+    collapseItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = true;
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -3969,24 +3998,24 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    setSelectedCollections: (state, action) => {
-      state.selectedCollections = action.payload;
+    setSidebarSelection: (state, action) => {
+      state.selectedSidebarUids = action.payload;
     },
-    toggleCollectionSelection: (state, action) => {
-      const { collectionUid } = action.payload;
-      const index = state.selectedCollections.indexOf(collectionUid);
+    toggleSidebarSelection: (state, action) => {
+      const uid = action.payload;
+      const index = state.selectedSidebarUids.indexOf(uid);
       if (index > -1) {
-        state.selectedCollections.splice(index, 1);
+        state.selectedSidebarUids.splice(index, 1);
       } else {
-        state.selectedCollections.push(collectionUid);
+        state.selectedSidebarUids.push(uid);
       }
     },
-    clearCollectionSelection: (state) => {
-      state.selectedCollections = [];
-      state.lastClickedCollectionIndex = null;
+    clearSidebarSelection: (state) => {
+      state.selectedSidebarUids = [];
+      state.lastClickedSidebarUid = null;
     },
-    setLastClickedCollectionIndex: (state, action) => {
-      state.lastClickedCollectionIndex = action.payload;
+    setLastClickedSidebarUid: (state, action) => {
+      state.lastClickedSidebarUid = action.payload;
     },
 
     addTransientDirectory: (state, action) => {
@@ -4107,6 +4136,9 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  collapseCollection,
+  expandItem,
+  collapseItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
@@ -4224,10 +4256,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
-  setSelectedCollections,
-  toggleCollectionSelection,
-  clearCollectionSelection,
-  setLastClickedCollectionIndex,
+  setSidebarSelection,
+  toggleSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
 
   /* Response Example Actions - Start */
   addResponseExample,
