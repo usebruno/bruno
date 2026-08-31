@@ -81,6 +81,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           collection={collection}
           item={item}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -96,6 +97,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           item={item}
           isSecret={true}
           isCompact
+          disableLinkAwareClick={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
@@ -111,6 +113,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           collection={collection}
           item={item}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
     </StyledWrapper>

@@ -112,6 +112,28 @@ const openCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
+ * Open a collection living at an arbitrary filesystem path via the native "Open Collection"
+ * flow — mocks `dialog.showOpenDialog` to return `collectionPath` directly (no real file
+ * picker), then drives the "+" menu's "Open collection" item. Useful for loading a committed
+ * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param collectionPath - Absolute path to the collection folder to open
+ * @returns void
+ */
+const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
+  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
+    await electronApp.evaluate(({ dialog }, dir) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+    }, collectionPath);
+
+    const locators = buildCommonLocators(page);
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.openCollection().click();
+  });
+};
+
+/**
  * Create a collection
  * @param page - The page object
  * @param collectionName - The name of the collection to create
@@ -542,8 +564,8 @@ const importCollection = async (
   await test.step(`Import collection from "${filePath}"`, async () => {
     const locators = buildCommonLocators(page);
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
 
     // Wait for import modal
     const importModal = page.getByRole('dialog');
@@ -2219,6 +2241,100 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
+// --- CodeMirror link-aware assertions (open-as-transient-request feature) -------------------
+
+type LinkAwareRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+// Name of the committed fixture collection under tests/codeeditor-state/codemirror/fixtures.
+const LINK_AWARE_COLLECTION_NAME = 'codemirror-linkaware';
+
+// Cmd on macOS, Ctrl elsewhere — matches isCmdOrCtrlPressed() in linkAware.js.
+const LINK_CLICK_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+const LINK_AWARE_METHOD_LABEL: Record<LinkAwareRequestType, string | null> = {
+  http: null, // HTTP shows the verb (GET/POST/...), not a fixed label
+  graphql: 'GQL',
+  grpc: 'gRPC',
+  ws: 'WS'
+};
+
+const setCodeMirrorValue = async (cm: Locator, value: string) => {
+  await cm.evaluate((el: any, v: string) => el.CodeMirror?.setValue(v), value);
+};
+
+const linkAwareUrlBarCm = (page: Page, type: LinkAwareRequestType): Locator =>
+  type === 'grpc'
+    ? buildGrpcCommonLocators(page).request.queryUrlContainer().locator('.CodeMirror')
+    : buildCommonLocators(page).request.urlInput();
+
+/** Asserts the currently active tab is a freshly-created transient request of the given type. */
+const expectTransientRequestOpened = async (page: Page, opts: { type: LinkAwareRequestType; url?: string }) => {
+  const tab = page.locator('.request-tab.active');
+  await expect(tab).toContainText('Untitled', { timeout: 10000 });
+
+  const expectedLabel = LINK_AWARE_METHOD_LABEL[opts.type];
+  if (expectedLabel) {
+    await expect(tab.locator('.tab-method')).toHaveText(expectedLabel, { timeout: 5000 });
+  } else {
+    await expect(tab.locator('.tab-method')).not.toHaveText('', { timeout: 5000 });
+  }
+
+  if (opts.url && opts.type !== 'ws') {
+    await expect.poll(
+      () => linkAwareUrlBarCm(page, opts.type).evaluate((el: any) => el.CodeMirror?.getValue() ?? ''),
+      { timeout: 5000 }
+    ).toBe(opts.url);
+  }
+};
+
+/** Plain click on the marked link — asserts a new transient request of `type` opens with `url`. */
+const expectLinkOpensRequest = async (page: Page, cm: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on the marked link — must fall back to "open externally", no new tab. */
+const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/** Plain click on a Rich Text docs link opens a transient request. */
+const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
+const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/**
+ * A URL-looking value must behave as plain text (e.g. `{{var}}`-interpolated, `ws://`, or a
+ * field with link-awareness disabled): clicking it — with or without the open-externally
+ * modifier — must be handled as a normal text click (CodeMirror focuses and places the
+ * cursor), never intercepted to open a transient request.
+ */
+const expectNoLink = async (cm: Locator) => {
+  await cm.click();
+  await expect(cm).toContainClass('CodeMirror-focused');
+
+  await cm.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await expect(cm).toContainClass('CodeMirror-focused');
+};
+
 /**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
@@ -3031,6 +3147,7 @@ export {
   dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
+  openCollectionFromDialog,
   createCollection,
   createRequest,
   createUntitledRequest,
@@ -3110,11 +3227,21 @@ export {
   sendAndWaitForResponse,
   resetResponse,
   selectAuthMode,
+  fieldEditor,
   typeIntoField,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
+  setCodeMirrorValue,
+  expectTransientRequestOpened,
+  expectLinkOpensRequest,
+  expectLinkOpensExternally,
+  expectRichTextLinkOpensRequest,
+  expectRichTextLinkOpensExternally,
+  expectNoLink,
+  LINK_AWARE_COLLECTION_NAME,
+  LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
   openExportToPostmanModal,
@@ -3163,4 +3290,4 @@ export {
   clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };

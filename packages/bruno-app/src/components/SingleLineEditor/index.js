@@ -1,12 +1,13 @@
-import React, { Component } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
-import { getAllVariables } from 'utils/collections';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
@@ -91,6 +92,22 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. disableLinkAwareClick opts a field out of the "open as new
+     * request" click (e.g. the URL bar) - it still marks URLs and Cmd/Ctrl+Click still opens
+     * them externally, matching Bruno's pre-existing URL bar behaviour.
+     */
+    setupLinkAware(this.editor, {
+      onLinkClick: this.props.disableLinkAwareClick
+        ? undefined
+        : resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
+    this._linkAwareItemType = this.props.item?.type;
+    this._linkAwareCollectionUid = this.props.collection?.uid;
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    this._linkAwareDisabled = this.props.disableLinkAwareClick;
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
@@ -103,7 +120,6 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();
@@ -172,6 +188,29 @@ class SingleLineEditor extends Component {
       if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
+    }
+
+    // Re-wire link handler when item/collection context changes.
+    const itemType = this.props.item?.type;
+    const collectionUid = this.props.collection?.uid;
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    if (
+      itemType !== this._linkAwareItemType
+      || collectionUid !== this._linkAwareCollectionUid
+      || presetType !== this._linkAwarePresetType
+      || this.props.disableLinkAwareClick !== this._linkAwareDisabled
+    ) {
+      this._linkAwareItemType = itemType;
+      this._linkAwareCollectionUid = collectionUid;
+      this._linkAwarePresetType = presetType;
+      this._linkAwareDisabled = this.props.disableLinkAwareClick;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: this.props.disableLinkAwareClick
+          ? undefined
+          : resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');

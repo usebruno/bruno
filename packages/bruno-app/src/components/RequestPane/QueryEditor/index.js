@@ -11,12 +11,13 @@ import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
@@ -70,7 +71,7 @@ export default class QueryEditor extends React.Component {
      * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
      * in request tabs.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -161,7 +162,12 @@ export default class QueryEditor extends React.Component {
     }
     this.addOverlay();
 
-    setupLinkAware(editor);
+    setupLinkAware(editor, {
+      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
+    this._linkAwareItemType = this.props.item?.type;
+    this._linkAwareCollectionUid = this.props.collection?.uid;
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
@@ -197,6 +203,21 @@ export default class QueryEditor extends React.Component {
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
+    }
+
+    // Re-wire link handler when item/collection context changes.
+    const itemType = this.props.item?.type;
+    const collectionUid = this.props.collection?.uid;
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
+      this._linkAwareItemType = itemType;
+      this._linkAwareCollectionUid = collectionUid;
+      this._linkAwarePresetType = presetType;
+      this.editor._destroyLinkAware?.();
+      setupLinkAware(this.editor, {
+        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+      this.editor.refresh();
     }
     this.ignoreChangeEvent = false;
   }

@@ -15,6 +15,7 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -50,6 +51,9 @@ const QueryResultPreview = ({
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  // Same type as the request this response belongs to (HTTP -> HTTP, GraphQL -> GraphQL).
+  const handleResponseLinkClick = resolveLinkClickHandler(item, collection);
+
   if (selectedTab === 'editor') {
     return (
       <CodeEditor
@@ -65,6 +69,7 @@ const QueryResultPreview = ({
         mode={codeMirrorMode}
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
+        onLinkClick={handleResponseLinkClick}
         readOnly
       />
     );
@@ -98,7 +103,7 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
+      return <JsonPreview data={data} displayedTheme={displayedTheme} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-text': {
