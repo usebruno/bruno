@@ -113,6 +113,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const openMockServerDashboard = () => {
+    ensureCollectionIsMounted();
     setShowCreateMockServerModal(true);
   };
 

@@ -159,10 +159,6 @@ const StyledWrapper = styled.div`
     text-decoration: unset;
   }
 
-  .cm-search-line-highlight {
-    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
-  }
-
   @keyframes cm-error-line-flash {
     0%, 60% {
       background-color: ${(props) => props.theme.status.danger.background};
@@ -187,14 +183,6 @@ const StyledWrapper = styled.div`
       animation: none;
       background-color: ${(props) => props.theme.status.danger.background};
     }
-  }
-
-  .cm-search-match {
-    background: rgba(255, 193, 7, 0.25);
-  }
-
-  .cm-search-current {
-    background: rgba(255, 193, 7, 0.4);
   }
 
   .lint-error-tooltip {

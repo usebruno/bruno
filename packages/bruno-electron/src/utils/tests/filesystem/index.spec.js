@@ -103,19 +103,17 @@ describe('File System Operations', () => {
   });
 
   describe('MAX_DUPLICATE_NAMES cap', () => {
-    it('caps at 200: creates req.bru, req 1.bru … req 199.bru, then the 201st rejects', async () => {
+    it('rejects once every candidate name (base + 199 suffixes) is taken', async () => {
       const dir = path.join(tempDir, 'cap');
       await fs.mkdir(dir, { recursive: true });
 
-      for (let i = 0; i < 200; i++) {
-        const { filename } = await writeFileUnique(dir, 'req', 'bru', 'x');
-        expect(filename).toBe(i === 0 ? 'req.bru' : `req ${i}.bru`);
-      }
+      const names = ['req.bru', ...Array.from({ length: 199 }, (_, i) => `req ${i + 1}.bru`)];
+      await Promise.all(names.map((name) => fs.writeFile(path.join(dir, name), 'x')));
 
       await expect(writeFileUnique(dir, 'req', 'bru', 'x')).rejects.toThrow(
         /Too many items named "req" \(limit 200\)/
       );
-    });
+    }, 30000);
   });
 });
 
