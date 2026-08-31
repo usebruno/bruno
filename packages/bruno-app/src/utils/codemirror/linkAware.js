@@ -301,7 +301,7 @@ function setupLinkAware(editor, options = {}) {
 
   window.addEventListener('keydown', boundUpdateCmdCtrlClass);
   window.addEventListener('keyup', boundUpdateCmdCtrlClass);
-  // Capture phase - must run before CodeMirror's own mousedown handler (see handleMouseDown).
+  // Capture phase — before CodeMirror's mousedown handler.
   editorWrapper.addEventListener('mousedown', boundHandleMouseDown, true);
   editorWrapper.addEventListener('click', boundHandleClick);
   editorWrapper.addEventListener('mouseover', boundHandleMouseEnter);
