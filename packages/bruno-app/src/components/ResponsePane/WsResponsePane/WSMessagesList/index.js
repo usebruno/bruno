@@ -69,9 +69,12 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
+<<<<<<< HEAD
 const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => {
+=======
+const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamFormatChange }) => {
+>>>>>>> 1fc4b92e6 (fix: persist SSE response format preference)
   const [showHex, setShowHex] = useState(false);
-  const [showFormattedJson, setShowFormattedJson] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
@@ -84,6 +87,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
   let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
   const isSseJson = parsedContent.type === 'text/plain' && extractJsonFromSSE(message.message) !== null;
+  const showFormattedJson = streamFormat === 'json';
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -156,9 +160,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
                 'cursor-pointer': !showHex
               })}
               role="tab"
-              onClick={() => {
-                setShowHex(true); setShowFormattedJson(false);
-              }}
+              onClick={() => { setShowHex(true); }}
             >
               hexdump
             </div>
@@ -166,10 +168,10 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
               <MenuDropdown
                 items={[
                   { id: 'raw', label: 'Raw', onClick: () => {
-                    setShowHex(false); setShowFormattedJson(false);
+                    setShowHex(false); onStreamFormatChange?.('raw');
                   } },
                   { id: 'json', label: 'JSON', onClick: () => {
-                    setShowHex(false); setShowFormattedJson(true);
+                    setShowHex(false); onStreamFormatChange?.('json');
                   } }
                 ]}
                 selectedItemId={showFormattedJson ? 'json' : 'raw'}
@@ -203,7 +205,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
   );
 });
 
-const WSMessagesList = ({ messages = [], item, collection }) => {
+const WSMessagesList = ({ messages = [], streamFormat, onStreamFormatChange,  item, collection }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -259,8 +261,21 @@ const WSMessagesList = ({ messages = [], item, collection }) => {
 
   const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
+<<<<<<< HEAD
     return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} item={item} collection={collection} />;
   }, [openMessages, handleMessageToggle, item, collection]);
+=======
+    return (
+      <WSMessageItem
+        message={msg}
+        isOpen={isOpen}
+        onToggle={handleMessageToggle}
+        streamFormat={streamFormat}
+        onStreamFormatChange={onStreamFormatChange}
+      />
+    );
+  }, [openMessages, handleMessageToggle, streamFormat, onStreamFormatChange]);
+>>>>>>> 1fc4b92e6 (fix: persist SSE response format preference)
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;
