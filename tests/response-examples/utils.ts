@@ -27,3 +27,28 @@ export const exampleOrderOnDisk = (filePath: string, names: string[]): string[] 
     .sort((a, b) => a.index - b.index)
     .map((entry) => entry.name);
 };
+
+/**
+ * Content plus modification time for a request file.
+ *
+ * Content alone cannot prove a file was left alone: a reorder that resolves to the order already
+ * on disk would be rewritten with byte-identical content, so only the mtime distinguishes "never
+ * written" from "written again with the same bytes". Autosave is disabled in tests, so nothing
+ * else touches these files mid-test.
+ */
+export const fileSnapshot = (filePath: string): { content: string; mtimeMs: number } => ({
+  content: fs.readFileSync(filePath, 'utf8'),
+  mtimeMs: fs.statSync(filePath).mtimeMs
+});
+
+/**
+ * Poll-safe `exampleOrderOnDisk`: yields null instead of throwing while a name is still absent or
+ * the file is mid-write, so it can drive `expect.poll` without aborting it.
+ */
+export const exampleOrderOnDiskOrNull = (filePath: string, names: string[]): string[] | null => {
+  try {
+    return exampleOrderOnDisk(filePath, names);
+  } catch {
+    return null;
+  }
+};

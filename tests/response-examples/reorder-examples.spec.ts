@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
@@ -11,7 +10,7 @@ import {
   expandRequestExamples,
   getSidebarExampleNames
 } from '../utils/page';
-import { exampleOrderOnDisk, requestFilePath } from './utils';
+import { exampleOrderOnDisk, exampleOrderOnDiskOrNull, fileSnapshot, requestFilePath } from './utils';
 
 // Names are deliberately non-overlapping so on-disk ordering can be read from raw file
 // positions without parsing either format.
@@ -95,24 +94,33 @@ test.describe('Reorder response examples via drag and drop', () => {
     await expandRequestExamples(page, 'flights');
     await expandRequestExamples(page, 'hotels');
 
-    const filePath = requestFilePath(testDir, 'flights', 'bru');
-    const before = fs.readFileSync(filePath, 'utf8');
+    const flightsFile = requestFilePath(testDir, 'flights', 'bru');
+    const hotelsFile = requestFilePath(testDir, 'hotels', 'bru');
+    const flightsBefore = fileSnapshot(flightsFile);
+    const hotelsBefore = fileSnapshot(hotelsFile);
 
     await test.step('Drop Bravo below Alpha — the slot it already occupies', async () => {
       await dragExample(page, 'flights', BRAVO, ALPHA, 'below');
     });
 
-    await test.step('A reorder on another request lands, so the drop above had its chance', async () => {
-      // A drop that changes nothing saves nothing, so it offers no signal to wait on. Driving
-      // a drop that does save gives one: once this reorder has round-tripped through the file
-      // watcher, a save wrongly triggered by the drop above would have landed too.
+    await test.step('A reorder on hotels reaches disk, so the drop above had its chance', async () => {
+      // The drop above resolves to the order already stored, so it writes nothing and offers no
+      // signal to wait on. Driving a drop that does write gives one — and waiting for hotels'
+      // new order to appear *on disk*, rather than just in the sidebar, means a write wrongly
+      // triggered by the earlier drop has also had time to land.
       await dragExample(page, 'hotels', BRAVO, ALPHA, 'above');
-      await expect.poll(() => getSidebarExampleNames(page, 'hotels')).toEqual([BRAVO, ALPHA]);
+      await expect.poll(() => exampleOrderOnDiskOrNull(hotelsFile, [ALPHA, BRAVO])).toEqual([BRAVO, ALPHA]);
     });
 
     await test.step('flights kept its order and its file was never rewritten', async () => {
       expect(await getSidebarExampleNames(page, 'flights')).toEqual(ALL);
-      expect(fs.readFileSync(filePath, 'utf8')).toBe(before);
+      // mtime matters as much as the bytes here: this drop would have been saved with content
+      // identical to what is already on disk, which a content-only check cannot detect.
+      expect(fileSnapshot(flightsFile)).toEqual(flightsBefore);
+
+      // hotels was rewritten by the reorder above, so its mtime must have moved — proving the
+      // comparison just made can actually fail, rather than passing because mtime never changes.
+      expect(fileSnapshot(hotelsFile).mtimeMs).toBeGreaterThan(hotelsBefore.mtimeMs);
     });
   });
 
@@ -164,23 +172,30 @@ test.describe('Reorder response examples via drag and drop', () => {
       await expandRequestExamples(page, 'hotels');
     });
 
+    const flightsFile = requestFilePath(testDir, 'flights', 'bru');
+    const hotelsFile = requestFilePath(testDir, 'hotels', 'bru');
+    const hotelsBefore = fileSnapshot(hotelsFile);
+
     await test.step('Drag Alpha from flights onto Charlie under hotels', async () => {
       await dragExampleOntoOtherRequestExample(page, 'flights', ALPHA, 'hotels', CHARLIE);
     });
 
-    await test.step('A valid reorder inside flights lands, so the rejected drop had its chance', async () => {
-      // The rejected drop saves nothing and so offers no signal to wait on; a drop that does
-      // save provides one, and it cannot complete before an earlier save would have.
+    await test.step('A valid reorder inside flights reaches disk, so the rejected drop had its chance', async () => {
+      // The rejected drop writes nothing and so offers no signal to wait on. Waiting for a drop
+      // that does write — all the way to disk, not just to the sidebar — bounds the window in
+      // which the rejected one could still have written.
       await dragExample(page, 'flights', BRAVO, ALPHA, 'above');
-      await expect.poll(() => getSidebarExampleNames(page, 'flights')).toEqual([BRAVO, ALPHA]);
+      await expect.poll(() => exampleOrderOnDiskOrNull(flightsFile, [ALPHA, BRAVO])).toEqual([BRAVO, ALPHA]);
     });
 
     await test.step('Alpha stayed under flights and never reached hotels', async () => {
+      expect(await getSidebarExampleNames(page, 'flights')).toEqual([BRAVO, ALPHA]);
       expect(await getSidebarExampleNames(page, 'hotels')).toEqual([CHARLIE]);
 
-      const hotelsFile = fs.readFileSync(requestFilePath(testDir, 'hotels', 'bru'), 'utf8');
-      expect(hotelsFile).not.toContain(ALPHA);
-      expect(exampleOrderOnDisk(requestFilePath(testDir, 'flights', 'bru'), [ALPHA, BRAVO])).toEqual([BRAVO, ALPHA]);
+      // Unchanged bytes *and* mtime: hotels was never rewritten, so Alpha was never appended
+      // and then removed either.
+      expect(fileSnapshot(hotelsFile)).toEqual(hotelsBefore);
+      expect(hotelsBefore.content).not.toContain(ALPHA);
     });
   });
 });
