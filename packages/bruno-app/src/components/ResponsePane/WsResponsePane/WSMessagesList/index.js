@@ -69,9 +69,8 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
+const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamFormatChange }) => {
   const [showHex, setShowHex] = useState(false);
-  const [showFormattedJson, setShowFormattedJson] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const [isNew, setIsNew] = useState(false);
@@ -84,6 +83,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   let contentHexdump = message.messageHexdump;
   let parsedContent = parseContent(message.message);
   const isSseJson = parsedContent.type === 'text/plain' && extractJsonFromSSE(message.message) !== null;
+  const showFormattedJson = streamFormat === 'json';
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -156,9 +156,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
                 'cursor-pointer': !showHex
               })}
               role="tab"
-              onClick={() => {
-                setShowHex(true); setShowFormattedJson(false);
-              }}
+              onClick={() => { setShowHex(true); }}
             >
               hexdump
             </div>
@@ -166,10 +164,10 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               <MenuDropdown
                 items={[
                   { id: 'raw', label: 'Raw', onClick: () => {
-                    setShowHex(false); setShowFormattedJson(false);
+                    setShowHex(false); onStreamFormatChange?.('raw');
                   } },
                   { id: 'json', label: 'JSON', onClick: () => {
-                    setShowHex(false); setShowFormattedJson(true);
+                    setShowHex(false); onStreamFormatChange?.('json');
                   } }
                 ]}
                 selectedItemId={showFormattedJson ? 'json' : 'raw'}
@@ -201,7 +199,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   );
 });
 
-const WSMessagesList = ({ messages = [] }) => {
+const WSMessagesList = ({ messages = [], streamFormat, onStreamFormatChange }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -257,8 +255,16 @@ const WSMessagesList = ({ messages = [] }) => {
 
   const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
-  }, [openMessages, handleMessageToggle]);
+    return (
+      <WSMessageItem
+        message={msg}
+        isOpen={isOpen}
+        onToggle={handleMessageToggle}
+        streamFormat={streamFormat}
+        onStreamFormatChange={onStreamFormatChange}
+      />
+    );
+  }, [openMessages, handleMessageToggle, streamFormat, onStreamFormatChange]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;

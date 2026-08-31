@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded, updateStreamFormat } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -155,7 +155,14 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return (
+            <WSMessagesList
+              order={-1}
+              messages={item.response.data}
+              streamFormat={focusedTab?.streamFormat}
+              onStreamFormatChange={(format) => dispatch(updateStreamFormat({ uid: activeTabUid, streamFormat: format }))}
+            />
+          );
         }
         return (
           <QueryResult
