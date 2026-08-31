@@ -5,19 +5,22 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
+import classnames from 'classnames';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 
 const CodeMirror = require('codemirror');
 
@@ -52,6 +55,11 @@ export default class QueryEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchBarRef = createRef();
+
+    this.state = {
+      searchBarVisible: false
+    };
   }
 
   componentDidMount() {
@@ -63,7 +71,7 @@ export default class QueryEditor extends React.Component {
      * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
      * in request tabs.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -136,8 +144,12 @@ export default class QueryEditor extends React.Component {
             this.props.onMergeQuery();
           }
         },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          isReadOnly: () => this.props.readOnly
+        }),
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut
       }
@@ -155,7 +167,7 @@ export default class QueryEditor extends React.Component {
     });
     this._linkAwareItemType = this.props.item?.type;
     this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
@@ -196,7 +208,7 @@ export default class QueryEditor extends React.Component {
     // Re-wire link handler when item/collection context changes.
     const itemType = this.props.item?.type;
     const collectionUid = this.props.collection?.uid;
-    const presetType = getPresetRequestType(this.props.collection);
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
     if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
       this._linkAwareItemType = itemType;
       this._linkAwareCollectionUid = collectionUid;
@@ -263,17 +275,30 @@ export default class QueryEditor extends React.Component {
     // this.editor.setOption('mode', 'brunovariables');
   };
 
+  setEditorNode = (node) => {
+    this._node = node;
+  };
+
   render() {
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative graphiql-container"
+        className={classnames('h-full w-full flex flex-col relative graphiql-container', {
+          'search-bar-visible': this.state.searchBarVisible
+        })}
         aria-label="Query Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+      >
+        <CodeMirrorSearch
+          ref={this.searchBarRef}
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          readOnly={this.props.readOnly}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
+        {/* CodeMirror owns this node's children, so React must not render into it. */}
+        <div className="editor-container" ref={this.setEditorNode} />
+      </StyledWrapper>
     );
   }
 

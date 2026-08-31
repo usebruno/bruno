@@ -51,7 +51,8 @@ jest.mock('./state-persistence', () => ({
 }));
 
 jest.mock('utils/collections', () => ({
-  getAllVariables: jest.fn(() => ({}))
+  getAllVariables: jest.fn(() => ({})),
+  getRequestTypeFromCollectionPresets: jest.fn(() => undefined)
 }));
 
 jest.mock('utils/common/codemirror', () => ({
@@ -61,8 +62,7 @@ jest.mock('utils/common/codemirror', () => ({
 const mockDestroyLinkAware = jest.fn();
 const mockResolveLinkClickHandler = jest.fn((item, collection) => (collection?.uid ? jest.fn() : undefined));
 jest.mock('utils/codemirror/linkClickHandler', () => ({
-  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args),
-  getPresetRequestType: jest.fn(() => undefined)
+  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args)
 }));
 
 const mockSetupLinkAware = jest.fn((editor) => {

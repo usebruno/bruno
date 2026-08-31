@@ -11,12 +11,14 @@ const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
+const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
@@ -396,7 +398,9 @@ const runSingleRequest = async function (
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const disableCache = !get(options, 'cacheSslSession', false);
-    const httpsAgentRequestFields = {};
+    // NTLM authenticates the connection rather than the request, so its handshake only completes
+    // when every leg reuses one socket.
+    const httpsAgentRequestFields = request.ntlmConfig ? { keepAlive: true } : {};
 
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -478,12 +482,22 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    refreshExplicitHeaderNames(request);
+    const omitConnection = shouldOmitConnection({
+      omitHeaders: request.settings?.omitHeaders,
+      headersToDelete: request.__headersToDelete,
+      explicitHeaderNames: request.__explicitHeaderNames
+    });
+
     await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
       systemProxyConfig: cachedSystemProxy,
-      httpsAgentRequestFields,
+      httpsAgentRequestFields: {
+        ...httpsAgentRequestFields,
+        keepAlive: !omitConnection
+      },
       interpolationOptions,
       disableCache
     });
@@ -667,7 +681,7 @@ const runSingleRequest = async function (
         request.timeout = requestTimeout;
       }
 
-      let axiosInstance = makeAxiosInstance({
+      const axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
@@ -681,7 +695,8 @@ const runSingleRequest = async function (
       });
 
       if (request.ntlmConfig) {
-        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+        axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
         delete request.ntlmConfig;
       }
 
@@ -722,7 +737,7 @@ const runSingleRequest = async function (
       }
 
       /** @type {import('axios').AxiosResponse} */
-      response = await axiosInstance(request);
+      response = await axiosInstance(refreshExplicitHeaderNames(request));
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;

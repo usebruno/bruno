@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -128,7 +128,7 @@ class MultiLineEditor extends Component {
      * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
      * would re-introduce the newline in collection/folder-level editors.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
     const enableFolding = !!this.props.enableFolding;
 
     this.editor = CodeMirror(this.editorRef.current, {
@@ -166,8 +166,8 @@ class MultiLineEditor extends Component {
           }
         : undefined,
       extraKeys: {
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Cmd-F': () => { },
+        'Ctrl-F': () => { },
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work

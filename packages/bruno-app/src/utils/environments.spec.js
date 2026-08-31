@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
 import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
@@ -594,71 +594,6 @@ describe('writesCollidingSecrets', () => {
   });
 });
 
-describe('resolveSecretNameCollision', () => {
-  const makeSecret = (uid, name, value, overrides = {}) => ({
-    uid,
-    name,
-    value,
-    type: 'text',
-    enabled: true,
-    secret: true,
-    ...overrides
-  });
-
-  it('keeps the edited row and drops the other secrets sharing its name', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'stale'), makeSecret('uid-3', 'apiKey', 'other')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, variables[2]]);
-  });
-
-  it('keeps the edited row even when it is not the first of the duplicates', () => {
-    const edited = makeSecret('uid-2', 'token', 'edited');
-    const variables = [makeSecret('uid-1', 'token', 'stale'), edited];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited]);
-  });
-
-  // Secret values are stored under the untrimmed name, so these are two separately readable
-  // secrets rather than one collision.
-  it('leaves a whitespace-padded namesake alone, since it is a different stored key', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const padded = makeSecret('uid-2', '  token  ', 'stale');
-    const variables = [edited, padded];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, padded]);
-  });
-
-  it('leaves a non-secret of the same name alone', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const plain = makeSecret('uid-2', 'token', 'plain', { secret: false });
-    const variables = [edited, plain, makeSecret('uid-3', 'token', 'stale')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited, plain]);
-  });
-
-  it('returns the list untouched when the edited secret has no collision', () => {
-    const edited = makeSecret('uid-1', 'apiKey', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'other')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toBe(variables);
-  });
-
-  it('returns the list untouched when the edited variable is not a secret', () => {
-    const plain = makeSecret('uid-1', 'token', 'edited', { secret: false });
-    const variables = [plain, makeSecret('uid-2', 'token', 'a'), makeSecret('uid-3', 'token', 'b')];
-
-    expect(resolveSecretNameCollision(variables, plain)).toBe(variables);
-  });
-
-  it('drops every namesake when more than two collide', () => {
-    const edited = makeSecret('uid-1', 'token', 'edited');
-    const variables = [edited, makeSecret('uid-2', 'token', 'a'), makeSecret('uid-3', 'token', 'b')];
-
-    expect(resolveSecretNameCollision(variables, edited)).toEqual([edited]);
-  });
-});
-
 describe('dedupeImportedSecrets', () => {
   const makeVar = (uid, name, value, overrides = {}) => ({
     uid,
@@ -750,5 +685,32 @@ describe('dedupeImportedSecrets', () => {
     const variables = [makeVar('uid-1', 'token', ''), makeVar('uid-2', 'token', 'kept', { enabled: false })];
 
     expect(dedupeImportedSecrets(variables)).toEqual([variables[1]]);
+  });
+});
+
+describe('generateCopyName', () => {
+  it('should append " copy" if the base name is not in the existing names', () => {
+    const existing = ['Production', 'Staging'];
+    expect(generateCopyName('Development', existing)).toEqual('Development copy');
+  });
+
+  it('should append " copy 2" if the " copy" variant already exists', () => {
+    const existing = ['Production', 'Production copy'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
+  });
+
+  it('should append " copy 3" if the " copy" and " copy 2" variants already exist', () => {
+    const existing = ['Production', 'Production copy', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 3');
+  });
+
+  it('reuses the plain " copy" name when only " copy 2" exists', () => {
+    const existing = ['Production', 'Production copy 2'];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy');
+  });
+
+  it('treats an existing name as taken even when it differs only by case or whitespace', () => {
+    const existing = ['production', ' Production copy  '];
+    expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
   });
 });

@@ -3,8 +3,8 @@ import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
-import { getAllVariables } from 'utils/collections';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
@@ -105,7 +105,7 @@ class SingleLineEditor extends Component {
     });
     this._linkAwareItemType = this.props.item?.type;
     this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
     this._linkAwareDisabled = this.props.disableLinkAwareClick;
 
     this.editor.setValue(String(this.props.value ?? ''));
@@ -193,7 +193,7 @@ class SingleLineEditor extends Component {
     // Re-wire link handler when item/collection context changes.
     const itemType = this.props.item?.type;
     const collectionUid = this.props.collection?.uid;
-    const presetType = getPresetRequestType(this.props.collection);
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
     if (
       itemType !== this._linkAwareItemType
       || collectionUid !== this._linkAwareCollectionUid

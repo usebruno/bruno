@@ -2632,6 +2632,13 @@ const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.act
 const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
 
 /**
+ * The shared "No app yet" empty state, rendered by both the request-level app
+ * view and the standalone collection app whenever the app has no code.
+ * @param page - The page object
+ */
+const appEmptyState = (page: Page) => activeAppPreviewSlot(page).getByTestId('empty-app-state');
+
+/**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
  * takes over the request/response area.
  * @param page - The page object
@@ -2810,6 +2817,13 @@ const setRequestUrlAndSave = async (page: Page, url: string) => {
 };
 
 /**
+ * @param page - The page object
+ */
+const dismissVarTooltip = async (page: Page) => {
+  await page.locator('body').click();
+};
+
+/**
  * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
  * @param page - The page object
  * @param varName - The variable name inside the braces
@@ -2825,6 +2839,34 @@ const openUrlVarTooltip = async (
   // Dismiss any previously-open tooltip first.
   await page.mouse.move(0, 0);
   await request.urlVariableToken(varName, state).hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+/**
+ * Hover a `{{var}}` token inside another row's Value cell in the (collection or global)
+ * environment table itself, and return its (visible) info tooltip. Use this for the
+ * "go to definition from inside the environment table it would target" scenario, as opposed
+ * to `openUrlVarTooltip` which hovers a token in a request's URL bar.
+ * @param page - The page object
+ * @param rowName - The name of the environment row whose Value cell contains the token
+ * @param tokenName - The variable name inside the braces to hover
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openEnvValueVarTooltip = async (
+  page: Page,
+  rowName: string,
+  tokenName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { environment, varInfoPopup } = buildCommonLocators(page);
+  const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await environment.varRowValueEditor(rowName).locator(selector).filter({ hasText: tokenName }).first().hover();
 
   const tooltip = varInfoPopup.all().first();
   await expect(tooltip).toBeVisible();
@@ -3064,11 +3106,43 @@ const saveTransientRequestAs = async (page: Page, name: string) => {
   });
 };
 
+/**
+ * Opens the environment import review modal and selects the given files.
+ * @param page - The Playwright Page object
+ * @param scope - The environment scope ('collection' | 'global')
+ * @param filePaths - The paths to the environment files to import
+ */
+const openImportReview = async (page: Page, scope: 'collection' | 'global', ...filePaths: string[]) => {
+  const { environment } = buildCommonLocators(page);
+  await openEnvironmentConfigTab(page, scope);
+  await environment.importSettingsButton().click();
+  await environment.importModal(scope).waitFor({ state: 'visible' });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await environment.importFileTrigger(scope).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePaths);
+};
+
+/**
+ * Clicks outside the modal backdrop to test click-outside behavior.
+ * @param page - The Playwright Page object
+ */
+const clickOutsideModal = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+
+  await modal.backdrop().click({
+    position: { x: 10, y: 10 }
+  });
+};
+
 export {
   waitForReadyPage,
   readClipboard,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  dismissVarTooltip,
+  openEnvValueVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,
@@ -3184,6 +3258,7 @@ export {
   requestPaneOverflowTabItem,
   activeAppPreviewSlot,
   activeAppView,
+  appEmptyState,
   previewApp,
   exitApp,
   selectViewMode,
@@ -3210,7 +3285,9 @@ export {
   openCloneCollectionModal,
   chooseCloneLocation,
   setTextBody,
-  saveTransientRequestAs
+  saveTransientRequestAs,
+  openImportReview,
+  clickOutsideModal
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };

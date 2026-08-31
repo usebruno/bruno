@@ -17,9 +17,9 @@ import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler, getPresetRequestType } from 'utils/codemirror/linkClickHandler';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
@@ -80,7 +80,7 @@ class CodeEditor extends React.Component {
      * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
      * would re-introduce the newline in collection/folder-level editors.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -154,7 +154,7 @@ class CodeEditor extends React.Component {
             } else var toParse = '{' + internal + '}';
             try {
               count = Object.keys(JSON.parse(toParse)).length;
-            } catch (e) {}
+            } catch (e) { }
           } else if (this.props.mode == 'application/xml') {
             const doc = new DOMParser();
             try {
@@ -164,7 +164,7 @@ class CodeEditor extends React.Component {
                 'application/xml'
               );
               count = dcm.documentElement.children.length;
-            } catch (e) {}
+            } catch (e) { }
           }
           return count ? `\u21A4${count}\u21A6` : '\u2194';
         }
@@ -300,7 +300,7 @@ class CodeEditor extends React.Component {
       });
       this._linkAwareItemType = this.props.item?.type;
       this._linkAwareCollectionUid = this.props.collection?.uid;
-      this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+      this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
       this._linkAwareHasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
 
       // Setup lint error tooltip on line number hover
@@ -401,7 +401,7 @@ class CodeEditor extends React.Component {
       // Re-wire link handler when item/collection context changes.
       const itemType = this.props.item?.type;
       const collectionUid = this.props.collection?.uid;
-      const presetType = getPresetRequestType(this.props.collection);
+      const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
       const hasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
       if (
         itemType !== this._linkAwareItemType
