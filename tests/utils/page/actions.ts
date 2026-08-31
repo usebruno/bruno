@@ -2305,12 +2305,7 @@ const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
   await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
-/**
- * Docs' Rich Text (WYSIWYG) mode is a separate rendering path (TipTap, not CodeMirror), but its
- * link click (EditorLinkPopover) is wired to the same open-as-transient-request handler as
- * CodeMirror's link-aware fields when previewing (not actively editing): a plain click opens the
- * link as a transient request of the matching type.
- */
+/** Plain click on a Rich Text docs link opens a transient request. */
 const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
   await expect(link).toBeVisible({ timeout: 10000 });
   await link.click();
