@@ -6,9 +6,8 @@ const path = require('path');
 // back into the repo, and returns its path; the caller removes it. Fixtures hold
 // real {{var}} references, so a run supplies their values with --env-var.
 const createCollectionFixture = (from) => {
-  // macOS os.tmpdir() is a symlink; the CLI's __dirname is derived from
-  // collection.pathname (set from process.cwd(), which is realpath'd), so
-  // realpath the fixture dir here to keep persisted path assertions matching.
+  // os.tmpdir() is a symlink on macOS and the spawned CLI derives the collection
+  // path from process.cwd(), which the OS returns resolved; so we match it here.
   const targetDir = fs.realpathSync(
     fs.mkdtempSync(path.join(os.tmpdir(), `bruno-${path.basename(from)}-`))
   );
