@@ -56,6 +56,7 @@ const DotEnvTableView = ({
               className="mousetrap"
               id={`${index}.name`}
               name={`${index}.name`}
+              data-testid="dotenv-var-name-input"
               value={variable.name}
               placeholder={isLastEmptyRow ? 'Name' : ''}
               onChange={(e) => onNameChange(index, e)}
