@@ -26,6 +26,60 @@ jest.mock('providers/ReduxStore', () => ({
   }
 }));
 
+jest.mock('utils/codemirror/autocomplete', () => ({
+  setupAutoComplete: jest.fn(() => jest.fn()),
+  showRootHints: jest.fn()
+}));
+
+jest.mock('utils/codemirror/aiGhostText', () => ({
+  setupAiAutocomplete: jest.fn(() => jest.fn())
+}));
+
+jest.mock('utils/codemirror/lint-errors', () => ({
+  setupLintErrorTooltip: jest.fn(() => jest.fn())
+}));
+
+jest.mock('utils/codemirror/resize', () => ({
+  setupCodeMirrorResizeRefresh: jest.fn(() => jest.fn())
+}));
+
+jest.mock('components/CodeMirrorSearch/searchKeyBindings', () => ({
+  buildSearchKeyBindings: jest.fn(() => ({}))
+}));
+
+jest.mock('./state-persistence', () => {
+  const actual = jest.requireActual('./state-persistence');
+  return {
+    ...actual,
+    applyEditorState: jest.fn(),
+    captureEditorState: jest.fn(),
+    readPersistedEditorState: jest.fn(),
+    writePersistedEditorState: jest.fn()
+  };
+});
+
+jest.mock('utils/collections', () => ({
+  getAllVariables: jest.fn(() => ({})),
+  getRequestTypeFromCollectionPresets: jest.fn(() => undefined)
+}));
+
+jest.mock('utils/common/codemirror', () => ({
+  defineCodeMirrorBrunoVariablesMode: jest.fn()
+}));
+
+const mockDestroyLinkAware = jest.fn();
+const mockResolveLinkClickHandler = jest.fn((item, collection) => (collection?.uid ? jest.fn() : undefined));
+jest.mock('utils/codemirror/linkClickHandler', () => ({
+  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args)
+}));
+
+const mockSetupLinkAware = jest.fn((editor) => {
+  editor._destroyLinkAware = mockDestroyLinkAware;
+});
+jest.mock('utils/codemirror/linkAware', () => ({
+  setupLinkAware: (...args) => mockSetupLinkAware(...args)
+}));
+
 const setupEditorWithRef = (props = {}) => {
   const ref = React.createRef();
   const view = render(
@@ -45,6 +99,18 @@ const setupEditorWithRef = (props = {}) => {
 };
 
 const getStatusBarToggle = (view) => view.getByTestId('editor-status-bar-toggle');
+
+const itemA = { uid: 'item-a', type: 'http-request' };
+const collectionA = { uid: 'collection-a' };
+const itemB = { uid: 'item-b', type: 'graphql-request' };
+const collectionB = { uid: 'collection-b' };
+
+const renderEditor = (props) =>
+  render(
+    <ThemeProvider theme={darkTheme}>
+      <CodeEditor value="http://example.test/foo" {...props} />
+    </ThemeProvider>
+  );
 
 describe('CodeEditor', () => {
   beforeEach(() => {
@@ -221,5 +287,62 @@ describe('CodeEditor', () => {
 
     expect(view.getByTestId('editor-status-bar')).toHaveTextContent('json mode');
     expect(view.queryByTestId('editor-status-bar-toggle')).not.toBeInTheDocument();
+  });
+
+  describe('link-aware reconfiguration', () => {
+    it('reconfigures the link-click handler when item/collection change', () => {
+      const { rerender } = renderEditor({ item: itemA, collection: collectionA });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeDefined();
+
+      rerender(
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor value="http://example.test/foo" item={itemB} collection={collectionB} />
+        </ThemeProvider>
+      );
+
+      expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
+      expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeDefined();
+
+      mockSetupLinkAware.mock.calls[1][1].onLinkClick('http://example.test/foo');
+      expect(mockResolveLinkClickHandler).toHaveBeenLastCalledWith(itemB, collectionB);
+    });
+
+    it('reconfigures once collection becomes available after mount', () => {
+      const { rerender } = renderEditor({ item: itemA, collection: undefined });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
+
+      rerender(
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor value="http://example.test/foo" item={itemA} collection={collectionA} />
+        </ThemeProvider>
+      );
+
+      expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
+      expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeDefined();
+
+      mockSetupLinkAware.mock.calls[1][1].onLinkClick('http://example.test/foo');
+      expect(mockResolveLinkClickHandler).toHaveBeenLastCalledWith(itemA, collectionA);
+    });
+
+    it('does not reconfigure when item/collection stay the same', () => {
+      const { rerender } = renderEditor({ item: itemA, collection: collectionA });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor value="http://example.test/foo" item={itemA} collection={collectionA} readOnly={true} />
+        </ThemeProvider>
+      );
+
+      expect(mockDestroyLinkAware).not.toHaveBeenCalled();
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+    });
   });
 });

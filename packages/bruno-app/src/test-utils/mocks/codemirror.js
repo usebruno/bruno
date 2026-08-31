@@ -17,6 +17,7 @@ const CodeMirror = jest.fn((node, options) => {
     refresh: jest.fn(),
     off: jest.fn(),
     showHint: jest.fn(),
+    toggleComment: jest.fn(),
     scrollTo: jest.fn(),
     getScrollInfo: jest.fn(() => ({ top: 0, clientHeight: 500 })),
     getWrapperElement: jest.fn(() => node),

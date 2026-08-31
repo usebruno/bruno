@@ -347,4 +347,71 @@ test.describe('Generate Documentation', () => {
 
     expect(generatedEnvironmentNames(content).sort()).toEqual([...EXPECTED_ENVIRONMENTS].sort());
   });
+
+  test('reveals request filtering and the git-link control under Advanced', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    await locators.sidebar.collection(COLLECTION_NAME).hover();
+    await locators.actions.collectionActions(COLLECTION_NAME).click();
+    await locators.generateDocs.menuItem().click();
+
+    const modal = locators.generateDocs.modal();
+    await expect(modal).toBeVisible();
+
+    await locators.generateDocs.advancedToggle().click();
+
+    await expect(locators.generateDocs.allRequestsButton()).toHaveAttribute('aria-pressed', 'true');
+    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'false');
+
+    await locators.generateDocs.filterByTagsButton().click();
+    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'true');
+    await expect(locators.generateDocs.includeTagsInput()).toBeVisible();
+    await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
+
+    await expect(locators.generateDocs.gitLinkLabel()).toBeVisible();
+
+    await locators.generateDocs.cancelButton().click();
+    await expect(modal).toBeHidden();
+  });
+
+  test('keeps only requests carrying an included tag in the generated docs', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
+      await locators.generateDocs.advancedToggle().click();
+      await locators.generateDocs.filterByTagsButton().click();
+      const include = locators.generateDocs.includeTagsInput();
+      await include.fill('smoke');
+      await include.press('Enter');
+      await expect(locators.generateDocs.tagChip('smoke')).toBeVisible();
+    });
+
+    expect(parseGeneratedDocs(content)).toEqual([{ name: 'Zoo', items: [{ name: 'Lion' }] }]);
+  });
+
+  test('drops requests carrying an excluded tag from the generated docs', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
+      await locators.generateDocs.advancedToggle().click();
+      await locators.generateDocs.filterByTagsButton().click();
+      const exclude = locators.generateDocs.excludeTagsInput();
+      await exclude.fill('wip');
+      await exclude.press('Enter');
+      await expect(locators.generateDocs.tagChip('wip')).toBeVisible();
+    });
+
+    expect(parseGeneratedDocs(content)).toEqual([
+      { name: 'Zoo', items: [{ name: 'Lion' }] },
+      { name: 'Aviary', items: [{ name: 'Parrot' }] },
+      { name: 'ReqBeta' },
+      { name: 'ReqAlpha' }
+    ]);
+  });
 });
