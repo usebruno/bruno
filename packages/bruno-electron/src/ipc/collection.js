@@ -1733,15 +1733,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
 
-        let targetCreated = false;
         try {
           await copyPathTo(sourcePathname, targetPathname);
-          targetCreated = true;
           await removePath(sourcePathname);
         } catch (error) {
-          if (targetCreated) {
-            try { await removePath(targetPathname); } catch (e) {}
-          }
           pathnamesAfter?.forEach((_, index) => {
             moveRequestUid(pathnamesAfter[index], pathnamesBefore[index]);
           });
@@ -1783,15 +1778,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         moveRequestUid(sourcePathname, targetPathname);
 
-        let targetCreated = false;
         try {
           await fs.promises.writeFile(targetPathname, finalContent, { flag: 'wx' });
-          targetCreated = true;
           await removePath(sourcePathname);
         } catch (error) {
-          if (targetCreated) {
-            try { await removePath(targetPathname); } catch (e) {}
-          }
           moveRequestUid(targetPathname, sourcePathname);
           throw error;
         }
