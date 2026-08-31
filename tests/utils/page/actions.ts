@@ -1862,21 +1862,21 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 const closeAllTabsDiscardingChanges = async (page: Page) => {
   await test.step('Close all tabs, discarding changes', async () => {
     const locators = buildCommonLocators(page);
-    const requestTabs = page.locator('.request-tab').filter({ has: page.locator('.tab-method') });
+    const requestTabs = locators.tabs.requestTabsWithMethod();
+    const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
 
     for (let remaining = await requestTabs.count(); remaining > 0; remaining--) {
       const tab = requestTabs.first();
-      const hasChanges = await locators.tabs.tabDraftIndicator(tab).isVisible();
 
       await tab.hover();
-      await tab.getByTestId('request-tab-close-icon').click({ force: true });
+      await locators.tabs.closeTabIcon(tab).click({ force: true });
 
-      if (hasChanges) {
-        const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
-        await confirmClose.getByRole('button', { name: 'Don\'t Save' }).click();
-      }
-
-      await expect(requestTabs).toHaveCount(remaining - 1);
+      await expect(async () => {
+        if (await confirmClose.isVisible()) {
+          await confirmClose.getByRole('button', { name: 'Don\'t Save' }).click();
+        }
+        await expect(requestTabs).toHaveCount(remaining - 1, { timeout: 1000 });
+      }).toPass({ timeout: 15000 });
     }
 
     await expect(requestTabs).toHaveCount(0);
