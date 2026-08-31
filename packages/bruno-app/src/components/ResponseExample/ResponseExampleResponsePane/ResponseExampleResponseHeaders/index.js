@@ -178,6 +178,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
     <StyledWrapper className="w-full px-4">
       <EditableTable
         tableId="example-response-headers"
+        testId="response-example-response-headers-table"
         columnWidths={responseHeadersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-response-headers', widths)}
         columns={columns}

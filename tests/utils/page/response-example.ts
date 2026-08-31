@@ -23,7 +23,7 @@ export const buildResponseExampleLocators = (page: Page) => ({
   responsePane: () => page.getByTestId('response-pane'),
   responsePaneTab: (key: 'response' | 'headers') => page.getByTestId('response-pane').getByTestId(`tab-${key}`),
   headerRow: (name: string) =>
-    page.getByTestId('response-pane').locator('tbody tr').filter({
+    page.getByTestId('response-example-response-headers-table').locator('tbody tr').filter({
       has: page.getByTestId('column-name').getByText(new RegExp(`^${name}$`, 'i'))
     }),
   headerRowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror')
