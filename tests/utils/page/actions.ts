@@ -112,6 +112,28 @@ const openCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
+ * Open a collection living at an arbitrary filesystem path via the native "Open Collection"
+ * flow — mocks `dialog.showOpenDialog` to return `collectionPath` directly (no real file
+ * picker), then drives the "+" menu's "Open collection" item. Useful for loading a committed
+ * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param collectionPath - Absolute path to the collection folder to open
+ * @returns void
+ */
+const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
+  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
+    await electronApp.evaluate(({ dialog }, dir) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+    }, collectionPath);
+
+    const locators = buildCommonLocators(page);
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.openCollection().click();
+  });
+};
+
+/**
  * Create a collection
  * @param page - The page object
  * @param collectionName - The name of the collection to create
@@ -542,8 +564,8 @@ const importCollection = async (
   await test.step(`Import collection from "${filePath}"`, async () => {
     const locators = buildCommonLocators(page);
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
 
     // Wait for import modal
     const importModal = page.getByRole('dialog');
@@ -749,6 +771,7 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
       await locators.environment.globalTab().click();
       await expect(locators.environment.globalTab()).toHaveClass(/active/);
     } else {
+      await locators.environment.collectionTab().click();
       await expect(locators.environment.collectionTab()).toHaveClass(/active/);
     }
   });
@@ -854,13 +877,17 @@ const createEnvironment = async (
       await inlineNameInput.press('Enter');
     }
 
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
 
     await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
     await locators.environment.envOption(environmentName).click();
     await expect(page.locator('.current-environment')).toContainText(environmentName);
@@ -1033,8 +1060,10 @@ const saveEnvironment = async (page: Page) => {
  */
 const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collection') => {
   await test.step('Close environment tab', async () => {
-    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
-    const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
+    const locators = buildCommonLocators(page);
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
@@ -1059,6 +1088,8 @@ const selectEnvironment = async (
 
     if (type === 'global') {
       await locators.environment.globalTab().click();
+    } else {
+      await locators.environment.collectionTab().click();
     }
 
     const option = environmentName === 'No Environment'
@@ -1393,6 +1424,30 @@ const switchToPreviewTab = async (page: Page) => {
 const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
     await setResponsePreviewMode(page, 'editor');
+  });
+};
+
+/**
+ * Expand every collapsed node in the XML preview tree.
+ *
+ * @param page - The page object
+ */
+const expandAllXmlNodes = async (page: Page) => {
+  await test.step('Expand all XML preview nodes', async () => {
+    const collapsedToggles = buildCommonLocators(page).response.xmlCollapsedNodeToggles();
+    // One iteration per tree level; the bound guards against a node that fails to
+    // expand turning this into an infinite loop.
+    const maxDepth = 20;
+    for (let depth = 0; depth < maxDepth; depth++) {
+      const count = await collapsedToggles.count();
+      if (count === 0) return;
+      // Expanding a node re-renders its subtree, so walk backwards — clicking the
+      // last toggle first keeps the earlier ones' indices stable.
+      for (let i = count - 1; i >= 0; i--) {
+        await collapsedToggles.nth(i).click();
+      }
+    }
+    throw new Error(`XML tree still has collapsed nodes after ${maxDepth} expansion passes`);
   });
 };
 
@@ -2186,6 +2241,100 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
   await exampleRow.click();
 };
 
+// --- CodeMirror link-aware assertions (open-as-transient-request feature) -------------------
+
+type LinkAwareRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+// Name of the committed fixture collection under tests/codeeditor-state/codemirror/fixtures.
+const LINK_AWARE_COLLECTION_NAME = 'codemirror-linkaware';
+
+// Cmd on macOS, Ctrl elsewhere — matches isCmdOrCtrlPressed() in linkAware.js.
+const LINK_CLICK_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+const LINK_AWARE_METHOD_LABEL: Record<LinkAwareRequestType, string | null> = {
+  http: null, // HTTP shows the verb (GET/POST/...), not a fixed label
+  graphql: 'GQL',
+  grpc: 'gRPC',
+  ws: 'WS'
+};
+
+const setCodeMirrorValue = async (cm: Locator, value: string) => {
+  await cm.evaluate((el: any, v: string) => el.CodeMirror?.setValue(v), value);
+};
+
+const linkAwareUrlBarCm = (page: Page, type: LinkAwareRequestType): Locator =>
+  type === 'grpc'
+    ? buildGrpcCommonLocators(page).request.queryUrlContainer().locator('.CodeMirror')
+    : buildCommonLocators(page).request.urlInput();
+
+/** Asserts the currently active tab is a freshly-created transient request of the given type. */
+const expectTransientRequestOpened = async (page: Page, opts: { type: LinkAwareRequestType; url?: string }) => {
+  const tab = page.locator('.request-tab.active');
+  await expect(tab).toContainText('Untitled', { timeout: 10000 });
+
+  const expectedLabel = LINK_AWARE_METHOD_LABEL[opts.type];
+  if (expectedLabel) {
+    await expect(tab.locator('.tab-method')).toHaveText(expectedLabel, { timeout: 5000 });
+  } else {
+    await expect(tab.locator('.tab-method')).not.toHaveText('', { timeout: 5000 });
+  }
+
+  if (opts.url && opts.type !== 'ws') {
+    await expect.poll(
+      () => linkAwareUrlBarCm(page, opts.type).evaluate((el: any) => el.CodeMirror?.getValue() ?? ''),
+      { timeout: 5000 }
+    ).toBe(opts.url);
+  }
+};
+
+/** Plain click on the marked link — asserts a new transient request of `type` opens with `url`. */
+const expectLinkOpensRequest = async (page: Page, cm: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on the marked link — must fall back to "open externally", no new tab. */
+const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/** Plain click on a Rich Text docs link opens a transient request. */
+const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
+const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/**
+ * A URL-looking value must behave as plain text (e.g. `{{var}}`-interpolated, `ws://`, or a
+ * field with link-awareness disabled): clicking it — with or without the open-externally
+ * modifier — must be handled as a normal text click (CodeMirror focuses and places the
+ * cursor), never intercepted to open a transient request.
+ */
+const expectNoLink = async (cm: Locator) => {
+  await cm.click();
+  await expect(cm).toContainClass('CodeMirror-focused');
+
+  await cm.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await expect(cm).toContainClass('CodeMirror-focused');
+};
+
 /**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
@@ -2483,6 +2632,13 @@ const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.act
 const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
 
 /**
+ * The shared "No app yet" empty state, rendered by both the request-level app
+ * view and the standalone collection app whenever the app has no code.
+ * @param page - The page object
+ */
+const appEmptyState = (page: Page) => activeAppPreviewSlot(page).getByTestId('empty-app-state');
+
+/**
  * Open the app view via the App tab's "Preview" button. Asserts the app view
  * takes over the request/response area.
  * @param page - The page object
@@ -2602,6 +2758,8 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
   });
 };
 
+const SETTLE_MS = 2_000;
+
 /**
  * Scroll a row inside a react-virtuoso table (request/folder/collection vars or
  * env vars — both rendered with the `table-container` className) into view so it
@@ -2611,7 +2769,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => { });
+    await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
     return;
   }
 
@@ -2629,7 +2787,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => { });
+      await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
       return;
     }
   }
@@ -2639,7 +2797,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => { });
+  await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
 };
 
 /**
@@ -2659,6 +2817,13 @@ const setRequestUrlAndSave = async (page: Page, url: string) => {
 };
 
 /**
+ * @param page - The page object
+ */
+const dismissVarTooltip = async (page: Page) => {
+  await page.locator('body').click();
+};
+
+/**
  * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
  * @param page - The page object
  * @param varName - The variable name inside the braces
@@ -2674,6 +2839,34 @@ const openUrlVarTooltip = async (
   // Dismiss any previously-open tooltip first.
   await page.mouse.move(0, 0);
   await request.urlVariableToken(varName, state).hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+/**
+ * Hover a `{{var}}` token inside another row's Value cell in the (collection or global)
+ * environment table itself, and return its (visible) info tooltip. Use this for the
+ * "go to definition from inside the environment table it would target" scenario, as opposed
+ * to `openUrlVarTooltip` which hovers a token in a request's URL bar.
+ * @param page - The page object
+ * @param rowName - The name of the environment row whose Value cell contains the token
+ * @param tokenName - The variable name inside the braces to hover
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openEnvValueVarTooltip = async (
+  page: Page,
+  rowName: string,
+  tokenName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { environment, varInfoPopup } = buildCommonLocators(page);
+  const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await environment.varRowValueEditor(rowName).locator(selector).filter({ hasText: tokenName }).first().hover();
 
   const tooltip = varInfoPopup.all().first();
   await expect(tooltip).toBeVisible();
@@ -2711,15 +2904,250 @@ const openSystemProxyPanel = async (page: Page) => {
   await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
 };
 
+// Sidebar item actions: clone / copy / paste / rename / create, opened through a
+// row's menu.
+
+const openItemActionsMenu = async (page: Page, name: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(name);
+  await sidebar.itemRow(name).first().hover();
+  await menu.trigger().first().click({ force: true });
+};
+
+const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(collectionName, 'collection');
+  await sidebar.collectionRow(collectionName).hover();
+  const trigger = menu.trigger();
+  await trigger.waitFor({ state: 'visible' });
+  await trigger.click();
+};
+
+const cloneItem = async (page: Page, name: string) => {
+  await test.step(`Clone item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Clone').click();
+    // Synchronize on completion (a "… cloned!" toast). `.first()` so a still-visible
+    // toast from a prior clone is not the one we wait on.
+    await toast.byMessage(/cloned!/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const copyItem = async (page: Page, name: string) => {
+  await test.step(`Copy item "${name}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, name);
+    await dropdown.item('Copy').click();
+    await toast.byMessage(/copied/).first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Paste into collection "${collectionName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openCollectionActionsMenu(page, collectionName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+const pasteIntoFolder = async (page: Page, folderName: string) => {
+  await test.step(`Paste into folder "${folderName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openItemActionsMenu(page, folderName);
+    await dropdown.item('Paste').click();
+    await toast.byMessage('Item pasted successfully').first().waitFor({ state: 'visible' });
+  });
+};
+
+type ItemType = 'request' | 'folder';
+const renameModalTitle = (type: ItemType) => (type === 'folder' ? 'Rename Folder' : 'Rename Request');
+
+const openRenameModal = async (page: Page, name: string, type: ItemType = 'request') => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openItemActionsMenu(page, name);
+  await dropdown.item('Rename').click();
+  await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'visible' });
+};
+
+const renameItemTo = async (page: Page, name: string, newName: string, type: ItemType = 'request') => {
+  await test.step(`Rename "${name}" to "${newName}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await sidebar.renameItemModal.nameInput().fill(newName);
+    await sidebar.renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const revealFilesystemName = async (page: Page) => {
+  const { sidebar } = buildCommonLocators(page);
+  await sidebar.filesystemName.optionsButton().first().click();
+  await sidebar.filesystemName.showFilesystemNameItem().click();
+};
+
+const renameViaFilename = async (page: Page, name: string, newFilename: string, type: ItemType = 'request') => {
+  await test.step(`Rename filesystem name of "${name}" to "${newFilename}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openRenameModal(page, name, type);
+    await revealFilesystemName(page);
+    await sidebar.renameItemModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(newFilename);
+    await sidebar.renameItemModal.submit().click();
+    await modal.byTitle(renameModalTitle(type)).waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewRequestModal = async (page: Page, parentName: string, { inFolder = false } = {}) => {
+  const { dropdown, request } = buildCommonLocators(page);
+  if (inFolder) {
+    await openItemActionsMenu(page, parentName);
+  } else {
+    await openCollectionActionsMenu(page, parentName);
+  }
+  await dropdown.item('New Request').click();
+  await request.requestNameInput().waitFor({ state: 'visible' });
+};
+
+const createRequestViaModal = async (page: Page, parentName: string, name: string, { inFolder = false } = {}) => {
+  await test.step(`Create request "${name}" via modal in "${parentName}"`, async () => {
+    const { modal, request, sidebar } = buildCommonLocators(page);
+    await openNewRequestModal(page, parentName, { inFolder });
+    await request.requestNameInput().fill(name);
+    await sidebar.newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const createRequestWithEditedFilename = async (
+  page: Page,
+  collectionName: string,
+  displayName: string,
+  filename: string
+) => {
+  await test.step(`Create request "${displayName}" with filename "${filename}"`, async () => {
+    const { modal, request, sidebar } = buildCommonLocators(page);
+    await openNewRequestModal(page, collectionName);
+    await request.requestNameInput().fill(displayName);
+    await revealFilesystemName(page);
+    await sidebar.newRequestModal.filenameEditIcon().click();
+    await sidebar.filesystemName.fileNameInput().fill(filename);
+    await sidebar.newRequestModal.createButton().click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openNewFolderModal = async (page: Page, collectionName: string) => {
+  const { dropdown, sidebar } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('New Folder').click();
+  await sidebar.newFolderModal.nameInput().waitFor({ state: 'visible' });
+};
+
+const createFolderViaModal = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Create folder "${folderName}" via modal in "${collectionName}"`, async () => {
+    const { modal, sidebar } = buildCommonLocators(page);
+    await openNewFolderModal(page, collectionName);
+    await sidebar.newFolderModal.nameInput().fill(folderName);
+    await modal.button('Create').click();
+    await modal.any().waitFor({ state: 'hidden' });
+  });
+};
+
+const openCloneCollectionModal = async (page: Page, collectionName: string) => {
+  const { dropdown, modal } = buildCommonLocators(page);
+  await openCollectionActionsMenu(page, collectionName);
+  await dropdown.item('Clone').click();
+  await modal.byTitle('Clone Collection').waitFor({ state: 'visible' });
+};
+
+const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
+  const { sidebar } = buildCommonLocators(page);
+  await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
+    (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+  }, location);
+  try {
+    await sidebar.cloneCollectionModal.browseButton().click();
+    await sidebar.cloneCollectionModal.locationInput().waitFor({ state: 'visible' });
+  } finally {
+    await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }) => {
+      if ((globalThis as any).__bruPrevShowOpenDialog) {
+        dialog.showOpenDialog = (globalThis as any).__bruPrevShowOpenDialog;
+        delete (globalThis as any).__bruPrevShowOpenDialog;
+      }
+    });
+  }
+};
+
+const setTextBody = async (page: Page, value: string) => {
+  const { request } = buildCommonLocators(page);
+  await request.bodyModeSelector().click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Text' }).click();
+  await request.bodyEditor().locator('.CodeMirror').first().click();
+  await page.keyboard.type(value);
+};
+
+// Save the active transient (untitled) request via the Save modal, giving it a
+// display name. Waits for the modal to open and close.
+const saveTransientRequestAs = async (page: Page, name: string) => {
+  await test.step(`Save transient request as "${name}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    const dialog = sidebar.saveRequestModal.modal();
+
+    await page.keyboard.press(`${modifier}+s`);
+    await dialog.waitFor({ state: 'visible' });
+    await sidebar.saveRequestModal.nameInput().clear();
+    await sidebar.saveRequestModal.nameInput().fill(name);
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Opens the environment import review modal and selects the given files.
+ * @param page - The Playwright Page object
+ * @param scope - The environment scope ('collection' | 'global')
+ * @param filePaths - The paths to the environment files to import
+ */
+const openImportReview = async (page: Page, scope: 'collection' | 'global', ...filePaths: string[]) => {
+  const { environment } = buildCommonLocators(page);
+  await openEnvironmentConfigTab(page, scope);
+  await environment.importSettingsButton().click();
+  await environment.importModal(scope).waitFor({ state: 'visible' });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await environment.importFileTrigger(scope).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePaths);
+};
+
+/**
+ * Clicks outside the modal backdrop to test click-outside behavior.
+ * @param page - The Playwright Page object
+ */
+const clickOutsideModal = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+
+  await modal.backdrop().click({
+    position: { x: 10, y: 10 }
+  });
+};
+
 export {
   waitForReadyPage,
   readClipboard,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  dismissVarTooltip,
+  openEnvValueVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
+  openCollectionFromDialog,
   createCollection,
   createRequest,
   createUntitledRequest,
@@ -2773,6 +3201,7 @@ export {
   switchResponseFormat,
   switchToPreviewTab,
   switchToEditorTab,
+  expandAllXmlNodes,
   clickResponseAction,
   addAssertion,
   editAssertion,
@@ -2798,11 +3227,21 @@ export {
   sendAndWaitForResponse,
   resetResponse,
   selectAuthMode,
+  fieldEditor,
   typeIntoField,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
+  setCodeMirrorValue,
+  expectTransientRequestOpened,
+  expectLinkOpensRequest,
+  expectLinkOpensExternally,
+  expectRichTextLinkOpensRequest,
+  expectRichTextLinkOpensExternally,
+  expectNoLink,
+  LINK_AWARE_COLLECTION_NAME,
+  LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
   openExportToPostmanModal,
@@ -2819,6 +3258,7 @@ export {
   requestPaneOverflowTabItem,
   activeAppPreviewSlot,
   activeAppView,
+  appEmptyState,
   previewApp,
   exitApp,
   selectViewMode,
@@ -2827,7 +3267,27 @@ export {
   selectAppView,
   renameWsMessage,
   elementIsInsideDropdown,
-  openSystemProxyPanel
+  openSystemProxyPanel,
+  openItemActionsMenu,
+  cloneItem,
+  copyItem,
+  pasteIntoCollection,
+  pasteIntoFolder,
+  openRenameModal,
+  renameItemTo,
+  revealFilesystemName,
+  renameViaFilename,
+  openNewRequestModal,
+  createRequestViaModal,
+  createRequestWithEditedFilename,
+  openNewFolderModal,
+  createFolderViaModal,
+  openCloneCollectionModal,
+  chooseCloneLocation,
+  setTextBody,
+  saveTransientRequestAs,
+  openImportReview,
+  clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };

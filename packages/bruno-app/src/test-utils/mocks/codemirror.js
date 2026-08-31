@@ -10,10 +10,20 @@ const CodeMirror = jest.fn((node, options) => {
       editor._currentValue = val;
     }),
     getLine: jest.fn(() => editor._currentValue || ''),
+    setCursor: jest.fn(),
     setOption: jest.fn(),
     refresh: jest.fn(),
     off: jest.fn(),
     showHint: jest.fn(),
+    toggleComment: jest.fn(),
+    scrollTo: jest.fn(),
+    getScrollInfo: jest.fn(() => ({ top: 0 })),
+    getInputField: jest.fn(() => ({ classList: { add: jest.fn(), remove: jest.fn() }, focus: jest.fn() })),
+    getWrapperElement: jest.fn(() => ({
+      classList: { add: jest.fn(), remove: jest.fn() },
+      offsetParent: {},
+      parentNode: null
+    })),
     on: jest.fn(function (event, handler) {
       if (event === 'keyup') {
         if (handler && handler.name === '_onKeyUpMockDataHints') {

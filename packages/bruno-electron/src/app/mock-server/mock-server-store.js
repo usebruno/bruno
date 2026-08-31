@@ -320,7 +320,7 @@ const createEmptyMockResponse = (name = 'New Mock Response') => ({
   },
   response: {
     status: 200,
-    statusText: 'OK',
+    statusText: '',
     headers: [],
     body: {
       type: 'json',

@@ -36,8 +36,10 @@ export {
 
 export {
   parseValueByDataType,
+  resolveVariableReference,
   getDataTypeFromValue,
   validateDataTypeValue,
+  validateVariableType,
   valueToString,
   BrunoVariableDataType,
   BRUNO_VARIABLE_DATATYPES,
@@ -47,6 +49,12 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  sanitizeName,
+  validateName,
+  validateNameError
+} from './naming';
 
 export {
   toBool,

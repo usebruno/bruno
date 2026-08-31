@@ -37,6 +37,9 @@ const toBrunoRuleConditions = (conditions: MockRuleCondition[] | null | undefine
 };
 
 const toBrunoMockRoute = (route: MockRouteEntry): BrunoMockRoute => {
+  const responseStatus = Number(route?.response?.status) || 200;
+  const responseStatusText = ensureString(route?.response?.statusText);
+
   const brunoRoute: BrunoMockRoute = {
     name: ensureString(route?.name, 'Untitled Mock Response'),
     description: ensureString(route?.description),
@@ -48,8 +51,8 @@ const toBrunoMockRoute = (route: MockRouteEntry): BrunoMockRoute => {
       body: toBrunoBody(route?.request?.body) || emptyRequestBody()
     },
     response: {
-      status: Number(route?.response?.status) || 200,
-      statusText: ensureString(route?.response?.statusText, 'OK'),
+      status: responseStatus,
+      statusText: responseStatusText === 'OK' && responseStatus !== 200 ? '' : responseStatusText,
       headers: toBrunoHttpHeaders(route?.response?.headers) || [],
       body: {
         type: ensureString(route?.response?.body?.type, 'json'),
