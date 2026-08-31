@@ -18,7 +18,7 @@ const addGrpcMetadataListShimToContext = (vm, list, targetObject, property, obje
     globalPath: `${objectPath}.${property}`,
     syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
     syncReadObjectMethods: ['one', 'all', 'toJSON'],
-    syncWriteMethods: ['set', 'add', 'delete', 'deleteAll'],
+    syncWriteMethods: ['upsert', 'add', 'remove', 'clear'],
     withIterators: true
   });
 

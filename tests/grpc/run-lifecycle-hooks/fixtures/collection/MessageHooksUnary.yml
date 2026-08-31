@@ -43,7 +43,7 @@ runtime:
 
         test('metadata is read-only once the call is under way', () => {
           expect(bru.grpc.request.metadata.get('x-keep')).to.equal('kept-value');
-          expect(() => bru.grpc.request.metadata.set('x-late', '1')).to.throw();
+          expect(() => bru.grpc.request.metadata.upsert('x-late', '1')).to.throw();
         });
     - type: grpc:after-message-receive
       code: |-

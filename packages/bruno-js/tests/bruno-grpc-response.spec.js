@@ -65,8 +65,8 @@ describe('BrunoGrpcResponse', () => {
   test('the metadata of a completed call cannot be edited', () => {
     const res = new BrunoGrpcResponse(makeRes());
 
-    expect(() => res.metadata.set('content-type', 'text/plain')).toThrow(/beforeCallStart/);
-    expect(() => res.trailers.delete('grpc-status')).toThrow(/beforeCallStart/);
+    expect(() => res.metadata.upsert('content-type', 'text/plain')).toThrow(/beforeCallStart/);
+    expect(() => res.trailers.remove('grpc-status')).toThrow(/beforeCallStart/);
   });
 
   describe('message', () => {
