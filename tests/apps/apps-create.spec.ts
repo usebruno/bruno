@@ -161,14 +161,17 @@ test.describe('Apps - creation flows', () => {
     const modal = await openNewAppModal(page, () => openCollectionMenu(page, collectionName));
     const card = modal.locator('.bruno-modal-card');
     const beforeBox = await card.boundingBox();
+    expect(beforeBox).not.toBeNull();
 
     // The header sits inside the modal card but outside the name input — clicking it must be a no-op.
     await modal.locator('.bruno-modal-header').click({ position: { x: 5, y: 5 } });
 
     await expect(modal).toBeVisible();
     const afterBox = await card.boundingBox();
-    expect(afterBox?.width).toBe(beforeBox?.width);
-    expect(afterBox?.height).toBe(beforeBox?.height);
+    expect(afterBox).not.toBeNull();
+    // Tolerate sub-pixel drift from layout re-measurement while still catching an actual resize.
+    expect(afterBox!.width).toBeCloseTo(beforeBox!.width, 0);
+    expect(afterBox!.height).toBeCloseTo(beforeBox!.height, 0);
     await expect(page.locator('.bruno-modal [data-testid="form-error"]')).toHaveCount(0);
   });
 

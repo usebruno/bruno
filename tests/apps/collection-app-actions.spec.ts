@@ -65,9 +65,17 @@ test.describe('Collection-level app actions', () => {
 
     const modal = page.locator('.bruno-modal').filter({ hasText: 'Info' });
     await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal).toContainText('App Name');
-    await expect(modal).toContainText('File Name');
-    await expect(modal).toContainText('info-app');
+
+    const rows = modal.locator('tbody tr');
+    const nameRow = rows.filter({ hasText: 'App Name' });
+    const fileRow = rows.filter({ hasText: 'File Name' });
+
+    await expect(nameRow.locator('td').nth(1)).toContainText('info-app');
+    // Filename is stored without extension; the .yml/.bru suffix is added at write time.
+    await expect(fileRow.locator('td').nth(1)).toContainText('info-app');
+
+    await modal.getByTestId('modal-close-button').click();
+    await expect(modal).toBeHidden({ timeout: 5000 });
   });
 
   test('TC-6039 Delete removes the collection-level app after confirmation', async ({ page, createTmpDir }) => {
