@@ -129,16 +129,17 @@ const bruToJson = (bru) => {
 };
 
 const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
+  const variables = [...(environment.inheritedVariables || []), ...(environment.variables || [])];
+  if (!variables.length) {
     return {};
   }
 
   const envVars = {};
-  _.each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
+  // Apply secrets last so a secret wins over a plain variable of the same name,
+  // regardless of their order in the array.
+  const enabledVars = variables.filter((variable) => variable.enabled);
+  _.each([...enabledVars.filter((variable) => !variable.secret), ...enabledVars.filter((variable) => variable.secret)], (variable) => {
+    envVars[variable.name] = variable.value;
   });
 
   return envVars;

@@ -1,0 +1,11 @@
+extends: base
+vars {
+  api_url: https://dev.example.com
+  dev_only: dev_only_value
+  typed_override: overridden_in_dev
+  ~shadowed_by_disabled: never_applied
+  overridden_secret: plain_wins_in_dev
+}
+vars:secret [
+  overridden_plain
+]

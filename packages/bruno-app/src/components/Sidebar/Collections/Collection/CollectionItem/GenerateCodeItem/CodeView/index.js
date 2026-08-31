@@ -29,6 +29,8 @@ const CodeView = ({ language, item }) => {
     });
     c.globalEnvironmentVariables = globalEnvironmentVariables;
     c.globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
+    c.globalEnvironments = globalEnvironments;
+    c.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
     return c;
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 

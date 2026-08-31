@@ -361,8 +361,9 @@ export const renderVarInfo = (token, options) => {
 
   // Check if a runtime variable exists with the same name (even if scope is detected as collection/folder/environment)
   const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
-  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be
+  // edited; an inherited variable is owned by the environment it comes from, so it is edited there)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable || !!scopeInfo.inheritedFrom;
 
   // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
   const rawValue = scopeInfo.value ?? '';
@@ -997,6 +998,12 @@ export const renderVarInfo = (token, options) => {
       readOnlyNote.className = 'var-readonly-note';
       readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
+      into.appendChild(readOnlyNote);
+    } else if (scopeInfo.inheritedFrom) {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
+      readOnlyNote.textContent = `Inherited from ${scopeInfo.inheritedFrom.name} (read-only)`;
       into.appendChild(readOnlyNote);
     }
   }

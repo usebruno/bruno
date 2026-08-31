@@ -2,6 +2,7 @@ import React, { useEffect, useRef, forwardRef } from 'react';
 import useGraphqlSchema from './useGraphqlSchema';
 import { IconBook, IconDownload, IconLoader2, IconRefresh } from '@tabler/icons';
 import get from 'lodash/get';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
 import Dropdown from '../../Dropdown';
 
@@ -9,7 +10,10 @@ const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) =>
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const environment = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+  });
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   let {

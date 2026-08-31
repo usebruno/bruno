@@ -6,6 +6,19 @@
   },
   "environments": [
     {
+      "name": "derived",
+      "extends": "local",
+      "variables": [
+        {
+          "name": "region",
+          "value": "eu-west-1",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    },
+    {
       "name": "local",
       "variables": [
         {

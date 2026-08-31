@@ -238,10 +238,45 @@ const buildAnnotationsFromKVItem = (item) => {
   return [...descArr, ...other];
 };
 
+const invalidNameCharacters = /[<>:"/\\|?*\x00-\x1F]/;
+const reservedDeviceNames = /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])$/i;
+const maximumNameLength = 255;
+
+const isValidEnvironmentName = (name) => {
+  if (!name || name.length > maximumNameLength) return false;
+  if (reservedDeviceNames.test(name)) return false;
+  if (invalidNameCharacters.test(name)) return false;
+
+  return !/^[\s\-]/.test(name) && !/[.\s]$/.test(name);
+};
+
+const validatedEnvironmentName = (reference) => {
+  if (typeof reference !== 'string') {
+    return undefined;
+  }
+
+  const name = reference.trim();
+  return isValidEnvironmentName(name) ? name : undefined;
+};
+
+const validatedEnvironmentExtendsFrom = (environmentExtendsReference) => {
+  if (typeof environmentExtendsReference === 'string') {
+    return validatedEnvironmentName(environmentExtendsReference);
+  }
+
+  if (!Array.isArray(environmentExtendsReference) || !environmentExtendsReference.length) {
+    return undefined;
+  }
+
+  const names = environmentExtendsReference.map(validatedEnvironmentName);
+  return names.every((name) => name !== undefined) ? names : undefined;
+};
+
 module.exports = {
   safeParseJson,
   indentString,
   outdentString,
+  escapeAnnotationDoubleQuotedArg,
   unescapeAnnotationDoubleQuotedArg,
   escapeMultilineDescription,
   unescapeMultilineDescription,
@@ -254,5 +289,6 @@ module.exports = {
   buildAnnotationsFromVariable,
   serializeVar,
   applyDescriptionFromAnnotations,
-  buildAnnotationsFromKVItem
+  buildAnnotationsFromKVItem,
+  validatedEnvironmentExtendsFrom
 };

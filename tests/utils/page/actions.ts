@@ -955,6 +955,106 @@ const createEnvironment = async (
   });
 };
 
+/**
+ * Rename the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @param newName - The new name for the environment
+ * @returns void
+ */
+const renameEnvironment = async (page: Page, newName: string) => {
+  await test.step(`Rename environment to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.renameAction().click();
+
+    const nameInput = locators.environment.renameInput();
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill(newName);
+    await nameInput.press('Enter');
+
+    await expect(nameInput).toBeHidden();
+  });
+};
+
+/**
+ * Open an environment from the list in the environment settings tab
+ * @param page - The page object
+ * @param environmentName - The environment to open
+ * @param type - The environment scope the settings tab is showing
+ * @returns void
+ */
+const openEnvironmentInSettings = async (
+  page: Page,
+  environmentName: string,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Open environment "${environmentName}" in the settings tab`, async () => {
+    const { environment } = buildCommonLocators(page);
+
+    await environment.sidebarListItemExact(type, environmentName).click();
+    await expect(environment.detailsTitle()).toHaveText(environmentName);
+  });
+};
+
+/**
+ * Pick the environment that the currently open environment inherits its variables from
+ * @param page - The page object
+ * @param parentEnvironmentName - The environment to inherit from, or null to stop inheriting
+ * @returns void
+ */
+const setEnvironmentInheritance = async (page: Page, parentEnvironmentName: string | null) => {
+  await test.step(
+    parentEnvironmentName ? `Inherit variables from "${parentEnvironmentName}"` : 'Stop inheriting variables',
+    async () => {
+      const locators = buildCommonLocators(page);
+      await locators.environment.inheritsFromAction().click();
+
+      const option = parentEnvironmentName
+        ? locators.environment.inheritsFromOption(parentEnvironmentName)
+        : locators.environment.inheritsFromNoneOption();
+      await option.click();
+
+      const toastText = parentEnvironmentName
+        ? `Inheriting variables from ${parentEnvironmentName}`
+        : 'Stopped inheriting variables';
+      await expect(page.getByText(toastText).last()).toBeVisible();
+    }
+  );
+};
+
+/**
+ * Copy the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @param newName - Name for the copy
+ * @returns void
+ */
+const copyEnvironment = async (page: Page, newName: string) => {
+  await test.step(`Copy environment to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.copyAction().click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Copy Environment' });
+    await modal.locator('#environment-name').fill(newName);
+    await modal.getByRole('button', { name: 'Copy', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Delete the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @returns void
+ */
+const deleteEnvironment = async (page: Page) => {
+  await test.step('Delete the open environment', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.deleteAction().click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
+};
+
 type EnvironmentVariable = {
   name: string;
   value: string;
@@ -968,9 +1068,14 @@ type EnvironmentVariable = {
  * plain variable to the Variables tab before the row is added.
  * @param page - The page object
  * @param variable - The variable to add (name, value, and optional secret flag)
+ * @param options - `valueFirst` types the value into the row before naming it
  * @returns void
  */
-const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable) => {
+const addEnvironmentVariable = async (
+  page: Page,
+  variable: EnvironmentVariable,
+  options: AddRowOptions = {}
+) => {
   await test.step(`Add environment ${variable.isSecret ? 'secret' : 'variable'} "${variable.name}"`, async () => {
     const tab = variable.isSecret
       ? page.getByTestId('responsive-tab-secrets')
@@ -978,7 +1083,7 @@ const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable)
     await tab.click();
     await expect(tab).toHaveClass(/active/);
 
-    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType);
+    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType, options);
   });
 };
 
@@ -997,6 +1102,8 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
   });
 };
 
+type AddRowOptions = { valueFirst?: boolean };
+
 /**
  * Add a variable or secret to whichever environment tab (Variables / Secrets) is
  * currently active. The active tab determines the row's type, so select the tab
@@ -1005,40 +1112,150 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
  * @param name - The variable/secret name
  * @param value - The variable/secret value
  * @param dataType - Optional non-string dataType to assign (default `string`)
+ * @param options - `valueFirst` types the value into the row before naming it
  * @returns void
  */
 const addRowToActiveTab = async (
   page: Page,
   name: string,
   value: string,
-  dataType?: 'number' | 'boolean' | 'object'
+  dataType?: 'number' | 'boolean' | 'object',
+  options: AddRowOptions = {}
 ) => {
   await test.step(`Add row "${name}" to the active environment tab`, async () => {
-    const nameInput = page.locator('input[placeholder="Name"]').last();
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(name);
+    const { environment, dataTypeSelector } = buildCommonLocators(page);
+
+    if (options.valueFirst) {
+      const emptyRowNameInput = page.locator('input[placeholder="Name"]').last();
+      await emptyRowNameInput.waitFor({ state: 'visible' });
+      // Filling the value appends another empty row, so the row being filled in stops being the
+      // last one — its formik index is what stays put until it has a name to be found by.
+      const rowIndex = Number((await emptyRowNameInput.getAttribute('name')).split('.')[0]);
+
+      const emptyRowEditor = environment.variableValueEditor(rowIndex);
+      await emptyRowEditor.scrollIntoViewIfNeeded();
+      await emptyRowEditor.click({ position: { x: 5, y: 5 } });
+      await expect(emptyRowEditor).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.type(value);
+      await expect(emptyRowEditor).toContainText(value);
+
+      await environment.variableNameInput(rowIndex).fill(name);
+    } else {
+      const nameInput = page.locator('input[placeholder="Name"]').last();
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill(name);
+    }
 
     const row = page.getByTestId(`env-var-row-${name}`);
     await row.waitFor({ state: 'visible' });
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
-    // renders as a compact overlay pinned to the cell's right side, which otherwise
-    // intercepts a centered click/hover.
-    await codeMirror.click({ position: { x: 5, y: 5 } });
-    if (dataType) {
-      await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
-      await page.keyboard.insertText(value);
+    if (!options.valueFirst) {
+      // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+      // renders as a compact overlay pinned to the cell's right side, which otherwise
+      // intercepts a centered click/hover.
+      await codeMirror.click({ position: { x: 5, y: 5 } });
+      if (dataType) {
+        await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
+        await page.keyboard.insertText(value);
+      } else {
+        await page.keyboard.type(value);
+      }
+    }
 
-      const { dataTypeSelector } = buildCommonLocators(page);
+    if (dataType) {
       await codeMirror.hover({ position: { x: 5, y: 5 } });
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
-    } else {
-      await page.keyboard.type(value);
     }
+  });
+};
+
+/**
+ * Replace the value of an existing environment variable row. The row must already be on the
+ * active tab; a secret keeps its value masked, so reveal it with the row's eye toggle
+ * before asserting on the displayed text. Whatever the row holds is cleared first, so the
+ * same call can be repeated against an app instance a previous test already wrote to.
+ * @param page - The page object
+ * @param name - The name of the row to fill
+ * @param value - The value to type
+ * @returns void
+ */
+const setEnvironmentVariableValue = async (page: Page, name: string, value: string) => {
+  await test.step(`Set environment variable "${name}" to "${value}"`, async () => {
+    const editor = buildCommonLocators(page).environment.varRowValueEditor(name);
+    await editor.scrollIntoViewIfNeeded();
+    await editor.click({ position: { x: 5, y: 5 } });
+    await expect(editor).toHaveClass(/CodeMirror-focused/);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(value);
+    await expect(editor).not.toHaveClass(/CodeMirror-empty/);
+  });
+};
+
+/**
+ * Uncheck the enabled checkbox of an environment variable row. The row must already be on the
+ * active tab.
+ * @param page - The page object
+ * @param name - The name of the row to disable
+ * @returns void
+ */
+const disableEnvironmentVariable = async (page: Page, name: string) => {
+  await test.step(`Disable environment variable "${name}"`, async () => {
+    const checkbox = buildCommonLocators(page).environment.varRowEnabledCheckbox(name);
+    await checkbox.click();
+    await expect(checkbox).not.toBeChecked();
+  });
+};
+
+/**
+ * Give an environment's secret rows their values and save. A secret's value never lives in the
+ * environment file, so a fixture can only declare the rows — a test that needs a secret
+ * resolved has to type the values in through the editor first.
+ * @param page - The page object
+ * @param environmentName - The environment holding the secret rows
+ * @param secrets - Secret name to value
+ * @param type - The environment scope the settings tab is showing
+ * @returns void
+ */
+const setEnvironmentSecrets = async (
+  page: Page,
+  environmentName: string,
+  secrets: Record<string, string>,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Set the secrets of environment "${environmentName}"`, async () => {
+    const { environment } = buildCommonLocators(page);
+
+    await openEnvironmentInSettings(page, environmentName, type);
+    await environment.secretsTab().click();
+
+    for (const [name, value] of Object.entries(secrets)) {
+      await setEnvironmentVariableValue(page, name, value);
+    }
+
+    await saveEnvironment(page);
+    await environment.variablesTab().click();
+  });
+};
+
+/**
+ * Filter the open environment's rows through the editor's search box, opening it first
+ * when it is still collapsed behind the search icon.
+ * @param page - The page object
+ * @param query - The text to filter by
+ * @returns void
+ */
+const searchEnvironmentVariables = async (page: Page, query: string) => {
+  await test.step(`Filter environment variables by "${query}"`, async () => {
+    const { environment } = buildCommonLocators(page);
+    if (!(await environment.searchInput().isVisible())) {
+      await environment.searchAction().click();
+    }
+    await environment.searchInput().fill(query);
   });
 };
 
@@ -2145,6 +2362,28 @@ const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent
     await page.keyboard.press(selectAll);
     await page.keyboard.press('Backspace');
     await page.keyboard.type(newContent, { delay: 5 });
+  });
+};
+
+/**
+ * Replace a CodeMirror editor's content through the CodeMirror API instead of typing it.
+ * Auto-close-bracket and auto-indent handling corrupts content typed character by character,
+ * so anything holding `{{var}}` tokens or several lines of braces goes through here.
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param content - The content to write
+ */
+const setCodeMirrorEditorValue = async (page: Page, editorTestId: string, content: string) => {
+  await test.step(`Set CodeMirror editor "${editorTestId}"`, async () => {
+    const editor = buildCommonLocators(page).codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    await editor.evaluate((el, value) => {
+      const cm = (el as any).CodeMirror;
+      if (!cm) {
+        throw new Error('CodeMirror instance not found');
+      }
+      cm.setValue(value);
+    }, content);
   });
 };
 
@@ -3357,12 +3596,21 @@ export {
   openEnvironmentConfigTab,
   importEnvironment,
   createEnvironment,
+  renameEnvironment,
+  openEnvironmentInSettings,
+  setEnvironmentInheritance,
+  copyEnvironment,
+  deleteEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
   cycleVariableSort,
   getVisibleVariableNames,
   dragVariableRow,
+  setEnvironmentVariableValue,
+  disableEnvironmentVariable,
+  setEnvironmentSecrets,
+  searchEnvironmentVariables,
   deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
@@ -3410,6 +3658,7 @@ export {
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,
+  setCodeMirrorEditorValue,
   addPreRequestScript,
   addPostResponseScript,
   writeScriptContent,

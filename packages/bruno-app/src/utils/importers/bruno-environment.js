@@ -1,5 +1,6 @@
 import { BrunoError } from 'utils/common/error';
 import { buildEnvVariable, dedupeImportedSecrets } from 'utils/environments';
+import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
 
 const validateBrunoEnvironment = (env, filePath, fileName) => {
   if (!env || typeof env !== 'object') {
@@ -20,12 +21,18 @@ const validateBrunoEnvironment = (env, filePath, fileName) => {
     }
   });
 
+  const environmentExtendsFrom = validatedEnvironmentExtendsFrom(env.extends);
+  if (env.extends && !environmentExtendsFrom) {
+    throw new BrunoError('Invalid environment: extends is not a valid environment name');
+  }
+
   const variables = env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }));
 
   return {
     name: env.name,
     variables: dedupeImportedSecrets(variables),
     color: env.color,
+    extends: environmentExtendsFrom,
     filePath,
     fileName
   };
