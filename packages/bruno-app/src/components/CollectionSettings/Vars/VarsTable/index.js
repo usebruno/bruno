@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,9 +13,10 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
+import { getAllVariables } from 'utils/collections';
+import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -31,9 +32,15 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
 
   const onSave = () => dispatch(saveCollectionSettings(collection.uid));
 
+  const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
+
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setCollectionVars({ collectionUid: collection.uid, vars: updatedVars, type: varType }));
   }, [dispatch, collection.uid, varType]);
+
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveCollectionVar({ type: varType, collectionUid: collection.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid]);
 
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
@@ -56,6 +63,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '25%'
     },
@@ -87,7 +95,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
                   compact={compact}
                   variable={row}
                   theme={storedTheme}
-                  collection={collection}
+                  resolvableVariables={resolvableVariables}
                   onChange={(fields) => {
                     const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
                     handleVarsChange(updated);
@@ -114,8 +122,12 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         tableId="collection-vars"
         testId={`collection-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
+        rows={vars || []}
         onChange={handleVarsChange}
+        reorderable
+        onReorder={handleReorder}
+        sortStorageKey={`collection-vars-sort::${collection.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={collectionVarsWidths}

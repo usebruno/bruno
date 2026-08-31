@@ -5,6 +5,7 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
+import 'utils/codemirror/setup';
 import React, { createRef } from 'react';
 import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';
@@ -21,6 +22,7 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 import {
   applyEditorState,
   captureEditorState,
@@ -102,18 +104,12 @@ class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-F': (cm) => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Ctrl-F': (cm) => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Cmd-H': this.props.readOnly ? false : 'replace',
-        'Ctrl-H': this.props.readOnly ? false : 'replace',
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          isReadOnly: () => this.props.readOnly
+        }),
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
@@ -145,17 +141,12 @@ class CodeEditor extends React.Component {
           } else {
             this.editor.toggleComment();
           }
-        },
-        'Esc': () => {
-          if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
-          }
         }
       },
       foldOptions: {
         widget: (from, to) => {
-          var count = undefined;
-          var internal = this.editor.getRange(from, to);
+          let count = undefined;
+          const internal = this.editor.getRange(from, to);
           if (this.props.mode == 'application/ld+json') {
             if (this.editor.getLine(from.line).endsWith('[')) {
               var toParse = '[' + internal + ']';
@@ -164,10 +155,10 @@ class CodeEditor extends React.Component {
               count = Object.keys(JSON.parse(toParse)).length;
             } catch (e) {}
           } else if (this.props.mode == 'application/xml') {
-            var doc = new DOMParser();
+            const doc = new DOMParser();
             try {
               // add header element and remove prefix namespaces for DOMParser
-              var dcm = doc.parseFromString(
+              const dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
               );
@@ -179,14 +170,14 @@ class CodeEditor extends React.Component {
       }
     }));
     CodeMirror.registerHelper('lint', 'json', function (text) {
-      let found = [];
+      const found = [];
       if (!window.jsonlint) {
         if (window.console) {
           window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
         }
         return found;
       }
-      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      const jsonlint = window.jsonlint.parser || window.jsonlint;
       try {
         jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
       } catch (error) {
@@ -238,8 +229,15 @@ class CodeEditor extends React.Component {
       editor.on('fold', this._persistViewStateDebounced);
       editor.on('unfold', this._persistViewStateDebounced);
 
-      editor.scrollTo(null, this.props.initialScroll);
-      this._lastScrollTop = this.props.initialScroll || 0;
+      // Only override scroll when the caller passes initialScroll. Otherwise
+      // keep whatever applyEditorState restored (scrollY from persistence)
+      // scrolling to undefined/0 here was wiping that restore and causing a jump.
+      if (this.props.initialScroll != null) {
+        editor.scrollTo(null, this.props.initialScroll);
+        this._lastScrollTop = this.props.initialScroll;
+      } else {
+        this._lastScrollTop = editor.getScrollInfo().top;
+      }
       editor.on('scroll', () => {
         const wrapper = editor.getWrapperElement();
         if (wrapper && wrapper.offsetParent === null) return;
@@ -309,7 +307,13 @@ class CodeEditor extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
+    // Notify parent when the search bar opens or closes (e.g. so a fixed-height
+    // container like a WS message accordion can reserve enough room for the bar).
+    if (prevState.searchBarVisible !== this.state.searchBarVisible) {
+      this.props.onSearchBarVisibilityChange?.(this.state.searchBarVisible);
+    }
+
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
     // event loop.
@@ -370,7 +374,7 @@ class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getAllVariables(this.props.collection, this.props.item);
+      const variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -447,6 +451,12 @@ class CodeEditor extends React.Component {
 
       this.editor = null;
     }
+
+    // Notify the parent that the search bar is gone so it can reset any
+    // height reservation it made (e.g. SingleWSMessage accordion body).
+    if (this.state.searchBarVisible) {
+      this.props.onSearchBarVisibilityChange?.(false);
+    }
   }
 
   render() {
@@ -455,8 +465,9 @@ class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''} ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
         aria-label="Code Editor"
+        data-testid={this.props.testId}
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
@@ -467,10 +478,11 @@ class CodeEditor extends React.Component {
           }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
-          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          className="editor-container"
           ref={(node) => { this._node = node; }}
           style={{ height: '100%', width: '100%' }}
         />
@@ -480,7 +492,7 @@ class CodeEditor extends React.Component {
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getAllVariables(this.props.collection, this.props.item);
+    const variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
     // Update brunoVarInfo with latest variables

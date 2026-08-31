@@ -88,6 +88,58 @@ describe('runtime', () => {
         { description: 'format valid', status: 'pass' }
       ]);
     });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (nodevm)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (quickjs)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        onConsoleLog,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should not set stopExecution when bru.runner.stopExecution() is not called', async () => {
+      const testFile = `test('noop', () => { expect(true).to.be.true; });`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBeFalsy();
+    });
   });
 
   describe('script-runtime', () => {
@@ -119,6 +171,29 @@ describe('runtime', () => {
         const runtime = new ScriptRuntime({ runtime: 'nodevm' });
         const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
         expect(result.runtimeVariables.validation).toBeTruthy();
+      });
+
+      it('should return variable updates made in req.onFail', async () => {
+        const script = `
+          bru.setVar('runtimeToken', 'before');
+          bru.setEnvVar('environmentToken', 'before');
+          bru.setGlobalEnvVar('globalToken', 'before');
+
+          req.onFail(() => {
+            bru.setVar('runtimeToken', 'after');
+            bru.setEnvVar('environmentToken', 'after');
+            bru.setGlobalEnvVar('globalToken', 'after');
+          });
+        `;
+        const request = { ...baseRequest };
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+        await runtime.runRequestScript(script, request, {}, {}, '.', null, process.env);
+        const result = await request.onFailHandler(new Error('Connection failed'));
+
+        expect(result.runtimeVariables.runtimeToken).toBe('after');
+        expect(result.envVariables.environmentToken).toBe('after');
+        expect(result.globalEnvironmentVariables.globalToken).toBe('after');
       });
     });
 

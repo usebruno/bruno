@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder } from '../../utils/page';
 
 test.describe.serial('Copy and Paste Folders', () => {
   test.afterAll(async ({ page }) => {
@@ -10,27 +10,14 @@ test.describe.serial('Copy and Paste Folders', () => {
     await createCollection(page, 'test-collection', await createTmpDir('test-collection'));
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
 
-    // Create a new folder with a request inside
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await page.locator('#folder-name').fill('folder-to-copy');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await createFolder(page, 'folder-to-copy', 'test-collection');
+    await expandFolder(page, 'folder-to-copy');
+    await createRequest(page, 'request-in-folder', 'folder-to-copy', {
+      url: 'https://echo.usebruno.com/test',
+      inFolder: true
+    });
 
     const folder = page.locator('.collection-item-name').filter({ hasText: 'folder-to-copy' });
-    await expect(folder).toBeVisible();
-
-    // Add a request to the folder
-    await folder.hover();
-    await folder.locator('.menu-icon').click({ force: true });
-    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-    await page.getByPlaceholder('Request Name').fill('request-in-folder');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com/test');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await folder.click();
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'request-in-folder' })).toBeVisible();
 
     // Copy the folder
     await folder.hover();
@@ -64,12 +51,7 @@ test.describe.serial('Copy and Paste Folders', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection-2' });
     const folderToCopy = page.locator('.collection-item-name').filter({ hasText: 'folder-to-copy' }).first();
 
-    // Create a target folder
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await page.locator('#folder-name').fill('target-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await createFolder(page, 'target-folder', 'test-collection-2');
 
     const targetFolder = page.locator('.collection-item-name').filter({ hasText: 'target-folder' });
     await expect(targetFolder).toBeVisible();

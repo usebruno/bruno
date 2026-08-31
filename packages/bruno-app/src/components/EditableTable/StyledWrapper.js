@@ -46,6 +46,10 @@ const StyledWrapper = styled.div`
         border-right: none;
       }
 
+      &.sortable-header {
+        cursor: pointer;
+      }
+
       .column-name {
         display: block;
         overflow: hidden;
@@ -56,16 +60,27 @@ const StyledWrapper = styled.div`
 
       .resize-handle {
         position: absolute;
-        right: 0;
+        right: -2px;
         top: 0;
-        width: 4px;
+        width: 5px;
         height: 100%;
         cursor: col-resize;
         background: transparent;
         z-index: 10;
 
-        &:hover,
-        &.resizing {
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          transform: translateX(-50%);
+          background: transparent;
+        }
+
+        &:hover::after,
+        &.resizing::after {
           background: ${(props) => props.theme.colors.accent};
         }
       }
@@ -155,6 +170,24 @@ const StyledWrapper = styled.div`
         max-height: calc(35px * 3); 
         overflow: auto;
       }
+
+      &.section-header-row {
+        position: relative;
+        td.full-width-row {
+          position: relative;
+          z-index: 11;
+          height: 35px;
+          max-height: 35px;
+          padding: 0 !important;
+          border-right: none;
+          overflow: visible;
+
+          > * {
+            height: 100%;
+            max-height: none;
+          }
+        }
+      }
     }
   }
 
@@ -219,7 +252,7 @@ const StyledWrapper = styled.div`
     border-radius: 4px;
     transition: color 0.15s ease, background 0.15s ease;
 
-    &:hover {
+    &:hover:not(.headers-section-toggle) {
       color: ${(props) => props.theme.colors.text.danger};
     }
   }
@@ -240,6 +273,10 @@ const StyledWrapper = styled.div`
   tbody tr:hover .drag-handle,
   tbody tr.drag-over .drag-handle {
     opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
   }
 
   select {

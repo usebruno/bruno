@@ -89,7 +89,7 @@ const ChipListEditor = ({ list, placeholder, onChange, addTestId, inputTestId, r
       {values.length > 0 && (
         <ul className="security-chip-list flex flex-wrap gap-1.5">
           {values.map((name) => (
-            <li key={name} className="security-chip inline-flex items-center gap-1">
+            <li key={name} className="security-chip inline-flex items-center gap-1 min-w-0 max-w-full">
               <span className="security-chip-text">{name}</span>
               <button
                 type="button"

@@ -1,89 +1,60 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
-import { useTheme } from 'providers/Theme';
-import { useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
-import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useDocsEditingState } from './useDocsEditingState';
+import DocsEditor from './DocsEditor';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const isEditing = focusedTab?.docsEditing || false;
-  const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
-  const preferences = useSelector((state) => state.app.preferences);
+  const { isEditing, setEditing } = useDocsEditingState();
+  const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
 
-  const wrapperRef = useRef(null);
-  const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
+  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
+  const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
 
-  const toggleViewMode = () => {
-    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
-  };
-
-  const onEdit = (value) => {
-    dispatch(
-      updateRequestDocs({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        docs: value
-      })
-    );
-  };
-
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-  const { requestContext, variables: aiVariables } = useMemo(
-    () => buildAiContextPayload(item, collection),
-    [item, collection]
+  const onEdit = useCallback(
+    (value) => {
+      if (!item) return;
+      dispatch(
+        updateRequestDocs({
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+          docs: value
+        })
+      );
+    },
+    [collection.uid, dispatch, item]
   );
+
+  const onSave = useCallback(() => {
+    if (!item) return;
+    dispatch(saveRequest(item.uid, collection.uid));
+  }, [collection.uid, dispatch, item]);
 
   if (!item) {
     return null;
   }
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
-      <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview' : 'Edit'}
-      </div>
-
-      {isEditing ? (
-        <div className="relative flex-1 min-h-0">
-          <CodeEditor
-            collection={collection}
-            theme={displayedTheme}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            value={docs || ''}
-            onEdit={onEdit}
-            onSave={onSave}
-            mode="application/text"
-            initialScroll={scroll}
-            onScroll={setScroll}
-          />
-          <AIAssist
-            scriptType="docs"
-            currentScript={docs || ''}
-            requestContext={requestContext}
-            variables={aiVariables}
-            onApply={onEdit}
-          />
-        </div>
-      ) : (
-        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-      )}
+    <StyledWrapper className="h-full w-full min-w-0 max-w-full relative">
+      <DocsEditor
+        docs={docs}
+        onEdit={onEdit}
+        onSave={onSave}
+        isEditing={isEditing}
+        collection={collection}
+        collectionPath={collection?.pathname}
+        onRequestEdit={() => setEditing(true)}
+        initialScroll={scroll}
+        onScroll={setScroll}
+        testId="docs-editor"
+      />
     </StyledWrapper>
   );
 };

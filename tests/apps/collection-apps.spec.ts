@@ -5,6 +5,7 @@ import {
   createApp,
   selectAppView,
   activeAppPreviewSlot,
+  appEmptyState,
   selectRequestBodyMode,
   saveRequest
 } from '../utils/page';
@@ -119,7 +120,10 @@ test.describe('Collection apps', () => {
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-code')).toBeVisible();
       await expect(activeAppPreviewSlot(page).getByTestId('collection-app-view-code')).toHaveClass(/active/);
       await selectAppView(page, 'preview');
-      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-preview').locator('webview')).toBeVisible();
+      await expect(appEmptyState(page)).toBeVisible();
+      await expect(activeAppPreviewSlot(page).getByTestId('collection-app-preview').locator('webview')).toHaveCount(0);
+      await expect(appEmptyState(page).getByTestId('empty-app-add-code')).toBeVisible();
+      await expect(appEmptyState(page).getByTestId('empty-app-learn-more')).toBeVisible();
     });
   });
 

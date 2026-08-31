@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { getEmptyImage } from 'react-dnd-html5-backend';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import {
   IconChevronRight,
   IconDots,
@@ -21,13 +21,13 @@ import {
   IconTerminal2,
   IconFolder,
   IconBook,
+  IconServer,
   IconFileArrowRight,
   IconAppWindow
 } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { toggleCollection, collapseFullCollection, setSelectedCollections, toggleCollectionSelection, clearCollectionSelection, setLastClickedCollectionIndex } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -36,11 +36,11 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import CollectionItem from './CollectionItem';
-import RemoveCollection from './RemoveCollection';
+import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
+import { isItemAFolder, isItemARequest, getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -49,23 +49,26 @@ import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
-import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
-import BulkActionsDropdown from './BulkActions';
-import RemoveCollectionsModal from '../RemoveCollectionsModal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import StatusBadge from 'ui/StatusBadge';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
+const Collection = ({ collection, searchText, collectionIndex, allCollections, openBulkMenu }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -76,11 +79,9 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
-  const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
-  const [bulkActionsPosition, setBulkActionsPosition] = useState({ x: 0, y: 0 });
-  const [collectionsToRemove, setCollectionsToRemove] = useState([]);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
@@ -91,25 +92,34 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
-  const selectedCollections = useSelector((state) => state.collections.selectedCollections);
-  const lastClickedIndex = useSelector((state) => state.collections.lastClickedCollectionIndex);
-  const isSelected = selectedCollections.includes(collection.uid);
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const isSelected = selectedSidebarUids.includes(collection.uid);
+  const isMultiSelected = isSelected && selectedSidebarUids.length > 1;
+  const handleSelectionClick = useSidebarSelectionClick({ uid: collection.uid, searchText });
   const menuDropdownRef = useRef(null);
-  const onMenuDropdownCreate = (ref) => (menuDropdownRef.current = ref);
-  const MenuIcon = forwardRef((_props, ref) => {
-    return (
-      <div ref={ref} className="pr-2">
-        <IconDots size={22} />
-      </div>
-    );
-  };
-
 
   // 'Move into Workspace' is available for collections opened from outside the current workspace.
   const activeWorkspace = useSelector((state) =>
     state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid)
   );
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
+  const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
+
+  const isDragDisabled = useMultiSelectDragDisabled({ isSelected, selectedSidebarUids, allCollections });
+
+  // When dragging a multi-selected collection, carry all other selected collections along
+  // so dropping one reorders the entire selection together. Mixed selections (a collection
+  // alongside a folder/request) are drag-disabled entirely, so this only ever needs to
+  // handle collection-only selections.
+  const multiDragItems = useMemo(() => {
+    if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return null;
+    const { effectiveSelection, hasFolder, hasRequest } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    if (hasFolder || hasRequest) return null;
+    const collectionEntries = effectiveSelection.filter((entry) => entry.type === 'collection');
+    return collectionEntries.map((entry) => entry.collection);
+  }, [isSelected, selectedSidebarUids, allCollections]);
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {
@@ -123,6 +133,11 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     );
   };
 
+  const openMockServerDashboard = () => {
+    ensureCollectionIsMounted();
+    setShowCreateMockServerModal(true);
+  };
+
   const handleRun = () => {
     dispatch(
       addTab({
@@ -134,7 +149,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'mounted') {
+    if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
       return;
     }
     dispatch(mountCollection({
@@ -152,40 +167,11 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   });
 
   const handleClick = (event) => {
+    if (handleSelectionClick(event)) return;
     if (event.detail != 1) return;
 
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
-    const isMac = navigator.userAgent?.includes('Mac');
-    const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
-    const isShiftPressed = event.shiftKey;
-
-    if (isModifierPressed && collectionIndex !== undefined) {
-      event.preventDefault();
-      event.stopPropagation();
-      dispatch(toggleCollectionSelection({ collectionUid: collection.uid }));
-      dispatch(setLastClickedCollectionIndex(collectionIndex));
-      return;
-    } else if (isShiftPressed && allCollections && collectionIndex !== undefined) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const startIndex = lastClickedIndex !== null ? lastClickedIndex : 0;
-      const start = Math.min(startIndex, collectionIndex);
-      const end = Math.max(startIndex, collectionIndex);
-      const rangeCollections = allCollections.slice(start, end + 1).map((c) => c.uid);
-
-      dispatch(setSelectedCollections(rangeCollections));
-      return;
-    } else {
-      if (selectedCollections.length > 0) {
-        dispatch(clearCollectionSelection());
-      }
-      if (collectionIndex !== undefined) {
-        dispatch(setLastClickedCollectionIndex(collectionIndex));
-      }
-    }
 
     setTimeout(scrollToTheActiveTab, 50);
 
@@ -230,22 +216,18 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   };
 
   const handleRightClick = (event) => {
-    if (selectedCollections.length > 0 && isSelected) {
-      event.preventDefault();
-      event.stopPropagation();
-      setBulkActionsPosition({ x: event.clientX, y: event.clientY });
-      setShowBulkActionsDropdown(true);
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (isMultiSelected) {
+      openBulkMenu(event);
       return;
     }
 
     // Otherwise, show the regular menu dropdown
     const _menuDropdown = menuDropdownRef.current;
     if (_menuDropdown) {
-      let menuDropdownBehavior = 'show';
-      if (_menuDropdown.state.isShown) {
-        menuDropdownBehavior = 'hide';
-      }
-      _menuDropdown[menuDropdownBehavior]();
+      _menuDropdown.toggle();
     }
   };
 
@@ -316,8 +298,12 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: 'collection',
-    item: collection,
+    type: isDragDisabled ? 'disabled-drag' : 'collection',
+    item: {
+      ...collection,
+      wasSelected: isSelected,
+      ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -334,30 +320,74 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
         // For collection items, always show full highlight (inside drop)
         setDropType('inside');
       } else {
-        // For collections, show line indicator (adjacent drop)
-        setDropType('adjacent');
+        // For collections, show line indicator (above drop)
+        setDropType('above');
       }
     },
-    drop: (draggedItem, monitor) => {
+    drop: async (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+        // Lazy-unmounted workspace collections are droppable in the sidebar but
+        // have no watcher yet — mount first so the move writes through and the UI updates.
+        if (collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+          await dispatch(mountCollection({
+            collectionUid: collection.uid,
+            collectionPathname: collection.pathname,
+            brunoConfig: collection.brunoConfig
+          }));
+        }
+
+        const draggedItems = getSortedDraggedItems({
+          draggedItem,
+          allCollections,
+          workspaces,
+          activeWorkspace,
+          collectionSortOrder,
+          searchText
+        });
+
+        const validDraggedItems = draggedItems.filter((dragged) => dragged.uid !== collection.uid);
+
+        if (validDraggedItems.length > 0) {
+          dispatch(handleMultipleCollectionItemsDrop({ targetItem: collection, draggedItems: validDraggedItems, dropType: 'inside', collectionUid: collection.uid }));
+        }
+
+        if (draggedItem.wasSelected) {
+          dispatch(clearSidebarSelection());
+        }
       } else {
-        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
+        const draggedItems = getSortedDraggedItems({
+          draggedItem,
+          allCollections,
+          workspaces,
+          activeWorkspace,
+          collectionSortOrder,
+          searchText
+        });
+
+        const validDraggedItems = draggedItems.filter((dragged) => dragged.uid !== collection.uid);
+
+        for (const dragged of validDraggedItems) {
+          await dispatch(moveCollectionAndPersist({ draggedItem: dragged, targetItem: collection }));
+        }
+
+        if (draggedItem.wasSelected) {
+          dispatch(clearSidebarSelection());
+        }
       }
       setDropType(null);
     },
     canDrop: (draggedItem) => {
-      return draggedItem.uid !== collection.uid;
+      if (draggedItem.uid === collection.uid) return false;
+      return !draggedItem.multiSelectedItems?.some((i) => i.uid === collection.uid);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver()
     })
   });
 
-  useEffect(() => {
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, []);
+  drag(drop(collectionRef));
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   useEffect(() => {
     if (isCollectionFocused && collectionRef.current) {
@@ -390,13 +420,17 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     }
   }
 
-  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
-    'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
-    'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
-    'collection-keyboard-focused': isKeyboardFocused,
-    'collection-selected': isSelected
-  });
+  const collectionRowClassName = classnames(
+    'flex py-1 collection-name items-center relative',
+    {
+      'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
+      'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
+      'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
+      'collection-keyboard-focused': isKeyboardFocused,
+      'collection-selected': isSelected,
+      'drag-disabled': isDragDisabled
+    }
+  );
 
   // we need to sort request items by seq property
   const sortItemsBySequence = (items = []) => {
@@ -510,6 +544,13 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
+    ...(isMockServerEnabled ? [{
+      id: 'create-mock-server',
+      leftSection: IconServer,
+      label: 'Create Mock server',
+      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
+      onClick: openMockServerDashboard
+    }] : []),
     {
       id: 'divider-1',
       type: 'divider'
@@ -561,7 +602,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
-        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
+        <RemoveCollections collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showMoveToWorkspaceModal && (
         <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
@@ -575,28 +616,20 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      {showBulkActionsDropdown && (
-        <BulkActionsDropdown
-          visible={showBulkActionsDropdown}
-          onClose={() => setShowBulkActionsDropdown(false)}
-          position={bulkActionsPosition}
-          closeCollections={setCollectionsToRemove}
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
         />
       )}
-      {collectionsToRemove.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToRemove} onClose={() => setCollectionsToRemove([])} />
-      )}
-      <CollectionItemDragPreview />
       <div
         className={collectionRowClassName}
-        ref={(node) => {
-          collectionRef.current = node;
-          drag(drop(node));
-        }}
+        ref={collectionRef}
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
+        data-selected={isSelected ? 'true' : undefined}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -610,6 +643,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
               strokeWidth={2}
               className={`chevron-icon ${iconClassName}`}
               style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+              data-testid="collection-chevron"
               onClick={handleCollectionCollapse}
               onDoubleClick={handleCollectionDoubleClick}
             />
@@ -619,34 +653,36 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={menuItems}
-              placement="bottom-start"
-              appendTo={dropdownContainerRef?.current || document.body}
-              popperOptions={{ strategy: 'fixed' }}
-              data-testid="collection-actions"
-            >
-              <ActionIcon className="collection-actions">
-                <IconDots size={18} />
-              </ActionIcon>
-            </MenuDropdown>
+        {!isDragging && !isMultiSelected && (
+          <div>
+            <div className="pr-2">
+              <MenuDropdown
+                ref={menuDropdownRef}
+                items={menuItems}
+                placement="bottom-start"
+                appendTo={dropdownContainerRef?.current || document.body}
+                popperOptions={{ strategy: 'fixed' }}
+                data-testid="collection-actions"
+              >
+                <ActionIcon className="collection-actions">
+                  <IconDots size={18} />
+                </ActionIcon>
+              </MenuDropdown>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div>
         {!collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {appItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">
