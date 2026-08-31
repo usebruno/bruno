@@ -1,4 +1,4 @@
-import { expect, Page, test } from '../../../../playwright';
+import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export type EnvironmentScope = 'collection' | 'global';
@@ -20,8 +20,6 @@ const varRowByName = (page: Page, name: string) =>
     .getByTestId(`env-var-row-${name}`)
     .or(page.getByTestId(/^collection-vars-(req|res)$/).getByTestId(`row-${name}`));
 
-// CodeMirror builds its own DOM inside the editor's testid wrapper, so its classes are
-// the only handle on a cell's value — everything else here is located by testid.
 const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
 
 export const buildEnvironmentLocators = (page: Page) => ({
