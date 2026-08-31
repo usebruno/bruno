@@ -204,7 +204,7 @@ class MultiLineEditor extends Component {
     });
     this._linkAwareItemType = this.props.item?.type;
     this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getPresetRequestType(this.props.collection);
+    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -285,7 +285,7 @@ class MultiLineEditor extends Component {
     // Re-wire link handler when item/collection context changes.
     const itemType = this.props.item?.type;
     const collectionUid = this.props.collection?.uid;
-    const presetType = getPresetRequestType(this.props.collection);
+    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
     if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
       this._linkAwareItemType = itemType;
       this._linkAwareCollectionUid = collectionUid;
