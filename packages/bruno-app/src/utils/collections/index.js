@@ -1605,6 +1605,51 @@ export const determineCollectionItemDrop = ({ item, hoverBoundingRect, clientOff
 };
 
 /**
+ * Resolve where a dragged response example should land relative to the example row
+ * being hovered. Examples are a flat list under their request, so unlike
+ * `determineCollectionItemDrop` there is no 'inside' — only reordering.
+ *
+ * Ties at the midpoint resolve to 'below' so the boundary does not depend on rounding.
+ *
+ * @returns {'above'|'below'|null} null when react-dnd has no geometry yet.
+ */
+export const determineExampleDrop = ({ hoverBoundingRect, clientOffset }) => {
+  if (!hoverBoundingRect || !clientOffset) return null;
+
+  const clientY = clientOffset.y - hoverBoundingRect.top;
+  const midpoint = hoverBoundingRect.height * 0.5;
+
+  return clientY < midpoint ? 'above' : 'below';
+};
+
+/**
+ * Resolve the example order produced by dropping `draggedExampleUid` above or below
+ * `targetExampleUid`.
+ *
+ * Returns null when the drop should be ignored: either uid missing from this request's
+ * examples (which is how a drag that started under a different request is rejected), or a
+ * drop that lands the example back in the slot it already occupies. Callers rely on null to
+ * mean "do nothing" — no draft, no save, no file write.
+ *
+ * @returns {string[]|null} example uids in their new order.
+ */
+export const getReorderedExampleUids = ({ examples, draggedExampleUid, targetExampleUid, dropType }) => {
+  if (!examples || !examples.length) return null;
+  if (draggedExampleUid === targetExampleUid) return null;
+
+  const uids = examples.map((example) => example.uid);
+  if (!uids.includes(draggedExampleUid) || !uids.includes(targetExampleUid)) return null;
+
+  const reorderedUids = uids.filter((uid) => uid !== draggedExampleUid);
+  const insertAt = reorderedUids.indexOf(targetExampleUid) + (dropType === 'below' ? 1 : 0);
+  reorderedUids.splice(insertAt, 0, draggedExampleUid);
+
+  const isUnchanged = reorderedUids.every((uid, index) => uid === uids[index]);
+
+  return isUnchanged ? null : reorderedUids;
+};
+
+/**
  * Separator-aware ancestry check between two filesystem pathnames.
  *
  * Returns true when `childPathname` is the same as, or a descendant of, `ancestorPathname`.

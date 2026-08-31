@@ -30,6 +30,8 @@ export const CollectionItemDragPreview = () => {
     clientOffset: monitor.getClientOffset()
   }));
   if (!isDragging) return null;
+  // Every drag source that suppresses the native preview must put `type` and `name` on its
+  // dragged item or it drags with no visual at all — currently CollectionItem and ExampleItem.
   if (!item.type) return null;
   const { x, y } = clientOffset || {};
   const shouldShowFolderIcon = item.type === 'folder';

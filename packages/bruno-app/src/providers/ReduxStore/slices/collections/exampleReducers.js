@@ -7,6 +7,7 @@ import { findItemForExampleEditor,
   buildMockResponseEditorItem
 } from 'utils/mock-server/mock-responses/editor';
 import { parsePathParams, splitOnFirst } from 'utils/url';
+import { getReorderedExampleUids } from 'utils/collections/index';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
@@ -161,6 +162,34 @@ export const deleteResponseExample = (state, action) => {
   if (!item.draft.examples) return;
 
   item.draft.examples = item.draft.examples.filter((e) => e.uid !== exampleUid);
+};
+
+export const moveResponseExample = (state, action) => {
+  const { itemUid, collectionUid, draggedExampleUid, targetExampleUid, dropType } = action.payload;
+  const item = findItemForExampleEditor(state, collectionUid, itemUid);
+  if (!item) return;
+
+  const reorderedUids = getReorderedExampleUids({
+    examples: item.draft?.examples || item.examples,
+    draggedExampleUid,
+    targetExampleUid,
+    dropType
+  });
+
+  // null covers a rejected drop and a drop that changes nothing. Returning before touching
+  // the draft keeps the request clean, so no needless save follows.
+  if (!reorderedUids) return;
+
+  if (!item.draft) {
+    item.draft = cloneDeep(item);
+  }
+
+  if (!item.draft.examples) {
+    item.draft.examples = item.examples ? cloneDeep(item.examples) : [];
+  }
+
+  const draftExamples = item.draft.examples;
+  item.draft.examples = reorderedUids.map((uid) => draftExamples.find((e) => e.uid === uid));
 };
 
 export const cancelResponseExampleEdit = (state, action) => {
