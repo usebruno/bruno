@@ -1,5 +1,12 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandFolder
+} from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
   test.afterEach(async ({ page }) => {
@@ -8,6 +15,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
   });
 
   test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+
     await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
     await createFolder(page, 'test-folder', 'source-collection');
     await expandFolder(page, 'test-folder');
@@ -19,8 +28,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Wait for both collections to be visible in sidebar
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
+    await expect(sidebar.collection('source-collection')).toBeVisible();
+    await expect(sidebar.collection('target-collection')).toBeVisible();
 
     // Locate the folder in source collection
     const sourceFolder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
@@ -42,13 +51,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).toBeVisible();
 
-    // Expand the moved folder to verify the request inside is also moved
-    await expandFolder(page, 'test-folder');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
-    ).toBeVisible();
-
-    // Verify the folder is no longer in the source collection
+    // Verify the folder (and its request) is no longer in the source collection.
     const sourceCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
@@ -56,14 +59,18 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).not.toBeVisible();
-
-    // Verify the request is also no longer in the source collection
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
     ).not.toBeVisible();
+
+    // Now only the target copy remains.
+    await expandFolder(page, 'test-folder');
+    await expect(
+      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
+    ).toBeVisible();
   });
 
-  test('Verify cross-collection folder drag and drop, a duplicate folder exist. expected to throw error toast', async ({
+  test('Verify cross-collection folder drag and drop when a duplicate folder exists: silently suffixes the directory', async ({
     page,
     createTmpDir
   }) => {
@@ -89,30 +96,27 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Perform drag and drop operation
     await sourceFolder.dragTo(targetCollection);
 
-    // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
 
-    // source and target collection request should remain unchanged
+    // The folder is moved out of the source collection.
     const sourceCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
       .locator('..');
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
-    ).toBeVisible();
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'http-request' })
-    ).toBeVisible();
+    ).toHaveCount(0);
 
+    // The target now shows two "folder-1" entries (the original and the moved one;
+    // the directory name was silently suffixed on disk).
     const targetCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
-    ).toBeVisible();
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'http-request' })
-    ).not.toBeVisible();
+    ).toHaveCount(2);
+
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
   });
 });

@@ -1,0 +1,20 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/ntlm-tls"
+  ],
+  "preferences": {
+    "request": {
+      "sslVerification": false,
+      "clientCertificates": {
+        "certs": [
+          {
+            "domain": "127.0.0.1",
+            "type": "cert",
+            "certFilePath": "{{clientCertPath}}",
+            "keyFilePath": "{{clientKeyPath}}"
+          }
+        ]
+      }
+    }
+  }
+}
