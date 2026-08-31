@@ -59,7 +59,6 @@ jest.mock('utils/common/codemirror', () => ({
 }));
 
 const mockDestroyLinkAware = jest.fn();
-// Mirrors resolveLinkClickHandler's real contract: no handler without a collection.
 const mockResolveLinkClickHandler = jest.fn((item, collection) => (collection?.uid ? jest.fn() : undefined));
 jest.mock('utils/codemirror/linkClickHandler', () => ({
   resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args),
