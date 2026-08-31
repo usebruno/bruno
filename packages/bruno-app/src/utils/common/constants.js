@@ -14,6 +14,14 @@ export const PRESET_REQUEST_TYPES = {
 
 export const DEFAULT_PRESET_REQUEST_TYPE = PRESET_REQUEST_TYPES.HTTP;
 
+export const VARIABLE_ADD_SCOPES = {
+  GLOBAL: 'global',
+  ENVIRONMENT: 'environment',
+  COLLECTION: 'collection',
+  REQUEST: 'request',
+  FOLDER: 'folder'
+};
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',

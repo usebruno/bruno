@@ -46,6 +46,7 @@ export const palette = {
     OVERLAY0: '#444444'
   },
   border: {
+    BORDER3: '#555555',
     BORDER2: '#444444',
     BORDER1: '#333333',
     BORDER0: '#2a2a2a'
@@ -180,6 +181,7 @@ const darkTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: palette.border.BORDER3,
     border2: palette.border.BORDER2,
     border1: palette.border.BORDER1,
     border0: palette.border.BORDER0

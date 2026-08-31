@@ -21,6 +21,7 @@ const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
 const { makeAxiosInstance } = require('./axios-instance');
+const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
@@ -156,7 +157,7 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-  let axiosInstance = makeAxiosInstance({
+  const axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
     proxyConfig,
@@ -168,7 +169,8 @@ const configureRequest = async (
   });
 
   if (request.ntlmConfig) {
-    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+    const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+    axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
     delete request.ntlmConfig;
   }
 
@@ -435,7 +437,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       collection.globalEnvironmentVariables
     );
 
-    const response = await axiosInstance(request);
+    const response = await axiosInstance(refreshExplicitHeaderNames(request));
 
     return {
       status: response.status,
@@ -1034,7 +1036,7 @@ const registerNetworkIpc = (mainWindow) => {
       const sseChunks = [];
       try {
         /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+        response = await axiosInstance(refreshExplicitHeaderNames(request));
         isResponseStream = hasStreamHeaders(response.headers);
 
         if (!isResponseStream) {
@@ -1069,7 +1071,9 @@ const registerNetworkIpc = (mainWindow) => {
             response.data = await promisifyStream(response.data);
           }
         } else {
-          await executeRequestOnFailHandler(request, error);
+          await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+          });
 
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
@@ -1870,7 +1874,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               /** @type {import('axios').AxiosResponse} */
-              response = await axiosInstance(request);
+              response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
               timeEnd = Date.now();
 
@@ -1946,7 +1950,9 @@ const registerNetworkIpc = (mainWindow) => {
                   ...eventData
                 });
               } else {
-                await executeRequestOnFailHandler(request, error);
+                await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+                });
 
                 // if it's not a network error, don't continue
                 throw error;
@@ -2241,14 +2247,19 @@ const registerNetworkIpc = (mainWindow) => {
  * Executes the custom error handler if it exists on the request
  * @param {Object} request - The request object that may contain an onFailHandler
  * @param {Error} error - The error that occurred
+ * @param {Function} onResult - Callback for handling the script result
  */
-const executeRequestOnFailHandler = async (request, error) => {
+const executeRequestOnFailHandler = async (request, error, onResult) => {
   if (!request || typeof request.onFailHandler !== 'function') {
     return;
   }
 
   try {
-    await request.onFailHandler(error);
+    const result = await request.onFailHandler(error);
+    if (result && typeof onResult === 'function') {
+      onResult(result);
+    }
+    return result;
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.
