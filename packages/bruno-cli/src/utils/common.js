@@ -52,9 +52,15 @@ const splitCsv = (value) => {
     .filter(Boolean);
 };
 
-const findConflict = (include, exclude) => {
+const hasCommaValue = (value) => {
+  if (value == null) return false;
+  const parts = Array.isArray(value) ? value : [value];
+  return parts.some((part) => String(part).includes(','));
+};
+
+const findConflicts = (include, exclude) => {
   const excluded = new Set(exclude);
-  return include.find((name) => excluded.has(name));
+  return [...new Set(include)].filter((name) => excluded.has(name));
 };
 
 const getGitRemoteUrl = (collectionPath) => {
@@ -76,6 +82,7 @@ module.exports = {
   rpad,
   parseDataFromResponse,
   splitCsv,
-  findConflict,
+  hasCommaValue,
+  findConflicts,
   getGitRemoteUrl
 };

@@ -67,22 +67,29 @@ describe('bru docs generate', () => {
     expect(fs.existsSync(output)).toBe(true);
   });
 
-  it('errors when the same tag is both included and excluded', async () => {
+  it('lists every tag that is both included and excluded', async () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ gitLink: false, tags: 'smoke', excludeTags: 'smoke' })
+      generate.handler({ gitLink: false, tags: 'smoke,wip,flaky', excludeTags: 'smoke,flaky' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('smoke');
+    expect(message).toContain('flaky');
+    expect(message).not.toContain('wip');
   });
 
-  it('errors when the same environment is both included and excluded', async () => {
+  it('lists every environment that is both included and excluded', async () => {
     const exitSpy = mockExit();
 
     await expect(
-      generate.handler({ gitLink: false, envs: 'Production', excludeEnvs: 'Production' })
+      generate.handler({ gitLink: false, envs: 'Production,Staging', excludeEnvs: 'Production,Staging' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Production');
+    expect(message).toContain('Staging');
   });
 
   it('exits with the invalid-file code when an environment file cannot be parsed', async () => {
@@ -168,6 +175,26 @@ describe('bru docs generate: environment selection', () => {
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Staging');
     expect(html).not.toContain('Production');
+  });
+
+  it('accepts a single env per --env flag, repeated', async () => {
+    const output = path.join(outDir, 'env-singular.html');
+    await generate.handler({ output, gitLink: false, env: ['Production', 'Staging'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).toContain('Staging');
+  });
+
+  it('rejects a comma-separated value passed to the singular --env', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'env-comma.html'), gitLink: false, env: 'Production,Staging' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('--env takes a single value');
+    expect(message).toContain('--envs');
   });
 
   it('embeds the environments in the order given to --envs', async () => {
@@ -308,7 +335,7 @@ describe('bru docs generate: tag filtering', () => {
     expect(html).not.toContain('SmokeReq');
   });
 
-  it('keeps requests matching any tag given as repeated --tag flags', async () => {
+  it('keeps requests matching any tag given as a repeated --tags flag', async () => {
     const output = path.join(outDir, 'include-repeat.html');
     await generate.handler({ output, gitLink: false, tags: ['smoke', 'wip'] });
     const html = fs.readFileSync(output, 'utf8');
@@ -317,7 +344,7 @@ describe('bru docs generate: tag filtering', () => {
     expect(html).not.toContain('PlainReq');
   });
 
-  it('splits comma-separated tags within a repeated --tag flag too', async () => {
+  it('splits comma-separated tags within a repeated --tags flag too', async () => {
     const output = path.join(outDir, 'include-mixed.html');
     await generate.handler({ output, gitLink: false, tags: ['smoke,wip'] });
     const html = fs.readFileSync(output, 'utf8');
@@ -326,13 +353,34 @@ describe('bru docs generate: tag filtering', () => {
     expect(html).not.toContain('PlainReq');
   });
 
-  it('drops requests matching any tag given as repeated --exclude-tag flags', async () => {
+  it('keeps requests matching a single tag per --tag flag, repeated', async () => {
+    const output = path.join(outDir, 'include-singular.html');
+    await generate.handler({ output, gitLink: false, tag: ['smoke', 'wip'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).toContain('WipReq');
+    expect(html).not.toContain('PlainReq');
+  });
+
+  it('drops requests matching a single tag per --exclude-tag flag, repeated', async () => {
     const output = path.join(outDir, 'exclude-repeat.html');
-    await generate.handler({ output, gitLink: false, excludeTags: ['smoke', 'wip'] });
+    await generate.handler({ output, gitLink: false, excludeTag: ['smoke', 'wip'] });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('PlainReq');
     expect(html).not.toContain('SmokeReq');
     expect(html).not.toContain('WipReq');
+  });
+
+  it('rejects a comma-separated value passed to the singular --tag', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ gitLink: false, tag: 'smoke,wip' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('--tag takes a single value');
+    expect(message).toContain('--tags');
   });
 });
 

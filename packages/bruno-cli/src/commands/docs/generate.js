@@ -7,7 +7,7 @@ const { brunoToOpenCollection } = require('@usebruno/converters');
 const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion } = require('@usebruno/common');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
 const { loadEnvironments } = require('../../utils/environment');
-const { splitCsv, findConflict, getGitRemoteUrl } = require('../../utils/common');
+const { splitCsv, hasCommaValue, findConflicts, getGitRemoteUrl } = require('../../utils/common');
 const { CLI_VERSION, EXIT_STATUS } = require('../../constants');
 
 const command = 'generate';
@@ -21,14 +21,20 @@ const builder = (yargs) => {
       description: 'Path to write the documentation file to'
     })
     .option('envs', {
-      alias: 'env',
       type: 'array',
-      description: 'Environment names to embed; comma-separated or repeat the flag (also --env)'
+      description: 'Environment names to embed, comma-separated (repeatable). For one name use --env'
+    })
+    .option('env', {
+      type: 'string',
+      description: 'A single environment name to embed; repeat for more. No commas (use --envs for a list)'
     })
     .option('exclude-envs', {
-      alias: 'exclude-env',
       type: 'array',
-      description: 'Environment names to leave out; comma-separated or repeat the flag (also --exclude-env)'
+      description: 'Environment names to leave out, comma-separated (repeatable). For one name use --exclude-env'
+    })
+    .option('exclude-env', {
+      type: 'string',
+      description: 'A single environment name to leave out; repeat for more. No commas (use --exclude-envs for a list)'
     })
     .option('all-envs', {
       type: 'boolean',
@@ -36,14 +42,20 @@ const builder = (yargs) => {
       description: 'Embed every environment in the collection'
     })
     .option('tags', {
-      alias: 'tag',
       type: 'array',
-      description: 'Only include requests carrying one of these tags; comma-separated or repeat the flag (also --tag)'
+      description: 'Only include requests carrying one of these tags, comma-separated (repeatable). For one tag use --tag'
+    })
+    .option('tag', {
+      type: 'string',
+      description: 'A single tag to include; repeat for more. No commas (use --tags for a list)'
     })
     .option('exclude-tags', {
-      alias: 'exclude-tag',
       type: 'array',
-      description: 'Drop requests carrying one of these tags; comma-separated or repeat the flag (also --exclude-tag)'
+      description: 'Drop requests carrying one of these tags, comma-separated (repeatable). For one tag use --exclude-tag'
+    })
+    .option('exclude-tag', {
+      type: 'string',
+      description: 'A single tag to drop; repeat for more. No commas (use --exclude-tags for a list)'
     })
     .option('git-link', {
       type: 'boolean',
@@ -53,7 +65,7 @@ const builder = (yargs) => {
     .example('$0 docs generate', 'Generate docs for the collection in the current directory')
     .example('$0 docs generate --envs Production -o docs/api.html', 'Embed one environment and set the output path')
     .example('$0 docs generate --all-envs', 'Embed every environment in the collection')
-    .example('$0 docs generate --exclude-tags WIP --no-git-link', 'Drop WIP requests and omit the git link');
+    .example('$0 docs generate --exclude-tag WIP --no-git-link', 'Drop WIP requests and omit the git link');
 };
 
 const handler = async (argv) => {
@@ -70,20 +82,36 @@ const handler = async (argv) => {
       process.exit(EXIT_STATUS.ERROR_INVALID_FILE);
     }
 
-    const includeTags = splitCsv(argv.tags);
-    const excludeTags = splitCsv(argv.excludeTags);
-    const includeEnvs = [...new Set(splitCsv(argv.envs))];
-    const excludeEnvs = [...new Set(splitCsv(argv.excludeEnvs))];
-    const allEnvs = Boolean(argv.allEnvs);
-
-    const conflictingTag = findConflict(includeTags, excludeTags);
-    if (conflictingTag) {
-      console.error(chalk.red('Tag cannot be both included and excluded: ') + chalk.dim(conflictingTag));
+    const singularFlags = [
+      { name: '--tag', plural: '--tags', value: argv.tag },
+      { name: '--exclude-tag', plural: '--exclude-tags', value: argv.excludeTag },
+      { name: '--env', plural: '--envs', value: argv.env },
+      { name: '--exclude-env', plural: '--exclude-envs', value: argv.excludeEnv }
+    ];
+    const commaFlag = singularFlags.find((flag) => hasCommaValue(flag.value));
+    if (commaFlag) {
+      console.error(
+        chalk.red(
+          `${commaFlag.name} takes a single value; use ${commaFlag.plural} for a comma-separated list, or repeat ${commaFlag.name}`
+        )
+      );
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
-    const conflictingEnv = findConflict(includeEnvs, excludeEnvs);
-    if (conflictingEnv) {
-      console.error(chalk.red('Environment cannot be both included and excluded: ') + chalk.dim(conflictingEnv));
+
+    const includeTags = [...splitCsv(argv.tags), ...splitCsv(argv.tag)];
+    const excludeTags = [...splitCsv(argv.excludeTags), ...splitCsv(argv.excludeTag)];
+    const includeEnvs = [...new Set([...splitCsv(argv.envs), ...splitCsv(argv.env)])];
+    const excludeEnvs = [...new Set([...splitCsv(argv.excludeEnvs), ...splitCsv(argv.excludeEnv)])];
+    const allEnvs = Boolean(argv.allEnvs);
+
+    const conflictingTags = findConflicts(includeTags, excludeTags);
+    if (conflictingTags.length > 0) {
+      console.error(chalk.red('Tags cannot be both included and excluded: ') + chalk.dim(conflictingTags.join(', ')));
+      process.exit(EXIT_STATUS.ERROR_GENERIC);
+    }
+    const conflictingEnvs = findConflicts(includeEnvs, excludeEnvs);
+    if (conflictingEnvs.length > 0) {
+      console.error(chalk.red('Environments cannot be both included and excluded: ') + chalk.dim(conflictingEnvs.join(', ')));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
     if (allEnvs && (includeEnvs.length > 0 || excludeEnvs.length > 0)) {
