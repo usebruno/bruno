@@ -114,6 +114,7 @@ const Checkbox = forwardRef(
       checked = false,
       indeterminate = false,
       disabled = false,
+      required = false,
       onChange,
       size = DEFAULT_SIZE,
       label,
@@ -124,9 +125,7 @@ const Checkbox = forwardRef(
       value,
       className = '',
       inputClassName = '',
-      'data-testid': dataTestId,
-      type: _type,
-      ...rest
+      'data-testid': dataTestId
     },
     forwardedRef
   ) => {
@@ -151,12 +150,12 @@ const Checkbox = forwardRef(
               value={value}
               checked={checked}
               disabled={disabled}
+              required={required}
               onChange={handleChange}
               className={`checkbox-input ${inputClassName}`.trim()}
               data-testid={dataTestId}
               aria-label={ariaLabel}
               aria-labelledby={ariaLabelledBy}
-              {...rest}
             />
 
             <span className="checkbox-box" aria-hidden="true">
