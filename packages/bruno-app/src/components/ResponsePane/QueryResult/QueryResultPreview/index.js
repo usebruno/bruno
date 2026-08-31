@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
@@ -33,6 +34,56 @@ const QueryResultPreview = ({
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const editorRef = useRef(null);
+  const previewContainerRef = useRef(null);
+
+  const handlePreviewKeyDown = useCallback((e) => {
+    // Ignore held-down key repeats
+    if (e.repeat || e.isAutoRepeat) return;
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey || e.control || e.meta;
+    const isFind = (e.key && e.key.toLowerCase() === 'f') || e.code === 'KeyF';
+
+    if (isCtrlOrCmd && isFind) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+      toast('Search is not available in Preview mode. Switch to Editor mode to search.', {
+        icon: '🔍',
+        id: 'response-preview-search-disabled'
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedTab !== 'preview') return;
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    // Attach to window in capture phase to intercept shortcuts globally while Preview is active
+    window.addEventListener('keydown', handlePreviewKeyDown, true);
+
+    // Electron <webview> isolates keyboard inputs. Catch Ctrl+F from inside the HTML preview webview.
+    const webviews = container.querySelectorAll('webview');
+    const handleWebviewInput = (e) => {
+      if (e.type === 'keyDown') {
+        handlePreviewKeyDown(e);
+      }
+    };
+
+    webviews.forEach((wv) => wv.addEventListener('before-input-event', handleWebviewInput));
+
+    return () => {
+      window.removeEventListener('keydown', handlePreviewKeyDown, true);
+      webviews.forEach((wv) => wv.removeEventListener('before-input-event', handleWebviewInput));
+    };
+  }, [selectedTab, handlePreviewKeyDown]);
+
+  const wrapPreview = useCallback((content) => (
+    // tabIndex makes the div focusable
+    <div ref={previewContainerRef} tabIndex={-1} style={{ outline: 'none', height: '100%' }}>
+      {content}
+    </div>
+  ), []);
+
   const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
 
   const [numPages, setNumPages] = useState(null);
@@ -73,13 +124,13 @@ const QueryResultPreview = ({
   switch (previewMode) {
     case 'preview-web': {
       const baseUrl = item.requestSent?.url || '';
-      return <HtmlPreview data={data} baseUrl={baseUrl} />;
+      return wrapPreview(<HtmlPreview data={data} baseUrl={baseUrl} />);
     }
     case 'preview-image': {
-      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;
+      return wrapPreview(<img alt="Response preview image" src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />);
     }
     case 'preview-pdf': {
-      return (
+      return wrapPreview(
         <div className="preview-pdf" style={{ height: '100%', overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
           <Document file={`data:application/pdf;base64,${dataBuffer}`} onLoadSuccess={onDocumentLoadSuccess}>
             {Array.from(new Array(numPages), (el, index) => (
@@ -90,27 +141,27 @@ const QueryResultPreview = ({
       );
     }
     case 'preview-audio': {
-      return (
+      return wrapPreview(
         <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
       );
     }
     case 'preview-video': {
-      return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
+      return wrapPreview(<VideoPreview contentType={contentType} dataBuffer={dataBuffer} />);
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
+      return wrapPreview(<JsonPreview data={data} displayedTheme={displayedTheme} />);
     }
 
     case 'preview-text': {
-      return <TextPreview data={data} />;
+      return wrapPreview(<TextPreview data={data} />);
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} />;
+      return wrapPreview(<XmlPreview data={data} />);
     }
 
     default:
-      return (
+      return wrapPreview(
         <div className="p-4 flex flex-col items-center justify-center h-full text-center">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
             No Preview Available
