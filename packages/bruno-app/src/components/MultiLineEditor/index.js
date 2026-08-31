@@ -282,11 +282,7 @@ class MultiLineEditor extends Component {
       }
     }
 
-    // Reconfigure link-aware click handling when item/collection change (e.g. the editor
-    // is reused for a different request, or collection becomes available after mount) -
-    // otherwise it keeps using whichever item/collection it was set up with. Compared field
-    // by field, not the item/collection objects themselves - the collection tree changes on
-    // every edit or response, and none of that affects the click handler.
+    // Re-wire link handler when item/collection context changes.
     const itemType = this.props.item?.type;
     const collectionUid = this.props.collection?.uid;
     const presetType = getPresetRequestType(this.props.collection);
