@@ -1105,6 +1105,48 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
 type AddRowOptions = { valueFirst?: boolean };
 
 /**
+ * Bring part of the environment table into view. The table is virtualized, so a row outside the
+ * rendered window is absent from the DOM altogether, and waiting on the target alone never
+ * resolves. Walks the scroller a viewport at a time until the target renders, leaving the list
+ * wherever that happened.
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollEnvironmentTableTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) {
+    return;
+  }
+
+  const scroller = buildCommonLocators(page).environment.variablesScroller();
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((element) => Math.ceil(element.scrollHeight / element.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((element, offset) => element.scrollTo({ top: offset * element.clientHeight }), viewport);
+    if (await isRendered()) {
+      return;
+    }
+  }
+};
+
+/**
+ * The trailing empty row's Name input, scrolled into the rendered window first. Only the empty
+ * row carries the `Name` placeholder, so a match is always the row a new variable goes into.
+ * @param page - The page object
+ * @returns The empty row's Name input
+ */
+const emptyRowNameInput = async (page: Page) => {
+  const nameInput = page.locator('input[placeholder="Name"]').last();
+
+  await scrollEnvironmentTableTo(page, nameInput);
+  await nameInput.waitFor({ state: 'visible' });
+
+  return nameInput;
+};
+
+/**
  * Add a variable or secret to whichever environment tab (Variables / Secrets) is
  * currently active. The active tab determines the row's type, so select the tab
  * before calling. When `dataType` is given, its type is set via the DataTypeSelector.
@@ -1126,11 +1168,10 @@ const addRowToActiveTab = async (
     const { environment, dataTypeSelector } = buildCommonLocators(page);
 
     if (options.valueFirst) {
-      const emptyRowNameInput = page.locator('input[placeholder="Name"]').last();
-      await emptyRowNameInput.waitFor({ state: 'visible' });
+      const nameInput = await emptyRowNameInput(page);
       // Filling the value appends another empty row, so the row being filled in stops being the
       // last one — its formik index is what stays put until it has a name to be found by.
-      const rowIndex = Number((await emptyRowNameInput.getAttribute('name')).split('.')[0]);
+      const rowIndex = Number((await nameInput.getAttribute('name')).split('.')[0]);
 
       const emptyRowEditor = environment.variableValueEditor(rowIndex);
       await emptyRowEditor.scrollIntoViewIfNeeded();
@@ -1141,8 +1182,7 @@ const addRowToActiveTab = async (
 
       await environment.variableNameInput(rowIndex).fill(name);
     } else {
-      const nameInput = page.locator('input[placeholder="Name"]').last();
-      await nameInput.waitFor({ state: 'visible' });
+      const nameInput = await emptyRowNameInput(page);
       await nameInput.fill(name);
     }
 
@@ -1186,6 +1226,7 @@ const addRowToActiveTab = async (
 const setEnvironmentVariableValue = async (page: Page, name: string, value: string) => {
   await test.step(`Set environment variable "${name}" to "${value}"`, async () => {
     const editor = buildCommonLocators(page).environment.varRowValueEditor(name);
+    await scrollEnvironmentTableTo(page, editor);
     await editor.scrollIntoViewIfNeeded();
     await editor.click({ position: { x: 5, y: 5 } });
     await expect(editor).toHaveClass(/CodeMirror-focused/);
@@ -1206,6 +1247,7 @@ const setEnvironmentVariableValue = async (page: Page, name: string, value: stri
 const disableEnvironmentVariable = async (page: Page, name: string) => {
   await test.step(`Disable environment variable "${name}"`, async () => {
     const checkbox = buildCommonLocators(page).environment.varRowEnabledCheckbox(name);
+    await scrollEnvironmentTableTo(page, checkbox);
     await checkbox.click();
     await expect(checkbox).not.toBeChecked();
   });

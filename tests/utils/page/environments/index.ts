@@ -52,6 +52,10 @@ export const buildEnvironmentLocators = (page: Page) => ({
   varErrors: () => page.getByTestId('env-var-name-error'),
   // The trailing empty "add new variable" row's name input.
   addRowNameInput: () => page.getByTestId('env-var-name-input').last(),
+  // The variables table's scroll container. The table is virtualized, so rows outside the
+  // rendered window reach the DOM only once this element is scrolled to them.
+  variablesScroller: () =>
+    page.locator('.table-container').filter({ has: page.locator('tr[data-testid^="env-var-row-"]') }),
   // A row addressed by its formik index rather than its name — the only handle on a row that
   // has no name yet, and one that survives the empty row the table appends while it is filled in.
   variableValueEditor: (index: number) =>
