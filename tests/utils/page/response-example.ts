@@ -29,7 +29,7 @@ export const buildResponseExampleLocators = (page: Page) => ({
   headerRowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror')
 });
 
-export const sendRequestAndSaveResposeExample = async (page: Page, requestName: string, exampleName: string) => {
+export const sendRequestAndSaveResponseExample = async (page: Page, requestName: string, exampleName: string) => {
   const { responseExample } = buildCommonLocators(page);
   await sendRequest(page);
   await clickResponseAction(page, 'response-bookmark-btn');
