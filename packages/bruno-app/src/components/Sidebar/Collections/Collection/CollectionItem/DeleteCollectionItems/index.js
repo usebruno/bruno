@@ -76,6 +76,7 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
       confirmButtonColor="danger"
       handleConfirm={onConfirm}
       handleCancel={onClose}
+      dataTestId="delete-collection-item-modal"
     >
       Are you sure you want to delete {description}?
     </Modal>
