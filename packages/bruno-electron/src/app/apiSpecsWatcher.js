@@ -11,6 +11,8 @@ const hasApiSpecExtension = (filename) => {
   return ['yaml', 'yml', 'json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
+const isSpecItself = (pathname, watchPath) => path.normalize(pathname) === path.normalize(watchPath);
+
 const hydrateApiSpecWithUuid = (apiSpec, pathname) => {
   apiSpec.uid = getApiSpecUid(pathname);
   return apiSpec;
@@ -125,19 +127,17 @@ class ApiSpecWatcher {
         depth: 20
       });
 
-      const isSpecItself = (pathname) => path.resolve(pathname) === path.resolve(watchPath);
-
       const refWatchState = { watcher, watchedRefFilePaths: new Set() };
 
       watcher
         .on('add', (pathname) => {
-          if (isSpecItself(pathname)) return add(win, watchPath, refWatchState);
+          if (isSpecItself(pathname, watchPath)) return add(win, watchPath, refWatchState);
           if (refWatchState.watchedRefFilePaths.has(path.resolve(pathname))) return;
           change(win, watchPath, refWatchState);
         })
         .on('change', () => change(win, watchPath, refWatchState))
         .on('unlink', (pathname) => {
-          if (isSpecItself(pathname)) return;
+          if (isSpecItself(pathname, watchPath)) return;
           refWatchState.watchedRefFilePaths.delete(path.resolve(pathname));
           change(win, watchPath, refWatchState);
         })
