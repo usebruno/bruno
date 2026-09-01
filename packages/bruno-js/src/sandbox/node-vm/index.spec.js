@@ -2,6 +2,7 @@ const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals')
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const vm = require('node:vm');
 const { runScriptInNodeVm } = require('./index');
 
 // Windows denies symlink creation without developer mode / admin. Probe once at
@@ -22,6 +23,15 @@ const symlinksSupported = (() => {
   }
 })();
 const itIfSymlinks = symlinksSupported ? it : it.skip;
+
+const mb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+const logMemoryMeasurement = (label, { baseline, after, growth }) => {
+  // eslint-disable-next-line no-console
+  console.log(
+    `[node-vm memory] ${label}: baseline=${mb(baseline)}, after=${mb(after)}, growth=${mb(growth)}`
+  );
+};
 
 const makePkg = (parentDir, pkgName, files) => {
   const pkgDir = path.join(parentDir, pkgName);
@@ -610,6 +620,119 @@ describe('node-vm sandbox', () => {
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'A-B');
+    });
+  });
+
+
+  describe('script context lifecycle', () => {
+    it('should not retain VM contexts after repeated executions', async () => {
+      // Phase 1 baseline test. Mirrors #9074: collection-level script requiring a
+      // heavy npm module on every request. Logs vm + RSS so you can compare before/after
+      // the releaseScriptContext() fix. Jest's eager GC can mask retention here — the
+      // logged RSS/heap lines are the numbers to watch; CLI `bru run` is ground truth.
+      makePkg(path.join(collectionPath, 'node_modules'), 'heavy-module', {
+        'index.js': `
+          const bufs = [];
+          for (let i = 0; i < 8; i++) bufs.push(new ArrayBuffer(1024 * 1024));
+          module.exports = { bufs };
+        `
+      });
+
+      const script = `
+        const heavy = require('heavy-module');
+        const lodash = require('lodash');
+        bru.setVar('len', heavy.bufs.length + lodash.size({ a: 1 }));
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      const snapshot = async (label) => {
+        const { total } = await vm.measureMemory({ mode: 'summary', execution: 'eager' });
+        const { rss, heapUsed } = process.memoryUsage();
+        // eslint-disable-next-line no-console
+        console.log(
+          `[node-vm memory] ${label}: vm=${mb(total.jsMemoryEstimate)}, rss=${mb(rss)}, heapUsed=${mb(heapUsed)}`
+        );
+        return { vm: total.jsMemoryEstimate, rss, heapUsed };
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+      const baseline = await snapshot('after warmup');
+
+      const iterations = 100;
+      for (let i = 0; i < iterations; i++) {
+        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+      }
+      const after = await snapshot(`after ${iterations} runs`);
+
+      logMemoryMeasurement('vm.measureMemory growth', {
+        baseline: baseline.vm,
+        after: after.vm,
+        growth: after.vm - baseline.vm
+      });
+      logMemoryMeasurement('RSS growth', {
+        baseline: baseline.rss,
+        after: after.rss,
+        growth: after.rss - baseline.rss
+      });
+      logMemoryMeasurement('heapUsed growth', {
+        baseline: baseline.heapUsed,
+        after: after.heapUsed,
+        growth: after.heapUsed - baseline.heapUsed
+      });
+
+      const rssGrowth = after.rss - baseline.rss;
+      // these are based on the above package that requires lodash and heavy-module
+      expect(after.vm - baseline.vm).toBeLessThan(50 * 1024 * 1024);
+      expect(after.heapUsed - baseline.heapUsed).toBeLessThan(50 * 1024 * 1024);
+      expect(rssGrowth).toBeLessThan(250 * 1024 * 1024);
+    });
+
+    it('should evaluate npm modules fresh on each script execution', async () => {
+      const marker = `_npmEvalCount_${Date.now()}`;
+      makePkg(path.join(collectionPath, 'node_modules'), 'counted-module', {
+        'index.js': `
+          process.${marker} = (process.${marker} || 0) + 1;
+          module.exports = { count: process.${marker} };
+        `
+      });
+
+      const script = `
+        const mod = require('counted-module');
+        bru.setVar('count', mod.count);
+      `;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(process[marker]).toBe(2);
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('count', 1);
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 2);
+      delete process[marker];
+    });
+
+    it('should not share mutable npm module state across script executions', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'stateful-module', {
+        'index.js': `
+          if (!global.__state) global.__state = { count: 0 };
+          global.__state.count++;
+          module.exports = { count: global.__state.count };
+        `
+      });
+
+      const script = `
+        const mod = require('stateful-module');
+        bru.setVar('count', mod.count);
+      `;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('count', 1);
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 1);
     });
   });
 

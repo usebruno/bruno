@@ -3,7 +3,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError, resolveVmFilename } = require('./utils');
+const { ScriptError, resolveVmFilename, releaseScriptContext } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
@@ -32,6 +32,10 @@ async function runScriptInNodeVm({
     return;
   }
 
+  let scriptContext;
+  let localModuleCache;
+  let compiledScript;
+
   try {
     // Compute allowed context roots for security validation
     const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
@@ -43,7 +47,7 @@ async function runScriptInNodeVm({
     additionalContextRootsAbsolute.push(path.normalize(collectionPath));
 
     // Build the script context with Bruno objects and globals
-    const scriptContext = buildScriptContext(context, scriptingConfig);
+    scriptContext = buildScriptContext(context, scriptingConfig);
 
     // Create truly isolated context - scriptContext becomes the global object
     // Scripts can ONLY access what's explicitly in scriptContext
@@ -55,7 +59,7 @@ async function runScriptInNodeVm({
     scriptContext.globalThis = scriptContext;
 
     // Create module cache for CJS modules
-    const localModuleCache = new Map();
+    localModuleCache = new Map();
 
     // Add require() function for CJS module loading
     scriptContext.require = createCustomRequire({
@@ -70,7 +74,6 @@ async function runScriptInNodeVm({
 
     // Execute the script in the isolated context
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
-    let compiledScript;
     try {
       compiledScript = new vm.Script(wrappedScript, {
         filename: vmFilename
@@ -123,6 +126,9 @@ async function runScriptInNodeVm({
     }
   } catch (error) {
     throw new ScriptError(error, script);
+  } finally {
+    releaseScriptContext(scriptContext, localModuleCache);
+    compiledScript = null;
   }
 }
 
