@@ -15,25 +15,25 @@ const HOOKS = {
   beforeCallStart: {
     label: 'Before Call Start',
     scriptType: SCRIPT_TYPES.BEFORE_CALL_START,
-    showHintsFor: ['req', 'bru'],
+    showHintsFor: ['bru', 'grpc:before-call-start'],
     errorMessageKey: 'beforeCallStartScriptErrorMessage'
   },
   beforeMessageSend: {
     label: 'Before Message Send',
     scriptType: SCRIPT_TYPES.BEFORE_MESSAGE_SEND,
-    showHintsFor: ['req', 'bru'],
+    showHintsFor: ['bru', 'grpc:before-message-send'],
     errorMessageKey: 'beforeMessageSendScriptErrorMessage'
   },
   afterMessageReceive: {
     label: 'After Message Receive',
     scriptType: SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE,
-    showHintsFor: ['req', 'res', 'bru'],
+    showHintsFor: ['bru', 'grpc:after-message-receive'],
     errorMessageKey: 'afterMessageReceiveScriptErrorMessage'
   },
   afterCallEnd: {
     label: 'After Call End',
     scriptType: SCRIPT_TYPES.AFTER_CALL_END,
-    showHintsFor: ['req', 'res', 'bru'],
+    showHintsFor: ['bru', 'grpc:after-call-end'],
     errorMessageKey: 'afterCallEndScriptErrorMessage'
   }
 };
