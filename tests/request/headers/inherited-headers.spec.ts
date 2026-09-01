@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import {
+  buildCommonLocators,
   closeAllCollections,
   createCollection,
   createFolder,
@@ -33,15 +34,13 @@ test('keeps inherited headers hidden until shown', async ({ page, createTmpDir }
   await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
   await openRequest(page, collectionName, 'request-1');
   await selectRequestPaneTab(page, 'Headers');
-
-  const headers = page.getByTestId('request-headers-table');
-  const toggle = page.getByTestId('toggle-inherited-headers');
+  const { headers } = buildCommonLocators(page).request;
 
   await test.step('Start with inherited headers hidden', async () => {
-    await expect(toggle).toHaveText(`Show Inherited Headers (${DEFAULT_HEADER_COUNT + 1})`);
-    await expect(page.getByTestId('inherited-header-row-x-collection')).not.toBeVisible();
-    await expect(page.getByTestId('inherited-headers-section-row')).not.toBeVisible();
-    await expect(headers).toBeVisible();
+    await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADER_COUNT + 1})`);
+    await expect(headers.inheritedRow('X-Collection')).not.toBeVisible();
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expect(headers.table()).toBeVisible();
   });
 
   await test.step('Reveal inherited and runtime-default headers', async () => {
@@ -86,7 +85,7 @@ test('shows the folder header when collection and folder share a name', async ({
     await expect(headers.inheritedRow('X-Shared')).toBeVisible();
     await expect(headers.inheritedRow('X-Shared')).toContainText('from-folder');
     await expect(headers.inheritedRow('X-Shared')).not.toContainText('from-collection');
-    await expect(page.getByTestId('inherited-header-row-x-shared')).toHaveCount(1);
+    await expect(headers.inheritedRow('X-Shared')).toHaveCount(1);
   });
 });
 
@@ -108,8 +107,9 @@ test('opens the source table and reveals the inherited header', async ({ page, c
     await expect(headers.inheritedRow(targetHeader)).toBeVisible();
     await headers.inheritedSource(targetHeader).click();
 
-    await expect(page.getByTestId('collection-settings-tab-headers')).toContainClass('active');
-    const sourceRow = page.getByTestId('collection-headers').locator(`tr[data-row-name="${targetHeader}"]`);
+    const { paneTabs, table } = buildCommonLocators(page);
+    await expect(paneTabs.collectionSettingsTab('headers')).toContainClass('active');
+    const sourceRow = table('collection-headers').rowByName(targetHeader);
     await expect(sourceRow).toBeVisible();
     await expect(sourceRow).toBeInViewport();
   });
@@ -195,10 +195,10 @@ test('sends the request value when it overrides an inherited header', async ({ p
   await selectRequestPaneTab(page, 'Headers');
 
   await test.step('Add a request header with the same name', async () => {
-    const headers = page.getByTestId('request-headers-table');
-    await fillRequestHeaderName(page, page.getByTestId('request-header-add-row'), 'X-Token');
-    await fillRequestHeaderValue(page, page.getByTestId('request-header-row-x-token'), 'request-token');
-    await expect(headers).toBeVisible();
+    const { headers } = buildCommonLocators(page).request;
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Token');
+    await fillRequestHeaderValue(page, headers.requestRow('X-Token'), 'request-token');
+    await expect(headers.table()).toBeVisible();
   });
 
   await test.step('Send and confirm the request header wins', async () => {

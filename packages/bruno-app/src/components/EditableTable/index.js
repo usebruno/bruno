@@ -47,6 +47,7 @@ const findRenderedRow = (wrapper, rowIndex) =>
   wrapper?.querySelector(`tr[data-item-index="${rowIndex}"]`) || null;
 
 const isRowInViewport = (row, scrollParent) => {
+  if (!row || !scrollParent?.getBoundingClientRect) return false;
   const rowRect = row.getBoundingClientRect();
   const parentRect = scrollParent.getBoundingClientRect();
   return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
@@ -61,7 +62,7 @@ const isRowInViewport = (row, scrollParent) => {
  * target on every retry.
  */
 const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
-  if (!wrapper) return;
+  if (!wrapper || !scrollParent?.getBoundingClientRect) return;
 
   const wrapperOffset = wrapper.getBoundingClientRect().top
     - scrollParent.getBoundingClientRect().top
@@ -346,14 +347,22 @@ const EditableTable = ({
   }, [rowsWithEmpty.length, isEmptyRow, showAddRow]);
 
   useEffect(() => {
-    if (rowsWithEmpty.length > prevRowCountRef.current && prevRowCountRef.current > 0) {
-      virtuosoRef.current?.scrollToIndex({
-        index: rowsWithEmpty.length - 1,
-        behavior: 'smooth'
-      });
+    const previousCount = prevRowCountRef.current;
+    const nextCount = rowsWithEmpty.length;
+    prevRowCountRef.current = nextCount;
+
+    // Only follow a newly appended empty add-row. Prepending inherited headers
+    // also grows the list and must not smooth-scroll to the bottom.
+    if (previousCount > 0 && nextCount === previousCount + 1) {
+      const lastIndex = nextCount - 1;
+      if (isLastEmptyRow(rowsWithEmpty[lastIndex], lastIndex)) {
+        virtuosoRef.current?.scrollToIndex({
+          index: lastIndex,
+          behavior: 'smooth'
+        });
+      }
     }
-    prevRowCountRef.current = rowsWithEmpty.length;
-  }, [rowsWithEmpty.length]);
+  }, [isLastEmptyRow, rowsWithEmpty]);
 
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
@@ -697,7 +706,7 @@ const EditableTable = ({
     <StyledWrapper
       ref={wrapperRef}
       data-testid={testId}
-      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}
+      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''} ${renderFullWidthRow ? 'has-section-rows' : ''}`}
     >
       {scrollParent && (
         <TableVirtuoso
@@ -708,6 +717,7 @@ const EditableTable = ({
           components={{ TableRow }}
           context={virtuosoContext}
           defaultItemHeight={ROW_HEIGHT}
+          {...(renderFullWidthRow ? { increaseViewportBy: 2000 } : {})}
           initialTopMostItemIndex={initialTopMostItemIndex}
           totalListHeightChanged={handleTotalHeightChanged}
           computeItemKey={(_, item) => item.uid}

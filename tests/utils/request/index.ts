@@ -152,7 +152,7 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
  * Reveal the Inherited Headers accordion (hidden by default) and return header locators.
  */
 export const showInheritedHeaders = async (page: Page) => {
-  const headers = buildRequestLocators(page).headers;
+  const { headers } = buildRequestLocators(page);
   await headers.toggleInherited().click();
   await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
   return headers;

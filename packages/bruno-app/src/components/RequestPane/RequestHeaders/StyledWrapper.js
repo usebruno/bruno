@@ -36,7 +36,9 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.sidebar.bg};
     border: 0;
+    border-bottom: solid 1px ${(props) => props.theme.border.border0};
     border-radius: 0;
+    box-sizing: border-box;
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 600;
     text-align: left;

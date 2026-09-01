@@ -73,6 +73,7 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
         content={text}
         place={place}
         positionStrategy="fixed"
+        delayShow={500}
         opacity={1}
         style={HEADER_HINT_STYLE}
         render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
@@ -109,11 +110,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const isHttpRequest = item.type === 'http-request';
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const [showInheritedHeaders, setShowInheritedHeaders] = usePersistedState({
-    key: `request-show-inherited-headers-${item.uid}`,
+    key: `request-show-default-headers-${item.uid}`,
     default: false
   });
   const [isInheritedHeadersExpanded, setIsInheritedHeadersExpanded] = usePersistedState({
-    key: `request-inherited-headers-expanded-${item.uid}`,
+    key: `request-default-headers-expanded-${item.uid}`,
     default: true
   });
   const [isRequestHeadersExpanded, setIsRequestHeadersExpanded] = usePersistedState({
@@ -123,6 +124,24 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
+
+  const pinHeadersToTop = useCallback(() => {
+    const pane = wrapperRef.current?.closest('.flex-boundary');
+    if (!pane) {
+      setScroll(0);
+      return;
+    }
+
+    const pin = () => {
+      pane.scrollTop = 0;
+    };
+    pin();
+    requestAnimationFrame(() => {
+      pin();
+      requestAnimationFrame(pin);
+    });
+    setScroll(0);
+  }, [setScroll]);
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -282,7 +301,10 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     }
 
     const toggle = row.section === ROW_TYPE.INHERITED
-      ? () => setIsInheritedHeadersExpanded(!isInheritedHeadersExpanded)
+      ? () => {
+          pinHeadersToTop();
+          setIsInheritedHeadersExpanded(!isInheritedHeadersExpanded);
+        }
       : () => setIsRequestHeadersExpanded(!isRequestHeadersExpanded);
 
     return (
@@ -297,7 +319,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         <span>{row.label} ({row.count})</span>
       </button>
     );
-  }, [isInheritedHeadersExpanded, isRequestHeadersExpanded, setIsInheritedHeadersExpanded, setIsRequestHeadersExpanded]);
+  }, [isInheritedHeadersExpanded, isRequestHeadersExpanded, pinHeadersToTop, setIsInheritedHeadersExpanded, setIsRequestHeadersExpanded]);
 
   const getRowError = useCallback((row, index, key) => {
     if (row.rowType && row.rowType !== ROW_TYPE.REQUEST) {
@@ -603,7 +625,14 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
               type="button"
               className="btn-action toggle-inherited-headers select-none flex items-center gap-1"
               data-testid="toggle-inherited-headers"
-              onClick={() => setShowInheritedHeaders(!showInheritedHeaders)}
+              onClick={() => {
+                const next = !showInheritedHeaders;
+                pinHeadersToTop();
+                setShowInheritedHeaders(next);
+                if (next) {
+                  setIsInheritedHeadersExpanded(true);
+                }
+              }}
             >
               {showInheritedHeaders
                 ? <IconEyeOff size={16} strokeWidth={1.5} />

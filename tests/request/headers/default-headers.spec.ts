@@ -82,7 +82,7 @@ test('hides inherited headers and shows a flat editable request headers table', 
   await createCollection(page, 'default-headers-hide', await createTmpDir('default-headers-hide'));
   await createRequest(page, 'request-1', 'default-headers-hide', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = buildCommonLocators(page).request.headers;
+  const { headers } = buildCommonLocators(page).request;
 
   await test.step('Start with inherited headers hidden', async () => {
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
@@ -110,6 +110,27 @@ test('hides inherited headers and shows a flat editable request headers table', 
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
     await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+  });
+});
+
+test('opens the inherited headers accordion whenever they are shown', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'inherited-headers-reopen', await createTmpDir('inherited-headers-reopen'));
+  await createRequest(page, 'request-1', 'inherited-headers-reopen', { url: 'https://example.com' });
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Collapse inherited headers', async () => {
+    await headers.inheritedSectionToggle().click();
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'false');
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
+  });
+
+  await test.step('Show again with the accordion open', async () => {
+    await headers.toggleInherited().click();
+    await headers.toggleInherited().click();
+
+    await expect(headers.inheritedSectionToggle()).toHaveAttribute('aria-expanded', 'true');
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
   });
 });
 
@@ -229,7 +250,7 @@ test('sends an explicit request header instead of the matching default', async (
   await createCollection(page, 'default-headers-override-send', await createTmpDir('default-headers-override-send'));
   await createRequest(page, 'request-1', 'default-headers-override-send', { url: ECHO_HEADERS_URL });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = buildCommonLocators(page).request.headers;
+  const { headers } = buildCommonLocators(page).request;
 
   await test.step('Add an overriding User-Agent request header', async () => {
     await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');

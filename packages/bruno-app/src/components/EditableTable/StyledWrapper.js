@@ -16,6 +16,22 @@ const StyledWrapper = styled.div`
     overflow: clip;
   }
 
+  /* Sticky section rows must stick to the pane scroller, not this clip box. */
+  &.has-section-rows .table-container {
+    overflow: visible;
+  }
+
+  &.has-section-rows thead tr {
+    height: 35px;
+  }
+
+  &.has-section-rows thead td {
+    height: 35px;
+    box-sizing: border-box;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -29,6 +45,9 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.sidebar.bg};
     user-select: none;
     overflow: visible;
+    position: sticky;
+    top: 0;
+    z-index: 13;
 
     border: none !important;
 
@@ -172,15 +191,27 @@ const StyledWrapper = styled.div`
       }
 
       &.section-header-row {
-        position: relative;
+        position: sticky;
+        /* 1px under thead so scrolling rows cannot peek through a subpixel gap. */
+        top: 34px;
+        z-index: 12;
+        background: ${(props) => props.theme.sidebar.bg};
+
         td.full-width-row {
-          position: relative;
-          z-index: 11;
+          position: sticky;
+          top: 34px;
+          z-index: 12;
           height: 35px;
           max-height: 35px;
           padding: 0 !important;
           border-right: none;
+          /* border-collapse drops the shared edge; paint the divider ourselves. */
+          border-bottom: solid 1px ${(props) => props.theme.border.border0} !important;
           overflow: visible;
+          background: ${(props) => props.theme.sidebar.bg};
+          box-shadow:
+            0 -1px 0 ${(props) => props.theme.sidebar.bg},
+            inset 0 -1px 0 ${(props) => props.theme.border.border0};
 
           > * {
             height: 100%;
