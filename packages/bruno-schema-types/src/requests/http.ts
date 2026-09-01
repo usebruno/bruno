@@ -37,6 +37,12 @@ export interface HttpRequestBody {
   file?: FileList | null;
 }
 
+export interface OpenApiBodyContract {
+  type: 'openapi';
+  source?: string | null;
+  operationId?: string | null;
+}
+
 export interface HttpRequest {
   url: string;
   method: string;
@@ -44,6 +50,7 @@ export interface HttpRequest {
   params: HttpRequestParam[];
   auth?: Auth | null;
   body?: HttpRequestBody | null;
+  bodyContract?: OpenApiBodyContract | null;
   script?: Script | null;
   vars?: {
     req: Variables;

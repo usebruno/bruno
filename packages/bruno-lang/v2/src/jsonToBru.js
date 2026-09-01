@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, grpc, ws, params, headers, metadata, auth, body, script, tests, vars, assertions, settings, app, docs, examples } = json;
+  const { meta, http, grpc, ws, params, headers, metadata, auth, body, bodyOpenApi, script, tests, vars, assertions, settings, app, docs, examples } = json;
 
   let bru = '';
 
@@ -502,6 +502,16 @@ ${indentString(`maxBodySize: ${auth?.akamaiEdgegrid?.maxBodySize ?? ''}`)}
 }
 
 `;
+  }
+
+  if (bodyOpenApi) {
+    bru += 'body:openapi {\n';
+    for (const key of ['source', 'operationId']) {
+      if (bodyOpenApi[key] != null && String(bodyOpenApi[key]).length) {
+        bru += `  ${key}: ${getValueString(bodyOpenApi[key])}\n`;
+      }
+    }
+    bru += '}\n\n';
   }
 
   if (body && body.json && body.json.length) {

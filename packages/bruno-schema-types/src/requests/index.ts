@@ -6,6 +6,7 @@ export type {
   HttpRequest,
   HttpRequestBody,
   HttpRequestBodyMode,
+  OpenApiBodyContract,
   HttpRequestParam,
   HttpRequestParamType
 } from './http';

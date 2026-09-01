@@ -43,7 +43,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
+  bodies = bodyopenapi | bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
 
@@ -168,6 +168,7 @@ const grammar = ohm.grammar(`Bru {
   oauth2RefreshTokenReqBody = "auth:oauth2:additional_params:refresh_token_req:body" dictionary
 
   body = "body" st* "{" nl* textblock tagend
+  bodyopenapi = "body:openapi" dictionary
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
@@ -1100,6 +1101,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       body: {
         json: outdentString(textblock.sourceString)
       }
+    };
+  },
+  bodyopenapi(_1, dictionary) {
+    return {
+      bodyOpenApi: mapPairListToKeyValPair(dictionary.ast)
     };
   },
   bodyjson(_1, _2, _3, _4, textblock, _5) {

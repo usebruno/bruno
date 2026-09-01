@@ -1,6 +1,43 @@
 const parser = require('../src/bruToJson');
 
 describe('bruToJson parser', () => {
+  describe('body:openapi', () => {
+    it('parses an OpenAPI body contract independently from the JSON body', () => {
+      const input = `
+post {
+  url: https://example.com/operations
+  body: json
+  auth: none
+}
+
+body:openapi {
+  source: ../../openapi.yaml
+  operationId: CreateOperation
+}
+
+body:json {
+  {
+    "cost": 20.20
+  }
+}
+`;
+
+      expect(parser(input)).toMatchObject({
+        http: {
+          method: 'post',
+          body: 'json'
+        },
+        bodyOpenApi: {
+          source: '../../openapi.yaml',
+          operationId: 'CreateOperation'
+        },
+        body: {
+          json: '{\n  "cost": 20.20\n}'
+        }
+      });
+    });
+  });
+
   describe('body:ws', () => {
     it('infers message and settings | smoke', () => {
       const input = `

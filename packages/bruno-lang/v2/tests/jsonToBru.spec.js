@@ -1,6 +1,38 @@
 const stringify = require('../src/jsonToBru');
 
 describe('jsonToBru stringify', () => {
+  describe('body:openapi', () => {
+    it('stringifies an OpenAPI body contract without changing the JSON body mode', () => {
+      const output = stringify({
+        http: {
+          method: 'post',
+          url: 'https://example.com/operations',
+          body: 'json',
+          auth: 'none'
+        },
+        bodyOpenApi: {
+          source: '../../openapi.yaml',
+          operationId: 'CreateOperation'
+        },
+        body: {
+          mode: 'json',
+          json: '{"cost":20.2}'
+        }
+      });
+
+      expect(output).toContain(`body:openapi {
+  source: ../../openapi.yaml
+  operationId: CreateOperation
+}`);
+      expect(output).toContain('body:json {');
+    });
+
+    it('keeps an empty contract marker for collection-level OpenAPI configuration', () => {
+      expect(stringify({ bodyOpenApi: {} })).toContain(`body:openapi {
+}`);
+    });
+  });
+
   describe('body:ws', () => {
     it('stringifies a valid bruno request | smoke', () => {
       const input = {

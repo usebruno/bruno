@@ -3,6 +3,43 @@ const { uuid, validationErrorWithMessages } = require('../utils/testUtils');
 const { requestSchema } = require('./index');
 
 describe('Request Schema Validation', () => {
+  it('request schema accepts an OpenAPI body contract', async () => {
+    const request = {
+      url: 'https://example.com/operations',
+      method: 'POST',
+      headers: [],
+      params: [],
+      body: {
+        mode: 'json',
+        json: '{"cost":20.2}'
+      },
+      bodyContract: {
+        type: 'openapi',
+        source: '../../openapi.yaml',
+        operationId: 'CreateOperation'
+      }
+    };
+
+    await expect(requestSchema.validate(request)).resolves.toMatchObject(request);
+  });
+
+  it('request schema rejects unsupported OpenAPI body contract fields', async () => {
+    const request = {
+      url: 'https://example.com/operations',
+      method: 'POST',
+      headers: [],
+      params: [],
+      body: { mode: 'json', json: '{}' },
+      bodyContract: {
+        type: 'openapi',
+        operationId: 'CreateOperation',
+        contentType: 'application/json'
+      }
+    };
+
+    await expect(requestSchema.validate(request)).rejects.toThrow();
+  });
+
   it('request schema must validate successfully - simple request', async () => {
     const request = {
       url: 'https://restcountries.com/v2/alpha/in',

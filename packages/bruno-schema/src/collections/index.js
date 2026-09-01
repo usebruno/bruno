@@ -207,6 +207,15 @@ const requestBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const requestBodyContractSchema = Yup.object({
+  type: Yup.string().oneOf(['openapi']).required('type is required'),
+  source: Yup.string().nullable(),
+  operationId: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict()
+  .nullable();
+
 const authAwsV4Schema = Yup.object({
   accessKeyId: Yup.string().nullable(),
   secretAccessKey: Yup.string().nullable(),
@@ -511,6 +520,7 @@ const requestSchema = Yup.object({
   params: Yup.array().of(requestParamsSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
+  bodyContract: requestBodyContractSchema,
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()

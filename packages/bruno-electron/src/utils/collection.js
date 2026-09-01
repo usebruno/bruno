@@ -665,6 +665,7 @@ const transformRequestToSaveToFilesystem = (item) => {
       headers: [],
       auth: _item.request.auth,
       body: _item.request.body,
+      bodyContract: _item.request.bodyContract,
       script: _item.request.script,
       vars: _item.request.vars,
       assertions: _item.request.assertions,

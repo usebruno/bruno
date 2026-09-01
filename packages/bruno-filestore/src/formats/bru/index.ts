@@ -75,6 +75,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
+        bodyContract: _.get(json, 'bodyOpenApi')
+          ? { type: 'openapi', ..._.get(json, 'bodyOpenApi') }
+          : null,
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
@@ -246,6 +249,10 @@ export const stringifyBruRequest = (json: any): string => {
       bruJson.headers = _.get(json, 'request.headers', []); // Use headers for HTTP/GraphQL
     }
     bruJson.auth = _.get(json, 'request.auth', {});
+    const bodyContract = _.get(json, 'request.bodyContract');
+    if (bodyContract?.type === 'openapi') {
+      bruJson.bodyOpenApi = _.omit(bodyContract, ['type']);
+    }
     bruJson.script = _.get(json, 'request.script', {});
     bruJson.vars = {
       req: _.get(json, 'request.vars.req', []),
