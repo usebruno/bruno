@@ -72,6 +72,8 @@ export const buildCommonLocators = (page: Page) => ({
     activeRequestTab: () => page.locator('.request-tab.active'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
+    closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
+    closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
