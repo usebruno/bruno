@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconFile, IconTrash } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -19,13 +19,20 @@ const OpenApiContract = ({ item, collection }) => {
   const source = contract?.source || '';
   const sourceIsRemote = isHttpUrl(source);
   const [useAbsolutePath, setUseAbsolutePath] = useState(path.isAbsolute(source));
+  const pathConversionVersionRef = useRef(0);
   const openApi = useOpenApiBodySchema({ item, collection, enabled: contract?.type === 'openapi' });
 
   useEffect(() => {
+    pathConversionVersionRef.current += 1;
     setUseAbsolutePath(path.isAbsolute(source));
-  }, [source]);
+  }, [source, contract?.operationId, contract?.type]);
+
+  useEffect(() => () => {
+    pathConversionVersionRef.current += 1;
+  }, []);
 
   const updateContract = (nextContract) => {
+    pathConversionVersionRef.current += 1;
     dispatch(updateRequestBodyContract({
       collectionUid: collection.uid,
       itemUid: item.uid,
@@ -49,12 +56,16 @@ const OpenApiContract = ({ item, collection }) => {
 
   const handlePathModeChange = async (event) => {
     const nextUseAbsolutePath = event.target.checked;
+    const conversionVersion = pathConversionVersionRef.current + 1;
+    pathConversionVersionRef.current = conversionVersion;
     setUseAbsolutePath(nextUseAbsolutePath);
     if (!source || sourceIsRemote) return;
 
     const nextSource = nextUseAbsolutePath
       ? await window.ipcRenderer.invoke('renderer:resolve-path', source, requestDirectory)
-      : getRelativePath(requestDirectory, source, true);
+      : path.isAbsolute(source) ? getRelativePath(requestDirectory, source, true) : source;
+
+    if (conversionVersion !== pathConversionVersionRef.current) return;
 
     updateContract({ ...contract, source: nextSource });
   };

@@ -17,7 +17,7 @@ describe('resolveOpenApiBodySourcePath', () => {
     expect(resolveOpenApiBodySourcePath({
       collectionPath: '/workspace/collection',
       sourceUrl: '../openapi.yaml'
-    })).toBe('/workspace/openapi.yaml');
+    })).toBe(path.resolve('/workspace/collection', '../openapi.yaml'));
   });
 
   it('does not modify absolute paths', () => {
