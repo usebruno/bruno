@@ -69,7 +69,7 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamFormatChange }) => {
+const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamFormatChange, item, collection }) => {
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -190,6 +190,8 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamF
               enableLineWrapping={!showHex}
               font={preferences.codeFont || 'default'}
               value={showHex ? contentHexdump : (showFormattedJson ? extractJsonFromSSE(message.message) : parsedContent.content)}
+              item={item}
+              collection={collection}
               readOnly
             />
           </div>
@@ -199,7 +201,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, onStreamF
   );
 });
 
-const WSMessagesList = ({ messages = [], streamFormat, onStreamFormatChange }) => {
+const WSMessagesList = ({ messages = [], item, collection, streamFormat, onStreamFormatChange }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -262,9 +264,11 @@ const WSMessagesList = ({ messages = [], streamFormat, onStreamFormatChange }) =
         onToggle={handleMessageToggle}
         streamFormat={streamFormat}
         onStreamFormatChange={onStreamFormatChange}
+        item={item}
+        collection={collection}
       />
     );
-  }, [openMessages, handleMessageToggle, streamFormat, onStreamFormatChange]);
+  }, [openMessages, handleMessageToggle, streamFormat, onStreamFormatChange, item, collection]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;

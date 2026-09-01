@@ -204,6 +204,7 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
         <CodeEditor
           ref={editorRef}
           collection={collection}
+          item={item}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}

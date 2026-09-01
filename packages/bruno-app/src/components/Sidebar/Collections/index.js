@@ -1,65 +1,41 @@
 import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Collection from './Collection';
 import GitRemoteCollectionRow from './GitRemoteCollectionRow';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
-import path, { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
-
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-
-const getSidebarEntryName = (entry) => {
-  if (entry.kind === 'loaded') {
-    return entry.collection?.name || '';
-  }
-
-  return entry.entry?.name || path.basename(entry.entry?.path || '');
-};
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { buildSidebarEntries } from 'utils/collections/index';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const dispatch = useDispatch();
+
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
-  const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
   // Build the sidebar list in workspace.yml order. Each entry is either a fully
   // loaded collection (rendered via <Collection />) or, for non-default workspaces,
   // a "ghost" git-backed entry whose local folder is missing (rendered via
   // <GitRemoteCollectionRow /> so the user can click to clone it).
-  const sidebarEntries = useMemo(() => {
-    if (!activeWorkspace?.collections?.length) return [];
+  const sidebarEntries = useMemo(
+    () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
+    [activeWorkspace, collections, workspaces, collectionSortOrder]
+  );
 
-    const loadedByPath = new Map();
-    for (const c of collections) {
-      if (isScratchCollection(c, workspaces)) continue;
-      if (c.pathname) loadedByPath.set(normalizePath(c.pathname), c);
+  const handleContainerClick = (e) => {
+    if (e.currentTarget === e.target) {
+      dispatch(clearSidebarSelection());
     }
-
-    const entries = [];
-    for (const wc of activeWorkspace.collections) {
-      if (!wc.path) continue;
-      const loaded = loadedByPath.get(normalizePath(wc.path));
-      if (loaded) {
-        entries.push({ kind: 'loaded', collection: loaded, key: loaded.uid });
-      } else if (wc.remote && !isDefaultWorkspace) {
-        entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
-      }
-    }
-    if (collectionSortOrder === 'alphabetical') {
-      return [...entries].sort((a, b) => collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
-    }
-
-    if (collectionSortOrder === 'reverseAlphabetical') {
-      return [...entries].sort((a, b) => -collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
-    }
-
-    return entries;
-  }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
+  };
 
   if (!sidebarEntries.length) {
     return (
@@ -82,7 +58,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className="collections-list">
+      <div
+        className="collections-list flex flex-col flex-1 overflow-hidden hover:overflow-y-auto"
+        onClick={handleContainerClick}
+      >
         {isCreatingCollection && (
           <InlineCollectionCreator
             onComplete={onDismissCreate}
@@ -92,11 +71,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
+            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} openBulkMenu={openBulkMenu} />;
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
       </div>
+      <CollectionItemDragPreview />
+      <BulkActionsMenu menuProps={menuProps} />
     </StyledWrapper>
   );
 };

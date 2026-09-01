@@ -159,6 +159,8 @@ const ResponsePane = ({ item, collection }) => {
             <WSMessagesList
               order={-1}
               messages={item.response.data}
+              item={item}
+              collection={collection}
               streamFormat={focusedTab?.streamFormat}
               onStreamFormatChange={(format) => dispatch(updateStreamFormat({ uid: activeTabUid, streamFormat: format }))}
             />

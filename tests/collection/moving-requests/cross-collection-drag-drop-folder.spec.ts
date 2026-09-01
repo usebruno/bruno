@@ -97,7 +97,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     await expect(page.getByText(/already exists/i)).toHaveCount(0);
-
     // The folder is moved out of the source collection.
     const sourceCollectionContainer = page
       .locator('.collection-name')
