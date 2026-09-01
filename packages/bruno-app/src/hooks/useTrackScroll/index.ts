@@ -14,11 +14,7 @@ export type UseTrackScrollOptions = {
   selector?: string | null;
   /** Set false to pause tracking (e.g. edit mode in Docs where CodeEditor handles its own scroll). */
   enabled?: boolean;
-  /**
-   * When false, the persisted `initialValue` is not applied on mount. Used when
-   * another effect is about to scroll to a specific row so the restore cannot
-   * win the race and leave the user at the old offset.
-   */
+  /** When false, skip restoring scroll on mount so a row-focus scroll can win. */
   restoreOnMount?: boolean;
 };
 

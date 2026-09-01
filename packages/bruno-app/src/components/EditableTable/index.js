@@ -53,14 +53,7 @@ const isRowInViewport = (row, scrollParent) => {
   return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
 };
 
-/**
- * Brings the scroll parent near a row the list has not rendered yet, so the
- * next frame mounts it and it can be centered precisely.
- *
- * Measured from the table wrapper, not the `<table>`: Virtuoso stickies the
- * thead, so the table's bounding rect moves with scroll and would drift the
- * target on every retry.
- */
+/** Scroll toward an unrendered row. Measure from the wrapper sticky thead moves the table. */
 const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
   if (!wrapper || !scrollParent?.getBoundingClientRect) return;
 
@@ -351,8 +344,7 @@ const EditableTable = ({
     const nextCount = rowsWithEmpty.length;
     prevRowCountRef.current = nextCount;
 
-    // Only follow a newly appended empty add-row. Prepending inherited headers
-    // also grows the list and must not smooth-scroll to the bottom.
+    // Only follow a newly appended add-row, not inherited rows being prepended.
     if (previousCount > 0 && nextCount === previousCount + 1) {
       const lastIndex = nextCount - 1;
       if (isLastEmptyRow(rowsWithEmpty[lastIndex], lastIndex)) {
@@ -483,9 +475,7 @@ const EditableTable = ({
   const focusRowName = focusRow?.name;
   const focusRowRequestedAt = focusRow?.requestedAt;
 
-  // Only the focus request and the scroll parent may retrigger this. Rows and
-  // columns are recreated by parents every render, and setFlashedRow would
-  // then loop until React hits maximum update depth.
+  // Depend on focus primitives only row/column objects change every render.
   useEffect(() => {
     if ((!focusRowUid && !focusRowName) || !scrollParent) return;
 
@@ -518,9 +508,7 @@ const EditableTable = ({
       if (cancelled) return;
       attempts += 1;
 
-      // customScrollParent lists follow the host pane's scrollTop. Setting that
-      // directly is what actually mounts a row below the viewport; scrollToIndex
-      // alone is a no-op until the list has measured, so both run every frame.
+      // scrollToIndex is a no-op until measured; also set scrollTop so the row mounts.
       virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'auto' });
       scrollNearRow(scrollParent, wrapperRef.current, index);
 

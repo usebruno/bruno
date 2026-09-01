@@ -26,8 +26,7 @@ export const getInheritedHeaderSources = (collection, item) => {
   ];
 };
 
-// All inherited headers are listed, so a name defined at several levels resolves
-// to the nearest enabled value. Within one source the last definition wins.
+// Nearest enabled value wins.
 export const getInheritedHeaders = (collection, item) => {
   const claimedNames = new Set();
 

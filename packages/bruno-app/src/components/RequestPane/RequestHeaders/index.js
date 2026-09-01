@@ -49,11 +49,7 @@ const ROW_TYPE = {
 
 const isRequestRow = (row) => !row.rowType || row.rowType === ROW_TYPE.REQUEST;
 
-/**
- * Hover hint matching the environment variable tooltips. Portaled to the
- * document so table cells (`overflow: hidden`, 35px tall) cannot clip a
- * wrapped second line.
- */
+/** Portaled so overflow-hidden table cells cannot clip the hint. */
 const HEADER_HINT_STYLE = {
   maxWidth: 220,
   whiteSpace: 'normal',
@@ -360,8 +356,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     readOnly: true
   });
 
-  // When clicking an inherited header to see its source, the destination table
-  // scrolls to the header and flashes it.
+  // Open the source Headers tab and flash this row.
   const navigateToHeaderSource = useCallback((source, header) => {
     const isFolder = source.type === 'folder';
     const targetUid = isFolder ? source.uid : collection.uid;
@@ -460,8 +455,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     renderActionCell: isHttpRequest && showInheritedHeaders ? renderInheritedHeaderAction : undefined
   }), [isHttpRequest, showInheritedHeaders, renderSectionRow, renderInheritedHeaderAction]);
 
-  // Rendered through the editor so templated values keep variable highlighting
-  // and the hover popover that plain text cannot provide.
+  // Use the editor so variables still highlight and show their hover popover.
   const renderInheritedValue = (value) => (
     <SingleLineEditor
       value={value || ''}
