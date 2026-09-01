@@ -288,7 +288,7 @@ describe('Bruno Autocomplete', () => {
 
         expect(writable.list).toEqual(expect.arrayContaining(['get(key)', 'upsert(key, value)', 'clear()']));
         expect(readOnly.list).toEqual(expect.arrayContaining(['get(key)']));
-        expect(readOnly.list).not.toEqual(expect.arrayContaining(['set(key, value)']));
+        expect(readOnly.list).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
       });
 
       it('offers request.message only in before-message-send', () => {

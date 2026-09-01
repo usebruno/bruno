@@ -3,8 +3,7 @@ import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
 
 const CodeMirror = require('codemirror');
 
-// Static API hints - Bruno JavaScript API (subgrouped by category).
-// Keys are hint *groups* named by `showHintsFor`
+// Static API hints - Bruno JavaScript API (subgrouped by category)
 const STATIC_API_HINTS = {
   req: [
     'req',
