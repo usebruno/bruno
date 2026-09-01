@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const vm = require('node:vm');
 const { runScriptInNodeVm } = require('./index');
+const { createReleaseOnce } = require('./utils');
 
 // Windows denies symlink creation without developer mode / admin. Probe once at
 // module load so the dependent tests can be marked skipped in the reporter
@@ -673,6 +674,82 @@ describe('node-vm sandbox', () => {
       expect(after.vm - baseline.vm).toBeLessThan(50 * 1024 * 1024);
       expect(after.heapUsed - baseline.heapUsed).toBeLessThan(50 * 1024 * 1024);
       expect(rssGrowth).toBeLessThan(250 * 1024 * 1024);
+    });
+
+    it('should keep VM globals alive for deferred callbacks until releaseContext runs', async () => {
+      const deferredHandlers = [];
+      const context = {
+        bru: { setVar: jest.fn() },
+        req: {
+          onFail(callback) {
+            deferredHandlers.push(callback);
+          }
+        },
+        console
+      };
+
+      const script = `
+        bru.setVar('runtimeToken', 'before');
+        req.onFail(() => {
+          bru.setVar('runtimeToken', 'after');
+        });
+      `;
+
+      const releaseContext = await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: {},
+        deferContextRelease: true
+      });
+
+      expect(deferredHandlers).toHaveLength(1);
+      await deferredHandlers[0](new Error('Connection failed'));
+      expect(context.bru.setVar).toHaveBeenCalledWith('runtimeToken', 'after');
+
+      releaseContext();
+      expect(() => deferredHandlers[0](new Error('Connection failed again'))).toThrow(
+        'bru is not defined'
+      );
+    });
+
+    it('should release deferred context via request.releaseNodeVmContext when onFail is never invoked', async () => {
+      const deferredHandlers = [];
+      const request = {};
+      const context = {
+        bru: { setVar: jest.fn() },
+        req: {
+          onFail(callback) {
+            deferredHandlers.push(callback);
+            request.onFailHandler = callback;
+          }
+        },
+        console
+      };
+
+      const script = `
+        req.onFail(() => {
+          bru.setVar('runtimeToken', 'after');
+        });
+      `;
+
+      const releaseContext = await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: {},
+        deferContextRelease: true
+      });
+
+      request.releaseNodeVmContext = createReleaseOnce(releaseContext);
+
+      // Successful request path: onFail never runs; pipeline cleanup releases the context.
+      request.releaseNodeVmContext();
+      delete request.releaseNodeVmContext;
+
+      expect(() => deferredHandlers[0](new Error('Connection failed'))).toThrow(
+        'bru is not defined'
+      );
     });
 
     it('should evaluate npm modules fresh on each script execution', async () => {

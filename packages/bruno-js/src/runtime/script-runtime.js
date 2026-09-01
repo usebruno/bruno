@@ -5,6 +5,7 @@ const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
+const { createReleaseOnce } = require('../sandbox/node-vm/utils');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
@@ -101,16 +102,25 @@ class ScriptRuntime {
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
-    const attachScriptResultToOnFailHandler = () => {
+    const attachScriptResultToOnFailHandler = (releaseOnce) => {
       if (typeof request.onFailHandler !== 'function') {
+        releaseOnce?.();
         return;
       }
 
       const onFailHandler = request.onFailHandler;
       request.onFailHandler = async (error) => {
-        await onFailHandler(error);
-        return buildRequestScriptResult();
+        try {
+          await onFailHandler(error);
+          return buildRequestScriptResult();
+        } finally {
+          releaseOnce?.();
+        }
       };
+
+      if (releaseOnce) {
+        request.releaseNodeVmContext = releaseOnce;
+      }
     };
 
     // Track script errors to attach partial results before re-throwing
@@ -119,26 +129,31 @@ class ScriptRuntime {
     let scriptError = null;
 
     if (this.runtime === SANDBOX.NODEVM) {
+      let releaseNodeVmContext = null;
       try {
-        await runScriptInNodeVm({
+        releaseNodeVmContext = await runScriptInNodeVm({
           script,
           context,
           collectionPath,
           scriptingConfig,
-          scriptPath
+          scriptPath,
+          deferContextRelease: true
         });
       } catch (error) {
         scriptError = error;
       }
 
+      const releaseOnce = createReleaseOnce(releaseNodeVmContext);
+
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)
       if (scriptError) {
+        releaseOnce();
         scriptError.partialResults = buildRequestScriptResult();
         throw scriptError;
       }
 
-      attachScriptResultToOnFailHandler();
+      attachScriptResultToOnFailHandler(releaseOnce);
       return buildRequestScriptResult();
     }
 

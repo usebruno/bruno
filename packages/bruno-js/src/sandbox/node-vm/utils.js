@@ -74,6 +74,26 @@ function releaseScriptContext(scriptContext, localModuleCache) {
   }
 }
 
+/**
+ * Wrap a release callback so it only runs once.
+ * @param {Function|null|undefined} releaseFn
+ * @returns {Function|undefined}
+ */
+function createReleaseOnce(releaseFn) {
+  if (typeof releaseFn !== 'function') {
+    return undefined;
+  }
+
+  let released = false;
+  return () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    releaseFn();
+  };
+}
+
 class ScriptError extends Error {
   constructor(error, script) {
     super(error.message);
@@ -90,5 +110,6 @@ module.exports = {
   isPathWithinAllowedRoots,
   resolveVmFilename,
   releaseScriptContext,
+  createReleaseOnce,
   ScriptError
 };

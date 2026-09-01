@@ -18,7 +18,8 @@ const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
  * @param {string} options.collectionPath - Path to the collection directory
  * @param {Object} options.scriptingConfig - Scripting configuration options
  * @param {string} [options.scriptPath] - Path to the source file for accurate stack traces
- * @returns {Promise<Object>} Execution results including variables and test results
+ * @param {boolean} [options.deferContextRelease=false] - When true, return a release callback instead of clearing the VM context immediately (for deferred callbacks like req.onFail)
+ * @returns {Promise<Function|void>} releaseContext callback when deferContextRelease is true
  * @throws {ScriptError} When script execution fails
  */
 async function runScriptInNodeVm({
@@ -26,7 +27,8 @@ async function runScriptInNodeVm({
   context,
   collectionPath,
   scriptingConfig,
-  scriptPath
+  scriptPath,
+  deferContextRelease = false
 }) {
   if (script.trim().length === 0) {
     return;
@@ -35,6 +37,17 @@ async function runScriptInNodeVm({
   let scriptContext;
   let localModuleCache;
   let compiledScript;
+  let released = false;
+
+  const releaseContext = () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    releaseScriptContext(scriptContext, localModuleCache);
+    scriptContext = null;
+    localModuleCache = null;
+  };
 
   try {
     // Compute allowed context roots for security validation
@@ -127,9 +140,13 @@ async function runScriptInNodeVm({
   } catch (error) {
     throw new ScriptError(error, script);
   } finally {
-    releaseScriptContext(scriptContext, localModuleCache);
     compiledScript = null;
+    if (!deferContextRelease) {
+      releaseContext();
+    }
   }
+
+  return deferContextRelease ? releaseContext : undefined;
 }
 
 /**

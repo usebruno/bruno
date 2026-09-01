@@ -1296,6 +1296,9 @@ const registerNetworkIpc = (mainWindow) => {
         timeline: error?.timeline,
         requestSent
       };
+    } finally {
+      request?.releaseNodeVmContext?.();
+      delete request?.releaseNodeVmContext;
     }
   };
 
@@ -2119,6 +2122,9 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          } finally {
+            request?.releaseNodeVmContext?.();
+            delete request?.releaseNodeVmContext;
           }
 
           if (stopRunnerExecution) {
