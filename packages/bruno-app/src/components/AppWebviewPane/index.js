@@ -1,5 +1,5 @@
 import React from 'react';
-import EmptyAppState from 'components/AppView/EmptyAppState';
+import EmptyAppState from 'components/EmptyAppState';
 
 /**
  * The guest surface shared by the request-level app view and standalone
