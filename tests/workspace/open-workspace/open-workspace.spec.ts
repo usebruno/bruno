@@ -3,9 +3,9 @@ import { buildCommonLocators, waitForReadyPage } from '../../utils/page';
 import { buildTitleBarLocators } from '../../utils/page/title-bar';
 import {
   clickOpenWorkspace,
-  createWorkspaceOnDisk,
   stubOpenDirectoryDialog
 } from '../../utils/page/workspace/open-workspace';
+import { createWorkspaceFromYml } from '../../utils/workspace';
 
 test.describe('Open Workspace', () => {
   test('TC-1011: Verify the Open Workspace from the device', { tag: '@sanity' }, async ({
@@ -13,9 +13,8 @@ test.describe('Open Workspace', () => {
     createTmpDir
   }) => {
     const userDataPath = await createTmpDir('open-workspace-from-device');
-    const workspacesDir = await createTmpDir('open-workspace-source');
     const workspaceName = 'Device Workspace';
-    const workspacePath = createWorkspaceOnDisk(workspacesDir, workspaceName);
+    const workspacePath = await createWorkspaceFromYml(createTmpDir, 'open-workspace-source', workspaceName);
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
