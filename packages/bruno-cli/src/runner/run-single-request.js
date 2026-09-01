@@ -200,7 +200,7 @@ const runSingleRequest = async function (
           data: request.data
         },
         response: {
-          status: 'skipped',
+          status: '-',
           statusText: errorMsg,
           data: null,
           responseTime: 0,
@@ -298,7 +298,7 @@ const runSingleRequest = async function (
               data: request.data
             },
             response: {
-              status: 'skipped',
+              status: '-',
               statusText: 'request skipped via pre-request script',
               data: null,
               responseTime: 0,
