@@ -26,13 +26,6 @@ const itIfSymlinks = symlinksSupported ? it : it.skip;
 
 const mb = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-const logMemoryMeasurement = (label, { baseline, after, growth }) => {
-  // eslint-disable-next-line no-console
-  console.log(
-    `[node-vm memory] ${label}: baseline=${mb(baseline)}, after=${mb(after)}, growth=${mb(growth)}`
-  );
-};
-
 const makePkg = (parentDir, pkgName, files) => {
   const pkgDir = path.join(parentDir, pkgName);
   fs.mkdirSync(pkgDir, { recursive: true });
@@ -664,21 +657,18 @@ describe('node-vm sandbox', () => {
       }
       const after = await snapshot(`after ${iterations} runs`);
 
-      logMemoryMeasurement('vm.measureMemory growth', {
-        baseline: baseline.vm,
-        after: after.vm,
-        growth: after.vm - baseline.vm
-      });
-      logMemoryMeasurement('RSS growth', {
-        baseline: baseline.rss,
-        after: after.rss,
-        growth: after.rss - baseline.rss
-      });
-      logMemoryMeasurement('heapUsed growth', {
-        baseline: baseline.heapUsed,
-        after: after.heapUsed,
-        growth: after.heapUsed - baseline.heapUsed
-      });
+      // eslint-disable-next-line no-console
+      console.log(
+        `[node-vm memory] vm.measureMemory growth: baseline=${mb(baseline.vm)}, after=${mb(after.vm)}, growth=${mb(after.vm - baseline.vm)}`
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `[node-vm memory] RSS growth: baseline=${mb(baseline.rss)}, after=${mb(after.rss)}, growth=${mb(after.rss - baseline.rss)}`
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `[node-vm memory] heapUsed growth: baseline=${mb(baseline.heapUsed)}, after=${mb(after.heapUsed)}, growth=${mb(after.heapUsed - baseline.heapUsed)}`
+      );
 
       const rssGrowth = after.rss - baseline.rss;
       // these are based on the above package that requires lodash and heavy-module
