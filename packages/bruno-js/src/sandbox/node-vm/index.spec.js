@@ -616,7 +616,6 @@ describe('node-vm sandbox', () => {
     });
   });
 
-
   describe('script context lifecycle', () => {
     it('should not retain VM contexts after repeated executions', async () => {
       // Phase 1 baseline test. Mirrors #9074: collection-level script requiring a
@@ -641,7 +640,7 @@ describe('node-vm sandbox', () => {
       const snapshot = async (label) => {
         const { total } = await vm.measureMemory({ mode: 'summary', execution: 'eager' });
         const { rss, heapUsed } = process.memoryUsage();
-        // eslint-disable-next-line no-console
+
         console.log(
           `[node-vm memory] ${label}: vm=${mb(total.jsMemoryEstimate)}, rss=${mb(rss)}, heapUsed=${mb(heapUsed)}`
         );
@@ -657,15 +656,14 @@ describe('node-vm sandbox', () => {
       }
       const after = await snapshot(`after ${iterations} runs`);
 
-      // eslint-disable-next-line no-console
       console.log(
         `[node-vm memory] vm.measureMemory growth: baseline=${mb(baseline.vm)}, after=${mb(after.vm)}, growth=${mb(after.vm - baseline.vm)}`
       );
-      // eslint-disable-next-line no-console
+
       console.log(
         `[node-vm memory] RSS growth: baseline=${mb(baseline.rss)}, after=${mb(after.rss)}, growth=${mb(after.rss - baseline.rss)}`
       );
-      // eslint-disable-next-line no-console
+
       console.log(
         `[node-vm memory] heapUsed growth: baseline=${mb(baseline.heapUsed)}, after=${mb(after.heapUsed)}, growth=${mb(after.heapUsed - baseline.heapUsed)}`
       );
