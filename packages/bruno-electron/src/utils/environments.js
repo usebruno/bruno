@@ -19,18 +19,22 @@ const renameEnvironmentExtendsReferences = async ({ environmentsDirPath, format,
   for (const fileName of fileNames) {
     const filePath = path.join(environmentsDirPath, fileName);
 
-    await withFileLock(filePath, async () => {
-      const environment = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format });
+    try {
+      await withFileLock(filePath, async () => {
+        const environment = parseEnvironment(fs.readFileSync(filePath, 'utf8'), { format });
 
-      if (environment.extends !== oldName) {
-        return;
-      }
+        if (environment.extends !== oldName) {
+          return;
+        }
 
-      environment.extends = newName;
-      environment.name = path.basename(fileName, extension);
+        environment.extends = newName;
+        environment.name = path.basename(fileName, extension);
 
-      await writeFile(filePath, stringifyEnvironment(environment, { format }));
-    });
+        await writeFile(filePath, stringifyEnvironment(environment, { format }));
+      });
+    } catch (error) {
+      console.error(`Failed to update the extends reference in ${fileName}:`, error);
+    }
   }
 };
 

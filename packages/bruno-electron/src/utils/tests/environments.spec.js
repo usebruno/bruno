@@ -56,6 +56,17 @@ describe('environment extends references', () => {
       expect(await readExtends('prod')).toEqual(['base']);
     });
 
+    it('updates the remaining references when a sibling file cannot be parsed', async () => {
+      await writeEnvironment('base', 'name: base\nvariables: []\n');
+      await writeEnvironment('broken', 'name: broken\nvariables: [\n');
+      await writeEnvironment('prod', 'name: prod\nextends: base\nvariables: []\n');
+      await renameEnvironment('base', 'shared');
+
+      await renameEnvironmentExtendsReferences({ environmentsDirPath, format, oldName: 'base', newName: 'shared' });
+
+      expect(await readExtends('prod')).toBe('shared');
+    });
+
     it('leaves a reference to another environment untouched', async () => {
       await writeEnvironment('base', 'name: base\nvariables: []\n');
       await writeEnvironment('common', 'name: common\nvariables: []\n');

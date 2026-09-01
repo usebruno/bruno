@@ -47,7 +47,10 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
   const tabs = useEnvironmentTabs({ environment, draft: globalEnvironmentDraft, inheritedEnvironmentVariables });
 
-  const inheritedEnvironmentVariablesForActiveTab = inheritedEnvironmentVariables.filter((variable) => !!variable.secret === (activeTab === 'secrets'));
+  const inheritedEnvironmentVariablesForActiveTab = useMemo(
+    () => inheritedEnvironmentVariables.filter((variable) => !!variable.secret === (activeTab === 'secrets')),
+    [inheritedEnvironmentVariables, activeTab]
+  );
 
   // Use the immediate query on a tab switch (debounced value lags and briefly
   // flashes the unfiltered table).

@@ -135,6 +135,8 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
       // Verify prod environment variables
       const locators = buildCommonLocators(page);
+      await locators.environment.settingsListItem('prod').click();
+
       await expect(locators.environment.varRowValueCell('host')).toBeVisible();
 
       // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.
