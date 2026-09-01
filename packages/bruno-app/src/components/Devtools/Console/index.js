@@ -132,6 +132,37 @@ const getBrunoTypeMetadata = (obj) => {
   return {};
 };
 
+const renderTextWithLinks = (text) => {
+  if (typeof text !== 'string') return text;
+
+  const urlRegex = /(https?:\/\/[^\s"'()]*[^\s"'().,;!?])/g;
+  if (!text.match(urlRegex)) return text;
+
+  const parts = text.split(urlRegex);
+
+  return (
+    <React.Fragment>
+      {parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-link"
+              style={{ textDecoration: 'underline', color: 'inherit' }}
+            >
+              {part}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </React.Fragment>
+  );
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -172,10 +203,10 @@ const LogMessage = ({ message, args }) => {
             </div>
           );
         }
-        return String(arg);
+        return renderTextWithLinks(String(arg));
       });
     }
-    return msg;
+    return renderTextWithLinks(msg);
   };
 
   const formattedMessage = formatMessage(message, args);
