@@ -1,4 +1,5 @@
 import { OpenCollection } from "@opencollection/types";
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
@@ -11,6 +12,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: unknown };
+    openapi?: BrunoConfig['openapi'];
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -43,6 +45,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const scriptFlow = brunoExtension?.scripts?.flow;
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoConfig.scripts = { flow: scriptFlow };
+  }
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtension?.openapi);
+  if (openApiEntries.length > 0) {
+    brunoConfig.openapi = openApiEntries;
   }
 
   const config = oc.config;
