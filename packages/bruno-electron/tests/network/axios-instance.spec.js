@@ -32,6 +32,7 @@ jest.mock('../../src/utils/form-data', () => ({
 
 const http = require('http');
 const { makeAxiosInstance } = require('../../src/ipc/network/axios-instance');
+const net = require('node:net');
 
 function createStubAdapter() {
   let capturedConfig = null;
@@ -111,6 +112,29 @@ describe('axios-instance: default headers', () => {
     });
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toBe('my-client/1.0');
+  });
+});
+
+describe('axios-instance: HTTP parser behavior', () => {
+  test('accepts LF-only response header line endings', async () => {
+    const server = net.createServer((socket) => {
+      socket.once('data', () => {
+        socket.end('HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 2\n\nok');
+      });
+    });
+
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+
+    try {
+      const instance = makeAxiosInstance();
+      const response = await instance.get(`http://127.0.0.1:${port}/`);
+
+      expect(response.status).toBe(200);
+      expect(response.data).toBe('ok');
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });
 
