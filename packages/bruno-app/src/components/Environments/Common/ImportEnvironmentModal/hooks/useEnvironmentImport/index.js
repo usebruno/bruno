@@ -30,6 +30,11 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     // A parent imported alongside its child can land under a different name — a copy suffix, or the
     // name of the environment it replaced — and the child's `extends` has to follow it there.
     const importedNames = new Map();
+    const updateImportedNames = (sourceName, landedName) => {
+      if (!importedNames.has(sourceName)) {
+        importedNames.set(sourceName, landedName);
+      }
+    };
     const inheritedNameFor = (environment) =>
       typeof environment.extends === 'string'
         ? importedNames.get(environment.extends) ?? environment.extends
@@ -49,7 +54,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             if (existingEnv) {
               await saveEnv(environmentToImport, existingEnv);
               replacedNames.add(normalizedName);
-              importedNames.set(environment.name, existingEnv.name);
+              updateImportedNames(environment.name, existingEnv.name);
               importedCount++;
             } else {
               throw new Error(`Environment ${environment.name} not found for replacement`);
@@ -59,7 +64,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             const copyName = generateCopyName(environment.name, currentExistingNames);
             currentExistingNames.push(copyName);
             await createEnv(copyName, environmentToImport);
-            importedNames.set(environment.name, copyName);
+            updateImportedNames(environment.name, copyName);
             importedCount++;
           }
         } else {
@@ -68,7 +73,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             : environment.name;
           currentExistingNames.push(name);
           await createEnv(name, environmentToImport);
-          importedNames.set(environment.name, name);
+          updateImportedNames(environment.name, name);
           importedCount++;
         }
       } catch (error) {

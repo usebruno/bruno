@@ -62,4 +62,4 @@ const InheritedVariableRow = ({ variable, columnWidths }) => {
   );
 };
 
-export default InheritedVariableRow;
+export default React.memo(InheritedVariableRow);
