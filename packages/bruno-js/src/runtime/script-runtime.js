@@ -141,6 +141,7 @@ class ScriptRuntime {
         });
       } catch (error) {
         scriptError = error;
+        releaseNodeVmContext = error.releaseNodeVmContext;
       }
 
       const releaseOnce = createReleaseOnce(releaseNodeVmContext);
@@ -148,8 +149,8 @@ class ScriptRuntime {
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)
       if (scriptError) {
-        releaseOnce();
         scriptError.partialResults = buildRequestScriptResult();
+        releaseOnce?.();
         throw scriptError;
       }
 

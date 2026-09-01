@@ -138,7 +138,11 @@ async function runScriptInNodeVm({
       Error.prepareStackTrace = originalPrepareStackTrace;
     }
   } catch (error) {
-    throw new ScriptError(error, script);
+    const scriptError = new ScriptError(error, script);
+    if (deferContextRelease) {
+      scriptError.releaseNodeVmContext = releaseContext;
+    }
+    throw scriptError;
   } finally {
     compiledScript = null;
     if (!deferContextRelease) {

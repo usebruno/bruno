@@ -752,6 +752,28 @@ describe('node-vm sandbox', () => {
       );
     });
 
+    it('should attach releaseNodeVmContext to ScriptError when deferContextRelease and script throws', async () => {
+      const context = { bru: { setVar: jest.fn() }, console };
+      const script = `throw new Error('boom');`;
+
+      let caught;
+      try {
+        await runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig: {},
+          deferContextRelease: true
+        });
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught?.name).toBe('ScriptError');
+      expect(typeof caught.releaseNodeVmContext).toBe('function');
+      expect(() => caught.releaseNodeVmContext()).not.toThrow();
+    });
+
     it('should evaluate npm modules fresh on each script execution', async () => {
       const marker = `_npmEvalCount_${Date.now()}`;
       makePkg(path.join(collectionPath, 'node_modules'), 'counted-module', {
