@@ -71,7 +71,10 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
   };
 
   const isBinaryBody = response?.body?.type === 'binary';
-  const sniffedMime = isBinaryBody ? detectContentTypeFromBase64(response.body?.content) : null;
+  const sniffedMime = useMemo(
+    () => (isBinaryBody ? detectContentTypeFromBase64(response.body?.content) : null),
+    [isBinaryBody, response.body?.content]
+  );
   const binaryPreviewType = getBinaryPreviewType(sniffedMime);
 
   if (binaryPreviewType) {
