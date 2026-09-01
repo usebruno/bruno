@@ -416,6 +416,44 @@ describe('bru docs generate: git link', () => {
     expect(html).toContain('gitCollectionUrl');
     expect(html).toContain('https://example.com/team/repo.git');
   });
+
+  it('warns when --git-link is explicitly passed but there is no origin remote', async () => {
+    const warnSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const noOriginDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-noorigin-'));
+    fs.cpSync(FIXTURE, noOriginDir, { recursive: true });
+    execSync('git init', { cwd: noOriginDir, stdio: 'ignore' });
+    const prevCwd = process.cwd();
+    process.chdir(noOriginDir);
+    try {
+      const output = path.join(outDir, 'no-origin.html');
+      await generate.handler({ output, gitLink: true });
+      expect(fs.existsSync(output)).toBe(true);
+      const message = warnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(message).toContain('No git remote \'origin\' found');
+    } finally {
+      process.chdir(prevCwd);
+      fs.rmSync(noOriginDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not warn about the git link when it is on by default (not explicitly passed)', async () => {
+    const warnSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const noOriginDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-implicit-'));
+    fs.cpSync(FIXTURE, noOriginDir, { recursive: true });
+    execSync('git init', { cwd: noOriginDir, stdio: 'ignore' });
+    const prevCwd = process.cwd();
+    process.chdir(noOriginDir);
+    try {
+      const output = path.join(outDir, 'implicit.html');
+      await generate.handler({ output });
+      expect(fs.existsSync(output)).toBe(true);
+      const message = warnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(message).not.toContain('No git remote');
+    } finally {
+      process.chdir(prevCwd);
+      fs.rmSync(noOriginDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('bru docs generate: default output path', () => {

@@ -59,8 +59,7 @@ const builder = (yargs) => {
     })
     .option('git-link', {
       type: 'boolean',
-      default: true,
-      description: 'Embed the git repo link (use --no-git-link to omit)'
+      description: 'Embed the git repo link (on by default; use --no-git-link to omit)'
     })
     .example('$0 docs generate', 'Generate docs for the collection in the current directory')
     .example('$0 docs generate --envs Production -o docs/api.html', 'Embed one environment and set the output path')
@@ -139,7 +138,11 @@ const handler = async (argv) => {
       collection.environments = [];
     }
 
-    const gitCollectionUrl = argv.gitLink ? getGitRemoteUrl(collectionPath) : undefined;
+    const gitLinkEnabled = argv.gitLink !== false;
+    const gitCollectionUrl = gitLinkEnabled ? getGitRemoteUrl(collectionPath) : undefined;
+    if (argv.gitLink === true && !gitCollectionUrl) {
+      console.error(chalk.yellow('No git remote \'origin\' found; the git link was omitted.'));
+    }
 
     const html = generateApiDocsHtml(
       collection,
