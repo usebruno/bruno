@@ -13,9 +13,7 @@ const resolvePointer = (document, ref) => {
     .reduce((value, key) => value?.[key], document);
 };
 
-const mergeAllOf = (schemas) => schemas.reduce((result, schema) => ({
-  ...result,
-  ...schema,
+const mergeAllOfObjectShape = (schemas) => schemas.reduce((result, schema) => ({
   properties: { ...(result.properties || {}), ...(schema.properties || {}) },
   required: [...new Set([...(result.required || []), ...(schema.required || [])])]
 }), {});
@@ -41,7 +39,15 @@ const dereferenceSchema = (schema, document, resolving = new Set()) => {
 
   if (Array.isArray(result.allOf)) {
     const { allOf, ...schemaWithoutAllOf } = result;
-    return { ...schemaWithoutAllOf, ...mergeAllOf(allOf) };
+    const objectShape = mergeAllOfObjectShape(allOf);
+    const properties = { ...(objectShape.properties || {}), ...(schemaWithoutAllOf.properties || {}) };
+    const required = [...new Set([...(objectShape.required || []), ...(schemaWithoutAllOf.required || [])])];
+    return {
+      ...schemaWithoutAllOf,
+      allOf,
+      ...(Object.keys(properties).length ? { properties } : {}),
+      ...(required.length ? { required } : {})
+    };
   }
 
   if (result.nullable === true && typeof result.type === 'string') {
@@ -103,10 +109,10 @@ export const listOpenApiOperations = (document) => {
 
 export const resolveOpenApiOperation = (document, contract, request) => {
   if (!document?.openapi?.startsWith?.('3.')) {
-    throw new Error('Источник не является OpenAPI 3.x спецификацией');
+    throw new Error('The source is not an OpenAPI 3.x specification');
   }
 
-  const operationId = contract?.operationId || request?.name;
+  const operationId = contract?.operationId;
   const descriptor = findOperation(document, {
     operationId,
     method: request?.method,
@@ -114,8 +120,8 @@ export const resolveOpenApiOperation = (document, contract, request) => {
   });
   if (!descriptor) {
     throw new Error(operationId
-      ? `Операция OpenAPI "${operationId}" не найдена`
-      : 'Операция OpenAPI для текущих method и URL не найдена');
+      ? `OpenAPI operation "${operationId}" was not found`
+      : 'No OpenAPI operation matches the current method and URL');
   }
 
   return descriptor;
@@ -148,7 +154,6 @@ export const createOpenApiOperationDocument = (document, descriptor) => {
 export const resolveOpenApiBodySchema = (document, contract, request) => {
   const descriptor = resolveOpenApiOperation(document, contract, request);
   const { operation } = descriptor;
-  const operationId = contract?.operationId || request?.name;
 
   const requestBody = operation.requestBody?.$ref
     ? resolvePointer(document, operation.requestBody.$ref)
@@ -159,15 +164,15 @@ export const resolveOpenApiBodySchema = (document, contract, request) => {
     || Object.keys(content).find((type) => type.split(';')[0].trim().endsWith('+json'));
 
   if (!contentType) {
-    throw new Error('Для операции OpenAPI не найден JSON request body');
+    throw new Error('The OpenAPI operation does not define a JSON request body');
   }
   if (!content[contentType]?.schema) {
-    throw new Error(`Для ${contentType} не указана OpenAPI schema`);
+    throw new Error(`The OpenAPI ${contentType} request body does not define a schema`);
   }
 
   return {
     schema: dereferenceSchema(content[contentType].schema, document),
-    operationId: operation.operationId || operationId,
+    operationId: operation.operationId || contract?.operationId || null,
     contentType,
     descriptor
   };

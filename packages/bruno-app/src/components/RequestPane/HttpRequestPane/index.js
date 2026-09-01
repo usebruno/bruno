@@ -82,8 +82,12 @@ const HttpRequestPane = ({ item, collection }) => {
   const tags = getProperty('tags');
   const app = getProperty('app', null);
   const appTabEnabled = app?.enabled === true;
-  // A previously selected App tab may be restored while apps are disabled in settings.
-  const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
+  const openApiTabEnabled = collection.format === 'bru';
+  // A previously selected tab may be restored after the feature becomes unavailable.
+  const effectiveTab = (requestPaneTab === 'app' && !appTabEnabled)
+    || (requestPaneTab === 'openapi' && !openApiTabEnabled)
+    ? 'params'
+    : requestPaneTab;
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -127,9 +131,9 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const allTabs = useMemo(
     () => TAB_CONFIG
-      .filter(({ key }) => key !== 'app' || appTabEnabled)
+      .filter(({ key }) => (key !== 'app' || appTabEnabled) && (key !== 'openapi' || openApiTabEnabled))
       .map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
-    [indicators, appTabEnabled]
+    [indicators, appTabEnabled, openApiTabEnabled]
   );
 
   const tabPanel = useMemo(() => {

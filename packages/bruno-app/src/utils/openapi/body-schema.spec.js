@@ -5,6 +5,7 @@ import {
   resolveOpenApiBodySchema,
   resolveOpenApiOperation
 } from './body-schema';
+import { Validator } from 'jsonschema';
 
 const document = {
   openapi: '3.0.3',
@@ -21,7 +22,10 @@ const document = {
                   {
                     type: 'object',
                     required: ['duration'],
-                    properties: { duration: { type: 'integer' } }
+                    properties: {
+                      cost: { type: 'number', maximum: 100 },
+                      duration: { type: 'integer' }
+                    }
                   }
                 ]
               }
@@ -37,7 +41,7 @@ const document = {
         type: 'object',
         required: ['cost'],
         properties: {
-          cost: { type: 'number' },
+          cost: { type: 'number', minimum: 10 },
           answer_url: { type: 'string', nullable: true }
         }
       }
@@ -69,20 +73,23 @@ paths:
     expect(result.schema.properties.cost.type).toBe('number');
   });
 
-  it('dereferences local schemas and merges allOf', () => {
+  it('dereferences local schemas without dropping allOf validation constraints', () => {
     const result = resolveOpenApiBodySchema(document, { operationId: 'CreateOperation' }, {});
 
     expect(result.contentType).toBe('application/vnd.operation+json');
+    expect(result.schema.allOf).toHaveLength(2);
     expect(result.schema.required).toEqual(['cost', 'duration']);
     expect(result.schema.properties).toMatchObject({
       cost: { type: 'number' },
       answer_url: { type: ['string', 'null'] },
       duration: { type: 'integer' }
     });
+    expect(new Validator().validate({ cost: 5, duration: 600 }, result.schema).errors).not.toHaveLength(0);
   });
 
   it('uses method and URL when operationId is not available', () => {
     const result = resolveOpenApiBodySchema(document, {}, {
+      name: 'A request name that is not an operationId',
       method: 'POST',
       url: 'https://example.com/operations?debug=true'
     });
@@ -129,6 +136,6 @@ paths:
     };
 
     expect(() => resolveOpenApiBodySchema(xmlDocument, { operationId: 'CreateOperation' }, {}))
-      .toThrow('не найден JSON request body');
+      .toThrow('does not define a JSON request body');
   });
 });

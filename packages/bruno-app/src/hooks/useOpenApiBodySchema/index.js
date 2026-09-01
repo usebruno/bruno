@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import get from 'lodash/get';
 import {
   createOpenApiOperationDocument,
@@ -23,17 +23,21 @@ const useOpenApiBodySchema = ({ item, collection, enabled }) => {
   const contract = request?.bodyContract;
   const requestPath = item?.draft?.pathname || item?.pathname;
   const collectionSource = get(collection, 'brunoConfig.openapi[0].sourceUrl', null);
-  const contractKey = useMemo(() => JSON.stringify({
-    source: contract?.source || collectionSource,
-    operationId: contract?.operationId || item?.name,
-    method: request?.method,
-    url: request?.url,
-    requestPath
-  }), [contract?.source, contract?.operationId, collectionSource, item?.name, request?.method, request?.url, requestPath]);
+  const contractType = contract?.type;
+  const contractSource = contract?.source;
+  const contractOperationId = contract?.operationId;
+  const requestMethod = request?.method;
+  const requestUrl = request?.url;
+  const collectionUid = collection?.uid;
+  const collectionPath = collection?.pathname;
+  const activeEnvironmentUid = collection?.activeEnvironmentUid;
+  const environments = collection?.environments;
+  const runtimeVariables = collection?.runtimeVariables;
+  const globalEnvironmentVariables = collection?.globalEnvironmentVariables;
   const [state, setState] = useState(initialState);
 
   useEffect(() => {
-    if (!enabled || contract?.type !== 'openapi') {
+    if (!enabled || contractType !== 'openapi') {
       setState(initialState);
       return undefined;
     }
@@ -43,59 +47,63 @@ const useOpenApiBodySchema = ({ item, collection, enabled }) => {
       setState({ ...initialState, status: 'loading' });
       try {
         const ipcRenderer = window.ipcRenderer;
-        if (!ipcRenderer) throw new Error('OpenAPI body contracts доступны только в desktop-приложении');
+        if (!ipcRenderer) throw new Error('OpenAPI body contracts are only available in the desktop app');
 
-        const source = contract.source || collectionSource;
+        const source = contractSource || collectionSource;
+        const activeContract = {
+          type: contractType,
+          source: contractSource,
+          operationId: contractOperationId
+        };
         let result;
-        if (contract.source) {
+        if (contractSource) {
           result = await ipcRenderer.invoke('renderer:fetch-openapi-spec', {
-            collectionUid: collection.uid,
-            collectionPath: collection.pathname,
+            collectionUid,
+            collectionPath,
             requestPath,
-            sourceUrl: contract.source,
+            sourceUrl: contractSource,
             environmentContext: {
-              activeEnvironmentUid: collection.activeEnvironmentUid,
-              environments: collection.environments,
-              runtimeVariables: collection.runtimeVariables,
-              globalEnvironmentVariables: collection.globalEnvironmentVariables
+              activeEnvironmentUid,
+              environments,
+              runtimeVariables,
+              globalEnvironmentVariables
             }
           });
         } else {
           result = await ipcRenderer.invoke('renderer:read-openapi-spec', {
-            collectionPath: collection.pathname
+            collectionPath
           });
-          if (result.error && source) {
+          if (result?.error && source) {
             result = await ipcRenderer.invoke('renderer:fetch-openapi-spec', {
-              collectionUid: collection.uid,
-              collectionPath: collection.pathname,
+              collectionUid,
+              collectionPath,
               sourceUrl: source,
               environmentContext: {
-                activeEnvironmentUid: collection.activeEnvironmentUid,
-                environments: collection.environments,
-                runtimeVariables: collection.runtimeVariables,
-                globalEnvironmentVariables: collection.globalEnvironmentVariables
+                activeEnvironmentUid,
+                environments,
+                runtimeVariables,
+                globalEnvironmentVariables
               }
             });
           }
         }
 
         if (result?.error) throw new Error(result.error);
-        if (!result?.content) throw new Error('OpenAPI specification не найдена');
+        if (!result?.content) throw new Error('OpenAPI specification was not found');
 
         const document = parseOpenApiDocument(result.content);
         const requestDescriptor = {
-          name: item.name,
-          method: request.method,
-          url: request.url
+          method: requestMethod,
+          url: requestUrl
         };
         const operations = listOpenApiOperations(document);
 
         try {
-          const descriptor = resolveOpenApiOperation(document, contract, requestDescriptor);
+          const descriptor = resolveOpenApiOperation(document, activeContract, requestDescriptor);
           const operationDocument = createOpenApiOperationDocument(document, descriptor);
 
           try {
-            const resolved = resolveOpenApiBodySchema(document, contract, requestDescriptor);
+            const resolved = resolveOpenApiBodySchema(document, activeContract, requestDescriptor);
             if (!cancelled) {
               setState({
                 ...resolved,
@@ -113,7 +121,7 @@ const useOpenApiBodySchema = ({ item, collection, enabled }) => {
                 operationId: descriptor.operation.operationId || null,
                 operationDocument,
                 status: 'error',
-                error: error.message || 'Не удалось загрузить OpenAPI body schema'
+                error: error.message || 'Failed to load the OpenAPI body schema'
               });
             }
           }
@@ -123,13 +131,13 @@ const useOpenApiBodySchema = ({ item, collection, enabled }) => {
               ...initialState,
               operations,
               status: 'error',
-              error: error.message || 'Не удалось выбрать OpenAPI operation'
+              error: error.message || 'Failed to select the OpenAPI operation'
             });
           }
         }
       } catch (error) {
         if (!cancelled) {
-          setState({ ...initialState, status: 'error', error: error.message || 'Не удалось загрузить OpenAPI schema' });
+          setState({ ...initialState, status: 'error', error: error.message || 'Failed to load the OpenAPI schema' });
         }
       }
     };
@@ -138,7 +146,22 @@ const useOpenApiBodySchema = ({ item, collection, enabled }) => {
     return () => {
       cancelled = true;
     };
-  }, [enabled, contract?.type, contractKey, collection?.uid, collection?.pathname, requestPath]);
+  }, [
+    enabled,
+    contractType,
+    contractSource,
+    contractOperationId,
+    collectionSource,
+    collectionUid,
+    collectionPath,
+    activeEnvironmentUid,
+    environments,
+    runtimeVariables,
+    globalEnvironmentVariables,
+    requestMethod,
+    requestUrl,
+    requestPath
+  ]);
 
   return { ...state, contract };
 };

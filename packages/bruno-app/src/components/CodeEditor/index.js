@@ -505,13 +505,15 @@ class CodeEditor extends React.Component {
     // user-input changes which could otherwise result in an infinite
     // event loop.
     this.ignoreChangeEvent = true;
-    if (this.props.schema !== prevProps.schema && this.editor && !this.longLineMode) {
+    if (this.props.schema !== prevProps.schema) {
       this.lintOptions.schema = this.props.schema || null;
-      this.editor.setOption(
-        'lint',
-        this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
-      );
-      CodeMirror.signal(this.editor, 'change', this.editor);
+      if (this.editor && !this.longLineMode) {
+        this.editor.setOption(
+          'lint',
+          this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
+        );
+        CodeMirror.signal(this.editor, 'change', this.editor);
+      }
     }
     if (this.editor) {
       // Two distinct update paths:

@@ -76,4 +76,30 @@ describe('JSON Schema CodeMirror helpers', () => {
 
     expect(getJsonSchemaLintErrors(text, schema, cm)).toEqual([]);
   });
+
+  it('keeps unrelated validation errors when a Bruno variable is present', () => {
+    const text = '{"cost":{{operationCost}}}';
+    const cm = { posFromIndex: (index) => ({ line: 0, ch: index }) };
+    const schemaWithAnotherRequiredProperty = {
+      ...schema,
+      required: ['cost', 'duration']
+    };
+
+    const errors = getJsonSchemaLintErrors(text, schemaWithAnotherRequiredProperty, cm);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('duration');
+  });
+
+  it('returns a lint error instead of throwing for an unresolved schema reference', () => {
+    const cm = { posFromIndex: (index) => ({ line: 0, ch: index }) };
+
+    expect(() => getJsonSchemaLintErrors('{}', { $ref: './schemas.yaml#/Payment' }, cm)).not.toThrow();
+    expect(getJsonSchemaLintErrors('{}', { $ref: './schemas.yaml#/Payment' }, cm)).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        message: expect.stringContaining('OpenAPI:')
+      })
+    ]);
+  });
 });

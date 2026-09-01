@@ -5,6 +5,7 @@ const CodeMirror = require('codemirror');
 const validator = new Validator();
 
 const maskBrunoVariables = (text) => text.replace(/(?<!["\w])\{\{[^{}]+}}/g, (match) => `0${' '.repeat(match.length - 1)}`);
+const isBareBrunoVariable = (text) => /^\s*\{\{[^{}]+}}\s*$/.test(text);
 
 const schemaAlternatives = (schema) => [schema, ...(schema?.oneOf || []), ...(schema?.anyOf || [])].filter(Boolean);
 
@@ -109,10 +110,22 @@ export const getJsonSchemaLintErrors = (text, schema, cm) => {
   if (parseErrors.length) return [];
 
   const root = parseTree(maskedText);
-  return validator.validate(data, schema).errors.flatMap((error) => {
+  let validationErrors;
+  try {
+    validationErrors = validator.validate(data, schema).errors;
+  } catch (error) {
+    return [{
+      from: CodeMirror.Pos(0, 0),
+      to: CodeMirror.Pos(0, 0),
+      severity: 'error',
+      message: `OpenAPI: ${error.message || 'The request body schema could not be resolved'}`
+    }];
+  }
+
+  return validationErrors.flatMap((error) => {
     const path = Array.isArray(error.path) ? error.path : [];
     const node = root && (findNodeAtLocation(root, path) || root);
-    if (node && text.slice(node.offset, node.offset + node.length).includes('{{')) return [];
+    if (node && isBareBrunoVariable(text.slice(node.offset, node.offset + node.length))) return [];
     const from = node ? cm.posFromIndex(node.offset) : CodeMirror.Pos(0, 0);
     const to = node ? cm.posFromIndex(node.offset + Math.max(node.length, 1)) : from;
     return [{
