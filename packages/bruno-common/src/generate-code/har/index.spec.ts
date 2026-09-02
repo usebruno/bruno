@@ -1590,6 +1590,55 @@ describe('buildHar — defensive / robustness', () => {
   });
 });
 
+describe('buildHar — cookie header routing', () => {
+  it('lowercase `cookie` header moves into har.cookies and is removed from har.headers', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }] }),
+      shouldInterpolate: false
+    });
+    expect(har.headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
+    expect(har.cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
+  });
+
+  it('`Cookie` header (any case) also moves into har.cookies', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'Cookie', value: 'cookie1=value1', enabled: true }] }),
+      shouldInterpolate: false
+    });
+    expect(har.headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
+    expect(har.cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
+  });
+
+  it('multiple cookies in one header value are split into separate har.cookies entries', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'cookie', value: 'a=1; b=2', enabled: true }] }),
+      shouldInterpolate: false
+    });
+    expect(har.cookies).toEqual([
+      { name: 'a', value: '1' },
+      { name: 'b', value: '2' }
+    ]);
+  });
+
+  it('no cookie header → har.cookies stays empty', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'X-Keep', value: 'on', enabled: true }] }),
+      shouldInterpolate: false
+    });
+    expect(har.cookies).toEqual([]);
+    expect(har.headers.map((h) => h.name)).toEqual(['X-Keep']);
+  });
+
+  it('disabled cookie header is dropped entirely, not promoted into har.cookies', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: false }] }),
+      shouldInterpolate: false
+    });
+    expect(har.cookies).toEqual([]);
+    expect(har.headers).toEqual([]);
+  });
+});
+
 /**
  * `#` encoding decision-tree matrix — covers every scenario from the
  * fixings/snippet-vs-sendrequest.md docs. Each scenario asserts both the

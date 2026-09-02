@@ -104,7 +104,7 @@ export type HarRequest = {
   method: string;
   url: string;
   httpVersion: string;
-  cookies: unknown[];
+  cookies: { name: string; value: string }[];
   headers: { name: string; value: string }[];
   queryString: { name: string; value: string }[];
   postData: any;
@@ -475,6 +475,21 @@ const finalizeHeaders = (request: BrunoRequest, headers: BrunoKV[]): { name: str
 };
 
 /**
+ * Parse a `Cookie` header value ("a=1; b=2") into HAR cookie pairs.
+ */
+const parseCookieHeaderValue = (value: string): { name: string; value: string }[] =>
+  value
+    .split(';')
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const eq = pair.indexOf('=');
+      return eq === -1
+        ? { name: pair, value: '' }
+        : { name: pair.slice(0, eq).trim(), value: pair.slice(eq + 1).trim() };
+    });
+
+/**
  * Assemble HAR `queryString` from the request's params array plus any
  * auth-driven query params (e.g. api-key with placement='queryparams').
  */
@@ -660,7 +675,19 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const allHeaders = mergeAndDedupeHeaders(working.headers, authHeaders);
 
   // Step 6 — Finalize headers (filter enabled, lowercase, default content-type).
-  const harHeaders = finalizeHeaders(working, allHeaders);
+  const finalizedHeaders = finalizeHeaders(working, allHeaders);
+
+  // Step 6b — Route any `cookie` header through HAR `cookies` instead of
+  // `headers`. HTTPSnippet's curl target independently promotes a header
+  // named "cookie" into a `--cookie` flag while still emitting the original
+  // `--header` line, rendering the same cookie twice (BRU-3783). Every other
+  // target folds `cookies` back into a header before rendering, so moving it
+  // here only changes curl's output — from the duplicated pair down to the
+  // single line that was actually intended.
+  const harCookies = finalizedHeaders
+    .filter((h) => h.name.toLowerCase() === 'cookie')
+    .flatMap((h) => parseCookieHeaderValue(h.value));
+  const harHeaders = finalizedHeaders.filter((h) => h.name.toLowerCase() !== 'cookie');
 
   // Step 7 — Query string array. HAR's queryString is the single source of
   // truth for what HTTPSnippet renders into the URL slot. The URL itself
@@ -694,7 +721,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
     method: working.method || 'GET',
     url: harUrl,
     httpVersion: 'HTTP/1.1',
-    cookies: [],
+    cookies: harCookies,
     headers: harHeaders,
     queryString: harQueryString,
     postData: buildPostData(working.body),
