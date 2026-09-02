@@ -100,3 +100,30 @@ describe('interpolate-vars: api key header name sidecar', () => {
     expect(request.apiKeyHeaderName).toEqual('X-API-Key');
   });
 });
+
+describe('interpolate-vars: digest auth', () => {
+  const digestRequest = () => ({
+    digestConfig: {
+      username: 'user',
+      password: '{{digestPw}}'
+    }
+  });
+
+  it('interpolates digest credentials from environment variables', () => {
+    const request = digestRequest();
+    const envVariables = { digestPw: 'passwd' };
+
+    interpolateVars(request, envVariables, {}, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
+  });
+
+  it('interpolates digest credentials from runtime variables', () => {
+    const request = digestRequest();
+    const runtimeVariables = { digestPw: 'passwd' };
+
+    interpolateVars(request, {}, runtimeVariables, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
+  });
+});
