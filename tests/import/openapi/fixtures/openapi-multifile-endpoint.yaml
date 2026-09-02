@@ -1,0 +1,6 @@
+get:
+  summary: Hello endpoint
+  operationId: hello
+  responses:
+    '200':
+      description: Successful response

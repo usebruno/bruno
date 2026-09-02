@@ -1,3 +1,4 @@
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
@@ -167,6 +168,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: 'sandwich' | 'sequential' };
+    openapi?: BrunoConfig['openapi'];
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -190,6 +192,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const scriptFlow = brunoConfig?.scripts?.flow;
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoExtension.scripts = { flow: scriptFlow };
+  }
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig?.openapi);
+  if (openApiEntries.length > 0) {
+    brunoExtension.openapi = openApiEntries;
   }
 
   if (Object.keys(brunoExtension).length > 0) {
