@@ -46,7 +46,7 @@ test.describe('New requests inherit the collection presets Base URL', () => {
 
     await test.step('Verify the new request opens with the preset Base URL', async () => {
       await expect(locators.sidebar.itemRowIn(COLLECTION_NAME, REQUEST_NAME)).toBeVisible();
-      await expect(locators.requestUrl.editor()).toContainText(BASE_URL);
+      await expect(locators.request.urlLine().first()).toContainText(BASE_URL);
     });
 
     await test.step('Clear the Base URL preset', async () => {
@@ -62,7 +62,7 @@ test.describe('New requests inherit the collection presets Base URL', () => {
 
     await test.step('Verify the new request opens with an empty URL', async () => {
       await expect(locators.sidebar.itemRowIn(COLLECTION_NAME, REQUEST_NAME)).toBeVisible();
-      await expect(locators.requestUrl.line()).toHaveText('');
+      await expect(locators.request.urlLine().first()).toHaveText('');
     });
   });
 });
