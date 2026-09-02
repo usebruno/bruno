@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
+import { EmptyStateRequestType } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -409,6 +410,27 @@ const setRequestUrlPreset = async (page: Page, collectionName: string, requestUr
     await locators.presets.saveBtn().click();
 
     await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Create a request from the "+ Add request" CTA shown inside an empty collection.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestType - The request type to pick from the CTA menu (defaults to http)
+ * @returns void
+ */
+const createRequestFromEmptyStateCta = async (
+  page: Page,
+  collectionName: string,
+  requestType: EmptyStateRequestType = 'http'
+) => {
+  await test.step(`Create a ${requestType} request from the "+ Add request" CTA`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+
+    await sidebar.collection(collectionName).click();
+    await sidebar.emptyStateCta(collectionName).click();
+    await sidebar.emptyStateCtaItem(requestType).click();
   });
 };
 
@@ -3226,6 +3248,7 @@ export {
   createTransientRequestFromPreset,
   setRequestTypePreset,
   setRequestUrlPreset,
+  createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
   deleteCollectionFromOverview,

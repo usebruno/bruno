@@ -1,8 +1,9 @@
-import { test, expect, Page } from '../../playwright';
+import { test, expect } from '../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
+  createRequestFromEmptyStateCta,
   deleteRequest,
   setRequestUrlPreset
 } from '../utils/page';
@@ -10,16 +11,6 @@ import {
 const COLLECTION_NAME = 'presets-base-url';
 const BASE_URL = 'https://api.example.com';
 const REQUEST_NAME = 'Untitled';
-
-type Locators = ReturnType<typeof buildCommonLocators>;
-
-const createHttpRequestFromEmptyStateCta = async (page: Page, locators: Locators) => {
-  await test.step('Create an HTTP request from the "+ Add request" CTA', async () => {
-    await locators.sidebar.collection(COLLECTION_NAME).click();
-    await locators.sidebar.collectionScope(COLLECTION_NAME).getByTestId('add-request-cta').click();
-    await page.getByTestId('add-request-cta-http').click();
-  });
-};
 
 test.describe('New requests inherit the collection presets Base URL', () => {
   test.afterEach(async ({ page }) => {
@@ -42,7 +33,7 @@ test.describe('New requests inherit the collection presets Base URL', () => {
       await expect(locators.presets.requestUrl()).toHaveValue(BASE_URL);
     });
 
-    await createHttpRequestFromEmptyStateCta(page, locators);
+    await createRequestFromEmptyStateCta(page, COLLECTION_NAME);
 
     await test.step('Verify the new request opens with the preset Base URL', async () => {
       await expect(locators.sidebar.itemRowIn(COLLECTION_NAME, REQUEST_NAME)).toBeVisible();
@@ -58,7 +49,7 @@ test.describe('New requests inherit the collection presets Base URL', () => {
       await deleteRequest(page, REQUEST_NAME, COLLECTION_NAME);
     });
 
-    await createHttpRequestFromEmptyStateCta(page, locators);
+    await createRequestFromEmptyStateCta(page, COLLECTION_NAME);
 
     await test.step('Verify the new request opens with an empty URL', async () => {
       await expect(locators.sidebar.itemRowIn(COLLECTION_NAME, REQUEST_NAME)).toBeVisible();
