@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
+import { EmptyStateRequestType } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -52,6 +53,21 @@ const dismissImportIssuesToasts = async (page: Page) => {
 };
 
 /**
+ * Clicks empty space in the sidebar, clearing any multi-selection and its click anchor.
+ * @param page - The page object
+ * @returns void
+ */
+const clickEmptySidebarSpace = async (page) => {
+  const locators = buildCommonLocators(page);
+  if (!(await locators.sidebar.collectionsContainer().isVisible())) return;
+  const listBox = await locators.sidebar.collectionsContainer().boundingBox();
+  if (!listBox) {
+    throw new Error('collectionsContainer boundingBox is null');
+  }
+  await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
+};
+
+/**
  * Close all collections
  * @param page - The page object
  * @returns void
@@ -64,7 +80,7 @@ const closeAllCollections = async (page) => {
       const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
       await firstCollection.scrollIntoViewIfNeeded();
 
-      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove', { exact: true });
       await expect(async () => {
         await firstCollection.hover();
         await firstCollection.locator('.collection-actions .icon').click({ force: true });
@@ -73,7 +89,7 @@ const closeAllCollections = async (page) => {
       await removeMenuItem.click();
 
       // Wait for modal to appear - could be either regular remove or drafts confirmation
-      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+      const removeModal = page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
       await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
       // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
@@ -108,6 +124,28 @@ const closeAllCollections = async (page) => {
 const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
+  });
+};
+
+/**
+ * Open a collection living at an arbitrary filesystem path via the native "Open Collection"
+ * flow — mocks `dialog.showOpenDialog` to return `collectionPath` directly (no real file
+ * picker), then drives the "+" menu's "Open collection" item. Useful for loading a committed
+ * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
+ * @param page - The page object
+ * @param electronApp - The Electron application object
+ * @param collectionPath - Absolute path to the collection folder to open
+ * @returns void
+ */
+const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
+  await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
+    await electronApp.evaluate(({ dialog }, dir) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+    }, collectionPath);
+
+    const locators = buildCommonLocators(page);
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.openCollection().click();
   });
 };
 
@@ -352,6 +390,51 @@ const setRequestTypePreset = async (page: Page, collectionName: string, requestT
 };
 
 /**
+ * Set the Base URL preset for a collection.
+ * New requests created in the collection inherit this as their starting URL.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestUrl - The Base URL to save as the preset
+ * @returns void
+ */
+const setRequestUrlPreset = async (page: Page, collectionName: string, requestUrl: string) => {
+  await test.step(`Set the Base URL preset to "${requestUrl}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollectionSettings(page, collectionName);
+    await selectCollectionPaneTab(page, 'presets');
+
+    const urlInput = locators.presets.requestUrl();
+    await urlInput.waitFor({ state: 'visible' });
+    await urlInput.fill(requestUrl);
+    await locators.presets.saveBtn().click();
+
+    await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Create a request from the "+ Add request" CTA shown inside an empty collection.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestType - The request type to pick from the CTA menu (defaults to http)
+ * @returns void
+ */
+const createRequestFromEmptyStateCta = async (
+  page: Page,
+  collectionName: string,
+  requestType: EmptyStateRequestType = 'http'
+) => {
+  await test.step(`Create a ${requestType} request from the "+ Add request" CTA`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+
+    await sidebar.collection(collectionName).click();
+    await sidebar.emptyStateCta(collectionName).click();
+    await sidebar.emptyStateCtaItem(requestType).click();
+  });
+};
+
+/**
  * Fill the URL field in the currently active request
  * Works with HTTP, GraphQL, gRPC, and WebSocket requests
  * @param page - The page object
@@ -542,8 +625,8 @@ const importCollection = async (
   await test.step(`Import collection from "${filePath}"`, async () => {
     const locators = buildCommonLocators(page);
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
 
     // Wait for import modal
     const importModal = page.getByRole('dialog');
@@ -646,7 +729,7 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await locators.dropdown.item('Remove').click();
 
     // Wait for modal to appear - could be either regular remove or drafts confirmation
-    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
     await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
     // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
@@ -1854,6 +1937,37 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
+ * Close every open request tab, discarding or saving based on the saveChanges flag.
+ *
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
+  await test.step(`Close all tabs, ${saveChanges ? 'saving' : 'discarding'} changes`, async () => {
+    const locators = buildCommonLocators(page);
+    const closableTabs = locators.tabs.closableTabs();
+    const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
+    const resolveButton = saveChanges
+      ? confirmClose.getByRole('button', { name: /^Save( All)?$/ })
+      : confirmClose.getByRole('button', { name: 'Don\'t Save' });
+
+    const pressCloseAllTabs = async () => {
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('ControlOrMeta+Shift+W');
+    };
+
+    await pressCloseAllTabs();
+
+    await expect(async () => {
+      if (await confirmClose.isVisible()) {
+        await resolveButton.click();
+      }
+      await expect(closableTabs).toHaveCount(0, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+  });
+};
+
+/**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
  * @returns void
@@ -2217,6 +2331,100 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
 
   await expect(exampleRow).toBeVisible();
   await exampleRow.click();
+};
+
+// --- CodeMirror link-aware assertions (open-as-transient-request feature) -------------------
+
+type LinkAwareRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+// Name of the committed fixture collection under tests/codeeditor-state/codemirror/fixtures.
+const LINK_AWARE_COLLECTION_NAME = 'codemirror-linkaware';
+
+// Cmd on macOS, Ctrl elsewhere — matches isCmdOrCtrlPressed() in linkAware.js.
+const LINK_CLICK_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+const LINK_AWARE_METHOD_LABEL: Record<LinkAwareRequestType, string | null> = {
+  http: null, // HTTP shows the verb (GET/POST/...), not a fixed label
+  graphql: 'GQL',
+  grpc: 'gRPC',
+  ws: 'WS'
+};
+
+const setCodeMirrorValue = async (cm: Locator, value: string) => {
+  await cm.evaluate((el: any, v: string) => el.CodeMirror?.setValue(v), value);
+};
+
+const linkAwareUrlBarCm = (page: Page, type: LinkAwareRequestType): Locator =>
+  type === 'grpc'
+    ? buildGrpcCommonLocators(page).request.queryUrlContainer().locator('.CodeMirror')
+    : buildCommonLocators(page).request.urlInput();
+
+/** Asserts the currently active tab is a freshly-created transient request of the given type. */
+const expectTransientRequestOpened = async (page: Page, opts: { type: LinkAwareRequestType; url?: string }) => {
+  const tab = page.locator('.request-tab.active');
+  await expect(tab).toContainText('Untitled', { timeout: 10000 });
+
+  const expectedLabel = LINK_AWARE_METHOD_LABEL[opts.type];
+  if (expectedLabel) {
+    await expect(tab.locator('.tab-method')).toHaveText(expectedLabel, { timeout: 5000 });
+  } else {
+    await expect(tab.locator('.tab-method')).not.toHaveText('', { timeout: 5000 });
+  }
+
+  if (opts.url && opts.type !== 'ws') {
+    await expect.poll(
+      () => linkAwareUrlBarCm(page, opts.type).evaluate((el: any) => el.CodeMirror?.getValue() ?? ''),
+      { timeout: 5000 }
+    ).toBe(opts.url);
+  }
+};
+
+/** Plain click on the marked link — asserts a new transient request of `type` opens with `url`. */
+const expectLinkOpensRequest = async (page: Page, cm: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on the marked link — must fall back to "open externally", no new tab. */
+const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/** Plain click on a Rich Text docs link opens a transient request. */
+const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expectTransientRequestOpened(page, opts);
+};
+
+/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
+const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
+  await expect(link).toBeVisible({ timeout: 10000 });
+  const tabCountBefore = await page.locator('.request-tab').count();
+  await link.click({ modifiers });
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+};
+
+/**
+ * A URL-looking value must behave as plain text (e.g. `{{var}}`-interpolated, `ws://`, or a
+ * field with link-awareness disabled): clicking it — with or without the open-externally
+ * modifier — must be handled as a normal text click (CodeMirror focuses and places the
+ * cursor), never intercepted to open a transient request.
+ */
+const expectNoLink = async (cm: Locator) => {
+  await cm.click();
+  await expect(cm).toContainClass('CodeMirror-focused');
+
+  await cm.click({ modifiers: [LINK_CLICK_MODIFIER] });
+  await expect(cm).toContainClass('CodeMirror-focused');
 };
 
 /**
@@ -3029,14 +3237,18 @@ export {
   openEnvValueVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
+  clickEmptySidebarSpace,
   closeAllCollections,
   openCollection,
+  openCollectionFromDialog,
   createCollection,
   createRequest,
   createUntitledRequest,
   createTransientRequest,
   createTransientRequestFromPreset,
   setRequestTypePreset,
+  setRequestUrlPreset,
+  createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
   deleteCollectionFromOverview,
@@ -3094,6 +3306,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
+  closeAllOpenTabs,
   switchToOpenTab,
   createWorkspace,
   switchWorkspace,
@@ -3110,11 +3323,21 @@ export {
   sendAndWaitForResponse,
   resetResponse,
   selectAuthMode,
+  fieldEditor,
   typeIntoField,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
+  setCodeMirrorValue,
+  expectTransientRequestOpened,
+  expectLinkOpensRequest,
+  expectLinkOpensExternally,
+  expectRichTextLinkOpensRequest,
+  expectRichTextLinkOpensExternally,
+  expectNoLink,
+  LINK_AWARE_COLLECTION_NAME,
+  LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
   openExportToPostmanModal,
@@ -3163,4 +3386,4 @@ export {
   clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };

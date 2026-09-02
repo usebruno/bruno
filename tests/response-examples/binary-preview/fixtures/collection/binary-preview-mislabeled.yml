@@ -1,0 +1,18 @@
+info:
+  name: binary-preview-mislabeled
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "text/plain",
+        "contentBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+      }

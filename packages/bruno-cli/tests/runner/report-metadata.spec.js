@@ -66,7 +66,7 @@ describe('HTML Report Generation', () => {
               data: null
             },
             response: {
-              status: 'skipped',
+              status: '-',
               statusText: 'Unexpected token',
               data: null,
               responseTime: 0
@@ -108,6 +108,6 @@ describe('HTML Report Generation', () => {
 
     expect(htmlString).toContain('Request Skipped');
     expect(htmlString).toContain('summarySkippedRequests');
-    expect(htmlString).toContain('result.response.status === \'skipped\'');
+    expect(htmlString).toContain('result.status === \'skipped\'');
   });
 });
