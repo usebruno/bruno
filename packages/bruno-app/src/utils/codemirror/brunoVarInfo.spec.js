@@ -691,7 +691,7 @@ describe('renderVarInfo', () => {
       expect(updateVariableInScope).not.toHaveBeenCalled();
     });
 
-    it('shows "Create One" when no environment exists, and saves the variable immediately once it is created', async () => {
+    it('shows "Create One" when no environment exists, creates and selects the environment, and saves the variable once the tooltip is dismissed', async () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
         { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
@@ -731,6 +731,7 @@ describe('renderVarInfo', () => {
       );
 
       const switcher = result.querySelector('.var-add-to-switcher');
+      const valueContainer = result.querySelector('.var-value-container');
       switcher.querySelector('.var-add-to-toggle').click();
 
       const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
@@ -746,7 +747,21 @@ describe('renderVarInfo', () => {
       await Promise.resolve();
 
       expect(addEnvironment).toHaveBeenCalledWith('Dev', 'col-1');
-      expect(updateVariableInScope).toHaveBeenCalled();
+      // Creating and selecting the environment only repoints the pending scope. it doesn't
+      // save the variable.
+      expect(updateVariableInScope).not.toHaveBeenCalled();
+      // adding a new env will not close the switcher
+      expect(switcher.querySelector('.var-add-to-list').style.display).toBe('block');
+
+      valueContainer._cmEditor.getValue = () => 'a-new-value';
+      await valueContainer._persistNewVariable();
+
+      expect(updateVariableInScope).toHaveBeenCalledWith(
+        'missingVar',
+        'a-new-value',
+        expect.objectContaining({ type: 'environment' }),
+        'col-1'
+      );
     });
 
     it('adds variable as a secret if secret is selected when creating the environment, instead of always saving as a plain variable', async () => {
@@ -786,6 +801,7 @@ describe('renderVarInfo', () => {
       );
 
       const switcher = result.querySelector('.var-add-to-switcher');
+      const valueContainer = result.querySelector('.var-value-container');
       switcher.querySelector('.var-add-to-toggle').click();
 
       const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
@@ -803,6 +819,9 @@ describe('renderVarInfo', () => {
       await jest.runAllTimersAsync();
       await Promise.resolve();
       await Promise.resolve();
+
+      valueContainer._cmEditor.getValue = () => 'a-secret-value';
+      await valueContainer._persistNewVariable();
 
       expect(updateVariableInScope).toHaveBeenCalledWith(
         'missingVar',

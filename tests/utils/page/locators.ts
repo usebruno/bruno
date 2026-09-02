@@ -165,6 +165,7 @@ export const buildCommonLocators = (page: Page) => ({
     // The "Add to" switcher, shown in place of an editable value for undefined variables.
     addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
     addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToList: (popup: Locator) => popup.getByTestId('var-info-add-to-list'),
     addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
     addToActiveOption: (popup: Locator, scopeType?: string) => {
       const activeRow = popup.locator('.var-add-to-option-active');
