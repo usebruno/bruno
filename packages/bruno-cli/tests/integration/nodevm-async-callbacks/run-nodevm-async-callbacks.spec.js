@@ -34,10 +34,13 @@ describe('CLI run --sandbox developer - async test() callbacks are awaited befor
     );
     code = result.code;
     output = stripAnsi(`${result.stdout}\n${result.stderr}`);
-  });
+    // A full `bru run` of the fixture takes ~5s on the Windows CI runner, which sits
+    // right at jest's default 5s hook timeout.
+  }, 60000);
 
   afterAll(async () => {
-    fs.rmSync(collectionDir, { recursive: true, force: true });
+    // Windows can still hold the directory for a moment after the CLI exits.
+    fs.rmSync(collectionDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     await new Promise((resolve) => server.close(resolve));
   });
 
