@@ -585,7 +585,7 @@ describe('renderVarInfo', () => {
 
       // Guessed scope shows up as the header badge, same as any other variable.
       const scopeBadge = result.querySelector('.var-scope-badge');
-      expect(scopeBadge.textContent).toBe('Request');
+      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
       expect(switcher).not.toBeNull();
@@ -680,13 +680,14 @@ describe('renderVarInfo', () => {
       );
 
       const scopeBadge = result.querySelector('.var-scope-badge');
-      expect(scopeBadge.textContent).toBe('Request');
+      const scopeBadgeLabel = () => scopeBadge.querySelector('.var-scope-badge-label').textContent;
+      expect(scopeBadgeLabel()).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
       switcher.querySelector('.var-add-to-toggle').click();
       switcher.querySelector('[data-testid="var-info-add-to-option-collection"]').click();
 
-      expect(scopeBadge.textContent).toBe('Collection');
+      expect(scopeBadgeLabel()).toBe('Collection');
       // Picking an existing scope only repoints where the next blur-save writes to.
       expect(updateVariableInScope).not.toHaveBeenCalled();
     });
