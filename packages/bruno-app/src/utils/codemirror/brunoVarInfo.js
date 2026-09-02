@@ -377,6 +377,7 @@ export const renderVarInfo = (token, options) => {
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+
   const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
 
   // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
@@ -784,7 +785,8 @@ export const renderVarInfo = (token, options) => {
         (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
       )?.name;
       const addToScopes = getAvailableAddToScopes({
-        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
+        // add activeEnvironmentUid only if activeEnvironmentName is there with the active id
+        activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
         activeEnvironmentName,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         activeGlobalEnvironmentName,
@@ -845,20 +847,13 @@ export const renderVarInfo = (token, options) => {
           });
       };
 
-      const onSwitchScope = (scope, { immediate = false } = {}) => {
+      const onSwitchScope = (scope) => {
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
         }
         scopeInfo = newScopeInfo;
         scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
-
-        // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
-        if (immediate) {
-          persistNewVariable(getPendingSecret()).catch((err) => {
-            toast.error(err?.message || 'Failed to save variable');
-          });
-        }
       };
 
       const onCreateEnvironment = (scope, name) => {
