@@ -85,8 +85,6 @@ const handler = async (argv) => {
       console.error(chalk.red(`${pluralizeWord(conflictingEnvs.length, 'Environment')} cannot be both included and excluded: `) + chalk.dim(conflictingEnvs.join(', ')));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
-    // --all-envs with --exclude-envs is allowed: it means every environment minus the excluded ones
-    // (handled by the exclude branch below). Only --all-envs with --envs is contradictory.
     if (allEnvs && includeEnvs.length > 0) {
       console.error(chalk.red('--all-envs cannot be combined with --envs'));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
