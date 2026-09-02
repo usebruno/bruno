@@ -242,7 +242,7 @@ export const buildCommonLocators = (page: Page) => ({
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
-    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
+    gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })

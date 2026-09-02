@@ -12,7 +12,8 @@ const defaultProps = {
   availableTags: ['prod', 'wip'],
   onTagsChange: jest.fn(),
   includeGitLink: true,
-  onGitLinkToggle: jest.fn()
+  onGitLinkToggle: jest.fn(),
+  hasGitUrl: true
 };
 
 const renderAdvanced = (props = {}) =>
@@ -72,12 +73,25 @@ describe('Advanced (Generate Documentation)', () => {
 
   it('toggles the git repo link when the switch is clicked', () => {
     const onGitLinkToggle = jest.fn();
-    const { getByText, getByRole, getByTestId } = renderAdvanced({ onGitLinkToggle });
+    const { getByTestId } = renderAdvanced({ onGitLinkToggle });
     expand(getByTestId);
 
-    expect(getByText('Include git repo URL')).toBeInTheDocument();
-    fireEvent.click(getByRole('checkbox'));
+    expect(getByTestId('docs-git-link')).toBeInTheDocument();
+    fireEvent.click(getByTestId('docs-git-link-toggle').querySelector('input[type="checkbox"]'));
     expect(onGitLinkToggle).toHaveBeenCalled();
+  });
+
+  it('renders the git repo URL section only when a git url is present', () => {
+    const { getByTestId, queryByTestId, rerender } = renderAdvanced({ hasGitUrl: false });
+    expand(getByTestId);
+    expect(queryByTestId('docs-git-link')).not.toBeInTheDocument();
+
+    rerender(
+      <ThemeProvider theme={themes.light}>
+        <Advanced {...defaultProps} hasGitUrl={true} />
+      </ThemeProvider>
+    );
+    expect(queryByTestId('docs-git-link')).toBeInTheDocument();
   });
 
   it('keeps the collapsible body out of the a11y tree and tab order until expanded', () => {
