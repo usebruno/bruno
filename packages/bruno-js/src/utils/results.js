@@ -20,6 +20,12 @@ const getResultsSummary = (results) => {
   return summary;
 };
 
+/**
+ * Called once per script phase - pre-request, post-response, and the Tests tab each call
+ * this separately, from their own place in runtime/script-runtime.js and
+ * runtime/test-runtime.js. Every call creates its own private `pendingTestPromises` array
+ * below, so each phase tracks and waits for only its own test() calls
+ */
 const createBruTestResultMethods = (bru, assertionResults, chai) => {
   const __brunoTestResults = new TestResults();
   const baseTest = Test(__brunoTestResults, chai);
@@ -35,7 +41,8 @@ const createBruTestResultMethods = (bru, assertionResults, chai) => {
   /**
    * Waits for every test() call registered so far to settle - including a test() called
    * from inside another test()'s callback, after this wait has already started. Mirrors
-   * QuickJS's own waitForPendingDeferreds().
+   * QuickJS's own waitForPendingDeferreds(). If a test() callback has its own delay (a
+   * setTimeout, a slow request), this simply waits until that delay is over
    */
   const waitForPendingTests = async () => {
     while (pendingTestPromises.length) {
