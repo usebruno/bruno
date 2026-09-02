@@ -25,7 +25,7 @@ const getRequestHeadersFromReport = (dir) => {
   return iterationReport.results[0].request.headers;
 };
 
-describe('CLI run — request headers (user defined and transport headers)', () => {
+describe('CLI run — request headers (user-defined and transport headers)', () => {
   let server;
   let receivedHeaders;
   let port;
