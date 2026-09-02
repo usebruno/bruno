@@ -1,10 +1,10 @@
-const { describe, it, expect, afterEach } = require('@jest/globals');
+const { describe, it, expect } = require('@jest/globals');
 const chai = require('chai');
 const { createBruTestResultMethods } = require('../src/utils/results');
 
 const delay = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
 
-describe('utils/results - createBruTestResultMethods', () => {
+describe('utils/results - createBruTestResultMethods() tracks test() calls a script never awaits itself', () => {
   describe('test()', () => {
     it('records a passing result for a synchronous callback', async () => {
       const { __brunoTestResults, test } = createBruTestResultMethods(null, [], chai);
@@ -77,7 +77,7 @@ describe('utils/results - createBruTestResultMethods', () => {
     it('returns the same promise it tracks internally, so a script that does `await test(...)` still works', () => {
       const { test } = createBruTestResultMethods(null, [], chai);
 
-      const returned = test('awaited directly', () => {});
+      const returned = test('awaited directly', () => { });
 
       expect(returned).toBeInstanceOf(Promise);
       return returned;
@@ -85,142 +85,125 @@ describe('utils/results - createBruTestResultMethods', () => {
   });
 
   describe('waitForPendingTests()', () => {
-    it('resolves immediately when no test() calls were made', async () => {
-      const { waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+    describe('basic waiting behavior', () => {
+      it('resolves immediately when no test() calls were made', async () => {
+        const { waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
-      await expect(waitForPendingTests()).resolves.toBeUndefined();
-    });
-
-    it('waits for a single un-awaited async test() callback to settle before resolving - the core fix', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      // Fire-and-forget, exactly like a real .bru script: nobody writes `await test(...)`.
-      test('un-awaited async test', async () => {
-        await delay(30);
-        chai.expect('ran').to.equal('ran');
+        await expect(waitForPendingTests()).resolves.toBeUndefined();
       });
 
-      expect(__brunoTestResults.getResults()).toEqual([]);
+      it('waits for a single un-awaited async test() callback to settle before resolving, so its result is not silently dropped', async () => {
+        const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
-      await waitForPendingTests();
-
-      expect(__brunoTestResults.getResults()).toEqual([
-        expect.objectContaining({ description: 'un-awaited async test', status: 'pass' })
-      ]);
-    });
-
-    it('waits for every concurrent async test() callback, not just one', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      test('sync control', () => {
-        chai.expect(1).to.equal(1);
-      });
-      test('async 10ms', async () => {
-        await delay(10);
-      });
-      test('async 30ms', async () => {
-        await delay(30);
-      });
-      test('async 60ms', async () => {
-        await delay(60);
-      });
-
-      await waitForPendingTests();
-
-      const descriptions = __brunoTestResults.getResults().map((r) => r.description);
-      expect(descriptions).toEqual(
-        expect.arrayContaining(['sync control', 'async 10ms', 'async 30ms', 'async 60ms'])
-      );
-      expect(descriptions).toHaveLength(4);
-    });
-
-    it('is a no-op for tests that already settled before it was called', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      await test('already done', () => {});
-      await waitForPendingTests();
-
-      expect(__brunoTestResults.getResults()).toHaveLength(1);
-    });
-
-    it('does not reject even if a tracked promise rejects (defensive guard against test.js changing)', async () => {
-      let waitForPendingTests, test;
-
-      jest.isolateModules(() => {
-        jest.doMock('../src/test', () => () => async () => {
-          throw new Error('simulated rejection from a hypothetical future test() implementation');
-        });
-        ({ test, waitForPendingTests } = require('../src/utils/results').createBruTestResultMethods(null, [], chai));
-      });
-
-      test('doomed test');
-
-      await expect(waitForPendingTests()).resolves.toBeUndefined();
-    });
-
-    it('waits for a test() registered from inside another callback after an await, not just the initial batch', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      test('outer async', async () => {
-        await delay(10);
-        // Only pushed once this callback resumes - after waitForPendingTests() has
-        // already started waiting on the batch that existed when it was called.
-        test('inner registered after wait started', async () => {
-          await delay(10);
+        // test() is called here without awaiting it.
+        test('un-awaited async test', async () => {
+          await delay(30);
           chai.expect('ran').to.equal('ran');
         });
+
+        expect(__brunoTestResults.getResults()).toEqual([]);
+
+        await waitForPendingTests();
+
+        expect(__brunoTestResults.getResults()).toEqual([
+          expect.objectContaining({ description: 'un-awaited async test', status: 'pass' })
+        ]);
       });
 
-      await waitForPendingTests();
+      it('waits for every concurrent async test() callback, not just one', async () => {
+        const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 
-      const descriptions = __brunoTestResults.getResults().map((r) => r.description);
-      expect(descriptions).toEqual(
-        expect.arrayContaining(['outer async', 'inner registered after wait started'])
-      );
+        test('sync control', () => {
+          chai.expect(1).to.equal(1);
+        });
+        test('async 10ms', async () => {
+          await delay(10);
+        });
+        test('async 30ms', async () => {
+          await delay(30);
+        });
+        test('async 60ms', async () => {
+          await delay(60);
+        });
+
+        await waitForPendingTests();
+
+        const descriptions = __brunoTestResults.getResults().map((r) => r.description);
+        expect(descriptions).toEqual(
+          expect.arrayContaining(['sync control', 'async 10ms', 'async 30ms', 'async 60ms'])
+        );
+        expect(descriptions).toHaveLength(4);
+      });
+
+      it('is a no-op for tests that already settled before it was called', async () => {
+        const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+        await test('already done', () => { });
+        await waitForPendingTests();
+
+        expect(__brunoTestResults.getResults()).toHaveLength(1);
+      });
+    });
+
+    describe('draining a test() registered while the wait is already in progress', () => {
+      it('waits for a test() registered from inside another callback after an await, not just the initial batch', async () => {
+        const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+        test('outer async', async () => {
+          await delay(10);
+          // Only pushed once this callback resumes - after waitForPendingTests() has
+          // already started waiting on the batch that existed when it was called.
+          test('inner registered after wait started', async () => {
+            await delay(10);
+            chai.expect('ran').to.equal('ran');
+          });
+        });
+
+        await waitForPendingTests();
+
+        const descriptions = __brunoTestResults.getResults().map((r) => r.description);
+        expect(descriptions).toEqual(
+          expect.arrayContaining(['outer async', 'inner registered after wait started'])
+        );
+      });
+
+      it('waits as long as a callback takes to settle, with no fixed timeout or cap', async () => {
+        const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
+
+        test('slow test', async () => {
+          await delay(150);
+          chai.expect(1).to.equal(1);
+        });
+
+        await waitForPendingTests();
+
+        expect(__brunoTestResults.getResults()).toEqual([
+          expect.objectContaining({ description: 'slow test', status: 'pass' })
+        ]);
+      });
+    });
+
+    describe('defensive guard against test.js changing', () => {
+      it('does not reject even if a tracked promise rejects', async () => {
+        let waitForPendingTests, test;
+
+        jest.isolateModules(() => {
+          jest.doMock('../src/test', () => () => async () => {
+            throw new Error('simulated rejection from a hypothetical future test() implementation');
+          });
+          ({ test, waitForPendingTests } = require('../src/utils/results').createBruTestResultMethods(null, [], chai));
+        });
+
+        // Registers one test() call against the mocked, always-rejecting Test() above, so
+        // pendingTestPromises actually holds a rejecting promise for the assertion below.
+        test('a test() call whose underlying promise rejects');
+
+        await expect(waitForPendingTests()).resolves.toBeUndefined();
+      });
     });
   });
 
-  describe('waitForPendingTests() with fake timers', () => {
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('clears its poll timer once a batch settles, rather than leaving it dangling', async () => {
-      jest.useFakeTimers({ doNotFake: ['nextTick'] });
-      const { test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      test('quick test', async () => {
-        await delay(5);
-      });
-
-      const pending = waitForPendingTests();
-      await jest.advanceTimersByTimeAsync(5);
-      await pending;
-
-      expect(jest.getTimerCount()).toBe(0);
-    });
-
-    it('keeps waiting well past a single poll interval for a callback that eventually settles - there is no fixed cap', async () => {
-      jest.useFakeTimers({ doNotFake: ['nextTick'] });
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      // Spans several poll ticks (TEST_POLL_INTERVAL_MS is 2s), unlike the other tests here.
-      test('slower than several poll intervals', async () => {
-        await delay(6000);
-        chai.expect(1).to.equal(1);
-      });
-
-      const pending = waitForPendingTests();
-      await jest.advanceTimersByTimeAsync(6000);
-      await pending;
-
-      expect(__brunoTestResults.getResults()).toEqual([
-        expect.objectContaining({ description: 'slower than several poll intervals', status: 'pass' })
-      ]);
-    });
-  });
-
-  describe('Negative Test', () => {
+  describe('known limitation - a test() registered from a fully detached async trigger is still missed', () => {
     it('misses a test() registered from a detached setTimeout, unlike one chained through an awaited callback', async () => {
       const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
 

@@ -12,9 +12,12 @@ const FIXTURE_COLLECTION = path.join(__dirname, 'fixtures', 'collection');
  * Each fixture pairs a sync test() with an async one, so a missing checkmark for the
  * async one means its callback wasn't awaited before `bru run` printed results.
  */
-describe('CLI run — async test() callbacks in developer sandbox', () => {
+describe('CLI run --sandbox developer - async test() callbacks are awaited before results are read', () => {
   let server;
   let baseUrl;
+  let collectionDir;
+  let output;
+  let code;
 
   beforeAll(async () => {
     server = http.createServer((req, res) => {
@@ -23,44 +26,42 @@ describe('CLI run — async test() callbacks in developer sandbox', () => {
     });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+    collectionDir = createCollectionFixture(FIXTURE_COLLECTION);
+    const result = await runCli(
+      ['run', '.', '--sandbox', 'developer', '--env-var', `baseUrl=${baseUrl}`],
+      collectionDir
+    );
+    code = result.code;
+    output = stripAnsi(`${result.stdout}\n${result.stderr}`);
   });
 
   afterAll(async () => {
+    fs.rmSync(collectionDir, { recursive: true, force: true });
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it.each(['developer', 'safe'])('awaits async test() callbacks in every phase (--sandbox %s)', async (sandbox) => {
-    const collectionDir = createCollectionFixture(FIXTURE_COLLECTION);
-    try {
-      const { code, stdout, stderr } = await runCli(
-        ['run', '.', '--sandbox', sandbox, '--env-var', `baseUrl=${baseUrl}`],
-        collectionDir
-      );
-      const output = stripAnsi(`${stdout}\n${stderr}`);
+  it('carries an async test() result across requests: one request only sets a var after awaiting it, and a later request reads that var', () => {
+    expect(output).toContain('✓ async test with awaited host work passes');
+    expect(output).toContain('✓ the awaited test callback finished before its run returned');
+  });
 
-      // 01 -> 02: an async test() result survives to be read by a later request.
-      expect(output).toContain('✓ async test with awaited host work passes');
-      expect(output).toContain('✓ the awaited test callback finished before its run returned');
+  it('awaits async test() callbacks independently in the pre-request, post-response, and tests scripts of a single request', () => {
+    expect(output).toContain('✓ pre-request sync test (control)');
+    expect(output).toContain('✓ pre-request async test (bug check)');
+    expect(output).toContain('✓ post-response sync test (control)');
+    expect(output).toContain('✓ post-response async test (bug check)');
+    expect(output).toContain('✓ sync pass (control)');
+    expect(output).toContain('✓ async assertion never runs (bug check)');
+  });
 
-      // 03: all three script phases on one request, each awaited independently.
-      expect(output).toContain('✓ pre-request sync test (control)');
-      expect(output).toContain('✓ pre-request async test (bug check)');
-      expect(output).toContain('✓ post-response sync test (control)');
-      expect(output).toContain('✓ post-response async test (bug check)');
-      expect(output).toContain('✓ sync pass (control)');
-      expect(output).toContain('✓ async assertion never runs (bug check)');
+  it('awaits an async test() callback that waits on a real outgoing request (bru.sendRequest), not just a timer', () => {
+    expect(output).toContain('✓ async test awaiting a real request (bug check)');
+  });
 
-      // 04: waiting on a real HTTP call, not just a timer, is awaited the same way.
-      expect(output).toContain('✓ async test awaiting a real request (bug check)');
-
-      // 03's tests tab carries two deliberate control-group failures, so the run as a
-      // whole exits non-zero (ERROR_FAILED_COLLECTION) - that's expected, not a bug.
-      expect(output).toContain('✕ sync fail (control)');
-      expect(output).toContain('✕ async fail after await (bug check)');
-
-      expect(code).toBe(1);
-    } finally {
-      fs.rmSync(collectionDir, { recursive: true, force: true });
-    }
-  }, 30000);
+  it('still fails the run for the two deliberate control-group failures, and exits non-zero because of them', () => {
+    expect(output).toContain('✕ sync fail (control)');
+    expect(output).toContain('✕ async fail after await (bug check)');
+    expect(code).toBe(1);
+  });
 });

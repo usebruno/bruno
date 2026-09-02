@@ -20,8 +20,6 @@ const getResultsSummary = (results) => {
   return summary;
 };
 
-const TEST_POLL_INTERVAL_MS = 2000;
-
 const createBruTestResultMethods = (bru, assertionResults, chai) => {
   const __brunoTestResults = new TestResults();
   const baseTest = Test(__brunoTestResults, chai);
@@ -35,30 +33,14 @@ const createBruTestResultMethods = (bru, assertionResults, chai) => {
   };
 
   /**
-   * Waits for every test() call registered so far to settle, including ones registered
-   * mid-wait. No cap or cancellation - mirrors QuickJS's own waitForPendingDeferreds().
+   * Waits for every test() call registered so far to settle - including a test() called
+   * from inside another test()'s callback, after this wait has already started. Mirrors
+   * QuickJS's own waitForPendingDeferreds().
    */
   const waitForPendingTests = async () => {
-    let cursor = 0;
-    while (cursor < pendingTestPromises.length) {
-      // Captured before awaiting, so a test() pushed during the wait stays past the
-      // cursor and is picked up next pass, instead of being skipped.
-      const batchEnd = pendingTestPromises.length;
-      const batch = pendingTestPromises.slice(cursor, batchEnd);
-
-      let pollId;
-      const poll = new Promise((resolve) => {
-        pollId = setTimeout(() => resolve(false), TEST_POLL_INTERVAL_MS);
-      });
-
-      let settled;
-      try {
-        settled = await Promise.race([Promise.all(batch).then(() => true), poll]);
-      } finally {
-        clearTimeout(pollId);
-      }
-
-      if (settled) cursor = batchEnd;
+    while (pendingTestPromises.length) {
+      const batch = pendingTestPromises.splice(0);
+      await Promise.all(batch);
     }
   };
 

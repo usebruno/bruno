@@ -20,7 +20,7 @@ runtime:
           expect("ran").to.equal("ran");
         });
 
-        // Fire-and-forget async side effect — mirrors a real "fetch a token in the
+        // Fire-and-forget async side effect - mirrors a real "fetch a token in the
         // background" pattern that forgets to `await` at the top level.
         async function setAsyncVar() {
           await new Promise((resolve) => setTimeout(resolve, 500));

@@ -18,6 +18,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '01-tests-tab-async');
     await sendRequest(page, 200);
+    // "Tests" never fits directly at this window size, so go straight to the overflow.
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
     await expect(locators.response.testSummary()).toContainText('Tests (4), Passed: 2, Failed: 2');
@@ -60,7 +61,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     ]);
   });
 
-  test('All three phases on one request are awaited independently', async ({ pageWithUserData: page }) => {
+  test('Pre-request, post-response, and tests scripts on one request are each awaited independently', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '04-all-phases-async');
@@ -79,7 +80,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     );
   });
 
-  test('Multiple concurrent async test() callbacks are all awaited, not just one', async ({ pageWithUserData: page }) => {
+  test('Tests tab: multiple concurrent async test() callbacks are all awaited, not just one', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     await setSandboxMode(page, COLLECTION, 'developer');
@@ -97,14 +98,13 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     ]);
   });
 
-  test('An async test() callback awaiting a real outgoing request (bru.sendRequest) is not dropped', async ({ pageWithUserData: page }) => {
+  test('Tests tab: an async test() callback awaiting a real outgoing request (bru.sendRequest) is not dropped', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     await setSandboxMode(page, COLLECTION, 'developer');
     await openRequest(page, COLLECTION, '07-real-request-async-test');
     await sendRequest(page, 200);
 
-    // "Tests" never fits directly at this window size, so go straight to the overflow.
     await selectResponsePaneTabViaOverflow(page, 'Tests');
     await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
@@ -113,7 +113,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     ]);
   });
 
-  test('A collection-level test script (defined in opencollection.yml) is awaited for a request with no test script of its own', async ({ pageWithUserData: page }) => {
+  test('A request has no test script of its own, so it inherits the collection-level one (opencollection.yml) - that gets awaited too', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     await setSandboxMode(page, COLLECTION_SCRIPT_COLLECTION, 'developer');
@@ -128,7 +128,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     ]);
   });
 
-  test('A folder-level test script (defined in folder.yml) is awaited for a request with no test script of its own', async ({ pageWithUserData: page }) => {
+  test('A request has no test script of its own, so it inherits the folder-level one (folder.yml) - that gets awaited too', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     await setSandboxMode(page, COLLECTION, 'developer');

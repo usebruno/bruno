@@ -1502,7 +1502,7 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     //   .toBe(true);
 
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.locator('.tabs .more-tabs');
+    const overflowButton = pane.getByTestId('responsive-tabs-more');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
     // the overflow trigger can detach mid-click. Retry the whole sequence so a

@@ -154,7 +154,6 @@ class ScriptRuntime {
     } catch (error) {
       scriptError = error;
     }
-    await waitForPendingTests();
 
     if (scriptError) {
       scriptError.partialResults = buildRequestScriptResult();
@@ -293,7 +292,6 @@ class ScriptRuntime {
     } catch (error) {
       scriptError = error;
     }
-    await waitForPendingTests();
 
     if (scriptError) {
       scriptError.partialResults = buildResponseScriptResult();

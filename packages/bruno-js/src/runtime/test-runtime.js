@@ -103,8 +103,8 @@ class TestRuntime {
 
     let scriptError = null;
 
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
           script: testsFile,
           context,
@@ -112,20 +112,23 @@ class TestRuntime {
           scriptingConfig,
           scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
+      } catch (error) {
+        scriptError = error;
+      }
+      await waitForPendingTests();
+    } else {
+      // default runtime is `quickjs`
+      try {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
           collectionPath,
           scriptPath
         });
+      } catch (error) {
+        scriptError = error;
       }
-    } catch (error) {
-      scriptError = error;
     }
-
-    await waitForPendingTests();
 
     const result = {
       request,
