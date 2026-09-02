@@ -192,7 +192,6 @@ const StyledWrapper = styled.div`
 
       &.section-header-row {
         position: sticky;
-        /* 1px under thead so scrolling rows cannot peek through a subpixel gap. */
         top: 34px;
         z-index: 12;
         background: ${(props) => props.theme.sidebar.bg};
@@ -205,7 +204,6 @@ const StyledWrapper = styled.div`
           max-height: 35px;
           padding: 0 !important;
           border-right: none;
-          /* border-collapse drops the shared edge; paint the divider ourselves. */
           border-bottom: solid 1px ${(props) => props.theme.border.border0} !important;
           overflow: visible;
           background: ${(props) => props.theme.sidebar.bg};

@@ -48,7 +48,7 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
-    paneScroller: () => page.getByTestId('request-pane').locator('.flex-boundary').first(),
+    paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
     defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
   }
@@ -166,8 +166,8 @@ export const readResponsePreviewBody = async (page: Page) => {
 type SettingsHeaderScope = 'collection' | 'folder';
 
 const setSettingsHeadersBulk = async (page: Page, headersText: string, scope: SettingsHeaderScope) => {
-  const content = page.locator(
-    scope === 'collection' ? '.collection-settings-content' : '.folder-settings-content'
+  const content = page.getByTestId(
+    scope === 'collection' ? 'collection-settings-content' : 'folder-settings-content'
   );
   const savedMessage = scope === 'collection'
     ? 'Collection Settings saved successfully'
