@@ -3,15 +3,13 @@ import { buildCommonLocators } from './locators';
 import { clickResponseAction, sendRequest } from './actions';
 
 /**
- * Locators for the response-example view — the Create Example modal input,
- * the example tab's title bar, and its response pane content.
+ * Locators for the response-example
  */
 export const buildResponseExampleLocators = (page: Page) => ({
   nameInput: () => page.getByTestId('create-example-name-input'),
   createButton: () => page.getByTestId('create-example-modal-submit-btn'),
   title: () => page.getByTestId('response-example-title'),
   binaryPreview: () => page.getByTestId('response-example-binary-preview'),
-  // Media elements rendered inside the binary preview, keyed by preview type.
   binaryPreviewImage: () => page.getByTestId('response-example-binary-preview').locator('img'),
   binaryPreviewPdfCanvas: () => page.getByTestId('response-example-binary-preview').locator('.preview-pdf canvas').first(),
   binaryPreviewAudio: () => page.getByTestId('response-example-binary-preview').locator('audio'),
