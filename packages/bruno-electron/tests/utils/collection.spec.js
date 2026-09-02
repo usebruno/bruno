@@ -1,5 +1,47 @@
 const path = require('path');
-const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts } = require('../../src/utils/collection');
+const {
+  parseBruFileMeta,
+  transformRequestToSaveToFilesystem,
+  wrapAndJoinScripts,
+  mergeScripts
+} = require('../../src/utils/collection');
+
+describe('transformRequestToSaveToFilesystem', () => {
+  test('preserves app configuration when preparing a request for filesystem persistence', () => {
+    const item = {
+      uid: 'request-1',
+      type: 'http-request',
+      name: 'request-2',
+      seq: 3,
+      settings: {},
+      tags: [],
+      app: {
+        enabled: true,
+        code: 'console.log("hello");'
+      },
+      request: {
+        method: 'GET',
+        url: '',
+        params: [],
+        headers: [],
+        auth: { mode: 'inherit' },
+        body: { mode: 'none' },
+        script: {},
+        vars: {},
+        assertions: [],
+        tests: '',
+        docs: ''
+      }
+    };
+
+    const transformed = transformRequestToSaveToFilesystem(item);
+
+    expect(transformed.app).toEqual({
+      code: 'console.log("hello");',
+      enabled: true
+    });
+  });
+});
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {

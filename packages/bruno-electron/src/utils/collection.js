@@ -650,6 +650,11 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
 
 const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
+
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
@@ -657,6 +662,7 @@ const transformRequestToSaveToFilesystem = (item) => {
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
+    app: appToSave,
     examples: _item.examples || [],
     request: {
       method: _item.request.method,
