@@ -35,8 +35,6 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 import { version as appVersion } from '../../../../package.json';
 import { filterUnclaimedHeaders, getInheritedHeaders } from './getInheritedHeaders';
 
-export { getInheritedHeaders } from './getInheritedHeaders';
-
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const ROW_TYPE = {

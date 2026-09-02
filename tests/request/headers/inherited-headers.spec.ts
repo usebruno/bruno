@@ -132,6 +132,91 @@ test('opens the source table and reveals the inherited header', async ({ page, c
   });
 });
 
+test('opens the folder source table and reveals the inherited header', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-reveal-folder';
+  const targetHeader = 'X-Reveal-Folder';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await createFolder(page, 'Inner', collectionName);
+  await expandFolder(page, 'Inner');
+  await seedFolderHeaders(page, collectionName, 'Inner', [
+    'X-Folder-Top: top',
+    ...Array.from({ length: 25 }, (_, index) => `//X-Filler-${index + 1}: filler`),
+    `${targetHeader}: reveal`
+  ].join('\n'));
+  await createRequest(page, 'request-1', 'Inner', { url: 'https://example.com', inFolder: true });
+  await openFolderRequest(page, collectionName, 'Inner', 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Jump to the folder header and land on that row', async () => {
+    await expect(headers.inheritedRow(targetHeader)).toBeVisible();
+    await headers.inheritedSource(targetHeader).click();
+
+    const { paneTabs, table } = buildCommonLocators(page);
+    await expect(paneTabs.folderSettingsTab('headers')).toContainClass('active');
+    const sourceRow = table('folder-headers').rowByName(targetHeader);
+    await expect(sourceRow).toBeVisible();
+    await expect(sourceRow).toBeInViewport();
+  });
+});
+
+test('pins the headers pane to the top when inherited headers are shown or hidden', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-pin-scroll';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, [
+    'X-Collection: from-collection',
+    ...Array.from({ length: 20 }, (_, index) => `X-Pad-${index + 1}: pad`)
+  ].join('\n'));
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Scroll away, then show and hide without landing on the add-row', async () => {
+    await headers.paneScroller().evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(headers.addRow()).toBeInViewport();
+
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expect(headers.paneScroller()).toHaveJSProperty('scrollTop', 0);
+
+    await headers.toggleInherited().click();
+    await expect(headers.inheritedSectionRow()).toBeVisible();
+    await expect(headers.inheritedSectionRow()).toBeInViewport();
+    await expect(headers.paneScroller()).toHaveJSProperty('scrollTop', 0);
+  });
+});
+
+test('keeps the pre-rename localStorage keys for the inherited accordion', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-persist-keys';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const { headers } = buildCommonLocators(page).request;
+
+  await test.step('Write the old show-defaults key when the accordion is shown', async () => {
+    await headers.toggleInherited().click();
+    await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
+
+    const stored = await page.evaluate(() => {
+      const showKeys = Object.keys(localStorage).filter((key) => key.includes('request-show-default-headers-'));
+      const expandKeys = Object.keys(localStorage).filter((key) => key.includes('request-default-headers-expanded-'));
+      return {
+        showKeys,
+        expandKeys,
+        showValue: showKeys[0] ? JSON.parse(localStorage.getItem(showKeys[0]) || 'null') : null
+      };
+    });
+
+    expect(stored.showKeys.length).toBeGreaterThan(0);
+    expect(stored.expandKeys.length).toBeGreaterThan(0);
+    expect(stored.showValue).toBe(true);
+  });
+});
+
 test('sends collection headers on the wire', async ({ page, createTmpDir }) => {
   const collectionName = 'inherited-headers-send-collection';
   await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -279,6 +364,47 @@ test('sends the request value when it overrides an inherited header', async ({ p
     const body = await readResponsePreviewBody(page);
     expect(body).toMatch(/"x-token"\s*:\s*"request-token"/i);
     expect(body).not.toMatch(/collection-token/i);
+  });
+});
+
+test('hides an inherited header when a disabled request header uses the same name', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-disabled-request-ui';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Keep the inherited row hidden after unchecking the request header', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Token');
+    await expect(headers.inheritedRow('X-Token')).not.toBeVisible();
+    await headers.requestRow('X-Token').getByTestId('column-checkbox').uncheck();
+    await expect(headers.requestRow('X-Token').getByTestId('column-checkbox')).not.toBeChecked();
+    await expect(headers.inheritedRow('X-Token')).not.toBeVisible();
+  });
+});
+
+test('sends the inherited value when the matching request header is disabled', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-send-disabled-request';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
+  await createRequest(page, 'request-1', collectionName, { url: ECHO_HEADERS_URL });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const { headers } = buildCommonLocators(page).request;
+
+  await test.step('Add and disable a request header with the same name', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Token');
+    await fillRequestHeaderValue(page, headers.requestRow('X-Token'), 'request-token');
+    await headers.requestRow('X-Token').getByTestId('column-checkbox').uncheck();
+  });
+
+  await test.step('Send and confirm the collection header is still on the wire', async () => {
+    await sendRequest(page, 200);
+    const body = await readResponsePreviewBody(page);
+    expect(body).toMatch(/"x-token"\s*:\s*"collection-token"/i);
+    expect(body).not.toMatch(/request-token/i);
   });
 });
 
