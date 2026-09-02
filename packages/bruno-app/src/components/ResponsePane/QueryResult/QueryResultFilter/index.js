@@ -72,6 +72,7 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
             type="button"
             className={`toggle-btn ${filterType === 'jsonpath' ? 'active' : ''}`}
             onClick={() => handleFilterTypeChange('jsonpath')}
+            data-testid="response-filter-type-jsonpath"
           >
             JSONPath
           </button>
@@ -79,6 +80,7 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
             type="button"
             className={`toggle-btn ${filterType === 'jq' ? 'active' : ''}`}
             onClick={() => handleFilterTypeChange('jq')}
+            data-testid="response-filter-type-jq"
           >
             jq
           </button>
@@ -104,7 +106,7 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
         {isExpanded ? <IconX size={20} strokeWidth={1.5} /> : <IconFilter size={20} strokeWidth={1.5} />}
       </div>
       {isExpanded && jqError && (
-        <div className="jq-error pointer-events-auto" title={jqError}>{jqError}</div>
+        <div className="jq-error pointer-events-auto" title={jqError} data-testid="response-filter-jq-error">{jqError}</div>
       )}
     </div>
   );
