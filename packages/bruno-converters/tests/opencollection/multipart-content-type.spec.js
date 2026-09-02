@@ -1,8 +1,9 @@
 import { describe, it, expect } from '@jest/globals';
-import { brunoToOpenCollection, openCollectionToBruno } from '../../dist/esm/index.js';
+import { brunoToOpenCollection } from '../../src/opencollection/bruno-to-opencollection';
+import { openCollectionToBruno } from '../../src/opencollection/opencollection-to-bruno';
 
-describe('multipart-form contentType', () => {
-  it('Bruno→OC→Bruno: preserves contentType, omits when empty', () => {
+describe('multipart form contentType: export then import keeps it the same', () => {
+  it('preserves contentType and omits it when empty', () => {
     const brunoCollection = {
       uid: 'c-ct1',
       name: 'Test',
@@ -43,8 +44,10 @@ describe('multipart-form contentType', () => {
     expect(mp[2].contentType).toBe('image/png');
     expect(mp[2].value).toEqual(['/tmp/me.png']);
   });
+});
 
-  it('OC→Bruno: reads contentType from yaml, null when absent', () => {
+describe('openCollectionToBruno (import): multipart form contentType', () => {
+  it('reads contentType and defaults to null when absent', () => {
     const openCollection = {
       opencollection: '1.0.0',
       info: { name: 'Test' },
