@@ -1,7 +1,6 @@
 const TestResults = require('../test-results');
 const Test = require('../test');
 
-// Calculate summary statistics for test results
 const getResultsSummary = (results) => {
   const summary = {
     total: results.length,

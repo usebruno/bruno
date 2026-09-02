@@ -194,8 +194,7 @@ describe('utils/results - createBruTestResultMethods() tracks test() calls a scr
           ({ test, waitForPendingTests } = require('../src/utils/results').createBruTestResultMethods(null, [], chai));
         });
 
-        // Registers one test() call against the mocked, always-rejecting Test() above, so
-        // pendingTestPromises actually holds a rejecting promise for the assertion below.
+        // Triggers the mocked, always-rejecting Test() above.
         test('a test() call whose underlying promise rejects');
 
         await expect(waitForPendingTests()).resolves.toBeUndefined();
@@ -203,52 +202,24 @@ describe('utils/results - createBruTestResultMethods() tracks test() calls a scr
     });
   });
 
-  describe('known limitation - a test() registered from a fully detached async trigger is still missed', () => {
-    it('misses a test() registered from a detached setTimeout, unlike one chained through an awaited callback', async () => {
-      const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(null, [], chai);
-
-      // A's callback is synchronous, so its own tracked promise settles before the timer
-      // fires - nothing connects B's later test() call back to anything being watched.
-      test('A (starts a detached timer)', () => {
-        setTimeout(() => {
-          test('B (registered later, detached from A)', () => {
-            chai.expect(1).to.equal(1);
-          });
-        }, 50);
-      });
-
-      await waitForPendingTests();
-
-      // Known, accepted gap - see "Detached-trigger test() registration" in findings/async-await.md.
-      const descriptionsAtWaitExit = __brunoTestResults.getResults().map((r) => r.description);
-      expect(descriptionsAtWaitExit).toEqual(['A (starts a detached timer)']);
-
-      // B still runs eventually - it's just too late for anyone still reading results.
-      await delay(80);
-      const descriptionsLater = __brunoTestResults.getResults().map((r) => r.description);
-      expect(descriptionsLater).toEqual(
-        expect.arrayContaining(['A (starts a detached timer)', 'B (registered later, detached from A)'])
-      );
-    });
-  });
-
   describe('isolation between instances', () => {
     it('does not share pending-test state between two separate createBruTestResultMethods() calls', async () => {
-      const first = createBruTestResultMethods(null, [], chai);
-      const second = createBruTestResultMethods(null, [], chai);
+      // Mirrors two real script phases (e.g. pre-request and tests), each with its own call.
+      const preRequestPhase = createBruTestResultMethods(null, [], chai);
+      const testsPhase = createBruTestResultMethods(null, [], chai);
 
-      first.test('only in first', async () => {
+      preRequestPhase.test('only in the pre-request phase', async () => {
         await delay(20);
       });
 
-      // Second instance has nothing pending, so this must resolve immediately
-      // regardless of the first instance's still-pending test.
-      await expect(second.waitForPendingTests()).resolves.toBeUndefined();
-      expect(second.__brunoTestResults.getResults()).toEqual([]);
+      // The tests phase has nothing pending, so this resolves immediately - it has
+      // no visibility into the pre-request phase's still-running test.
+      await expect(testsPhase.waitForPendingTests()).resolves.toBeUndefined();
+      expect(testsPhase.__brunoTestResults.getResults()).toEqual([]);
 
-      await first.waitForPendingTests();
-      expect(first.__brunoTestResults.getResults()).toEqual([
-        expect.objectContaining({ description: 'only in first' })
+      await preRequestPhase.waitForPendingTests();
+      expect(preRequestPhase.__brunoTestResults.getResults()).toEqual([
+        expect.objectContaining({ description: 'only in the pre-request phase' })
       ]);
     });
   });

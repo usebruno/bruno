@@ -233,8 +233,8 @@ export const buildCommonLocators = (page: Page) => ({
     previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
     tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
     tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
-    // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
-    testSummary: (hasText: string | RegExp = 'Tests') => page.locator('.test-summary').filter({ hasText }),
+    testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+      page.getByTestId(`test-summary-${section}`),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
     // label spans, so each failure counts once, not twice.
     testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),

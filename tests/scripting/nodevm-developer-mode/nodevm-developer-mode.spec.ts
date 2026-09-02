@@ -21,7 +21,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     // "Tests" never fits directly at this window size, so go straight to the overflow.
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Tests (4), Passed: 2, Failed: 2');
+    await expect(locators.response.testSummary('tests')).toContainText('Tests (4), Passed: 2, Failed: 2');
     // Settlement order, not script order: a sync failure settles before a sync pass.
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync fail (control)',
@@ -39,7 +39,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Pre-Request Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.testSummary('preRequest')).toContainText('Pre-Request Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'pre-request sync test (control)',
       'pre-request async test (bug check)'
@@ -54,7 +54,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Post-Response Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.testSummary('postResponse')).toContainText('Post-Response Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'post-response sync test (control)',
       'post-response async test (bug check)'
@@ -68,14 +68,13 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    // Default testSummary() is ambiguous with all three sections on screen, so anchor each.
-    await expect(locators.response.testSummary(/^Pre-Request Tests/)).toContainText(
+    await expect(locators.response.testSummary('preRequest')).toContainText(
       'Pre-Request Tests (2), Passed: 2, Failed: 0'
     );
-    await expect(locators.response.testSummary(/^Post-Response Tests/)).toContainText(
+    await expect(locators.response.testSummary('postResponse')).toContainText(
       'Post-Response Tests (2), Passed: 2, Failed: 0'
     );
-    await expect(locators.response.testSummary(/^Tests \(/)).toContainText(
+    await expect(locators.response.testSummary('tests')).toContainText(
       'Tests (4), Passed: 2, Failed: 2'
     );
   });
@@ -88,7 +87,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Tests (5), Passed: 5, Failed: 0');
+    await expect(locators.response.testSummary('tests')).toContainText('Tests (5), Passed: 5, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync control',
       'async 100ms',
@@ -106,7 +105,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
 
     await selectResponsePaneTabViaOverflow(page, 'Tests');
-    await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.testSummary('tests')).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'sync pass (control)',
       'async test awaiting a real request (bug check)'
@@ -121,7 +120,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.testSummary('tests')).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'collection-level sync test (control)',
       'collection-level async test (bug check)'
@@ -136,7 +135,7 @@ test.describe('Developer mode (NodeVM) awaits async test() callbacks', () => {
     await sendRequest(page, 200);
     await selectResponsePaneTabViaOverflow(page, 'Tests');
 
-    await expect(locators.response.testSummary()).toContainText('Tests (2), Passed: 2, Failed: 0');
+    await expect(locators.response.testSummary('tests')).toContainText('Tests (2), Passed: 2, Failed: 0');
     await expect(locators.response.assertionResults.rows()).toContainText([
       'folder-level sync test (control)',
       'folder-level async test (bug check)'

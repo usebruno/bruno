@@ -20,8 +20,8 @@ runtime:
           expect("ran").to.equal("ran");
         });
 
-        // Fire-and-forget async side effect - mirrors a real "fetch a token in the
-        // background" pattern that forgets to `await` at the top level.
+        // Called without `await`, so it keeps running in the background - for example,
+        // a real script fetching a token without waiting for it.
         async function setAsyncVar() {
           await new Promise((resolve) => setTimeout(resolve, 500));
           bru.setVar("asyncPreRequestVar", "set-after-500ms");
