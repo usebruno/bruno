@@ -784,7 +784,8 @@ export const renderVarInfo = (token, options) => {
         (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
       )?.name;
       const addToScopes = getAvailableAddToScopes({
-        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
+        // add activeEnvironmentUid only if activeEnvironmentName is there with the active id
+        activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
         activeEnvironmentName,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         activeGlobalEnvironmentName,

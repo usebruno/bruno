@@ -331,6 +331,45 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
+  test('should not offer environment as an available Add-to scope after the active environment is deleted', async ({ page, createTmpDir }) => {
+    const collectionName = 'deleted-active-env-scope-test';
+    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
+
+    await test.step('Create a collection environment, activate it, then delete it', async () => {
+      await createCollection(page, collectionName, await createTmpDir('deleted-active-env-scope-collection'));
+
+      await createEnvironment(page, 'Doomed Env', 'collection');
+      await addEnvironmentVariable(page, { name: 'doomedVar', value: 'doomed-value' });
+      await saveEnvironment(page);
+
+      await page.getByTestId('env-delete-action').click();
+      const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+      await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+      await expect(deleteModal).toBeHidden();
+
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Deleted Env Request', collectionName);
+      await sidebar.request('Deleted Env Request').click();
+      await setRequestUrlAndSave(page, 'https://api.example.com');
+    });
+
+    await test.step('Type an undefined variable into the URL', async () => {
+      await request.urlInput().click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('?key={{afterDeleteVar}}');
+    });
+
+    await test.step('The Environment scope is offered as "No Environment", not as available', async () => {
+      const tooltip = await openUrlVarTooltip(page, 'afterDeleteVar', 'invalid');
+      await varInfoPopup.addToToggle(tooltip).click();
+
+      await expect(varInfoPopup.addToOption(tooltip, 'environment')).toHaveCount(0);
+      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toBeVisible();
+      await expect(varInfoPopup.addToCreateEnvButton(tooltip, 'environment')).toBeVisible();
+    });
+  });
+
   test('should repoint the scope badge on switch without saving, then save into the newly picked scope', async ({ page, createTmpDir }) => {
     const collectionName = 'add-to-switch-scope-test';
     const { sidebar, request, varInfoPopup, table } = buildCommonLocators(page);
