@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "nodevm-developer-mode",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

@@ -3426,6 +3426,7 @@ export const collectionsSlice = createSlice({
 
           collection.runnerResult.items.push({
             uid: request.uid,
+            requestUid: action.payload.requestUid,
             status: 'queued'
           });
         }

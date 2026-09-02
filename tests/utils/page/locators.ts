@@ -270,8 +270,10 @@ export const buildCommonLocators = (page: Page) => ({
     // every still-collapsed node regardless of depth.
     xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
     previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
-    // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
-    testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
+    tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
+    tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
+    testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+      page.getByTestId(`test-summary-${section}`),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
     // label spans, so each failure counts once, not twice.
     testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),

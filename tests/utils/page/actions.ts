@@ -1594,7 +1594,7 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     //   .toBe(true);
 
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.locator('.tabs .more-tabs');
+    const overflowButton = pane.getByTestId('responsive-tabs-more');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
     // the overflow trigger can detach mid-click. Retry the whole sequence so a
@@ -1623,6 +1623,20 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 
 const selectResponsePaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectResponsePaneTabViaOverflow = async (page: Page, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in [data-testid="response-pane"] via overflow`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = page.getByTestId('response-pane').locator('.tabs').getByRole('tab', { name: tabName });
+
+    // The overflow button/dropdown can detach mid-click as the tab bar recalculates layout.
+    await expect(async () => {
+      await locators.response.tabsOverflowButton().click({ timeout: 2000 });
+      await locators.response.tabsOverflowItem(tabName).click({ timeout: 2000 });
+      await expect(tab).toContainClass('active', { timeout: 2000 });
+    }).toPass({ timeout: 15000 });
+  });
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
@@ -3289,6 +3303,7 @@ export {
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
+  selectResponsePaneTabViaOverflow,
   mockBrowseFiles,
   addMultipartFileToLastRow,
   removeFirstMultipartFile,
