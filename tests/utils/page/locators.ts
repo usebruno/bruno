@@ -195,7 +195,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   requestUrl: {
     container: () => page.getByTestId('request-url'),
-    editor: () => page.getByTestId('request-url').locator('.CodeMirror')
+    editor: () => page.getByTestId('request-url').locator('.CodeMirror'),
+    /** The URL editor's rendered text. An empty URL renders an empty first line. */
+    line: () => page.getByTestId('request-url').locator('.CodeMirror-line').first()
   },
   presets: {
     requestType: (type: PresetRequestType) =>
