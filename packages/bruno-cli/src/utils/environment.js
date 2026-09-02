@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { parseEnvironment: _parseEnvironment } = require('@usebruno/filestore');
 const { getEnvVars } = require('../utils/bru');
-const { isSafeFileName } = require('./filesystem');
+const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon } = require('@usebruno/common').utils;
 
 /**
  * Parse a Bruno JSON environment object and normalize variables
@@ -41,92 +41,51 @@ const parseEnvironment = (filePath) => {
 
 const environmentNameOf = (filePath) => path.basename(filePath, path.extname(filePath));
 
-const environmentNamesIn = (directory, fileExt) =>
+const environmentsIn = (directory, fileExt) =>
   fs
     .readdirSync(directory)
     .filter((fileName) => path.extname(fileName) === fileExt)
-    .map((fileName) => path.basename(fileName, fileExt));
+    .map((fileName) => {
+      try {
+        return {
+          ...parseEnvironment(path.join(directory, fileName)),
+          name: path.basename(fileName, fileExt)
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
 /**
- * Resolve the `extends` chain of the environment at `filePath`, reading each ancestor from the
- * sibling file of the same name and format.
+ * Resolve the `extends` chain of the environment at `filePath` against its sibling environment files.
  * With `merge`, the inherited variables are folded into `variables`; otherwise they are returned
  * separately as `inheritedVariables`.
  */
 const resolveEnvironmentInheritance = ({ filePath, merge }) => {
-  const directory = path.dirname(filePath);
-  const fileExt = path.extname(filePath);
   const targetEnvironment = parseEnvironment(filePath);
-  const environmentNames = environmentNamesIn(directory, fileExt);
+  const environment = { ...targetEnvironment, name: environmentNameOf(filePath) };
 
-  const inheritedEnvironments = [];
-  const walked = new Set([environmentNameOf(filePath)]);
+  const environments = environment.extends
+    ? environmentsIn(path.dirname(filePath), path.extname(filePath))
+    : [];
 
-  let current = targetEnvironment;
-  while (typeof current?.extends === 'string') {
-    if (!isSafeFileName(current.extends)) {
-      break;
-    }
-
-    const parentName = current.extends;
-    if (!environmentNames.includes(parentName) || walked.has(parentName)) {
-      break;
-    }
-
-    walked.add(parentName);
-    current = { ...parseEnvironment(path.join(directory, `${parentName}${fileExt}`)), name: parentName };
-    inheritedEnvironments.push(current);
-  }
-
-  inheritedEnvironments.reverse();
-
-  const nonSecrets = new Map();
-  const secrets = new Map();
-
-  inheritedEnvironments.forEach((environment) => {
-    const inheritedFrom = { name: environment.name };
-
-    environment.variables?.forEach((v) => {
-      if (!v.enabled) {
-        return;
-      }
-
-      const variable = { ...v, inheritedFrom };
-      if (v.secret) {
-        secrets.set(v.name, variable);
-      } else {
-        nonSecrets.set(v.name, variable);
-      }
-    });
+  const resolved = resolveEnvironmentInheritanceCommon({
+    environments,
+    targetEnvironment: environment,
+    merge
   });
 
-  const ownVariables = targetEnvironment?.variables ?? [];
-  ownVariables.forEach((v) => {
-    if (!v.enabled) {
-      return;
-    }
-
-    if (v.secret) {
-      secrets.delete(v.name);
-    } else {
-      nonSecrets.delete(v.name);
-    }
-  });
-
-  const inheritedVariables = [...nonSecrets.values(), ...secrets.values()];
-
-  if (merge) {
-    return { ...targetEnvironment, variables: [...inheritedVariables, ...ownVariables] };
-  }
-
-  return { ...targetEnvironment, inheritedVariables };
+  return { ...resolved, name: targetEnvironment.name };
 };
 
 // Helper to load environment variables from a file. Returns the inherited variables too, so
 // callers can tell which names it merely inherits — those belong to the parent file.
-const loadEnvironmentFromFile = (filePath, nameOverride) => {
+const loadEnvironmentFromFile = ({ filePath, name, isEnvFile }) => {
   const fileExt = path.extname(filePath).toLowerCase();
-  const environment = resolveEnvironmentInheritance({ filePath });
+
+  const canInherit = !isEnvFile && path.basename(path.dirname(filePath)) === 'environments';
+  const environment = canInherit ? resolveEnvironmentInheritance({ filePath }) : parseEnvironment(filePath);
   const variables = getEnvVars(environment);
 
   if (fileExt === '.json') {
@@ -134,7 +93,7 @@ const loadEnvironmentFromFile = (filePath, nameOverride) => {
     const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
     variables.__name__ = trimmedName || path.basename(filePath, '.json');
   } else {
-    variables.__name__ = nameOverride || path.basename(filePath, fileExt === '.yml' ? '.yml' : '.bru');
+    variables.__name__ = name || path.basename(filePath, fileExt === '.yml' ? '.yml' : '.bru');
   }
 
   return { variables, inheritedVariables: environment?.inheritedVariables || [] };

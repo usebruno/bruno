@@ -122,6 +122,12 @@ export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, M
     return undefined;
   }
 
+  if (!targetEnvironment.extends) {
+    return (
+      merge ? { ...targetEnvironment } : { ...targetEnvironment, inheritedVariables: [] }
+    ) as ResolvedEnvironment<E, Merge>;
+  }
+
   const { inheritedEnvironments } = getInheritedEnvironments({
     environments: environments ?? [],
     environment: targetEnvironment

@@ -24,6 +24,11 @@ function normalizeExportedContent(content: any) {
     content.info.exportedAt = '2024-01-01T00:00:00.000Z';
     content.info.exportedUsing = 'Bruno/v1.0.0';
   }
+  // Global environments are read back with fs.readdirSync, whose order differs per filesystem,
+  // so compare against the name-sorted fixture.
+  if (Array.isArray(content.environments)) {
+    content.environments.sort((a, b) => a.name.localeCompare(b.name));
+  }
   return content;
 }
 

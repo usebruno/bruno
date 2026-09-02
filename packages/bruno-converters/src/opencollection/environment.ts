@@ -1,4 +1,4 @@
-import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
+import { validateName } from '@usebruno/common/utils';
 import { uuid } from '../common/index.js';
 import {
   isTypedValue,
@@ -20,6 +20,15 @@ interface OCVariable extends Omit<Variable, 'value'> {
   secret?: boolean;
   disabled?: boolean;
 }
+
+const validatedEnvironmentExtendsFrom = (environmentExtendsFrom: unknown): string | undefined => {
+  if (typeof environmentExtendsFrom !== 'string') {
+    return undefined;
+  }
+
+  const name = environmentExtendsFrom.trim();
+  return validateName(name) ? name : undefined;
+};
 
 export const fromOpenCollectionEnvironments = (environments: Environment[] | undefined): BrunoEnvironment[] => {
   if (!environments?.length) {

@@ -1,5 +1,10 @@
-const { describe, it, expect } = require('@jest/globals');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+const { stringifyEnvironment } = require('@usebruno/filestore');
 const { getEnvVars } = require('../../src/utils/bru');
+const { loadEnvironmentFromFile } = require('../../src/utils/environment');
 
 const variable = (props) => ({ enabled: true, secret: false, ...props });
 
@@ -71,5 +76,66 @@ describe('getEnvVars', () => {
     };
 
     expect(getEnvVars(environment)).toEqual({ token: 'plain-token' });
+  });
+});
+
+// Inheritance walks the sibling files, so it applies to the collection and workspace environments
+// — the ones the run names inside an `environments` directory — and not to a file passed by path
+// (--env-file).
+describe('loadEnvironmentFromFile', () => {
+  let collectionDir;
+
+  beforeEach(() => {
+    collectionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-load-environment-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(collectionDir, { recursive: true, force: true });
+  });
+
+  // Returns the path of the inheriting child, `dev`, written alongside the `base` it extends.
+  const writeInheritingEnvironments = (directory) => {
+    fs.mkdirSync(directory, { recursive: true });
+
+    const write = ({ name, ...environment }) => {
+      const filePath = path.join(directory, `${name}.yml`);
+      fs.writeFileSync(filePath, stringifyEnvironment({ name, variables: [], ...environment }, { format: 'yml' }));
+      return filePath;
+    };
+
+    write({ name: 'base', variables: [variable({ name: 'scheme', value: 'https', type: 'text' })] });
+
+    return write({
+      name: 'dev',
+      extends: 'base',
+      variables: [variable({ name: 'host', value: 'dev-host', type: 'text' })]
+    });
+  };
+
+  it('inherits from the parent environment for a named environment', () => {
+    const filePath = writeInheritingEnvironments(path.join(collectionDir, 'environments'));
+
+    const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, name: 'dev' });
+
+    expect(variables).toEqual({ scheme: 'https', host: 'dev-host', __name__: 'dev' });
+    expect(inheritedVariables.map((row) => row.name)).toEqual(['scheme']);
+  });
+
+  it('inherits nothing for an environment passed as an env file', () => {
+    const filePath = writeInheritingEnvironments(path.join(collectionDir, 'environments'));
+
+    const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, isEnvFile: true });
+
+    expect(variables).toEqual({ host: 'dev-host', __name__: 'dev' });
+    expect(inheritedVariables).toEqual([]);
+  });
+
+  it('inherits nothing for an environment outside an environments directory', () => {
+    const filePath = writeInheritingEnvironments(collectionDir);
+
+    const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, name: 'dev' });
+
+    expect(variables).toEqual({ host: 'dev-host', __name__: 'dev' });
+    expect(inheritedVariables).toEqual([]);
   });
 });

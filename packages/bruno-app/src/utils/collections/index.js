@@ -1225,10 +1225,20 @@ export const getDefaultRequestPaneTab = (item) => {
 
 const toVariablesMap = (environmentVariables = []) => {
   const variables = {};
-  const enabledVars = environmentVariables.filter((v) => v.name && v.enabled);
-  [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+  const secretNames = new Set();
+
+  for (const variable of environmentVariables) {
+    if (!variable.name || !variable.enabled) {
+      continue;
+    }
+    if (variable.secret) {
+      secretNames.add(variable.name);
+    } else if (secretNames.has(variable.name)) {
+      continue;
+    }
     variables[variable.name] = variable.value;
-  });
+  }
+
   return variables;
 };
 

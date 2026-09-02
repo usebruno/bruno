@@ -159,22 +159,6 @@ describe('OpenCollection environment round-trip — inheritance', () => {
     expect(toOpenCollectionEnvironments([env])).toEqual(ocEnvs);
   });
 
-  it('keeps a list of parents when converting OpenCollection to Bruno and back', () => {
-    const ocEnvs = [
-      {
-        name: 'prod',
-        color: undefined,
-        extends: ['base', 'shared'],
-        variables: [{ name: 'host', value: 'prod.example.com' }]
-      }
-    ];
-
-    const [env] = fromOpenCollectionEnvironments(ocEnvs);
-    expect(env.extends).toEqual(['base', 'shared']);
-
-    expect(toOpenCollectionEnvironments([env])).toEqual(ocEnvs);
-  });
-
   it('reports no parent for an environment that does not declare one', () => {
     const [env] = fromOpenCollectionEnvironments([{ name: 'prod', variables: [] }]);
 

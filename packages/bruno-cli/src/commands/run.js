@@ -394,7 +394,7 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(envFilePath);
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: envFilePath, isEnvFile: true });
         envVars = environmentVariables;
         envFileDescriptor = {
           path: envFilePath,
@@ -424,7 +424,7 @@ const handler = async function (argv) {
         const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
         if (await exists(defaultEnvFilePath)) {
           try {
-            const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(defaultEnvFilePath, defaultEnvironment);
+            const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: defaultEnvFilePath, name: defaultEnvironment });
             envVars = { ...envVars, ...environmentVariables };
             envFileDescriptor = {
               path: defaultEnvFilePath,
@@ -454,7 +454,7 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(collectionEnvFilePath, env);
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: collectionEnvFilePath, name: env });
         envVars = { ...envVars, ...environmentVariables };
         envFileDescriptor = {
           path: collectionEnvFilePath,
@@ -511,7 +511,7 @@ const handler = async function (argv) {
       }
 
       try {
-        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile(globalEnvFilePath, globalEnv);
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: globalEnvFilePath, name: globalEnv });
         globalEnvVars = environmentVariables;
         globalEnvFileDescriptor = {
           path: globalEnvFilePath,
