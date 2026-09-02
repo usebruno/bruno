@@ -677,13 +677,8 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // Step 6 — Finalize headers (filter enabled, lowercase, default content-type).
   const finalizedHeaders = finalizeHeaders(working, allHeaders);
 
-  // Step 6b — Route any `cookie` header through HAR `cookies` instead of
-  // `headers`. HTTPSnippet's curl target independently promotes a header
-  // named "cookie" into a `--cookie` flag while still emitting the original
-  // `--header` line, rendering the same cookie twice (BRU-3783). Every other
-  // target folds `cookies` back into a header before rendering, so moving it
-  // here only changes curl's output — from the duplicated pair down to the
-  // single line that was actually intended.
+  // Step 6b — Route any `cookie` header through HAR `cookies` instead of `headers`
+  // to prevent HTTPSnippet's curl target from rendering it twice as both a flag and a header.
   const harCookies = finalizedHeaders
     .filter((h) => h.name.toLowerCase() === 'cookie')
     .flatMap((h) => parseCookieHeaderValue(h.value));
