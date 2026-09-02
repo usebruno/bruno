@@ -435,7 +435,7 @@ export default function RunnerResults({ collection }) {
                     <ul className="pl-8">
                       {item.preRequestTestResults
                         ? filterTestResults(item.preRequestTestResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -455,7 +455,7 @@ export default function RunnerResults({ collection }) {
                         : null}
                       {item.postResponseTestResults
                         ? filterTestResults(item.postResponseTestResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -475,7 +475,7 @@ export default function RunnerResults({ collection }) {
                         : null}
                       {item.testResults
                         ? filterTestResults(item.testResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -494,7 +494,7 @@ export default function RunnerResults({ collection }) {
                           ))
                         : null}
                       {filterTestResults(item.assertionResults).map((result) => (
-                        <li key={result.uid}>
+                        <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                           {result.status === 'pass' ? (
                             <span className="test-success flex items-center">
                               <IconCheck size={18} strokeWidth={2} className="mr-2" />
