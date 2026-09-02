@@ -603,16 +603,21 @@ describe('renderVarInfo', () => {
       expect(activeRow.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
     });
 
-    it('resolves the Environment scope against the real active environment, not whichever environment is merely being displayed', () => {
+    it('resolves the Environment scope against the real active environment, not whichever environment is being displayed', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([]);
+      const freshCollection = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-prod',
+        environments: [{ uid: 'env-prod', name: 'Prod' }]
+      };
       store.getState.mockReturnValue({
         globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
         collections: {
-          collections: [{ uid: 'col-1', activeEnvironmentUid: 'env-prod' }]
+          collections: [freshCollection]
         }
       });
-      findCollectionByUid.mockReturnValue({ uid: 'col-1', activeEnvironmentUid: 'env-prod' });
+      findCollectionByUid.mockReturnValue(freshCollection);
 
       renderVarInfo(
         { string: '{{missingVar}}' },
