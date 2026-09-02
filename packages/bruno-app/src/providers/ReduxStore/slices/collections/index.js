@@ -3434,6 +3434,7 @@ export const collectionsSlice = createSlice({
         if (type === 'request-sent') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'running';
+          item.requestSent = action.payload.requestSent;
         }
 
         if (type === 'response-received') {

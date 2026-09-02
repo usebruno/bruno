@@ -14,9 +14,9 @@ const useStoredRunnerExchange = (item) => {
   });
 
   return useMemo(() => ({
-    requestSent: data?.request ? safeParseJSON(data.request) : null,
-    responseReceived: data?.response ? safeParseJSON(data.response) : null
-  }), [data?.request, data?.response]);
+    requestSent: data?.request ? safeParseJSON(data.request) : item?.requestSent ?? null,
+    responseReceived: data?.response ? safeParseJSON(data.response) : item?.responseReceived ?? null
+  }), [data?.request, data?.response, item?.requestSent, item?.responseReceived]);
 };
 
 export default useStoredRunnerExchange;

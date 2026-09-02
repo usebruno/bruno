@@ -40,7 +40,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
-const { getStatements } = require('../sqlite');
+const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -470,46 +470,7 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const storeRunnerExchange = ({ requestUid, eventData, request = null, response = null }) => {
-    const statements = getStatements();
-    if (!statements) return;
-
-    try {
-      statements.execute('upsert_runner_response', {
-        request_uid: requestUid,
-        collection_uid: eventData.collectionUid,
-        request,
-        response
-      });
-    } catch (error) {
-      console.error('[runner] failed to store exchange', requestUid, error);
-    }
-  };
-
-  const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
-    storeRunnerExchange({ requestUid, eventData, request: safeStringifyJSON(requestSent) });
-
-    mainWindow.webContents.send('main:run-folder-event', {
-      type: 'request-sent',
-      ...eventData
-    });
-  };
-
-  // The renderer only needs what the runner list renders; it reads the payloads back out of sqlite
-  // by requestUid when a row is expanded.
-  const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
-    storeRunnerExchange({ requestUid, eventData, response: safeStringifyJSON(responseReceived) });
-
-    mainWindow.webContents.send('main:run-folder-event', {
-      type: 'response-received',
-      ...(error ? { error } : {}),
-      responseReceived: {
-        status: responseReceived?.status,
-        statusText: responseReceived?.statusText
-      },
-      ...eventData
-    });
-  };
+  const { sendRunnerRequestSent, sendRunnerResponseReceived } = createRunnerExchangeEmitters(mainWindow);
 
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
