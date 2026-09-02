@@ -270,6 +270,12 @@ export const stringifyBruRequest = (json: any): string => {
   }
 };
 
+const getMetaTags = (meta: any): string[] | undefined => {
+  const { tags } = meta;
+  if (!Array.isArray(tags) || !tags.length) return undefined;
+  return tags.filter((tag: any) => typeof tag === 'string' && tag.length > 0);
+};
+
 export const parseBruCollection = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : _collectionBruToJson(data);
@@ -297,6 +303,11 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
+
+      const tags = getMetaTags(json.meta);
+      if (tags?.length) {
+        transformedJson.meta.tags = tags;
       }
     }
 
@@ -344,6 +355,13 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
         collectionBruJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
+
+      if (isFolder) {
+        const tags = getMetaTags(json.meta);
+        if (tags?.length) {
+          collectionBruJson.meta.tags = tags;
+        }
       }
     }
 
