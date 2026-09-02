@@ -4,7 +4,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { describe, it, expect, afterEach } = require('@jest/globals');
 const { hasExecutableTestInScript } = require('../../src/utils/request');
-const { splitCsv, hasCommaValue, findConflicts, getGitRemoteUrl } = require('../../src/utils/common');
+const { splitCsv, findConflicts, pluralizeWord, getGitRemoteUrl } = require('../../src/utils/common');
 
 describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
@@ -348,27 +348,6 @@ describe('splitCsv', () => {
   });
 });
 
-describe('hasCommaValue', () => {
-  it('is false for empty or missing input', () => {
-    expect(hasCommaValue(undefined)).toBe(false);
-    expect(hasCommaValue(null)).toBe(false);
-    expect(hasCommaValue('')).toBe(false);
-  });
-
-  it('is false when no value carries a comma', () => {
-    expect(hasCommaValue('smoke')).toBe(false);
-    expect(hasCommaValue(['smoke', 'wip'])).toBe(false);
-  });
-
-  it('is true when a single value carries a comma', () => {
-    expect(hasCommaValue('smoke,wip')).toBe(true);
-  });
-
-  it('is true when any value in a repeated flag carries a comma', () => {
-    expect(hasCommaValue(['smoke', 'a,b'])).toBe(true);
-  });
-});
-
 describe('findConflicts', () => {
   it('returns an empty array when nothing appears in both lists', () => {
     expect(findConflicts(['a', 'b'], ['c', 'd'])).toEqual([]);
@@ -385,6 +364,18 @@ describe('findConflicts', () => {
 
   it('lists each conflict once even when the include list repeats it', () => {
     expect(findConflicts(['a', 'a', 'b'], ['a', 'b'])).toEqual(['a', 'b']);
+  });
+});
+
+describe('pluralizeWord', () => {
+  it('uses the singular form for a count of one', () => {
+    expect(pluralizeWord(1, 'Environment')).toBe('Environment');
+    expect(pluralizeWord(1, 'Tag')).toBe('Tag');
+  });
+
+  it('uses the plural form for zero or many', () => {
+    expect(pluralizeWord(0, 'Environment')).toBe('Environments');
+    expect(pluralizeWord(2, 'Tag')).toBe('Tags');
   });
 });
 

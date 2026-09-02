@@ -52,16 +52,12 @@ const splitCsv = (value) => {
     .filter(Boolean);
 };
 
-const hasCommaValue = (value) => {
-  if (value == null) return false;
-  const parts = Array.isArray(value) ? value : [value];
-  return parts.some((part) => String(part).includes(','));
-};
-
 const findConflicts = (include, exclude) => {
   const excluded = new Set(exclude);
   return [...new Set(include)].filter((name) => excluded.has(name));
 };
+
+const pluralizeWord = (count, word) => `${word}${count === 1 ? '' : 's'}`;
 
 const getGitRemoteUrl = (collectionPath) => {
   try {
@@ -82,7 +78,7 @@ module.exports = {
   rpad,
   parseDataFromResponse,
   splitCsv,
-  hasCommaValue,
   findConflicts,
+  pluralizeWord,
   getGitRemoteUrl
 };

@@ -75,9 +75,22 @@ describe('bru docs generate', () => {
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
     const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Tags cannot be both included and excluded');
     expect(message).toContain('smoke');
     expect(message).toContain('flaky');
     expect(message).not.toContain('wip');
+  });
+
+  it('uses the singular in the tag conflict error when only one tag conflicts', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ gitLink: false, tags: 'smoke', excludeTags: 'smoke' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Tag cannot be both included and excluded');
+    expect(message).not.toContain('Tags cannot');
   });
 
   it('lists every environment that is both included and excluded', async () => {
@@ -88,8 +101,21 @@ describe('bru docs generate', () => {
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
     const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Environments cannot be both included and excluded');
     expect(message).toContain('Production');
     expect(message).toContain('Staging');
+  });
+
+  it('uses the singular in the environment conflict error when only one environment conflicts', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ gitLink: false, envs: 'Production', excludeEnvs: 'Production' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Environment cannot be both included and excluded');
+    expect(message).not.toContain('Environments cannot');
   });
 
   it('exits with the invalid-file code when an environment file cannot be parsed', async () => {
@@ -177,24 +203,13 @@ describe('bru docs generate: environment selection', () => {
     expect(html).not.toContain('Production');
   });
 
-  it('accepts a single env per --env flag, repeated', async () => {
-    const output = path.join(outDir, 'env-singular.html');
-    await generate.handler({ output, gitLink: false, env: ['Production', 'Staging'] });
+  it('accepts repeated --envs flags each with comma-separated values', async () => {
+    const output = path.join(outDir, 'repeat-comma.html');
+    await generate.handler({ output, gitLink: false, envs: ['Production,Staging', 'Production'] });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Production');
     expect(html).toContain('Staging');
-  });
-
-  it('rejects a comma-separated value passed to the singular --env', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ output: path.join(outDir, 'env-comma.html'), gitLink: false, env: 'Production,Staging' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('--env takes a single value');
-    expect(message).toContain('--envs');
+    expect((html.match(/name: Production/g) || []).length).toBe(1);
   });
 
   it('embeds the environments in the order given to --envs', async () => {
@@ -227,7 +242,7 @@ describe('bru docs generate: environment selection', () => {
     expect(html).toContain('Staging');
   });
 
-  it('rejects --all-envs combined with the include flag and names it in both forms', async () => {
+  it('rejects --all-envs combined with --envs', async () => {
     const exitSpy = mockExit();
 
     await expect(
@@ -235,20 +250,16 @@ describe('bru docs generate: environment selection', () => {
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
     const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('--env/--envs');
-    expect(message).not.toContain('--exclude-env');
+    expect(message).toContain('--envs');
+    expect(message).not.toContain('--exclude-envs');
   });
 
-  it('rejects --all-envs combined with the exclude flag and names it in both forms', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, allEnvs: true, excludeEnvs: 'Production' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('--exclude-env/--exclude-envs');
-    expect(message).not.toContain('--env/--envs');
+  it('embeds every environment except the excluded ones when --all-envs and --exclude-envs are combined', async () => {
+    const output = path.join(outDir, 'all-except.html');
+    await generate.handler({ output, gitLink: false, allEnvs: true, excludeEnvs: 'Production' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Staging');
+    expect(html).not.toContain('Production');
   });
 
   it('errors when --envs names an environment that does not exist', async () => {
@@ -258,6 +269,9 @@ describe('bru docs generate: environment selection', () => {
       generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, envs: 'DoesNotExist' })
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Environment not found');
+    expect(message).not.toContain('Environments not found');
   });
 
   it('lists every unknown environment name in a single error', async () => {
@@ -268,6 +282,7 @@ describe('bru docs generate: environment selection', () => {
     ).rejects.toThrow();
     expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
     const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Environments not found');
     expect(message).toContain('NopeOne');
     expect(message).toContain('NopeTwo');
   });
@@ -353,34 +368,22 @@ describe('bru docs generate: tag filtering', () => {
     expect(html).not.toContain('PlainReq');
   });
 
-  it('keeps requests matching a single tag per --tag flag, repeated', async () => {
-    const output = path.join(outDir, 'include-singular.html');
-    await generate.handler({ output, gitLink: false, tag: ['smoke', 'wip'] });
-    const html = fs.readFileSync(output, 'utf8');
-    expect(html).toContain('SmokeReq');
-    expect(html).toContain('WipReq');
-    expect(html).not.toContain('PlainReq');
-  });
-
-  it('drops requests matching a single tag per --exclude-tag flag, repeated', async () => {
+  it('drops requests matching any tag given as a repeated --exclude-tags flag', async () => {
     const output = path.join(outDir, 'exclude-repeat.html');
-    await generate.handler({ output, gitLink: false, excludeTag: ['smoke', 'wip'] });
+    await generate.handler({ output, gitLink: false, excludeTags: ['smoke', 'wip'] });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('PlainReq');
     expect(html).not.toContain('SmokeReq');
     expect(html).not.toContain('WipReq');
   });
 
-  it('rejects a comma-separated value passed to the singular --tag', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ gitLink: false, tag: 'smoke,wip' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('--tag takes a single value');
-    expect(message).toContain('--tags');
+  it('accepts repeated --tags flags each with comma-separated values', async () => {
+    const output = path.join(outDir, 'tags-repeat-comma.html');
+    await generate.handler({ output, gitLink: false, tags: ['smoke,wip', 'smoke'] });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).toContain('WipReq');
+    expect(html).not.toContain('PlainReq');
   });
 });
 
