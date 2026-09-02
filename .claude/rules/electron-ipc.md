@@ -92,7 +92,8 @@ Two patterns by handler type — match the one that fits:
 true` + `contextIsolation: true` combination is intentional — do not "fix" it.** No `sandbox`
 key (defaults off); `webSecurity` defaults on. A CSP is set via `electron-util`'s
 `setContentSecurityPolicy` in `index.js` (`default-src 'self'`; `connect-src` adds PostHog;
-`script-src 'self' data:`; `img-src` allows http/https/blob/data). `form-action 'none'` is
+`script-src 'self' data: 'wasm-unsafe-eval'` — the WebAssembly directive is what lets `jq-wasm`
+compile in the renderer; `img-src` allows http/https/blob/data). `form-action 'none'` is
 deliberately commented out to keep OAuth2 working. External navigation is hardened via
 `will-redirect` + `setWindowOpenHandler`, which route http/https to `shell.openExternal` and deny
 everything else — preserve this when touching window/navigation code.
