@@ -326,9 +326,9 @@ describe('utils/ai', () => {
   });
 
   describe('buildAiContextPayload', () => {
-    it('combines request context and variables into a single payload', () => {
+    it('combines request context, variables, and the collection request list into a single payload', () => {
       const result = buildAiContextPayload(null, null);
-      expect(result).toEqual({ requestContext: null, variables: [] });
+      expect(result).toEqual({ requestContext: null, variables: [], requests: [] });
     });
   });
 });

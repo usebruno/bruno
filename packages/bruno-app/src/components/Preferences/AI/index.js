@@ -8,6 +8,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { IconPlus, IconSettings, IconShieldLock, IconTerminal2 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
+import StatusBadge from 'ui/StatusBadge';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import ToggleSwitch from 'components/ToggleSwitch';
 import { clearAiApiKey, getAiStatus } from 'utils/ai';
@@ -299,7 +300,12 @@ const AI = () => {
 
   return (
     <StyledWrapper className="w-full flex flex-col text-xs self-stretch min-h-0">
-      <div className="section-header">AI</div>
+      <div className="flex items-center gap-2">
+        <div className="section-header">AI</div>
+        <StatusBadge status="info" size="xs">
+          Beta
+        </StatusBadge>
+      </div>
 
       <div className="ai-tabs flex items-center" role="tablist" aria-label="AI preferences">
         <button

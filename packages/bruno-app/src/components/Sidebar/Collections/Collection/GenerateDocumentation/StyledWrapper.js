@@ -1,6 +1,9 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: 40rem;
+  max-width: 100%;
+
   .content {
     .title {
       font-size: ${(props) => props.theme.font.size.base};
@@ -83,12 +86,27 @@ const StyledWrapper = styled.div`
           accent-color: ${(props) => props.theme.primary.solid};
         }
 
+        .env-checkbox:indeterminate {
+          appearance: none;
+          -webkit-appearance: none;
+          background-color: ${(props) => props.theme.primary.solid};
+          border: 1px solid ${(props) => props.theme.primary.solid};
+          border-radius: 0.15rem;
+          background-image: linear-gradient(
+            ${(props) => props.theme.bg},
+            ${(props) => props.theme.bg}
+          );
+          background-size: 0.55rem 2px;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+
         .env-section-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 0.5rem;
-          margin-bottom: 0.15rem;
+          margin-bottom: 0.5rem;
         }
 
         .env-section-heading {
@@ -105,12 +123,21 @@ const StyledWrapper = styled.div`
         }
 
         .env-section-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
           margin: 0;
           font-size: ${(props) => props.theme.font.size.sm};
           font-weight: 600;
           letter-spacing: 0.05em;
           text-transform: uppercase;
           color: ${(props) => props.theme.colors.text.subtext2};
+        }
+
+        .env-section-icon {
+          margin-left: -2px;
+          color: ${(props) => props.theme.colors.text.subtext0};
+          flex-shrink: 0;
         }
 
         .env-select-all {

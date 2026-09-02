@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
-import { get, cloneDeep } from 'lodash';
+import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
@@ -13,7 +13,7 @@ import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
-  let relativePath = path.relative(fullPath, pathname);
+  const relativePath = path.relative(fullPath, pathname);
   const { dir = '' } = path.parse(relativePath);
   return path.join(dir, name);
 };
@@ -85,7 +85,7 @@ export default function RunnerResults({ collection }) {
   // ref for the runner output body
   const runnerBodyRef = useRef();
 
-  const collectionCopy = cloneDeep(collection);
+  const collectionCopy = collection;
   const runnerInfo = get(collection, 'runnerResult.info', {});
 
   // tags for the collection run
@@ -94,7 +94,7 @@ export default function RunnerResults({ collection }) {
   // have tags been added for the collection run
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
 
-  const items = cloneDeep(get(collection, 'runnerResult.items', []))
+  const items = get(collection, 'runnerResult.items', [])
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
       if (!info) {
@@ -231,7 +231,7 @@ export default function RunnerResults({ collection }) {
     skipped: items.filter((i) => i.status === 'skipped').length
   };
 
-  let isCollectionLoading = areItemsLoading(collection);
+  const isCollectionLoading = areItemsLoading(collection);
   if ((!items || !items.length) && !isReRunningRef.current) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
@@ -334,6 +334,7 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="danger"
+              data-testid="runner-cancel-button"
             >
               Cancel Execution
             </Button>
@@ -440,7 +441,7 @@ export default function RunnerResults({ collection }) {
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
-                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
+                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs" data-testid="runner-iteration-status-label">{item.error}</div> : null}
 
                     <ul className="pl-8">
                       {item.preRequestTestResults

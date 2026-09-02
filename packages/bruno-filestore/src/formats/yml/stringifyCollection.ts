@@ -5,6 +5,7 @@ import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@open
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { stringifyYml } from './utils';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
@@ -61,7 +62,8 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
 
 const hasPresets = (brunoConfig: any): boolean => {
   return brunoConfig?.presets?.requestType?.length
-    || brunoConfig?.presets?.requestUrl?.length;
+    || brunoConfig?.presets?.requestUrl?.length
+    || brunoConfig?.presets?.defaultEnvironment?.length;
 };
 
 const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
@@ -148,7 +150,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
                 type: 'pem',
                 certificateFilePath: cert.certFilePath,
                 privateKeyFilePath: cert.keyFilePath,
-                ...(cert.passphrase && { passphrase: cert.passphrase })
+                ...(cert.passphrase && { passphrase: cert.passphrase }),
+                ...(cert.disabled === true && { disabled: true })
               };
               return pemCert;
             } else if (cert.type === 'pfx') {
@@ -156,7 +159,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
                 domain: cert.domain,
                 type: 'pkcs12',
                 pkcs12FilePath: cert.pfxFilePath,
-                ...(cert.passphrase && { passphrase: cert.passphrase })
+                ...(cert.passphrase && { passphrase: cert.passphrase }),
+                ...(cert.disabled === true && { disabled: true })
               };
               return pkcs12Cert;
             } else {
@@ -241,6 +245,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       }
 
       if (hasPresets(brunoConfig)) {
+        const presetsExtension: any = {};
         const presetsRequest: any = {};
         if (brunoConfig.presets.requestType?.length) {
           presetsRequest.type = brunoConfig.presets.requestType;
@@ -248,37 +253,40 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         if (brunoConfig.presets.requestUrl?.length) {
           presetsRequest.url = brunoConfig.presets.requestUrl;
         }
-        brunoExtension.presets = {
-          request: presetsRequest
-        };
+        if (Object.keys(presetsRequest).length) {
+          presetsExtension.request = presetsRequest;
+        }
+        if (brunoConfig.presets.defaultEnvironment?.length) {
+          presetsExtension.defaultEnvironment = brunoConfig.presets.defaultEnvironment;
+        }
+        brunoExtension.presets = presetsExtension;
       }
 
       oc.extensions.bruno = brunoExtension;
     }
 
     // bruno-specific script extensions
+    const brunoScripts: Record<string, unknown> = {};
     if (brunoConfig.scripts?.additionalContextRoots?.length) {
+      brunoScripts.additionalContextRoots = brunoConfig.scripts.additionalContextRoots;
+    }
+    if (brunoConfig.scripts?.flow === 'sandwich' || brunoConfig.scripts?.flow === 'sequential') {
+      brunoScripts.flow = brunoConfig.scripts.flow;
+    }
+    if (Object.keys(brunoScripts).length > 0) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).scripts = {
-        additionalContextRoots: brunoConfig.scripts.additionalContextRoots
-      };
+      (oc.extensions.bruno as any).scripts = brunoScripts;
     }
 
     // bruno-specific extensions
-    if (Array.isArray(brunoConfig.openapi) && brunoConfig.openapi.length > 0) {
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig.openapi);
+    if (openApiEntries.length > 0) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).openapi = brunoConfig.openapi.map((entry: any) => ({
-        sourceUrl: entry.sourceUrl,
-        groupBy: entry.groupBy,
-        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-        ...(entry.specHash && { specHash: entry.specHash }),
-        autoCheck: entry.autoCheck !== false,
-        autoCheckInterval: entry.autoCheckInterval || 5
-      }));
+      (oc.extensions.bruno as any).openapi = openApiEntries;
     }
 
     return stringifyYml(oc);

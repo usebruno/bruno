@@ -1,0 +1,39 @@
+name: collection-environment
+
+# Samples of the global environment's matrix — enough to prove references reach the global scope.
+variables:
+  - name: refStringFromGlobalString
+    value: "{{globalEnvString}}"
+  - name: refNumberFromGlobalNumber
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: refBooleanFromGlobalBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: refObjectFromGlobalObject
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+
+  - name: refNumberFromGlobalString
+    value:
+      type: number
+      data: "{{globalEnvString}}"
+  - name: refBooleanFromGlobalObject
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+  - name: refNumberFromGlobalEmpty
+    value:
+      type: number
+      data: "{{globalEnvEmpty}}"
+
+  # Nested object references into a global variable
+  - name: refStringFromGlobalNestedString
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: refBooleanFromGlobalNestedNumber
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"

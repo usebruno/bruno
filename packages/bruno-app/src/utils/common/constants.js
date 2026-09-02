@@ -2,6 +2,9 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const DEFAULT_SIDEBAR_WIDTH = 250;
+export const DEFAULT_SIDEBAR_COLLAPSED = false;
+
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
@@ -10,6 +13,14 @@ export const PRESET_REQUEST_TYPES = {
 };
 
 export const DEFAULT_PRESET_REQUEST_TYPE = PRESET_REQUEST_TYPES.HTTP;
+
+export const VARIABLE_ADD_SCOPES = {
+  GLOBAL: 'global',
+  ENVIRONMENT: 'environment',
+  COLLECTION: 'collection',
+  REQUEST: 'request',
+  FOLDER: 'folder'
+};
 
 export const AUTH_MODES = {
   AWSV4: 'awsv4',

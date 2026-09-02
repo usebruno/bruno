@@ -1,4 +1,16 @@
 import { interpolate } from '@usebruno/common';
+import RealCodeMirror from 'codemirror';
+import store from 'providers/ReduxStore';
+import {
+  getVariableScope,
+  isVariableSecret,
+  findEnvironmentInCollection,
+  getTreePathFromCollectionToItem,
+  findCollectionByUid,
+  findItemInCollectionByItemUid,
+  getAvailableAddToScopes
+} from 'utils/collections';
+import { updateVariableInScope, addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
@@ -16,6 +28,7 @@ jest.mock('@usebruno/common', () => ({
 }));
 
 jest.mock('providers/ReduxStore', () => ({
+  __esModule: true,
   default: {
     dispatch: jest.fn(),
     getState: jest.fn()
@@ -23,14 +36,27 @@ jest.mock('providers/ReduxStore', () => ({
 }));
 
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
-  updateVariableInScope: jest.fn()
+  updateVariableInScope: jest.fn(),
+  openCollectionSettings: jest.fn(),
+  addEnvironment: jest.fn(),
+  selectEnvironment: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/global-environments', () => ({
+  addGlobalEnvironment: jest.fn()
 }));
 
 jest.mock('utils/collections', () => ({
   getVariableScope: jest.fn(),
   isVariableSecret: jest.fn(),
   getAllVariables: jest.fn(),
-  findEnvironmentInCollection: jest.fn()
+  findEnvironmentInCollection: jest.fn(),
+  getTreePathFromCollectionToItem: jest.fn(),
+  findCollectionByUid: jest.fn(),
+  findItemInCollectionByItemUid: jest.fn(),
+  findParentItemInCollection: jest.fn(),
+  getAvailableAddToScopes: jest.fn(() => []),
+  isItemARequest: jest.fn((item) => !!item && item.type !== 'folder')
 }));
 
 jest.mock('utils/common/codemirror', () => ({
@@ -38,7 +64,10 @@ jest.mock('utils/common/codemirror', () => ({
 }));
 
 jest.mock('utils/common/masked-editor', () => ({
-  MaskedEditor: jest.fn()
+  MaskedEditor: jest.fn(() => ({
+    enable: jest.fn(),
+    disable: jest.fn()
+  }))
 }));
 
 jest.mock('utils/codemirror/autocomplete', () => ({
@@ -323,6 +352,24 @@ describe('renderVarInfo', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
 
+    store.getState.mockReturnValue({
+      globalEnvironments: {
+        globalEnvironments: [],
+        activeGlobalEnvironmentUid: null
+      }
+    });
+
+    findEnvironmentInCollection.mockReturnValue(null);
+    getTreePathFromCollectionToItem.mockReturnValue([]);
+    getAvailableAddToScopes.mockReturnValue([]);
+    findCollectionByUid.mockImplementation((collections, uid) => (collections || []).find((c) => c.uid === uid) || null);
+    findItemInCollectionByItemUid.mockReturnValue(null);
+    getVariableScope.mockReturnValue({
+      type: 'request',
+      value: 'test-value',
+      data: { item: { uid: 'req-1' }, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
+    });
+
     // setup mock clipboard
     clipboardText = '';
     Object.defineProperty(navigator, 'clipboard', {
@@ -514,6 +561,488 @@ describe('renderVarInfo', () => {
 
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates random value on each request');
+    });
+  });
+
+  describe('new variable — Add to switcher', () => {
+    it('shows the Add-to switcher with the guessed scope pre-selected, excluding Folder', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
+        { type: 'global', label: 'Global Environment', enabled: true, supportsSecret: true }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      // Guessed scope shows up as the header badge, same as any other variable.
+      const scopeBadge = result.querySelector('.var-scope-badge');
+      expect(scopeBadge.textContent).toBe('Request');
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      expect(switcher).not.toBeNull();
+
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-collection"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-environment"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-global"]')).not.toBeNull();
+      // Folder is not offered as a creatable scope yet.
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-folder"]')).toBeNull();
+
+      const activeRow = switcher.querySelector('.var-add-to-option-active');
+      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
+    });
+
+    it('resolves the Environment scope against the real active environment, not whichever environment is merely being displayed', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([]);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: {
+          collections: [{ uid: 'col-1', activeEnvironmentUid: 'env-prod' }]
+        }
+      });
+      findCollectionByUid.mockReturnValue({ uid: 'col-1', activeEnvironmentUid: 'env-prod' });
+
+      renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-stage' },
+          item: null
+        }
+      );
+
+      expect(getAvailableAddToScopes).toHaveBeenCalledWith(
+        expect.objectContaining({ activeEnvironmentUid: 'env-prod' })
+      );
+    });
+
+    it('targets the folder itself (not its parent) when opened from that folder\'s own settings, and pre-selects it', () => {
+      getVariableScope.mockReturnValue(null);
+      const folderItem = { uid: 'folder-1', type: 'folder', name: 'Auth' };
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
+        { type: 'folder', label: 'Folder', enabled: true, supportsSecret: false }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-1' },
+          item: folderItem
+        }
+      );
+
+      // The folder scope targets the folder being edited itself (labeled "Folder"), not a parent.
+      expect(getAvailableAddToScopes).toHaveBeenCalledWith(
+        expect.objectContaining({ parentFolder: folderItem, isSelfFolder: true })
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const activeRow = switcher.querySelector('.var-add-to-option-active');
+      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-folder"]')).not.toBeNull();
+    });
+
+    it('repoints the scope badge when a different scope is picked, without saving immediately', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      const scopeBadge = result.querySelector('.var-scope-badge');
+      expect(scopeBadge.textContent).toBe('Request');
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-option-collection"]').click();
+
+      expect(scopeBadge.textContent).toBe('Collection');
+      // Picking an existing scope only repoints where the next blur-save writes to.
+      expect(updateVariableInScope).not.toHaveBeenCalled();
+    });
+
+    it('shows "Create One" when no environment exists, and saves the variable immediately once it is created', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      const collectionBeforeCreate = { uid: 'col-1', activeEnvironmentUid: null, environments: [] };
+      const collectionAfterCreate = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-new',
+        environments: [{ uid: 'env-new', name: 'Dev', variables: [] }]
+      };
+
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionAfterCreate] }
+      });
+      // No "Dev" exists yet for the initial render's lookup and the duplicate-name check inside
+      // onCreateEnvironment; once addEnvironment resolves, later lookups (waitForEnvironmentByName)
+      // see it created.
+      findCollectionByUid
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValue(collectionAfterCreate);
+      addEnvironment.mockReturnValue(() => Promise.resolve());
+      selectEnvironment.mockReturnValue(() => Promise.resolve());
+      getVariableScope.mockReturnValue(null);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      expect(createLink).not.toBeNull();
+      createLink.click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await jest.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).toHaveBeenCalledWith('Dev', 'col-1');
+      expect(updateVariableInScope).toHaveBeenCalled();
+    });
+
+    it('adds variable as a secret if secret is selected when creating the environment, instead of always saving as a plain variable', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      const collectionBeforeCreate = { uid: 'col-1', activeEnvironmentUid: null, environments: [] };
+      const collectionAfterCreate = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-new',
+        environments: [{ uid: 'env-new', name: 'Dev', variables: [] }]
+      };
+
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionAfterCreate] }
+      });
+      findCollectionByUid
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValue(collectionAfterCreate);
+      addEnvironment.mockReturnValue(() => Promise.resolve());
+      selectEnvironment.mockReturnValue(() => Promise.resolve());
+      getVariableScope.mockReturnValue(null);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      createLink.click();
+
+      // Tick Secret before creating the environment.
+      const secretCheckbox = switcher.querySelector('[data-testid="var-info-add-to-secret-checkbox"]');
+      secretCheckbox.checked = true;
+      secretCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await jest.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(updateVariableInScope).toHaveBeenCalledWith(
+        'missingVar',
+        expect.any(String),
+        expect.objectContaining({ data: expect.objectContaining({ secret: true }) }),
+        'col-1'
+      );
+    });
+
+    it('rejects an environment name that would be rewritten by the main process, instead of risking a false "failed to create" report', async () => {
+      // Regression: `sanitizeName` (main process) strips characters like ':' before writing the
+      // file. Without this check, the create would actually succeed under a different, sanitized
+      // name, but `waitForEnvironmentByName` (which polls by the originally-typed name) would
+      // never find a match and time out, falsely reporting a failure.
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      findCollectionByUid.mockReturnValue({ uid: 'col-1', activeEnvironmentUid: null, environments: [] });
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [{ uid: 'col-1', activeEnvironmentUid: null, environments: [] }] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Prod:Env';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).not.toHaveBeenCalled();
+      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      expect(errorNote.textContent).not.toBe('');
+    });
+
+    it('rejects a name that only differs in case from an existing environment, instead of risking a same-file overwrite', async () => {
+      // Regression: `generateUniqueName` (main process) compares names case-sensitively, so
+      // "Dev" would be considered unique even with "dev" already on disk. On a case-insensitive
+      // filesystem that write silently overwrites the existing "dev" environment's file.
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      const collectionWithDev = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-existing',
+        environments: [{ uid: 'env-existing', name: 'dev', variables: [] }]
+      };
+      findCollectionByUid.mockReturnValue(collectionWithDev);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionWithDev] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).not.toHaveBeenCalled();
+      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      expect(errorNote.textContent).toBe('Environment already exists');
+    });
+
+    it('does not save on blur for a brand new variable, even if the value changed', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      // brunoVarInfo.js uses the real `codemirror` package (not the `global.CodeMirror` mock
+      // defined above, which nothing in the source references) — grab the real editor instance
+      // it stashed on the value container and fire its registered blur handler directly via
+      // CodeMirror's own signal API instead of simulating real DOM focus/blur.
+      const cmEditor = result.querySelector('.var-value-container')._cmEditor;
+      cmEditor.getValue = () => 'a-new-value';
+      RealCodeMirror.signal(cmEditor, 'blur');
+
+      expect(updateVariableInScope).not.toHaveBeenCalled();
+    });
+
+    it('recomputes masking fresh on each blur, so removing a secret reference actually un-masks the value', () => {
+      // Regression: masking used to be computed as `currentShouldMaskValue || newHasSecretRefs`,
+      // which is sticky — once a value referenced a secret, masking could never turn back off
+      // within the same tooltip session, even after the reference was removed.
+      getVariableScope.mockImplementation((name) => {
+        if (name === 'secretVar') {
+          return { type: 'environment', data: { variable: { secret: true } } };
+        }
+        return null;
+      });
+      isVariableSecret.mockImplementation((scopeInfo) => !!scopeInfo?.data?.variable?.secret);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true }
+      ]);
+      interpolate.mockImplementation((value) => value);
+
+      const activeCollection = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-1',
+        environments: [{ uid: 'env-1', name: 'Dev', variables: [] }]
+      };
+      findCollectionByUid.mockReturnValue(activeCollection);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [activeCollection] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const cmEditor = result.querySelector('.var-value-container')._cmEditor;
+      const valueDisplay = result.querySelector('[data-testid="var-info-value-editable"]');
+
+      // Reference a secret variable — masking should turn on.
+      cmEditor.getValue = () => '{{secretVar}}';
+      RealCodeMirror.signal(cmEditor, 'blur');
+      expect(valueDisplay.textContent).toBe('*'.repeat('{{secretVar}}'.length));
+
+      // Remove the secret reference — masking should turn back off, not stay stuck on.
+      cmEditor.getValue = () => 'plainvalue';
+      RealCodeMirror.signal(cmEditor, 'blur');
+      expect(valueDisplay.textContent).toBe('plainvalue');
+    });
+
+    it('saves the pending value via _persistNewVariable when the tooltip is dismissed with an outside click', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false }
+      ]);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [{ uid: 'col-1' }] }
+      });
+      findCollectionByUid.mockReturnValue({ uid: 'col-1' });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      const valueContainer = result.querySelector('.var-value-container');
+      expect(typeof valueContainer._persistNewVariable).toBe('function');
+
+      // _persistNewVariable is a no-op unless the value actually changed from what the
+      // editor was initialized with (see brunoVarInfo.js), so simulate an edit first.
+      valueContainer._cmEditor.getValue = () => 'a-new-value';
+
+      await valueContainer._persistNewVariable();
+
+      expect(updateVariableInScope).toHaveBeenCalledWith(
+        'missingVar',
+        expect.any(String),
+        expect.objectContaining({ type: 'request' }),
+        'col-1'
+      );
+    });
+  });
+
+  describe('go to definition', () => {
+    it('should render the variable name as the go-to-definition link for persisted variables', () => {
+      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, { uid: 'req-1' });
+      const varName = containerDiv.querySelector('.var-name');
+
+      expect(varName.classList.contains('var-name-link')).toBe(true);
+    });
+
+    it('should open the target request before navigating to its variable definition', () => {
+      const renderedItem = { uid: 'req-current', type: 'http-request', pathname: '/current.bru' };
+      const targetItem = { uid: 'req-target', type: 'http-request', pathname: '/target.bru' };
+      getVariableScope.mockReturnValue({
+        type: 'request',
+        value: 'test-value',
+        data: { item: targetItem, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
+      });
+
+      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, renderedItem);
+      const varName = containerDiv.querySelector('.var-name-link');
+
+      varName.click();
+
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+        payload: {
+          uid: 'req-target',
+          collectionUid: 'col-1',
+          type: 'http-request',
+          pathname: '/target.bru',
+          requestPaneTab: 'vars'
+        }
+      }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-target', requestPaneTab: 'vars' } }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-target' } }));
     });
   });
 

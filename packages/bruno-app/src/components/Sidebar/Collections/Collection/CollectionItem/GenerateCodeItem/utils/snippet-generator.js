@@ -3,6 +3,7 @@ import { stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
+import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
@@ -50,7 +51,16 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
-    const sourceUrl = item.rawUrl || request.url;
+    // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
+    const sourceUrl = shouldInterpolate
+      ? interpolateUrlPathParams(
+          interpolateUrl({ url: request.url, variables }) || '',
+          request.params,
+          variables,
+          { raw: true }
+        )
+      : prependDefaultScheme(request.url);
+
     const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
         method: request.method,
@@ -76,13 +86,14 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
-
     /**
      *
      * Display-swap. HTTPSnippet renders the URL in encoded form (using har.queryString as the source of truth).
      * For OFF mode we want the user's raw bytes visible in the snippet — swap the encoded path+query substring for the raw form.
-     * For OFF: prefer item.rawUrl when the caller explicitly supplied it (legacy GenerateCodeItem pipeline does this so user-typed pre-encoded
-     * bytes survive the WHATWG-URL normalization). Otherwise fall back to buildHar's rawUrl.
+     * buildHar derives `rawUrl` from the exact URL passed in above, so it carries the user's
+     * pre-encoded bytes (and, when the toggle is OFF, the un-substituted placeholders).
+     * `item.rawUrl` remains honoured for callers that resolve the URL themselves and want
+     * their own bytes displayed; GenerateCodeItem no longer sets it.
      */
     const displayRawUrl = item.rawUrl || rawUrl;
     const parsed = parse(encodedUrl, true, true);

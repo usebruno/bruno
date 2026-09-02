@@ -11,18 +11,20 @@ const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/common');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
 const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
+const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -30,6 +32,19 @@ const onConsoleLog = (type, args) => {
 
 const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+};
+
+const executeRequestOnFailHandler = async (request, error) => {
+  if (typeof request?.onFailHandler !== 'function') {
+    return null;
+  }
+
+  try {
+    return await request.onFailHandler(error);
+  } catch (handlerError) {
+    console.error(chalk.red(`Error executing onFail handler: ${handlerError?.message || 'Unknown error'}`));
+    return null;
+  }
 };
 
 /**
@@ -70,6 +85,9 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -113,7 +131,8 @@ const runSingleRequest = async function (
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
         collectionRootPath: persistPaths.collectionRootPath,
-        envVarOverrides: persistPaths.envVarOverrides
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
       });
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
@@ -181,7 +200,7 @@ const runSingleRequest = async function (
           data: request.data
         },
         response: {
-          status: 'skipped',
+          status: '-',
           statusText: errorMsg,
           data: null,
           responseTime: 0,
@@ -279,7 +298,7 @@ const runSingleRequest = async function (
               data: request.data
             },
             response: {
-              status: 'skipped',
+              status: '-',
               statusText: 'request skipped via pre-request script',
               data: null,
               responseTime: 0,
@@ -367,19 +386,21 @@ const runSingleRequest = async function (
       }
     }
 
-    if (request.settings?.encodeUrl) {
-      request.url = encodeUrl(request.url);
-    }
-
     if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
+    }
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
     }
 
     const insecure = get(options, 'insecure', false);
     const noproxy = get(options, 'noproxy', false);
     const cachedSystemProxy = get(options, 'cachedSystemProxy', null);
     const disableCache = !get(options, 'cacheSslSession', false);
-    const httpsAgentRequestFields = {};
+    // NTLM authenticates the connection rather than the request, so its handshake only completes
+    // when every leg reuses one socket.
+    const httpsAgentRequestFields = request.ntlmConfig ? { keepAlive: true } : {};
 
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -400,6 +421,9 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
+      if (clientCert?.disabled) {
+        continue;
+      }
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -458,12 +482,22 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    refreshExplicitHeaderNames(request);
+    const omitConnection = shouldOmitConnection({
+      omitHeaders: request.settings?.omitHeaders,
+      headersToDelete: request.__headersToDelete,
+      explicitHeaderNames: request.__explicitHeaderNames
+    });
+
     await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
       systemProxyConfig: cachedSystemProxy,
-      httpsAgentRequestFields,
+      httpsAgentRequestFields: {
+        ...httpsAgentRequestFields,
+        keepAlive: !omitConnection
+      },
       interpolationOptions,
       disableCache
     });
@@ -542,12 +576,15 @@ const runSingleRequest = async function (
     // Get followRedirects setting, default to true for backward compatibility
     const followRedirects = request.settings?.followRedirects ?? true;
 
+    // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+    const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
     // Ensure it's a valid number
     if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-      requestMaxRedirects = 5; // Default to 5 redirects
+      requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
     }
 
     // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
@@ -644,10 +681,11 @@ const runSingleRequest = async function (
         request.timeout = requestTimeout;
       }
 
-      let axiosInstance = makeAxiosInstance({
+      const axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
+        forwardAuthorizationHeader: forwardAuthorizationHeader,
         proxyMode,
         proxyConfig,
         systemProxyConfig: cachedSystemProxy,
@@ -657,7 +695,8 @@ const runSingleRequest = async function (
       });
 
       if (request.ntlmConfig) {
-        axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+        const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+        axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
         delete request.ntlmConfig;
       }
 
@@ -698,7 +737,7 @@ const runSingleRequest = async function (
       }
 
       /** @type {import('axios').AxiosResponse} */
-      response = await axiosInstance(request);
+      response = await axiosInstance(refreshExplicitHeaderNames(request));
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
@@ -728,7 +767,13 @@ const runSingleRequest = async function (
           saveCookies(request.url, response.headers);
         }
       } else {
+        // Only network-level failures (no response received) reach the onFail handler, matching
+        // the desktop app. Variables the handler wrote are synced like any other script write.
+        const onFailResult = await executeRequestOnFailHandler(request, err);
+        syncVariableUpdates(onFailResult, request);
+
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        applySentHeadersToRequest(request, err);
         return {
           test: {
             filename: relativeItemPathname
@@ -762,6 +807,7 @@ const runSingleRequest = async function (
     }
 
     response.responseTime = responseTime;
+    applySentHeadersToRequest(request, response);
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname))
