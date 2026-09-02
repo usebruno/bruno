@@ -74,10 +74,14 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
-  const environment = resolveEnvironmentInheritance({
-    environments: collection.environments,
-    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
-  });
+  const environment = useMemo(
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
+    [collection.environments, collection.activeEnvironmentUid]
+  );
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment, request, collection);

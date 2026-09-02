@@ -89,17 +89,24 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
   const selectedCount = selectedEnvs.length;
 
-  const getUnselectedInheritedEnvironmentNames = (environment) => {
-    if (!selectedEnvironments[environment.uid]) {
-      return [];
-    }
+  const unselectedInheritedEnvironmentNamesByUid = useMemo(() => {
+    const namesByUid = {};
 
-    const { inheritedEnvironments } = getInheritedEnvironments({ environments, environment });
+    environments.forEach((environment) => {
+      if (!selectedEnvironments[environment.uid]) {
+        namesByUid[environment.uid] = [];
+        return;
+      }
 
-    return inheritedEnvironments
-      .filter((inheritedEnvironment) => !selectedEnvironments[inheritedEnvironment.uid])
-      .map((inheritedEnvironment) => inheritedEnvironment.name);
-  };
+      const { inheritedEnvironments } = getInheritedEnvironments({ environments, environment });
+
+      namesByUid[environment.uid] = inheritedEnvironments
+        .filter((inheritedEnvironment) => !selectedEnvironments[inheritedEnvironment.uid])
+        .map((inheritedEnvironment) => inheritedEnvironment.name);
+    });
+
+    return namesByUid;
+  }, [environments, selectedEnvironments]);
 
   const exportFormatOptions = useMemo(() => {
     const isMultiple = selectedCount > 1;
@@ -174,7 +181,7 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                   </div>
                   <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
                     {environments.map((env) => {
-                      const unselectedInheritedEnvironmentNames = getUnselectedInheritedEnvironmentNames(env);
+                      const unselectedInheritedEnvironmentNames = unselectedInheritedEnvironmentNamesByUid[env.uid];
 
                       return (
                         <div key={env.uid}>

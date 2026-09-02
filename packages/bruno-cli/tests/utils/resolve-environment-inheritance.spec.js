@@ -222,6 +222,20 @@ describe('resolveEnvironmentInheritance', () => {
       expect(valueOf(result, 'scheme')).toBe('https');
     });
 
+    it('inherits from the parent file even when another sibling file fails to parse', () => {
+      writeEnvironment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
+      fs.writeFileSync(path.join(environmentsDir, 'broken.yml'), 'variables: [\n');
+      const filePath = writeEnvironment({
+        name: 'dev',
+        extends: 'base',
+        variables: [variable({ name: 'host', value: 'dev-host' })]
+      });
+
+      const result = resolveEnvironmentInheritance({ filePath });
+
+      expect(valueOf(result, 'scheme')).toBe('https');
+    });
+
     it('inherits nothing from a differently-cased reference', () => {
       writeEnvironment({ name: 'Base', variables: [variable({ name: 'scheme', value: 'https' })] });
       const filePath = writeEnvironment({ name: 'dev', extends: 'base' });

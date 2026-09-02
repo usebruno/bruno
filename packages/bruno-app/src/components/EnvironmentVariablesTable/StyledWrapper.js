@@ -18,7 +18,6 @@ const Wrapper = styled.div`
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);
   }
 
-  /* The seeded height is an estimate; snap to the measured height instead of animating to it. */
   &.is-measuring .table-container {
     transition: none;
   }
