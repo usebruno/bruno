@@ -1,8 +1,8 @@
 -- name: upsert_runner_response :exec
 INSERT OR REPLACE INTO runner_responses (
-  request_uid, collection_uid, iteration_index, item_uid, request, response
+  request_uid, collection_uid, request, response
 ) VALUES (
-  @request_uid, @collection_uid, @iteration_index, @item_uid,
+  @request_uid, @collection_uid,
   COALESCE(@request, (SELECT request FROM runner_responses WHERE request_uid = @request_uid)),
   COALESCE(@response, (SELECT response FROM runner_responses WHERE request_uid = @request_uid))
 );

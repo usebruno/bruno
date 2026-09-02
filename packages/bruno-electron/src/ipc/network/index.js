@@ -470,20 +470,14 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const runnerRow = ({ requestUid, eventData }) => ({
-    request_uid: requestUid,
-    collection_uid: eventData.collectionUid,
-    iteration_index: eventData.iterationIndex ?? 0,
-    item_uid: eventData.itemUid
-  });
-
   const storeRunnerExchange = ({ requestUid, eventData, request = null, response = null }) => {
     const statements = getStatements();
     if (!statements) return;
 
     try {
       statements.execute('upsert_runner_response', {
-        ...runnerRow({ requestUid, eventData }),
+        request_uid: requestUid,
+        collection_uid: eventData.collectionUid,
         request,
         response
       });
