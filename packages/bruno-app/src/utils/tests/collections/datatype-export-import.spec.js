@@ -197,6 +197,71 @@ describe('Bruno JSON export/import — dataType preservation', () => {
   });
 });
 
+describe('transformCollectionToSaveToExportAsFile: multipart form contentType', () => {
+  const multipartEntries = () => [
+    { uid: UID, name: 'metadata', value: '{"tag":"v1"}', type: 'text', enabled: true, contentType: 'application/json' },
+    { uid: UID, name: 'plain', value: 'hello', type: 'text', enabled: true, contentType: '' }
+  ];
+
+  const buildMultipartRequest = () => ({
+    url: 'https://example.com',
+    method: 'POST',
+    headers: [],
+    params: [],
+    body: { mode: 'multipartForm', multipartForm: multipartEntries() },
+    auth: { mode: 'none' },
+    script: { req: null, res: null },
+    vars: { req: [], res: [] },
+    assertions: [],
+    tests: null
+  });
+
+  it('keeps contentType on request and example multipart entries', () => {
+    const collection = {
+      uid: UID,
+      name: 'Multipart Collection',
+      version: '1',
+      items: [
+        {
+          uid: UID,
+          type: 'http-request',
+          name: 'upload',
+          seq: 1,
+          request: buildMultipartRequest(),
+          examples: [
+            {
+              uid: UID,
+              itemUid: UID,
+              name: 'upload example',
+              type: 'http-request',
+              request: buildMultipartRequest(),
+              response: { status: 200, statusText: 'OK', headers: [], body: '' }
+            }
+          ]
+        }
+      ],
+      root: {
+        request: {
+          headers: [],
+          script: { req: null, res: null },
+          vars: { req: [], res: [] },
+          tests: null
+        }
+      }
+    };
+
+    const exported = transformCollectionToSaveToExportAsFile(collection);
+
+    const item = exported.items[0];
+    expect(item.request.body.multipartForm[0].contentType).toBe('application/json');
+    expect(item.request.body.multipartForm[1].contentType).toBe('');
+
+    const example = item.examples[0];
+    expect(example.request.body.multipartForm[0].contentType).toBe('application/json');
+    expect(example.request.body.multipartForm[1].contentType).toBe('');
+  });
+});
+
 describe('deleteSecretsInEnvs', () => {
   it('clears the value but preserves dataType on secret variables', () => {
     const envs = [

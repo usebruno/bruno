@@ -202,7 +202,7 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
           entry.description = field.description;
         }
 
-        if (field.contentType && field.contentType.trim().length) {
+        if (field.contentType && typeof field.contentType === 'string' && field.contentType.trim().length) {
           entry.contentType = field.contentType;
         }
 
