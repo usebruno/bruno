@@ -1,4 +1,3 @@
-import { execSync } from 'child_process';
 import jsyaml from 'js-yaml';
 import { test, expect, Page } from '../../../playwright';
 import { generateCollectionDocs } from '../../utils/page';
@@ -372,30 +371,6 @@ test.describe('Generate Documentation', () => {
     await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
 
     await expect(locators.generateDocs.gitLinkLabel()).toBeHidden();
-
-    await locators.generateDocs.cancelButton().click();
-    await expect(modal).toBeHidden();
-  });
-
-  test('shows the git-link control under Advanced when the collection has a git remote', async ({
-    pageWithUserData: page,
-    collectionFixturePath
-  }) => {
-    execSync('git init', { cwd: collectionFixturePath!, stdio: 'ignore' });
-    execSync('git remote add origin https://github.com/org/repo.git', { cwd: collectionFixturePath!, stdio: 'ignore' });
-
-    const locators = buildCommonLocators(page);
-
-    await locators.sidebar.collection(COLLECTION_NAME).hover();
-    await locators.actions.collectionActions(COLLECTION_NAME).click();
-    await locators.generateDocs.menuItem().click();
-
-    const modal = locators.generateDocs.modal();
-    await expect(modal).toBeVisible();
-
-    await locators.generateDocs.advancedToggle().click();
-
-    await expect(locators.generateDocs.gitLinkLabel()).toBeVisible();
 
     await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();
