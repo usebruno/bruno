@@ -113,7 +113,8 @@ const QueryResult = ({
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
 
-  // Local state for immediate input feedback; Redux `filter` is used for expensive operations
+  // Local state gives immediate input feedback; the debounced `filter` prop drives the filtering.
+  // The component is remounted per tab, so the initial value is enough to seed it from the tab.
   const [filterInput, setFilterInput] = useState(filter || '');
   const onFilterChangeRef = useRef(onFilterChange);
   useEffect(() => { onFilterChangeRef.current = onFilterChange; });
@@ -125,11 +126,6 @@ const QueryResult = ({
     []
   );
   useEffect(() => () => debouncedFilterChange.cancel(), [debouncedFilterChange]);
-
-  // Sync local input when Redux filter changes externally (e.g. tab switch)
-  useEffect(() => {
-    setFilterInput(filter || '');
-  }, [filter]);
 
   const responseSize = useMemo(() => {
     const response = item.response || {};
@@ -195,6 +191,11 @@ const QueryResult = ({
   const handleFilterChange = (value) => {
     setFilterInput(value);
     debouncedFilterChange(value);
+    // Clearing is cheap and happens when switching filter type; applying it immediately
+    // prevents the previous expression from briefly running under the other engine
+    if (!value) {
+      debouncedFilterChange.flush();
+    }
   };
 
   const previewMode = useMemo(() => {
