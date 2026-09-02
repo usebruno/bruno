@@ -7,7 +7,8 @@ const { brunoToOpenCollection } = require('@usebruno/converters');
 const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion } = require('@usebruno/common');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
 const { loadEnvironments } = require('../../utils/environment');
-const { splitCsv, findConflicts, pluralizeWord, getGitRemoteUrl } = require('../../utils/common');
+const { parseListOption, findConflicts, pluralizeWord } = require('../../utils/common');
+const { getGitRemoteUrl } = require('../../utils/git');
 const { CLI_VERSION, EXIT_STATUS } = require('../../constants');
 
 const command = 'generate';
@@ -68,10 +69,10 @@ const handler = async (argv) => {
       process.exit(EXIT_STATUS.ERROR_INVALID_FILE);
     }
 
-    const includeTags = splitCsv(argv.tags);
-    const excludeTags = splitCsv(argv.excludeTags);
-    const includeEnvs = [...new Set(splitCsv(argv.envs))];
-    const excludeEnvs = [...new Set(splitCsv(argv.excludeEnvs))];
+    const includeTags = parseListOption(argv.tags);
+    const excludeTags = parseListOption(argv.excludeTags);
+    const includeEnvs = [...new Set(parseListOption(argv.envs))];
+    const excludeEnvs = [...new Set(parseListOption(argv.excludeEnvs))];
     const allEnvs = Boolean(argv.allEnvs);
 
     const conflictingTags = findConflicts(includeTags, excludeTags);

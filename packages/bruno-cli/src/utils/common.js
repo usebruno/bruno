@@ -1,5 +1,4 @@
 const iconv = require('iconv-lite');
-const { execSync } = require('child_process');
 
 const lpad = (str, width) => {
   let paddedStr = str;
@@ -43,7 +42,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   return { data, dataBuffer };
 };
 
-const splitCsv = (value) => {
+const parseListOption = (value) => {
   if (value == null) return [];
   const parts = Array.isArray(value) ? value : [value];
   return parts
@@ -59,26 +58,11 @@ const findConflicts = (include, exclude) => {
 
 const pluralizeWord = (count, word) => `${word}${count === 1 ? '' : 's'}`;
 
-const getGitRemoteUrl = (collectionPath) => {
-  try {
-    const url = execSync('git remote get-url origin', {
-      cwd: collectionPath,
-      stdio: ['ignore', 'pipe', 'ignore']
-    })
-      .toString()
-      .trim();
-    return url || undefined;
-  } catch (error) {
-    return undefined;
-  }
-};
-
 module.exports = {
   lpad,
   rpad,
   parseDataFromResponse,
-  splitCsv,
+  parseListOption,
   findConflicts,
-  pluralizeWord,
-  getGitRemoteUrl
+  pluralizeWord
 };

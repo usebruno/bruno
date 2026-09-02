@@ -3,9 +3,9 @@ const fs = require('fs');
 const os = require('os');
 const { execSync } = require('child_process');
 const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/globals');
-const generate = require('../../src/commands/docs/generate');
+const generate = require('../../../src/commands/docs/generate');
 
-const FIXTURE = path.resolve(__dirname, '../runner/fixtures/collection-json-from-pathname/collection');
+const FIXTURE = path.resolve(__dirname, 'fixtures/collection');
 
 const mockExit = () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});

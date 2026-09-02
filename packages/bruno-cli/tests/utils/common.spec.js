@@ -1,10 +1,6 @@
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const { execSync } = require('child_process');
-const { describe, it, expect, afterEach } = require('@jest/globals');
+const { describe, it, expect } = require('@jest/globals');
 const { hasExecutableTestInScript } = require('../../src/utils/request');
-const { splitCsv, findConflicts, pluralizeWord, getGitRemoteUrl } = require('../../src/utils/common');
+const { parseListOption, findConflicts, pluralizeWord } = require('../../src/utils/common');
 
 describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
@@ -313,38 +309,38 @@ describe('hasExecutableTestInScript', () => {
   });
 });
 
-describe('splitCsv', () => {
+describe('parseListOption', () => {
   it('returns an empty array for empty or missing input', () => {
-    expect(splitCsv(undefined)).toEqual([]);
-    expect(splitCsv(null)).toEqual([]);
-    expect(splitCsv('')).toEqual([]);
+    expect(parseListOption(undefined)).toEqual([]);
+    expect(parseListOption(null)).toEqual([]);
+    expect(parseListOption('')).toEqual([]);
   });
 
   it('splits a comma separated string into a list', () => {
-    expect(splitCsv('smoke,regression,wip')).toEqual(['smoke', 'regression', 'wip']);
+    expect(parseListOption('smoke,regression,wip')).toEqual(['smoke', 'regression', 'wip']);
   });
 
   it('trims the spaces around each value', () => {
-    expect(splitCsv(' smoke , regression ,wip ')).toEqual(['smoke', 'regression', 'wip']);
+    expect(parseListOption(' smoke , regression ,wip ')).toEqual(['smoke', 'regression', 'wip']);
   });
 
   it('drops empty entries left by extra or trailing commas', () => {
-    expect(splitCsv('smoke,,regression,')).toEqual(['smoke', 'regression']);
+    expect(parseListOption('smoke,,regression,')).toEqual(['smoke', 'regression']);
   });
 
   it('accepts an array of values (repeated flags) and flattens them', () => {
-    expect(splitCsv(['prod', 'staging', 'local'])).toEqual(['prod', 'staging', 'local']);
-    expect(splitCsv([])).toEqual([]);
+    expect(parseListOption(['prod', 'staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+    expect(parseListOption([])).toEqual([]);
   });
 
   it('splits commas within array elements too (mixed repeat and comma)', () => {
-    expect(splitCsv(['prod,staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+    expect(parseListOption(['prod,staging', 'local'])).toEqual(['prod', 'staging', 'local']);
   });
 
   it('preserves spaces inside a name, trimming only the ends', () => {
-    expect(splitCsv(['Prod Env'])).toEqual(['Prod Env']);
-    expect(splitCsv('Prod Env, Staging Env')).toEqual(['Prod Env', 'Staging Env']);
-    expect(splitCsv([' Prod Env '])).toEqual(['Prod Env']);
+    expect(parseListOption(['Prod Env'])).toEqual(['Prod Env']);
+    expect(parseListOption('Prod Env, Staging Env')).toEqual(['Prod Env', 'Staging Env']);
+    expect(parseListOption([' Prod Env '])).toEqual(['Prod Env']);
   });
 });
 
@@ -376,38 +372,5 @@ describe('pluralizeWord', () => {
   it('uses the plural form for zero or many', () => {
     expect(pluralizeWord(0, 'Environment')).toBe('Environments');
     expect(pluralizeWord(2, 'Tag')).toBe('Tags');
-  });
-});
-
-describe('getGitRemoteUrl', () => {
-  let tmpDir;
-
-  afterEach(() => {
-    if (tmpDir) {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-      tmpDir = undefined;
-    }
-  });
-
-  const makeTmpDir = () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-git-'));
-    return tmpDir;
-  };
-
-  it('returns undefined when the folder is not a git repo', () => {
-    expect(getGitRemoteUrl(makeTmpDir())).toBeUndefined();
-  });
-
-  it('returns undefined when the repo has no origin remote', () => {
-    const dir = makeTmpDir();
-    execSync('git init', { cwd: dir, stdio: 'ignore' });
-    expect(getGitRemoteUrl(dir)).toBeUndefined();
-  });
-
-  it('returns the origin url when the repo has one', () => {
-    const dir = makeTmpDir();
-    execSync('git init', { cwd: dir, stdio: 'ignore' });
-    execSync('git remote add origin https://example.com/team/repo.git', { cwd: dir, stdio: 'ignore' });
-    expect(getGitRemoteUrl(dir)).toBe('https://example.com/team/repo.git');
   });
 });
