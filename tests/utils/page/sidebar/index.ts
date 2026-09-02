@@ -1,5 +1,7 @@
 import { Locator, Page } from '../../../../playwright';
 
+export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
+
 /**
  * Locators for the sidebar (collections tree) section.
  */
@@ -34,6 +36,13 @@ export const buildSidebarLocators = (page: Page) => {
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+
+    // "+ Add request" cta inside the empty collection
+    emptyStateCta: (collectionName: string): Locator =>
+      collectionScope(collectionName).getByTestId('add-request-cta'),
+    emptyStateCtaItem: (requestType: EmptyStateRequestType): Locator =>
+      page.getByTestId(`add-request-cta-${requestType}`),
+
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a
     // top-level collection row (`collection-actions-*`). Trigger is in the row; items

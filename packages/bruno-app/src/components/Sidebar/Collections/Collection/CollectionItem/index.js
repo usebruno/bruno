@@ -696,8 +696,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const handleCloneItem = () => {
     if (!isCloneable) return;
     dispatch(cloneItem(`${item.name} copy`, sanitizeName(`${item.name} copy`), item.uid, collectionUid))
-      .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
-      .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
+      .then(() => toast.success(`${getItemTypeLabel(item)} cloned!`))
+      .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${getItemTypeLabel(item).toLowerCase()}`));
   };
 
   const handlePasteItem = () => {

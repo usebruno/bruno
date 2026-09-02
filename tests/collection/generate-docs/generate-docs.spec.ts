@@ -348,7 +348,7 @@ test.describe('Generate Documentation', () => {
     expect(generatedEnvironmentNames(content).sort()).toEqual([...EXPECTED_ENVIRONMENTS].sort());
   });
 
-  test('reveals request filtering and the git-link control under Advanced', async ({
+  test('reveals request filtering under Advanced, and hides the git-link control when the collection has no git remote', async ({
     pageWithUserData: page
   }) => {
     const locators = buildCommonLocators(page);
@@ -370,7 +370,7 @@ test.describe('Generate Documentation', () => {
     await expect(locators.generateDocs.includeTagsInput()).toBeVisible();
     await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
 
-    await expect(locators.generateDocs.gitLinkLabel()).toBeVisible();
+    await expect(locators.generateDocs.gitLinkLabel()).toBeHidden();
 
     await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();
