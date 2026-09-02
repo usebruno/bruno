@@ -193,6 +193,10 @@ export const buildCommonLocators = (page: Page) => ({
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
+  requestUrl: {
+    container: () => page.getByTestId('request-url'),
+    editor: () => page.getByTestId('request-url').locator('.CodeMirror')
+  },
   presets: {
     requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
