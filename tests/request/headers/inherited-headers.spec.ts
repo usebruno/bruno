@@ -69,6 +69,23 @@ test('does not list a disabled parent header', async ({ page, createTmpDir }) =>
   });
 });
 
+test('shows the inherited header instead of the matching default', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-over-default';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'User-Agent: from-collection');
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('List the collection User-Agent and hide the default', async () => {
+    await expect(headers.inheritedRow('User-Agent')).toBeVisible();
+    await expect(headers.inheritedRow('User-Agent')).toContainText('from-collection');
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
+  });
+});
+
 test('shows the folder header when collection and folder share a name', async ({ page, createTmpDir }) => {
   const collectionName = 'inherited-headers-nearest-ui';
   await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -183,6 +200,62 @@ test('sends the folder value when collection and folder share a name', async ({ 
     const body = await readResponsePreviewBody(page);
     expect(body).toMatch(/"x-shared"\s*:\s*"from-folder"/i);
     expect(body).not.toMatch(/from-collection/i);
+  });
+});
+
+test('does not hide an inherited header when the request name is only a prefix', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-prefix-ui';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Keep the collection header after typing a prefix', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Tok');
+    await expect(headers.requestRow('X-Tok')).toBeVisible();
+    await expect(headers.inheritedRow('X-Token')).toBeVisible();
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
+  });
+});
+
+test('does not hide an inherited header when the request uses a different name', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-unrelated-ui';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Keep the collection header after adding another name', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Other');
+    await expect(headers.requestRow('X-Other')).toBeVisible();
+    await expect(headers.inheritedRow('X-Token')).toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
+  });
+});
+
+test('hides an inherited header when the request defines the same name', async ({ page, createTmpDir }) => {
+  const collectionName = 'inherited-headers-precedence-ui';
+  await createCollection(page, collectionName, await createTmpDir(collectionName));
+  await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
+  await createRequest(page, 'request-1', collectionName, { url: 'https://example.com' });
+  await openRequest(page, collectionName, 'request-1');
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Show the collection header first', async () => {
+    await expect(headers.inheritedRow('X-Token')).toBeVisible();
+  });
+
+  await test.step('Hide it after adding a request header with the same name', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'X-Token');
+    await fillRequestHeaderValue(page, headers.requestRow('X-Token'), 'request-token');
+    await expect(headers.requestRow('X-Token')).toBeVisible();
+    await expect(headers.inheritedRow('X-Token')).not.toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
   });
 });
 

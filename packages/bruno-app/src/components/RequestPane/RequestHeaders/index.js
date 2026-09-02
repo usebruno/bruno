@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  IconAlertTriangle,
   IconChevronDown,
   IconChevronRight,
   IconExternalLink,
@@ -34,7 +33,7 @@ import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { version as appVersion } from '../../../../package.json';
-import { getInheritedHeaders } from './getInheritedHeaders';
+import { filterUnclaimedHeaders, getInheritedHeaders } from './getInheritedHeaders';
 
 export { getInheritedHeaders } from './getInheritedHeaders';
 
@@ -177,42 +176,36 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     [settings.omitHeaders]
   );
 
-  const enabledRequestHeaderNames = useMemo(
+  const requestHeaderNames = useMemo(
     () => new Set((headers || [])
-      .filter((header) => header.enabled !== false && header.name)
+      .filter((header) => header.name)
       .map((header) => header.name.toLowerCase())),
     [headers]
   );
 
-  const enabledDefaultHeaderNames = useMemo(
-    () => new Set(BRUNO_DEFAULT_HEADERS
-      .map((header) => header.name.toLowerCase())
-      .filter((name) => !omittedHeaderNames.has(name))),
-    [omittedHeaderNames]
+  const inheritedHeaders = useMemo(
+    () => isHttpRequest ? getInheritedHeaders(collection, item, requestHeaderNames) : [],
+    [collection, isHttpRequest, item, requestHeaderNames]
   );
 
-  const defaultHeaders = useMemo(() => BRUNO_DEFAULT_HEADERS.map((header) => {
+  const defaultHeaders = useMemo(() => filterUnclaimedHeaders(BRUNO_DEFAULT_HEADERS, [
+    ...requestHeaderNames,
+    ...inheritedHeaders.map((header) => header.name)
+  ]).map((header) => {
     const normalizedName = header.name.toLowerCase();
-    const enabled = !omittedHeaderNames.has(normalizedName);
 
     return {
       uid: `bruno-default-${normalizedName}`,
       rowType: ROW_TYPE.DEFAULT,
       name: header.name,
       value: getDefaultHeaderValue(header, request?.url),
-      enabled,
-      omittable: header.omittable,
-      overridden: enabled && enabledRequestHeaderNames.has(normalizedName)
+      enabled: !omittedHeaderNames.has(normalizedName),
+      omittable: header.omittable
     };
-  }), [enabledRequestHeaderNames, omittedHeaderNames, request?.url]);
-
-  const inheritedHeaders = useMemo(
-    () => isHttpRequest ? getInheritedHeaders(collection, item) : [],
-    [collection, isHttpRequest, item]
-  );
+  }), [inheritedHeaders, omittedHeaderNames, request?.url, requestHeaderNames]);
 
   const allInheritedHeaders = useMemo(
-    () => [...defaultHeaders, ...inheritedHeaders],
+    () => [...inheritedHeaders, ...defaultHeaders],
     [defaultHeaders, inheritedHeaders]
   );
 
@@ -483,53 +476,21 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         }
 
         if (row.rowType === ROW_TYPE.DEFAULT) {
-          return (
-            <div className="header-name-cell">
-              <span className="default-header-value">{value}</span>
-              {row.overridden && (
-                <HeaderHint
-                  id={`default-header-conflict-hint-${row.uid}`}
-                  text="Overridden by a request header"
-                  className="header-conflict-icon"
-                  testId={`default-header-conflict-${row.name.toLowerCase()}`}
-                  tooltipTestId={`default-header-conflict-tooltip-${row.name.toLowerCase()}`}
-                  place="top-start"
-                >
-                  <IconAlertTriangle size={16} strokeWidth={1.5} />
-                </HeaderHint>
-              )}
-            </div>
-          );
+          return <span className="default-header-value">{value}</span>;
         }
 
         return (
-          <div className="header-name-cell">
-            <SingleLineEditor
-              value={value || ''}
-              theme={storedTheme}
-              onSave={onSave}
-              onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
-              autocomplete={headerAutoCompleteList}
-              onRun={handleRun}
-              collection={collection}
-              item={item}
-              placeholder={!value ? 'Name' : ''}
-            />
-            {row.enabled !== false
-              && row.name
-              && enabledDefaultHeaderNames.has(row.name.toLowerCase()) && (
-              <HeaderHint
-                id={`request-header-conflict-hint-${row.uid}`}
-                text="Overrides Bruno's default header"
-                className="header-conflict-icon"
-                testId={`request-header-conflict-${row.name.toLowerCase()}`}
-                tooltipTestId={`request-header-conflict-tooltip-${row.name.toLowerCase()}`}
-                place="top-start"
-              >
-                <IconAlertTriangle size={16} strokeWidth={1.5} />
-              </HeaderHint>
-            )}
-          </div>
+          <SingleLineEditor
+            value={value || ''}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
+            autocomplete={headerAutoCompleteList}
+            onRun={handleRun}
+            collection={collection}
+            item={item}
+            placeholder={!value ? 'Name' : ''}
+          />
         );
       }
     },

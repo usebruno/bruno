@@ -1,4 +1,4 @@
-import { getInheritedHeaders } from './getInheritedHeaders';
+import { filterUnclaimedHeaders, getInheritedHeaders } from './getInheritedHeaders';
 
 const request = {
   uid: 'request-1',
@@ -95,5 +95,56 @@ describe('getInheritedHeaders', () => {
   it('omits disabled headers', () => {
     const inherited = getInheritedHeaders(collection, request);
     expect(inherited.some((header) => header.name === 'X-Disabled')).toBe(false);
+  });
+
+  it('omits names already set on the request', () => {
+    const inherited = getInheritedHeaders(collection, request, new Set(['x-token', 'X-Outer']));
+
+    expect(inherited.map((header) => header.name)).toEqual(['X-Shared', 'X-Dup']);
+  });
+
+  it('does not omit an inherited header for a prefix or unrelated request name', () => {
+    const inherited = getInheritedHeaders(collection, request, new Set(['x-tok', 'authorization']));
+
+    expect(inherited.map((header) => header.name)).toEqual([
+      'X-Shared',
+      'X-Dup',
+      'X-Outer',
+      'X-Token'
+    ]);
+  });
+
+  it('does not treat an empty request name as claimed', () => {
+    const inherited = getInheritedHeaders(collection, request, new Set(['']));
+
+    expect(inherited.map((header) => header.name)).toEqual([
+      'X-Shared',
+      'X-Dup',
+      'X-Outer',
+      'X-Token'
+    ]);
+  });
+
+  it('drops a default header when an inherited header already claims the name', () => {
+    const inherited = getInheritedHeaders(collection, request);
+    const visibleDefaults = filterUnclaimedHeaders(
+      [
+        { name: 'User-Agent' },
+        { name: 'Accept' },
+        { name: 'X-Token' }
+      ],
+      inherited.map((header) => header.name)
+    );
+
+    expect(visibleDefaults.map((header) => header.name)).toEqual(['User-Agent', 'Accept']);
+  });
+
+  it('keeps a default header when the claimed name is only a prefix', () => {
+    const visibleDefaults = filterUnclaimedHeaders(
+      [{ name: 'User-Agent' }, { name: 'Accept' }],
+      ['user', 'accept-']
+    );
+
+    expect(visibleDefaults.map((header) => header.name)).toEqual(['User-Agent', 'Accept']);
   });
 });

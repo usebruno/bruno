@@ -26,16 +26,18 @@ export const getInheritedHeaderSources = (collection, item) => {
   ];
 };
 
-// Nearest enabled value wins.
-export const getInheritedHeaders = (collection, item) => {
-  const claimedNames = new Set();
+// Nearest enabled value wins. `claimedNames` hides names already set on the request.
+export const getInheritedHeaders = (collection, item, claimedNames) => {
+  const claimed = new Set(
+    claimedNames ? [...claimedNames].map((name) => String(name).toLowerCase()) : []
+  );
 
   return getInheritedHeaderSources(collection, item).flatMap(({ headers, ...source }) => {
     const effectiveHeaders = new Map();
 
     headers.forEach((header) => {
       const normalizedName = header.name?.toLowerCase();
-      if (!header.enabled || !normalizedName || claimedNames.has(normalizedName)) {
+      if (!header.enabled || !normalizedName || claimed.has(normalizedName)) {
         return;
       }
 
@@ -48,8 +50,19 @@ export const getInheritedHeaders = (collection, item) => {
       });
     });
 
-    effectiveHeaders.forEach((_, normalizedName) => claimedNames.add(normalizedName));
+    effectiveHeaders.forEach((_, normalizedName) => claimed.add(normalizedName));
 
     return Array.from(effectiveHeaders.values());
+  });
+};
+
+export const filterUnclaimedHeaders = (headers, claimedNames) => {
+  const claimed = new Set(
+    claimedNames ? [...claimedNames].map((name) => String(name).toLowerCase()) : []
+  );
+
+  return headers.filter((header) => {
+    const normalizedName = header.name?.toLowerCase();
+    return normalizedName && !claimed.has(normalizedName);
   });
 };

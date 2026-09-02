@@ -49,11 +49,7 @@ export const buildRequestLocators = (page: Page) => ({
     addRow: () => page.getByTestId('request-header-add-row'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
-    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`),
-    defaultConflict: (name: string) => page.getByTestId(`default-header-conflict-${name.toLowerCase()}`),
-    requestConflict: (name: string) => page.getByTestId(`request-header-conflict-${name.toLowerCase()}`),
-    defaultConflictTooltip: (name: string) => page.getByTestId(`default-header-conflict-tooltip-${name.toLowerCase()}`),
-    requestConflictTooltip: (name: string) => page.getByTestId(`request-header-conflict-tooltip-${name.toLowerCase()}`)
+    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
   }
 });
 

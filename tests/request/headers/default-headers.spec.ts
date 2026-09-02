@@ -154,26 +154,42 @@ test('remembers an omitted default header while the request remains open', async
   });
 });
 
-test('shows conflict warnings and ToolHint messages for matching default and request headers', async ({ page, createTmpDir }) => {
-  await createCollection(page, 'default-headers-conflicts', await createTmpDir('default-headers-conflicts'));
-  await createRequest(page, 'request-1', 'default-headers-conflicts', { url: 'https://example.com' });
+test('does not hide a default header when the request name is only a prefix', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-prefix', await createTmpDir('default-headers-prefix'));
+  await createRequest(page, 'request-1', 'default-headers-prefix', { url: 'https://example.com' });
   await selectRequestPaneTab(page, 'Headers');
   const headers = await showInheritedHeaders(page);
 
-  await test.step('Add an explicit User-Agent request header', async () => {
-    await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');
-    await expect(headers.requestRow('User-Agent')).toBeVisible();
+  await test.step('Keep User-Agent after typing a prefix', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'User');
+    await expect(headers.requestRow('User')).toBeVisible();
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
+  });
+});
+
+test('hides a default header when the request defines the same name', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-precedence', await createTmpDir('default-headers-precedence'));
+  await createRequest(page, 'request-1', 'default-headers-precedence', { url: 'https://example.com' });
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Show the default User-Agent first', async () => {
+    await expect(headers.defaultRow('User-Agent')).toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
   });
 
-  await test.step('Show conflict warnings on both headers', async () => {
-    await expect(headers.defaultConflict('User-Agent')).toBeVisible();
-    await expect(headers.requestConflict('User-Agent')).toBeVisible();
+  await test.step('Hide the default after adding a request User-Agent', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');
+    await expect(headers.requestRow('User-Agent')).toBeVisible();
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
+    await expect(headers.defaultRow('Accept')).toBeVisible();
+  });
 
-    await headers.defaultConflict('User-Agent').hover();
-    await expect(headers.defaultConflictTooltip('User-Agent')).toHaveText('Overridden by a request header');
-
-    await headers.requestConflict('User-Agent').hover();
-    await expect(headers.requestConflictTooltip('User-Agent')).toHaveText('Overrides Bruno\'s default header');
+  await test.step('Keep duplicate request headers visible', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), 'User-Agent');
+    await expect(headers.requestRow('User-Agent')).toHaveCount(2);
+    await expect(headers.defaultRow('User-Agent')).not.toBeVisible();
   });
 });
 

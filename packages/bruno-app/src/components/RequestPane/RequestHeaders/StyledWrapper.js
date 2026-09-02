@@ -98,13 +98,6 @@ const Wrapper = styled.div`
     }
   }
 
-  .header-conflict-icon {
-    flex: 0 0 auto;
-    margin-left: 8px;
-    color: ${(props) => props.theme.status.warning.text};
-    cursor: help;
-  }
-
   .default-header-info {
     display: inline-flex;
     align-items: center;

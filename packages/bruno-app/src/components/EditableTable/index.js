@@ -69,11 +69,6 @@ const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
   }
 };
 
-const defaultIsRowEditable = () => true;
-const defaultIsCheckboxDisabled = () => false;
-const defaultGetRowClassName = () => '';
-const defaultGetRowTestId = () => undefined;
-
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
     const rowIndex = Number(rest['data-item-index']);
@@ -92,21 +87,21 @@ const TableRow = React.memo(
       flashedRowUid
     } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(item);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(item) ?? true);
     const isDragOver = canDrag && dragOverKey === item?.uid;
     const isBeingDragged = canDrag && draggingKey === item?.uid;
     const className = classnames(rest.className, {
       'drag-over': isDragOver,
       'dragging-source': isBeingDragged,
       'row-focus-flash': !!item?.uid && flashedRowUid === item.uid
-    }, getRowClassName(item));
+    }, getRowClassName?.(item));
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
       <tr
         {...rest}
         className={className}
-        data-testid={getRowTestId(item)}
+        data-testid={getRowTestId?.(item)}
         data-row-name={rowName || undefined}
         {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
       >
@@ -156,10 +151,10 @@ const EditableTable = ({
   onFocusRowHandled
 }) => {
   const {
-    isEditable: isRowEditable = defaultIsRowEditable,
-    isCheckboxDisabled = defaultIsCheckboxDisabled,
-    className: getRowClassName = defaultGetRowClassName,
-    testId: getRowTestId = defaultGetRowTestId,
+    isEditable: isRowEditable,
+    isCheckboxDisabled,
+    className: getRowClassName,
+    testId: getRowTestId,
     renderFullWidth: renderFullWidthRow,
     renderActionCell
   } = rowConfig;
@@ -315,7 +310,7 @@ const EditableTable = ({
 
     // Always keep one empty add-row under section/default rows.
     const lastRow = rows[rows.length - 1];
-    if (isRowEditable(lastRow) && !hasAnyValue(lastRow)) {
+    if ((isRowEditable?.(lastRow) ?? true) && !hasAnyValue(lastRow)) {
       return rows;
     }
 
@@ -369,7 +364,7 @@ const EditableTable = ({
 
     // Drop empty data rows; keep section/default rows. The add-row is rebuilt.
     const result = showAddRow
-      ? updatedRows.filter((row) => !isRowEditable(row) || hasAnyValue(row))
+      ? updatedRows.filter((row) => !(isRowEditable?.(row) ?? true) || hasAnyValue(row))
       : updatedRows;
 
     onChange(result);
@@ -394,7 +389,7 @@ const EditableTable = ({
   const handleRowReorder = useCallback((fromUid, toUid) => {
     if (!onReorder) return;
     const reorderableRows = (showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty)
-      .filter(isRowEditable);
+      .filter((row) => isRowEditable?.(row) ?? true);
     const fromIndex = reorderableRows.findIndex((row) => row.uid === fromUid);
     const toIndex = reorderableRows.findIndex((row) => row.uid === toUid);
     if (fromIndex === -1 || toIndex === -1) return;
@@ -603,7 +598,7 @@ const EditableTable = ({
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(row);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(row) ?? true);
     const fullWidthContent = renderFullWidthRow?.(row);
 
     if (fullWidthContent) {
@@ -640,7 +635,7 @@ const EditableTable = ({
                 className="mousetrap"
                 data-testid="column-checkbox"
                 checked={row[checkboxKey] ?? true}
-                disabled={disableCheckbox || isCheckboxDisabled(row)}
+                disabled={disableCheckbox || isCheckboxDisabled?.(row)}
                 onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
               />
             )}
@@ -671,7 +666,7 @@ const EditableTable = ({
                 return customAction;
               }
 
-              return !isEmpty && isRowEditable(row) && (
+              return !isEmpty && (isRowEditable?.(row) ?? true) && (
                 <button
                   data-testid="column-delete"
                   onClick={() => handleRemoveRow(row.uid)}
