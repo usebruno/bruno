@@ -61,7 +61,8 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
 
     root.meta = {
       name: info.name || 'Untitled Folder',
-      seq: info.seq || 1
+      seq: info.seq || 1,
+      ...(info.tags?.length ? { tags: info.tags } : {})
     };
 
     brunoFolder.root = root;
