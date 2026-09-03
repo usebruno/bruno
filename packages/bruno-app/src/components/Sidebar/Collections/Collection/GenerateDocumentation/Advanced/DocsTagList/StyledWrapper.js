@@ -55,11 +55,6 @@ export const StyledWrapper = styled.div`
     background-color: transparent;
     border: 1px solid ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
-    transition: background-color 0.15s ease;
-
-    &:has(.docs-tag-remove:hover) {
-      background-color: ${(props) => props.theme.background.surface2};
-    }
   }
 
   .docs-tag-icon {
@@ -81,15 +76,17 @@ export const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 0.125rem;
     background: none;
     border: none;
+    border-radius: ${(props) => props.theme.border.radius.base};
     cursor: pointer;
     color: ${(props) => props.theme.colors.text.subtext0};
     flex-shrink: 0;
 
     &:hover {
       color: ${(props) => props.theme.text};
+      background-color: ${(props) => props.theme.background.surface1};
     }
   }
 `;
