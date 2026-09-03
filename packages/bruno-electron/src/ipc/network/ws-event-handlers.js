@@ -17,10 +17,10 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const {
   getOAuth2TokenUsingPasswordCredentials,
   getOAuth2TokenUsingClientCredentials,
-  getOAuth2TokenUsingAuthorizationCode
+  getOAuth2TokenUsingAuthorizationCode,
+  applyOAuth2TokenToRequest
 } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
-const path = require('node:path');
 const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
@@ -92,9 +92,10 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   wsRequest = setAuthHeaders(wsRequest, request, collection);
 
+  let oauth2FetchedCredentials;
   if (wsRequest.oauth2) {
     const requestCopy = cloneDeep(wsRequest);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+    const { oauth2: { grantType, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
     let certsAndProxyConfigForTokenUrl = certsAndProxyConfig;
@@ -173,15 +174,6 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           debugInfo,
           folderUid: request.oauth2Credentials?.folderUid
         };
-        if (tokenPlacement == 'header') {
-          wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
-        }
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -204,15 +196,6 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           debugInfo,
           folderUid: request.oauth2Credentials?.folderUid
         };
-        if (tokenPlacement == 'header') {
-          wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
-        }
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -235,17 +218,9 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
           debugInfo,
           folderUid: request.oauth2Credentials?.folderUid
         };
-        if (tokenPlacement == 'header') {
-          wsRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-        } else {
-          try {
-            const url = new URL(request.url);
-            url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-            request.url = url?.toString();
-          } catch (error) {}
-        }
         break;
     }
+    oauth2FetchedCredentials = credentials;
   }
 
   // Add API key to the URL if placement is queryparams
@@ -276,7 +251,16 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   delete wsRequest.apiKeyAuthValueForQueryParams;
 
-  interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars);
+  interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars, collection?.promptVariables);
+
+  // The token is placed after interpolation: placing it earlier would run new URL() on raw
+  // {{var}} templates and percent-encode them beyond the interpolator's reach. The placement
+  // config is read back from wsRequest.oauth2 because interpolateVars resolves {{var}} in its
+  // fields (e.g. a templated header prefix) in place.
+  if (wsRequest.oauth2) {
+    const { tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource } = wsRequest.oauth2;
+    applyOAuth2TokenToRequest(wsRequest, { credentials: oauth2FetchedCredentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
+  }
 
   return wsRequest;
 };
