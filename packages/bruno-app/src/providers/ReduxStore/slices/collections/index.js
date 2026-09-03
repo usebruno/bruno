@@ -3773,6 +3773,7 @@ export const collectionsSlice = createSlice({
         annotateTransient(collection.items);
       }
       addDepth(collection.items);
+      collection.allTags = getUniqueTagsFromItems(collection.items);
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
