@@ -1,3 +1,4 @@
+const { interpolate: _interpolate } = require('@usebruno/common');
 const HeaderList = require('./header-list');
 
 class BrunoRequest {
@@ -14,7 +15,16 @@ class BrunoRequest {
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
    */
-  constructor(req) {
+  constructor(req, { envVariables, runtimeVariables, processEnvVars } = {}) {
+    this.envVariables = envVariables || {};
+    this.runtimeVariables = runtimeVariables || {};
+    this.processEnvVars = processEnvVars || {};
+    this.globalEnvironmentVariables = req?.globalEnvironmentVariables || {};
+    this.collectionVariables = req?.collectionVariables || {};
+    this.folderVariables = req?.folderVariables || {};
+    this.requestVariables = req?.requestVariables || {};
+    this.oauth2CredentialVariables = req?.oauth2CredentialVariables || {};
+    this.promptVariables = req?.promptVariables || {};
     this.req = req;
     this.url = req.url;
     this.method = req.method;
@@ -37,6 +47,31 @@ class BrunoRequest {
     }
   }
 
+  interpolate = (strOrObj) => {
+    if (!strOrObj) return strOrObj;
+    const isObj = typeof strOrObj === 'object';
+    const strToInterpolate = isObj ? JSON.stringify(strOrObj) : strOrObj;
+
+    const combinedVars = {
+      ...this.globalEnvironmentVariables,
+      ...this.collectionVariables,
+      ...this.envVariables,
+      ...this.folderVariables,
+      ...this.requestVariables,
+      ...this.oauth2CredentialVariables,
+      ...this.runtimeVariables,
+      ...this.promptVariables,
+      process: {
+        env: {
+          ...this.processEnvVars
+        }
+      }
+    };
+
+    const interpolatedStr = _interpolate(strToInterpolate, combinedVars);
+    return isObj ? JSON.parse(interpolatedStr) : interpolatedStr;
+  };
+
   getUrl() {
     return this.req.url;
   }
@@ -48,7 +83,7 @@ class BrunoRequest {
 
   getHost() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.interpolate(this.req.url));
       return url.host;
     } catch (e) {
       return '';
@@ -57,7 +92,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.interpolate(this.req.url));
       let pathname = url.pathname;
 
       // If path params exist, interpolate them into the pathname
@@ -75,7 +110,7 @@ class BrunoRequest {
                 && pathParam.value !== undefined
                 && (typeof pathParam.value !== 'string' || pathParam.value.trim() !== '')
               ) {
-                return pathParam.value;
+                return this.interpolate(pathParam.value);
               }
             }
             return segment;
@@ -91,7 +126,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.interpolate(this.req.url));
       // Return query string without the leading '?'
       return url.search ? url.search.substring(1) : '';
     } catch (e) {
