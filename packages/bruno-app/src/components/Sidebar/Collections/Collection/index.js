@@ -23,11 +23,12 @@ import {
   IconBook,
   IconServer,
   IconFileArrowRight,
-  IconAppWindow
+  IconAppWindow,
+  IconRefresh
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, reloadCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -243,6 +244,14 @@ const Collection = ({ collection, searchText, openBulkMenu }) => {
         type: 'collection-settings'
       })
     );
+  };
+
+  const handleReloadCollection = () => {
+    dispatch(reloadCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
   };
 
   const handleShowInFolder = () => {
@@ -537,6 +546,12 @@ const Collection = ({ collection, searchText, openBulkMenu }) => {
       leftSection: IconFoldDown,
       label: 'Collapse',
       onClick: handleCollapseFullCollection
+    },
+    {
+      id: 'reload',
+      leftSection: IconRefresh,
+      label: 'Reload',
+      onClick: handleReloadCollection
     },
     {
       id: 'show-in-folder',

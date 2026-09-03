@@ -297,6 +297,13 @@ export const collectionsSlice = createSlice({
         collection.isLoading = action.payload.isLoading;
       }
     },
+    resetCollectionForReload: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection.items = [];
+      collection.environments = [];
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -4098,6 +4105,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  resetCollectionForReload,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
   updateCollectionVersion,
