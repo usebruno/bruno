@@ -51,11 +51,6 @@ const parseListOption = (value) => {
     .filter(Boolean);
 };
 
-const findConflicts = (include, exclude) => {
-  const excluded = new Set(exclude);
-  return [...new Set(include)].filter((name) => excluded.has(name));
-};
-
 const pluralizeWord = (count, word) => `${word}${count === 1 ? '' : 's'}`;
 
 const stripRequestItems = (items = []) =>
@@ -74,7 +69,6 @@ module.exports = {
   rpad,
   parseDataFromResponse,
   parseListOption,
-  findConflicts,
   pluralizeWord,
   stripRequestItems
 };

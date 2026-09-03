@@ -7,7 +7,7 @@ const { brunoToOpenCollection } = require('@usebruno/converters');
 const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion } = require('@usebruno/common');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
 const { loadEnvironments } = require('../../utils/environment');
-const { parseListOption, findConflicts, pluralizeWord, stripRequestItems } = require('../../utils/common');
+const { parseListOption, pluralizeWord, stripRequestItems } = require('../../utils/common');
 const { getGitRemoteUrl } = require('../../utils/git');
 const { CLI_VERSION, EXIT_STATUS } = require('../../constants');
 
@@ -56,15 +56,6 @@ const builder = (yargs) => {
 };
 
 const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }) => {
-  const conflicting = findConflicts(includeEnvs, excludeEnvs);
-  if (conflicting.length > 0) {
-    return {
-      error: {
-        message: chalk.red(`${pluralizeWord(conflicting.length, 'Environment')} cannot be both included and excluded: `) + chalk.dim(conflicting.join(', ')),
-        exitCode: EXIT_STATUS.ERROR_GENERIC
-      }
-    };
-  }
   if (allEnvs && includeEnvs.length > 0) {
     return {
       error: {
@@ -74,7 +65,7 @@ const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }
     };
   }
   const availableEnvNames = new Set(environments.map((env) => env.name));
-  const missingEnvs = [...includeEnvs, ...excludeEnvs].filter((name) => !availableEnvNames.has(name));
+  const missingEnvs = includeEnvs.filter((name) => !availableEnvNames.has(name));
   if (missingEnvs.length > 0) {
     return {
       error: {
@@ -83,15 +74,13 @@ const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }
       }
     };
   }
+  const excluded = new Set(excludeEnvs);
   if (includeEnvs.length > 0) {
     const envByName = new Map(environments.map((env) => [env.name, env]));
-    return { environments: includeEnvs.map((name) => envByName.get(name)) };
+    return { environments: includeEnvs.filter((name) => !excluded.has(name)).map((name) => envByName.get(name)) };
   }
-  if (excludeEnvs.length > 0) {
-    const excluded = new Set(excludeEnvs);
-    return { environments: environments.filter((env) => !excluded.has(env.name)) };
-  }
-  return { environments: allEnvs ? environments : [] };
+  const base = allEnvs ? environments : [];
+  return { environments: base.filter((env) => !excluded.has(env.name)) };
 };
 
 const handler = async (argv) => {
@@ -115,11 +104,6 @@ const handler = async (argv) => {
     const excludeEnvs = [...new Set(parseListOption(argv.excludeEnvs))];
     const allEnvs = Boolean(argv.allEnvs);
 
-    const conflictingTags = findConflicts(includeTags, excludeTags);
-    if (conflictingTags.length > 0) {
-      console.error(chalk.red(`${pluralizeWord(conflictingTags.length, 'Tag')} cannot be both included and excluded: `) + chalk.dim(conflictingTags.join(', ')));
-      process.exit(EXIT_STATUS.ERROR_GENERIC);
-    }
     const envResolution = resolveEnvironments(collection.environments, { includeEnvs, excludeEnvs, allEnvs });
     if (envResolution.error) {
       console.error(envResolution.error.message);

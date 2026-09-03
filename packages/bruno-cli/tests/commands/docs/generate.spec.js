@@ -77,57 +77,6 @@ describe('bru docs generate', () => {
     expect(fs.existsSync(output)).toBe(true);
   });
 
-  it('lists every tag that is both included and excluded', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ gitLink: false, tags: 'smoke,wip,flaky', excludeTags: 'smoke,flaky' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('Tags cannot be both included and excluded');
-    expect(message).toContain('smoke');
-    expect(message).toContain('flaky');
-    expect(message).not.toContain('wip');
-  });
-
-  it('uses the singular in the tag conflict error when only one tag conflicts', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ gitLink: false, tags: 'smoke', excludeTags: 'smoke' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('Tag cannot be both included and excluded');
-    expect(message).not.toContain('Tags cannot');
-  });
-
-  it('lists every environment that is both included and excluded', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ gitLink: false, envs: 'Production,Staging', excludeEnvs: 'Production,Staging' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('Environments cannot be both included and excluded');
-    expect(message).toContain('Production');
-    expect(message).toContain('Staging');
-  });
-
-  it('uses the singular in the environment conflict error when only one environment conflicts', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ gitLink: false, envs: 'Production', excludeEnvs: 'Production' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 255);
-    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
-    expect(message).toContain('Environment cannot be both included and excluded');
-    expect(message).not.toContain('Environments cannot');
-  });
-
   it('exits with the invalid-file code when an environment file cannot be parsed', async () => {
     const exitSpy = mockExit();
     const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-badenv-'));
@@ -218,6 +167,14 @@ describe('bru docs generate: environment selection', () => {
     expect(html).not.toContain('Staging');
   });
 
+  it('drops an included environment that is also excluded, without erroring (exclude wins)', async () => {
+    const output = path.join(outDir, 'inc-exc.html');
+    await generate.handler({ output, gitLink: false, envs: 'Production,Staging', excludeEnvs: 'Staging' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).not.toContain('Staging');
+  });
+
   it('accepts repeated env flags (an array of names) and embeds each', async () => {
     const output = path.join(outDir, 'repeat.html');
     await generate.handler({ output, gitLink: false, envs: ['Production', 'Staging'] });
@@ -234,9 +191,9 @@ describe('bru docs generate: environment selection', () => {
     expect(html).toContain('Staging');
   });
 
-  it('accepts repeated exclude-env flags (an array of names)', async () => {
+  it('accepts repeated exclude-env flags (an array of names) alongside --all-envs', async () => {
     const output = path.join(outDir, 'exclude-repeat.html');
-    await generate.handler({ output, gitLink: false, excludeEnvs: ['Production'] });
+    await generate.handler({ output, gitLink: false, allEnvs: true, excludeEnvs: ['Production'] });
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('Staging');
     expect(html).not.toContain('Production');
@@ -265,12 +222,12 @@ describe('bru docs generate: environment selection', () => {
     expect((html.match(/name: Production/g) || []).length).toBe(1);
   });
 
-  it('includes every environment except the ones in --exclude-envs', async () => {
-    const output = path.join(outDir, 'exclude.html');
+  it('embeds no environments when only --exclude-envs is given (exclude needs a base set)', async () => {
+    const output = path.join(outDir, 'exclude-only.html');
     await generate.handler({ output, gitLink: false, excludeEnvs: 'Production' });
     const html = fs.readFileSync(output, 'utf8');
-    expect(html).toContain('Staging');
     expect(html).not.toContain('Production');
+    expect(html).not.toContain('Staging');
   });
 
   it('embeds every environment with --all-envs', async () => {
@@ -326,13 +283,12 @@ describe('bru docs generate: environment selection', () => {
     expect(message).toContain('NopeTwo');
   });
 
-  it('errors when --exclude-envs names an environment that does not exist', async () => {
-    const exitSpy = mockExit();
-
-    await expect(
-      generate.handler({ output: path.join(outDir, 'y.html'), gitLink: false, excludeEnvs: 'DoesNotExist' })
-    ).rejects.toThrow();
-    expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+  it('ignores an excluded environment that does not exist (no error)', async () => {
+    const output = path.join(outDir, 'exclude-missing.html');
+    await generate.handler({ output, gitLink: false, allEnvs: true, excludeEnvs: 'DoesNotExist' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('Production');
+    expect(html).toContain('Staging');
   });
 });
 
@@ -379,6 +335,13 @@ describe('bru docs generate: tag filtering', () => {
     const html = fs.readFileSync(output, 'utf8');
     expect(html).toContain('SmokeReq');
     expect(html).not.toContain('PlainReq');
+  });
+
+  it('excludes a request whose tag is in both include and exclude without erroring (exclude wins, matches bru run)', async () => {
+    const output = path.join(outDir, 'overlap.html');
+    await generate.handler({ output, gitLink: false, tags: 'smoke', excludeTags: 'smoke' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).not.toContain('SmokeReq');
   });
 
   it('drops the requests that have the excluded tag and keeps the others', async () => {
@@ -656,7 +619,11 @@ describe('resolveEnvironments', () => {
   });
 
   it('selects every environment with allEnvs', () => {
-    expect(generate.resolveEnvironments(envs, opts({ allEnvs: true })).environments).toBe(envs);
+    expect(generate.resolveEnvironments(envs, opts({ allEnvs: true })).environments.map((e) => e.name)).toEqual([
+      'Prod',
+      'Dev',
+      'QA'
+    ]);
   });
 
   it('keeps only the included environments, in the order given', () => {
@@ -664,15 +631,25 @@ describe('resolveEnvironments', () => {
     expect(result.environments.map((e) => e.name)).toEqual(['QA', 'Prod']);
   });
 
-  it('keeps every environment except the excluded ones', () => {
-    const result = generate.resolveEnvironments(envs, opts({ excludeEnvs: ['Dev'] }));
+  it('embeds nothing when only excludeEnvs is given (exclude needs a base)', () => {
+    expect(generate.resolveEnvironments(envs, opts({ excludeEnvs: ['Dev'] })).environments).toEqual([]);
+  });
+
+  it('with allEnvs, drops the excluded environments from the full set', () => {
+    const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, excludeEnvs: ['Dev'] }));
     expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'QA']);
   });
 
-  it('errors when an environment is both included and excluded', () => {
-    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod'], excludeEnvs: ['Prod'] }));
-    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_GENERIC);
-    expect(result.error.message).toContain('cannot be both included and excluded');
+  it('leaves the include list intact when the excludes are not among them (no error even if they do not exist)', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod', 'Dev', 'QA'], excludeEnvs: ['Nope'] }));
+    expect(result.error).toBeUndefined();
+    expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'Dev', 'QA']);
+  });
+
+  it('drops an included environment that is also excluded (exclude wins, no error)', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod', 'Dev', 'QA'], excludeEnvs: ['Dev'] }));
+    expect(result.error).toBeUndefined();
+    expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'QA']);
   });
 
   it('errors when allEnvs is combined with an include list', () => {

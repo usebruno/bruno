@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 const { hasExecutableTestInScript } = require('../../src/utils/request');
-const { parseListOption, findConflicts, pluralizeWord, stripRequestItems } = require('../../src/utils/common');
+const { parseListOption, pluralizeWord, stripRequestItems } = require('../../src/utils/common');
 
 describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
@@ -341,25 +341,6 @@ describe('parseListOption', () => {
     expect(parseListOption(['Prod Env'])).toEqual(['Prod Env']);
     expect(parseListOption('Prod Env, Staging Env')).toEqual(['Prod Env', 'Staging Env']);
     expect(parseListOption([' Prod Env '])).toEqual(['Prod Env']);
-  });
-});
-
-describe('findConflicts', () => {
-  it('returns an empty array when nothing appears in both lists', () => {
-    expect(findConflicts(['a', 'b'], ['c', 'd'])).toEqual([]);
-  });
-
-  it('returns an empty array when either list is empty', () => {
-    expect(findConflicts([], ['a'])).toEqual([]);
-    expect(findConflicts(['a'], [])).toEqual([]);
-  });
-
-  it('returns every value that appears in both lists', () => {
-    expect(findConflicts(['a', 'b', 'c'], ['c', 'b'])).toEqual(['b', 'c']);
-  });
-
-  it('lists each conflict once even when the include list repeats it', () => {
-    expect(findConflicts(['a', 'a', 'b'], ['a', 'b'])).toEqual(['a', 'b']);
   });
 });
 
