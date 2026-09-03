@@ -29,7 +29,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES, SCOPE_ICON } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -98,6 +98,23 @@ const getScopeLabel = (scopeType) => {
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
+};
+
+const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
+  scopeBadge.innerHTML = '';
+
+  const scopeIcon = SCOPE_ICON[scopeType];
+  if (scopeIcon) {
+    const icon = document.createElement('span');
+    icon.className = 'var-scope-badge-icon';
+    icon.innerHTML = scopeIcon;
+    scopeBadge.appendChild(icon);
+  }
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'var-scope-badge-label';
+  labelSpan.textContent = label;
+  scopeBadge.appendChild(labelSpan);
 };
 
 const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
@@ -377,6 +394,7 @@ export const renderVarInfo = (token, options) => {
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+
   const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
 
   // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
@@ -397,7 +415,7 @@ export const renderVarInfo = (token, options) => {
 
   header.appendChild(varName);
 
-  scopeBadge.textContent = scopeLabel;
+  setScopeBadgeContent(scopeBadge, displayScopeType, scopeLabel);
   header.appendChild(scopeBadge);
 
   into.appendChild(header);
@@ -784,7 +802,8 @@ export const renderVarInfo = (token, options) => {
         (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
       )?.name;
       const addToScopes = getAvailableAddToScopes({
-        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
+        // add activeEnvironmentUid only if activeEnvironmentName is there with the active id
+        activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
         activeEnvironmentName,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         activeGlobalEnvironmentName,
@@ -802,7 +821,7 @@ export const renderVarInfo = (token, options) => {
       // This can happen if adding variable in Global Table where collection is not available.
       if (initialScope && initialScope.type !== scopeInfo.type) {
         scopeInfo = buildScopeInfoForSwitch(initialScope);
-        scopeBadge.textContent = getScopeLabel(initialScope.type);
+        setScopeBadgeContent(scopeBadge, initialScope.type, getScopeLabel(initialScope.type));
       }
 
       const removeAddToSwitcher = () => {
@@ -831,7 +850,7 @@ export const renderVarInfo = (token, options) => {
             const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
             if (updatedScopeInfo) {
               scopeInfo = updatedScopeInfo;
-              scopeBadge.textContent = getScopeLabel(updatedScopeInfo.type);
+              setScopeBadgeContent(scopeBadge, updatedScopeInfo.type, getScopeLabel(updatedScopeInfo.type));
             }
 
             const interpolatedValue = interpolate(value, allVariables);
@@ -845,20 +864,13 @@ export const renderVarInfo = (token, options) => {
           });
       };
 
-      const onSwitchScope = (scope, { immediate = false } = {}) => {
+      const onSwitchScope = (scope) => {
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
         }
         scopeInfo = newScopeInfo;
-        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
-
-        // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
-        if (immediate) {
-          persistNewVariable(getPendingSecret()).catch((err) => {
-            toast.error(err?.message || 'Failed to save variable');
-          });
-        }
+        setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
       };
 
       const onCreateEnvironment = (scope, name) => {

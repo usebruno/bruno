@@ -264,7 +264,7 @@ describe('CodeEditor', () => {
   });
 
   it('loads a normal external value before restoring enhanced features', () => {
-    const { rerender } = setupEditorWithRef({
+    const { rerender, queryByTestId } = setupEditorWithRef({
       value: 'x'.repeat(LONG_LINE_LIMIT + 1),
       mode: 'application/json'
     });
@@ -280,13 +280,13 @@ describe('CodeEditor', () => {
     expect(editor.setValue).toHaveBeenCalledWith('short');
     expect(editor.setValue.mock.invocationCallOrder[0])
       .toBeLessThan(editor.setOption.mock.invocationCallOrder[modeCallIndex]);
+    expect(queryByTestId('editor-status-bar')).not.toBeInTheDocument();
   });
 
-  it('shows the size and mode in the status bar, with no toggle for short content', () => {
+  it('hides the status bar for short content', () => {
     const view = setupEditorWithRef({ value: 'short', mode: 'application/json' });
 
-    expect(view.getByTestId('editor-status-bar')).toHaveTextContent('json mode');
-    expect(view.queryByTestId('editor-status-bar-toggle')).not.toBeInTheDocument();
+    expect(view.queryByTestId('editor-status-bar')).not.toBeInTheDocument();
   });
 
   describe('link-aware reconfiguration', () => {

@@ -18,6 +18,7 @@ import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+import { buildResponseExampleLocators } from './response-example';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -41,6 +42,7 @@ export const buildCommonLocators = (page: Page) => ({
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
+  responseExample: buildResponseExampleLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -165,6 +167,7 @@ export const buildCommonLocators = (page: Page) => ({
     // The "Add to" switcher, shown in place of an editable value for undefined variables.
     addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
     addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToList: (popup: Locator) => popup.getByTestId('var-info-add-to-list'),
     addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
     addToActiveOption: (popup: Locator, scopeType?: string) => {
       const activeRow = popup.locator('.var-add-to-option-active');
@@ -240,7 +243,7 @@ export const buildCommonLocators = (page: Page) => ({
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
-    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
+    gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
@@ -268,8 +271,10 @@ export const buildCommonLocators = (page: Page) => ({
     // every still-collapsed node regardless of depth.
     xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
     previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
-    // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
-    testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
+    tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
+    tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
+    testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+      page.getByTestId(`test-summary-${section}`),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
     // label spans, so each failure counts once, not twice.
     testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),

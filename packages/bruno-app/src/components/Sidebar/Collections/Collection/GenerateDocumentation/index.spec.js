@@ -128,11 +128,30 @@ describe('GenerateDocumentation', () => {
     renderModal(buildCollection());
 
     fireEvent.click(screen.getByTestId('docs-advanced-toggle'));
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByTestId('docs-git-link-toggle').querySelector('input[type="checkbox"]'));
 
     fireEvent.click(screen.getByTestId('generate-btn'));
 
     const [, options] = generateApiDocsHtml.mock.calls[0];
     expect(options.gitCollectionUrl).toBeUndefined();
+  });
+
+  it('hides the git repo URL toggle when the collection has no git url', () => {
+    mockGitRemote = { gitCollectionUrl: null, isResolved: true };
+    renderModal(buildCollection());
+
+    fireEvent.click(screen.getByTestId('docs-advanced-toggle'));
+
+    expect(screen.queryByTestId('docs-git-link')).not.toBeInTheDocument();
+  });
+
+  it('shows the git repo URL toggle switched on by default when a git url is present', () => {
+    mockGitRemote = { gitCollectionUrl: 'https://github.com/org/repo.git', isResolved: true };
+    renderModal(buildCollection());
+
+    fireEvent.click(screen.getByTestId('docs-advanced-toggle'));
+
+    expect(screen.getByTestId('docs-git-link')).toBeInTheDocument();
+    expect(screen.getByTestId('docs-git-link-toggle').querySelector('input[type="checkbox"]')).toBeChecked();
   });
 });

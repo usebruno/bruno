@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
+import { EmptyStateRequestType } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -385,6 +386,51 @@ const setRequestTypePreset = async (page: Page, collectionName: string, requestT
 
     // the settings tab keeps a draft indicator until the presets are persisted
     await expect(locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab())).toBeHidden();
+  });
+};
+
+/**
+ * Set the Base URL preset for a collection.
+ * New requests created in the collection inherit this as their starting URL.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestUrl - The Base URL to save as the preset
+ * @returns void
+ */
+const setRequestUrlPreset = async (page: Page, collectionName: string, requestUrl: string) => {
+  await test.step(`Set the Base URL preset to "${requestUrl}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollectionSettings(page, collectionName);
+    await selectCollectionPaneTab(page, 'presets');
+
+    const urlInput = locators.presets.requestUrl();
+    await urlInput.waitFor({ state: 'visible' });
+    await urlInput.fill(requestUrl);
+    await locators.presets.saveBtn().click();
+
+    await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Create a request from the "+ Add request" CTA shown inside an empty collection.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestType - The request type to pick from the CTA menu (defaults to http)
+ * @returns void
+ */
+const createRequestFromEmptyStateCta = async (
+  page: Page,
+  collectionName: string,
+  requestType: EmptyStateRequestType = 'http'
+) => {
+  await test.step(`Create a ${requestType} request from the "+ Add request" CTA`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+
+    await sidebar.collection(collectionName).click();
+    await sidebar.emptyStateCta(collectionName).click();
+    await sidebar.emptyStateCtaItem(requestType).click();
   });
 };
 
@@ -1548,7 +1594,7 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     //   .toBe(true);
 
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.locator('.tabs .more-tabs');
+    const overflowButton = pane.getByTestId('responsive-tabs-more');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
     // the overflow trigger can detach mid-click. Retry the whole sequence so a
@@ -1577,6 +1623,20 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 
 const selectResponsePaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectResponsePaneTabViaOverflow = async (page: Page, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in [data-testid="response-pane"] via overflow`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = page.getByTestId('response-pane').locator('.tabs').getByRole('tab', { name: tabName });
+
+    // The overflow button/dropdown can detach mid-click as the tab bar recalculates layout.
+    await expect(async () => {
+      await locators.response.tabsOverflowButton().click({ timeout: 2000 });
+      await locators.response.tabsOverflowItem(tabName).click({ timeout: 2000 });
+      await expect(tab).toContainClass('active', { timeout: 2000 });
+    }).toPass({ timeout: 15000 });
+  });
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
@@ -3201,6 +3261,8 @@ export {
   createTransientRequest,
   createTransientRequestFromPreset,
   setRequestTypePreset,
+  setRequestUrlPreset,
+  createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
   deleteCollectionFromOverview,
@@ -3241,6 +3303,7 @@ export {
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
+  selectResponsePaneTabViaOverflow,
   mockBrowseFiles,
   addMultipartFileToLastRow,
   removeFirstMultipartFile,
