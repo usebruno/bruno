@@ -1,0 +1,19 @@
+info:
+  name: set-global-env-var
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: '{{workspace_host}}/ping'
+  auth: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setGlobalEnvVar('workspace_base_only', 'from_workspace_base');
+        bru.setGlobalEnvVar('workspace_session_id', 'script_session');
+
+settings:
+  encodeUrl: true

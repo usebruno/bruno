@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, orderEnvironmentsByInheritance, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR, generateCopyName } from './environments';
 import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
@@ -137,6 +137,55 @@ describe('applyScriptEnvVars', () => {
       });
     });
 
+    it('keeps an appended override secret when the script rewrote an inherited secret', () => {
+      const result = applyScriptEnvVars(
+        [v('host', 'h')],
+        { host: 'h', token: 'rotated' },
+        null,
+        { inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    // A child plain row shadows the parent's secret rather than replacing it, so the parent secret
+    // stays inherited and the rotated value lands on that plain row — in cleartext, without this.
+    it('turns a plain row shadowing an inherited secret into a secret when the script rotates it', () => {
+      const result = applyScriptEnvVars(
+        [v('token', 'dev-placeholder')],
+        { token: 'rotated' },
+        null,
+        { inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    it('leaves a plain row shadowing an inherited secret alone when the script did not write it', () => {
+      const result = applyScriptEnvVars(
+        [v('token', 'dev-placeholder')],
+        { token: 'dev-placeholder' },
+        null,
+        { skipKeys: ['token'], inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }] }
+      );
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'dev-placeholder',
+        secret: false
+      });
+    });
+
     it('removes enabled variables missing from scriptVars (script deleted them)', () => {
       const result = applyScriptEnvVars([v('host', 'h'), v('stale', 'remove-me')], { host: 'h' }, null);
       expect(result).toHaveLength(1);
@@ -219,6 +268,40 @@ describe('applyScriptEnvVars', () => {
       expect(result.find((x) => x.name === 'fresh')).toMatchObject({
         name: 'fresh',
         value: 'from-script',
+        enabled: true
+      });
+    });
+
+    it('keeps an added override secret when the script rewrote an inherited secret', () => {
+      const draftVars = [v('host', 'h')];
+      const baseline = { host: 'h' };
+      const scriptVars = { host: 'h', token: 'rotated' };
+
+      const result = applyScriptEnvVars(draftVars, scriptVars, baseline, {
+        inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }]
+      });
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
+        enabled: true
+      });
+    });
+
+    it('turns a plain row shadowing an inherited secret into a secret when the script rotates it', () => {
+      const draftVars = [v('token', 'dev-placeholder')];
+      const baseline = { token: 'dev-placeholder' };
+      const scriptVars = { token: 'rotated' };
+
+      const result = applyScriptEnvVars(draftVars, scriptVars, baseline, {
+        inheritedVariables: [{ name: 'token', value: 'parent-secret', secret: true }]
+      });
+
+      expect(result.find((x) => x.name === 'token')).toMatchObject({
+        name: 'token',
+        value: 'rotated',
+        secret: true,
         enabled: true
       });
     });
@@ -403,6 +486,22 @@ describe('applyScriptEnvVars', () => {
     it('preserves secret: true in direct-apply (no baseline) mode', () => {
       const result = applyScriptEnvVars([secretVar('apiToken', 'old')], { apiToken: 'new' }, null);
       expect(result[0]).toMatchObject({ name: 'apiToken', value: 'new', secret: true });
+    });
+
+    // The write lands on a freshly appended row, since a disabled row is never a write target.
+    // Appended as a plain row it would put the secret in the environment file in cleartext.
+    it('appends the write to a disabled secret row as a secret (direct-apply)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, null);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
+    });
+
+    it('appends the write to a disabled secret row as a secret (baseline mode)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, {});
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
     });
   });
 });
@@ -712,5 +811,59 @@ describe('generateCopyName', () => {
   it('treats an existing name as taken even when it differs only by case or whitespace', () => {
     const existing = ['production', ' Production copy  '];
     expect(generateCopyName('Production', existing)).toEqual('Production copy 2');
+  });
+});
+
+describe('orderEnvironmentsByInheritance', () => {
+  const env = (name, extendsFrom) => ({ name, extends: extendsFrom });
+
+  it('places a parent before the child that inherits from it', () => {
+    const dev = env('dev', 'base');
+    const base = env('base');
+
+    expect(orderEnvironmentsByInheritance([dev, base])).toEqual([base, dev]);
+  });
+
+  it('orders a whole chain root first', () => {
+    const leaf = env('leaf', 'middle');
+    const middle = env('middle', 'root');
+    const root = env('root');
+
+    expect(orderEnvironmentsByInheritance([leaf, middle, root])).toEqual([root, middle, leaf]);
+  });
+
+  it('keeps the input order when no environment inherits from another', () => {
+    const first = env('first');
+    const second = env('second');
+
+    expect(orderEnvironmentsByInheritance([first, second])).toEqual([first, second]);
+  });
+
+  it('keeps a reference to an environment outside the set in place', () => {
+    const dev = env('dev', 'NotImported');
+    const other = env('other');
+
+    expect(orderEnvironmentsByInheritance([dev, other])).toEqual([dev, other]);
+  });
+
+  it('returns every environment exactly once for a cyclic pair', () => {
+    const first = env('first', 'second');
+    const second = env('second', 'first');
+
+    expect(orderEnvironmentsByInheritance([first, second])).toHaveLength(2);
+  });
+
+  it('keeps both environments that share a name', () => {
+    const first = env('dev');
+    const second = env('dev');
+
+    expect(orderEnvironmentsByInheritance([first, second])).toEqual([first, second]);
+  });
+
+  it('ignores a list-shaped reference, which no resolver follows', () => {
+    const dev = { name: 'dev', extends: ['base'] };
+    const base = env('base');
+
+    expect(orderEnvironmentsByInheritance([dev, base])).toEqual([dev, base]);
   });
 });

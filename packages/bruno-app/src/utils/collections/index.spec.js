@@ -177,32 +177,147 @@ describe('getCollectionVersion', () => {
 });
 
 describe('getVariableScope — global environment secrets', () => {
-  it('flags a global-scoped variable as secret when its name is in globalEnvSecrets', () => {
-    const collection = {
-      globalEnvironmentVariables: { apiToken: 'super-secret' },
-      globalEnvSecrets: ['apiToken']
-    };
+  const buildCollection = (variables) => ({
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [{ uid: 'genv-1', name: 'Workspace', variables }]
+  });
 
-    const scopeInfo = getVariableScope('apiToken', collection, null);
+  it('flags a global-scoped variable as secret when its row is marked secret', () => {
+    const variable = { uid: 'v1', name: 'apiToken', value: 'super-secret', enabled: true, secret: true };
+
+    const scopeInfo = getVariableScope('apiToken', buildCollection([variable]), null);
 
     expect(scopeInfo).toEqual({
       type: 'global',
       value: 'super-secret',
-      data: { variableName: 'apiToken', value: 'super-secret', variable: { name: 'apiToken', secret: true } }
+      data: { variableName: 'apiToken', value: 'super-secret', variable }
     });
     expect(isVariableSecret(scopeInfo)).toBe(true);
   });
 
-  it('does not flag a global-scoped variable as secret when its name is not in globalEnvSecrets', () => {
+  it('does not flag a global-scoped variable as secret when its row is not marked secret', () => {
+    const variable = { uid: 'v1', name: 'baseUrl', value: 'https://api.example.com', enabled: true, secret: false };
+
+    const scopeInfo = getVariableScope('baseUrl', buildCollection([variable]), null);
+
+    expect(scopeInfo.data.variable).toEqual(variable);
+    expect(isVariableSecret(scopeInfo)).toBe(false);
+  });
+});
+
+describe('getVariableScope — global environment inheritance', () => {
+  const buildCollection = () => ({
+    activeGlobalEnvironmentUid: 'genv-dev',
+    globalEnvironments: [
+      {
+        uid: 'genv-base',
+        name: 'workspace_base',
+        variables: [{ uid: 'v1', name: 'host', value: 'http://base.example.com', enabled: true, secret: false }]
+      },
+      {
+        uid: 'genv-dev',
+        name: 'workspace_dev',
+        extends: 'workspace_base',
+        variables: [{ uid: 'v2', name: 'token', value: 'dev-token', enabled: true, secret: false }]
+      }
+    ]
+  });
+
+  it('names the ancestor a variable is inherited from', () => {
+    const scopeInfo = getVariableScope('host', buildCollection(), null);
+
+    expect(scopeInfo.type).toBe('global');
+    expect(scopeInfo.value).toBe('http://base.example.com');
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'genv-base', name: 'workspace_base' });
+  });
+
+  it('leaves a variable the active global environment owns unmarked', () => {
+    const scopeInfo = getVariableScope('token', buildCollection(), null);
+
+    expect(scopeInfo.type).toBe('global');
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('leaves a variable unmarked when the environment redeclares the name it inherits', () => {
+    const collection = buildCollection();
+    collection.globalEnvironments[1].variables.push({
+      uid: 'v3',
+      name: 'host',
+      value: 'http://dev.example.com',
+      enabled: true,
+      secret: false
+    });
+
+    const scopeInfo = getVariableScope('host', collection, null);
+
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+});
+
+describe('getVariableScope — secrets win over plain variables across inheritance', () => {
+  const buildCollection = ({ inheritedSecret, ownSecret }) => ({
+    activeEnvironmentUid: 'env-dev',
+    environments: [
+      {
+        uid: 'env-base',
+        name: 'base',
+        variables: [{ uid: 'v1', name: 'apiToken', value: 'base-token', enabled: true, secret: inheritedSecret }]
+      },
+      {
+        uid: 'env-dev',
+        name: 'dev',
+        extends: 'base',
+        variables: [{ uid: 'v2', name: 'apiToken', value: 'dev-token', enabled: true, secret: ownSecret }]
+      }
+    ]
+  });
+
+  it('resolves to the inherited secret when the active environment declares the name as a plain variable', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: true, ownSecret: false }), null);
+
+    expect(scopeInfo.value).toBe('base-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'env-base', name: 'base' });
+  });
+
+  it('resolves to the active environment\'s secret when the inherited declaration is plain', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: false, ownSecret: true }), null);
+
+    expect(scopeInfo.value).toBe('dev-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('resolves to the active environment when both declarations are equally secret', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: true, ownSecret: true }), null);
+
+    expect(scopeInfo.value).toBe('dev-token');
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('resolves a global-scoped name to the inherited secret over the active plain declaration', () => {
     const collection = {
-      globalEnvironmentVariables: { baseUrl: 'https://api.example.com' },
-      globalEnvSecrets: ['apiToken']
+      activeGlobalEnvironmentUid: 'genv-dev',
+      globalEnvironments: [
+        {
+          uid: 'genv-base',
+          name: 'workspace_base',
+          variables: [{ uid: 'v1', name: 'apiToken', value: 'base-token', enabled: true, secret: true }]
+        },
+        {
+          uid: 'genv-dev',
+          name: 'workspace_dev',
+          extends: 'workspace_base',
+          variables: [{ uid: 'v2', name: 'apiToken', value: 'dev-token', enabled: true, secret: false }]
+        }
+      ]
     };
 
-    const scopeInfo = getVariableScope('baseUrl', collection, null);
+    const scopeInfo = getVariableScope('apiToken', collection, null);
 
-    expect(scopeInfo.data.variable).toEqual({ name: 'baseUrl', secret: false });
-    expect(isVariableSecret(scopeInfo)).toBe(false);
+    expect(scopeInfo.value).toBe('base-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'genv-base', name: 'workspace_base' });
   });
 });
 
@@ -380,6 +495,30 @@ describe('getEnvironmentVariablesMasked', () => {
   it('returns an empty array when there is no active environment', () => {
     expect(getEnvironmentVariablesMasked({ activeEnvironmentUid: null, environments: [] })).toEqual([]);
   });
+
+  it('masks secrets inherited from a parent environment', () => {
+    const names = getEnvironmentVariablesMasked({
+      activeEnvironmentUid: 'env-child',
+      environments: [
+        {
+          uid: 'env-parent',
+          name: 'Base',
+          variables: [
+            { name: 'PARENT_SECRET', value: 'parent-secret', enabled: true, secret: true },
+            { name: 'PARENT_PLAIN', value: 'parent-plain', enabled: true, secret: false }
+          ]
+        },
+        {
+          uid: 'env-child',
+          name: 'Staging',
+          extends: 'Base',
+          variables: [{ name: 'CHILD_SECRET', value: 'child-secret', enabled: true, secret: true }]
+        }
+      ]
+    });
+
+    expect(names.sort()).toEqual(['CHILD_SECRET', 'PARENT_SECRET']);
+  });
 });
 
 describe('resolveEnabledVariable — precedence matches getEnvironmentVariables interpolation', () => {
@@ -515,5 +654,96 @@ describe('getSelectionInfo', () => {
 
     expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
     expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+});
+
+describe('getEnvironmentVariables', () => {
+  const collection = {
+    activeEnvironmentUid: 'env-dev',
+    environments: [
+      {
+        uid: 'env-base',
+        name: 'base',
+        variables: [
+          { name: 'host', value: 'http://localhost:8081', enabled: true, secret: false },
+          { name: 'api_url', value: 'https://base.example.com', enabled: true, secret: false },
+          { name: 'base_only', value: 'base_only_value', enabled: true, secret: false },
+          { name: 'api_key', value: 'plain_api_key', enabled: true, secret: false },
+          { name: 'shadowed_by_disabled', value: 'from_base', enabled: true, secret: false },
+          { name: 'overridden_plain', value: 'plain_from_base', enabled: true, secret: false },
+          { name: 'disabled_in_base', value: 'should_not_resolve', enabled: false, secret: false },
+          { name: 'base_token', value: 'token-from-base', enabled: true, secret: true },
+          { name: 'overridden_secret', value: 'secret-from-base', enabled: true, secret: true }
+        ]
+      },
+      {
+        uid: 'env-dev',
+        name: 'dev',
+        extends: 'base',
+        variables: [
+          { name: 'api_url', value: 'https://dev.example.com', enabled: true, secret: false },
+          { name: 'dev_only', value: 'dev_only_value', enabled: true, secret: false },
+          { name: 'shadowed_by_disabled', value: 'never_applied', enabled: false, secret: false },
+          { name: 'overridden_secret', value: 'plain_wins_in_dev', enabled: true, secret: false },
+          { name: 'overridden_plain', value: '', enabled: true, secret: true }
+        ]
+      },
+      {
+        uid: 'env-staging',
+        name: 'staging',
+        extends: 'base',
+        variables: [{ name: 'api_key', value: 'api-key-from-staging', enabled: true, secret: true }]
+      },
+      {
+        uid: 'env-qa',
+        name: 'qa',
+        extends: 'staging',
+        variables: [{ name: 'api_url', value: 'https://qa.example.com', enabled: true, secret: false }]
+      }
+    ]
+  };
+
+  const variablesFor = (environmentUid) =>
+    getEnvironmentVariables({ ...collection, activeEnvironmentUid: environmentUid });
+
+  it('resolves inherited variables alongside the own rows that override them', () => {
+    const variables = variablesFor('env-dev');
+
+    expect(variables.host).toBe('http://localhost:8081');
+    expect(variables.base_only).toBe('base_only_value');
+    expect(variables.dev_only).toBe('dev_only_value');
+    expect(variables.api_url).toBe('https://dev.example.com');
+  });
+
+  it('ignores a disabled row on either side of the merge', () => {
+    const variables = variablesFor('env-dev');
+
+    expect(variables).not.toHaveProperty('disabled_in_base');
+    // `dev` declares this name too, but disabled, so the inherited row still applies.
+    expect(variables.shadowed_by_disabled).toBe('from_base');
+  });
+
+  it('resolves a secret inherited from either ancestor of a three-level chain', () => {
+    const variables = variablesFor('env-qa');
+
+    expect(variables.base_token).toBe('token-from-base');
+    // `base` declares `api_key` plain and `staging` redeclares it secret, so both are
+    // inherited by `qa` — the secret is the one that must reach the request.
+    expect(variables.api_key).toBe('api-key-from-staging');
+  });
+
+  it('resolves a name declared on both sides of the secret split to the secret', () => {
+    const variables = variablesFor('env-dev');
+
+    // `dev` redeclares the secret `overridden_secret` it inherits as a non-secret, and the
+    // non-secret `overridden_plain` as a secret. Both ancestor rows survive the redeclaration,
+    // and in each pair the secret is the one that wins.
+    expect(variables.overridden_secret).toBe('secret-from-base');
+    expect(variables.overridden_plain).toBe('');
+  });
+
+  it('returns no variables without a collection or an active environment', () => {
+    expect(getEnvironmentVariables(null)).toEqual({});
+    expect(variablesFor(null)).toEqual({});
   });
 });

@@ -4,7 +4,7 @@ import importPostmanEnvironment from 'utils/importers/postman-environment';
 import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { toastError } from 'utils/common/error';
-import { generateCopyName, normalizeEnvName } from 'utils/environments';
+import { generateCopyName, normalizeEnvName, orderEnvironmentsByInheritance } from 'utils/environments';
 import { detectEnvironmentFormat, RESOLUTION_TYPES } from '../../utils';
 import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
@@ -27,11 +27,24 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
 
     const isNameDuplicate = (envName) => currentExistingNames.some((existingName) => normalizeEnvName(existingName) === normalizeEnvName(envName));
     const replacedNames = new Set();
+    // A parent imported alongside its child can land under a different name — a copy suffix, or the
+    // name of the environment it replaced — and the child's `extends` has to follow it there.
+    const importedNames = new Map();
+    const updateImportedNames = (sourceName, landedName) => {
+      if (!importedNames.has(sourceName)) {
+        importedNames.set(sourceName, landedName);
+      }
+    };
+    const inheritedNameFor = (environment) =>
+      typeof environment.extends === 'string'
+        ? importedNames.get(environment.extends) ?? environment.extends
+        : environment.extends;
 
     setIsImporting(true);
-    for (const environment of environmentsToImport) {
+    for (const environment of orderEnvironmentsByInheritance(environmentsToImport)) {
       try {
         const isDuplicate = environment.status === ENV_STATUS.DUPLICATE;
+        const environmentToImport = { ...environment, extends: inheritedNameFor(environment) };
 
         if (isDuplicate) {
           const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.COPY;
@@ -39,8 +52,9 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
           if (resolution === RESOLUTION_TYPES.REPLACE && !replacedNames.has(normalizedName)) {
             const existingEnv = getExistingEnv(environment.name);
             if (existingEnv) {
-              await saveEnv(environment, existingEnv);
+              await saveEnv(environmentToImport, existingEnv);
               replacedNames.add(normalizedName);
+              updateImportedNames(environment.name, existingEnv.name);
               importedCount++;
             } else {
               throw new Error(`Environment ${environment.name} not found for replacement`);
@@ -49,7 +63,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             // copy
             const copyName = generateCopyName(environment.name, currentExistingNames);
             currentExistingNames.push(copyName);
-            await createEnv(copyName, environment);
+            await createEnv(copyName, environmentToImport);
+            updateImportedNames(environment.name, copyName);
             importedCount++;
           }
         } else {
@@ -57,7 +72,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             ? generateCopyName(environment.name, currentExistingNames)
             : environment.name;
           currentExistingNames.push(name);
-          await createEnv(name, environment);
+          await createEnv(name, environmentToImport);
+          updateImportedNames(environment.name, name);
           importedCount++;
         }
       } catch (error) {

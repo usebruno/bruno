@@ -1,3 +1,4 @@
+import { validatedEnvironmentName } from '@usebruno/common/utils';
 import { uuid } from '../common/index.js';
 import {
   isTypedValue,
@@ -71,7 +72,8 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
 
       return result;
     }),
-    color: env.color || null
+    color: env.color || null,
+    extends: validatedEnvironmentName(env.extends) || null
   }));
 };
 
@@ -106,6 +108,11 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
         return ocVar;
       }) as Variable[]
     };
+
+    const environmentExtendsFrom = validatedEnvironmentName(env.extends);
+    if (environmentExtendsFrom) {
+      ocEnv.extends = environmentExtendsFrom;
+    }
 
     return ocEnv;
   });

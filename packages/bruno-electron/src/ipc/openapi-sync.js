@@ -12,6 +12,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -187,7 +188,10 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
       ? `${sourceUrl}&_=${Date.now()}`
       : `${sourceUrl}?_=${Date.now()}`;
 
-    const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments,
+      targetEnvironment: _.find(environments, (e) => e.uid === activeEnvironmentUid)
+    });
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions } = await getCertsAndProxyConfig({

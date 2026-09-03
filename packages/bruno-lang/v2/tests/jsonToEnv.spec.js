@@ -1,4 +1,5 @@
 const parser = require('../src/jsonToEnv');
+const envParser = require('../src/envToJson');
 
 describe('jsonToEnv', () => {
   it('should stringify empty vars', () => {
@@ -475,6 +476,171 @@ vars:secret [
       const output = parser(input);
       expect(output).toContain('port: 8080');
       expect(output).toContain('flag: false');
+    });
+  });
+
+  describe('extends', () => {
+    it('should stringify the parent environment ahead of the vars block', () => {
+      const input = {
+        extends: 'base',
+        variables: [{ name: 'url', value: 'http://localhost:3000', enabled: true }]
+      };
+
+      const output = parser(input);
+
+      expect(output).toEqual(`extends: base
+vars {
+  url: http://localhost:3000
+}
+`);
+    });
+
+    it('should stringify the parent environment ahead of the color', () => {
+      const input = {
+        extends: 'base',
+        variables: [],
+        color: 'blue'
+      };
+
+      const output = parser(input);
+
+      expect(output).toEqual(`extends: base
+vars {
+}
+color: blue
+`);
+    });
+
+    it('should omit extends when no parent is set', () => {
+      const input = {
+        variables: [{ name: 'url', value: 'http://localhost:3000', enabled: true }]
+      };
+
+      const output = parser(input);
+
+      expect(output).not.toContain('extends');
+    });
+
+    it('should omit extends when the parent is an empty string', () => {
+      const input = {
+        extends: '',
+        variables: []
+      };
+
+      const output = parser(input);
+
+      expect(output).not.toContain('extends');
+    });
+
+    it('should never write the inheritedFrom provenance of a resolved variable', () => {
+      const input = {
+        extends: 'base',
+        variables: [{ name: 'url', value: 'http://base', enabled: true, inheritedFrom: 'base' }]
+      };
+
+      const output = parser(input);
+
+      expect(output).not.toContain('inheritedFrom');
+      expect(envParser(output).variables[0]).not.toHaveProperty('inheritedFrom');
+    });
+
+    it('should write a list of parents as a list rather than a fabricated name', () => {
+      const input = {
+        extends: ['base', 'staging'],
+        variables: []
+      };
+
+      const output = parser(input);
+
+      expect(output).toEqual(`extends [
+  base,
+  staging
+]
+vars {
+}
+`);
+    });
+
+    it('should round-trip a list of parents through the parser', () => {
+      const input = {
+        extends: ['base', 'staging'],
+        variables: []
+      };
+
+      expect(envParser(parser(input)).extends).toEqual(['base', 'staging']);
+    });
+
+    it('should round-trip a list of parents whose names contain spaces', () => {
+      const input = {
+        extends: ['Base Environment', 'staging server'],
+        variables: []
+      };
+
+      expect(envParser(parser(input)).extends).toEqual(['Base Environment', 'staging server']);
+    });
+
+    it('should quote a list entry whose name carries a list delimiter', () => {
+      const input = {
+        extends: ['acme, inc', 'env[1]', 'plain'],
+        variables: []
+      };
+
+      const output = parser(input);
+
+      expect(output).toEqual(`extends [
+  "acme, inc",
+  "env[1]",
+  plain
+]
+vars {
+}
+`);
+    });
+
+    it('should round-trip list entries whose names carry list delimiters', () => {
+      const input = {
+        extends: ['acme, inc', 'env[1]', '[bracketed]', 'list]end'],
+        variables: []
+      };
+
+      expect(envParser(parser(input)).extends).toEqual(input.extends);
+    });
+
+    it('should omit the whole list when an entry is named something no environment could be called', () => {
+      const input = {
+        extends: ['base', 'say "hi"'],
+        variables: []
+      };
+
+      const output = parser(input);
+
+      expect(output).not.toContain('extends');
+    });
+
+    it('should omit an empty list of parents', () => {
+      const input = {
+        extends: [],
+        variables: []
+      };
+
+      const output = parser(input);
+
+      expect(output).not.toContain('extends');
+    });
+
+    it('should round-trip a parent environment through the parser', () => {
+      const input = {
+        extends: 'base',
+        variables: [
+          { name: 'url', value: 'http://localhost:3000', enabled: true, secret: false },
+          { name: 'token', value: '', enabled: true, secret: true }
+        ],
+        color: 'blue'
+      };
+
+      const output = envParser(parser(input));
+
+      expect(output).toEqual(input);
     });
   });
 });
