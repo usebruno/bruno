@@ -245,7 +245,7 @@ for (const mode of SANDBOX_MODES) {
         await selectResponsePaneTab(page, 'Tests');
 
         await expect(tests.summary('beforeMessageSend')).toContainText('Before Message Send Tests (1), Passed: 1, Failed: 0');
-        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (10), Passed: 10, Failed: 0');
+        await expect(tests.summary('afterMessageReceive')).toContainText('After Message Receive Tests (20), Passed: 20, Failed: 0');
         await expect(tests.failedRows('afterMessageReceive')).toHaveCount(0);
       });
 
@@ -254,7 +254,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(tests.messageGroup('afterMessageReceive', 0)).toHaveText('Message 1');
         await expect(tests.messageGroup('afterMessageReceive', 9)).toHaveText('Message 10');
         await expect(tests.rows('afterMessageReceive').first()).toContainText('reply 1 is handed to its own run of the hook');
-        await expect(tests.rows('afterMessageReceive').last()).toContainText('reply 10 is handed to its own run of the hook');
+        await expect(tests.rows('afterMessageReceive').last()).toContainText('reply 10 sees only the replies up to itself');
       });
 
       await test.step('a following request sees the count the receive hook accumulated', async () => {

@@ -383,6 +383,9 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
   // `grpc:script-error` and the call carries on with the remaining messages.
   const runAfterMessageReceive = (session, message) => {
     const messageIndex = session.receivedCount++;
+    // Request and response messages copied so new messages are not leaked to the slow running scripts.
+    const messages = session.messages.slice(0, messageIndex + 1);
+    const sentMessages = buildSentMessages(session).slice();
     const { request, collection, collectionUid } = session;
     const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
 
@@ -394,7 +397,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
         scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
           script: decomment(request.script.afterMessageReceive, { space: true }),
           request,
-          response: buildPartialCallResult(session),
+          response: { ...buildPartialCallResult(session), messages },
           message,
           envVariables: session.envVars,
           runtimeVariables: session.runtimeVariables,
@@ -403,7 +406,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
           processEnvVars: session.processEnvVars,
           scriptingConfig: session.scriptingConfig,
           collectionName: collection.name,
-          sentMessages: buildSentMessages(session)
+          sentMessages
         });
       } catch (error) {
         scriptError = error;

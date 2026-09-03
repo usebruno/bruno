@@ -78,7 +78,7 @@ describe('script — request items', () => {
         body: { mode: 'graphql', graphql: { query: '{ hi }', variables: '' } }
       })
     ],
-    // Move it to a separate test block, once ws scripts are added.
+    // TODO: Move it to a separate test block, once ws scripts are added.
     [
       'websocket',
       itemWithAllSlots('ws-request', {

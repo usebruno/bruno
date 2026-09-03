@@ -157,7 +157,7 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
     expect(oc.items[0].runtime.scripts).toEqual([{ type: 'before-request', code: 'pre()' }]);
   });
 
-  // remove/modify once folder/collection accepts grpc hooks
+  // TODO: remove/modify once folder/collection accepts grpc hooks
   it('drops grpc hooks set on the collection root', () => {
     const oc = brunoToOpenCollection({
       name: 'API',
@@ -169,7 +169,7 @@ describe('brunoToOpenCollection (export): grpc lifecycle scripts', () => {
     expect(oc.request.scripts).toEqual([{ type: 'before-request', code: 'root pre()' }]);
   });
 
-  // remove/modify once folder/collection accepts grpc hooks
+  // TODO: remove/modify once folder/collection accepts grpc hooks
   it('drops grpc hooks set on a folder root', () => {
     const oc = exportItems([
       {

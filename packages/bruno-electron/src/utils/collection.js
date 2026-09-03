@@ -947,7 +947,6 @@ const getJsSandboxRuntime = (collection) => {
     return 'nodevm';
   }
 
-  // default runtime is `quickjs`
   return 'quickjs';
 };
 

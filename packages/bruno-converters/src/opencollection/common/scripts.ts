@@ -10,7 +10,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   const script = request?.script as BrunoScript | null | undefined;
 
   const pushScript = (key: keyof BrunoScript, type: OpenCollectionScript['type'], code: string | null | undefined) => {
-    if (allowedKeys && !allowedKeys.includes(key)) {
+    if (!allowedKeys.includes(key)) {
       return;
     }
     if (!code?.trim().length) {
@@ -50,7 +50,7 @@ export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined, a
   } = {};
 
   const setScript = (key: keyof BrunoScript, code: string) => {
-    if (allowedKeys && !allowedKeys.includes(key)) {
+    if (!allowedKeys.includes(key)) {
       return;
     }
     if (!brunoScripts.script) {
