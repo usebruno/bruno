@@ -95,7 +95,7 @@ const handler = async (argv) => {
     collection.name = collection.brunoConfig?.name;
     collection.items = stripRequestItems(collection.items);
     try {
-      collection.environments = loadEnvironments(collectionPath);
+      collection.environments = await loadEnvironments(collectionPath, collection.format);
     } catch (err) {
       console.error(chalk.red('Failed to parse environment file: ') + chalk.dim(err.message));
       process.exit(EXIT_STATUS.ERROR_INVALID_FILE);

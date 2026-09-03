@@ -38,25 +38,25 @@ const parseEnvFile = (filePath) => {
   return parseEnvironment(normalized, { format });
 };
 
-const loadEnvironments = (collectionPath) => {
+const loadEnvironments = async (collectionPath, format) => {
   const environmentsDir = path.join(collectionPath, 'environments');
   if (!fs.existsSync(environmentsDir)) {
     return [];
   }
 
-  const environments = fs
-    .readdirSync(environmentsDir)
-    .filter((file) => /\.(bru|yml|json)$/i.test(file))
-    .map((file) => {
-      const filePath = path.join(environmentsDir, file);
-      try {
-        const envJson = parseEnvFile(filePath);
-        const name = path.basename(file, path.extname(file));
-        return { ...envJson, name, variables: envJson.variables || [] };
-      } catch (err) {
-        throw new Error(`environments/${file}: ${err.message}`);
-      }
-    });
+  const envExt = format === 'yml' ? '.yml' : '.bru';
+  const files = fs.readdirSync(environmentsDir).filter((file) => path.extname(file).toLowerCase() === envExt);
+  const environments = [];
+  for (const file of files) {
+    const filePath = path.join(environmentsDir, file);
+    try {
+      const envJson = await parseEnvFile(filePath);
+      const name = path.basename(file, path.extname(file));
+      environments.push({ ...envJson, name, variables: envJson.variables || [] });
+    } catch (err) {
+      throw new Error(`environments/${file}: ${err.message}`);
+    }
+  }
 
   return environments.sort((a, b) => a.name.localeCompare(b.name));
 };

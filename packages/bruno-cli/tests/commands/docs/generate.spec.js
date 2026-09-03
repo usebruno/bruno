@@ -82,7 +82,7 @@ describe('bru docs generate', () => {
     const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-badenv-'));
     fs.cpSync(FIXTURE, badDir, { recursive: true });
     fs.mkdirSync(path.join(badDir, 'environments'), { recursive: true });
-    fs.writeFileSync(path.join(badDir, 'environments', 'Broken.json'), '{ not valid json');
+    fs.writeFileSync(path.join(badDir, 'environments', 'Broken.bru'), '@@@ not valid bru @@@\n');
     const prevCwd = process.cwd();
     process.chdir(badDir);
     try {
@@ -125,8 +125,8 @@ describe('bru docs generate: environment selection', () => {
 
   const writeEnv = (dir, name, host) =>
     fs.writeFileSync(
-      path.join(dir, `${name}.json`),
-      JSON.stringify({ name, variables: [{ name: 'BASE_URL', value: host, enabled: true }] })
+      path.join(dir, `${name}.bru`),
+      `vars {\n  BASE_URL: ${host}\n}\n`
     );
 
   beforeAll(() => {
