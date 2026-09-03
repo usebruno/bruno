@@ -1512,44 +1512,63 @@ await bru.sendRequest({
   describe('response members wrapped in other expressions', () => {
     it('should keep the call wrapping a response property', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({
+          url: 'https://echo.usebruno.com',
+          method: 'POST',
+          header: {
+            'Content-Type': 'application/json'
+          },
+          body: {
+            mode: 'raw',
+            raw: JSON.stringify({ hello: 'world' })
+          }
+        }, function (err, response) {
+
           const json = response.json();
           const text = response.text();
           const code = response.code;
           const status = response.status;
-        
-          console.log(response.json());
-          console.log(response.text());
-          console.log(response.code);
-          console.log(response.status);
+
+          console.log(json);
+          console.log(text);
+          console.log(code);
+          console.log(status);
         });
+
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({
+          url: 'https://echo.usebruno.com',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          data: JSON.stringify({ hello: 'world' })
+        }, async function(err, response) {
           const json = response.data;
           const text = response.data;
           const code = response.status;
           const status = response.statusText;
 
-          console.log(response.data);
-          console.log(response.data);
-          console.log(response.status);
-          console.log(response.statusText);
+          console.log(json);
+          console.log(text);
+          console.log(code);
+          console.log(status);
         });
       `);
     });
 
     it('should rewrite response properties and methods passed together as call arguments', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           console.log(response.code, response.json());
           pm.environment.set('statusText', response.status);
         });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           console.log(response.status, response.data);
           bru.setEnvVar('statusText', response.statusText);
         });
@@ -1557,13 +1576,13 @@ await bru.sendRequest({
     });
     it('should rewrite a response member nested inside a call argument', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           console.log(response.json().data.id, response.text().length);
         });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           console.log(response.data.data.id, response.data.length);
         });
       `);
@@ -1571,13 +1590,13 @@ await bru.sendRequest({
 
     it('should rewrite response members inside a template literal', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           console.log(\`\${response.code} \${response.status}\`);
         });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           console.log(\`\${response.status} \${response.statusText}\`);
         });
       `);
@@ -1585,7 +1604,7 @@ await bru.sendRequest({
 
     it('should rewrite response members used in comparisons', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           if (response.code === 200 && response.status === 'OK') {
             console.log(response.json());
           }
@@ -1593,7 +1612,7 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           if (response.status === 200 && response.statusText === 'OK') {
             console.log(response.data);
           }
@@ -1603,13 +1622,13 @@ await bru.sendRequest({
 
     it('should rewrite response members used as an object key and value', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           const result = { [response.code]: response.json() };
         });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           const result = { [response.status]: response.data };
         });
       `);
@@ -1617,13 +1636,13 @@ await bru.sendRequest({
 
     it('should rewrite response members accessed with a computed string key', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           console.log(response['code'], response['json']());
         });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           console.log(response.status, response.data);
         });
       `);
@@ -1631,7 +1650,7 @@ await bru.sendRequest({
 
     it('should rewrite response members inside a nested pm.test and pm.expect', () => {
       const code = `
-        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           pm.test('ok', () => {
             pm.expect(response.code).to.eql(200);
             pm.expect(response.json().id).to.eql(1);
@@ -1640,7 +1659,7 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           test('ok', () => {
             expect(response.status).to.eql(200);
             expect(response.data.id).to.eql(1);
