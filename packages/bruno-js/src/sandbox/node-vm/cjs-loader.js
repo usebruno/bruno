@@ -155,6 +155,11 @@ function defineDynamicGlobal(key) {
       if (value === undefined || value === null) {
         return undefined;
       }
+      // Primitive context values cannot be represented by an object facade.
+      // Return them directly, preserving the pre-shared-context behavior.
+      if (typeof value !== 'object' && typeof value !== 'function') {
+        return value;
+      }
       return facadeFor(key, typeof value === 'function');
     }
   });

@@ -666,6 +666,39 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
     });
 
+    it('should switch req dynamically but preserve the module-load URL snapshot', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'request-url-reader', {
+        'index.js': `
+          const urlAtLoad = req.getUrl();
+          module.exports = {
+            read: () => req.getUrl(),
+            readCaptured: () => urlAtLoad
+          };
+        `
+      });
+
+      const script = `
+        const reader = require('request-url-reader');
+        bru.setVar('dynamicUrl', reader.read());
+        bru.setVar('capturedUrl', reader.readCaptured());
+      `;
+      const makeContext = (url) => ({
+        bru: { setVar: jest.fn() },
+        req: { getUrl: jest.fn().mockReturnValue(url) },
+        console
+      });
+      const contextA = makeContext('https://example.com/a');
+      const contextB = makeContext('https://example.com/b');
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/a');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/b');
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('capturedUrl', 'https://example.com/a');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('capturedUrl', 'https://example.com/b');
+    });
+
     it.each([
       ['the first-started script finishes first', 5, 40],
       ['the first-started script finishes last', 40, 5]
@@ -695,6 +728,31 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
       expect(contextA.bru.getVar).toHaveBeenCalledTimes(1);
       expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve error call-site mapping for concurrent scripts', async () => {
+      const runFailingScript = (name, delayMs) => runScriptInNodeVm({
+        script: `
+          await new Promise((resolve) => setTimeout(resolve, ${delayMs}));
+          throw new Error('${name}');
+        `,
+        context: { bru: {}, console },
+        collectionPath,
+        scriptPath: path.join(collectionPath, `${name}.bru`),
+        scriptingConfig: {}
+      });
+
+      const [errorA, errorB] = await Promise.all([
+        runFailingScript('script-a', 5).catch((error) => error),
+        runFailingScript('script-b', 40).catch((error) => error)
+      ]);
+
+      expect(errorA.__callSites).toEqual(expect.arrayContaining([
+        expect.objectContaining({ filePath: path.join(collectionPath, 'script-a.bru') })
+      ]));
+      expect(errorB.__callSites).toEqual(expect.arrayContaining([
+        expect.objectContaining({ filePath: path.join(collectionPath, 'script-b.bru') })
+      ]));
     });
 
     it('should let a module that captured bru at load time talk to the current script', async () => {
@@ -740,6 +798,78 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.getVar).toHaveBeenCalledTimes(2);
     });
 
+    it('should preserve mutable singleton state across script executions', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'stateful-module', {
+        'index.js': `
+          let count = 0;
+          module.exports = { next: () => ++count };
+        `
+      });
+
+      const script = `bru.setVar('count', require('stateful-module').next());`;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('count', 1);
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 2);
+    });
+
+    it('should preserve Bruno global identity and realm behavior inside npm modules', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'identity-reader', {
+        'index.js': `
+          module.exports = {
+            sameBru: () => bru === globalThis.bru,
+            bruIsObject: () => bru instanceof Object,
+            readArray: (value) => Array.isArray(value)
+          };
+        `
+      });
+
+      const array = [];
+      const context = { bru: { setVar: jest.fn() }, array, console };
+      const script = `
+        const reader = require('identity-reader');
+        bru.setVar('sameBru', reader.sameBru());
+        bru.setVar('bruIsObject', reader.bruIsObject());
+        bru.setVar('arrayIsArray', reader.readArray(array));
+      `;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('sameBru', true);
+      expect(context.bru.setVar).toHaveBeenCalledWith('bruIsObject', true);
+      expect(context.bru.setVar).toHaveBeenCalledWith('arrayIsArray', true);
+    });
+
+    it('should bind callbacks created by cached npm modules to their calling script', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'callback-runner', {
+        'index.js': `
+          module.exports = {
+            runLater: (callback) => new Promise((resolve) => {
+              setTimeout(() => { callback(); resolve(); }, 5);
+            })
+          };
+        `
+      });
+
+      const scriptFor = (value) => `
+        await require('callback-runner').runLater(() => bru.setVar('value', '${value}'));
+      `;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await Promise.all([
+        runScriptInNodeVm({ script: scriptFor('A'), context: contextA, collectionPath, scriptingConfig: {} }),
+        runScriptInNodeVm({ script: scriptFor('B'), context: contextB, collectionPath, scriptingConfig: {} })
+      ]);
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('value', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('value', 'B');
+    });
+
     it('should read a missing key as undefined and still call it once a later execution provides a function', async () => {
       // Execution A exposes `helper` as undefined: the module must see plain undefined (as it
       // would in the script's own context); execution B provides a function and calls it.
@@ -763,6 +893,32 @@ describe('node-vm sandbox', () => {
       expect(contextA.bru.setVar).toHaveBeenCalledWith('probe', 'undefined');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('ran', 'called');
       expect(helper).toHaveBeenCalledWith('x');
+    });
+
+    it('should preserve primitive custom globals for npm modules', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'primitive-reader', {
+        'index.js': `
+          module.exports = {
+            read: () => [typeof scalar, scalar, typeof flag, flag].join(':')
+          };
+        `
+      });
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        scalar: 'value',
+        flag: false,
+        console
+      };
+
+      await runScriptInNodeVm({
+        script: `bru.setVar('result', require('primitive-reader').read());`,
+        context,
+        collectionPath,
+        scriptingConfig: {}
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'string:value:boolean:false');
     });
 
     it('should keep collection-local modules per script context', async () => {
