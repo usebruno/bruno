@@ -148,7 +148,7 @@ test.describe('Import environment - name conflict handling', () => {
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 
       await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await environment.importSubmitButton('global').click();
+        await environment.importSubmitButton('collection').click();
         await environment.importReplaceButton().click();
       });
 
@@ -300,7 +300,7 @@ test.describe('Import environment - name conflict handling', () => {
 
       await test.step('Replace overwrites the existing global environment', async () => {
         await openImportReview(page, 'global', fixture('production-env-updated.json'));
-        await environment.importSubmitButton('global').click();
+        await environment.importSubmitButton('collection').click();
         await environment.importReplaceButton().click();
 
         await expect(environment.sidebarListItem('global', 'Production')).toHaveCount(1);
@@ -311,6 +311,7 @@ test.describe('Import environment - name conflict handling', () => {
       await test.step('Import as Copy adds a second global environment alongside the original', async () => {
         await openImportReview(page, 'global', fixture('production-env.json'));
         await environment.importSubmitButton('global').click();
+        await environment.importCopyButton().click();
 
         await expect(environment.sidebarListItem('global', 'Production copy')).toBeVisible();
       });
@@ -350,7 +351,7 @@ test.describe('Import environment - name conflict handling', () => {
       await openImportReview(page, 'global', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 
       await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await environment.importSubmitButton('global').click();
+        await environment.importSubmitButton('collection').click();
         await environment.importReplaceButton().click();
       });
 
