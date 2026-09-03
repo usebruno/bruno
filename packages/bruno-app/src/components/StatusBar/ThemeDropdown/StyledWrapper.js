@@ -5,8 +5,11 @@ const StyledWrapper = styled.div`
   /* Main container */
   .theme-menu {
     min-width: 200px;
-    height: 325px;
+    max-height: min(400px, calc(100vh - 80px));
     padding: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background: ${(props) => props.theme.dropdown.bg};
     border: 1px solid ${(props) => props.theme.dropdown.border};
     border-radius: 6px;
@@ -77,6 +80,8 @@ const StyledWrapper = styled.div`
   .theme-lists {
     display: flex;
     gap: 24px;
+    flex: 1;
+    overflow-y: auto;
 
     &.two-columns {
       gap: 0;
