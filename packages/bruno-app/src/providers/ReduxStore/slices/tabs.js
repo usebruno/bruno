@@ -155,6 +155,7 @@ export const tabsSlice = createSlice({
           responseFormat: null,
           responseViewTab: null,
           streamFormat: null,
+          streamViewTab: null,
           scriptPaneTab: null,
           preview: preview !== undefined
             ? preview
@@ -195,6 +196,7 @@ export const tabsSlice = createSlice({
         gqlDocsOpen: false,
         tableColumnWidths: {},
         streamFormat: null,
+        streamViewTab: null,
         scriptPaneTab: null,
         docsEditing: false,
         ...(uid ? { folderUid: uid } : {}),
@@ -303,6 +305,13 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.streamFormat = action.payload.streamFormat;
+      }
+    },
+    updateStreamViewTab: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.streamViewTab = action.payload.streamViewTab;
       }
     },
     updateResponseViewTab: (state, action) => {
@@ -650,6 +659,7 @@ export const {
   updateTabMeta,
   updateResponseFormat,
   updateStreamFormat,
+  updateStreamViewTab,
   updateResponseViewTab,
   updateResponseFilter,
   updateResponseFilterExpanded,
