@@ -1659,5 +1659,170 @@ describe('node-vm sandbox', () => {
         })
       ).rejects.toThrow(/Could not resolve module "definitely-not-a-real-bruno-module-xyz"/);
     });
+
+    it('allows require from additionalContextRoots sibling', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+      fs.writeFileSync(
+        path.join(additionalRoot, 'shared.js'),
+        'module.exports = { shared: true };'
+      );
+
+      const script = `
+        const shared = require('../shared/shared');
+        bru.setVar('result', shared.shared);
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true, additionalContextRoots: [additionalRoot] }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('allows require with relative additionalContextRoots path', async () => {
+      const libsDir = path.join(testDir, 'libs');
+      fs.mkdirSync(libsDir);
+      fs.writeFileSync(path.join(libsDir, 'lib.js'), 'module.exports = { fromLib: "yes" };');
+
+      const script = `
+        const lib = require('../libs/lib');
+        bru.setVar('result', lib.fromLib);
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true, additionalContextRoots: ['../libs'] }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'yes');
+    });
+
+    it('allows nested local require into additionalContextRoots', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+      fs.writeFileSync(
+        path.join(additionalRoot, 'allowed.js'),
+        'module.exports = { allowed: true };'
+      );
+      fs.writeFileSync(
+        path.join(collectionPath, 'parent.js'),
+        `
+          const allowed = require('../shared/allowed');
+          module.exports = { nestedAccess: allowed.allowed };
+        `
+      );
+
+      const script = `
+        const parent = require('./parent');
+        bru.setVar('result', parent.nestedAccess);
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true, additionalContextRoots: [additionalRoot] }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('resolves npm module required by a shared script in additionalContextRoots', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      makePkg(path.join(additionalRoot, 'node_modules'), 'shared-util', {
+        'index.js': 'module.exports = { parse: function(s) { return JSON.parse(s); } };'
+      });
+      fs.writeFileSync(
+        path.join(additionalRoot, 'parser.js'),
+        'const sharedUtil = require("shared-util"); module.exports = { parse: sharedUtil.parse };'
+      );
+
+      const script = `
+        const parser = require('../shared/parser');
+        const result = parser.parse('{"ok":true}');
+        bru.setVar('result', result.ok);
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true, additionalContextRoots: [additionalRoot] }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('walks up from a nested shared script to find its npm dependency', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      const nestedDir = path.join(additionalRoot, 'deep', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+
+      makePkg(path.join(additionalRoot, 'node_modules'), 'deep-dep', {
+        'index.js': 'module.exports = { walkedUp: true };'
+      });
+      fs.writeFileSync(
+        path.join(nestedDir, 'parser.js'),
+        'const dep = require("deep-dep"); module.exports = { ok: dep.walkedUp };'
+      );
+
+      const script = `
+        const parser = require('../shared/deep/nested/parser');
+        bru.setVar('result', parser.ok);
+      `;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true, additionalContextRoots: [additionalRoot] }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('shares an additionalContextRoots module across script invocations', async () => {
+      const additionalRoot = path.join(testDir, 'shared');
+      fs.mkdirSync(additionalRoot);
+      fs.writeFileSync(
+        path.join(additionalRoot, 'counter.js'),
+        `
+        let loads = 0;
+        loads += 1;
+        module.exports = { loads, token: {} };
+        `
+      );
+
+      const script = `
+        const mod = require('../shared/counter');
+        bru.setVar('loads', mod.loads);
+        bru.setVar('token', mod.token);
+      `;
+      const context1 = { bru: { setVar: jest.fn() }, console };
+      const context2 = { bru: { setVar: jest.fn() }, console };
+      const scriptingConfig = {
+        sharedModules: true,
+        additionalContextRoots: [additionalRoot]
+      };
+
+      await runScriptInNodeVm({ script, context: context1, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: context2, collectionPath, scriptingConfig });
+
+      expect(context1.bru.setVar).toHaveBeenCalledWith('loads', 1);
+      expect(context2.bru.setVar).toHaveBeenCalledWith('loads', 1);
+      expect(context1.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1])
+        .toBe(context2.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1]);
+    });
   });
 });

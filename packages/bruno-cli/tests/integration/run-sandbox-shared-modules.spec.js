@@ -36,25 +36,39 @@ describe('CLI run — --sandbox-shared-modules', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const stageCollection = ({ withCounter = false, requests } = {}) => {
+  const stageCollection = ({
+    withCounter = false,
+    collectionDir = tmpDir,
+    additionalContextRoots,
+    requests
+  } = {}) => {
+    const brunoConfig = {
+      version: '1',
+      name: 'sandbox-shared-modules',
+      type: 'collection'
+    };
+    if (additionalContextRoots) {
+      brunoConfig.scripts = { additionalContextRoots };
+    }
+
     writeFixtureFile(
-      path.join(tmpDir, 'bruno.json'),
-      JSON.stringify({ version: '1', name: 'sandbox-shared-modules', type: 'collection' }, null, 2) + '\n'
+      path.join(collectionDir, 'bruno.json'),
+      JSON.stringify(brunoConfig, null, 2) + '\n'
     );
     writeFixtureFile(
-      path.join(tmpDir, 'collection.bru'),
+      path.join(collectionDir, 'collection.bru'),
       'meta {\n  name: sandbox-shared-modules\n  seq: 1\n}\n'
     );
 
     if (withCounter) {
       writeFixtureFile(
-        path.join(tmpDir, 'counter.js'),
+        path.join(collectionDir, 'counter.js'),
         'module.exports = { flag: null };\n'
       );
     }
 
     for (const [name, body] of Object.entries(requests)) {
-      writeFixtureFile(path.join(tmpDir, name), body);
+      writeFixtureFile(path.join(collectionDir, name), body);
     }
   };
 
@@ -167,5 +181,98 @@ ${preRequest ? `\nscript:pre-request {\n${preRequest}\n}\n` : ''}${tests ? `\nte
 
     expect(result.code).toBe(0);
     expect(result.stdout).toMatch(/safe sandbox runs/);
+  }, 60_000);
+
+  it('requires a sibling module via additionalContextRoots', async () => {
+    const collectionDir = path.join(tmpDir, 'collection');
+    const sharedDir = path.join(tmpDir, 'shared');
+    writeFixtureFile(path.join(sharedDir, 'utils.js'), 'module.exports = { ok: true };\n');
+
+    stageCollection({
+      collectionDir,
+      additionalContextRoots: ['../shared'],
+      requests: {
+        'acr.bru': requestBru({
+          name: 'acr',
+          seq: 1,
+          tests: `  const utils = require('../shared/utils');\n  test('acr utils resolve', function() {\n    expect(utils.ok).to.eql(true);\n  });`
+        })
+      }
+    });
+
+    const result = await runCli(
+      ['run', 'acr.bru', '--sandbox', 'developer', '--sandbox-shared-modules', '--noproxy'],
+      collectionDir
+    );
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toMatch(/acr utils resolve/);
+    expect(result.stdout).not.toMatch(/failed/i);
+  }, 60_000);
+
+  it('resolves npm from shared root via additionalContextRoots', async () => {
+    const collectionDir = path.join(tmpDir, 'collection');
+    const sharedDir = path.join(tmpDir, 'shared');
+    writeFixtureFile(
+      path.join(sharedDir, 'node_modules', 'shared-util', 'index.js'),
+      'module.exports = { parse: (s) => JSON.parse(s) };\n'
+    );
+    writeFixtureFile(
+      path.join(sharedDir, 'parser.js'),
+      'const sharedUtil = require("shared-util");\nmodule.exports = { parse: sharedUtil.parse };\n'
+    );
+
+    stageCollection({
+      collectionDir,
+      additionalContextRoots: ['../shared'],
+      requests: {
+        'acr-npm.bru': requestBru({
+          name: 'acr-npm',
+          seq: 1,
+          tests: `  const parser = require('../shared/parser');\n  test('shared npm resolves', function() {\n    expect(parser.parse('{"ok":true}').ok).to.eql(true);\n  });`
+        })
+      }
+    });
+
+    const result = await runCli(
+      ['run', 'acr-npm.bru', '--sandbox', 'developer', '--sandbox-shared-modules', '--noproxy'],
+      collectionDir
+    );
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toMatch(/shared npm resolves/);
+    expect(result.stdout).not.toMatch(/failed/i);
+  }, 60_000);
+
+  it('shares an additionalContextRoots module across requests', async () => {
+    const collectionDir = path.join(tmpDir, 'collection');
+    const sharedDir = path.join(tmpDir, 'shared');
+    writeFixtureFile(path.join(sharedDir, 'counter.js'), 'module.exports = { flag: null };\n');
+
+    stageCollection({
+      collectionDir,
+      additionalContextRoots: ['../shared'],
+      requests: {
+        'a.bru': requestBru({
+          name: 'a',
+          seq: 1,
+          preRequest: `  const m = require('../shared/counter');\n  m.flag = 'from-a';`
+        }),
+        'b.bru': requestBru({
+          name: 'b',
+          seq: 2,
+          tests: `  const m = require('../shared/counter');\n  test('acr module is shared', function() {\n    expect(m.flag).to.eql('from-a');\n  });`
+        })
+      }
+    });
+
+    const result = await runCli(
+      ['run', '.', '--sandbox', 'developer', '--sandbox-shared-modules', '--noproxy'],
+      collectionDir
+    );
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toMatch(/acr module is shared/);
+    expect(result.stdout).not.toMatch(/failed/i);
   }, 60_000);
 });
