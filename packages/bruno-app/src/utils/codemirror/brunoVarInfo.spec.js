@@ -694,10 +694,15 @@ describe('renderVarInfo', () => {
 
     it('shows "Create One" when no environment exists, creates and selects the environment, and saves the variable once the tooltip is dismissed', async () => {
       getVariableScope.mockReturnValue(null);
-      getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
-        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
-      ]);
+      getAvailableAddToScopes
+        .mockReturnValueOnce([
+          { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+          { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+        ])
+        .mockReturnValue([
+          { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
+          { type: 'environment', label: 'Collection Environment (Dev)', enabled: true, supportsSecret: true }
+        ]);
 
       const collectionBeforeCreate = { uid: 'col-1', activeEnvironmentUid: null, environments: [] };
       const collectionAfterCreate = {
@@ -753,6 +758,12 @@ describe('renderVarInfo', () => {
       expect(updateVariableInScope).not.toHaveBeenCalled();
       // adding a new env will not close the switcher
       expect(switcher.querySelector('.var-add-to-list').style.display).toBe('block');
+
+      // The row is restored with the newly created environment's name in its label, not the
+      // stale pre-creation "no environment" label.
+      const environmentRow = switcher.querySelector('[data-testid="var-info-add-to-option-environment"]');
+      expect(environmentRow).not.toBeNull();
+      expect(environmentRow.querySelector('.var-add-to-option-label').textContent).toBe('Collection Environment (Dev)');
 
       valueContainer._cmEditor.getValue = () => 'a-new-value';
       await valueContainer._persistNewVariable();
