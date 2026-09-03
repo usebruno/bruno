@@ -11,7 +11,8 @@ export const BETA_FEATURES = Object.freeze({
   FILE_CACHE: 'file-cache',
   AKAMAI_EDGEGRID: 'akamai-edgegrid',
   MOCK_SERVER: 'mock-server',
-  ISLANDS_LAYOUT: 'islands-layout'
+  ISLANDS_LAYOUT: 'islands-layout',
+  GRPC_SCRIPTING: 'grpc-scripting'
 });
 
 /**
