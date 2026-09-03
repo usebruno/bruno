@@ -303,6 +303,7 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       collection.items = [];
       collection.environments = [];
+      collection.allTags = [];
     },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);

@@ -41,7 +41,7 @@ import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
+import { isItemAFolder, isItemARequest, getSortedDraggedItems, getSelectionInfo, getCollectionDrafts } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -50,6 +50,7 @@ import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
+import ConfirmReloadDrafts from './ConfirmReloadDrafts';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -81,6 +82,7 @@ const Collection = ({ collection, searchText, openBulkMenu }) => {
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
+  const [showReloadConfirmModal, setShowReloadConfirmModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -247,11 +249,21 @@ const Collection = ({ collection, searchText, openBulkMenu }) => {
   };
 
   const handleReloadCollection = () => {
-    dispatch(reloadCollection({
-      collectionUid: collection.uid,
-      collectionPathname: collection.pathname,
-      brunoConfig: collection.brunoConfig
-    }));
+    const { requestDrafts, transientDrafts, folderDrafts, collectionDrafts } = getCollectionDrafts([collection]);
+    const hasDrafts = requestDrafts.length + transientDrafts.length + folderDrafts.length + collectionDrafts.length > 0;
+
+    if (hasDrafts) {
+      setShowReloadConfirmModal(true);
+    } else {
+      dispatch(reloadCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      })).catch((error) => {
+        console.error('Error reloading the collection', error);
+        toast.error(error?.message || 'Error reloading the collection');
+      });
+    }
   };
 
   const handleShowInFolder = () => {
@@ -630,6 +642,9 @@ const Collection = ({ collection, searchText, openBulkMenu }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showReloadConfirmModal && (
+        <ConfirmReloadDrafts collectionUid={collection.uid} onClose={() => setShowReloadConfirmModal(false)} />
       )}
       {showCreateMockServerModal && (
         <CreateMockServerModal

@@ -44,6 +44,7 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   resetCollectionForReload,
+  updateCollectionTagsList,
   moveCollection,
   deleteItem as _deleteItemFromState,
   brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
@@ -3386,6 +3387,7 @@ export const reloadCollection
 
       await dispatch(mountCollection({ collectionUid, collectionPathname, brunoConfig, skipTabRestore: true }));
 
+      dispatch(updateCollectionTagsList({ collectionUid }));
       toast.success('Collection reloaded');
     };
 
