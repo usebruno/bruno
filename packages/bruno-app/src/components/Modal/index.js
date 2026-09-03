@@ -100,7 +100,8 @@ const Modal = ({
   dataTestId,
   confirmButtonColor = 'primary',
   noPadding,
-  footerClassName
+  footerClassName,
+  customFooter
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -165,19 +166,23 @@ const Modal = ({
           customHeader={customHeader}
         />
         <ModalContent noPadding={noPadding}>{children}</ModalContent>
-        <ModalFooter
-          confirmText={confirmText}
-          cancelText={cancelText}
-          handleCancel={() => closeModal({ type: 'button' })}
-          handleSubmit={handleConfirm}
-          confirmDisabled={confirmDisabled}
-          hideCancel={hideCancel}
-          hideFooter={hideFooter}
-          footerLeft={footerLeft}
-          confirmButtonColor={confirmButtonColor}
-          dataTestId={dataTestId}
-          className={footerClassName}
-        />
+        {customFooter ? (
+          customFooter
+        ) : (
+          <ModalFooter
+            confirmText={confirmText}
+            cancelText={cancelText}
+            handleCancel={() => closeModal({ type: 'button' })}
+            handleSubmit={handleConfirm}
+            confirmDisabled={confirmDisabled}
+            hideCancel={hideCancel}
+            hideFooter={hideFooter}
+            footerLeft={footerLeft}
+            confirmButtonColor={confirmButtonColor}
+            dataTestId={dataTestId}
+            className={footerClassName}
+          />
+        )}
       </div>
 
       {/* Clicking on backdrop closes the modal */}

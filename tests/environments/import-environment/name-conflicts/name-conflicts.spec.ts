@@ -18,14 +18,17 @@ test.describe('Import environment - name conflict handling', () => {
       await closeAllCollections(page);
     });
 
-    test('importing an environment with no naming conflict commits immediately without a review step', async ({ page, createTmpDir }) => {
+    test('importing an environment with no naming conflict shows a review step even if there are no conflicts', async ({ page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-none', await createTmpDir('name-conflict-none'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('development-env.json'));
 
-      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
+      await test.step('No conflict with the existing \"Production\" environment, so all imports are marked as new', async () => {
+        await expect(environment.importModal('collection')).toBeVisible();
+        await expect(environment.importNewBadge('Development')).toBeVisible();
+        await environment.importSubmitButton('collection').click();
         await expect(environment.importModal('collection')).toBeHidden();
         await expect(environment.sidebarListItem('collection', 'Development')).toBeVisible();
         await expect(environment.sidebarListItem('collection', 'Production')).toBeVisible();
@@ -40,22 +43,13 @@ test.describe('Import environment - name conflict handling', () => {
       await test.step('Re-importing the same name surfaces it as a duplicate', async () => {
         await openImportReview(page, 'collection', fixture('production-env-updated.json'));
 
-        await expect(environment.importDuplicatesWarning()).toContainText('1 environment');
-        await expect(environment.importDuplicatesGroup()).toBeVisible();
-        await expect(environment.importDuplicatesCount()).toHaveText('1');
-        await expect(environment.importNewGroup()).toHaveCount(0);
+        await expect(environment.importDuplicateBadge('Production')).toBeVisible();
+        await expect(environment.importNewBadge('Production')).toHaveCount(0);
       });
 
       await test.step('Copy is the default resolution and can be switched to Replace', async () => {
-        const item = environment.importReviewItem('Production');
-        await expect(item).toBeVisible();
-        await expect(environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'true');
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'false');
-
-        await environment.importReplaceButton('Production').click();
-
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
-        await expect(environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'false');
+        await environment.importSubmitButton('collection').click();
+        await expect(environment.importDuplicatesWarning()).toContainText('1 environment');
       });
 
       await modal.closeButton().click();
@@ -67,8 +61,8 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'));
-      await environment.importReplaceButton('Production').click();
-      await environment.importSubmitButton('collection').click();
+      await environment.importSubmitButton('global').click();
+      await environment.importReplaceButton().click();
 
       await test.step('Only one Production environment remains, holding the new variables', async () => {
         await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
@@ -87,8 +81,8 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'));
-      // Copy is the default resolution.
       await environment.importSubmitButton('collection').click();
+      await environment.importCopyButton().click();
 
       await test.step('Both the original and the copy exist side by side', async () => {
         await expect(environment.sidebarListItemExact('collection', 'Production')).toBeVisible();
@@ -120,7 +114,7 @@ test.describe('Import environment - name conflict handling', () => {
       });
     });
 
-    test('the accordion-level select-all checkbox toggles environments in its group and updates the footer selection count', async ({ page, createTmpDir }) => {
+    test('the select-all checkbox toggles environments and updates the footer selection count', async ({ page, createTmpDir }) => {
       const { environment, modal } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-select-all', await createTmpDir('name-conflict-select-all'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
@@ -130,16 +124,13 @@ test.describe('Import environment - name conflict handling', () => {
       await expect(environment.importTotalCount()).toHaveText('2');
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
-      await environment.importNewGroupSelectAllCheckbox().uncheck();
+      await environment.importItemCheckbox('Production').uncheck();
       await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
 
-      await environment.importDuplicatesGroupSelectAllCheckbox().uncheck();
+      await environment.importSelectAllCheckbox().uncheck();
       await expect(environment.importSelectedCount()).toContainText('0 of 2 selected');
 
-      await environment.importNewGroupSelectAllCheckbox().check();
-      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
-
-      await environment.importDuplicatesGroupSelectAllCheckbox().check();
+      await environment.importSelectAllCheckbox().check();
       await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
 
       await modal.closeButton().click();
@@ -151,19 +142,15 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('staging-env.json'));
+      await environment.importSubmitButton('collection').click();
       await expect(environment.importModal('collection')).toBeHidden();
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 
       await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await expect(environment.importDuplicatesCount()).toHaveText('2');
-        await environment.importGroupDropdownTrigger().click();
-        await environment.importGroupDropdownReplaceOption().click();
-
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
+        await environment.importSubmitButton('global').click();
+        await environment.importReplaceButton().click();
       });
-
-      await environment.importSubmitButton('collection').click();
 
       await test.step('Both existing environments were replaced, no copies created', async () => {
         await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
@@ -228,7 +215,9 @@ test.describe('Import environment - name conflict handling', () => {
         await fileChooser.setFiles(fixture('duplicate-names-in-batch.json'));
       });
 
-      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so we review and submit', async () => {
+        await expect(importModal).toBeVisible();
+        await environment.importSubmitButton('collection').click();
         await expect(importModal).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
@@ -251,7 +240,9 @@ test.describe('Import environment - name conflict handling', () => {
         await fileChooser.setFiles([fixture('postman-env-duplicate-a.json'), fixture('postman-env-duplicate-b.json')]);
       });
 
-      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so we review and submit', async () => {
+        await expect(importModal).toBeVisible();
+        await environment.importSubmitButton('collection').click();
         await expect(importModal).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
@@ -266,13 +257,13 @@ test.describe('Import environment - name conflict handling', () => {
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('malformed.json'));
 
       await test.step('The duplicate and the invalid file are both flagged, independently of each other', async () => {
-        await expect(environment.importDuplicatesCount()).toHaveText('1');
-        await expect(environment.importInvalidCount()).toHaveText('1');
+        await expect(environment.importDuplicateBadge('Production')).toBeVisible();
         await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
+        await expect(environment.importInvalidBadge('malformed.json')).toBeVisible();
       });
 
-      await environment.importReplaceButton('Production').click();
       await environment.importSubmitButton('collection').click();
+      await environment.importReplaceButton().click();
 
       await test.step('Production was replaced; the invalid file did not block the import', async () => {
         await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
@@ -283,14 +274,17 @@ test.describe('Import environment - name conflict handling', () => {
   });
 
   test.describe('global scope', () => {
-    test('importing a global environment with no naming conflict commits immediately without a review step', async ({ newPage: page, createTmpDir }) => {
+    test('importing a global environment with no naming conflict shows a review step even if there are no conflicts', async ({ newPage: page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-global-none', await createTmpDir('name-conflict-global-none'));
       await importEnvironment(page, fixture('production-env.json'), 'global');
 
       await openImportReview(page, 'global', fixture('development-env.json'));
 
-      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
+      await test.step('No conflict with the existing \"Production\" environment, so all imports are marked as new', async () => {
+        await expect(environment.importModal('global')).toBeVisible();
+        await expect(environment.importNewBadge('Development')).toBeVisible();
+        await environment.importSubmitButton('global').click();
         await expect(environment.importModal('global')).toBeHidden();
         await expect(environment.sidebarListItem('global', 'Development')).toBeVisible();
         await expect(environment.sidebarListItem('global', 'Production')).toBeVisible();
@@ -306,8 +300,8 @@ test.describe('Import environment - name conflict handling', () => {
 
       await test.step('Replace overwrites the existing global environment', async () => {
         await openImportReview(page, 'global', fixture('production-env-updated.json'));
-        await environment.importReplaceButton('Production').click();
         await environment.importSubmitButton('global').click();
+        await environment.importReplaceButton().click();
 
         await expect(environment.sidebarListItem('global', 'Production')).toHaveCount(1);
         await environment.sidebarListItem('global', 'Production').click();
@@ -350,19 +344,15 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'global');
 
       await openImportReview(page, 'global', fixture('staging-env.json'));
+      await environment.importSubmitButton('global').click();
       await expect(environment.importModal('global')).toBeHidden();
 
       await openImportReview(page, 'global', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
 
       await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await expect(environment.importDuplicatesCount()).toHaveText('2');
-        await environment.importGroupDropdownTrigger().click();
-        await environment.importGroupDropdownReplaceOption().click();
-
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
+        await environment.importSubmitButton('global').click();
+        await environment.importReplaceButton().click();
       });
-
-      await environment.importSubmitButton('global').click();
 
       await test.step('Both existing global environments were replaced, no copies created', async () => {
         await expect(environment.sidebarListItem('global', 'Production')).toHaveCount(1);

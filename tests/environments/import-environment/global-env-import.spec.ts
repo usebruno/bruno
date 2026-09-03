@@ -41,6 +41,8 @@ test.describe('Global Environment Import Tests', () => {
     await page.locator('[data-testid="import-global-environment"]').click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
+
+    await page.getByTestId('import-global-environment-modal-submit-btn').click();
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });

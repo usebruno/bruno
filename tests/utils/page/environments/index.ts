@@ -120,25 +120,17 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importSubmitButton: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
   importTotalCount: () => page.getByTestId('env-import-total-count'),
-  importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
-  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
-  importDuplicatesGroup: () => page.getByTestId('env-import-duplicates-group'),
-  importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
-  importNewGroup: () => page.getByTestId('env-import-new-group'),
-  importNewCount: () => page.getByTestId('env-import-new-count'),
-  importDuplicatesGroupSelectAllCheckbox: () => page.getByTestId('env-import-duplicates-group-checkbox'),
-  importNewGroupSelectAllCheckbox: () => page.getByTestId('env-import-new-group-checkbox'),
+  importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'), // We added this to ResolutionStep
   importSelectedCount: () => page.getByTestId('env-import-selected-count'),
+  importSelectAllCheckbox: () => page.getByTestId('env-import-select-all'),
   importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
   importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
-  importCopyButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-copy-btn'),
-  importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
-  importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
-  importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
-  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
-  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
-  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
-  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
+  importCopyButton: () => page.getByRole('button', { name: 'Import as copy' }),
+  importReplaceButton: () => page.getByRole('button', { name: 'Replace existing' }),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(fileName, { exact: true }) }),
+  importNewBadge: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).locator('.new-badge'),
+  importDuplicateBadge: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).locator('.duplicate-badge'),
+  importInvalidBadge: (fileName: string) => buildEnvironmentLocators(page).importInvalidItem(fileName).locator('.invalid-badge')
 });
 
 /**
