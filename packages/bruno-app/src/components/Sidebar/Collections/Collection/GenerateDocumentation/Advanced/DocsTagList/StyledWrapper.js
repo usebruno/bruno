@@ -55,6 +55,11 @@ export const StyledWrapper = styled.div`
     background-color: transparent;
     border: 1px solid ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
+    transition: background-color 0.15s ease;
+
+    &:has(.docs-tag-remove:hover) {
+      background-color: ${(props) => props.theme.background.surface2};
+    }
   }
 
   .docs-tag-icon {
