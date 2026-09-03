@@ -135,4 +135,25 @@ describe('importBrunoEnvironment — inheritance', () => {
     expect(valid).toEqual([]);
     expect(invalid[0].error).toMatch(/not a valid environment name/);
   });
+
+  it('rejects an extends reference of 0', () => {
+    const { valid, invalid } = importSingleEnvironment({ name: 'dev', variables: [], extends: 0 });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/not a valid environment name/);
+  });
+
+  it('rejects an extends reference of false', () => {
+    const { valid, invalid } = importSingleEnvironment({ name: 'dev', variables: [], extends: false });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/not a valid environment name/);
+  });
+
+  it('treats an empty extends reference as no inheritance', () => {
+    const { valid: [environment], invalid } = importSingleEnvironment({ name: 'dev', variables: [], extends: '' });
+
+    expect(invalid).toEqual([]);
+    expect(environment.extends).toBeUndefined();
+  });
 });

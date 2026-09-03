@@ -44,12 +44,12 @@ const environmentNameOf = (filePath) => path.basename(filePath, path.extname(fil
 const environmentsIn = (directory, fileExt) =>
   fs
     .readdirSync(directory)
-    .filter((fileName) => path.extname(fileName) === fileExt)
+    .filter((fileName) => path.extname(fileName).toLowerCase() === fileExt)
     .map((fileName) => {
       try {
         return {
           ...parseEnvironment(path.join(directory, fileName)),
-          name: path.basename(fileName, fileExt)
+          name: environmentNameOf(fileName)
         };
       } catch {
         return null;
@@ -67,7 +67,7 @@ const resolveEnvironmentInheritance = ({ filePath, merge }) => {
   const environment = { ...targetEnvironment, name: environmentNameOf(filePath) };
 
   const environments = environment.extends
-    ? environmentsIn(path.dirname(filePath), path.extname(filePath))
+    ? environmentsIn(path.dirname(filePath), path.extname(filePath).toLowerCase())
     : [];
 
   const resolved = resolveEnvironmentInheritanceCommon({
@@ -80,23 +80,29 @@ const resolveEnvironmentInheritance = ({ filePath, merge }) => {
 };
 
 // Helper to load environment variables from a file. Returns the inherited variables too, so
-// callers can tell which names it merely inherits — those belong to the parent file.
-const loadEnvironmentFromFile = ({ filePath, name, isEnvFile }) => {
+// callers can tell which names it merely inherits — those belong to the parent file — and its own
+// entries, so a caller that loads this file alongside another environment can tell that one which
+// names it must leave to this file. With `resolveInheritance` off the file is loaded exactly as it
+// reads, `extends` chain and all left unresolved.
+const loadEnvironmentFromFile = ({ filePath, name, resolveInheritance = true }) => {
   const fileExt = path.extname(filePath).toLowerCase();
 
-  const canInherit = !isEnvFile && path.basename(path.dirname(filePath)) === 'environments';
-  const environment = canInherit ? resolveEnvironmentInheritance({ filePath }) : parseEnvironment(filePath);
+  const environment = resolveInheritance ? resolveEnvironmentInheritance({ filePath }) : parseEnvironment(filePath);
   const variables = getEnvVars(environment);
 
   if (fileExt === '.json') {
     const rawName = environment?.name;
     const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
-    variables.__name__ = trimmedName || path.basename(filePath, '.json');
+    variables.__name__ = trimmedName || environmentNameOf(filePath);
   } else {
-    variables.__name__ = name || path.basename(filePath, fileExt === '.yml' ? '.yml' : '.bru');
+    variables.__name__ = name || environmentNameOf(filePath);
   }
 
-  return { variables, inheritedVariables: environment?.inheritedVariables || [] };
+  return {
+    variables,
+    inheritedVariables: environment?.inheritedVariables || [],
+    ownVariables: (environment?.variables || []).filter((v) => v.enabled)
+  };
 };
 
 module.exports = {

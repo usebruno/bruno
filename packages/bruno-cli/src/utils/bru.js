@@ -3,6 +3,7 @@ const {
   parseRequest: _parseRequest,
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
+const { toVariablesMap } = require('@usebruno/common').utils;
 
 const collectionBruToJson = (bru) => {
   try {
@@ -128,22 +129,8 @@ const bruToJson = (bru) => {
   }
 };
 
-const getEnvVars = (environment = {}) => {
-  const variables = [...(environment.inheritedVariables || []), ...(environment.variables || [])];
-  if (!variables.length) {
-    return {};
-  }
-
-  const envVars = {};
-  // Apply secrets last so a secret wins over a plain variable of the same name,
-  // regardless of their order in the array.
-  const enabledVars = variables.filter((variable) => variable.enabled);
-  _.each([...enabledVars.filter((variable) => !variable.secret), ...enabledVars.filter((variable) => variable.secret)], (variable) => {
-    envVars[variable.name] = variable.value;
-  });
-
-  return envVars;
-};
+const getEnvVars = (environment = {}) =>
+  toVariablesMap([...(environment.inheritedVariables || []), ...(environment.variables || [])]);
 
 const options = {};
 const getOptions = () => {

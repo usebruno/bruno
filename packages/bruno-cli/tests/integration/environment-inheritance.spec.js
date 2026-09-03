@@ -1,10 +1,13 @@
 const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/globals');
-const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const { parseEnvironment } = require('@usebruno/filestore');
-const { runCli } = require('./helpers/run-cli');
-const { copyFixtureToTmpDir, removeTmpDir } = require('./helpers/tmp-dir');
+const {
+  echoRequest,
+  startLocalServer,
+  createFixtureSeeder,
+  runCollection,
+  readEnvironment,
+  variableNames
+} = require('./helpers/environments');
 
 const WORKSPACE_FIXTURE_DIR = path.resolve(
   __dirname,
@@ -31,54 +34,23 @@ const envVarArgs = (flag, secrets) =>
   Object.entries(secrets).flatMap(([name, value]) => [flag, `${name}=${value}`]);
 
 describe('CLI run - environment inheritance (extends)', () => {
+  const { seedFixture, removeSeededFixtures } = createFixtureSeeder();
   let server;
   let baseUrl;
-  let tmpDirs = [];
 
   beforeAll(async () => {
-    server = http.createServer((req, res) => {
-      let body = '';
-      req.on('data', (chunk) => { body += chunk; });
-      req.on('end', () => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ method: req.method, url: req.url, headers: req.headers, body }));
-      });
-    });
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const { port } = server.address();
-    baseUrl = `http://127.0.0.1:${port}`;
+    server = await startLocalServer(echoRequest);
+    baseUrl = server.baseUrl;
   });
 
-  afterAll(async () => {
-    await new Promise((resolve) => server.close(resolve));
-  });
+  afterAll(() => server.close());
 
-  afterEach(() => {
-    tmpDirs.forEach(removeTmpDir);
-    tmpDirs = [];
-  });
-
-  // A run rewrites the environment files it is pointed at, so it never sees the committed fixture.
-  const seedFixture = (fixtureDir, tag) => {
-    const tmpDir = copyFixtureToTmpDir(fixtureDir, tag);
-    tmpDirs.push(tmpDir);
-    return tmpDir;
-  };
+  afterEach(removeSeededFixtures);
 
   const seedCollection = (format) => seedFixture(path.join(COLLECTIONS_FIXTURE_DIR, format), `env-inheritance-${format}`);
 
-  const assertSucceeded = (result) => {
-    if (result.code !== 0) {
-      throw new Error(
-        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
-      );
-    }
-  };
-
-  const readEnvironment = (collectionDir, name, format) =>
-    parseEnvironment(fs.readFileSync(path.join(collectionDir, 'environments', `${name}.${format}`), 'utf8'), { format });
-
-  const variableNames = (environment) => environment.variables.map((variable) => variable.name).sort();
+  const environmentPath = (collectionDir, name, format) =>
+    path.join(collectionDir, 'environments', `${name}.${format}`);
 
   // `host` carries the echo endpoint and is only declared in `base`, so a run that failed to
   // inherit could not reach the server at all. What each row resolved to is asserted by the
@@ -89,18 +61,29 @@ describe('CLI run - environment inheritance (extends)', () => {
   ])('resolves the inheritance chain of the environment it runs with in a %s collection', async (format, request) => {
     const collectionDir = seedCollection(format);
 
-    const result = await runCli(
-      [
-        'run', request,
-        '--env', 'dev',
-        '--env-var', `host=${baseUrl}`,
-        ...envVarArgs('--env-var', COLLECTION_SECRETS),
-        '--sandbox', 'developer', '--noproxy'
-      ],
-      collectionDir
-    );
+    await runCollection(collectionDir, [
+      'run', request,
+      '--env', 'dev',
+      '--env-var', `host=${baseUrl}`,
+      ...envVarArgs('--env-var', COLLECTION_SECRETS)
+    ]);
+  }, RUN_TIMEOUT);
 
-    assertSucceeded(result);
+  // --env-file loads the file as it reads, even when the path it is given is one of the collection's
+  // own environments. Nothing the parent declares reaches the run, so a script write of a name the
+  // parent owns is this file's own new row rather than a value it already inherits.
+  it('leaves the inheritance chain of an env file unresolved', async () => {
+    const collectionDir = seedCollection('yml');
+
+    await runCollection(collectionDir, [
+      'run', 'set-env-var.yml',
+      '--env-file', path.join('environments', 'scripted.yml'),
+      '--env-var', `host=${baseUrl}`
+    ]);
+
+    const scripted = readEnvironment(environmentPath(collectionDir, 'scripted', 'yml'));
+    expect(scripted.extends).toBe('base');
+    expect(variableNames(scripted)).toEqual(['base_only', 'scripted_only', 'session_id']);
   }, RUN_TIMEOUT);
 
   // Global environments resolve their chain against <workspace>/environments, a separate code path
@@ -108,19 +91,13 @@ describe('CLI run - environment inheritance (extends)', () => {
   it('resolves the inheritance chain of a global environment', async () => {
     const workspaceDir = seedFixture(WORKSPACE_FIXTURE_DIR, 'env-inheritance-workspace');
 
-    const result = await runCli(
-      [
-        'run', 'workspace-vars.yml',
-        '--global-env', 'workspace_dev',
-        '--workspace-path', workspaceDir,
-        '--global-env-var', `workspace_host=${baseUrl}`,
-        ...envVarArgs('--global-env-var', WORKSPACE_SECRETS),
-        '--sandbox', 'developer', '--noproxy'
-      ],
-      path.join(workspaceDir, 'collections', 'yml')
-    );
-
-    assertSucceeded(result);
+    await runCollection(path.join(workspaceDir, 'collections', 'yml'), [
+      'run', 'workspace-vars.yml',
+      '--global-env', 'workspace_dev',
+      '--workspace-path', workspaceDir,
+      '--global-env-var', `workspace_host=${baseUrl}`,
+      ...envVarArgs('--global-env-var', WORKSPACE_SECRETS)
+    ]);
   }, RUN_TIMEOUT);
 
   // A script write must not fork private copies of the parent's variables into the child file:
@@ -128,15 +105,11 @@ describe('CLI run - environment inheritance (extends)', () => {
   it('persists only the variables a script gave a value the environment does not already inherit', async () => {
     const collectionDir = seedCollection('yml');
 
-    const result = await runCli(
-      ['run', 'set-env-var.yml', '--env', 'scripted', '--env-var', `host=${baseUrl}`, '--sandbox', 'developer', '--noproxy'],
-      collectionDir
-    );
+    await runCollection(collectionDir, ['run', 'set-env-var.yml', '--env', 'scripted', '--env-var', `host=${baseUrl}`]);
 
-    assertSucceeded(result);
     // The script rewrote `base_only` with the value it already inherits, so that write is a no-op;
     // `session_id` differs from the parent's value and persists as an override.
-    const scripted = readEnvironment(collectionDir, 'scripted', 'yml');
+    const scripted = readEnvironment(environmentPath(collectionDir, 'scripted', 'yml'));
     expect(scripted.extends).toBe('base');
     expect(variableNames(scripted)).toEqual(['scripted_only', 'session_id']);
     expect(scripted.variables.find((variable) => variable.name === 'session_id').value).toBe('script_session');

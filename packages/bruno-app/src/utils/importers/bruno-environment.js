@@ -22,7 +22,8 @@ const validateBrunoEnvironment = (env, filePath, fileName) => {
   });
 
   const environmentExtendsFrom = validatedEnvironmentExtendsFrom(env.extends);
-  if (env.extends && !environmentExtendsFrom) {
+  const hasExtendsReference = env.extends !== undefined && env.extends !== null && env.extends !== '';
+  if (hasExtendsReference && !environmentExtendsFrom) {
     throw new BrunoError('Invalid environment: extends is not a valid environment name');
   }
 

@@ -23,7 +23,7 @@ export type ResolvedEnvironment<E extends ExtendableEnvironment, Merge extends b
   ? E
   : E & { inheritedVariables: E['variables'] };
 
-const validatedEnvironmentName = (reference: unknown): string | undefined => {
+export const validatedEnvironmentName = (reference: unknown): string | undefined => {
   if (typeof reference !== 'string') {
     return undefined;
   }

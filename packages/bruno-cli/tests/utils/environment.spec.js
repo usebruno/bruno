@@ -79,63 +79,87 @@ describe('getEnvVars', () => {
   });
 });
 
-// Inheritance walks the sibling files, so it applies to the collection and workspace environments
-// — the ones the run names inside an `environments` directory — and not to a file passed by path
-// (--env-file).
+// Whether the `extends` chain is resolved is the caller's choice, not a property of where the file
+// sits: an environment the run names (--env, --global-env) inherits, one it is pointed at by path
+// (--env-file) is loaded as the file reads.
 describe('loadEnvironmentFromFile', () => {
-  let collectionDir;
+  let environmentsDir;
 
   beforeEach(() => {
-    collectionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-load-environment-'));
+    environmentsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-load-environment-'));
   });
 
   afterEach(() => {
-    fs.rmSync(collectionDir, { recursive: true, force: true });
+    fs.rmSync(environmentsDir, { recursive: true, force: true });
   });
 
   // Returns the path of the inheriting child, `dev`, written alongside the `base` it extends.
-  const writeInheritingEnvironments = (directory) => {
-    fs.mkdirSync(directory, { recursive: true });
-
+  const writeInheritingEnvironments = () => {
     const write = ({ name, ...environment }) => {
-      const filePath = path.join(directory, `${name}.yml`);
+      const filePath = path.join(environmentsDir, `${name}.yml`);
       fs.writeFileSync(filePath, stringifyEnvironment({ name, variables: [], ...environment }, { format: 'yml' }));
       return filePath;
     };
 
-    write({ name: 'base', variables: [variable({ name: 'scheme', value: 'https', type: 'text' })] });
+    write({
+      name: 'base',
+      variables: [
+        variable({ name: 'scheme', value: 'https', type: 'text' }),
+        secret({ name: 'token', value: '', type: 'text' })
+      ]
+    });
 
     return write({
       name: 'dev',
       extends: 'base',
-      variables: [variable({ name: 'host', value: 'dev-host', type: 'text' })]
+      variables: [
+        variable({ name: 'host', value: 'dev-host', type: 'text' }),
+        variable({ name: 'port', value: '8081', type: 'text', enabled: false })
+      ]
     });
   };
 
-  it('inherits from the parent environment for a named environment', () => {
-    const filePath = writeInheritingEnvironments(path.join(collectionDir, 'environments'));
+  it('resolves the parent environment into the variables by default', () => {
+    const filePath = writeInheritingEnvironments();
 
     const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, name: 'dev' });
 
-    expect(variables).toEqual({ scheme: 'https', host: 'dev-host', __name__: 'dev' });
-    expect(inheritedVariables.map((row) => row.name)).toEqual(['scheme']);
+    expect(variables).toEqual({ scheme: 'https', token: '', host: 'dev-host', __name__: 'dev' });
+    expect(inheritedVariables.map((row) => row.name)).toEqual(['scheme', 'token']);
   });
 
-  it('inherits nothing for an environment passed as an env file', () => {
-    const filePath = writeInheritingEnvironments(path.join(collectionDir, 'environments'));
+  // Nothing a parent declares reaches the runtime map, so no name the run is not pointed at can
+  // travel with it — a parent's secret least of all.
+  it('leaves the parent environment out entirely when inheritance is off', () => {
+    const filePath = writeInheritingEnvironments();
 
-    const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, isEnvFile: true });
+    const { variables, inheritedVariables } = loadEnvironmentFromFile({
+      filePath,
+      name: 'dev',
+      resolveInheritance: false
+    });
 
     expect(variables).toEqual({ host: 'dev-host', __name__: 'dev' });
     expect(inheritedVariables).toEqual([]);
   });
 
-  it('inherits nothing for an environment outside an environments directory', () => {
-    const filePath = writeInheritingEnvironments(collectionDir);
+  it('names the environment after the file even when its extension is uppercased', () => {
+    const filePath = path.join(environmentsDir, 'dev.YML');
+    const environment = { name: 'dev', variables: [variable({ name: 'host', value: 'dev-host', type: 'text' })] };
+    fs.writeFileSync(filePath, stringifyEnvironment(environment, { format: 'yml' }));
 
-    const { variables, inheritedVariables } = loadEnvironmentFromFile({ filePath, name: 'dev' });
+    const { variables } = loadEnvironmentFromFile({ filePath });
 
-    expect(variables).toEqual({ host: 'dev-host', __name__: 'dev' });
-    expect(inheritedVariables).toEqual([]);
+    expect(variables.__name__).toBe('dev');
+  });
+
+  // A caller loading this file alongside another environment writes the other one back, and uses
+  // these entries to know which names it must leave to this file.
+  it('reports the enabled entries the file itself declares as its own variables', () => {
+    const filePath = writeInheritingEnvironments();
+
+    const { ownVariables } = loadEnvironmentFromFile({ filePath, name: 'dev', resolveInheritance: false });
+
+    expect(ownVariables.map((row) => row.name)).toEqual(['host']);
   });
 });

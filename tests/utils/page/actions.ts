@@ -1171,7 +1171,11 @@ const addRowToActiveTab = async (
       const nameInput = await emptyRowNameInput(page);
       // Filling the value appends another empty row, so the row being filled in stops being the
       // last one — its formik index is what stays put until it has a name to be found by.
-      const rowIndex = Number((await nameInput.getAttribute('name')).split('.')[0]);
+      const formikName = await nameInput.getAttribute('name');
+      if (formikName === null) {
+        throw new Error('Empty environment row is missing its formik "name" attribute');
+      }
+      const rowIndex = Number(formikName.split('.')[0]);
 
       const emptyRowEditor = environment.variableValueEditor(rowIndex);
       await emptyRowEditor.scrollIntoViewIfNeeded();

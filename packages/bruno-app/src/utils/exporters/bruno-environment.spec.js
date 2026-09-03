@@ -3,13 +3,17 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
+import os from 'os';
+import path from 'path';
 import { exportBrunoEnvironment } from './bruno-environment';
+
+const exportFilePath = path.join(os.tmpdir(), 'export');
 
 const exportedEnvironments = async (environments) => {
   const invoke = jest.fn().mockResolvedValue(undefined);
   window.ipcRenderer = { invoke };
 
-  await exportBrunoEnvironment({ environments, environmentType: 'collection', filePath: '/tmp/export' });
+  await exportBrunoEnvironment({ environments, environmentType: 'collection', filePath: exportFilePath });
 
   return invoke.mock.calls[0][1].environments;
 };
