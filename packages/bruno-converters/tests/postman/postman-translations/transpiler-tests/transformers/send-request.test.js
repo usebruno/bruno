@@ -1534,7 +1534,6 @@ await bru.sendRequest({
           console.log(code);
           console.log(status);
         });
-
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
