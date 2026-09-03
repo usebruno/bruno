@@ -83,6 +83,22 @@ const buildCallResult = (session) => ({
   duration: Date.now() - session.startedAt
 });
 
+/**
+ * Everything an `afterMessageReceive` run needs, frozen at the instant its message arrived.
+ * Must be called synchronously from the interceptor, while the session still matches `message`.
+ */
+const snapshotForMessageHook = (session) => {
+  const messageIndex = session.messages.length - 1;
+
+  return {
+    messageIndex,
+    message: session.messages[messageIndex],
+    // Copies the received messages, so a slow script cannot be handed messages that arrive while it runs.
+    response: { ...buildPartialCallResult(session), messages: session.messages.slice() },
+    sentMessages: buildSentMessages(session).slice()
+  };
+};
+
 // hooks that need session information. BeforeCallStart is excluded since session is not armed at that point
 const SESSION_HOOK_KEYS = ['afterCallEnd', 'beforeMessageSend', 'afterMessageReceive'];
 
@@ -381,11 +397,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
   // Unlike `beforeMessageSend`, this one does not rethrow: the message has already been delivered
   // and forwarded to the renderer, so there is nothing left to abort. Errors are surfaced through
   // `grpc:script-error` and the call carries on with the remaining messages.
-  const runAfterMessageReceive = (session, message) => {
-    const messageIndex = session.receivedCount++;
-    // Request and response messages copied so new messages are not leaked to the slow running scripts.
-    const receivedMessages = session.messages.slice(0, messageIndex + 1);
-    const sentMessages = buildSentMessages(session).slice();
+  const runAfterMessageReceive = (session, { messageIndex, message, response, sentMessages }) => {
     const { request, collection, collectionUid } = session;
     const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
 
@@ -397,7 +409,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
         scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
           script: decomment(request.script.afterMessageReceive, { space: true }),
           request,
-          response: { ...buildPartialCallResult(session), receivedMessages },
+          response,
           message,
           envVariables: session.envVars,
           runtimeVariables: session.runtimeVariables,
@@ -461,8 +473,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
       statusText: undefined,
       terminated: false,
       hookQueue: Promise.resolve(),
-      sentCount: 0,
-      receivedCount: 0
+      sentCount: 0
     });
   };
 
@@ -486,8 +497,10 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
       && !payload?.error
       && session.request.script?.afterMessageReceive?.trim().length
     ) {
-      const received = session.messages[session.messages.length - 1];
-      enqueueHook(session, () => runAfterMessageReceive(session, received))
+      // Built now, since the enqueued hook may run after messages are sent/received during the wait period.
+      const snapshot = snapshotForMessageHook(session);
+
+      enqueueHook(session, () => runAfterMessageReceive(session, snapshot))
         .catch((error) => {
           console.error('Error running gRPC afterMessageReceive hook:', error);
         });
