@@ -7,7 +7,7 @@ const { brunoToOpenCollection } = require('@usebruno/converters');
 const { generateApiDocsHtml, getApiDocsFileName, resolveCollectionVersion } = require('@usebruno/common');
 const { createCollectionJsonFromPathname } = require('../../utils/collection');
 const { loadEnvironments } = require('../../utils/environment');
-const { parseListOption, findConflicts, pluralizeWord } = require('../../utils/common');
+const { parseListOption, findConflicts, pluralizeWord, stripRequestItems } = require('../../utils/common');
 const { getGitRemoteUrl } = require('../../utils/git');
 const { CLI_VERSION, EXIT_STATUS } = require('../../constants');
 
@@ -55,6 +55,45 @@ const builder = (yargs) => {
     .example('$0 docs generate --exclude-tags WIP --no-git-link', 'Hide WIP requests and omit the git link');
 };
 
+const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }) => {
+  const conflicting = findConflicts(includeEnvs, excludeEnvs);
+  if (conflicting.length > 0) {
+    return {
+      error: {
+        message: chalk.red(`${pluralizeWord(conflicting.length, 'Environment')} cannot be both included and excluded: `) + chalk.dim(conflicting.join(', ')),
+        exitCode: EXIT_STATUS.ERROR_GENERIC
+      }
+    };
+  }
+  if (allEnvs && includeEnvs.length > 0) {
+    return {
+      error: {
+        message: chalk.red('--all-envs cannot be combined with --envs'),
+        exitCode: EXIT_STATUS.ERROR_GENERIC
+      }
+    };
+  }
+  const availableEnvNames = new Set(environments.map((env) => env.name));
+  const missingEnvs = [...includeEnvs, ...excludeEnvs].filter((name) => !availableEnvNames.has(name));
+  if (missingEnvs.length > 0) {
+    return {
+      error: {
+        message: chalk.red(`${pluralizeWord(missingEnvs.length, 'Environment')} not found: `) + chalk.dim(missingEnvs.join(', ')),
+        exitCode: EXIT_STATUS.ERROR_ENV_NOT_FOUND
+      }
+    };
+  }
+  if (includeEnvs.length > 0) {
+    const envByName = new Map(environments.map((env) => [env.name, env]));
+    return { environments: includeEnvs.map((name) => envByName.get(name)) };
+  }
+  if (excludeEnvs.length > 0) {
+    const excluded = new Set(excludeEnvs);
+    return { environments: environments.filter((env) => !excluded.has(env.name)) };
+  }
+  return { environments: allEnvs ? environments : [] };
+};
+
 const handler = async (argv) => {
   try {
     global.brunoSkippedFiles = [];
@@ -62,6 +101,7 @@ const handler = async (argv) => {
     const collection = createCollectionJsonFromPathname(collectionPath);
 
     collection.name = collection.brunoConfig?.name;
+    collection.items = stripRequestItems(collection.items);
     try {
       collection.environments = loadEnvironments(collectionPath);
     } catch (err) {
@@ -80,32 +120,12 @@ const handler = async (argv) => {
       console.error(chalk.red(`${pluralizeWord(conflictingTags.length, 'Tag')} cannot be both included and excluded: `) + chalk.dim(conflictingTags.join(', ')));
       process.exit(EXIT_STATUS.ERROR_GENERIC);
     }
-    const conflictingEnvs = findConflicts(includeEnvs, excludeEnvs);
-    if (conflictingEnvs.length > 0) {
-      console.error(chalk.red(`${pluralizeWord(conflictingEnvs.length, 'Environment')} cannot be both included and excluded: `) + chalk.dim(conflictingEnvs.join(', ')));
-      process.exit(EXIT_STATUS.ERROR_GENERIC);
+    const envResolution = resolveEnvironments(collection.environments, { includeEnvs, excludeEnvs, allEnvs });
+    if (envResolution.error) {
+      console.error(envResolution.error.message);
+      process.exit(envResolution.error.exitCode);
     }
-    if (allEnvs && includeEnvs.length > 0) {
-      console.error(chalk.red('--all-envs cannot be combined with --envs'));
-      process.exit(EXIT_STATUS.ERROR_GENERIC);
-    }
-
-    const availableEnvNames = new Set(collection.environments.map((env) => env.name));
-    const missingEnvs = [...includeEnvs, ...excludeEnvs].filter((name) => !availableEnvNames.has(name));
-    if (missingEnvs.length > 0) {
-      console.error(chalk.red(`${pluralizeWord(missingEnvs.length, 'Environment')} not found: `) + chalk.dim(missingEnvs.join(', ')));
-      process.exit(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
-    }
-
-    if (includeEnvs.length > 0) {
-      const envByName = new Map(collection.environments.map((env) => [env.name, env]));
-      collection.environments = includeEnvs.map((name) => envByName.get(name));
-    } else if (excludeEnvs.length > 0) {
-      const excluded = new Set(excludeEnvs);
-      collection.environments = collection.environments.filter((env) => !excluded.has(env.name));
-    } else if (!allEnvs) {
-      collection.environments = [];
-    }
+    collection.environments = envResolution.environments;
 
     const gitLinkEnabled = argv.gitLink !== false;
     const gitCollectionUrl = gitLinkEnabled ? getGitRemoteUrl(collectionPath) : undefined;
@@ -141,4 +161,4 @@ const handler = async (argv) => {
   }
 };
 
-module.exports = { command, desc, builder, handler };
+module.exports = { command, desc, builder, handler, resolveEnvironments };

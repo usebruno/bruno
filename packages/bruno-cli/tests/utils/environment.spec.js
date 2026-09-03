@@ -81,9 +81,23 @@ describe('loadEnvironments', () => {
     expect(loadEnvironments(collDir)[0].name).toBe('Prod');
   });
 
-  it('orders the environments by name to match the app, not by file name', () => {
-    writeEnvFile('a-first.json', JSON.stringify({ name: 'Zeta', variables: [] }));
-    writeEnvFile('z-last.json', JSON.stringify({ name: 'Alpha', variables: [] }));
+  it('names each environment after its file, ignoring any name stored inside it', () => {
+    writeEnvFile('Prod.yml', 'name: Renamed\nvariables:\n  - name: BASE_URL\n    value: https://prod\n');
+    writeEnvFile('Local.bru', 'vars {\n  BASE_URL: http://localhost\n}\n');
+
+    expect(loadEnvironments(collDir).map((e) => e.name)).toEqual(['Local', 'Prod']);
+  });
+
+  it('names a yml environment after its file even when the file omits a name', () => {
+    writeEnvFile('Prod.yml', 'variables:\n  - name: BASE_URL\n    value: https://prod\n');
+    writeEnvFile('Dev.yml', 'variables:\n  - name: BASE_URL\n    value: https://dev\n');
+
+    expect(loadEnvironments(collDir).map((e) => e.name)).toEqual(['Dev', 'Prod']);
+  });
+
+  it('sorts the environments by name to match the app', () => {
+    writeEnvFile('Zeta.json', JSON.stringify({ variables: [] }));
+    writeEnvFile('Alpha.json', JSON.stringify({ variables: [] }));
 
     expect(loadEnvironments(collDir).map((e) => e.name)).toEqual(['Alpha', 'Zeta']);
   });

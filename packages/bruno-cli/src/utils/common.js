@@ -58,11 +58,23 @@ const findConflicts = (include, exclude) => {
 
 const pluralizeWord = (count, word) => `${word}${count === 1 ? '' : 's'}`;
 
+const stripRequestItems = (items = []) =>
+  items.map((item) => {
+    if (item.type === 'folder') {
+      return { ...item, items: stripRequestItems(item.items || []) };
+    }
+    if (!Array.isArray(item.items)) return item;
+    const request = { ...item };
+    delete request.items;
+    return request;
+  });
+
 module.exports = {
   lpad,
   rpad,
   parseDataFromResponse,
   parseListOption,
   findConflicts,
-  pluralizeWord
+  pluralizeWord,
+  stripRequestItems
 };

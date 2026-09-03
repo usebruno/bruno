@@ -51,7 +51,7 @@ const loadEnvironments = (collectionPath) => {
       const filePath = path.join(environmentsDir, file);
       try {
         const envJson = parseEnvFile(filePath);
-        const name = envJson.name || path.basename(file, path.extname(file));
+        const name = path.basename(file, path.extname(file));
         return { ...envJson, name, variables: envJson.variables || [] };
       } catch (err) {
         throw new Error(`environments/${file}: ${err.message}`);

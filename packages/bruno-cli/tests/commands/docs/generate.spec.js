@@ -4,8 +4,11 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/globals');
 const generate = require('../../../src/commands/docs/generate');
+const { EXIT_STATUS } = require('../../../src/constants');
+const { createTmpDir, copyFixtureToTmpDir, removeTmpDir } = require('../../integration/helpers/tmp-dir');
 
 const FIXTURE = path.resolve(__dirname, 'fixtures/collection');
+const YML_FIXTURE = path.resolve(__dirname, 'fixtures/yml-collection');
 
 const mockExit = () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -26,7 +29,7 @@ describe('bru docs generate', () => {
 
   afterAll(() => {
     process.chdir(originalCwd);
-    fs.rmSync(outDir, { recursive: true, force: true });
+    removeTmpDir(outDir);
   });
 
   afterEach(() => {
@@ -41,6 +44,13 @@ describe('bru docs generate', () => {
     expect(html).toContain('<title>collection - API Documentation</title>');
     expect(html).toContain('new window.OpenCollection');
     expect(html).toContain('const collectionData =');
+  });
+
+  it('shows the collection version from the bru config (collectionVersion, not the schema marker)', async () => {
+    const output = path.join(outDir, 'version.html');
+    await generate.handler({ output, gitLink: false });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('version: 2.1.0');
   });
 
   it('leaves out the git repo url when --no-git-link is used', async () => {
@@ -133,7 +143,28 @@ describe('bru docs generate', () => {
       expect(exitSpy).toHaveBeenNthCalledWith(1, 10);
     } finally {
       process.chdir(prevCwd);
-      fs.rmSync(badDir, { recursive: true, force: true });
+      removeTmpDir(badDir);
+    }
+  });
+
+  it('warns but still writes the doc when a request file cannot be parsed', async () => {
+    const warnSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const badDir = copyFixtureToTmpDir(FIXTURE, 'bru-docs-badreq');
+    fs.writeFileSync(
+      path.join(badDir, 'Broken.bru'),
+      'meta {\n  name: Broken\n  type: http\n  seq: 9\n\n>>> not valid bru <<<\n'
+    );
+    const prevCwd = process.cwd();
+    process.chdir(badDir);
+    try {
+      const output = path.join(outDir, 'skipped.html');
+      await generate.handler({ output, gitLink: false });
+      expect(fs.existsSync(output)).toBe(true);
+      const message = warnSpy.mock.calls.map((args) => args.join(' ')).join('\n');
+      expect(message).toContain('could not be parsed');
+    } finally {
+      process.chdir(prevCwd);
+      removeTmpDir(badDir);
     }
   });
 });
@@ -163,12 +194,20 @@ describe('bru docs generate: environment selection', () => {
 
   afterAll(() => {
     process.chdir(originalCwd);
-    fs.rmSync(collDir, { recursive: true, force: true });
-    fs.rmSync(outDir, { recursive: true, force: true });
+    removeTmpDir(collDir);
+    removeTmpDir(outDir);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('embeds no environments by default when no env flag is given', async () => {
+    const output = path.join(outDir, 'no-envs.html');
+    await generate.handler({ output, gitLink: false });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).not.toContain('Production');
+    expect(html).not.toContain('Staging');
   });
 
   it('includes only the environments listed in --envs', async () => {
@@ -326,8 +365,8 @@ describe('bru docs generate: tag filtering', () => {
 
   afterAll(() => {
     process.chdir(originalCwd);
-    fs.rmSync(collDir, { recursive: true, force: true });
-    fs.rmSync(outDir, { recursive: true, force: true });
+    removeTmpDir(collDir);
+    removeTmpDir(outDir);
   });
 
   afterEach(() => {
@@ -387,6 +426,56 @@ describe('bru docs generate: tag filtering', () => {
   });
 });
 
+describe('bru docs generate: tag filtering on a yml collection', () => {
+  let originalCwd;
+  let collDir;
+  let outDir;
+
+  const writeYmlRequest = (dir, name, tags) => {
+    const tagLines = tags && tags.length ? `\n  tags:\n${tags.map((t) => `    - ${t}`).join('\n')}` : '';
+    fs.writeFileSync(
+      path.join(dir, `${name}.yml`),
+      `info:\n  name: ${name}\n  type: http\n  seq: 1${tagLines}\n\nhttp:\n  method: GET\n  url: https://example.com/${name}\n`
+    );
+  };
+
+  beforeAll(() => {
+    originalCwd = process.cwd();
+    collDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-yml-tags-'));
+    fs.writeFileSync(path.join(collDir, 'opencollection.yml'), 'opencollection: "1.0.0"\ninfo:\n  name: ymltagcoll\n');
+    writeYmlRequest(collDir, 'SmokeReq', ['smoke']);
+    writeYmlRequest(collDir, 'WipReq', ['wip']);
+    outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-docs-yml-tags-out-'));
+    process.chdir(collDir);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+    removeTmpDir(collDir);
+    removeTmpDir(outDir);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('keeps the tagged request instead of dropping every yml request', async () => {
+    const output = path.join(outDir, 'yml-include.html');
+    await generate.handler({ output, gitLink: false, tags: 'smoke' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).not.toContain('WipReq');
+  });
+
+  it('drops the yml request carrying the excluded tag and keeps the others', async () => {
+    const output = path.join(outDir, 'yml-exclude.html');
+    await generate.handler({ output, gitLink: false, excludeTags: 'wip' });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('SmokeReq');
+    expect(html).not.toContain('WipReq');
+  });
+});
+
 describe('bru docs generate: git link', () => {
   let originalCwd;
   let collDir;
@@ -404,8 +493,8 @@ describe('bru docs generate: git link', () => {
 
   afterAll(() => {
     process.chdir(originalCwd);
-    fs.rmSync(collDir, { recursive: true, force: true });
-    fs.rmSync(outDir, { recursive: true, force: true });
+    removeTmpDir(collDir);
+    removeTmpDir(outDir);
   });
 
   afterEach(() => {
@@ -435,7 +524,7 @@ describe('bru docs generate: git link', () => {
       expect(message).toContain('No git remote \'origin\' found');
     } finally {
       process.chdir(prevCwd);
-      fs.rmSync(noOriginDir, { recursive: true, force: true });
+      removeTmpDir(noOriginDir);
     }
   });
 
@@ -454,7 +543,7 @@ describe('bru docs generate: git link', () => {
       expect(message).not.toContain('No git remote');
     } finally {
       process.chdir(prevCwd);
-      fs.rmSync(noOriginDir, { recursive: true, force: true });
+      removeTmpDir(noOriginDir);
     }
   });
 });
@@ -472,7 +561,7 @@ describe('bru docs generate: default output path', () => {
 
   afterAll(() => {
     process.chdir(originalCwd);
-    fs.rmSync(collDir, { recursive: true, force: true });
+    removeTmpDir(collDir);
   });
 
   afterEach(() => {
@@ -482,5 +571,120 @@ describe('bru docs generate: default output path', () => {
   it('writes <collection-name>-documentation.html to the cwd when --output is not given', async () => {
     await generate.handler({ gitLink: false });
     expect(fs.existsSync(path.join(collDir, 'collection-documentation.html'))).toBe(true);
+  });
+});
+
+describe('bru docs generate: yml (OpenCollection) collection', () => {
+  let originalCwd;
+  let collDir;
+  let outDir;
+
+  beforeAll(() => {
+    originalCwd = process.cwd();
+    collDir = copyFixtureToTmpDir(YML_FIXTURE, 'docs-yml');
+    outDir = createTmpDir('docs-yml-out');
+    process.chdir(collDir);
+  });
+
+  afterAll(() => {
+    process.chdir(originalCwd);
+    removeTmpDir(collDir);
+    removeTmpDir(outDir);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('uses the collection name as the document title', async () => {
+    const output = path.join(outDir, 'title.html');
+    await generate.handler({ output, gitLink: false });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('<title>ymlcollection - API Documentation</title>');
+    expect(html).toContain('new window.OpenCollection');
+  });
+
+  it('shows the collection version from the OpenCollection info.version', async () => {
+    const output = path.join(outDir, 'yml-version.html');
+    await generate.handler({ output, gitLink: false });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('version: 3.4.0');
+  });
+
+  it('documents the top-level requests and folders', async () => {
+    const output = path.join(outDir, 'structure.html');
+    await generate.handler({ output, gitLink: false });
+    const html = fs.readFileSync(output, 'utf8');
+    expect(html).toContain('request_1');
+    expect(html).toContain('request_2');
+    expect(html).toContain('folder_1');
+    expect(html).toContain('folder_2');
+  });
+
+  it('keeps only the tagged request when filtering by tag', async () => {
+    const taggedDir = copyFixtureToTmpDir(YML_FIXTURE, 'docs-yml-tag');
+    fs.writeFileSync(
+      path.join(taggedDir, 'request_1.yml'),
+      'info:\n  name: request_1\n  type: http\n  seq: 1\n  tags:\n    - smoke\n\nhttp:\n  method: GET\n  url: https://api.example.com/one\n'
+    );
+    const prevCwd = process.cwd();
+    process.chdir(taggedDir);
+    try {
+      const output = path.join(outDir, 'yml-tagged.html');
+      await generate.handler({ output, gitLink: false, tags: 'smoke' });
+      const html = fs.readFileSync(output, 'utf8');
+      expect(html).toContain('request_1');
+      expect(html).not.toContain('request_2');
+    } finally {
+      process.chdir(prevCwd);
+      removeTmpDir(taggedDir);
+    }
+  });
+
+  it('writes <collection-name>-documentation.html to the cwd when --output is not given', async () => {
+    await generate.handler({ gitLink: false });
+    expect(fs.existsSync(path.join(collDir, 'ymlcollection-documentation.html'))).toBe(true);
+  });
+});
+
+describe('resolveEnvironments', () => {
+  const envs = [{ name: 'Prod' }, { name: 'Dev' }, { name: 'QA' }];
+  const opts = (over) => ({ includeEnvs: [], excludeEnvs: [], allEnvs: false, ...over });
+
+  it('selects nothing by default', () => {
+    expect(generate.resolveEnvironments(envs, opts())).toEqual({ environments: [] });
+  });
+
+  it('selects every environment with allEnvs', () => {
+    expect(generate.resolveEnvironments(envs, opts({ allEnvs: true })).environments).toBe(envs);
+  });
+
+  it('keeps only the included environments, in the order given', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['QA', 'Prod'] }));
+    expect(result.environments.map((e) => e.name)).toEqual(['QA', 'Prod']);
+  });
+
+  it('keeps every environment except the excluded ones', () => {
+    const result = generate.resolveEnvironments(envs, opts({ excludeEnvs: ['Dev'] }));
+    expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'QA']);
+  });
+
+  it('errors when an environment is both included and excluded', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod'], excludeEnvs: ['Prod'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_GENERIC);
+    expect(result.error.message).toContain('cannot be both included and excluded');
+  });
+
+  it('errors when allEnvs is combined with an include list', () => {
+    const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, includeEnvs: ['Prod'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_GENERIC);
+    expect(result.error.message).toContain('--all-envs cannot be combined with --envs');
+  });
+
+  it('errors with the not-found code when a named environment does not exist', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Nope'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Environment not found');
+    expect(result.error.message).not.toContain('Environments not found');
   });
 });
