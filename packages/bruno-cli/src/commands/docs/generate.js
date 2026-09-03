@@ -27,7 +27,7 @@ const builder = (yargs) => {
     })
     .option('exclude-envs', {
       type: 'array',
-      description: 'Environments to leave out (comma-separated)'
+      description: 'Environments to leave out of --all-envs or --envs (comma-separated)'
     })
     .option('all-envs', {
       type: 'boolean',
@@ -51,7 +51,10 @@ const builder = (yargs) => {
     .example('$0 docs generate --envs Production', 'Include just the Production environment')
     .example('$0 docs generate --envs staging,prod', 'Include several environments (comma-separated)')
     .example('$0 docs generate --all-envs', 'Include every environment')
+    .example('$0 docs generate --all-envs --exclude-envs Local', 'Include every environment except Local')
+    .example('$0 docs generate --envs staging,prod --exclude-envs prod', 'Include staging and prod, then drop prod')
     .example('$0 docs generate --tags public,stable', 'Only document requests tagged public or stable')
+    .example('$0 docs generate --tags smoke --exclude-tags wip', 'Document smoke requests, minus any also tagged wip')
     .example('$0 docs generate --exclude-tags WIP --no-git-link', 'Hide WIP requests and omit the git link');
 };
 
