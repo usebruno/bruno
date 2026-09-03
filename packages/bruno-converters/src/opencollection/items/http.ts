@@ -18,7 +18,7 @@ import {
   toOpenCollectionAssertions,
   resolveTimeoutSetting
 } from '../common';
-import { utils } from '@usebruno/common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   HttpRequest,
   HttpRequestSettings,
@@ -54,7 +54,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   const http = ocRequest.http;
   const runtime = ocRequest.runtime;
 
-  const scripts = fromOpenCollectionScripts(runtime?.scripts);
+  const scripts = fromOpenCollectionScripts(runtime?.scripts, HTTP_SCRIPT_KEYS);
   const httpBody = getHttpBody(http?.body as HttpRequestBody);
 
   // variables (pre-request from variables, post-response from actions)
@@ -201,7 +201,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     hasRuntime = true;
   }
 
-  const scripts = toOpenCollectionScripts(brunoRequest);
+  const scripts = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
   if (scripts) {
     runtime.scripts = scripts;
     hasRuntime = true;

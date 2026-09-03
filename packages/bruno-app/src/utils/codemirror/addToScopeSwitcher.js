@@ -67,8 +67,8 @@ const submitCreateEnvironment = ({
   nameInput.disabled = true;
 
   onCreateEnvironment(scope, name)
-    .then(() => {
-      onSuccess();
+    .then((updatedScope) => {
+      onSuccess(updatedScope || scope);
     })
     .catch((err) => {
       showError(err?.message || 'Failed to create environment');
@@ -121,11 +121,12 @@ const renderCreateEnvironment = (row, scope, actions) => {
   // can restore this row via `revert`.
   registerActiveCreateForm(revert, row);
 
-  // restore the created env as a dropdown option.
-  const onSuccess = () => {
+  // restore the created env as a dropdown option, using its fresh scope (label now includes
+  // the new environment's name, and it's enabled) rather than the stale pre-creation one.
+  const onSuccess = (updatedScope) => {
     unregisterActiveCreateForm(revert);
-    renderScopeOption(row, scope, actions);
-    handleScopeSwitch(scope, { keepDropdownOpen: true });
+    renderScopeOption(row, updatedScope, actions);
+    handleScopeSwitch(updatedScope, { keepDropdownOpen: true });
   };
 
   const submit = () =>
