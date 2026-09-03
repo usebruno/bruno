@@ -1,18 +1,4 @@
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-
-const CHEVRON_ICON_SVG_TEXT = `
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="6,9 12,15 18,9"></polyline>
-</svg>
-`;
-
-const SCOPE_ICON_LETTER = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'R',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'F',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'C',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'E',
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'G'
-};
+import { VARIABLE_ADD_SCOPES, CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/common/constants';
 
 const createScopeIcon = (scope, { muted = false } = {}) => {
   const icon = document.createElement('span');
@@ -20,7 +6,9 @@ const createScopeIcon = (scope, { muted = false } = {}) => {
   if (muted) {
     icon.classList.add('var-add-to-option-icon-muted');
   }
-  icon.textContent = SCOPE_ICON_LETTER[scope.type] || scope.label?.charAt(0)?.toUpperCase() || '?';
+
+  icon.innerHTML = SCOPE_ICON[scope.type] || '';
+
   return icon;
 };
 
