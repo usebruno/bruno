@@ -588,6 +588,52 @@ describe('Send Request Translation', () => {
       expect(translatedCode).toContain('const responseTime = response.responseTime');
       expect(translatedCode).toContain('const text = response.data');
     });
+
+    it('should keep the call wrapping a response property', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+          console.log(response.code);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+          console.log(response.status);
+        });
+      `);
+    });
+
+    it('should rewrite response properties and methods passed together as call arguments', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+          console.log(response.code, response.json());
+          pm.environment.set('statusText', response.status);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+          console.log(response.status, response.data);
+          bru.setEnvVar('statusText', response.statusText);
+        });
+      `);
+    });
+
+    it('should leave a response name re-declared by a nested function untouched', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://x' }, function (err, response) {
+          console.log(response.code);
+          const inner = (response) => response.code;
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://x' }, async function(err, response) {
+          console.log(response.status);
+          const inner = (response) => response.code;
+        });
+      `);
+    });
   });
 
   describe('Async/Await', () => {
