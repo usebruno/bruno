@@ -1592,29 +1592,33 @@ describe('buildHar — defensive / robustness', () => {
 
 describe('buildHar — cookie header routing', () => {
   it('lowercase `cookie` header moves into har.cookies and is removed from har.headers', async () => {
-    const { har } = await buildHar({
+    const { har, unhash } = await buildHar({
       request: baseRequest({ headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }] }),
       shouldInterpolate: false
     });
     expect(har.headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
-    expect(har.cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
+    expect(har.cookies.map((c) => ({ name: unhash(c.name), value: unhash(c.value) }))).toEqual([
+      { name: 'cookie1', value: 'value1' }
+    ]);
   });
 
   it('`Cookie` header (any case) also moves into har.cookies', async () => {
-    const { har } = await buildHar({
+    const { har, unhash } = await buildHar({
       request: baseRequest({ headers: [{ name: 'Cookie', value: 'cookie1=value1', enabled: true }] }),
       shouldInterpolate: false
     });
     expect(har.headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
-    expect(har.cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
+    expect(har.cookies.map((c) => ({ name: unhash(c.name), value: unhash(c.value) }))).toEqual([
+      { name: 'cookie1', value: 'value1' }
+    ]);
   });
 
   it('multiple cookies in one header value are split into separate har.cookies entries', async () => {
-    const { har } = await buildHar({
+    const { har, unhash } = await buildHar({
       request: baseRequest({ headers: [{ name: 'cookie', value: 'a=1; b=2', enabled: true }] }),
       shouldInterpolate: false
     });
-    expect(har.cookies).toEqual([
+    expect(har.cookies.map((c) => ({ name: unhash(c.name), value: unhash(c.value) }))).toEqual([
       { name: 'a', value: '1' },
       { name: 'b', value: '2' }
     ]);
@@ -1636,6 +1640,33 @@ describe('buildHar — cookie header routing', () => {
     });
     expect(har.cookies).toEqual([]);
     expect(har.headers).toEqual([]);
+  });
+
+  it('cookie values survive an encodeURIComponent pass unchanged, restored via unhash', async () => {
+    const rawValue = 'abc+def/ghi==';
+    const { har, unhash } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'cookie', value: `session=${rawValue}`, enabled: true }] }),
+      shouldInterpolate: false
+    });
+
+    const [{ name, value }] = har.cookies;
+    expect(encodeURIComponent(name)).toBe(name);
+    expect(encodeURIComponent(value)).toBe(value);
+    expect(unhash(name)).toBe('session');
+    expect(unhash(value)).toBe(rawValue);
+  });
+
+  it('cookie values resolved via shouldInterpolate=true are still protected from encoding', async () => {
+    const rawValue = 'abc+def/ghi==';
+    const { har, unhash } = await buildHar({
+      request: baseRequest({ headers: [{ name: 'cookie', value: `session={{token}}`, enabled: true }] }),
+      variables: { token: rawValue },
+      shouldInterpolate: true
+    });
+
+    const [{ value }] = har.cookies;
+    expect(encodeURIComponent(value)).toBe(value);
+    expect(unhash(value)).toBe(rawValue);
   });
 });
 

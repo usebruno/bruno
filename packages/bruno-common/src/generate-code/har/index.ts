@@ -679,9 +679,18 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
 
   // Step 6b — Route any `cookie` header through HAR `cookies` instead of `headers`
   // to prevent HTTPSnippet's curl target from rendering it twice as both a flag and a header.
+  // Cookie values are hashed using patternHasher to ensure that any special characters
+  // (like =, ;, +, /, =) are preserved in the final output.
+  const cookieValueRestorers: ((input: string) => string)[] = [];
+  const hashCookiePart = (part: string): string => {
+    const { hashed, restore } = patternHasher(part, /[\s\S]+/);
+    cookieValueRestorers.push(restore);
+    return hashed;
+  };
   const harCookies = finalizedHeaders
     .filter((h) => h.name.toLowerCase() === 'cookie')
-    .flatMap((h) => parseCookieHeaderValue(h.value));
+    .flatMap((h) => parseCookieHeaderValue(h.value))
+    .map(({ name, value }) => ({ name: hashCookiePart(name), value: value ? hashCookiePart(value) : value }));
   const harHeaders = finalizedHeaders.filter((h) => h.name.toLowerCase() !== 'cookie');
 
   // Step 7 — Query string array. HAR's queryString is the single source of
@@ -730,10 +739,11 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
     const withoutSyntheticScheme = syntheticSchemeIsRedundant
       ? s.replaceAll(syntheticScheme + leadingToken, leadingToken)
       : s;
-    return queryValueRestorers.reduce(
+    const withQueryRestored = queryValueRestorers.reduce(
       (restored, restore) => restore(restored),
       restoreUrlVars(withoutSyntheticScheme)
     );
+    return cookieValueRestorers.reduce((restored, restore) => restore(restored), withQueryRestored);
   };
 
   return {

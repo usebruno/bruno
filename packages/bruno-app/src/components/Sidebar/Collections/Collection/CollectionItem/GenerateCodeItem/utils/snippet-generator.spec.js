@@ -560,6 +560,36 @@ describe('generateSnippet – cookie header routing', () => {
     expect(headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
     expect(cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
   });
+
+  it('does not corrupt a cookie value containing characters encodeURIComponent would escape', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'session=abc+def/ghi==', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--cookie session=abc+def/ghi==');
+    expect(result).not.toContain('%2B');
+    expect(result).not.toContain('%2F');
+    expect(result).not.toContain('%3D');
+  });
 });
 
 describe('generateSnippet with edge-case bodies', () => {

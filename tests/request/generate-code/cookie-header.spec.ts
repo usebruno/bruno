@@ -46,4 +46,18 @@ test.describe('Generate Code – cookie header (BRU-3783)', () => {
 
     await closeGenerateCodeDialog(page);
   });
+
+  test('a cookie value with characters encodeURIComponent would escape is not corrupted', async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION);
+    await openRequestInFolder(page, FOLDER, 'cookie-header-special-chars');
+
+    const snippet = await getGeneratedSnippet(page);
+
+    expect(snippet).toContain('--cookie session=abc+def/ghi==');
+    expect(snippet).not.toContain('%2B');
+    expect(snippet).not.toContain('%2F');
+    expect(snippet).not.toContain('%3D');
+
+    await closeGenerateCodeDialog(page);
+  });
 });
