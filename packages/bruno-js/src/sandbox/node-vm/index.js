@@ -4,7 +4,7 @@ const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
-const { createCustomRequire } = require('./cjs-loader');
+const { createCustomRequire, createSharedRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -54,17 +54,19 @@ async function runScriptInNodeVm({
     scriptContext.global = scriptContext;
     scriptContext.globalThis = scriptContext;
 
-    // Create module cache for CJS modules
-    const localModuleCache = new Map();
-
-    // Add require() function for CJS module loading
-    scriptContext.require = createCustomRequire({
-      collectionPath,
-      isolatedContext,
-      currentModuleDir: collectionPath,
-      localModuleCache,
-      additionalContextRootsAbsolute
-    });
+    // Shared host require (opt-in) or per-script custom CJS loader
+    if (get(scriptingConfig, 'sharedModules')) {
+      scriptContext.require = createSharedRequire(collectionPath);
+    } else {
+      const localModuleCache = new Map();
+      scriptContext.require = createCustomRequire({
+        collectionPath,
+        isolatedContext,
+        currentModuleDir: collectionPath,
+        localModuleCache,
+        additionalContextRootsAbsolute
+      });
+    }
 
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 

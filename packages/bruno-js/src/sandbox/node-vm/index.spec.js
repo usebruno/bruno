@@ -1475,4 +1475,189 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'a,b');
     });
   });
+
+  describe('sharedModules', () => {
+    const clearCollectionRequireCache = () => {
+      for (const key of Object.keys(require.cache)) {
+        if (key.startsWith(testDir)) {
+          delete require.cache[key];
+        }
+      }
+    };
+
+    afterEach(() => {
+      clearCollectionRequireCache();
+    });
+
+    it('shares the same module instance across script invocations when enabled', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'counter.js'),
+        `
+        let loads = 0;
+        loads += 1;
+        module.exports = { loads, token: {} };
+        `
+      );
+
+      const script = `
+        const mod = require('./counter');
+        bru.setVar('loads', mod.loads);
+        bru.setVar('token', mod.token);
+      `;
+
+      const context1 = { bru: { setVar: jest.fn() }, console };
+      const context2 = { bru: { setVar: jest.fn() }, console };
+      const scriptingConfig = { sharedModules: true };
+
+      await runScriptInNodeVm({ script, context: context1, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: context2, collectionPath, scriptingConfig });
+
+      expect(context1.bru.setVar).toHaveBeenCalledWith('loads', 1);
+      expect(context2.bru.setVar).toHaveBeenCalledWith('loads', 1);
+      expect(context1.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1])
+        .toBe(context2.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1]);
+    });
+
+    it('does not share module instances across invocations when disabled', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'fresh.js'),
+        `
+        module.exports = { token: {} };
+        `
+      );
+
+      const script = `
+        const mod = require('./fresh');
+        bru.setVar('token', mod.token);
+      `;
+
+      const context1 = { bru: { setVar: jest.fn() }, console };
+      const context2 = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: context1, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: context2, collectionPath, scriptingConfig: {} });
+
+      expect(context1.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1])
+        .not.toBe(context2.bru.setVar.mock.calls.find((c) => c[0] === 'token')[1]);
+    });
+
+    it('returns the same instance for multiple requires within one script', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'once.js'),
+        'module.exports = { token: {} };'
+      );
+
+      const script = `
+        const a = require('./once');
+        const b = require('./once');
+        bru.setVar('same', a === b);
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console };
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('same', true);
+    });
+
+    it('resolves relative modules when collection has no package.json', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'helper.js'),
+        'module.exports = { value: 7 };'
+      );
+
+      const script = `
+        const helper = require('./helper');
+        bru.setVar('value', helper.value);
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console };
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('value', 7);
+      expect(fs.existsSync(path.join(collectionPath, 'package.json'))).toBe(false);
+    });
+
+    it('falls back to Bruno bundled modules when collection has no node_modules', async () => {
+      const script = `
+        const Ajv = require('ajv');
+        bru.setVar('isFn', typeof Ajv === 'function');
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console };
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('isFn', true);
+    });
+
+    it('prefers a collection-local package over Bruno bundled modules', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'ajv', {
+        'package.json': JSON.stringify({ name: 'ajv', version: '0.0.0-test', main: 'index.js' }),
+        'index.js': 'module.exports = { source: "collection-local" };'
+      });
+
+      const script = `
+        const ajv = require('ajv');
+        bru.setVar('source', ajv.source);
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console };
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('source', 'collection-local');
+    });
+
+    it('loads Node builtins', async () => {
+      const script = `
+        const crypto = require('crypto');
+        const pathMod = require('node:path');
+        bru.setVar('hash', typeof crypto.createHash);
+        bru.setVar('join', typeof pathMod.join);
+      `;
+
+      const context = { bru: { setVar: jest.fn() }, console };
+      await runScriptInNodeVm({
+        script,
+        context,
+        collectionPath,
+        scriptingConfig: { sharedModules: true }
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('hash', 'function');
+      expect(context.bru.setVar).toHaveBeenCalledWith('join', 'function');
+    });
+
+    it('throws a clear error when a bare module cannot be resolved', async () => {
+      const script = `require('definitely-not-a-real-bruno-module-xyz');`;
+      const context = { bru: { setVar: jest.fn() }, console };
+
+      await expect(
+        runScriptInNodeVm({
+          script,
+          context,
+          collectionPath,
+          scriptingConfig: { sharedModules: true }
+        })
+      ).rejects.toThrow(/Could not resolve module "definitely-not-a-real-bruno-module-xyz"/);
+    });
+  });
 });

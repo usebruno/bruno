@@ -378,6 +378,40 @@ function createNpmModuleRequire({
   };
 }
 
+/**
+ * Collection-anchored host require that shares modules via Node's require.cache.
+ * Resolve order matches loadNpmModule: collection createRequire, then Bruno module.paths.
+ * package.json need not exist — filename only anchors resolution.
+ * @param {string} collectionPath - Path to the collection directory
+ * @returns {Function} Shared require function
+ */
+function createSharedRequire(collectionPath) {
+  const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
+
+  return (moduleName) => {
+    if (isBuiltinModule(moduleName)) {
+      return require(moduleName);
+    }
+
+    let resolvedPath;
+    try {
+      resolvedPath = collectionRequire.resolve(moduleName);
+    } catch {
+      try {
+        resolvedPath = require.resolve(moduleName, { paths: module.paths });
+      } catch (mainError) {
+        throw new Error(
+          `Could not resolve module "${moduleName}": ${mainError.message}\n\n`
+          + `Install it with: npm install ${moduleName}`
+        );
+      }
+    }
+
+    return require(resolvedPath);
+  };
+}
+
 module.exports = {
-  createCustomRequire
+  createCustomRequire,
+  createSharedRequire
 };

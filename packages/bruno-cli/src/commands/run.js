@@ -138,6 +138,12 @@ const builder = async (yargs) => {
       default: 'safe',
       type: 'string'
     })
+    .option('sandbox-shared-modules', {
+      type: 'boolean',
+      default: false,
+      description:
+        'Share required modules via Node require.cache for the whole CLI run (developer sandbox only). Resolves from the collection first, then Bruno bundled modules.'
+    })
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
@@ -313,6 +319,7 @@ const handler = async function (argv) {
       reporterJunit,
       reporterHtml,
       sandbox,
+      sandboxSharedModules,
       testsOnly,
       bail,
       reporterSkipAllHeaders,
@@ -608,6 +615,9 @@ const handler = async function (argv) {
     }
     if (cacheSslSession) {
       options['cacheSslSession'] = true;
+    }
+    if (sandboxSharedModules) {
+      options['sharedModules'] = true;
     }
     if (verbose) {
       options['verbose'] = true;
