@@ -384,7 +384,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
   const runAfterMessageReceive = (session, message) => {
     const messageIndex = session.receivedCount++;
     // Request and response messages copied so new messages are not leaked to the slow running scripts.
-    const messages = session.messages.slice(0, messageIndex + 1);
+    const receivedMessages = session.messages.slice(0, messageIndex + 1);
     const sentMessages = buildSentMessages(session).slice();
     const { request, collection, collectionUid } = session;
     const scriptRuntime = new GrpcScriptRuntime({ runtime: session.scriptingConfig?.runtime });
@@ -397,7 +397,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
         scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
           script: decomment(request.script.afterMessageReceive, { space: true }),
           request,
-          response: { ...buildPartialCallResult(session), messages },
+          response: { ...buildPartialCallResult(session), receivedMessages },
           message,
           envVariables: session.envVars,
           runtimeVariables: session.runtimeVariables,
