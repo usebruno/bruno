@@ -7,6 +7,7 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import OpenApiContract from 'components/RequestPane/OpenApiContract';
 import Auth from 'components/RequestPane/Auth';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
@@ -26,6 +27,7 @@ import { hasEffectiveAuth } from 'utils/auth';
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
   { key: 'body', label: 'Body' },
+  { key: 'openapi', label: 'OpenAPI' },
   { key: 'headers', label: 'Headers' },
   { key: 'auth', label: 'Auth' },
   { key: 'vars', label: 'Vars' },
@@ -40,6 +42,7 @@ const TAB_CONFIG = [
 const TAB_PANELS = {
   params: QueryParams,
   body: RequestBody,
+  openapi: OpenApiContract,
   headers: RequestHeaders,
   auth: Auth,
   vars: Vars,
@@ -67,6 +70,7 @@ const HttpRequestPane = ({ item, collection }) => {
 
   const params = getProperty('request.params');
   const body = getProperty('request.body');
+  const bodyContract = getProperty('request.bodyContract', null);
   const headers = getProperty('request.headers');
   const script = getProperty('request.script');
   const assertions = getProperty('request.assertions');
@@ -78,8 +82,12 @@ const HttpRequestPane = ({ item, collection }) => {
   const tags = getProperty('tags');
   const app = getProperty('app', null);
   const appTabEnabled = app?.enabled === true;
-  // A previously selected App tab may be restored while apps are disabled in settings.
-  const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
+  const openApiTabEnabled = collection.format === 'bru';
+  // A previously selected tab may be restored after the feature becomes unavailable.
+  const effectiveTab = (requestPaneTab === 'app' && !appTabEnabled)
+    || (requestPaneTab === 'openapi' && !openApiTabEnabled)
+    ? 'params'
+    : requestPaneTab;
 
   const activeCounts = useMemo(() => ({
     params: params.filter((p) => p.enabled).length,
@@ -108,6 +116,7 @@ const HttpRequestPane = ({ item, collection }) => {
     return {
       params: activeCounts.params > 0 ? <sup className="font-medium">{activeCounts.params}</sup> : null,
       body: body.mode !== 'none' ? <StatusDot /> : null,
+      openapi: bodyContract?.type === 'openapi' ? <StatusDot /> : null,
       headers: activeCounts.headers > 0 ? <sup className="font-medium">{activeCounts.headers}</sup> : null,
       auth: hasAuth ? <StatusDot dataTestId="auth" /> : null,
       vars: activeCounts.vars > 0 ? <sup className="font-medium">{activeCounts.vars}</sup> : null,
@@ -118,13 +127,13 @@ const HttpRequestPane = ({ item, collection }) => {
       app: app?.code?.length > 0 ? <StatusDot dataTestId="app" /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, app, tags]);
+  }, [activeCounts, body.mode, bodyContract?.type, hasAuth, script, item.preRequestScriptErrorMessage, item.postResponseScriptErrorMessage, item.testScriptErrorMessage, tests, docs, app, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG
-      .filter(({ key }) => key !== 'app' || appTabEnabled)
+      .filter(({ key }) => (key !== 'app' || appTabEnabled) && (key !== 'openapi' || openApiTabEnabled))
       .map(({ key, label }) => ({ key, label, indicator: indicators[key] })),
-    [indicators, appTabEnabled]
+    [indicators, appTabEnabled, openApiTabEnabled]
   );
 
   const tabPanel = useMemo(() => {

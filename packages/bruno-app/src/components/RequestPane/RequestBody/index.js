@@ -10,6 +10,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import FileBody from '../FileBody/index';
 import { usePersistedState } from 'hooks/usePersistedState';
+import useOpenApiBodySchema from 'hooks/useOpenApiBodySchema';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -19,6 +20,7 @@ const RequestBody = ({ item, collection }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [bodyScroll, setBodyScroll] = usePersistedState({ key: `request-body-${bodyMode}-scroll-${item.uid}`, default: 0 });
+  const openApi = useOpenApiBodySchema({ item, collection, enabled: bodyMode === 'json' });
 
   const onEdit = (value) => {
     dispatch(
@@ -49,7 +51,18 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper className="w-full" data-testid="request-body-editor">
+      <StyledWrapper className="w-full h-full flex flex-col" data-testid="request-body-editor">
+        {openApi.contract?.type === 'openapi' && (
+          <div
+            className={`openapi-contract-status text-xs px-2 py-1 ${openApi.status === 'error' ? 'text-danger' : 'text-muted'}`}
+            title={openApi.error || undefined}
+            data-testid="openapi-body-contract-status"
+          >
+            {openApi.status === 'loading' && 'OpenAPI: loading schema…'}
+            {openApi.status === 'ready' && `OpenAPI: ${openApi.operationId || item.name} · ${openApi.contentType}`}
+            {openApi.status === 'error' && `OpenAPI: ${openApi.error}`}
+          </div>
+        )}
         <CodeEditor
           ref={editorRef}
           collection={collection}
@@ -66,6 +79,7 @@ const RequestBody = ({ item, collection }) => {
           mode={codeMirrorMode[bodyMode]}
           enableVariableHighlighting={true}
           showHintsFor={['variables']}
+          schema={openApi.schema}
         />
       </StyledWrapper>
     );

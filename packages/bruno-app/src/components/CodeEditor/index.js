@@ -37,6 +37,11 @@ import {
   changeIntroducesLongLine,
   hasLongLine
 } from 'utils/common/long-lines';
+import {
+  getJsonSchemaLintErrors,
+  setupJsonSchemaAutocomplete,
+  showJsonSchemaHints
+} from 'utils/codemirror/json-schema';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -135,7 +140,8 @@ class CodeEditor extends React.Component {
       esversion: 11,
       expr: true,
       asi: true,
-      highlightLines: true
+      highlightLines: true,
+      schema: props.schema || null
     };
 
     const longLineDetected = hasLongLine(this.cachedValue);
@@ -198,9 +204,11 @@ class CodeEditor extends React.Component {
         },
         'Shift-Tab': 'indentLess',
         'Ctrl-Space': (cm) => {
+          if (this.props.schema && showJsonSchemaHints(cm, this.props.schema)) return;
           showRootHints(cm, this.props.showHintsFor);
         },
         'Cmd-Space': (cm) => {
+          if (this.props.schema && showJsonSchemaHints(cm, this.props.schema)) return;
           showRootHints(cm, this.props.showHintsFor);
         },
         'Ctrl-Y': 'foldAll',
@@ -248,7 +256,7 @@ class CodeEditor extends React.Component {
         }
       }
     })));
-    CodeMirror.registerHelper('lint', 'json', function (text) {
+    CodeMirror.registerHelper('lint', 'json', function (text, options, cm) {
       const found = [];
       if (!window.jsonlint) {
         if (window.console) {
@@ -270,6 +278,9 @@ class CodeEditor extends React.Component {
             message
           });
         }
+      }
+      if (!found.length && options?.schema) {
+        found.push(...getJsonSchemaLintErrors(text, options.schema, cm));
       }
       return found;
     });
@@ -368,6 +379,7 @@ class CodeEditor extends React.Component {
       showHintsFor: this.props.showHintsFor,
       getAllVariables: () => getAllVariables(this.props.collection, this.props.item)
     });
+    this.jsonSchemaAutoCompleteCleanup = setupJsonSchemaAutocomplete(editor, () => this.props.schema);
 
     if (this.props.scriptType) {
       this.aiAutocompleteCleanup = setupAiAutocomplete(editor, {
@@ -398,9 +410,11 @@ class CodeEditor extends React.Component {
 
   _disableEnhancedFeatures = () => {
     this.brunoAutoCompleteCleanup?.();
+    this.jsonSchemaAutoCompleteCleanup?.();
     this.aiAutocompleteCleanup?.();
     this.editor?._destroyLinkAware?.();
     this.brunoAutoCompleteCleanup = null;
+    this.jsonSchemaAutoCompleteCleanup = null;
     this.aiAutocompleteCleanup = null;
   };
 
@@ -491,12 +505,15 @@ class CodeEditor extends React.Component {
     // user-input changes which could otherwise result in an infinite
     // event loop.
     this.ignoreChangeEvent = true;
-    if (this.props.schema !== prevProps.schema && this.editor && !this.longLineMode) {
-      this.editor.options.lint.schema = this.props.schema;
-      this.editor.options.hintOptions.schema = this.props.schema;
-      this.editor.options.info.schema = this.props.schema;
-      this.editor.options.jump.schema = this.props.schema;
-      CodeMirror.signal(this.editor, 'change', this.editor);
+    if (this.props.schema !== prevProps.schema) {
+      this.lintOptions.schema = this.props.schema || null;
+      if (this.editor && !this.longLineMode) {
+        this.editor.setOption(
+          'lint',
+          this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
+        );
+        CodeMirror.signal(this.editor, 'change', this.editor);
+      }
     }
     if (this.editor) {
       // Two distinct update paths:

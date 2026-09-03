@@ -1875,6 +1875,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestBodyContract: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.bodyContract = action.payload.contract;
+        }
+      }
+    },
     updateRequestBody: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4176,6 +4190,7 @@ export const {
   moveMultipartFormParam,
   updateRequestAuthMode,
   updateRequestBodyMode,
+  updateRequestBodyContract,
   updateRequestBody,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,

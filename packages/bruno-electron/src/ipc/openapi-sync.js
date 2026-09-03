@@ -19,6 +19,7 @@ const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
+const { resolveOpenApiBodySourcePath } = require('../utils/openapi-body-source');
 const jsyaml = require('js-yaml');
 
 /**
@@ -167,7 +168,7 @@ const isValidOpenApiSpec = (spec) => {
  * Handles proxy/cert resolution for remote URLs.
  * Returns { content, spec } on success, or { error, errorCode? } on failure.
  */
-const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, environmentContext = {} }) => {
+const fetchSpecFromSource = async ({ collectionUid, collectionPath, requestPath, sourceUrl, environmentContext = {} }) => {
   const { activeEnvironmentUid, environments = [], runtimeVariables = {}, globalEnvironmentVariables = {} } = environmentContext;
 
   if (!isValidHttpUrl(sourceUrl) && !isLocalFilePath(sourceUrl)) {
@@ -177,9 +178,9 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
   let content;
 
   if (isLocalFilePath(sourceUrl)) {
-    const resolvedPath = collectionPath ? path.resolve(collectionPath, sourceUrl) : sourceUrl;
+    const resolvedPath = resolveOpenApiBodySourcePath({ collectionPath, requestPath, sourceUrl });
     if (!fs.existsSync(resolvedPath)) {
-      return { error: `Spec file not found at: ${sourceUrl}`, errorCode: 'SOURCE_FILE_NOT_FOUND' };
+      return { error: `Spec file not found at: ${resolvedPath}`, errorCode: 'SOURCE_FILE_NOT_FOUND' };
     }
     content = fs.readFileSync(resolvedPath, 'utf8');
   } else {
@@ -1738,10 +1739,10 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
   // Fetch OpenAPI spec content from a remote URL or local file path
   ipcMain.handle('renderer:fetch-openapi-spec', async (event, {
-    collectionUid, collectionPath, sourceUrl, environmentContext
+    collectionUid, collectionPath, requestPath, sourceUrl, environmentContext
   }) => {
     try {
-      const result = await fetchSpecFromSource({ collectionUid, collectionPath, sourceUrl, environmentContext });
+      const result = await fetchSpecFromSource({ collectionUid, collectionPath, requestPath, sourceUrl, environmentContext });
       if (result.error) return { error: result.error, errorCode: result.errorCode };
       if (!isValidOpenApiSpec(result.spec)) {
         const error = result.spec?.swagger
