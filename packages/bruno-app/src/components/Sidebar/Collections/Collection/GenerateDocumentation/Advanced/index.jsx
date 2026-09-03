@@ -14,7 +14,8 @@ const Advanced = ({
   availableTags,
   onTagsChange,
   includeGitLink,
-  onGitLinkToggle
+  onGitLinkToggle,
+  hasGitUrl
 }) => {
   const [open, setOpen] = useState(false);
   const requestsLabelId = useId();
@@ -83,19 +84,21 @@ const Advanced = ({
               )}
             </section>
 
-            <section className="adv-section">
-              <div className="adv-row">
-                <div className="adv-label mb-0">
-                  <IconGitBranch size={16} className="adv-label-icon" aria-hidden="true" />
-                  <span>Include git repo URL</span>
+            {hasGitUrl && (
+              <section className="adv-section" data-testid="docs-git-link">
+                <div className="adv-row">
+                  <div className="adv-label mb-0">
+                    <IconGitBranch size={16} className="adv-label-icon" aria-hidden="true" />
+                    <span>Include git repo URL</span>
+                  </div>
+                  <label className="adv-toggle" data-testid="docs-git-link-toggle">
+                    <span className="toggle-label">Show</span>
+                    <ToggleSwitch isOn={includeGitLink} handleToggle={onGitLinkToggle} size="xs" />
+                  </label>
                 </div>
-                <label className="adv-toggle">
-                  <span className="toggle-label">Show</span>
-                  <ToggleSwitch isOn={includeGitLink} handleToggle={onGitLinkToggle} size="xs" />
-                </label>
-              </div>
-              <p className="adv-desc">Adds the repository link so readers can clone your collection in Bruno.</p>
-            </section>
+                <p className="adv-desc">Adds the repository link so readers can clone your collection in Bruno.</p>
+              </section>
+            )}
           </div>
         </div>
       </div>

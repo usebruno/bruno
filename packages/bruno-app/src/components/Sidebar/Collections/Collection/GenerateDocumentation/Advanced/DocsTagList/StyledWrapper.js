@@ -47,6 +47,8 @@ export const StyledWrapper = styled.div`
   .docs-tag-item {
     display: inline-flex;
     align-items: center;
+    box-sizing: border-box;
+    height: 1.75rem;
     gap: 0.25rem;
     max-width: 100%;
     padding: 0.25rem;

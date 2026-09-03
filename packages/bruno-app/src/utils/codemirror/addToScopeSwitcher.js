@@ -1,18 +1,4 @@
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-
-const CHEVRON_ICON_SVG_TEXT = `
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="6,9 12,15 18,9"></polyline>
-</svg>
-`;
-
-const SCOPE_ICON_LETTER = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'R',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'F',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'C',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'E',
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'G'
-};
+import { VARIABLE_ADD_SCOPES, CHEVRON_ICON_SVG_TEXT, SCOPE_ICON } from 'utils/common/constants';
 
 const createScopeIcon = (scope, { muted = false } = {}) => {
   const icon = document.createElement('span');
@@ -20,7 +6,9 @@ const createScopeIcon = (scope, { muted = false } = {}) => {
   if (muted) {
     icon.classList.add('var-add-to-option-icon-muted');
   }
-  icon.textContent = SCOPE_ICON_LETTER[scope.type] || scope.label?.charAt(0)?.toUpperCase() || '?';
+
+  icon.innerHTML = SCOPE_ICON[scope.type] || '';
+
   return icon;
 };
 
@@ -57,14 +45,12 @@ const submitCreateEnvironment = ({
   nameInput,
   createButton,
   actions,
-  revert
+  onSuccess
 }) => {
   const {
-    handleScopeSwitch,
     onCreateEnvironment,
     showError,
-    clearError,
-    unregisterActiveCreateForm
+    clearError
   } = actions;
 
   const name = nameInput.value.trim();
@@ -82,9 +68,7 @@ const submitCreateEnvironment = ({
 
   onCreateEnvironment(scope, name)
     .then(() => {
-      unregisterActiveCreateForm(revert);
-      // once new env is created, add the variable to it and save immediately
-      handleScopeSwitch(scope, { immediate: true });
+      onSuccess();
     })
     .catch((err) => {
       showError(err?.message || 'Failed to create environment');
@@ -100,7 +84,9 @@ const renderCreateEnvironment = (row, scope, actions) => {
 
   const {
     registerActiveCreateForm,
-    unregisterActiveCreateForm
+    unregisterActiveCreateForm,
+    clearError,
+    handleScopeSwitch
   } = actions;
 
   const nameInput = document.createElement('input');
@@ -127,6 +113,7 @@ const renderCreateEnvironment = (row, scope, actions) => {
   // Restores this row back to the "No Environment" state.
   const revert = () => {
     unregisterActiveCreateForm(revert);
+    clearError();
     renderNoEnvironmentInline(row, scope, actions);
   };
 
@@ -134,13 +121,20 @@ const renderCreateEnvironment = (row, scope, actions) => {
   // can restore this row via `revert`.
   registerActiveCreateForm(revert, row);
 
+  // restore the created env as a dropdown option.
+  const onSuccess = () => {
+    unregisterActiveCreateForm(revert);
+    renderScopeOption(row, scope, actions);
+    handleScopeSwitch(scope, { keepDropdownOpen: true });
+  };
+
   const submit = () =>
     submitCreateEnvironment({
       scope,
       nameInput,
       createButton,
       actions,
-      revert
+      onSuccess
     });
 
   createButton.addEventListener('click', (e) => {
@@ -446,9 +440,8 @@ function createSecretController({ secretLabel, secretCheckbox, onSecretChange })
  * @param {{type: string, label: string, enabled: boolean, supportsSecret: boolean}} initialScope -
  *   The scope currently active before any switch (the guessed scope). used to set the secret
  *   checkbox's initial visibility.
- * @param {(scope: Object, options?: {immediate?: boolean}) => void} onSwitchScope - Repoints the
- *   pending target scope. When `immediate` is true (after creating a brand new environment),
- *   the caller should save right away rather than waiting for the next blur.
+ * @param {(scope: Object) => void} onSwitchScope - Repoints the pending target scope (including
+ *   right after creating a brand new environment); the caller saves later, on the next blur.
  * @param {(scope: Object, name: string) => Promise<void>} onCreateEnvironment
  * @param {(secret: boolean) => void} [onSecretChange] - Called whenever the Secret checkbox is toggled or the active scope changes.
  */
@@ -474,14 +467,18 @@ export const createAddToScopeSwitcher = ({
 
   let activeRowTracker = null;
 
-  const handleScopeSwitch = (scope, options) => {
-    dropdown.close();
+  const handleScopeSwitch = (scope, { keepDropdownOpen = false } = {}) => {
+    // Creating a new environment inline keeps the dropdown open so the newly active option
+    // stays visible.
+    if (!keepDropdownOpen) {
+      dropdown.close();
+    }
     error.clear();
     secretController.setCurrentScope(scope);
     if (activeRowTracker) {
       activeRowTracker.setActiveScope(scope);
     }
-    onSwitchScope(scope, options);
+    onSwitchScope(scope);
   };
 
   const rowsByType = renderScopeRows({

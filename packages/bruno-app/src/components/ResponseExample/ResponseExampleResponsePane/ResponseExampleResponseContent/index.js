@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
+import { detectContentTypeFromBase64, getBinaryPreviewType } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
+import QueryResult from 'components/ResponsePane/QueryResult';
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
   const dispatch = useDispatch();
@@ -69,9 +70,35 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
     }
   };
 
+  const isBinaryBody = response?.body?.type === 'binary';
+  const sniffedMime = useMemo(
+    () => (isBinaryBody ? detectContentTypeFromBase64(response.body?.content) : null),
+    [isBinaryBody, response.body?.content]
+  );
+  const binaryPreviewType = getBinaryPreviewType(sniffedMime);
+
+  if (binaryPreviewType) {
+    return (
+      <StyledWrapper className="w-full px-4" data-testid="response-example-binary-preview" data-preview-type={binaryPreviewType}>
+        <QueryResult
+          item={item}
+          collection={collection}
+          data={response.body.content}
+          dataBuffer={response.body.content}
+          headers={response.headers}
+          error={response.error}
+          selectedFormat="base64"
+          selectedTab="preview"
+          disableRunEventListener
+          docKey={`response-example-response-content:${exampleUid}`}
+        />
+      </StyledWrapper>
+    );
+  }
+
   return (
     <StyledWrapper className="w-full px-4">
-      <div className="code-editor-container">
+      <div className="code-editor-container" data-testid="response-example-response-content">
         <CodeEditor
           collection={collection}
           item={item}
