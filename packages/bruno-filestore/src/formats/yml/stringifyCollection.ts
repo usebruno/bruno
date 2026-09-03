@@ -13,6 +13,7 @@ import { toOpenCollectionVariables } from './common/variables';
 import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import type { Auth } from '@opencollection/types/common/auth';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const hasCollectionConfig = (brunoConfig: any): boolean => {
   // protobuf
@@ -210,7 +211,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // scripts
       if (hasRequestScripts(collectionRoot)) {
-        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request);
+        // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to gRPC.
+        const ocScripts: Scripts | undefined = toOpenCollectionScripts(collectionRoot.request, HTTP_SCRIPT_KEYS);
         if (ocScripts) {
           oc.request.scripts = ocScripts;
         }

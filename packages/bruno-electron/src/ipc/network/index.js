@@ -61,6 +61,7 @@ const saveCookies = (url, headers) => {
   }
 };
 
+// Duplicated as getJsSandboxRuntime in utils/collection.js; keep the two in sync.
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
