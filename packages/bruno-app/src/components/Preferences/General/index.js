@@ -8,12 +8,15 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import FileUploadField from 'ui/FileUploadField';
+import { IconTrash, IconUpload } from '@tabler/icons';
+import path from 'utils/common/path';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
 
 const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
+  // The file input is hidden; the visible button forwards its click here.
+  const inputFileCaCertificateRef = useRef();
 
   const preferencesSchema = Yup.object().shape({
     sslVerification: Yup.boolean(),
@@ -164,6 +167,17 @@ const General = () => {
       });
   };
 
+  const addCaCertificate = (e) => {
+    const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
+    if (filePath) {
+      formik.setFieldValue('customCaCertificate.filePath', filePath);
+    }
+  };
+
+  const deleteCaCertificate = () => {
+    formik.setFieldValue('customCaCertificate.filePath', null);
+  };
+
   const customCaCertificateEnabled = formik.values.customCaCertificate.enabled;
   const customCaCertificatePath = formik.values.customCaCertificate.filePath;
   const keepDefaultCaCertificatesDisabled = !(customCaCertificateEnabled && customCaCertificatePath);
@@ -191,15 +205,44 @@ const General = () => {
             checked={customCaCertificateEnabled}
             onChange={formik.handleChange}
           >
-            <div className="ca-certificate-picker">
-              <FileUploadField
-                id="caCertFilePath"
-                value={customCaCertificatePath}
-                onChange={(filePath) => formik.setFieldValue('customCaCertificate.filePath', filePath)}
-                placeholder="No certificate selected"
-                disabled={!customCaCertificateEnabled}
-                clearLabel="Remove custom CA certificate"
-              />
+            <div className={`ca-certificate-picker ${customCaCertificateEnabled ? '' : 'is-disabled'}`}>
+              {customCaCertificatePath ? (
+                <span className="ca-certificate-file">
+                  {path.basename(customCaCertificatePath)}
+                  <button
+                    type="button"
+                    tabIndex="-1"
+                    className="ca-certificate-remove"
+                    aria-label="Remove custom CA certificate"
+                    disabled={!customCaCertificateEnabled}
+                    onClick={deleteCaCertificate}
+                  >
+                    <IconTrash strokeWidth={1.5} size={14} />
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  tabIndex="-1"
+                  className="ca-certificate-select"
+                  disabled={!customCaCertificateEnabled}
+                  onClick={() => inputFileCaCertificateRef.current?.click()}
+                >
+                  {/* decorative: the label already says what the button does,
+                      so keep it out of the button's accessible name */}
+                  <IconUpload strokeWidth={1.5} size={14} aria-hidden="true" />
+                  Select File
+                  <input
+                    id="caCertFilePath"
+                    type="file"
+                    name="customCaCertificate.filePath"
+                    className="hidden"
+                    ref={inputFileCaCertificateRef}
+                    disabled={!customCaCertificateEnabled}
+                    onChange={addCaCertificate}
+                  />
+                </button>
+              )}
             </div>
             <CheckboxSetting
               id="keepDefaultCaCertificatesEnabled"
@@ -236,45 +279,7 @@ const General = () => {
           />
         </SettingsGroup>
 
-        <SettingsGroup title="Timing">
-          <div className="timing-grid">
-            <SettingsField
-              label="Save Delay (ms)"
-              htmlFor="autoSaveInterval"
-              disabled={!autoSaveEnabled}
-              error={autoSaveError}
-            >
-              <input
-                id="autoSaveInterval"
-                type="text"
-                name="autoSave.interval"
-                className="textbox w-full"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.autoSave.interval}
-                disabled={!autoSaveEnabled}
-              />
-            </SettingsField>
-            <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={formik.errors.timeout}>
-              <input
-                id="timeout"
-                type="text"
-                name="timeout"
-                className="textbox w-full"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.timeout}
-              />
-            </SettingsField>
-          </div>
+        <SettingsGroup title="Auto Save">
           <CheckboxSetting
             id="autoSaveEnabled"
             name="autoSave.enabled"
@@ -282,6 +287,45 @@ const General = () => {
             checked={autoSaveEnabled}
             onChange={formik.handleChange}
           />
+          <SettingsField
+            label="Auto Save Delay (ms)"
+            htmlFor="autoSaveInterval"
+            disabled={!autoSaveEnabled}
+            error={autoSaveError}
+          >
+            <input
+              id="autoSaveInterval"
+              type="text"
+              name="autoSave.interval"
+              className="textbox numeric-input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.autoSave.interval}
+              disabled={!autoSaveEnabled}
+            />
+          </SettingsField>
+        </SettingsGroup>
+
+        <SettingsGroup title="Requests">
+          <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={formik.errors.timeout}>
+            <input
+              id="timeout"
+              type="text"
+              name="timeout"
+              className="textbox numeric-input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.timeout}
+            />
+          </SettingsField>
         </SettingsGroup>
 
         <SettingsGroup
