@@ -1,31 +1,13 @@
 import styled from 'styled-components';
+import sidebarRowStyles from 'components/Sidebar/SidebarRowStyles';
 
 const Wrapper = styled.div`
   .collection-name {
-    height: 1.6rem;
-    cursor: pointer;
-    user-select: none;
-    padding-left: 4px;
-    border-left: 4px solid transparent;
+    ${sidebarRowStyles({ selectedClass: 'collection-focused-in-tab', keyboardFocusedClass: 'collection-keyboard-focused' })}
 
     .rotate-90 {
       transform: rotateZ(90deg);
     }
-    .collection-actions {
-      visibility: hidden;
-    }
-
-    /* Single source of truth for hover/focus states: background and menu icon visibility */
-    &:hover,
-    &:focus-within,
-    &.collection-keyboard-focused {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .collection-actions {
-        visibility: visible;
-        background-color: transparent !important;
-      }
-    }
-
     &.item-hovered {
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
@@ -65,24 +47,6 @@ const Wrapper = styled.div`
       margin-bottom: -2px;
       background: transparent;
       transition: ${(props) => props.theme.dragAndDrop.transition};
-    }
-
-    &.collection-focused-in-tab {
-      background: ${(props) => props.theme.sidebar.collection.item.bg};
-
-      &:hover {
-        background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
-      }
-    }
-
-    &.collection-keyboard-focused {
-      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
-      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
-      outline: none;
-
-       &:hover {
-        background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
-      }
     }
 
   }

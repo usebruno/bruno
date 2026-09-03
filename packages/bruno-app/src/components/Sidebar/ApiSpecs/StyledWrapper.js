@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import sidebarRowStyles from 'components/Sidebar/SidebarRowStyles';
 
 const Wrapper = styled.div`
   display: flex;
@@ -20,40 +21,7 @@ const Wrapper = styled.div`
   }
 
   .api-spec-item {
-    height: 1.6rem;
-    cursor: pointer;
-    &.active {
-      background: ${(props) => props.theme.sidebar.collection.item.bg};
-    }
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
-    }
-  }
-
-  .menu-icon {
-    cursor: pointer;
-    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
-
-    .dropdown {
-      div[aria-expanded='true'] {
-        visibility: visible;
-      }
-      div[aria-expanded='false'] {
-        visibility: hidden;
-      }
-    }
-  }
-
-  div.tippy-box {
-    position: relative;
-    top: -0.625rem;
+    ${sidebarRowStyles({ selectedClass: 'active', keyboardFocusedClass: 'api-spec-keyboard-focused' })}
   }
 
   .placeholder {
