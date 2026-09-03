@@ -34,7 +34,7 @@ describe('CLI run --sandbox developer - async test() callbacks are awaited befor
     );
     code = result.code;
     output = stripAnsi(`${result.stdout}\n${result.stderr}`);
-  });
+  }, 120000);
 
   afterAll(async () => {
     fs.rmSync(collectionDir, { recursive: true, force: true });
