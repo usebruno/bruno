@@ -1,5 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
@@ -70,15 +71,10 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         flow: brunoExtensions.scripts.flow
       };
     }
-    if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
-      brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
-        sourceUrl: entry.sourceUrl,
-        groupBy: entry.groupBy,
-        ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
-        ...(entry.specHash && { specHash: entry.specHash }),
-        autoCheck: entry.autoCheck !== false,
-        autoCheckInterval: entry.autoCheckInterval || 5
-      }));
+
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtensions?.openapi);
+    if (openApiEntries.length > 0) {
+      brunoConfig.openapi = openApiEntries;
     }
 
     // protobuf

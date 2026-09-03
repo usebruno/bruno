@@ -4,7 +4,8 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
-const { getSentHeaders } = require('@usebruno/requests');
+const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -102,24 +103,22 @@ function makeAxiosInstance({
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
   instance.interceptors.request.use((config) => {
-    config.headers['request-start-time'] = Date.now();
+    config.metadata = config.metadata || {};
+    config.metadata.startTime = Date.now();
+    config.headers['request-start-time'] = config.metadata.startTime;
 
-    /**
-      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
-      Using set(name, null) rather than delete(): the axios http adapter guards its
-      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
-      skips writing when the key already exists. delete() removes the key entirely,
-      so the guard misses and the adapter re-adds the default. null keeps the key
-      present (blocking the guard) while toJSON() omits null values from the wire.
-    */
-    const headersToDelete = config.__headersToDelete;
-    if (headersToDelete && Array.isArray(headersToDelete)) {
-      headersToDelete.forEach((headerName) => {
-        const lower = headerName.toLowerCase();
-        if (lower === 'host' || lower === 'connection') return;
-        config.headers.set(headerName, null);
-      });
-      delete config.__headersToDelete;
+    // Omit listed defaults and script-deleted headers. set(null) so Axios
+    // does not put User-Agent / Accept-Encoding back.
+    const { omitConnection } = applyOmitHeaders(config.headers, {
+      omitHeaders: config.settings?.omitHeaders,
+      headersToDelete: config.__headersToDelete,
+      explicitHeaderNames: config.__explicitHeaderNames
+    });
+    delete config.__headersToDelete;
+
+    // Node keep-alive agents add Connection; strip it on the ClientRequest.
+    if (omitConnection) {
+      applyOmitConnectionToAxiosConfig(config);
     }
 
     // Add cookies to request if available and not disabled
@@ -136,7 +135,7 @@ function makeAxiosInstance({
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config.metadata.startTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
@@ -147,7 +146,7 @@ function makeAxiosInstance({
       error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         error.response.sentHeaders = error.sentHeaders;
 
@@ -185,6 +184,8 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
+          handleNtlmRedirect(requestConfig, error.config.url, redirectUrl, forwardAuthorizationHeader);
+
           if (!isSameOrigin(error.config.url, redirectUrl)) {
             /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
             * redirect would send a freshly valid signature to an unrelated host, regardless of
@@ -207,12 +208,21 @@ function makeAxiosInstance({
             }
           }
 
+          const omitConnectionOnRedirect = shouldOmitConnection({
+            omitHeaders: requestConfig.settings?.omitHeaders,
+            headersToDelete: requestConfig.__headersToDelete,
+            explicitHeaderNames: requestConfig.__explicitHeaderNames
+          });
+
           await setupProxyAgents({
             requestConfig,
             proxyMode,
             proxyConfig,
             systemProxyConfig,
-            httpsAgentRequestFields,
+            httpsAgentRequestFields: {
+              ...httpsAgentRequestFields,
+              keepAlive: !omitConnectionOnRedirect
+            },
             interpolationOptions,
             disableCache
           });

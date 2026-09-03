@@ -1,8 +1,51 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
   max-height: 100%;
+
+  .collection-name.collection-selected,
+  .collection-item-name.collection-item-selected {
+    background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+  }
+
+  /* Highlight for selected collection items */
+  .collection-item-name.collection-item-selected {
+    border-left: 3px solid ${(props) => props.theme.primary.solid};
+  }
+
+  /* Highlight for selected collections */
+  /* We use box-shadow here to prevent visual breaks (mitered corners) with top/bottom drag borders */
+  .collection-name.collection-selected {
+    border-left-width: 0 !important;
+    padding-left: 8px !important;
+    box-shadow: inset 3px 0 0 0 ${(props) => props.theme.primary.solid};
+  }
+
+  /* Keyboard focus + Selected */
+  .collection-name.collection-selected.collection-keyboard-focused,
+  .collection-item-name.collection-item-selected.item-keyboard-focused {
+    background: ${(props) => rgba(props.theme.primary.text, 0.1)} !important;
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+
+  }
+
+  /* Tab focus + Selected */
+  .collection-name.collection-selected.collection-focused-in-tab,
+  .collection-item-name.collection-item-selected.item-focused-in-tab {
+    background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+
+  }
 
   aside {
     background-color: ${(props) => props.theme.sidebar.bg};

@@ -1,4 +1,5 @@
 import { mockDataFunctions } from '@usebruno/common';
+import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
 
 const CodeMirror = require('codemirror');
 
@@ -178,8 +179,15 @@ const STATIC_API_HINTS = {
     'bru.utils.minifyJson(json)',
     'bru.utils.minifyXml(xml)',
     'bru.resetOauth2Credential(credentialId)'
-  ]
+  ],
+  ...GRPC_API_HINTS
 };
+
+// The values `showHintsFor` accepts.
+const HINT_GROUPS = Object.keys(STATIC_API_HINTS);
+
+// The globals every hint starts with.
+const HINT_ROOTS = ['bru', 'req', 'res'];
 
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
@@ -244,14 +252,12 @@ const transformVariablesToHints = (allVariables = {}) => {
 /**
  * Add API hints to categorized hints based on showHintsFor configuration
  * @param {Set} apiHints - Set to add API hints to
- * @param {string[]} showHintsFor - Array of hint types to show
+ * @param {string[]} showHintsFor - Array of hint groups to show
  */
 const addApiHintsToSet = (apiHints, showHintsFor) => {
-  const apiTypes = ['req', 'res', 'bru'];
-
-  apiTypes.forEach((apiType) => {
-    if (showHintsFor.includes(apiType)) {
-      STATIC_API_HINTS[apiType].forEach((hint) => {
+  HINT_GROUPS.forEach((group) => {
+    if (showHintsFor.includes(group)) {
+      STATIC_API_HINTS[group].forEach((hint) => {
         generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
       });
     }
@@ -378,7 +384,7 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+  const isApiHint = HINT_ROOTS.some(
     (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
   );
 
@@ -540,7 +546,7 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+    const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
@@ -614,7 +620,7 @@ const createStandardHintList = (filteredHints, from, to) => {
 /**
  * Show root-level API hints when the editor is empty
  * @param {Object} cm - CodeMirror instance
- * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
+ * @param {string[]} showHintsFor - Array of hint groups to show (e.g., ['req', 'res', 'bru'])
  * @returns {boolean} True if hints were shown, false otherwise
  */
 export const showRootHints = (cm, showHintsFor = []) => {
@@ -625,7 +631,7 @@ export const showRootHints = (cm, showHintsFor = []) => {
     return false;
   }
 
-  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+  const hints = HINT_ROOTS.filter((root) => showHintsFor.includes(root));
 
   if (hints.length === 0) return false;
 
@@ -696,7 +702,7 @@ const handleClickForAutocomplete = (cm, options) => {
   let allHints = [];
 
   // Add API hints if enabled
-  const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+  const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
   if (hasApiHints) {
     allHints = [...allHints, ...categorizedHints.api];
   }

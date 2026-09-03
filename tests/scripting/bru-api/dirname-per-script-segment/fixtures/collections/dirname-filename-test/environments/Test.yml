@@ -1,0 +1,5 @@
+name: Test
+
+variables:
+  - name: host
+    value: https://testbench-sanity.usebruno.com
