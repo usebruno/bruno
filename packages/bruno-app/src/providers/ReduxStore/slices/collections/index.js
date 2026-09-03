@@ -200,6 +200,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
+  selectedSidebarUids: [],
+  lastClickedSidebarUid: null,
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
@@ -399,6 +401,10 @@ export const collectionsSlice = createSlice({
         if (collection.environmentsDraft?.environmentUid === environment.uid) {
           collection.environmentsDraft = null;
         }
+
+        // TODO: if the deleted environment was the active one, clear activeEnvironmentUid here
+        // (set it to null). Right now it's left pointing at a uid no longer present
+        // in `environments`. _deleteGlobalEnvironment already does correctly for global environments.
       }
     },
     saveEnvironment: (state, action) => {
@@ -1015,6 +1021,35 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = false;
+      }
+    },
+    collapseCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = true;
+      }
+    },
+    expandItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
+    collapseItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = true;
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -3018,9 +3053,24 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
-        for (const directoryName of subDirectories) {
+        subDirectories.forEach((directoryName, idx) => {
+          const isLeaf = idx === subDirectories.length - 1;
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
+
+          // On a rename (e.g. a case-only rename on a case-insensitive filesystem),
+          // the addDir event can arrive with a new-cased path while the existing
+          // node still carries the old filename. Reconcile the leaf folder by uid so
+          // the existing node is updated in place instead of creating a duplicate.
+          if (!childItem && isLeaf && dir?.meta?.uid) {
+            childItem = currentSubItems.find((f) => f.type === 'folder' && f.uid === dir.meta.uid);
+            if (childItem) {
+              childItem.name = dir?.meta?.name || directoryName;
+              childItem.filename = directoryName;
+              childItem.pathname = currentPath;
+            }
+          }
+
           if (!childItem) {
             childItem = {
               uid: dir?.meta?.uid || uuid(),
@@ -3039,7 +3089,7 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
-        }
+        });
         addDepth(collection.items);
       }
     },
@@ -3380,6 +3430,7 @@ export const collectionsSlice = createSlice({
 
           collection.runnerResult.items.push({
             uid: request.uid,
+            requestUid: action.payload.requestUid,
             status: 'queued'
           });
         }
@@ -3952,6 +4003,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    setSidebarSelection: (state, action) => {
+      state.selectedSidebarUids = action.payload;
+    },
+    toggleSidebarSelection: (state, action) => {
+      const uid = action.payload;
+      const index = state.selectedSidebarUids.indexOf(uid);
+      if (index > -1) {
+        state.selectedSidebarUids.splice(index, 1);
+      } else {
+        state.selectedSidebarUids.push(uid);
+      }
+    },
+    clearSidebarSelection: (state) => {
+      state.selectedSidebarUids = [];
+      state.lastClickedSidebarUid = null;
+    },
+    setLastClickedSidebarUid: (state, action) => {
+      state.lastClickedSidebarUid = action.payload;
+    },
+
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
@@ -4070,6 +4141,9 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  collapseCollection,
+  expandItem,
+  collapseItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
@@ -4187,6 +4261,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  setSidebarSelection,
+  toggleSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
 
   /* Response Example Actions - Start */
   addResponseExample,

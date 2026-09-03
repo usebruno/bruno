@@ -6,7 +6,7 @@
 // Frost: nord7-nord10 (#8fbcbb, #88c0d0, #81a1c1, #5e81ac)
 // Aurora: nord11-nord15 (#bf616a, #d08770, #ebcb8b, #a3be8c, #b48ead)
 
-import { rgba } from 'polished';
+import { rgba, lighten } from 'polished';
 
 const colors = {
   // Polar Night
@@ -59,6 +59,13 @@ const colors = {
 };
 
 export const palette = {};
+
+palette.border = {
+  BORDER3: lighten(0.15, colors.NORD3),
+  BORDER2: colors.NORD3,
+  BORDER1: colors.NORD2,
+  BORDER0: colors.NORD1
+};
 
 palette.intent = {
   INFO: colors.NORD10,
@@ -155,9 +162,10 @@ const nordTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.NORD3,
-    border1: colors.NORD2,
-    border0: colors.NORD1
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {

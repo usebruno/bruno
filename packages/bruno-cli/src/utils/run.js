@@ -15,7 +15,7 @@ const createSkippedFileResults = (skippedFiles, collectionPath) => {
         data: null
       },
       response: {
-        status: 'skipped',
+        status: '-',
         statusText: skippedFile.error,
         data: null,
         responseTime: 0

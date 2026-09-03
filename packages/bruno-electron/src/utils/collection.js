@@ -165,7 +165,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 
 // __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
 // counts (and stack-trace mapping) are unaffected.
-const wrapScriptInClosure = (script, scopeInfo = null) => {
+const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -176,9 +176,11 @@ const wrapScriptInClosure = (script, scopeInfo = null) => {
   const scopeSetter = scopeInfo
     ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
     : '';
-  return `await (async () => {${scopeSetter}
+  const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
+  const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
+  return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
-})();`;
+})(${dirnameParam}, ${filenameParam});`;
 };
 
 /**
@@ -187,44 +189,51 @@ ${script}
  *
  * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
  * @param {number} requestIndex - Index in scripts of the request-level segment.
- * @param {Array|null} segmentSources - Source file info for each segment (null for request segment).
- * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+ * @param {object} [opts]
+ * @param {Array|null} [opts.segmentSources] - Source file info per non-request segment.
+ * @param {object|null} [opts.requestSegmentSource] - Source file info for the request segment.
+ * @param {string|null} [opts.collectionPath] - Collection dir; used as the __dirname fallback.
+ * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number, segments?: object[] } | null }}
  *
  * @example
  * ** Input **
  * const scripts = ['let col = 1;', 'let fold = 2;', 'let req = 3;'];
  * const requestIndex = 2;
- * const segmentSources = [
- *   { source: 'collection', fileName: 'collection.bru' },
- *   { source: 'folder', fileName: 'folder.bru' },
- *   null // request segment — no source needed
- * ];
+ * const opts = {
+ *   segmentSources: [
+ *     { type: 'collection', displayPath: 'collection.bru', filePath: '/c/collection.bru' },
+ *     { type: 'folder',     displayPath: 'f/folder.bru',   filePath: '/c/f/folder.bru' },
+ *     null // request segment: sourced via requestSegmentSource
+ *   ],
+ *   requestSegmentSource: { type: 'request', displayPath: 'f/get.bru', filePath: '/c/f/get.bru' },
+ *   collectionPath: '/c'
+ * };
  *
  * ** Output **
  * {
  *   code:
- *       'await (async () => {\n'   // line 1
- *      + 'let col = 1;\n'           // line 2
- *      + '})();\n'                  // line 3
- *      + '\n'                       // line 4 (blank separator)
- *      + 'await (async () => {\n'   // line 5
- *      + 'let fold = 2;\n'          // line 6
- *      + '})();\n'                  // line 7
- *      + '\n'                       // line 8 (blank separator)
- *      + 'await (async () => {\n'   // line 9
- *      + 'let req = 3;\n'           // line 10
- *      + '})();',                   // line 11
+ *       'await (async (__dirname, __filename) => { __bruSetScope({...collection});\n' // line 1
+ *      + 'let col = 1;\n'                                                              // line 2
+ *      + '})("/c","/c/collection.bru");\n'                                             // line 3
+ *      + '\n'                                                                          // line 4 (blank separator)
+ *      + 'await (async (__dirname, __filename) => { __bruSetScope({...folder});\n'     // line 5
+ *      + 'let fold = 2;\n'                                                             // line 6
+ *      + '})("/c/f","/c/f/folder.bru");\n'                                             // line 7
+ *      + '\n'                                                                          // line 8 (blank separator)
+ *      + 'await (async (__dirname, __filename) => { __bruSetScope({...request});\n'    // line 9
+ *      + 'let req = 3;\n'                                                              // line 10
+ *      + '})("/c/f","/c/f/get.bru");',                                                 // line 11
  *   metadata: {
  *      requestStartLine: 9,
  *      requestEndLine: 11,
  *     segments: [
- *       { startLine: 1, endLine: 3, source: 'collection', fileName: 'collection.bru' },
- *       { startLine: 5, endLine: 7, source: 'folder', fileName: 'folder.bru' }
+ *       { startLine: 1, endLine: 3, type: 'collection', displayPath: 'collection.bru', filePath: '/c/collection.bru' },
+ *       { startLine: 5, endLine: 7, type: 'folder',     displayPath: 'f/folder.bru',   filePath: '/c/f/folder.bru' }
  *     ]
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+const wrapAndJoinScripts = (scripts, requestIndex, { segmentSources = null, requestSegmentSource = null, collectionPath = null } = {}) => {
   const buildScopeInfo = (i) => {
     if (i === requestIndex && requestSegmentSource?.displayPath) {
       return { type: 'request', sourceFile: requestSegmentSource.displayPath };
@@ -234,7 +243,17 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     return { type: seg.type, sourceFile: seg.displayPath };
   };
 
-  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
+  const buildSourcePaths = (i) => {
+    const filePath = i === requestIndex
+      ? requestSegmentSource?.filePath
+      : segmentSources?.[i]?.filePath;
+    if (filePath) return { dirname: path.dirname(filePath), filename: filePath };
+    // No source file, anchor __dirname to the collection dir; no honest __filename to name.
+    if (collectionPath) return { dirname: collectionPath, filename: null };
+    return null;
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildSourcePaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -288,8 +307,13 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   const requestItem = requestTreePath?.[requestTreePath.length - 1];
   const requestPathname = request?.pathname || requestItem?.pathname;
-  const requestSegmentSource = requestPathname && collection?.pathname
-    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+  const requestSegmentSource = requestPathname
+    ? {
+        filePath: requestPathname,
+        ...(collection?.pathname
+          ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+          : {})
+      }
     : null;
 
   const withContent = (source, script) =>
@@ -339,7 +363,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
+    const result = wrapAndJoinScripts(scripts, requestIndex, {
+      segmentSources: sources,
+      requestSegmentSource,
+      collectionPath: collection?.pathname ?? null
+    });
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }
