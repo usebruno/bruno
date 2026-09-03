@@ -487,6 +487,22 @@ describe('applyScriptEnvVars', () => {
       const result = applyScriptEnvVars([secretVar('apiToken', 'old')], { apiToken: 'new' }, null);
       expect(result[0]).toMatchObject({ name: 'apiToken', value: 'new', secret: true });
     });
+
+    // The write lands on a freshly appended row, since a disabled row is never a write target.
+    // Appended as a plain row it would put the secret in the environment file in cleartext.
+    it('appends the write to a disabled secret row as a secret (direct-apply)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, null);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
+    });
+
+    it('appends the write to a disabled secret row as a secret (baseline mode)', () => {
+      const result = applyScriptEnvVars([secretVar('apiToken', '', false)], { apiToken: 'rotated' }, {});
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ name: 'apiToken', value: 'rotated', secret: true, enabled: true });
+    });
   });
 });
 

@@ -25,7 +25,6 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
-import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 

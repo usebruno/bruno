@@ -98,11 +98,18 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
         return;
       }
 
-      const { inheritedEnvironments } = getInheritedEnvironments({ environments, environment });
+      const { inheritedEnvironments, missingInheritedEnvironmentName } = getInheritedEnvironments({
+        environments,
+        environment
+      });
 
-      namesByUid[environment.uid] = inheritedEnvironments
+      const unselectedNames = inheritedEnvironments
         .filter((inheritedEnvironment) => !selectedEnvironments[inheritedEnvironment.uid])
         .map((inheritedEnvironment) => inheritedEnvironment.name);
+
+      namesByUid[environment.uid] = missingInheritedEnvironmentName
+        ? [missingInheritedEnvironmentName, ...unselectedNames]
+        : unselectedNames;
     });
 
     return namesByUid;

@@ -179,23 +179,29 @@ class GlobalEnvironmentsManager {
         throw new Error(`Environment file not found for uid: ${environmentUid}`);
       }
 
-      const environment = {
-        name: envFile.name,
-        variables: variables
-      };
-
-      if (color) {
-        environment.color = color;
-      }
-
-      if (inheritedGlobalEnvironmentName) {
-        environment.extends = inheritedGlobalEnvironmentName;
-      }
-
       // Serialize concurrent writes per env file. Two rapid scripted
       // bru.setGlobalEnvVar() persist calls can otherwise overlap and the
       // second writer's stringify+write can land before the first, dropping it.
       await withFileLock(envFile.filePath, async () => {
+        const savedEnvironment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+
+        // The whole file is rewritten, so start from what is on disk and overlay only
+        // the fields this save carries. Callers that just persist variables omit the
+        // rest, and anything omitted must survive the write.
+        const environment = {
+          ...savedEnvironment,
+          name: envFile.name,
+          variables: variables
+        };
+
+        if (color !== undefined) {
+          environment.color = color;
+        }
+
+        if (inheritedGlobalEnvironmentName !== undefined) {
+          environment.extends = inheritedGlobalEnvironmentName;
+        }
+
         if (this.envHasSecrets(environment)) {
           environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
         }

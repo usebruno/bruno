@@ -236,6 +236,17 @@ describe('resolveEnvironmentInheritance', () => {
       expect(valueOf(result, 'scheme')).toBe('https');
     });
 
+    it('inherits from a parent file whose extension is cased differently', () => {
+      const basePath = writeEnvironment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
+      fs.renameSync(basePath, path.join(environmentsDir, 'base.YML'));
+      const filePath = writeEnvironment({ name: 'dev', extends: 'base' });
+
+      const result = resolveEnvironmentInheritance({ filePath });
+
+      expect(valueOf(result, 'scheme')).toBe('https');
+      expect(sourceOf(result, 'scheme')).toBe('base');
+    });
+
     it('inherits nothing from a differently-cased reference', () => {
       writeEnvironment({ name: 'Base', variables: [variable({ name: 'scheme', value: 'https' })] });
       const filePath = writeEnvironment({ name: 'dev', extends: 'base' });

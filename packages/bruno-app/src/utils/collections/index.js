@@ -10,7 +10,7 @@ import {
   doesFolderHaveItemsMatchSearchText,
   doesCollectionHaveItemsMatchingSearchText
 } from 'utils/collections/search';
-import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1221,25 +1221,6 @@ export const getDefaultRequestPaneTab = (item) => {
   if (['ws-request', 'grpc-request'].includes(item.type)) {
     return 'body';
   }
-};
-
-const toVariablesMap = (environmentVariables = []) => {
-  const variables = {};
-  const secretNames = new Set();
-
-  for (const variable of environmentVariables) {
-    if (!variable.name || !variable.enabled) {
-      continue;
-    }
-    if (variable.secret) {
-      secretNames.add(variable.name);
-    } else if (secretNames.has(variable.name)) {
-      continue;
-    }
-    variables[variable.name] = variable.value;
-  }
-
-  return variables;
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {

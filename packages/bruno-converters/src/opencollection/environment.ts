@@ -1,4 +1,4 @@
-import { validateName } from '@usebruno/common/utils';
+import { validatedEnvironmentName } from '@usebruno/common/utils';
 import { uuid } from '../common/index.js';
 import {
   isTypedValue,
@@ -20,15 +20,6 @@ interface OCVariable extends Omit<Variable, 'value'> {
   secret?: boolean;
   disabled?: boolean;
 }
-
-const validatedEnvironmentExtendsFrom = (environmentExtendsFrom: unknown): string | undefined => {
-  if (typeof environmentExtendsFrom !== 'string') {
-    return undefined;
-  }
-
-  const name = environmentExtendsFrom.trim();
-  return validateName(name) ? name : undefined;
-};
 
 export const fromOpenCollectionEnvironments = (environments: Environment[] | undefined): BrunoEnvironment[] => {
   if (!environments?.length) {
@@ -82,7 +73,7 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
       return result;
     }),
     color: env.color || null,
-    extends: validatedEnvironmentExtendsFrom(env.extends) || null
+    extends: validatedEnvironmentName(env.extends) || null
   }));
 };
 
@@ -118,7 +109,7 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
       }) as Variable[]
     };
 
-    const environmentExtendsFrom = validatedEnvironmentExtendsFrom(env.extends);
+    const environmentExtendsFrom = validatedEnvironmentName(env.extends);
     if (environmentExtendsFrom) {
       ocEnv.extends = environmentExtendsFrom;
     }

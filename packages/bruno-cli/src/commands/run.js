@@ -370,6 +370,10 @@ const handler = async function (argv) {
     let globalEnvVars = {};
     let envFileDescriptor = null;
     let globalEnvFileDescriptor = null;
+    // Enabled entries of an `--env-file`, handed to a `--env` passed alongside it: both files'
+    // variables reach the same runtime map, but only the `--env` file is written back, and a name
+    // belongs to the file that declares it.
+    let envFileVariables = [];
     // --env-var overrides as Map<name, injected value>. The persistence layer compares the
     // script's resulting value against the injected value to tell a leaked override (same
     // value passed through unchanged) apart from a deliberate same-named script write that
@@ -394,12 +398,17 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: envFilePath, isEnvFile: true });
+        // An `--env-file` is loaded exactly as the file reads: its `extends` chain is left
+        // unresolved, even when the path points at one of the collection's own environments.
+        const { variables: environmentVariables, ownVariables } = loadEnvironmentFromFile({
+          filePath: envFilePath,
+          resolveInheritance: false
+        });
         envVars = environmentVariables;
+        envFileVariables = ownVariables;
         envFileDescriptor = {
           path: envFilePath,
-          format: resolveEnvFileFormat(envFilePath),
-          inheritedEnvironmentVariables
+          format: resolveEnvFileFormat(envFilePath)
         };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
@@ -459,7 +468,8 @@ const handler = async function (argv) {
         envFileDescriptor = {
           path: collectionEnvFilePath,
           format: collection.format,
-          inheritedEnvironmentVariables
+          inheritedEnvironmentVariables,
+          envFileVariables
         };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));

@@ -76,7 +76,11 @@ export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys =
     // Target only the enabled slot — a draft-disabled var with the same name must be preserved.
     const existing = next.find((v) => v.name === name && v.enabled);
     if (!existing) {
-      next.push({ uid: uuid(), name, value, type: 'text', secret: inheritedSecretNames.has(name), enabled: true });
+      // A disabled row is never a write target, so the appended row is the one the value lands on.
+      // Appended as a plain row it would carry a secret this name already stands for — whether the
+      // parent chain declares it or a disabled row here does — into the file in cleartext.
+      const isSecretName = inheritedSecretNames.has(name) || next.some((v) => v.name === name && v.secret);
+      next.push({ uid: uuid(), name, value, type: 'text', secret: isSecretName, enabled: true });
       return;
     }
 

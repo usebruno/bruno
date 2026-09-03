@@ -35,6 +35,26 @@ const applyInferredDataType = (variable, value) => {
 };
 
 /**
+ * Marks a variable secret and empties its value, so a script-written secret cannot reach disk.
+ * The `.bru` and `.yml` writers emit secrets as name-only rows, but the JSON path serializes the
+ * entry as-is — a retained value would land there in cleartext. Emptied rather than deleted: `''`
+ * is the value a secret parses back as, so the entry keeps the shape every reader expects.
+ * Only the disk copy is emptied; the runtime map still carries the value for later requests.
+ *
+ * @param {{ name: string, value?: any, secret?: boolean }} variable - Variable entry to mutate in place.
+ * @returns {object} The same `variable` reference, after mutation.
+ *
+ * @example
+ * markSecretWithEmptyValue({ name: 'token', value: 'rotated', secret: false });
+ *  → { name: 'token', value: '', secret: true }
+ */
+const markSecretWithEmptyValue = (variable) => {
+  variable.secret = true;
+  variable.value = '';
+  return variable;
+};
+
+/**
  * Returns a shallow copy of `vars` with internal keys (`__name__`) removed.
  *
  * @param {Object<string, any>} vars - Flat name→value map; may be null/undefined.
@@ -132,7 +152,8 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * Reconcile the env file's array of variable entries against the script's flat name→value map.
  * - Disabled entries are always preserved (user intent — toggled off, not deleted).
  * - Enabled entries absent from script output are dropped (so `bru.deleteEnvVar` reaches disk).
- * - New script keys are appended as enabled text vars with inferred dataType.
+ * - New script keys are appended as enabled text vars with inferred dataType, except a name a
+ *   disabled secret entry already declares — a secret's value has no on-disk representation here.
  * - `overrides`: names supplied via CLI (`--env-var`, or `--global-env-var` when merging the
  *   global env file) keyed to their injected value. The leaked override value never reaches
  *   disk and the file's entry is preserved, but a deliberate script write of a *different*
@@ -141,10 +162,10 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * @param {Array<{ name: string, value: any, enabled?: boolean, type?: string, secret?: boolean, dataType?: string }>} variables
  *   Existing entries from the env file.
  * @param {Object<string, any>} scriptVarsRaw - Flat map from the script runtime; may include `__name__`.
- * @param {{ overrides?: Map<string, string>, skipKeys?: string[], inheritedVariables?: Array<object> }} [options] -
- *   Names → injected override values, names that must never be written to this file (e.g. inherited
- *   from a parent env), and the resolved parent-chain entries an appended override inherits its
- *   `secret` flag from.
+ * @param {{ overrides?: Map<string, string>, skipKeys?: string[], variablesFromOtherEnvironmentFiles?: Array<object> }} [options] -
+ *   Names → injected override values, names that must never be written to this file (e.g. ones a
+ *   parent env declares), and the entries of every other environment file feeding the same runtime
+ *   map, which an appended override takes its `secret` flag from.
  * @returns {Array<object>} New array of merged variable entries.
  *
  * @example
@@ -186,12 +207,9 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
 const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
   const overrides = options.overrides instanceof Map ? options.overrides : new Map();
   const scriptVars = stripInternal(scriptVarsRaw);
-  // A name the script still reported is a live name, whatever the reason it must not be written
-  // here. Absence from this set — and only that — is what marks a `bru.deleteEnvVar` below, so it
-  // is captured before any key is withheld.
-  const declaredKeys = new Set(Object.keys(scriptVars));
-  // Inherited names reach the runtime map but are declared in the parent file. Writing them here
-  // would fork a private copy that shadows the parent — and strip a parent secret down to a plain row.
+  const scriptVarsKeys = new Set(Object.keys(scriptVars));
+  // These names belong to another environment source (an `extends` parent, or an `--env-file`
+  // loaded alongside this one); writing them here would shadow that source with a copy.
   for (const name of options.skipKeys || []) {
     delete scriptVars[name];
   }
@@ -204,36 +222,50 @@ const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
     }
   }
   const scriptKeys = new Set(Object.keys(scriptVars));
-  // A rotated inherited secret lands here as an override; as a plain row its value would reach
-  // disk in cleartext, so the parent's secret flag has to come with it.
-  const inheritedSecretNames = new Set((options.inheritedVariables || []).filter((v) => v.secret).map((v) => v.name));
+  // A rotated secret from another environment file lands here as an override; as a plain row its
+  // value would reach disk in cleartext, so that file's secret flag has to come with it.
+  const secretNamesFromOtherEnvironmentFiles = new Set(
+    (options.variablesFromOtherEnvironmentFiles || []).filter((v) => v.secret).map((v) => v.name)
+  );
 
   const next = (variables || [])
     .filter((v) => {
       if (v.enabled === false) return true;
-      if (declaredKeys.has(v.name)) return true;
+      if (scriptVarsKeys.has(v.name)) return true;
       // Keep the file's entry for an overridden name even if the script didn't echo it back.
       if (overrides.has(v.name)) return true;
       return false;
     })
     .map((v) => {
       if (v.enabled === false || !scriptKeys.has(v.name)) return v;
-      const entry = { ...v, value: scriptVars[v.name] };
-      // A plain row of the same name shadows the parent's secret rather than replacing it, so the
-      // rotated value would otherwise land on that plain row and reach disk in cleartext. The row
-      // becoming a secret is the cost of keeping the value off disk.
-      if (inheritedSecretNames.has(v.name)) {
-        entry.secret = true;
+      // A plain row of the same name shadows the other file's secret rather than replacing it, so
+      // the rotated value would otherwise land on that plain row and reach disk in cleartext. The
+      // row becoming a secret is the cost of keeping the value off disk.
+      if (v.secret || secretNamesFromOtherEnvironmentFiles.has(v.name)) {
+        // The written value is dropped, so a dataType inferred from it would type a value no reader
+        // can see — and retype the secret the app holds in its own store. The row keeps the type its
+        // file declares.
+        return markSecretWithEmptyValue({ ...v });
       }
-      return applyInferredDataType(entry, scriptVars[v.name]);
+      return applyInferredDataType({ ...v, value: scriptVars[v.name] }, scriptVars[v.name]);
     });
 
   // Skip names that already appear as enabled entries; a same-named disabled entry still gets a fresh enabled row appended.
   const presentEnabled = new Set(next.filter((v) => v.enabled !== false).map((v) => v.name));
+  // A disabled secret row is preserved untouched above, so an appended row is what would carry the
+  // script's value — in cleartext, since nothing marks it secret. The row is skipped rather than
+  // appended as a secret: the CLI cannot persist a secret's value at all, so it would add only a
+  // second row of the same name, and secret names must be unique for the app to save the file again.
+  const disabledSecretNames = new Set(next.filter((v) => v.enabled === false && v.secret).map((v) => v.name));
   for (const key of scriptKeys) {
-    if (presentEnabled.has(key)) continue;
-    const entry = { name: key, value: scriptVars[key], type: 'text', enabled: true, secret: inheritedSecretNames.has(key) };
-    next.push(applyInferredDataType(entry, scriptVars[key]));
+    if (presentEnabled.has(key) || disabledSecretNames.has(key)) continue;
+    const entry = { name: key, value: scriptVars[key], type: 'text', enabled: true, secret: false };
+    // An appended secret row is name-only, so there is no value left for a dataType to describe.
+    next.push(
+      secretNamesFromOtherEnvironmentFiles.has(key)
+        ? markSecretWithEmptyValue(entry)
+        : applyInferredDataType(entry, scriptVars[key])
+    );
   }
   return next;
 };
@@ -294,22 +326,24 @@ const writeIfChanged = (filePath, content, existing) => {
 };
 
 /**
- * @param {Array<{ name: string, value: any }>} [inheritedVariables] - Vars resolved from the `extends` chain.
+ * @param {Array<{ name: string, value: any }>} [variablesFromOtherEnvironmentFiles] - Entries an
+ *   environment source other than the file being written declares — its `extends` chain, or an
+ *   `--env-file` loaded alongside it.
  * @param {Object<string, any>} scriptVars - Flat map from the script runtime.
- * @returns {string[]} Inherited names to keep off disk.
+ * @returns {string[]} Names the script left at the other source's value, to keep off disk.
  *
  * @example
- * inheritedKeysLeftUnchanged(
+ * keysLeftUnchanged(
  *   [{ name: 'host', value: 'parent' }, { name: 'token', value: 'secret' }],
  *   { host: 'parent', token: 'rotated' }
  * );
  *  → ['host']   // `token` was rewritten by the script, so it persists here as an override
  */
-const inheritedKeysLeftUnchanged = (inheritedVariables, scriptVars) => {
-  const inherited = inheritedVariables || [];
-  if (!inherited.length) return [];
+const keysLeftUnchanged = (variablesFromOtherEnvironmentFiles, scriptVars) => {
+  const otherFileVariables = variablesFromOtherEnvironmentFiles || [];
+  if (!otherFileVariables.length) return [];
   return Object.entries(scriptVars || {})
-    .filter(([name, value]) => inherited.some((v) => v.name === name && isEqual(v.value, value)))
+    .filter(([name, value]) => otherFileVariables.some((v) => v.name === name && isEqual(v.value, value)))
     .map(([name]) => name);
 };
 
@@ -317,7 +351,10 @@ const inheritedKeysLeftUnchanged = (inheritedVariables, scriptVars) => {
  * Read → merge → write one env file. Used for both per-env and global-env files
  * (same shape, different descriptor).
  *
- * @param {{ path: string, format: 'json' | 'yml' | 'bru' } | null | undefined} envFile - Env file descriptor; no-op when missing.
+ * @param {{ path: string, format: 'json' | 'yml' | 'bru', inheritedEnvironmentVariables?: Array<object>, envFileVariables?: Array<object> } | null | undefined} envFile -
+ *   Env file descriptor; no-op when missing. `inheritedEnvironmentVariables` are the entries this
+ *   file resolves from its `extends` chain, `envFileVariables` the entries of an `--env-file`
+ *   loaded alongside it — both are names another file owns and this one must not absorb.
  * @param {Object<string, any>} scriptVars - Flat map of vars the script declared.
  * @param {{ overrides?: Map<string, string> }} [options] - Injected override values keyed by name (`--env-var`, or `--global-env-var` for the global env file); forwarded to `mergeScriptVarsIntoEnvList` to keep override values off disk.
  * @returns {void}
@@ -342,10 +379,17 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
   // No descriptor means no `--env` flag was passed — nothing to persist to.
   if (!envFile || !envFile.path) return;
   const { path: filePath, format } = envFile;
+  // An `--env-file` supplied alongside `--env` is merged into the same runtime map as this file but
+  // is never itself written back, so it is another environment source for this file in exactly the
+  // sense the `extends` chain is — same guard, same secret flags.
+  const variablesFromOtherEnvironmentFiles = [
+    ...(envFile.envFileVariables || []),
+    ...(envFile.inheritedEnvironmentVariables || [])
+  ];
   const mergeOptions = {
     ...options,
-    skipKeys: inheritedKeysLeftUnchanged(envFile.inheritedEnvironmentVariables, scriptVars),
-    inheritedVariables: envFile.inheritedEnvironmentVariables
+    skipKeys: keysLeftUnchanged(variablesFromOtherEnvironmentFiles, scriptVars),
+    variablesFromOtherEnvironmentFiles
   };
   if (!fs.existsSync(filePath)) return;
 
