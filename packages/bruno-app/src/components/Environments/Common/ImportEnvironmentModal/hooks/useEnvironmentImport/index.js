@@ -8,7 +8,7 @@ import { generateCopyName, normalizeEnvName } from 'utils/environments';
 import { detectEnvironmentFormat, RESOLUTION_TYPES } from '../../utils';
 import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
-export const IMPORT_STEPS = { UPLOAD: 'UPLOAD', REVIEW: 'REVIEW' };
+export const IMPORT_STEPS = { UPLOAD: 'UPLOAD', REVIEW: 'REVIEW', RESOLUTION: 'RESOLUTION' };
 export const ENV_STATUS = { NEW: 'new', DUPLICATE: 'duplicate', INVALID: 'invalid' };
 
 export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCreated) => {
@@ -129,11 +129,6 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       const newItems = [...validItems, ...invalidItems];
       const duplicates = validItems.filter((e) => e.status === ENV_STATUS.DUPLICATE);
 
-      if (duplicates.length === 0 && allInvalid.length === 0) {
-        await commitEnvironments(validItems, new Map());
-        return;
-      }
-
       setItems(newItems);
 
       const initialSelected = new Set(validItems.map((i) => i.id));
@@ -153,7 +148,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     }
   };
 
-  const handleConfirmImport = async () => {
+  const handleConfirmImport = async (overrideResolutions) => {
     if (isImporting) return;
     const environmentsToImport = items.filter((env) => (env.status === ENV_STATUS.NEW || env.status === ENV_STATUS.DUPLICATE) && selected.has(env.id));
 
@@ -162,7 +157,13 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       return;
     }
 
-    await commitEnvironments(environmentsToImport, resolutions);
+    const hasDuplicates = environmentsToImport.some((env) => env.status === ENV_STATUS.DUPLICATE);
+    if (step === IMPORT_STEPS.REVIEW && hasDuplicates) {
+      setStep(IMPORT_STEPS.RESOLUTION);
+      return;
+    }
+
+    await commitEnvironments(environmentsToImport, overrideResolutions || resolutions);
   };
 
   return {
@@ -172,6 +173,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     setSelected,
     resolutions,
     setResolutions,
+    setStep,
     handleImportEnvironment,
     handleConfirmImport
   };

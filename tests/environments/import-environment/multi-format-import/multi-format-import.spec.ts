@@ -35,7 +35,12 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('postman-env.json'), fixture('bruno-env.json'));
 
-      await test.step('Neither file conflicts with an existing environment, so the import commits immediately, each using its own format', async () => {
+      await test.step('Review step shows both files as New, then imports them', async () => {
+        await expect(environment.importNewBadge('Postman Env')).toBeVisible();
+        await expect(environment.importNewBadge('Bruno Env')).toBeVisible();
+
+        await environment.importSubmitButton('collection').click();
+
         await expect(environment.importModal('collection')).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Postman Env')).toBeVisible();
         await expect(environment.sidebarListItemExact('collection', 'Bruno Env')).toBeVisible();
@@ -54,12 +59,10 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('malformed.json'), fixture('bruno-env.json'));
 
-      await test.step('The malformed file is flagged as invalid; the valid one still lands under New', async () => {
-        await expect(environment.importInvalidWarning()).toContainText('1 file');
-        await expect(environment.importInvalidCount()).toHaveText('1');
-        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
-        await expect(environment.importNewCount()).toHaveText('1');
-        await expect(environment.importReviewItem('Bruno Env')).toBeVisible();
+      await test.step('The malformed file is flagged as invalid; the valid one is New', async () => {
+        await expect(environment.importInvalidBadge('malformed.json')).toBeVisible();
+        await expect(environment.importNewBadge('Bruno Env')).toBeVisible();
+        await expect(environment.importItemCheckbox('malformed.json')).toBeDisabled();
       });
 
       await environment.importSubmitButton('collection').click();
@@ -76,11 +79,10 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('null-content.json'), fixture('bruno-env.json'));
 
-      await test.step('The null-content file is flagged as invalid; the valid one still lands under New', async () => {
-        await expect(environment.importInvalidCount()).toHaveText('1');
-        await expect(environment.importInvalidItem('null-content.json')).toBeVisible();
-        await expect(environment.importNewCount()).toHaveText('1');
-        await expect(environment.importReviewItem('Bruno Env')).toBeVisible();
+      await test.step('The null-content file is flagged as invalid; the valid one is New', async () => {
+        await expect(environment.importInvalidBadge('null-content.json')).toBeVisible();
+        await expect(environment.importNewBadge('Bruno Env')).toBeVisible();
+        await expect(environment.importItemCheckbox('null-content.json')).toBeDisabled();
       });
 
       await environment.importSubmitButton('collection').click();
@@ -98,11 +100,10 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       await openImportReviewFromEmpty(page, 'collection', fixture('invalid-schema.json'), fixture('postman-env.json'));
 
       await test.step('The bad-schema file shows its failure reason; the Postman file still imports', async () => {
-        await expect(environment.importInvalidCount()).toHaveText('1');
+        await expect(environment.importInvalidBadge('invalid-schema.json')).toBeVisible();
         const invalidItem = environment.importInvalidItem('invalid-schema.json');
-        await expect(invalidItem).toBeVisible();
         await expect(invalidItem).toContainText('missing or invalid variables array');
-        await expect(environment.importReviewItem('Postman Env')).toBeVisible();
+        await expect(environment.importNewBadge('Postman Env')).toBeVisible();
       });
 
       await environment.importSubmitButton('collection').click();
@@ -126,11 +127,11 @@ test.describe('Import environment - mixed format and invalid file handling', () 
         fixture('postman-env.json')
       );
 
-      await test.step('Both bad files are listed; both good files land under New', async () => {
-        await expect(environment.importInvalidCount()).toHaveText('2');
-        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
-        await expect(environment.importInvalidItem('invalid-schema.json')).toBeVisible();
-        await expect(environment.importNewCount()).toHaveText('2');
+      await test.step('Both bad files are flagged invalid; both good files are New', async () => {
+        await expect(environment.importInvalidBadge('malformed.json')).toBeVisible();
+        await expect(environment.importInvalidBadge('invalid-schema.json')).toBeVisible();
+        await expect(environment.importNewBadge('Bruno Env')).toBeVisible();
+        await expect(environment.importNewBadge('Postman Env')).toBeVisible();
         await expect(environment.importTotalCount()).toHaveText('4');
       });
 
@@ -148,10 +149,9 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'collection', fixture('malformed.json'), fixture('invalid-schema.json'));
 
-      await test.step('Both files are flagged as invalid and Import stays disabled', async () => {
-        await expect(environment.importInvalidCount()).toHaveText('2');
-        await expect(environment.importNewGroup()).toHaveCount(0);
-        await expect(environment.importDuplicatesGroup()).toHaveCount(0);
+      await test.step('Both files are flagged as invalid and Next button stays disabled', async () => {
+        await expect(environment.importInvalidBadge('malformed.json')).toBeVisible();
+        await expect(environment.importInvalidBadge('invalid-schema.json')).toBeVisible();
         await expect(environment.importSubmitButton('collection')).toBeDisabled();
       });
 
@@ -165,21 +165,13 @@ test.describe('Import environment - mixed format and invalid file handling', () 
       await openImportReviewFromEmpty(page, 'collection', fixture('malformed.json'), fixture('invalid-schema.json'));
 
       await test.step('Both invalid files are initially visible', async () => {
-        await expect(environment.importInvalidCount()).toHaveText('2');
-        await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
-        await expect(environment.importInvalidItem('invalid-schema.json')).toBeVisible();
+        await expect(environment.importInvalidBadge('malformed.json')).toBeVisible();
+        await expect(environment.importInvalidBadge('invalid-schema.json')).toBeVisible();
       });
 
       await test.step('Searching filters the invalid items', async () => {
         await page.getByTestId('env-search-input').fill('malformed');
         await expect(environment.importInvalidItem('malformed.json')).toBeVisible();
-        await expect(environment.importInvalidItem('invalid-schema.json')).toBeHidden();
-      });
-
-      await test.step('Toggling the chevron collapses the group', async () => {
-        await page.getByTestId('env-search-input').fill(''); // clear search
-        await page.getByTestId('env-import-invalid-group').locator('.group-title-wrapper').click();
-        await expect(environment.importInvalidItem('malformed.json')).toBeHidden();
         await expect(environment.importInvalidItem('invalid-schema.json')).toBeHidden();
       });
 
@@ -194,7 +186,12 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await openImportReviewFromEmpty(page, 'global', fixture('postman-env.json'), fixture('bruno-env.json'));
 
-      await test.step('Neither file conflicts with an existing environment, so the import commits immediately, each using its own format', async () => {
+      await test.step('Review step shows both files as New, then imports them', async () => {
+        await expect(environment.importNewBadge('Postman Env')).toBeVisible();
+        await expect(environment.importNewBadge('Bruno Env')).toBeVisible();
+
+        await environment.importSubmitButton('global').click();
+
         await expect(environment.importModal('global')).toBeHidden();
         await expect(environment.sidebarListItemExact('global', 'Postman Env')).toBeVisible();
         await expect(environment.sidebarListItemExact('global', 'Bruno Env')).toBeVisible();

@@ -1,6 +1,7 @@
 import React from 'react';
 import UploadStep from './UploadStep';
 import ReviewStep from './ReviewStep';
+import ResolutionStep from './ResolutionStep';
 import { useEnvironmentImport, IMPORT_STEPS } from './hooks/useEnvironmentImport';
 
 const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEnvironmentCreated }) => {
@@ -13,6 +14,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     setSelected,
     resolutions,
     setResolutions,
+    setStep,
     handleImportEnvironment,
     handleConfirmImport
   } = useEnvironmentImport(type, collection, onClose, onEnvironmentCreated);
@@ -37,19 +39,36 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     );
   }
 
-  return (
-    <ReviewStep
-      modalTitle={modalTitle}
-      modalTestId={modalTestId}
-      onClose={onClose}
-      handleConfirmImport={handleConfirmImport}
-      items={items}
-      selected={selected}
-      setSelected={setSelected}
-      resolutions={resolutions}
-      setResolutions={setResolutions}
-    />
-  );
+  if (step === IMPORT_STEPS.REVIEW) {
+    return (
+      <ReviewStep
+        modalTitle={modalTitle}
+        modalTestId={modalTestId}
+        onClose={onClose}
+        handleConfirmImport={handleConfirmImport}
+        items={items}
+        selected={selected}
+        setSelected={setSelected}
+      />
+    );
+  }
+
+  if (step === IMPORT_STEPS.RESOLUTION) {
+    return (
+      <ResolutionStep
+        modalTitle={modalTitle}
+        modalTestId={modalTestId}
+        onBack={() => setStep(IMPORT_STEPS.REVIEW)}
+        handleConfirmImport={handleConfirmImport}
+        items={items}
+        selected={selected}
+        resolutions={resolutions}
+        setResolutions={setResolutions}
+      />
+    );
+  }
+
+  return null;
 };
 
 export default ImportEnvironmentModal;
