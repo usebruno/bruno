@@ -840,7 +840,7 @@ const handler = async function (argv) {
                 data: null
               },
               response: {
-                status: '-',
+                status: 'skipped',
                 statusText: null,
                 data: null,
                 responseTime: 0

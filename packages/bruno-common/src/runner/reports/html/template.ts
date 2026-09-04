@@ -327,7 +327,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             :bordered="false"
           >
             <template #header>
-              {{result.path}} - {{resultSummary}} {{hasError && result.status !== 'skipped' ? " - (request failed)" : "" }}
+              {{result.path}} - {{resultSummary}} {{hasError && result.response.status !== 'skipped' ? " - (request failed)" : "" }}
             </template>
           </n-alert>
         </template>
@@ -363,7 +363,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
                   <n-list-item>
                     <n-thing
                       title="Response Code"
-                      :description="'' + result.response.status"
+                      :description="responseCode"
                     />
                   </n-list-item>
                   <n-list-item>
@@ -382,7 +382,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
               </n-card>
             </n-gi>
           </n-grid>
-          <n-alert v-if="hasError || (result.status === 'skipped' && result.error)" title="Error" type="error">
+          <n-alert v-if="hasError || (result.response.status === 'skipped' && result.error)" title="Error" type="error">
             {{result.error}}
           </n-alert>
           <n-card title="REQUEST HEADERS">
@@ -768,18 +768,24 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             return (props?.result?.testResults?.length || 0) + (props?.result?.assertionResults?.length || 0);
           });
 
-          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || (props?.result?.status === 'skipped' && props?.result?.error));
+          const hasError = computed(() => !!props?.result?.error || props?.result?.status === 'error' || (props?.result?.response?.status === 'skipped' && props?.result?.error));
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const testDuration = computed(() => Math.round(props?.result?.runDuration * 1000) + ' ms');
           const resultTitle = computed(() => props?.result?.path + ' ' + props?.result?.response?.status + ' ' + props?.result?.response?.statusText + ' ' + props?.index);
+          const responseCode = computed(() => {
+            if (props.result.response.status === 'skipped') {
+              return '-';
+            }
+            return '' + props.result.response.status;
+          });
           const resultSummary = computed(() => {
-            if (props.result.status === 'skipped') {
+            if (props.result.response.status === 'skipped') {
               return props.result.skipReason === 'bail' ? 'Request skipped due to bail' : 'Request Skipped';
             }
             return totalPassed.value + '/' + total.value + ' Passed';
           });
           const getAlertType = computed(() => {
-            if (props.result.status === 'skipped') {
+            if (props.result.response.status === 'skipped') {
               return 'warning';
             }
             return hasError.value || hasFailure.value ? 'error' : 'success';
@@ -798,6 +804,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             testsColumns,
             result: props.result,
             testDuration,
+            responseCode,
             resultTitle,
             resultSummary,
             getAlertType,
