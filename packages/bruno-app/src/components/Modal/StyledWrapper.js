@@ -169,45 +169,6 @@ const Wrapper = styled.div`
     animation: fade-in 0.1s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
-  /* Opt-in variant. no top rule (the content's own bottom border separates it). */
-  .bruno-modal-footer.bruno-modal-footer--compact {
-    padding: 8px 20px;
-
-    > div:last-of-type {
-      gap: 12px;
-    }
-
-    > div:last-of-type > span {
-      margin-right: 0;
-    }
-
-    /* ui/Button puts className on its wrapper, not on the button element, so the submit variant
-       has to be reached as ".submit button", "button.submit" never matches. */
-    button {
-      border-radius: 7px;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 7px 14px;
-      border: 1px solid ${(props) => props.theme.input.border};
-      background: ${(props) => props.theme.input.bg};
-      color: ${(props) => props.theme.text};
-    }
-
-    .submit button:not(:disabled) {
-      font-weight: 500;
-      padding: 7px 16px;
-      background-color: ${(props) => props.theme.button2.color.primary.bg};
-      border-color: ${(props) => props.theme.button2.color.primary.border};
-      color: ${(props) => props.theme.button2.color.primary.text};
-    }
-
-    .submit button:disabled {
-      font-weight: 600;
-      padding: 7px 16px;
-      background-color: ${(props) => rgba(props.theme.button2.color.primary.bg, 0.45)};
-      border-color: transparent;
-    }
-  }
 
   .bruno-modal-footer {
     background-color: ${(props) => props.theme.modal.body.bg};

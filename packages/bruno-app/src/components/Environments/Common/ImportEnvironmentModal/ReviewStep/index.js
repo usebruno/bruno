@@ -89,7 +89,6 @@ const ReviewStep = ({
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
         confirmDisabled={isConfirmDisabled}
-        footerClassName="bruno-modal-footer--compact"
         footerLeft={(
           <ImportFooterSummary data-testid="env-import-selected-count">
             <span className="selected-count">{selected.size}/{totalEnvironments}</span> selected
