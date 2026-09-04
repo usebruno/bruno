@@ -283,12 +283,16 @@ describe('bru docs generate: environment selection', () => {
     expect(message).toContain('NopeTwo');
   });
 
-  it('ignores an excluded environment that does not exist (no error)', async () => {
-    const output = path.join(outDir, 'exclude-missing.html');
-    await generate.handler({ output, gitLink: false, allEnvs: true, excludeEnvs: 'DoesNotExist' });
-    const html = fs.readFileSync(output, 'utf8');
-    expect(html).toContain('Production');
-    expect(html).toContain('Staging');
+  it('errors when --exclude-envs names an environment that does not exist', async () => {
+    const exitSpy = mockExit();
+
+    await expect(
+      generate.handler({ output: path.join(outDir, 'x.html'), gitLink: false, allEnvs: true, excludeEnvs: 'DoesNotExist' })
+    ).rejects.toThrow();
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 6);
+    const message = console.error.mock.calls.map((args) => args.join(' ')).join('\n');
+    expect(message).toContain('Environment not found');
+    expect(message).toContain('DoesNotExist');
   });
 });
 
@@ -640,16 +644,43 @@ describe('resolveEnvironments', () => {
     expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'QA']);
   });
 
-  it('leaves the include list intact when the excludes are not among them (no error even if they do not exist)', () => {
+  it('errors on an unknown --exclude-envs name given alongside --envs', () => {
     const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod', 'Dev', 'QA'], excludeEnvs: ['Nope'] }));
-    expect(result.error).toBeUndefined();
-    expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'Dev', 'QA']);
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Environment not found');
+    expect(result.error.message).toContain('Nope');
+  });
+
+  it('errors when an excluded environment does not exist alongside allEnvs', () => {
+    const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, excludeEnvs: ['Nope'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Nope');
+  });
+
+  it('errors on an unknown --exclude-envs name given on its own, with no --envs or --all-envs base to filter', () => {
+    const result = generate.resolveEnvironments(envs, opts({ excludeEnvs: ['Nope'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Nope');
+  });
+
+  it('lists every unknown excluded environment name in a single error', () => {
+    const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, excludeEnvs: ['NopeOne', 'NopeTwo'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Environments not found');
+    expect(result.error.message).toContain('NopeOne');
+    expect(result.error.message).toContain('NopeTwo');
   });
 
   it('drops an included environment that is also excluded (exclude wins, no error)', () => {
     const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod', 'Dev', 'QA'], excludeEnvs: ['Dev'] }));
     expect(result.error).toBeUndefined();
     expect(result.environments.map((e) => e.name)).toEqual(['Prod', 'QA']);
+  });
+
+  it('does not error on a valid --exclude-envs name that is absent from the --envs list', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod'], excludeEnvs: ['Dev'] }));
+    expect(result.error).toBeUndefined();
+    expect(result.environments.map((e) => e.name)).toEqual(['Prod']);
   });
 
   it('errors when allEnvs is combined with an include list', () => {

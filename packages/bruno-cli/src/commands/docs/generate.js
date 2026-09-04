@@ -68,14 +68,19 @@ const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }
     };
   }
   const availableEnvNames = new Set(environments.map((env) => env.name));
-  const missingEnvs = includeEnvs.filter((name) => !availableEnvNames.has(name));
-  if (missingEnvs.length > 0) {
-    return {
-      error: {
-        message: chalk.red(`${pluralizeWord(missingEnvs.length, 'Environment')} not found: `) + chalk.dim(missingEnvs.join(', ')),
-        exitCode: EXIT_STATUS.ERROR_ENV_NOT_FOUND
-      }
-    };
+  const envNotFoundError = (names) => ({
+    error: {
+      message: chalk.red(`${pluralizeWord(names.length, 'Environment')} not found: `) + chalk.dim(names.join(', ')),
+      exitCode: EXIT_STATUS.ERROR_ENV_NOT_FOUND
+    }
+  });
+  const missingIncludeEnvs = includeEnvs.filter((name) => !availableEnvNames.has(name));
+  if (missingIncludeEnvs.length > 0) {
+    return envNotFoundError(missingIncludeEnvs);
+  }
+  const missingExcludeEnvs = excludeEnvs.filter((name) => !availableEnvNames.has(name));
+  if (missingExcludeEnvs.length > 0) {
+    return envNotFoundError(missingExcludeEnvs);
   }
   const excluded = new Set(excludeEnvs);
   if (includeEnvs.length > 0) {
