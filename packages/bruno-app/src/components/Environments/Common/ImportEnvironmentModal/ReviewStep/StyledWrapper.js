@@ -28,36 +28,35 @@ export const StyledWrapper = styled.div`
   }
 
   .warning-block {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
-    color: ${(props) => props.theme.colors.text.yellow};
-    padding: 8px 20px;
-    font-size: 12px;
+    background-color: ${(props) => (props.theme.mode === 'dark' ? '#2a2015' : '#fdf6ef')};
+    border-bottom: 1px solid ${(props) => props.theme.border.border0};
+    color: ${(props) => (props.theme.mode === 'dark' ? '#e3c08a' : '#7c4a10')};
+    padding: 0.75rem;
+    font-size: 0.875rem;
     flex-shrink: 0;
   }
 
   .warning-header {
+    font-size: ${(props) => props.theme.font.size.base};
+    line-height: 1;
+    letter-spacing: normal;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 16px;
-    letter-spacing: normal;
+    gap: 6px;
     color: inherit;
+
+    &:not(:last-child) {
+      margin-bottom: 0.5rem;
+    }
   }
 
   .warning-title {
-    font-weight: 600;
+    font-weight: 500;
   }
-  
-  .warning-icon {
-    width: 14px;
-    height: 14px;
-    flex: none;
-    color: ${(props) => props.theme.colors.text.yellow};
+
+  .warning-icon,
+  .error-icon {
+    color: ${(props) => (props.theme.mode === 'dark' ? '#d9a441' : '#c2831f')};
   }
 
   .search-block input#search-input {

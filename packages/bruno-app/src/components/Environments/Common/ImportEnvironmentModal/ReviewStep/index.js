@@ -110,7 +110,7 @@ const ReviewStep = ({
                     )}
                     {invalidEnvs.length > 0 && (
                       <div className="warning-header" data-testid="import-invalid-warning">
-                        <IconFileAlert size={14} strokeWidth={1.5} className="warning-icon" />
+                        <IconFileAlert size={14} strokeWidth={1.5} className="error-icon" />
                         <span className="warning-message">
                           <span className="warning-title">{invalidEnvs.length}</span> could not be read and will be skipped
                         </span>
