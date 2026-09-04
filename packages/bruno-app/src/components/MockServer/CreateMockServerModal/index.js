@@ -104,7 +104,7 @@ const buildCollectionSelectOptions = (workspaceCollections, collections, editing
   return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
-const SourceRadio = ({ value, label, checked, disabled, onChange, dataTestId }) => (
+const SourceRadio = ({ value, label, checked, disabled, onChange, onBlur, dataTestId }) => (
   <div className="flex items-center gap-2">
     <input
       id={dataTestId}
@@ -113,6 +113,7 @@ const SourceRadio = ({ value, label, checked, disabled, onChange, dataTestId }) 
       value={value}
       checked={checked}
       onChange={onChange}
+      onBlur={onBlur}
       disabled={disabled}
       data-testid={dataTestId}
     />
