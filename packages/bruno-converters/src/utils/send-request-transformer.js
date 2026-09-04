@@ -270,12 +270,12 @@ const resolvesToHandlerParam = (path, name, handler) => {
  * that resolve to a different binding — a nested function re-declaring the name —
  * are left alone.
  * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument; the
- *   caller guarantees it is a function expression with an Identifier first param.
+ * @param {Object} handlerPath - Path of the function receiving the response: a `.then`
+ *   fulfilled handler or a `pm.sendRequest` callback
+ * @param {string} responseVarName - Name of the handler's response parameter
  */
-const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
+const rewriteResponseAccess = (j, handlerPath, responseVarName) => {
   const handler = handlerPath.value;
-  const responseVarName = handler.params[0].name;
 
   j(handlerPath).find(j.MemberExpression, {
     object: {
@@ -386,10 +386,11 @@ const isResponseParamReassigned = (j, handlerPath) => {
 /**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
- * @param {Object} callback - Callback function expression
+ * @param {Object} callbackPath - Path of the callback argument
  * @returns {Object} - Transformed callback function
  */
-const transformCallback = (j, callback) => {
+const transformCallback = (j, callbackPath) => {
+  const callback = callbackPath.value;
   if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
 
   const params = callback.params;
@@ -406,41 +407,7 @@ const transformCallback = (j, callback) => {
     errorVarName = params[0].name;
   }
 
-  // Process the callback body to transform response property references
-  j(callbackBody).find(j.MemberExpression, {
-    object: {
-      type: 'Identifier',
-      name: responseVarName
-    }
-  }).forEach((memberPath) => {
-    const property = memberPath.node.property;
-
-    // Handle property access
-    if (property.type === 'Identifier' && responsePropertyMap[property.name]) {
-      const bruProperty = responsePropertyMap[property.name];
-      if (bruProperty) {
-        // Check if memberPath is part of a CallExpression
-        const parentPath = memberPath.parent;
-        if (parentPath && parentPath.node.type === 'CallExpression') {
-          // Replace the entire CallExpression with a property access
-          j(parentPath).replaceWith(
-            j.memberExpression(
-              j.identifier(responseVarName),
-              j.identifier(bruProperty)
-            )
-          );
-        } else {
-          // Regular property access replacement
-          j(memberPath).replaceWith(
-            j.memberExpression(
-              j.identifier(responseVarName),
-              j.identifier(bruProperty)
-            )
-          );
-        }
-      }
-    }
-  });
+  rewriteResponseAccess(j, callbackPath, responseVarName);
 
   // a concise arrow body is a single expression with no statement list to re-wrap,
   // so the arrow is kept as written: `(err, res) => res.json()` -> `(err, res) => res.data`
@@ -527,7 +494,8 @@ const sendRequestTransformer = (path, j) => {
 
   let transformedCallback = null;
   if (callback) {
-    transformedCallback = transformCallback(j, callback);
+    const callbackPath = callPath.get('arguments', 1);
+    transformedCallback = transformCallback(j, callbackPath);
 
     // Add async keyword to the callback function
     if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
@@ -571,7 +539,7 @@ const sendRequestTransformer = (path, j) => {
     const returnsResponse = returnsParamUnchanged(j, handlerPath);
     const reassignsResponse = isResponseParamReassigned(j, handlerPath);
 
-    rewriteThenHandlerResponseAccess(j, handlerPath);
+    rewriteResponseAccess(j, handlerPath, handler.params[0].name);
 
     if (!returnsResponse) break;
     if (reassignsResponse) break;
