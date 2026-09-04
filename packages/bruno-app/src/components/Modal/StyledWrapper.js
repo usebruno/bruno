@@ -66,6 +66,11 @@ const Wrapper = styled.div`
     animation: fade-and-slide-in-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
+  .bruno-modal-header.bruno-modal-header--plain {
+    background-color: transparent;
+    padding: 1rem 1.25rem;
+  }
+
   .bruno-modal-header {
     display: flex;
     justify-content: space-between;
@@ -162,6 +167,47 @@ const Wrapper = styled.div`
     }
 
     animation: fade-in 0.1s forwards cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  /* Opt-in variant: no top rule (the content's own bottom border separates it), 32px controls
+     matching the toolbar, and 12px between the two actions. */
+  .bruno-modal-footer.bruno-modal-footer--compact {
+    padding: 8px 20px;
+
+    > div:last-of-type {
+      gap: 12px;
+    }
+
+    > div:last-of-type > span {
+      margin-right: 0;
+    }
+
+    /* ui/Button puts className on its wrapper, not on the button element, so the submit variant
+       has to be reached as ".submit button" — "button.submit" never matches. */
+    /* Padding-driven like ui/Button's own size styles, so the label can never be clipped by a
+       longer translation or a larger base font. */
+    button {
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border: 1px solid ${(props) => props.theme.input.border};
+      background: ${(props) => props.theme.input.bg};
+      color: ${(props) => props.theme.text};
+    }
+
+    .submit button:not(:disabled) {
+      font-weight: 600;
+      padding: 7px 16px;
+      background-color: ${(props) => props.theme.button2.color.primary.bg};
+      border-color: ${(props) => props.theme.button2.color.primary.border};
+      color: ${(props) => props.theme.button2.color.primary.text};
+    }
+
+    .submit button:disabled {
+      font-weight: 600;
+      padding: 7px 16px;
+    }
   }
 
   .bruno-modal-footer {

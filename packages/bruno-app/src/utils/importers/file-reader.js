@@ -30,15 +30,15 @@ const readFile = (file) => {
       try {
         const parsed = JSON.parse(e.target.result);
         if (parsed === null || typeof parsed !== 'object') {
-          reject(new BrunoError(`Unable to parse JSON file: ${file.name}`));
+          reject(new BrunoError('Unable to parse JSON'));
           return;
         }
         resolve({ fileName: file.name, filePath: file.path || file.webkitRelativePath || '', content: parsed });
       } catch (err) {
-        reject(new BrunoError(`Unable to parse JSON file: ${file.name}`));
+        reject(new BrunoError('Unable to parse JSON'));
       }
     };
-    fileReader.onerror = () => reject(new BrunoError(`Unable to read file: ${file.name}`));
+    fileReader.onerror = () => reject(new BrunoError('Unable to read file'));
     fileReader.readAsText(file);
   });
 };

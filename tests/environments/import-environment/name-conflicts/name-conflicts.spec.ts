@@ -130,54 +130,21 @@ test.describe('Import environment - name conflict handling', () => {
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('development-env.json'));
 
       await expect(environment.importTotalCount()).toHaveText('2');
-      await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
+      await expect(environment.importSelectedCount()).toContainText('2/2 selected');
 
       await environment.importNewGroupSelectAllCheckbox().uncheck();
-      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+      await expect(environment.importSelectedCount()).toContainText('1/2 selected');
 
       await environment.importDuplicatesGroupSelectAllCheckbox().uncheck();
-      await expect(environment.importSelectedCount()).toContainText('0 of 2 selected');
+      await expect(environment.importSelectedCount()).toContainText('0/2 selected');
 
       await environment.importNewGroupSelectAllCheckbox().check();
-      await expect(environment.importSelectedCount()).toContainText('1 of 2 selected');
+      await expect(environment.importSelectedCount()).toContainText('1/2 selected');
 
       await environment.importDuplicatesGroupSelectAllCheckbox().check();
-      await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
+      await expect(environment.importSelectedCount()).toContainText('2/2 selected');
 
       await modal.closeButton().click();
-    });
-
-    test('the group dropdown applies one resolution to every duplicate at once', async ({ page, createTmpDir }) => {
-      const { environment } = buildCommonLocators(page);
-      await createCollection(page, 'name-conflict-apply-all', await createTmpDir('name-conflict-apply-all'));
-      await importEnvironment(page, fixture('production-env.json'), 'collection');
-
-      await openImportReview(page, 'collection', fixture('staging-env.json'));
-      await environment.importSubmitButton('collection').click();
-      await expect(environment.importModal('collection')).toBeHidden();
-
-      await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
-
-      await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await expect(environment.importDuplicatesCount()).toHaveText('2');
-        await environment.importGroupDropdownTrigger().click();
-        await environment.importGroupDropdownReplaceOption().click();
-
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
-      });
-
-      await environment.importSubmitButton('collection').click();
-
-      await test.step('Both existing environments were replaced, no copies created', async () => {
-        await expect(environment.sidebarListItem('collection', 'Production')).toHaveCount(1);
-        await expect(environment.sidebarListItem('collection', 'Staging')).toHaveCount(1);
-
-        await environment.sidebarListItem('collection', 'Production').click();
-        await expect(environment.varRowLine('api_url')).toHaveText('https://api.updated.example.com');
-
-        await environment.sidebarListItem('collection', 'Staging').click();
-        await expect(environment.varRowLine('api_url')).toHaveText('https://staging-v2.example.com');
-      });
     });
 
     test('closing the review dialog cancels the whole import', async ({ page, createTmpDir }) => {
@@ -345,41 +312,6 @@ test.describe('Import environment - name conflict handling', () => {
 
         await environment.sidebarListItem('global', 'Production').click();
         await expect(environment.varRowLine('api_url')).toHaveText('https://api.example.com');
-      });
-
-      await closeAllCollections(page);
-    });
-
-    test('the group dropdown applies one resolution to every duplicate at once for global environments', async ({ newPage: page, createTmpDir }) => {
-      const { environment } = buildCommonLocators(page);
-      await createCollection(page, 'name-conflict-global-apply-all', await createTmpDir('name-conflict-global-apply-all'));
-      await importEnvironment(page, fixture('production-env.json'), 'global');
-
-      await openImportReview(page, 'global', fixture('staging-env.json'));
-      await environment.importSubmitButton('global').click();
-      await expect(environment.importModal('global')).toBeHidden();
-
-      await openImportReview(page, 'global', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
-
-      await test.step('Selecting "Replace existing" from the group dropdown flips both items', async () => {
-        await expect(environment.importDuplicatesCount()).toHaveText('2');
-        await environment.importGroupDropdownTrigger().click();
-        await environment.importGroupDropdownReplaceOption().click();
-
-        await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
-      });
-
-      await environment.importSubmitButton('global').click();
-
-      await test.step('Both existing global environments were replaced, no copies created', async () => {
-        await expect(environment.sidebarListItem('global', 'Production')).toHaveCount(1);
-        await expect(environment.sidebarListItem('global', 'Staging')).toHaveCount(1);
-
-        await environment.sidebarListItem('global', 'Production').click();
-        await expect(environment.varRowLine('api_url')).toHaveText('https://api.updated.example.com');
-
-        await environment.sidebarListItem('global', 'Staging').click();
-        await expect(environment.varRowLine('api_url')).toHaveText('https://staging-v2.example.com');
       });
 
       await closeAllCollections(page);

@@ -11,13 +11,13 @@ const InvalidEnvironmentGroup = ({ invalid, isExpanded, toggleExpanded }) => {
       <div className="group-header">
         <div className="group-title-wrapper" onClick={toggleExpanded} role="button" tabIndex={0}>
           {isExpanded ? (
-            <IconChevronDown size={16} className="chevron-icon" />
+            <IconChevronDown size={16} className="chevron-icon" strokeWidth={1.6} />
           ) : (
-            <IconChevronRight size={16} className="chevron-icon" />
+            <IconChevronRight size={16} className="chevron-icon" strokeWidth={1.6} />
           )}
           <IconBan size={16} className="blocked-icon" />
           <span className="group-title">Could not be read</span>
-          <CountBadge className="ml-2" data-testid="env-import-invalid-count">
+          <CountBadge data-testid="env-import-invalid-count">
             {invalid.length}
           </CountBadge>
         </div>

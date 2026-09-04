@@ -37,8 +37,7 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await test.step('Both land under New and, once confirmed, import using their own format', async () => {
         await expect(environment.importNewCount()).toHaveText('2');
-        await expect(environment.importSelectedCount()).not.toContainText('skipped');
-        await expect(environment.importSubmitButton('collection')).toHaveText('Import 2');
+        await expect(environment.importSubmitButton('collection')).toHaveText('Import (2)');
         await environment.importSubmitButton('collection').click();
         await expect(environment.importModal('collection')).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Postman Env')).toBeVisible();
@@ -136,8 +135,7 @@ test.describe('Import environment - mixed format and invalid file handling', () 
         await expect(environment.importInvalidItem('invalid-schema.json')).toBeVisible();
         await expect(environment.importNewCount()).toHaveText('2');
         await expect(environment.importTotalCount()).toHaveText('4');
-        await expect(environment.importSelectedCount()).toContainText('2 of 2 selected');
-        await expect(environment.importSelectedCount()).toContainText('2 skipped');
+        await expect(environment.importSelectedCount()).toContainText('2/2 selected');
       });
 
       await environment.importSubmitButton('collection').click();

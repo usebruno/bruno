@@ -18,8 +18,7 @@ const RESOLUTION_OPTIONS = [
 ];
 
 const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setItemResolution, showResolutions }) => {
-  const displayName = env.fileName || env.filePath;
-  const fullPath = env.filePath || env.fileName;
+  const sourceFile = env.filePath || env.fileName;
 
   return (
     <div className="env-item" data-testid="env-import-item">
@@ -32,12 +31,7 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           data-testid="env-import-item-checkbox"
         />
         <div className="env-item-content">
-          <div className="env-name">{env.name}</div>
-          {displayName && (
-            <div className="env-filepath" title={fullPath}>
-              {displayName}
-            </div>
-          )}
+          <div className="env-name" title={sourceFile}>{env.name}</div>
         </div>
       </label>
       {showResolutions && (
