@@ -82,6 +82,8 @@ export const StyledWrapper = styled.div`
   }
 
   .groups-scroll-area {
+    flex: 1;
+    min-height: 0;
     border-top: 1px solid ${(props) => props.theme.border.border0};
     overflow-y: auto;
     scrollbar-gutter: stable;
@@ -106,8 +108,6 @@ export const StyledWrapper = styled.div`
       border: 3px solid transparent;
       background-clip: content-box;
     }
-    flex: 1;
-    min-height: 0;
   }
 
   .group-header .group-count {
@@ -127,13 +127,13 @@ export const StyledWrapper = styled.div`
     gap: 8px;
     height: 35px;
     padding: 9px 20px 9px 14px;
+    font-size: ${(props) => props.theme.font.size.sm};
     background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface0 : props.theme.background.mantle)};
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
 
     &:hover {
       background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface1 : props.theme.background.crust)};
     }
-    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .group-title-wrapper {
@@ -232,7 +232,7 @@ export const StyledWrapper = styled.div`
   }
 
   .env-error {
-    font-size: 11.5px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 400;
     color: ${(props) => props.theme.colors.text.danger};
     margin-top: 2px;
@@ -243,18 +243,17 @@ export const StyledWrapper = styled.div`
     align-items: center;
     gap: 0;
     padding: 2px;
-    border-radius: 7px;
+    border-radius: ${(props) => props.theme.border.radius.base};
     background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
     flex-shrink: 0;
   }
 
   .empty-state {
     padding: 14px 20px 14px 38px;
-    font-size: 12.5px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 400;
     color: ${(props) => props.theme.colors.text.subtext0};
   }
-
 `;
 
 export const ImportModalHeader = styled.div`
@@ -264,7 +263,7 @@ export const ImportModalHeader = styled.div`
   min-width: 0;
 
   .title {
-    font-size: 15px;
+    font-size: ${(props) => props.theme.font.size.md};
     font-weight: 600;
     letter-spacing: -0.01em;
   }
@@ -278,7 +277,7 @@ export const ImportModalHeader = styled.div`
 `;
 
 export const ImportFooterSummary = styled.div`
-  font-size: 12.5px;
+  font-size: ${(props) => props.theme.font.size.sm};
   line-height: 20px;
   letter-spacing: normal;
   font-weight: 400;
@@ -289,7 +288,6 @@ export const ImportFooterSummary = styled.div`
     color: ${(props) => props.theme.text};
     font-weight: 500;
   }
-
 `;
 
 export const ResolutionButton = styled.button`
@@ -298,10 +296,10 @@ export const ResolutionButton = styled.button`
   justify-content: center;
   line-height: 1;
   padding: 5px 9px;
-  font-size: 11.5px;
+  font-size: ${(props) => props.theme.font.size.xs};
   font-weight: 500;
   white-space: nowrap;
-  border-radius: 5px;
+  border-radius: ${(props) => props.theme.border.radius.sm};
   border: 1.24px solid transparent;
 
   ${(props) =>

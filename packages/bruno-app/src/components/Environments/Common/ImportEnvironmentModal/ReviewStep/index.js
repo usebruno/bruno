@@ -25,7 +25,7 @@ const ReviewStep = ({
 
   const newEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.NEW), [items]);
   const duplicateEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.DUPLICATE), [items]);
-  const invalidEnvs = items.filter((env) => env.status === ENV_STATUS.INVALID);
+  const invalidEnvs = useMemo(() => items.filter((env) => env.status === ENV_STATUS.INVALID), [items]);
 
   const totalEnvironments = newEnvs.length + duplicateEnvs.length;
   const totalParsedCount = totalEnvironments + invalidEnvs.length;
@@ -41,17 +41,19 @@ const ReviewStep = ({
   const filteredInvalid = useMemo(() => invalidEnvs.filter(matchesSearch), [invalidEnvs, matchesSearch]);
 
   const toggleGroupExpanded = useCallback((group) => {
-    setExpandedGroups({ ...expandedGroups, [group]: !expandedGroups[group] });
-  }, [expandedGroups]);
+    setExpandedGroups((prev) => ({ ...prev, [group]: !prev[group] }));
+  }, []);
 
   const toggleGroupSelection = useCallback((groupEnvs, checked) => {
-    const newSelected = new Set(selected);
-    groupEnvs.forEach((env) => {
-      if (checked) newSelected.add(env.id);
-      else newSelected.delete(env.id);
+    setSelected((prev) => {
+      const newSelected = new Set(prev);
+      groupEnvs.forEach((env) => {
+        if (checked) newSelected.add(env.id);
+        else newSelected.delete(env.id);
+      });
+      return newSelected;
     });
-    setSelected(newSelected);
-  }, [selected]);
+  }, [setSelected]);
 
   const toggleItemSelection = useCallback((envId) => {
     setSelected((prev) => {
