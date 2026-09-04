@@ -5,7 +5,7 @@ export const StyledWrapper = styled.div`
   .modal-content {
     display: flex;
     flex-direction: column;
-    height: 400px;
+    height: 420px;
     max-height: calc(100vh - 180px);
     overflow: hidden;
     border-bottom: 1px solid ${(props) => props.theme.border.border1};
@@ -120,7 +120,7 @@ export const StyledWrapper = styled.div`
     padding: 2px 7px;
     border-radius: 20px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
 
@@ -153,12 +153,12 @@ export const StyledWrapper = styled.div`
 
   .group-title {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .group-checkbox {
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     flex: none;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
@@ -214,8 +214,8 @@ export const StyledWrapper = styled.div`
   }
 
   .env-item-checkbox {
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     flex: none;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
@@ -293,7 +293,7 @@ export const ImportFooterSummary = styled.div`
 
   .selected-count {
     color: ${(props) => props.theme.text};
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .skipped {
