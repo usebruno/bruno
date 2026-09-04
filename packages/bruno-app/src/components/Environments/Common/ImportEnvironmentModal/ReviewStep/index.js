@@ -89,6 +89,7 @@ const ReviewStep = ({
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
         confirmDisabled={isConfirmDisabled}
+        footerClassName="!py-3"
         footerLeft={(
           <ImportFooterSummary data-testid="env-import-selected-count">
             <span className="selected-count">{selected.size}/{totalEnvironments}</span> selected
