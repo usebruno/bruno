@@ -10,6 +10,7 @@ const fixturesPath = path.join(__dirname, 'fixtures');
 
 const WORKSPACE_NAME = 'Clone WS';
 const REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';
+const UNREACHABLE_REPOSITORY_URL = 'https://github.com/usebruno/this-repo-does-not-exist';
 const DEFAULT_BRANCH = 'main';
 const CLONED_COLLECTION_DIR = 'github-rest-api-collection';
 const BRANCH_SEARCH_TERM = 'feat/';
@@ -26,6 +27,7 @@ const remoteIsReachable = () => {
 const createWorkspace = async (createTmpDir: (tag?: string) => Promise<string>, tag: string): Promise<string> => {
   const workspacePath = await createTmpDir(tag);
   await fs.promises.cp(path.join(fixturesPath, 'clone-workspace'), workspacePath, { recursive: true });
+  await fs.promises.mkdir(path.join(workspacePath, 'collections'), { recursive: true });
   return workspacePath;
 };
 
@@ -49,7 +51,7 @@ test.describe('Clone Git Repository branch selection', () => {
     });
 
     await test.step('Branch field is prefilled with the repository default', async () => {
-      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH, { timeout: 15000 });
+      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH);
     });
 
     // Picked from what the dialog actually lists, so the assertion never pins a branch name
@@ -70,7 +72,7 @@ test.describe('Clone Git Repository branch selection', () => {
 
     await test.step('Cloning lands on the selected branch', async () => {
       await cloneGitRepository.button('Clone').click();
-      await expect(cloneGitRepository.button('Open')).toBeVisible({ timeout: 50000 });
+      await expect(cloneGitRepository.button('Open')).toBeVisible();
       expect(currentGitBranch(clonedCollectionPath(workspacePath))).toBe(pickedBranch);
     });
 
@@ -90,7 +92,7 @@ test.describe('Clone Git Repository branch selection', () => {
     });
 
     await test.step('The remote default arrives prefilled and stays selected', async () => {
-      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH, { timeout: 15000 });
+      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH);
       // Re-picking the selected branch must not empty the field.
       await cloneGitRepository.branchSelect().click();
       await cloneGitRepository.branchOption(DEFAULT_BRANCH).first().click();
@@ -99,7 +101,7 @@ test.describe('Clone Git Repository branch selection', () => {
 
     await test.step('Cloning lands on the default branch', async () => {
       await cloneGitRepository.button('Clone').click();
-      await expect(cloneGitRepository.button('Open')).toBeVisible({ timeout: 60000 });
+      await expect(cloneGitRepository.button('Open')).toBeVisible();
       expect(currentGitBranch(clonedCollectionPath(workspacePath))).toBe(DEFAULT_BRANCH);
     });
 
@@ -119,7 +121,7 @@ test.describe('Clone Git Repository branch selection', () => {
     });
 
     await test.step('Searching keeps only the matching branches', async () => {
-      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH, { timeout: 15000 });
+      await expect(cloneGitRepository.branchSelect()).toContainText(DEFAULT_BRANCH);
       await cloneGitRepository.branchSelect().click();
 
       const unfiltered = await cloneGitRepository.branchOptions().count();
@@ -136,6 +138,32 @@ test.describe('Clone Git Repository branch selection', () => {
       await cloneGitRepository.branchSearchInput().fill('does-not-exist');
       await expect(cloneGitRepository.branchOptions()).toHaveCount(0);
       await expect(cloneGitRepository.noBranchesFound()).toBeVisible();
+    });
+
+    await closeElectronApp(app);
+  });
+
+  test('explains when the branches cannot be listed', async ({ launchElectronApp, createTmpDir }) => {
+    const workspacePath = await createWorkspace(createTmpDir, 'clone-branch-listing-failed');
+
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
+    const page = await waitForReadyPage(app);
+    const { cloneGitRepository } = buildCommonLocators(page);
+    await switchWorkspace(page, WORKSPACE_NAME);
+
+    await test.step('Import a repository the remote listing cannot resolve', async () => {
+      await openCloneDialogFromImport(page, UNREACHABLE_REPOSITORY_URL);
+    });
+
+    await test.step('The dialog says branches are unavailable and falls back to the default', async () => {
+      await expect(cloneGitRepository.branchListingFailed()).toBeVisible();
+      await expect(cloneGitRepository.branchSelect()).toContainText('Repository default');
+    });
+
+    await test.step('The branch field is disabled and no branches are listed', async () => {
+      await expect(cloneGitRepository.branchSelect()).toHaveClass(/disabled/);
+      await cloneGitRepository.branchSelect().click();
+      await expect(cloneGitRepository.branchOptions()).toHaveCount(0);
     });
 
     await closeElectronApp(app);
