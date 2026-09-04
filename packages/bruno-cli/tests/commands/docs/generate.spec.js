@@ -671,6 +671,21 @@ describe('resolveEnvironments', () => {
     expect(result.error.message).toContain('NopeTwo');
   });
 
+  it('lists unknown names from both --envs and --exclude-envs together in a single error', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['BadInclude'], excludeEnvs: ['BadExclude'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('BadInclude');
+    expect(result.error.message).toContain('BadExclude');
+  });
+
+  it('reports a name passed to both --envs and --exclude-envs only once', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Nope'], excludeEnvs: ['Nope'] }));
+    expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    expect(result.error.message).toContain('Environment not found');
+    expect(result.error.message).not.toContain('Environments not found');
+    expect(result.error.message.match(/Nope/g)).toHaveLength(1);
+  });
+
   it('drops an included environment that is also excluded (exclude wins, no error)', () => {
     const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod', 'Dev', 'QA'], excludeEnvs: ['Dev'] }));
     expect(result.error).toBeUndefined();

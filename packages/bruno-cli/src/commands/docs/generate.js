@@ -74,13 +74,9 @@ const resolveEnvironments = (environments, { includeEnvs, excludeEnvs, allEnvs }
       exitCode: EXIT_STATUS.ERROR_ENV_NOT_FOUND
     }
   });
-  const missingIncludeEnvs = includeEnvs.filter((name) => !availableEnvNames.has(name));
-  if (missingIncludeEnvs.length > 0) {
-    return envNotFoundError(missingIncludeEnvs);
-  }
-  const missingExcludeEnvs = excludeEnvs.filter((name) => !availableEnvNames.has(name));
-  if (missingExcludeEnvs.length > 0) {
-    return envNotFoundError(missingExcludeEnvs);
+  const missingEnvs = [...new Set([...includeEnvs, ...excludeEnvs])].filter((name) => !availableEnvNames.has(name));
+  if (missingEnvs.length > 0) {
+    return envNotFoundError(missingEnvs);
   }
   const excluded = new Set(excludeEnvs);
   if (includeEnvs.length > 0) {
