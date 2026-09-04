@@ -1,0 +1,30 @@
+info:
+  name: SayHello
+  type: grpc
+  seq: 1
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "{{greeting}}"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: |-
+        bru.setVar('greeting', 'set-by-hook');
+        bru.setVar('capturedReply', '');
+    - type: grpc:after-call-end
+      code: |-
+        test('the hook sees the message the unary call sent', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(1);
+          expect(bru.grpc.request.messages.get(0).data.greeting).to.equal('set-by-hook');
+        });
+
+        bru.setVar('capturedReply', bru.grpc.response.messages.get(0).data.reply);

@@ -1,18 +1,10 @@
 import HardBreak from '@tiptap/extension-hard-break';
 import runMarkdownitSetupOnce from '../../utils/markdownitSetupOnce';
 
+// Emitting a space instead of `\n` for soft breaks prevents ProseMirror from converting them into hard breaks during paste.
 const setupSoftBreakParser = (markdownit) => {
   runMarkdownitSetupOnce(markdownit, '__docsSoftBreakNormalized', (md) => {
-    const originalSoftBreak = md.renderer.rules.softbreak;
-    md.renderer.rules.softbreak = function (tokens, idx, options, env, self) {
-      if (options.breaks) {
-        return '<br>';
-      }
-      if (originalSoftBreak) {
-        return originalSoftBreak(tokens, idx, options, env, self);
-      }
-      return '\n';
-    };
+    md.renderer.rules.softbreak = (tokens, idx, options) => (options.breaks ? '<br>' : ' ');
   });
 };
 
@@ -36,12 +28,7 @@ const EditorHardBreak = HardBreak.extend({
             }
           }
 
-          // A hard break with nothing after it (the true end of its parent, or
-          // the last of a run of consecutive breaks) can't be represented as a
-          // line-break escape — CommonMark trims trailing backslash/space
-          // sequences at the end of a block, so it would vanish on reparse.
-          // A literal inline `<br/>` survives instead, since it's parsed back
-          // as raw HTML rather than relying on a following line.
+          // A trailing hard break uses `<br/>` instead of a line-break escape since CommonMark trims trailing backslash/spaces at the end of a block.
           state.write('<br/>');
         },
         parse: {

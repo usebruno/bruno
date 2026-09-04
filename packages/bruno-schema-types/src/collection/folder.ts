@@ -1,9 +1,10 @@
-import type { KeyValue, Auth, Script, Variables } from '../common';
+import type { KeyValue, Auth, Variables, HTTPScripts } from '../common';
 
 export interface FolderRequest {
   headers?: KeyValue[] | null;
   auth?: Auth | null;
-  script?: Script | null;
+  // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+  script?: HTTPScripts | null;
   vars?: {
     req?: Variables | null;
     res?: Variables | null;

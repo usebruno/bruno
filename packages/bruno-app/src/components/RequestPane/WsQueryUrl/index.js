@@ -9,12 +9,11 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isMacOS } from 'utils/common/platform';
-import { hasRequestChanges } from 'utils/collections';
+import { hasRequestChanges, getAllVariables } from 'utils/collections';
 import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
 import ToolHint from 'components/ToolHint';
 import { interpolateUrl } from 'utils/url';
-import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
 import get from 'lodash/get';
 
@@ -24,6 +23,8 @@ const CONNECTION_STATUS = {
   DISCONNECTING: 'disconnecting',
   DISCONNECTED: 'disconnected'
 };
+
+const UNINTERACTIVE_STATES = [CONNECTION_STATUS.CONNECTING, CONNECTION_STATUS.DISCONNECTING];
 
 const useWsConnectionStatus = (requestId) => {
   const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.DISCONNECTED);
@@ -63,6 +64,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const previousDeboundedInterpolatedURL = useRef(debouncedInterpolatedURL);
 
   const handleConnect = async () => {
+    setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     dispatch(wsConnectOnly(item, collection.uid));
     previousDeboundedInterpolatedURL.current = debouncedInterpolatedURL;
   };
@@ -85,8 +87,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleRunClick = async (e) => {
-    e.stopPropagation();
+  const handleWsRun = (e) => {
+    e?.stopPropagation();
+    if (UNINTERACTIVE_STATES.includes(connectionStatus)) return;
     if (!url) {
       toast.error('Please enter a valid WebSocket URL');
       return;
@@ -110,9 +113,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   // Detect interpolated URL changes and attempt a disconnect
   useEffect(() => {
-    if (connectionStatus !== 'connected') return;
+    if (connectionStatus !== CONNECTION_STATUS.CONNECTED) return;
     if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
     if (debouncedInterpolatedURL === '') return;
+    setConnectionStatus(CONNECTION_STATUS.DISCONNECTING);
     closeWsConnection(item.uid).then(() => {}).catch(() => {});
   }, [debouncedInterpolatedURL, connectionStatus, item]);
 
@@ -130,9 +134,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             placeholder="ws://localhost:8080 or wss://example.com"
             className="w-full"
             theme={displayedTheme}
-            onRun={handleRun}
+            onRun={handleWsRun}
             collection={collection}
             item={item}
+            disableLinkAwareClick={true}
           />
           <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
             <ToolHint text={`Save (${saveShortcut})`} toolhintId="ws-save-request" place="top" positionStrategy="fixed">
@@ -154,10 +159,10 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               </div>
             </ToolHint>
 
-            {(connectionStatus === 'connected' || connectionStatus === 'disconnecting') && (
+            {(connectionStatus === CONNECTION_STATUS.CONNECTED || connectionStatus === CONNECTION_STATUS.DISCONNECTING) && (
               <div className="connection-controls relative flex items-center h-full">
-                <ToolHint text={connectionStatus === 'disconnecting' ? 'Disconnecting...' : 'Close Connection'} toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
-                  <div className="flex items-center" onClick={(e) => connectionStatus === 'connected' ? handleDisconnect(e, true) : null} data-testid="ws-disconnect-button">
+                <ToolHint text={connectionStatus === CONNECTION_STATUS.DISCONNECTING ? 'Disconnecting...' : 'Close Connection'} toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={(e) => connectionStatus === CONNECTION_STATUS.CONNECTED ? handleDisconnect(e, true) : null} data-testid="ws-disconnect-button">
                     <IconPlugConnectedX
                       color={theme.colors.text.danger}
                       strokeWidth={1.5}
@@ -171,7 +176,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               </div>
             )}
 
-            {(connectionStatus === 'connecting' || connectionStatus === 'disconnected') && (
+            {(connectionStatus === CONNECTION_STATUS.CONNECTING || connectionStatus === CONNECTION_STATUS.DISCONNECTED) && (
               <div className="connection-controls relative flex items-center h-full">
                 <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
                   <div className="flex items-center" onClick={handleConnect} data-testid="ws-connect-button">
@@ -192,7 +197,8 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           {connectionStatus === CONNECTION_STATUS.DISCONNECTING && <div className="connection-status-strip disconnecting" data-testid="ws-disconnecting-strip"></div>}
         </div>
         <SendButton
-          onSend={handleRunClick}
+          onSend={handleWsRun}
+          disabled={UNINTERACTIVE_STATES.includes(connectionStatus)}
           testId="run-button"
         />
       </div>

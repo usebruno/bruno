@@ -834,13 +834,13 @@ const handler = async function (argv) {
                 filename: relativePath
               },
               request: {
-                method: null,
-                url: null,
+                method: ri.request?.method || null,
+                url: ri.request?.url || null,
                 headers: null,
                 data: null
               },
               response: {
-                status: 'skipped',
+                status: '-',
                 statusText: null,
                 data: null,
                 responseTime: 0

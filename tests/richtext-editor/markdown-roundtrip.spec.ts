@@ -31,10 +31,6 @@ const MARKDOWN_SOURCE = [
 ].join('\n');
 
 test.describe('Rich Text Editor Edge Cases - Markdown Round Trip', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });

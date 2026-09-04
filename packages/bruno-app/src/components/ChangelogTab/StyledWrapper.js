@@ -11,7 +11,7 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
     padding: 4rem 1.5rem 3rem;
 
-    .markdown-body {
+    .tiptap {
       max-width: 46rem;
       margin: 0 auto;
       overflow: visible;
@@ -19,8 +19,13 @@ const StyledWrapper = styled.div`
       line-height: 1.65;
       color: ${(props) => props.theme.colors?.text?.subtext2};
 
+      h3, h4 {
+        margin-top: 2.5rem;
+      }
+
       h2, h3, h4 {
         color: ${(props) => props.theme.primary?.text};
+        border-bottom: none;
       }
 
       .badge {

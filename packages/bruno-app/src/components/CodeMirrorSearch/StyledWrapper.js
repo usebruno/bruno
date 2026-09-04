@@ -61,7 +61,7 @@ const StyledWrapper = styled.div`
   }
 
   /* Each input gets its own bordered box */
-  .bruno-search-bar input {
+  .bruno-search-bar input[type='text'] {
     width: 180px;
     flex: 0 0 180px;
     background: transparent;
@@ -75,7 +75,7 @@ const StyledWrapper = styled.div`
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
 
-  .bruno-search-bar input:focus {
+  .bruno-search-bar input[type='text']:focus {
     border-color: ${(props) => props.theme.brand};
   }
 
@@ -119,13 +119,14 @@ const StyledWrapper = styled.div`
     outline: 1px solid ${(props) => props.theme.codemirror.border};
   }
 
+  .searchbar-replace-btn:focus {
+    outline: 1px solid ${(props) => props.theme.brand};
+    outline-offset: 1px;
+  }
+
   .searchbar-icon-btn.active {
     color: ${(props) => props.theme.brand};
     background-color: ${(props) => rgba(props.theme.brand, 0.1)};
-  }
-
-  .cm-search-line-highlight {
-    background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
   }
 `;
 

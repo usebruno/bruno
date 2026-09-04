@@ -11,8 +11,12 @@ const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
-      // TODO: Remove data-test-id and use data-testid instead across the codebase.
-      <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null} data-testid="modal-close-button">
+      <div
+        className="close cursor-pointer"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={handleCancel}
+        data-testid="modal-close-button"
+      >
         <IconX size={16} strokeWidth={1.5} />
       </div>
     ) : null}
@@ -33,7 +37,8 @@ const ModalFooter = ({
   hideFooter,
   footerLeft,
   confirmButtonColor = 'primary',
-  dataTestId = 'modal'
+  dataTestId = 'modal',
+  className = ''
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -43,11 +48,17 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+    <div className={`flex justify-between items-center p-4 bruno-modal-footer ${className}`}>
       <div>{footerLeft}</div>
       <div className="flex justify-end">
         <span className={hideCancel ? 'hidden' : 'mr-2'}>
-          <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
+          <Button
+            type="button"
+            color="secondary"
+            variant="ghost"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCancel}
+          >
             {cancelText}
           </Button>
         </span>
@@ -88,7 +99,8 @@ const Modal = ({
   closeModalFadeTimeout = 500,
   dataTestId,
   confirmButtonColor = 'primary',
-  noPadding
+  noPadding,
+  footerClassName
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -164,6 +176,7 @@ const Modal = ({
           footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
+          className={footerClassName}
         />
       </div>
 

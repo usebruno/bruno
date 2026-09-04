@@ -18,7 +18,7 @@ import {
   toOpenCollectionAssertions,
   resolveTimeoutSetting
 } from '../common';
-import { utils } from '@usebruno/common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   HttpRequest,
   HttpRequestSettings,
@@ -38,7 +38,7 @@ import type {
 import type { HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
 
 
-const { toBool, toNumber } = utils;
+const { toBool, toMaxRedirects } = utils;
 
 const getHttpBody = (body: HttpRequestBody | Array<{ title: string; selected?: boolean; body: HttpRequestBody }> | undefined): HttpRequestBody | undefined => {
   if (!body) return undefined;
@@ -54,7 +54,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   const http = ocRequest.http;
   const runtime = ocRequest.runtime;
 
-  const scripts = fromOpenCollectionScripts(runtime?.scripts);
+  const scripts = fromOpenCollectionScripts(runtime?.scripts, HTTP_SCRIPT_KEYS);
   const httpBody = getHttpBody(http?.body as HttpRequestBody);
 
   // variables (pre-request from variables, post-response from actions)
@@ -112,7 +112,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
       encodeUrl: toBool(ocRequest.settings.encodeUrl, true),
       timeout: resolveTimeoutSetting(ocRequest.settings.timeout),
       followRedirects: toBool(ocRequest.settings.followRedirects, true),
-      maxRedirects: toNumber(ocRequest.settings.maxRedirects, 5),
+      maxRedirects: toMaxRedirects(ocRequest.settings.maxRedirects),
       forwardAuthorizationHeader: toBool(ocRequest.settings.forwardAuthorizationHeader, true)
     };
     brunoItem.settings = settings;
@@ -201,7 +201,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     hasRuntime = true;
   }
 
-  const scripts = toOpenCollectionScripts(brunoRequest);
+  const scripts = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
   if (scripts) {
     runtime.scripts = scripts;
     hasRuntime = true;
@@ -229,7 +229,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     encodeUrl: toBool(brunoSettings?.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings?.timeout),
     followRedirects: toBool(brunoSettings?.followRedirects, true),
-    maxRedirects: toNumber(brunoSettings?.maxRedirects, 5),
+    maxRedirects: toMaxRedirects(brunoSettings?.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;

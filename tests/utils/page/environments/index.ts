@@ -1,12 +1,20 @@
-import { Page, test } from '../../../../playwright';
+import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
+
+const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
-  envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+  envOption: (name: string) =>
+    page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
   listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
+  listOptionBadge: (name: string) =>
+    page
+      .locator('.environment-list .dropdown-item')
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .getByTestId('color-badge'),
   currentEnvironment: () => page.locator('.current-environment'),
   configureButton: () => page.locator('#configure-env'),
   saveButton: () => page.getByTestId('save-env'),
@@ -58,6 +66,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // matching on the wrapper is the only way to get the full concatenated text.
   variableValue: (name: string) =>
     page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+  settingsListItem: (name: string) => environmentItemLocator(page, name),
+  activatedCheckmark: (name: string) => environmentItemLocator(page, name).locator('.activated-checkmark'),
   createEnvButton: () => page.locator('button[id="create-env"]'),
   settingsCreateButton: () =>
     page.locator('.environments-container .sidebar button[title="Create environment"]'),
@@ -88,7 +98,47 @@ export const buildEnvironmentLocators = (page: Page) => ({
     closeWithoutSave: () => page.getByTestId('env-unsaved-close-without-save'),
     cancel: () => page.getByTestId('env-unsaved-cancel'),
     saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
-  }
+  },
+  importEmptyStateButton: () => page.getByTestId('empty-state-import-env-btn'),
+  importSettingsButton: () => page.getByTestId('import-environment-btn'),
+  importModal: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment-modal' : 'import-environment-modal'),
+  importFileTrigger: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment' : 'import-environment'),
+  sidebarListItem: (scope: 'collection' | 'global', name: string) =>
+    page
+      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
+      .filter({ hasText: name }),
+  // Exact-name variant — `sidebarListItem` substring-matches, so "Production" also matches
+  // "Production copy"; use this when a batch can contain both a name and its copy suffix.
+  sidebarListItemExact: (scope: 'collection' | 'global', name: string) =>
+    page
+      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
+      .filter({ has: page.getByText(name, { exact: true }) }),
+  varRowEnabledCheckbox: (name: string) =>
+    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox'),
+  importSubmitButton: (scope: 'collection' | 'global') =>
+    page.getByTestId(scope === 'global' ? 'import-global-environment-modal-submit-btn' : 'import-environment-modal-submit-btn'),
+  importTotalCount: () => page.getByTestId('env-import-total-count'),
+  importDuplicatesWarning: () => page.getByTestId('import-duplicates-warning'),
+  importInvalidWarning: () => page.getByTestId('import-invalid-warning'),
+  importDuplicatesGroup: () => page.getByTestId('env-import-duplicates-group'),
+  importDuplicatesCount: () => page.getByTestId('env-import-duplicates-count'),
+  importNewGroup: () => page.getByTestId('env-import-new-group'),
+  importNewCount: () => page.getByTestId('env-import-new-count'),
+  importDuplicatesGroupSelectAllCheckbox: () => page.getByTestId('env-import-duplicates-group-checkbox'),
+  importNewGroupSelectAllCheckbox: () => page.getByTestId('env-import-new-group-checkbox'),
+  importSelectedCount: () => page.getByTestId('env-import-selected-count'),
+  importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
+  importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
+  importCopyButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-copy-btn'),
+  importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
+  importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
+  importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
+  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
+  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });
 
 /**
@@ -115,4 +165,20 @@ export const openEnvironmentSelector = async (page: Page) => {
 export const closeEnvironmentSelector = async (page: Page) => {
   const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
   await trigger.click();
+};
+
+/**
+ * Deactivates the focused collection's environment via the dropdown's
+ * "No Environment" entry.
+ * @param page - The page object
+ * @returns void
+ */
+export const selectNoEnvironment = async (page: Page) => {
+  const environment = buildEnvironmentLocators(page);
+
+  await test.step('Select "No Environment"', async () => {
+    await environment.selector().click();
+    await environment.noEnvironmentItem().click();
+    await expect(environment.selector()).toContainText('No Environment');
+  });
 };

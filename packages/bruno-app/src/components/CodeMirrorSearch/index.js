@@ -177,12 +177,29 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         handleSearchBarClose();
+      } else if (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && !e.altKey) {
+        // Cmd/Ctrl+F while focus is inside the bar. select search input
+        e.preventDefault();
+        e.stopPropagation();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      } else if (
+        (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && e.altKey)
+        || (e.code === 'KeyH' && e.ctrlKey && !e.metaKey && !e.altKey)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        setReplaceVisible(true);
+        setTimeout(() => {
+          replaceInputRef.current?.focus();
+          replaceInputRef.current?.select();
+        }, 0);
       }
     };
 
     container.addEventListener('keydown', onKeyDown, true);
     return () => container.removeEventListener('keydown', onKeyDown, true);
-  }, [visible, handleSearchBarClose]);
+  }, [visible, handleSearchBarClose, setReplaceVisible]);
 
   useEffect(() => {
     if (!editor || !visible) return;
@@ -242,6 +259,9 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     setMatchIndex(0);
   };
 
+  const isDebouncing = searchText !== debouncedSearchText;
+  const isReplaceDisabled = isDebouncing || !searchText.trim() || matchCount === 0;
+
   const handleNext = () => {
     if (isDebouncing || !searchMatches.current || !searchMatches.current.length) return;
     const next = (matchIndex + 1) % searchMatches.current.length;
@@ -255,8 +275,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   };
 
   const handleReplace = useCallback(() => {
-    if (!editor || !searchMatches.current.length) return;
-    if (!searchMatches.current[matchIndex]) return;
+    if (isReplaceDisabled || !editor || !searchMatches.current[matchIndex]) return;
 
     const { endLine, endCh } = replaceSingle(editor, searchMatches.current, matchIndex, replaceText);
 
@@ -271,11 +290,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
     pendingSearchIndexRef.current = resolvedNextIdx;
     doSearch(debouncedSearchText, resolvedNextIdx, null, true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
+  }, [isReplaceDisabled, editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
-    if (!editor || !searchMatches.current.length) return;
+    if (isReplaceDisabled || !editor) return;
 
     // Use an uncapped scan so all matches are replaced, not just the first MAX_MATCHES.
     const allMatches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord, Infinity);
@@ -283,11 +301,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
 
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }, [editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
-
-  const isDebouncing = searchText !== debouncedSearchText;
-  const isReplaceDisabled = isDebouncing || !searchText.trim() || matchCount === 0;
+  }, [isReplaceDisabled, editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   if (!visible) return null;
 
@@ -313,19 +327,23 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               ref={inputRef}
               autoFocus
               type="text"
+              className="mousetrap"
               value={searchText}
               onChange={(e) => handleSearchTextChange(e.target.value)}
               placeholder="Search..."
               spellCheck={false}
               data-testid="codemirror-search-input"
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && replaceVisible && !isReplaceDisabled) {
-                  e.preventDefault();
-                  handleReplaceAll();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                  handleNext();
-                } else if (e.key === 'Enter' && e.shiftKey) {
-                  handlePrev();
+                if (e.key === 'Enter') {
+                  e.stopPropagation();
+                  if ((e.metaKey || e.ctrlKey) && replaceVisible && !isReplaceDisabled) {
+                    e.preventDefault();
+                    handleReplaceAll();
+                  } else if (!e.shiftKey) {
+                    handleNext();
+                  } else {
+                    handlePrev();
+                  }
                 }
               }}
             />
@@ -348,25 +366,29 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               <input
                 ref={replaceInputRef}
                 type="text"
+                className="mousetrap"
                 value={replaceText}
                 onChange={(e) => setReplaceText(e.target.value)}
                 placeholder="Replace..."
                 spellCheck={false}
                 data-testid="codemirror-search-replace-input"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isReplaceDisabled) {
-                    e.preventDefault();
-                    handleReplaceAll();
-                  } else if (e.key === 'Enter' && !isReplaceDisabled) {
-                    handleReplace();
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    if ((e.metaKey || e.ctrlKey) && !isReplaceDisabled) {
+                      e.preventDefault();
+                      handleReplaceAll();
+                    } else if (!isReplaceDisabled) {
+                      handleReplace();
+                    }
                   }
                 }}
               />
               <ToolHint text="Replace" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" aria-label="Replace" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
+                <button type="button" aria-label="Replace" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" aria-label="Replace all" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
+                <button type="button" aria-label="Replace all" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}

@@ -25,10 +25,15 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
+    border-left: 3px solid transparent;
 
     /* Default: menu icon hidden, shown on hover/focus states (see consolidated rule below) */
     .collection-item-menu-icon {
       visibility: hidden;
+    }
+
+    &.drag-disabled:active {
+      cursor: not-allowed !important;
     }
 
     /* Common styles for drop indicators */
@@ -97,13 +102,6 @@ const Wrapper = styled.div`
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-    }
-
-    .example-count-badge {
-      font-size: 10px;
-      font-weight: 500;
-      color: ${(props) => props.theme.colors.text.muted};
-      flex-shrink: 0;
     }
 
     /* Single source of truth for hover/focus states: background and menu icon visibility */
