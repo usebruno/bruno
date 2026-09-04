@@ -34,7 +34,11 @@ const { mixinTypedArrays } = require('../mixins/typed-arrays');
  * (`bru.runRequest`) nest naturally.
  */
 const activeScriptContext = new AsyncLocalStorage();
+// Set while an npm module body runs; records Bruno globals read at load time.
+const npmModuleEval = new AsyncLocalStorage();
 const sharedNpmModuleCache = new Map();
+// npm paths that read bru/req/res/... during evaluation — re-run per script.
+const contextBoundModulePaths = new Set();
 let sharedNpmSandbox = null;
 let sharedNpmContext = null;
 
@@ -151,6 +155,10 @@ function defineDynamicGlobal(key) {
     get: () => {
       // A key the current execution does not provide reads as undefined, exactly
       // as it would inside the script's own context (e.g. `res` before a response).
+      const evalStore = npmModuleEval.getStore();
+      if (evalStore) {
+        evalStore.touched.add(key);
+      }
       const value = activeScriptContext.getStore()?.[key];
       if (value === undefined || value === null) {
         return undefined;
@@ -306,11 +314,13 @@ function createCustomRequire({
       return require(moduleName);
     }
 
-    // 4. Handle npm modules - evaluated once, in the shared npm context
+    // 4. Handle npm modules - shared when inert, per-script when load-time globals are read
     return loadNpmModule({
       moduleName,
       collectionPath,
-      currentModuleDir
+      currentModuleDir,
+      isolatedContext,
+      localModuleCache
     });
   };
 }
@@ -402,20 +412,59 @@ function loadLocalModule({
 function executeModuleInVmContext({
   resolvedPath,
   moduleName,
-  collectionPath
+  collectionPath,
+  isolatedContext,
+  localModuleCache
 }) {
-  // Check cache - we cache moduleObj, return its exports
+  const isContextBound = contextBoundModulePaths.has(resolvedPath);
+
+  if (isContextBound) {
+    if (localModuleCache?.has(resolvedPath)) {
+      return localModuleCache.get(resolvedPath).exports;
+    }
+    return evaluateNpmModule({
+      resolvedPath,
+      moduleName,
+      collectionPath,
+      isolatedContext,
+      localModuleCache,
+      useSharedContext: false
+    });
+  }
+
   if (sharedNpmModuleCache.has(resolvedPath)) {
     return sharedNpmModuleCache.get(resolvedPath).exports;
   }
 
+  return evaluateNpmModule({
+    resolvedPath,
+    moduleName,
+    collectionPath,
+    isolatedContext,
+    localModuleCache,
+    useSharedContext: true
+  });
+}
+
+function evaluateNpmModule({
+  resolvedPath,
+  moduleName,
+  collectionPath,
+  isolatedContext,
+  localModuleCache,
+  useSharedContext
+}) {
   // Native modules (.node files) - fall back to host require
   // Note: This bypasses VM isolation for native addons.
   // This is intentional - [`developer` mode] node-vm isolation need not be strict for native modules.
   if (resolvedPath.endsWith('.node')) {
     const result = require(resolvedPath);
-    // Wrap in moduleObj format for consistent cache retrieval
-    sharedNpmModuleCache.set(resolvedPath, { exports: result });
+    const moduleObj = { exports: result };
+    if (useSharedContext) {
+      sharedNpmModuleCache.set(resolvedPath, moduleObj);
+    } else {
+      localModuleCache.set(resolvedPath, moduleObj);
+    }
     return result;
   }
 
@@ -423,35 +472,47 @@ function executeModuleInVmContext({
   if (resolvedPath.endsWith('.json')) {
     const jsonContent = fs.readFileSync(resolvedPath, 'utf8');
     const result = JSON.parse(jsonContent);
-    // Wrap in moduleObj format for consistent cache retrieval
-    sharedNpmModuleCache.set(resolvedPath, { exports: result });
+    const moduleObj = { exports: result };
+    if (useSharedContext) {
+      sharedNpmModuleCache.set(resolvedPath, moduleObj);
+    } else {
+      localModuleCache.set(resolvedPath, moduleObj);
+    }
     return result;
   }
 
-  // JavaScript files
   const moduleSource = fs.readFileSync(resolvedPath, 'utf8');
   const moduleDir = path.dirname(resolvedPath);
   const moduleObj = { exports: {} };
+  const moduleCache = useSharedContext ? sharedNpmModuleCache : localModuleCache;
 
-  // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
-  // This allows re-entrant requires to get partial exports (Node.js behavior)
-  // We cache moduleObj (not moduleObj.exports) so that module.exports reassignment works
-  sharedNpmModuleCache.set(resolvedPath, moduleObj);
+  moduleCache.set(resolvedPath, moduleObj);
 
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
-    currentModuleDir: moduleDir
+    currentModuleDir: moduleDir,
+    isolatedContext,
+    localModuleCache
   });
 
+  const vmContext = useSharedContext ? getSharedNpmContext() : isolatedContext;
+  const evalStore = { resolvedPath, touched: new Set() };
+
   try {
-    // Wrap module code in a function that receives CJS parameters
     const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
     const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
-    const moduleFunction = compiledScript.runInContext(getSharedNpmContext());
-    moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
+    const moduleFunction = compiledScript.runInContext(vmContext);
+    npmModuleEval.run(evalStore, () => {
+      moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
+    });
+
+    if (useSharedContext && evalStore.touched.size > 0) {
+      contextBoundModulePaths.add(resolvedPath);
+      sharedNpmModuleCache.delete(resolvedPath);
+      localModuleCache.set(resolvedPath, moduleObj);
+    }
   } catch (error) {
-    // Remove failed module from cache to allow retry
-    sharedNpmModuleCache.delete(resolvedPath);
+    moduleCache.delete(resolvedPath);
     const stack = error.stack || '';
     throw new Error(`Error loading module ${moduleName}: ${error.message}\nStack: ${stack}`);
   }
@@ -474,7 +535,9 @@ function executeModuleInVmContext({
 function loadNpmModule({
   moduleName,
   collectionPath,
-  currentModuleDir
+  currentModuleDir,
+  isolatedContext,
+  localModuleCache
 }) {
   let resolvedPath;
 
@@ -511,7 +574,9 @@ function loadNpmModule({
   return executeModuleInVmContext({
     resolvedPath,
     moduleName,
-    collectionPath
+    collectionPath,
+    isolatedContext,
+    localModuleCache
   });
 }
 
@@ -526,7 +591,9 @@ function loadNpmModule({
  */
 function createNpmModuleRequire({
   collectionPath,
-  currentModuleDir
+  currentModuleDir,
+  isolatedContext,
+  localModuleCache
 }) {
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
@@ -537,7 +604,9 @@ function createNpmModuleRequire({
       return executeModuleInVmContext({
         resolvedPath,
         moduleName,
-        collectionPath
+        collectionPath,
+        isolatedContext,
+        localModuleCache
       });
     }
 
@@ -553,12 +622,21 @@ function createNpmModuleRequire({
     return executeModuleInVmContext({
       resolvedPath,
       moduleName,
-      collectionPath
+      collectionPath,
+      isolatedContext,
+      localModuleCache
     });
   };
 }
 
 module.exports = {
   createCustomRequire,
-  runWithScriptContext
+  runWithScriptContext,
+  __resetNpmModuleStateForTests: () => {
+    sharedNpmModuleCache.clear();
+    contextBoundModulePaths.clear();
+    facades.clear();
+    sharedNpmSandbox = null;
+    sharedNpmContext = null;
+  }
 };

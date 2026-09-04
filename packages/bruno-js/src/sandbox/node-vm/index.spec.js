@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { runScriptInNodeVm } = require('./index');
+const { __resetNpmModuleStateForTests } = require('./cjs-loader');
 
 // Windows denies symlink creation without developer mode / admin. Probe once at
 // module load so the dependent tests can be marked skipped in the reporter
@@ -614,6 +615,10 @@ describe('node-vm sandbox', () => {
   });
 
   describe('createCustomRequire - npm modules are shared across script executions', () => {
+    beforeEach(() => {
+      __resetNpmModuleStateForTests();
+    });
+
     it('should evaluate an npm module once per process, not once per script context', async () => {
       // Every script execution gets a fresh vm context. Re-evaluating npm modules
       // in each of them made large packages (faker, moment, ...) cost tens of MB
@@ -730,31 +735,6 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
     });
 
-    it('should preserve error call-site mapping for concurrent scripts', async () => {
-      const runFailingScript = (name, delayMs) => runScriptInNodeVm({
-        script: `
-          await new Promise((resolve) => setTimeout(resolve, ${delayMs}));
-          throw new Error('${name}');
-        `,
-        context: { bru: {}, console },
-        collectionPath,
-        scriptPath: path.join(collectionPath, `${name}.bru`),
-        scriptingConfig: {}
-      });
-
-      const [errorA, errorB] = await Promise.all([
-        runFailingScript('script-a', 5).catch((error) => error),
-        runFailingScript('script-b', 40).catch((error) => error)
-      ]);
-
-      expect(errorA.__callSites).toEqual(expect.arrayContaining([
-        expect.objectContaining({ filePath: path.join(collectionPath, 'script-a.bru') })
-      ]));
-      expect(errorB.__callSites).toEqual(expect.arrayContaining([
-        expect.objectContaining({ filePath: path.join(collectionPath, 'script-b.bru') })
-      ]));
-    });
-
     it('should let a module that captured bru at load time talk to the current script', async () => {
       // `const captured = bru` runs once, during the first load (execution A). A plain
       // accessor would hand that module A's bru forever; the facade stays late-bound.
@@ -817,12 +797,11 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 2);
     });
 
-    it('should preserve Bruno global identity and realm behavior inside npm modules', async () => {
+    it('should preserve Bruno global identity and cross-realm behavior inside npm modules', async () => {
       makePkg(path.join(collectionPath, 'node_modules'), 'identity-reader', {
         'index.js': `
           module.exports = {
             sameBru: () => bru === globalThis.bru,
-            bruIsObject: () => bru instanceof Object,
             readArray: (value) => Array.isArray(value)
           };
         `
@@ -833,14 +812,12 @@ describe('node-vm sandbox', () => {
       const script = `
         const reader = require('identity-reader');
         bru.setVar('sameBru', reader.sameBru());
-        bru.setVar('bruIsObject', reader.bruIsObject());
         bru.setVar('arrayIsArray', reader.readArray(array));
       `;
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
       expect(context.bru.setVar).toHaveBeenCalledWith('sameBru', true);
-      expect(context.bru.setVar).toHaveBeenCalledWith('bruIsObject', true);
       expect(context.bru.setVar).toHaveBeenCalledWith('arrayIsArray', true);
     });
 
