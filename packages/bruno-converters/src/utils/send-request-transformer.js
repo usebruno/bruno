@@ -446,6 +446,7 @@ const transformCallback = (j, callback) => {
   // so the arrow is kept as written: `(err, res) => res.json()` -> `(err, res) => res.data`
   if (callbackBody.type !== 'BlockStatement') return callback;
 
+  // Create the callback block
   return j.functionExpression(
     null,
     [j.identifier(errorVarName), j.identifier(responseVarName)],

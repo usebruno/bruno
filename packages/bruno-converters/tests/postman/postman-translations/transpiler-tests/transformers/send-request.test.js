@@ -1527,22 +1527,28 @@ await bru.sendRequest({
     it('should rewrite a concise body that is itself a response method call', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => res.json());`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => res.data);`);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => res.data);
+        `);
     });
 
     it('should only add await and async when the concise body does not touch the response', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => console.log(err));`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => console.log(err));`);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => console.log(err));
+        `);
     });
 
     it('should rewrite response members inside a concise object body', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => ({ status: res.code, body: res.json() }));`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => ({
-  status: res.status,
-  body: res.data
-}));`);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => ({
+        status: res.status,
+        body: res.data
+        }));
+      `);
     });
 
     it('should handle a concise arrow with only the error parameter', () => {
@@ -1554,9 +1560,11 @@ await bru.sendRequest({
     it('should leave block-body callbacks on the existing function form', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => { console.log(res.code); });`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, res) {
-  console.log(res.status);
-});`);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, res) {
+        console.log(res.status);
+        });
+      `);
     });
   });
 });
