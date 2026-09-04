@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -704,47 +705,6 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
       throw new Error(`Unsupported item type: ${item.type}`);
     }
   }
-};
-
-const sortByNameThenSequence = (items) => {
-  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
-
-  // Sort folders alphabetically by name
-  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
-
-  // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
-
-  // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
-
-  const sortedItems = withoutSeq;
-
-  // Insert folders with 'seq' at their specified positions
-  withSeq.forEach((item) => {
-    const position = item.seq - 1;
-    const existingItem = withoutSeq[position];
-
-    // Check if there's already an item with the same sequence number
-    const hasItemWithSameSeq = Array.isArray(existingItem)
-      ? existingItem?.[0]?.seq === item.seq
-      : existingItem?.seq === item.seq;
-
-    if (hasItemWithSameSeq) {
-      // If there's a conflict, group items with same sequence together
-      const newGroup = Array.isArray(existingItem)
-        ? [...existingItem, item]
-        : [existingItem, item];
-
-      withoutSeq.splice(position, 1, newGroup);
-    } else {
-      // Insert item at the specified position
-      withoutSeq.splice(position, 0, item);
-    }
-  });
-
-  // return flattened sortedItems
-  return sortedItems.flat();
 };
 
 module.exports = {
