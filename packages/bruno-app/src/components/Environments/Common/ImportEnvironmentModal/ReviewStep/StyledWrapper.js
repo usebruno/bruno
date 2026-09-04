@@ -5,7 +5,7 @@ export const StyledWrapper = styled.div`
   .modal-content {
     display: flex;
     flex-direction: column;
-    height: 420px;
+    height: 450px;
     max-height: calc(100vh - 180px);
     overflow: hidden;
     border-bottom: 1px solid ${(props) => props.theme.border.border1};
