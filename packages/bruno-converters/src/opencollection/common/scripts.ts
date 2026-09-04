@@ -1,24 +1,31 @@
-import type { Scripts, Script } from '@opencollection/types/common/scripts';
+import type { Script as OpenCollectionScript, Scripts } from '@opencollection/types/common/scripts';
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
+import type { BrunoScript } from '../types';
 
-export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined): Scripts | undefined => {
+export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined, allowedKeys: string[]): Scripts | undefined => {
   const ocScripts: Scripts = [];
+  const script = request?.script as BrunoScript | null | undefined;
 
-  if (request?.script?.req?.trim().length) {
-    ocScripts.push({
-      type: 'before-request',
-      code: request.script.req.trim()
-    });
-  }
-  if (request?.script?.res?.trim().length) {
-    ocScripts.push({
-      type: 'after-response',
-      code: request.script.res.trim()
-    });
-  }
+  const pushScript = (key: keyof BrunoScript, type: OpenCollectionScript['type'], code: string | null | undefined) => {
+    if (!allowedKeys.includes(key)) {
+      return;
+    }
+    if (!code?.trim().length) {
+      return;
+    }
+    ocScripts.push({ type, code: code.trim() });
+  };
+
+  pushScript('req', 'before-request', script?.req);
+  pushScript('res', 'after-response', script?.res);
+  pushScript('beforeCallStart', 'grpc:before-call-start', script?.beforeCallStart);
+  pushScript('beforeMessageSend', 'grpc:before-message-send', script?.beforeMessageSend);
+  pushScript('afterMessageReceive', 'grpc:after-message-receive', script?.afterMessageReceive);
+  pushScript('afterCallEnd', 'grpc:after-call-end', script?.afterCallEnd);
+
   if (request?.tests?.trim().length) {
     ocScripts.push({
       type: 'tests',
@@ -29,8 +36,8 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   return ocScripts.length > 0 ? ocScripts : undefined;
 };
 
-export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined): {
-  script?: { req?: string | null; res?: string | null };
+export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined, allowedKeys: string[]): {
+  script?: BrunoScript;
   tests?: string | null;
 } | undefined => {
   if (!scripts || !Array.isArray(scripts) || scripts.length === 0) {
@@ -38,25 +45,47 @@ export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined): 
   }
 
   const brunoScripts: {
-    script?: { req?: string | null; res?: string | null };
+    script?: BrunoScript;
     tests?: string | null;
   } = {};
 
+  const setScript = (key: keyof BrunoScript, code: string) => {
+    if (!allowedKeys.includes(key)) {
+      return;
+    }
+    if (!brunoScripts.script) {
+      brunoScripts.script = {};
+    }
+    brunoScripts.script[key] = code;
+  };
+
   for (const script of scripts) {
-    if (script.type === 'before-request' && script.code) {
-      if (!brunoScripts.script) {
-        brunoScripts.script = {};
-      }
-      brunoScripts.script.req = script.code;
+    if (!script.code) {
+      continue;
     }
-    if (script.type === 'after-response' && script.code) {
-      if (!brunoScripts.script) {
-        brunoScripts.script = {};
-      }
-      brunoScripts.script.res = script.code;
-    }
-    if (script.type === 'tests' && script.code) {
-      brunoScripts.tests = script.code;
+
+    switch (script.type) {
+      case 'before-request':
+        setScript('req', script.code);
+        break;
+      case 'after-response':
+        setScript('res', script.code);
+        break;
+      case 'grpc:before-call-start':
+        setScript('beforeCallStart', script.code);
+        break;
+      case 'grpc:before-message-send':
+        setScript('beforeMessageSend', script.code);
+        break;
+      case 'grpc:after-message-receive':
+        setScript('afterMessageReceive', script.code);
+        break;
+      case 'grpc:after-call-end':
+        setScript('afterCallEnd', script.code);
+        break;
+      case 'tests':
+        brunoScripts.tests = script.code;
+        break;
     }
   }
 

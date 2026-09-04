@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
+import { EmptyStateRequestType } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -385,6 +386,51 @@ const setRequestTypePreset = async (page: Page, collectionName: string, requestT
 
     // the settings tab keeps a draft indicator until the presets are persisted
     await expect(locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab())).toBeHidden();
+  });
+};
+
+/**
+ * Set the Base URL preset for a collection.
+ * New requests created in the collection inherit this as their starting URL.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestUrl - The Base URL to save as the preset
+ * @returns void
+ */
+const setRequestUrlPreset = async (page: Page, collectionName: string, requestUrl: string) => {
+  await test.step(`Set the Base URL preset to "${requestUrl}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollectionSettings(page, collectionName);
+    await selectCollectionPaneTab(page, 'presets');
+
+    const urlInput = locators.presets.requestUrl();
+    await urlInput.waitFor({ state: 'visible' });
+    await urlInput.fill(requestUrl);
+    await locators.presets.saveBtn().click();
+
+    await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Create a request from the "+ Add request" CTA shown inside an empty collection.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestType - The request type to pick from the CTA menu (defaults to http)
+ * @returns void
+ */
+const createRequestFromEmptyStateCta = async (
+  page: Page,
+  collectionName: string,
+  requestType: EmptyStateRequestType = 'http'
+) => {
+  await test.step(`Create a ${requestType} request from the "+ Add request" CTA`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+
+    await sidebar.collection(collectionName).click();
+    await sidebar.emptyStateCta(collectionName).click();
+    await sidebar.emptyStateCtaItem(requestType).click();
   });
 };
 
@@ -1548,7 +1594,7 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     //   .toBe(true);
 
     const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.locator('.tabs .more-tabs');
+    const overflowButton = pane.getByTestId('responsive-tabs-more');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
     // the overflow trigger can detach mid-click. Retry the whole sequence so a
@@ -1577,6 +1623,20 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
 
 const selectResponsePaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
+const selectResponsePaneTabViaOverflow = async (page: Page, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in [data-testid="response-pane"] via overflow`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = page.getByTestId('response-pane').locator('.tabs').getByRole('tab', { name: tabName });
+
+    // The overflow button/dropdown can detach mid-click as the tab bar recalculates layout.
+    await expect(async () => {
+      await locators.response.tabsOverflowButton().click({ timeout: 2000 });
+      await locators.response.tabsOverflowItem(tabName).click({ timeout: 2000 });
+      await expect(tab).toContainClass('active', { timeout: 2000 });
+    }).toPass({ timeout: 15000 });
+  });
 };
 
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
@@ -1891,6 +1951,54 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
+ * Open a gRPC request from the sidebar, wait for its method to resolve, and send it.
+ * Does not wait for the response — assert on it in the caller, since a call may end in a
+ * status, a stream, or a script error card.
+ * @param page - The page object
+ * @param requestName - The name of the request in the sidebar
+ * @param method - The expected method on the dropdown trigger (e.g. "HelloService/SayHello")
+ */
+const sendGrpcRequest = async (page: Page, requestName: string, method: string) => {
+  await test.step(`Send gRPC request "${requestName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+
+    await locators.sidebar.request(requestName).click();
+    await expect(locators.tabs.activeRequestTab()).toContainText(requestName, { timeout: 30000 });
+    await expect(locators.method.dropdownTrigger()).toContainText(method, { timeout: 30000 });
+    await locators.request.sendButton().click();
+  });
+};
+
+/**
+ * Send a streaming gRPC request, stream the given authored messages, then end the call and
+ * wait for it to close with status 0.
+ * @param page - The page object
+ * @param requestName - The name of the request in the sidebar
+ * @param method - The expected method on the dropdown trigger (e.g. "HelloService/BidiHello")
+ * @param messageIndexes - 0-based indexes of the authored messages to stream, in order
+ */
+const streamGrpcMessagesAndEndCall = async (
+  page: Page,
+  requestName: string,
+  method: string,
+  messageIndexes: number[]
+) => {
+  await test.step(`Stream messages [${messageIndexes.join(', ')}] on "${requestName}" and end the call`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+
+    await sendGrpcRequest(page, requestName, method);
+    await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
+
+    for (const index of messageIndexes) {
+      await locators.request.sendMessage(index).click();
+    }
+
+    await locators.request.endConnectionButton().click();
+    await expect(locators.response.statusCode()).toHaveText(/^0$/, { timeout: 30000 });
+  });
+};
+
+/**
  * Close every open request tab, discarding or saving based on the saveChanges flag.
  *
  * @param page - The page object
@@ -2003,12 +2111,15 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
+type ScriptSubTab = 'pre-request' | 'post-response' | 'before-call-start' | 'before-message-send' | 'after-message-receive' | 'after-call-end';
+
 /**
- * Navigate to a Script sub-tab (pre-request / post-response)
+ * Navigate to a Script sub-tab (pre-request / post-response for http & graphql, the lifecycle
+ * hooks for gRPC)
  * @param page - The page object
  * @param subTab - The sub-tab to select
  */
-const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+const selectScriptSubTab = async (page: Page, subTab: ScriptSubTab) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
     const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
@@ -2059,6 +2170,36 @@ const addPostResponseScript = async (page: Page, content: string) => {
     await selectScriptSubTab(page, 'post-response');
     await editCodeMirrorEditor(page, 'post-response-script-editor', content);
   });
+};
+
+/**
+ * Write a script into a Script sub-tab (navigates to the sub-tab and replaces editor content)
+ * @param page - The page object
+ * @param subTab - The Script sub-tab to author
+ * @param content - The script content to add
+ */
+const writeScriptContent = async (page: Page, subTab: ScriptSubTab, content: string) => {
+  await test.step(`Add ${subTab} script`, async () => {
+    await selectScriptSubTab(page, subTab);
+    await editCodeMirrorEditor(page, `${subTab}-script-editor`, content);
+  });
+};
+
+/**
+ * Read the content of a Script sub-tab editor
+ * @param page - The page object
+ * @param subTab - The Script sub-tab to read
+ */
+const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<string> => {
+  await selectScriptSubTab(page, subTab);
+  const editorTestId = `${subTab}-script-editor`;
+  return buildCommonLocators(page)
+    .codeMirror.byTestId(editorTestId)
+    .evaluate((el: any, testId: string) => {
+      const cm = el.CodeMirror;
+      if (!cm) throw new Error(`CodeMirror instance not found for "${testId}"`);
+      return cm.getValue();
+    }, editorTestId);
 };
 
 /**
@@ -3201,6 +3342,8 @@ export {
   createTransientRequest,
   createTransientRequestFromPreset,
   setRequestTypePreset,
+  setRequestUrlPreset,
+  createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
   deleteCollectionFromOverview,
@@ -3241,6 +3384,7 @@ export {
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
+  selectResponsePaneTabViaOverflow,
   mockBrowseFiles,
   addMultipartFileToLastRow,
   removeFirstMultipartFile,
@@ -3257,6 +3401,8 @@ export {
   addGrpcMessage,
   generateGrpcSampleMessage,
   selectGrpcMethod,
+  sendGrpcRequest,
+  streamGrpcMessagesAndEndCall,
   closeAllTabs,
   closeAllOpenTabs,
   switchToOpenTab,
@@ -3266,6 +3412,8 @@ export {
   editCodeMirrorEditor,
   addPreRequestScript,
   addPostResponseScript,
+  writeScriptContent,
+  readScriptContent,
   addTestScript,
   addFolderScript,
   addCollectionScript,
@@ -3338,4 +3486,4 @@ export {
   clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };

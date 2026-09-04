@@ -29,7 +29,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES, SCOPE_ICON } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -98,6 +98,23 @@ const getScopeLabel = (scopeType) => {
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
+};
+
+const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
+  scopeBadge.innerHTML = '';
+
+  const scopeIcon = SCOPE_ICON[scopeType];
+  if (scopeIcon) {
+    const icon = document.createElement('span');
+    icon.className = 'var-scope-badge-icon';
+    icon.innerHTML = scopeIcon;
+    scopeBadge.appendChild(icon);
+  }
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'var-scope-badge-label';
+  labelSpan.textContent = label;
+  scopeBadge.appendChild(labelSpan);
 };
 
 const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
@@ -377,6 +394,7 @@ export const renderVarInfo = (token, options) => {
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+
   const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
 
   // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
@@ -397,7 +415,7 @@ export const renderVarInfo = (token, options) => {
 
   header.appendChild(varName);
 
-  scopeBadge.textContent = scopeLabel;
+  setScopeBadgeContent(scopeBadge, displayScopeType, scopeLabel);
   header.appendChild(scopeBadge);
 
   into.appendChild(header);
@@ -769,30 +787,35 @@ export const renderVarInfo = (token, options) => {
         }
       };
 
-      const addToScopesState = store.getState();
-      const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
+      const buildAddToScopes = () => {
+        const addToScopesState = store.getState();
+        const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
 
-      // Use the latest collection state so "Add to Environment" targets the real
-      // active environment, not the environment currently being viewed in environment settings.
-      const freshCollectionForScopes = collection?.uid
-        ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
-        : null;
-      const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
-        (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
-      )?.name;
-      const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
-        (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
-      )?.name;
-      const addToScopes = getAvailableAddToScopes({
-        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
-        activeEnvironmentName,
-        activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
-        activeGlobalEnvironmentName,
-        item,
-        parentFolder: folderScopeTarget,
-        isSelfFolder: isInFolderSettings,
-        hasCollection: !!collection?.uid
-      });
+        const freshCollectionForScopes = collection?.uid
+          ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
+          : null;
+        const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
+          (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
+        )?.name;
+        const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
+          (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
+        )?.name;
+
+        return getAvailableAddToScopes({
+          activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
+          activeEnvironmentName,
+          activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
+          activeGlobalEnvironmentName,
+          item,
+          parentFolder: folderScopeTarget,
+          isSelfFolder: isInFolderSettings,
+          hasCollection: !!collection?.uid
+        });
+      };
+
+      const getFreshScopeForType = (type) => buildAddToScopes().find((s) => s.type === type);
+
+      const addToScopes = buildAddToScopes();
 
       // If there's only one available scope, select it by default. Otherwise, use the detected scope if it's available.
       const initialScope = addToScopes.find((s) => s.type === scopeInfo.type)
@@ -802,7 +825,7 @@ export const renderVarInfo = (token, options) => {
       // This can happen if adding variable in Global Table where collection is not available.
       if (initialScope && initialScope.type !== scopeInfo.type) {
         scopeInfo = buildScopeInfoForSwitch(initialScope);
-        scopeBadge.textContent = getScopeLabel(initialScope.type);
+        setScopeBadgeContent(scopeBadge, initialScope.type, getScopeLabel(initialScope.type));
       }
 
       const removeAddToSwitcher = () => {
@@ -831,7 +854,7 @@ export const renderVarInfo = (token, options) => {
             const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
             if (updatedScopeInfo) {
               scopeInfo = updatedScopeInfo;
-              scopeBadge.textContent = getScopeLabel(updatedScopeInfo.type);
+              setScopeBadgeContent(scopeBadge, updatedScopeInfo.type, getScopeLabel(updatedScopeInfo.type));
             }
 
             const interpolatedValue = interpolate(value, allVariables);
@@ -845,20 +868,13 @@ export const renderVarInfo = (token, options) => {
           });
       };
 
-      const onSwitchScope = (scope, { immediate = false } = {}) => {
+      const onSwitchScope = (scope) => {
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
         }
         scopeInfo = newScopeInfo;
-        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
-
-        // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
-        if (immediate) {
-          persistNewVariable(getPendingSecret()).catch((err) => {
-            toast.error(err?.message || 'Failed to save variable');
-          });
-        }
+        setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
       };
 
       const onCreateEnvironment = (scope, name) => {
@@ -880,7 +896,8 @@ export const renderVarInfo = (token, options) => {
             return Promise.reject(new Error('Environment already exists'));
           }
 
-          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }));
+          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }))
+            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.GLOBAL));
         }
 
         if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
@@ -895,7 +912,8 @@ export const renderVarInfo = (token, options) => {
 
           return dispatch(addEnvironment(trimmedName, collection.uid))
             .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
-            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)))
+            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.ENVIRONMENT));
         }
 
         return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));

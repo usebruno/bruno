@@ -1,0 +1,17 @@
+info:
+  name: async-folder
+  type: folder
+  seq: 8
+
+request:
+  scripts:
+    - type: tests
+      code: |-
+        test("folder-level sync test (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("folder-level async test (bug check)", async function () {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          expect("ran").to.equal("ran");
+        });

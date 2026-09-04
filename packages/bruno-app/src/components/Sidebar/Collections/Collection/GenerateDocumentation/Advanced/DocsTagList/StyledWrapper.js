@@ -47,6 +47,8 @@ export const StyledWrapper = styled.div`
   .docs-tag-item {
     display: inline-flex;
     align-items: center;
+    box-sizing: border-box;
+    height: 1.75rem;
     gap: 0.25rem;
     max-width: 100%;
     padding: 0.25rem;
@@ -74,15 +76,17 @@ export const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 0.125rem;
     background: none;
     border: none;
+    border-radius: ${(props) => props.theme.border.radius.base};
     cursor: pointer;
     color: ${(props) => props.theme.colors.text.subtext0};
     flex-shrink: 0;
 
     &:hover {
       color: ${(props) => props.theme.text};
+      background-color: ${(props) => props.theme.background.surface1};
     }
   }
 `;

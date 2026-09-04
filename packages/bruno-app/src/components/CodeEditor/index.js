@@ -668,13 +668,15 @@ class CodeEditor extends React.Component {
             ref={(node) => { this._node = node; }}
           />
         </div>
-        <StatusBar
-          value={this.cachedValue}
-          mode={this.props.mode}
-          longLineDetected={this.state.longLineDetected}
-          longLineMode={this.state.longLineMode}
-          onToggle={this._handleToggleFullMode}
-        />
+        {this.state.longLineDetected && (
+          <StatusBar
+            value={this.cachedValue}
+            mode={this.props.mode}
+            longLineDetected={this.state.longLineDetected}
+            longLineMode={this.state.longLineMode}
+            onToggle={this._handleToggleFullMode}
+          />
+        )}
       </StyledWrapper>
     );
   }

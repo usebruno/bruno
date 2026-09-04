@@ -5,7 +5,8 @@
         "REPORT_ISSUES": "Report Issues",
         "GITHUB": "GitHub",
         "DISCORD": "Discord",
-        "TWITTER": "Twitter"
+        "TWITTER": "Twitter",
+        "LINKEDIN": "LinkedIn"
     },
     "WELCOME": {
         "ABOUT_BRUNO": "Opensource IDE for exploring and testing APIs",
@@ -19,5 +20,15 @@
         "GLOBAL_SEARCH_TIP_PART1": "Press",
         "GLOBAL_SEARCH_TIP_PART2": "(mac) or",
         "GLOBAL_SEARCH_TIP_PART3": "(windows) anytime to quickly search collections, folders, and requests"
+    },
+    "SUPPORT": {
+        "HELP": "Help",
+        "COMMUNITY": "Community",
+        "DOCUMENTATION_DESCRIPTION": "Guides, references and examples",
+        "REPORT_ISSUES_DESCRIPTION": "File a bug or request a feature",
+        "DISCORD_DESCRIPTION": "Ask questions, talk to the team",
+        "GITHUB_DESCRIPTION": "Source, releases and discussions",
+        "TWITTER_DESCRIPTION": "Release notes and announcements",
+        "LINKEDIN_DESCRIPTION": "Company news and updates"
     }
 }
