@@ -23,6 +23,13 @@ const ApiSpecItem = ({ apiSpec }) => {
     dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
   };
 
+  const handleRowKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    handleOpenApiSpec(apiSpec)(e);
+  };
+
   const menuItems = [
     {
       id: 'remove',
@@ -32,7 +39,7 @@ const ApiSpecItem = ({ apiSpec }) => {
     }
   ];
 
-  const isActive = showApiSpecPage && apiSpec?.uid == activeApiSpecUid;
+  const isActive = showApiSpecPage && apiSpec?.uid === activeApiSpecUid;
 
   return (
     <div
@@ -42,6 +49,7 @@ const ApiSpecItem = ({ apiSpec }) => {
       tabIndex={0}
       onFocus={() => setIsKeyboardFocused(true)}
       onBlur={() => setIsKeyboardFocused(false)}
+      onKeyDown={handleRowKeyDown}
     >
       {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
       <div
