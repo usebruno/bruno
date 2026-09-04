@@ -116,6 +116,13 @@ describe('bru docs generate', () => {
       removeTmpDir(badDir);
     }
   });
+
+  it('generates a doc with zero environments when the collection has no environments folder, even with --all-envs', async () => {
+    const output = path.join(outDir, 'no-env-folder.html');
+    await generate.handler({ output, gitLink: false, allEnvs: true });
+    expect(fs.existsSync(output)).toBe(true);
+    expect(fs.readFileSync(output, 'utf8')).toContain('new window.OpenCollection');
+  });
 });
 
 describe('bru docs generate: environment selection', () => {
@@ -706,6 +713,11 @@ describe('resolveEnvironments', () => {
   it('resolves to zero environments when --all-envs excludes every environment (no error)', () => {
     const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, excludeEnvs: ['Prod', 'Dev', 'QA'] }));
     expect(result).toEqual({ environments: [] });
+  });
+
+  it('resolves to zero environments when the collection has no environments (empty list), even with --all-envs', () => {
+    expect(generate.resolveEnvironments([], opts())).toEqual({ environments: [] });
+    expect(generate.resolveEnvironments([], opts({ allEnvs: true }))).toEqual({ environments: [] });
   });
 
   it('errors when allEnvs is combined with an include list', () => {
