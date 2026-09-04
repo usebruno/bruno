@@ -8,6 +8,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
   const {
     step,
+    isImporting,
     items,
     selected,
     setSelected,
@@ -43,6 +44,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       modalTestId={modalTestId}
       onClose={onClose}
       handleConfirmImport={handleConfirmImport}
+      isImporting={isImporting}
       items={items}
       selected={selected}
       setSelected={setSelected}

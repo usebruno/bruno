@@ -17,6 +17,7 @@ const ReviewStep = ({
   modalTestId,
   onClose,
   handleConfirmImport,
+  isImporting,
   items,
   selected,
   setSelected,
@@ -33,7 +34,7 @@ const ReviewStep = ({
 
   const totalEnvironments = newEnvs.length + duplicateEnvs.length;
   const totalParsedCount = totalEnvironments + invalidEnvs.length;
-  const isConfirmDisabled = selected.size === 0;
+  const isConfirmDisabled = selected.size === 0 || isImporting;
 
   const normalizedSearchText = searchText.toLowerCase();
   const matchesSearch = useCallback((env) =>
