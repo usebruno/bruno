@@ -18,15 +18,17 @@ test.describe('Import environment - name conflict handling', () => {
       await closeAllCollections(page);
     });
 
-    test('importing an environment with no naming conflict commits immediately without a review step', async ({ page, createTmpDir }) => {
+    test('an environment with no naming conflict is listed as new and imports once confirmed', async ({ page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-none', await createTmpDir('name-conflict-none'));
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('development-env.json'));
 
-      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
-        await expect(environment.importModal('collection')).toBeHidden();
+      await test.step('It shows under New with nothing flagged, and confirming leaves the existing environment alone', async () => {
+        await expect(environment.importNewCount()).toHaveText('1');
+        await expect(environment.importDuplicatesGroup()).toHaveCount(0);
+        await environment.importSubmitButton('collection').click();
         await expect(environment.sidebarListItem('collection', 'Development')).toBeVisible();
         await expect(environment.sidebarListItem('collection', 'Production')).toBeVisible();
       });
@@ -40,7 +42,7 @@ test.describe('Import environment - name conflict handling', () => {
       await test.step('Re-importing the same name surfaces it as a duplicate', async () => {
         await openImportReview(page, 'collection', fixture('production-env-updated.json'));
 
-        await expect(environment.importDuplicatesWarning()).toContainText('1 environment');
+        await expect(environment.importDuplicatesWarning()).toContainText('1 already exists with the same name');
         await expect(environment.importDuplicatesGroup()).toBeVisible();
         await expect(environment.importDuplicatesCount()).toHaveText('1');
         await expect(environment.importNewGroup()).toHaveCount(0);
@@ -151,6 +153,7 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'collection');
 
       await openImportReview(page, 'collection', fixture('staging-env.json'));
+      await environment.importSubmitButton('collection').click();
       await expect(environment.importModal('collection')).toBeHidden();
 
       await openImportReview(page, 'collection', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));
@@ -228,7 +231,8 @@ test.describe('Import environment - name conflict handling', () => {
         await fileChooser.setFiles(fixture('duplicate-names-in-batch.json'));
       });
 
-      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so both import once confirmed', async () => {
+        await environment.importSubmitButton('collection').click();
         await expect(importModal).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
@@ -251,7 +255,8 @@ test.describe('Import environment - name conflict handling', () => {
         await fileChooser.setFiles([fixture('postman-env-duplicate-a.json'), fixture('postman-env-duplicate-b.json')]);
       });
 
-      await test.step('Neither entry conflicts with an existing environment, so the import commits immediately', async () => {
+      await test.step('Neither entry conflicts with an existing environment, so both import once confirmed', async () => {
+        await environment.importSubmitButton('collection').click();
         await expect(importModal).toBeHidden();
         await expect(environment.sidebarListItemExact('collection', 'Test')).toBeVisible();
         await expect(environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
@@ -283,15 +288,16 @@ test.describe('Import environment - name conflict handling', () => {
   });
 
   test.describe('global scope', () => {
-    test('importing a global environment with no naming conflict commits immediately without a review step', async ({ newPage: page, createTmpDir }) => {
+    test('a global environment with no naming conflict is listed as new and imports once confirmed', async ({ newPage: page, createTmpDir }) => {
       const { environment } = buildCommonLocators(page);
       await createCollection(page, 'name-conflict-global-none', await createTmpDir('name-conflict-global-none'));
       await importEnvironment(page, fixture('production-env.json'), 'global');
 
       await openImportReview(page, 'global', fixture('development-env.json'));
 
-      await test.step('No conflict with the existing "Production" environment, so the review step never appears', async () => {
-        await expect(environment.importModal('global')).toBeHidden();
+      await test.step('It shows under New, and confirming leaves the existing environment alone', async () => {
+        await expect(environment.importNewCount()).toHaveText('1');
+        await environment.importSubmitButton('global').click();
         await expect(environment.sidebarListItem('global', 'Development')).toBeVisible();
         await expect(environment.sidebarListItem('global', 'Production')).toBeVisible();
       });
@@ -350,6 +356,7 @@ test.describe('Import environment - name conflict handling', () => {
       await importEnvironment(page, fixture('production-env.json'), 'global');
 
       await openImportReview(page, 'global', fixture('staging-env.json'));
+      await environment.importSubmitButton('global').click();
       await expect(environment.importModal('global')).toBeHidden();
 
       await openImportReview(page, 'global', fixture('production-env-updated.json'), fixture('staging-env-updated.json'));

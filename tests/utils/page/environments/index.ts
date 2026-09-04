@@ -136,6 +136,7 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
   importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
   importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importReviewItemNames: () => page.getByTestId('env-import-item').locator('.env-name'),
   importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
   importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
   importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })

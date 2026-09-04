@@ -19,10 +19,9 @@ const EnvironmentGroup = ({
   isExpanded,
   toggleExpanded,
   toggleGroupSelection,
-  searchText,
   dataTestId
 }) => {
-  if (environments.length === 0 && !searchText) return null;
+  if (environments.length === 0) return null;
 
   const selectedCount = environments.filter((env) => selected.has(env.id)).length;
   const isAllSelected = environments.length > 0 && selectedCount === environments.length;
@@ -65,8 +64,11 @@ const EnvironmentGroup = ({
             data-testid={`${dataTestId}-checkbox`}
           />
           <span className="group-title">{title}</span>
-          <CountBadge variant="warning" className="ml-2" data-testid={countTestId}>{environments.length}</CountBadge>
+          <CountBadge className="ml-2" data-testid={countTestId}>{environments.length}</CountBadge>
         </div>
+        {showResolutions && (
+          <span className="conflict-label">On conflict</span>
+        )}
         {showResolutions && (
           <MenuDropdown
             items={getResolutionMenuItems(setGroupResolution)}
@@ -98,9 +100,6 @@ const EnvironmentGroup = ({
               />
             );
           })}
-          {environments.length === 0 && searchText && (
-            <div className="empty-state">No {title.toLowerCase()} environments found matching your search</div>
-          )}
         </div>
       )}
     </div>

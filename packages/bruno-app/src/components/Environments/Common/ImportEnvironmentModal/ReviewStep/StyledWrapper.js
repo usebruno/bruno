@@ -9,13 +9,6 @@ export const StyledWrapper = styled.div`
     overflow: hidden;
   }
 
-  .modal-header {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-  }
-
   .scroll-area {
     flex: 1;
     overflow-y: auto;
@@ -96,7 +89,7 @@ export const StyledWrapper = styled.div`
 
   .groups-scroll-area {
     overflow-y: auto;
-    max-height: calc(45vh - 160px);
+    max-height: calc(45vh - 126px);
   }
 
   .group-container {
@@ -135,6 +128,20 @@ export const StyledWrapper = styled.div`
 
   .chevron-icon {
     color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
+  .conflict-label {
+    margin-left: auto;
+    font-size: ${(props) => props.theme.font.size.xs};
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: ${(props) => props.theme.colors.text.subtext0};
+    white-space: nowrap;
+  }
+
+  .blocked-icon {
+    margin-left: 0.5rem;
+    color: ${(props) => props.theme.colors.text.danger};
   }
 
   .group-list {
@@ -185,7 +192,8 @@ export const StyledWrapper = styled.div`
   }
 
   .env-filepath {
-    font-weight: 500;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 400;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.subtext1};
     white-space: nowrap;
@@ -220,12 +228,39 @@ export const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.subtext0};
   }
 
-  .footer-left-content {
-    font-size: 13px;
-    line-height: 20px;
-    letter-spacing: normal;
-    font-weight: 500;
+`;
+
+export const ImportModalHeader = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+
+  .title {
+    font-weight: 600;
+  }
+
+  .count {
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 400;
     color: ${(props) => props.theme.colors.text.subtext0};
+  }
+`;
+
+export const ImportFooterSummary = styled.div`
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: normal;
+  font-weight: 500;
+  color: ${(props) => props.theme.colors.text.subtext0};
+
+  .selected-count {
+    color: ${(props) => props.theme.text};
+    font-weight: 600;
+  }
+
+  .skipped {
+    color: ${(props) => props.theme.colors.text.subtext1};
   }
 `;
 
@@ -258,7 +293,10 @@ export const ResolutionButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: ${(props) => props.theme.font.size.sm};
+  font-weight: 500;
+  white-space: nowrap;
   border-radius: ${(props) => props.theme.border.radius.sm};
   border: 1.24px solid transparent;
 
@@ -267,7 +305,7 @@ export const ResolutionButton = styled.button`
       ? css`
           background: ${props.theme.background.base};
           border-color: ${props.theme.border.border0};
-          color: ${props.theme.brand};
+          color: ${props.theme.text};
         `
       : css`
           background: transparent;

@@ -1,13 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { useTheme } from 'styled-components';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import IconFileAlertFilled from 'components/Icons/IconFileAlertFilled';
-import CountBadge from 'ui/CountBadge';
-import { StyledWrapper } from './StyledWrapper';
-import { pluralizeWord } from 'utils/common/index';
+import { StyledWrapper, ImportModalHeader, ImportFooterSummary } from './StyledWrapper';
 import EnvironmentGroup from '../EnvironmentGroup';
 import { ENV_STATUS } from '../hooks/useEnvironmentImport';
 import InvalidEnvironmentGroup from '../InvalidEnvironmentGroup';
@@ -24,7 +21,6 @@ const ReviewStep = ({
   resolutions,
   setResolutions
 }) => {
-  const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({ [ENV_STATUS.INVALID]: true, [ENV_STATUS.DUPLICATE]: true, [ENV_STATUS.NEW]: true });
 
@@ -92,8 +88,15 @@ const ReviewStep = ({
     <Portal>
       <Modal
         size="md"
-        title={modalTitle}
-        confirmText="Import"
+        customHeader={(
+          <ImportModalHeader>
+            <span className="title" id="modal-title">{modalTitle}</span>
+            <span className="count">
+              <span data-testid="env-import-total-count">{totalParsedCount}</span> found
+            </span>
+          </ImportModalHeader>
+        )}
+        confirmText={selected.size > 0 ? `Import ${selected.size}` : 'Import'}
         cancelText="Cancel"
         handleConfirm={handleConfirmImport}
         handleCancel={onClose}
@@ -102,17 +105,14 @@ const ReviewStep = ({
         confirmDisabled={isConfirmDisabled}
         footerClassName="pt-0"
         footerLeft={(
-          <div className="footer-left-content" data-testid="env-import-selected-count">
-            <span style={{ color: theme.brand }}>{selected.size}</span> of {totalEnvironments} selected
-          </div>
+          <ImportFooterSummary data-testid="env-import-selected-count">
+            <span className="selected-count">{selected.size}</span> of {totalEnvironments} selected
+            {invalidEnvs.length > 0 && <span className="skipped">&nbsp;&middot; {invalidEnvs.length} skipped</span>}
+          </ImportFooterSummary>
         )}
       >
         <StyledWrapper>
           <div className="modal-content">
-            <div className="modal-header">
-              Environments <CountBadge size="md" className="ml-2" data-testid="env-import-total-count">{totalParsedCount}</CountBadge>
-            </div>
-
             <div className="scroll-area">
               <div className="environments-list-container">
                 {(duplicateEnvs.length > 0 || invalidEnvs.length > 0) && (
@@ -120,13 +120,13 @@ const ReviewStep = ({
                     {duplicateEnvs.length > 0 && (
                       <div className="warning-header">
                         <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
-                        <span className="warning-title">{duplicateEnvs.length} {pluralizeWord('environment', duplicateEnvs.length)}&nbsp;</span> already {duplicateEnvs.length > 1 ? 'exist' : 'exists'} with the same name
+                        <span className="warning-title">{duplicateEnvs.length}</span> already {duplicateEnvs.length > 1 ? 'exist' : 'exists'} with the same name
                       </div>
                     )}
                     {invalidEnvs.length > 0 && (
                       <div className="warning-header" data-testid="import-invalid-warning">
                         <IconFileAlertFilled size={16} className="mr-2 error-icon" />
-                        <span className="warning-title">{invalidEnvs.length} {pluralizeWord('file', invalidEnvs.length)}&nbsp;</span> {invalidEnvs.length > 1 ? 'have' : 'has'} an invalid or unsupported format
+                        <span className="warning-title">{invalidEnvs.length}</span> could not be read and will be skipped
                       </div>
                     )}
                   </div>
@@ -137,7 +137,7 @@ const ReviewStep = ({
                     <SearchInput
                       searchText={searchText}
                       setSearchText={setSearchText}
-                      placeholder="Search environments"
+                      placeholder="Filter by name or file"
                       className="w-full h-[30px] !px-0"
                       leftIconClassName="!pl-2"
                       data-testid="env-search-input"
@@ -162,7 +162,7 @@ const ReviewStep = ({
                   )}
 
                   <EnvironmentGroup
-                    title="Duplicates"
+                    title="Already exists"
                     environments={filteredDuplicates}
                     countTestId="env-import-duplicates-count"
                     selected={selected}
@@ -174,7 +174,6 @@ const ReviewStep = ({
                     isExpanded={expandedGroups[ENV_STATUS.DUPLICATE]}
                     toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.DUPLICATE)}
                     toggleGroupSelection={(checked) => toggleGroupSelection(filteredDuplicates, checked)}
-                    searchText={searchText}
                     dataTestId="env-import-duplicates-group"
                   />
 
@@ -188,9 +187,14 @@ const ReviewStep = ({
                     isExpanded={expandedGroups[ENV_STATUS.NEW]}
                     toggleExpanded={() => toggleGroupExpanded(ENV_STATUS.NEW)}
                     toggleGroupSelection={(checked) => toggleGroupSelection(filteredNew, checked)}
-                    searchText={searchText}
                     dataTestId="env-import-new-group"
                   />
+
+                  {searchText && filteredDuplicates.length === 0 && filteredNew.length === 0 && filteredInvalid.length === 0 && (
+                    <div className="empty-state" data-testid="env-import-no-matches">
+                      No environments match your filter
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
