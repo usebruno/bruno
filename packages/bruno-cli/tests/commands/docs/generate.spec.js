@@ -698,6 +698,16 @@ describe('resolveEnvironments', () => {
     expect(result.environments.map((e) => e.name)).toEqual(['Prod']);
   });
 
+  it('resolves to zero environments when the only included env is also excluded (exclude wins)', () => {
+    const result = generate.resolveEnvironments(envs, opts({ includeEnvs: ['Prod'], excludeEnvs: ['Prod'] }));
+    expect(result).toEqual({ environments: [] });
+  });
+
+  it('resolves to zero environments when --all-envs excludes every environment (no error)', () => {
+    const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, excludeEnvs: ['Prod', 'Dev', 'QA'] }));
+    expect(result).toEqual({ environments: [] });
+  });
+
   it('errors when allEnvs is combined with an include list', () => {
     const result = generate.resolveEnvironments(envs, opts({ allEnvs: true, includeEnvs: ['Prod'] }));
     expect(result.error.exitCode).toBe(EXIT_STATUS.ERROR_GENERIC);
