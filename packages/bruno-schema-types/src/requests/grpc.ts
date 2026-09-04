@@ -1,4 +1,4 @@
-import type { KeyValue, Script, Variables, Auth } from '../common';
+import type { KeyValue, Variables, Auth, GrpcScripts } from '../common';
 
 export type GrpcMethodType
   = | 'unary'
@@ -25,7 +25,7 @@ export interface GrpcRequest {
   headers: KeyValue[];
   auth?: Auth | null;
   body: GrpcRequestBody;
-  script?: Script | null;
+  script?: GrpcScripts | null;
   vars?: {
     req: Variables;
     res: Variables;
