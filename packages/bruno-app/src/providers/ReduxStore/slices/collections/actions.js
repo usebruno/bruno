@@ -3508,6 +3508,11 @@ export const cloneGitRepository = (data) => (dispatch, getState) => {
   });
 };
 
+export const fetchBranchesForRepositoryUrl = (url) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:list-remote-branches-for-url', { url });
+};
+
 export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
   const { ipcRenderer } = window;
   return new Promise((resolve, reject) => {
