@@ -164,6 +164,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
+  useKeybinding('deleteItem', () => {
+    setDeleteItemModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
   useKeybinding('newRequest', () => {
     if (!isFolder) return false;
     setNewRequestModalOpen(true);
