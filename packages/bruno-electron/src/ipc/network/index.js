@@ -1,6 +1,7 @@
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
 const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
@@ -2177,7 +2178,7 @@ const registerNetworkIpc = (mainWindow) => {
   );
 
   // save response to file
-  ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname) => {
+  ipcMain.handle('renderer:save-response-to-file', async (event, response, url, pathname, quickSave) => {
     try {
       const getHeaderValue = (headerName) => {
         const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
@@ -2225,6 +2226,27 @@ const registerNetworkIpc = (mainWindow) => {
 
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
+
+      if (quickSave) {
+        const responsesDir = path.join(dirPath, 'responses');
+        await fs.promises.mkdir(responsesDir, { recursive: true });
+        const safeFileName = path.basename(fileName.replace(/\\/g, '/')) || 'response.txt';
+        const timestampedFileName = `${Date.now()}_${safeFileName}`;
+        const responsesRoot = path.resolve(responsesDir);
+        const filePath = path.resolve(responsesRoot, timestampedFileName);
+        if (!filePath.startsWith(responsesRoot)) {
+          throw new Error('Invalid response filename');
+        }
+        const encoding = getEncodingFormat();
+        const data = Buffer.from(response.dataBuffer, 'base64');
+        if (encoding === 'utf-8') {
+          await writeFile(filePath, data);
+        } else {
+          await writeFile(filePath, data, true);
+        }
+        return { success: true, filePath };
+      }
+
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
       if (filePath) {
         const encoding = getEncodingFormat();
