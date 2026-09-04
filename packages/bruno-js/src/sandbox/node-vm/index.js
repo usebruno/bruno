@@ -56,6 +56,7 @@ async function runScriptInNodeVm({
 
     // Create module cache for CJS modules
     const localModuleCache = new Map();
+    const cacheModules = get(scriptingConfig, 'cacheModules', false) === true;
 
     // Add require() function for CJS module loading
     scriptContext.require = createCustomRequire({
@@ -63,7 +64,8 @@ async function runScriptInNodeVm({
       isolatedContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      additionalContextRootsAbsolute
+      additionalContextRootsAbsolute,
+      cacheModules
     });
 
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
@@ -109,13 +111,16 @@ async function runScriptInNodeVm({
     };
 
     try {
-      // npm modules loaded by this script (or already cached from an earlier one)
-      // resolve `bru`, `req`, `res`, ... against this context while it runs
-      await runWithScriptContext(scriptContext, () =>
-        compiledScript.runInContext(isolatedContext, {
-          displayErrors: true
-        })
-      );
+      const runScript = () => compiledScript.runInContext(isolatedContext, {
+        displayErrors: true
+      });
+      if (cacheModules) {
+        // npm modules loaded by this script (or already cached from an earlier one)
+        // resolve `bru`, `req`, `res`, ... against this context while it runs
+        await runWithScriptContext(scriptContext, runScript);
+      } else {
+        await runScript();
+      }
     } catch (error) {
       // V8 invokes prepareStackTrace lazily on first .stack access.
       // Reading .stack here so custom handler runs and populates error.__callSites

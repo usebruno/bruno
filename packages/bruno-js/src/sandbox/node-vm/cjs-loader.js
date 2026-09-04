@@ -8,31 +8,8 @@ const { isBuiltinModule, isPathWithinAllowedRoots } = require('./utils');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 
-/**
- * Shared context for npm modules.
- *
- * Every script execution runs in a fresh vm context, so evaluating npm modules
- * inside the script's own context meant a collection-level script doing
- * `require('@faker-js/faker')` re-evaluated the whole package on every request
- * (~20 MB of heap and ~8 MB of ArrayBuffers per script run, sitting in contexts
- * V8 only reclaims under heap pressure — a 2,000-request `bru run` reached
- * 9.5 GB RSS, see usebruno/bruno#9074).
- *
- * npm modules are therefore evaluated once per process, in a single dedicated
- * context, and their exports are shared by every script — the way Node's own
- * `require` cache behaves. The Bruno objects a module may reference as globals
- * (`bru`, `req`, `res`, `test`, ...) are exposed on that context as accessors
- * that resolve to the *currently executing* script's context, so a module
- * evaluated during request 1 still sees request 42's `bru` when called from
- * request 42. Collection-local modules (`./scripts/x.js`) are unaffected: they
- * keep being evaluated per script context, cached in `localModuleCache`.
- *
- * "Currently executing" is tracked with AsyncLocalStorage rather than a global,
- * because a script's `runInContext` is awaited: executions that interleave (the
- * app can run several requests at once) must each keep resolving to their own
- * `bru`/`req`/`res`, whatever order they complete in. Nested executions
- * (`bru.runRequest`) nest naturally.
- */
+// Shared npm context (once per process) so modules aren't re-eval'd per script. #9074
+// Bruno globals resolve via AsyncLocalStorage to the current script context.
 const activeScriptContext = new AsyncLocalStorage();
 // Set while an npm module body runs; records Bruno globals read at load time.
 const npmModuleEval = new AsyncLocalStorage();
@@ -277,7 +254,8 @@ function createCustomRequire({
   isolatedContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
-  additionalContextRootsAbsolute = []
+  additionalContextRootsAbsolute = [],
+  cacheModules = false
 }) {
   return (moduleName) => {
     const normalizedModuleName = moduleName.replace(/\\/g, '/');
@@ -290,7 +268,8 @@ function createCustomRequire({
         isolatedContext,
         localModuleCache,
         currentModuleDir,
-        additionalContextRootsAbsolute
+        additionalContextRootsAbsolute,
+        cacheModules
       });
     }
 
@@ -303,7 +282,8 @@ function createCustomRequire({
         isolatedContext,
         localModuleCache,
         currentModuleDir,
-        additionalContextRootsAbsolute
+        additionalContextRootsAbsolute,
+        cacheModules
       });
     }
 
@@ -320,7 +300,8 @@ function createCustomRequire({
       collectionPath,
       currentModuleDir,
       isolatedContext,
-      localModuleCache
+      localModuleCache,
+      cacheModules
     });
   };
 }
@@ -337,7 +318,8 @@ function loadLocalModule({
   isolatedContext,
   localModuleCache,
   currentModuleDir,
-  additionalContextRootsAbsolute = []
+  additionalContextRootsAbsolute = [],
+  cacheModules = false
 }) {
   // Validate the raw module name doesn't try to escape allowed roots
   const preliminaryPath = path.resolve(currentModuleDir, moduleName);
@@ -385,7 +367,8 @@ function loadLocalModule({
     isolatedContext,
     currentModuleDir: moduleDir,
     localModuleCache,
-    additionalContextRootsAbsolute
+    additionalContextRootsAbsolute,
+    cacheModules
   });
 
   try {
@@ -414,8 +397,24 @@ function executeModuleInVmContext({
   moduleName,
   collectionPath,
   isolatedContext,
-  localModuleCache
+  localModuleCache,
+  cacheModules = false
 }) {
+  if (!cacheModules) {
+    if (localModuleCache.has(resolvedPath)) {
+      return localModuleCache.get(resolvedPath).exports;
+    }
+    return evaluateNpmModule({
+      resolvedPath,
+      moduleName,
+      collectionPath,
+      isolatedContext,
+      localModuleCache,
+      useSharedContext: false,
+      cacheModules: false
+    });
+  }
+
   const isContextBound = contextBoundModulePaths.has(resolvedPath);
 
   if (isContextBound) {
@@ -428,7 +427,8 @@ function executeModuleInVmContext({
       collectionPath,
       isolatedContext,
       localModuleCache,
-      useSharedContext: false
+      useSharedContext: false,
+      cacheModules: true
     });
   }
 
@@ -442,7 +442,8 @@ function executeModuleInVmContext({
     collectionPath,
     isolatedContext,
     localModuleCache,
-    useSharedContext: true
+    useSharedContext: true,
+    cacheModules: true
   });
 }
 
@@ -452,7 +453,8 @@ function evaluateNpmModule({
   collectionPath,
   isolatedContext,
   localModuleCache,
-  useSharedContext
+  useSharedContext,
+  cacheModules = false
 }) {
   // Native modules (.node files) - fall back to host require
   // Note: This bypasses VM isolation for native addons.
@@ -492,7 +494,8 @@ function evaluateNpmModule({
     collectionPath,
     currentModuleDir: moduleDir,
     isolatedContext,
-    localModuleCache
+    localModuleCache,
+    cacheModules
   });
 
   const vmContext = useSharedContext ? getSharedNpmContext() : isolatedContext;
@@ -502,14 +505,18 @@ function evaluateNpmModule({
     const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
     const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
     const moduleFunction = compiledScript.runInContext(vmContext);
-    npmModuleEval.run(evalStore, () => {
+    const runModule = () => {
       moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
-    });
-
-    if (useSharedContext && evalStore.touched.size > 0) {
-      contextBoundModulePaths.add(resolvedPath);
-      sharedNpmModuleCache.delete(resolvedPath);
-      localModuleCache.set(resolvedPath, moduleObj);
+    };
+    if (cacheModules && useSharedContext) {
+      npmModuleEval.run(evalStore, runModule);
+      if (evalStore.touched.size > 0) {
+        contextBoundModulePaths.add(resolvedPath);
+        sharedNpmModuleCache.delete(resolvedPath);
+        localModuleCache.set(resolvedPath, moduleObj);
+      }
+    } else {
+      runModule();
     }
   } catch (error) {
     moduleCache.delete(resolvedPath);
@@ -537,7 +544,8 @@ function loadNpmModule({
   collectionPath,
   currentModuleDir,
   isolatedContext,
-  localModuleCache
+  localModuleCache,
+  cacheModules = false
 }) {
   let resolvedPath;
 
@@ -576,7 +584,8 @@ function loadNpmModule({
     moduleName,
     collectionPath,
     isolatedContext,
-    localModuleCache
+    localModuleCache,
+    cacheModules
   });
 }
 
@@ -593,7 +602,8 @@ function createNpmModuleRequire({
   collectionPath,
   currentModuleDir,
   isolatedContext,
-  localModuleCache
+  localModuleCache,
+  cacheModules = false
 }) {
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
@@ -606,7 +616,8 @@ function createNpmModuleRequire({
         moduleName,
         collectionPath,
         isolatedContext,
-        localModuleCache
+        localModuleCache,
+        cacheModules
       });
     }
 
@@ -624,7 +635,8 @@ function createNpmModuleRequire({
       moduleName,
       collectionPath,
       isolatedContext,
-      localModuleCache
+      localModuleCache,
+      cacheModules
     });
   };
 }

@@ -222,6 +222,7 @@ const runSingleRequest = async function (
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
+    scriptingConfig.cacheModules = get(options, 'cacheModules', false) === true;
 
     // Build certsAndProxyConfig for bru.sendRequest
     const options = getOptions();
