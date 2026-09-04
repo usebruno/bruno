@@ -442,7 +442,10 @@ const transformCallback = (j, callback) => {
     }
   });
 
-  // Create the callback block
+  // a concise arrow body is a single expression with no statement list to re-wrap,
+  // so the arrow is kept as written: `(err, res) => res.json()` -> `(err, res) => res.data`
+  if (callbackBody.type !== 'BlockStatement') return callback;
+
   return j.functionExpression(
     null,
     [j.identifier(errorVarName), j.identifier(responseVarName)],
