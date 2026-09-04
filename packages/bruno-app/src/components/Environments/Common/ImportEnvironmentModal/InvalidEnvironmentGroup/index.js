@@ -17,7 +17,7 @@ const InvalidEnvironmentGroup = ({ invalid, isExpanded, toggleExpanded }) => {
           )}
           <IconBan size={16} className="blocked-icon" />
           <span className="group-title">Could not be read</span>
-          <CountBadge data-testid="env-import-invalid-count">
+          <CountBadge className="group-count" data-testid="env-import-invalid-count">
             {invalid.length}
           </CountBadge>
         </div>

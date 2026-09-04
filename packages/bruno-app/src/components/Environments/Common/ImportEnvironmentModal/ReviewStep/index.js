@@ -129,7 +129,7 @@ const ReviewStep = ({
                       leftIconClassName="!pl-2"
                       data-testid="env-search-input"
                       autoFocus={false}
-                      inputClassName="h-[32px] text-[13px]"
+                      inputClassName="text-[13px]"
                       iconSize={14}
                     />
                   </div>

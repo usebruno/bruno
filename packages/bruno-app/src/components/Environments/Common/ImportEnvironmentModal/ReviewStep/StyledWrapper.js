@@ -28,9 +28,9 @@ export const StyledWrapper = styled.div`
   }
 
   .warning-block {
-    background-color: ${(props) => (props.theme.mode === 'dark' ? '#2a2015' : '#fdf6ef')};
+    background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
-    color: ${(props) => (props.theme.mode === 'dark' ? '#e3c08a' : '#7c4a10')};
+    color: ${(props) => props.theme.text};
     padding: 0.75rem;
     font-size: 0.875rem;
     flex-shrink: 0;
@@ -54,12 +54,15 @@ export const StyledWrapper = styled.div`
     font-weight: 500;
   }
 
-  .warning-icon,
-  .error-icon {
-    color: ${(props) => (props.theme.mode === 'dark' ? '#d9a441' : '#c2831f')};
+  .warning-icon {
+    color: ${(props) => props.theme.colors.text.yellow};
   }
 
-  .search-block input#search-input {
+  .error-icon {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .search-block input {
     height: 28px;
     padding-top: 0;
     padding-bottom: 0;
@@ -76,14 +79,6 @@ export const StyledWrapper = styled.div`
 
   .search-input-wrapper {
     flex: 1;
-  }
-
-  .expand-all-text {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 500;
-    line-height: 20px;
-    letter-spacing: normal;
-    min-width: 4.5rem;
   }
 
   .groups-scroll-area {
@@ -115,10 +110,10 @@ export const StyledWrapper = styled.div`
     min-height: 0;
   }
 
-  .group-header [data-testid$="-count"] {
+  .group-header .group-count {
     padding: 2px 7px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
@@ -138,7 +133,7 @@ export const StyledWrapper = styled.div`
     &:hover {
       background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface1 : props.theme.background.crust)};
     }
-    font-size: 12px
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .group-title-wrapper {
@@ -151,7 +146,7 @@ export const StyledWrapper = styled.div`
   }
 
   .group-title {
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
   }
 
@@ -232,7 +227,7 @@ export const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     font-family: Inter, sans-serif;
     font-weight: 400;
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
   }
 
@@ -275,7 +270,7 @@ export const ImportModalHeader = styled.div`
   }
 
   .count {
-    font-size: 13px;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 400;
     color: ${(props) => props.theme.colors.text.subtext0};
     font-variant-numeric: tabular-nums;
@@ -295,9 +290,6 @@ export const ImportFooterSummary = styled.div`
     font-weight: 500;
   }
 
-  .skipped {
-    color: ${(props) => props.theme.colors.text.subtext1};
-  }
 `;
 
 export const ResolutionButton = styled.button`

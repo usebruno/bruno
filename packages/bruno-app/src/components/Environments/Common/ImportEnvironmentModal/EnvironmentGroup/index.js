@@ -44,7 +44,7 @@ const EnvironmentGroup = ({
             data-testid={`${dataTestId}-checkbox`}
           />
           <span className="group-title">{title}</span>
-          <CountBadge data-testid={countTestId}>{environments.length}</CountBadge>
+          <CountBadge className="group-count" data-testid={countTestId}>{environments.length}</CountBadge>
         </div>
       </div>
       {isExpanded && (
