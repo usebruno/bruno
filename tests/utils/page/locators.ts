@@ -505,6 +505,8 @@ export const buildScriptErrorLocators = (page: Page) => ({
   stackToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-stack-toggle'),
   /** Stack trace content within a card */
   stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
+  /** Scrollable response content that contains script error cards */
+  scrollContainer: () => page.getByTestId('response-pane-content'),
   /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
   errorIcon: () => page.getByTestId('script-error-icon')
 });
