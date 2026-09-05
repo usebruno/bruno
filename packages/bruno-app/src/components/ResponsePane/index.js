@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded, updateStreamFormat, updateStreamViewTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -76,6 +76,14 @@ const ResponsePane = ({ item, collection }) => {
   const handleFormatChange = useCallback((newFormat) => {
     dispatch(updateResponseFormat({ uid: item.uid, responseFormat: newFormat }));
   }, [dispatch, item.uid]);
+
+  const handleStreamFormatChange = useCallback((newFormat) => {
+    dispatch(updateStreamFormat({ uid: activeTabUid, streamFormat: newFormat }));
+  }, [dispatch, activeTabUid]);
+
+  const handleStreamViewTabChange = useCallback((newViewTab) => {
+    dispatch(updateStreamViewTab({ uid: activeTabUid, streamViewTab: newViewTab }));
+  }, [dispatch, activeTabUid]);
 
   const handleViewTabChange = useCallback((newViewTab) => {
     dispatch(updateResponseViewTab({ uid: item.uid, responseViewTab: newViewTab }));
@@ -155,7 +163,16 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
+          return (
+            <WSMessagesList
+              order={-1}
+              messages={item.response.data}
+              item={item}
+              collection={collection}
+              streamFormat={focusedTab?.streamFormat}
+              streamViewTab={focusedTab?.streamViewTab || 'editor'}
+            />
+          );
         }
         return (
           <QueryResult
@@ -239,25 +256,41 @@ const ResponsePane = ({ item, collection }) => {
           onClick={() => setShowScriptErrorCard(true)}
         />
       )}
-      {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
-        <>
-          {/* Result View Tabs (Visualizations + Response Format) */}
+      {focusedTab?.responsePaneTab === 'response' && item?.response ? (
+        (item.response?.stream ?? false) ? (
           <div className="result-view-tabs">
-
-            {/* Response Format */}
             <QueryResultTypeSelector
               formatOptions={previewFormatOptions}
-              formatValue={selectedFormat}
-              onFormatChange={handleFormatChange}
-              onPreviewTabSelect={handleViewTabChange}
-              selectedTab={selectedViewTab}
-              isActiveTab={selectedViewTab === 'editor' || selectedViewTab === 'preview'}
+              formatValue={focusedTab?.streamFormat || 'raw'}
+              onFormatChange={handleStreamFormatChange}
+              onPreviewTabSelect={handleStreamViewTabChange}
+              selectedTab={focusedTab?.streamViewTab || 'editor'}
+              isActiveTab={true}
               onTabSelect={() => {
-                handleViewTabChange('editor');
+                handleStreamViewTabChange('editor');
               }}
             />
           </div>
-        </>
+        ) : (
+          <>
+            {/* Result View Tabs (Visualizations + Response Format) */}
+            <div className="result-view-tabs">
+
+              {/* Response Format */}
+              <QueryResultTypeSelector
+                formatOptions={previewFormatOptions}
+                formatValue={selectedFormat}
+                onFormatChange={handleFormatChange}
+                onPreviewTabSelect={handleViewTabChange}
+                selectedTab={selectedViewTab}
+                isActiveTab={selectedViewTab === 'editor' || selectedViewTab === 'preview'}
+                onTabSelect={() => {
+                  handleViewTabChange('editor');
+                }}
+              />
+            </div>
+          </>
+        )
       ) : null}
       <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
