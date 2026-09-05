@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { v7 as uuidv7 } from 'uuid';
 
 export const timeBasedDynamicVars = new Set(['timestamp', 'isoTimestamp']);
 
@@ -6,7 +7,7 @@ export const mockDataFunctions = {
   guid: () => faker.string.uuid(),
   timestamp: () => Math.floor(Date.now() / 1000).toString(),
   isoTimestamp: () => new Date().toISOString(),
-  randomUUID: () => faker.string.uuid(),
+  randomUUID: () => uuidv7(),
   randomNanoId: () => faker.string.nanoid(),
   randomAlphaNumeric: () => faker.string.alphanumeric(),
   randomBoolean: () => faker.datatype.boolean(),
