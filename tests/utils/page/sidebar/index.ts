@@ -22,6 +22,7 @@ export const buildSidebarLocators = (page: Page) => {
     item,
     folder: item,
     request: item,
+    requestMethod: (name: string) => itemRow(name).getByTestId('sidebar-request-method'),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });

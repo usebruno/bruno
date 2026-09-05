@@ -45,7 +45,7 @@ const RequestMethod = ({ item }) => {
   return (
     <StyledWrapper>
       <div className={className}>
-        <span className="uppercase">
+        <span className="uppercase" data-testid="sidebar-request-method">
           {methodText}
         </span>
       </div>
