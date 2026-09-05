@@ -6,6 +6,7 @@ const axios = require('axios');
 const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
 const { exists, isDirectory, sanitizeName } = require('../utils/filesystem');
 const { createCollectionFromBrunoObject } = require('../utils/collection');
+const { ensureShellEnv } = require('../utils/shell-env');
 
 const command = 'import <type>';
 const desc = 'Import a collection from other formats';
@@ -223,6 +224,12 @@ const handler = async (argv) => {
     if (!output && !outputFile) {
       console.error(chalk.red('Either --output or --output-file is required'));
       process.exit(1);
+    }
+
+    // Only a remote source needs the shell environment, for proxy and CA settings. Importing a local
+    // file, or failing the checks above, should not wait on a shell.
+    if (isUrl(source)) {
+      await ensureShellEnv();
     }
 
     let brunoCollection;
