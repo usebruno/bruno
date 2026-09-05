@@ -43,6 +43,7 @@ import {
   applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
+  resetCollectionForReload,
   moveCollection,
   deleteItem as _deleteItemFromState,
   brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
@@ -3373,6 +3374,19 @@ export const mountCollection
             reject();
           });
       });
+    };
+
+export const reloadCollection
+  = ({ collectionUid, collectionPathname, brunoConfig }) =>
+    async (dispatch, getState) => {
+      dispatch(resetCollectionForReload({ collectionUid }));
+      dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'unmounted' }));
+
+      await callIpc('renderer:reload-collection', { collectionUid, collectionPathname });
+
+      await dispatch(mountCollection({ collectionUid, collectionPathname, brunoConfig, skipTabRestore: true }));
+
+      toast.success('Collection reloaded');
     };
 
 export const showInFolder = (collectionPath) => () => {
