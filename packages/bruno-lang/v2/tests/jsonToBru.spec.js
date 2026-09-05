@@ -458,4 +458,59 @@ describe('jsonToBru stringify', () => {
       expect(output).toContain('@description(\'service port\')');
     });
   });
+
+  describe('script:grpc blocks', () => {
+    it('emits the grpc hook blocks after pre-request and post-response', () => {
+      const output = stringify({
+        script: {
+          req: 'req.setHeader(\'Content-Type\', \'application/json\');',
+          res: 'expect(res.status).to.equal(200);',
+          beforeCallStart: 'req.setMetadata(\'authorization\', \'Bearer token\');',
+          beforeMessageSend: 'bru.setVar(\'sent\', bru.grpc.request.message.timestamp);',
+          afterMessageReceive: 'expect(bru.grpc.response.message.data).to.be.an(\'object\');',
+          afterCallEnd: 'expect(res.getStatusCode()).to.equal(0);'
+        }
+      });
+
+      expect(output).toBe(`script:pre-request {
+  req.setHeader('Content-Type', 'application/json');
+}
+
+script:post-response {
+  expect(res.status).to.equal(200);
+}
+
+script:grpc:before-call-start {
+  req.setMetadata('authorization', 'Bearer token');
+}
+
+script:grpc:before-message-send {
+  bru.setVar('sent', bru.grpc.request.message.timestamp);
+}
+
+script:grpc:after-message-receive {
+  expect(bru.grpc.response.message.data).to.be.an('object');
+}
+
+script:grpc:after-call-end {
+  expect(res.getStatusCode()).to.equal(0);
+}
+`);
+    });
+
+    it('indents multiline grpc hook bodies', () => {
+      const output = stringify({
+        script: {
+          afterCallEnd: 'if (res.getStatusCode() === 0) {\n  bru.setVar(\'ok\', true);\n}'
+        }
+      });
+
+      expect(output).toBe(`script:grpc:after-call-end {
+  if (res.getStatusCode() === 0) {
+    bru.setVar('ok', true);
+  }
+}
+`);
+    });
+  });
 });

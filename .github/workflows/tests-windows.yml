@@ -13,7 +13,6 @@ concurrency:
 jobs:
   unit-test:
     name: Unit Tests (Windows)
-    if: false # @TODO: Temporarily disabled. Remove this once the tests are fixed.
     timeout-minutes: 60
     runs-on: windows-latest
     permissions:
