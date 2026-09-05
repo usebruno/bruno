@@ -529,6 +529,69 @@ describe('generateSnippet – header inclusion in output', () => {
   });
 });
 
+describe('generateSnippet – cookie header routing', () => {
+  it('routes a `cookie` header into har.cookies instead of leaving it in har.headers, so curl no longer renders it twice', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => JSON.stringify({ headers: harRequest.headers, cookies: harRequest.cookies }))
+    }));
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    const { headers, cookies } = JSON.parse(result);
+    expect(headers.find((h) => h.name.toLowerCase() === 'cookie')).toBeUndefined();
+    expect(cookies).toEqual([{ name: 'cookie1', value: 'value1' }]);
+  });
+
+  it('does not corrupt a cookie value containing characters encodeURIComponent would escape', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'session=abc+def/ghi==', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--cookie session=abc+def/ghi==');
+    expect(result).not.toContain('%2B');
+    expect(result).not.toContain('%2F');
+    expect(result).not.toContain('%3D');
+  });
+});
+
 describe('generateSnippet with edge-case bodies', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
