@@ -69,6 +69,12 @@ const BETA_FEATURES = [
     docsUrl: 'https://link.usebruno.com/docs/mock-server'
   },
   {
+    id: BETA_FEATURE_IDS.ISLANDS_LAYOUT,
+    label: 'Islands Layout',
+    description: 'Renders the sidebar and request/response panels as separate floating cards with rounded corners and spacing, instead of the default layout.',
+    toggle: true
+  },
+  {
     id: BETA_FEATURE_IDS.GRPC_SCRIPTING,
     label: 'gRPC Scripting',
     description: 'Write scripts for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.',

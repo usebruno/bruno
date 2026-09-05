@@ -23,6 +23,7 @@ import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -67,13 +68,15 @@ export default function Main() {
   });
   const mainSectionRef = useRef(null);
   const [showRosettaBanner, setShowRosettaBanner] = useState(false);
+  const isIslandsLayout = useBetaFeature(BETA_FEATURES.ISLANDS_LAYOUT);
 
   // Initialize event listeners
   useGrpcEventListeners();
   useWsEventListeners();
 
   const className = classnames({
-    'is-dragging': isDragging
+    'is-dragging': isDragging,
+    'layout-islands': isIslandsLayout
   });
 
   useEffect(() => {
@@ -122,7 +125,7 @@ export default function Main() {
       >
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
-          <section className="flex flex-grow flex-col overflow-hidden">
+          <section className="flex flex-grow flex-col overflow-hidden main-panel">
             {showApiSpecPage && activeApiSpecUid ? (
               <ApiSpecPanel key={activeApiSpecUid} />
             ) : showManageWorkspacePage ? (
