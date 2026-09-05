@@ -1,64 +1,74 @@
 import { setActiveApiSpecUid } from 'providers/ReduxStore/slices/apiSpec';
 import { showApiSpecPage as _showApiSpecPage } from 'providers/ReduxStore/slices/app';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
+import ActionIcon from 'ui/ActionIcon';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { IconDots, IconX } from '@tabler/icons';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
-import { forwardRef } from 'react';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
+  const { dropdownContainerRef } = useSidebarAccordion();
 
   const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
 
   const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
-
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
   const handleOpenApiSpec = (apiSpec) => (e) => {
     dispatch(_showApiSpecPage());
     dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
   };
 
-  const MenuIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref}>
-        <IconDots size={22} />
-      </div>
-    );
-  });
+  const handleRowKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    handleOpenApiSpec(apiSpec)(e);
+  };
+
+  const menuItems = [
+    {
+      id: 'remove',
+      leftSection: IconX,
+      label: 'Remove',
+      onClick: () => setCloseApiSpecModal(true)
+    }
+  ];
+
+  const isActive = showApiSpecPage && apiSpec?.uid === activeApiSpecUid;
 
   return (
     <div
       className={`flex flex-grow api-spec-item items-center h-full overflow-hidden w-full justify-between ${
-        showApiSpecPage && apiSpec?.uid == activeApiSpecUid ? 'active' : ''
-      }`}
+        isActive && !isKeyboardFocused ? 'active' : ''
+      } ${isKeyboardFocused ? 'api-spec-keyboard-focused' : ''}`}
+      tabIndex={0}
+      onFocus={() => setIsKeyboardFocused(true)}
+      onBlur={() => setIsKeyboardFocused(false)}
+      onKeyDown={handleRowKeyDown}
     >
       {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
       <div
-        className="cursor-pointer py-2 pl-4 h-8 flex items-center flex-grow w-[80%] justify-between"
+        className="cursor-pointer flex items-center flex-grow w-[80%] justify-between"
         onClick={handleOpenApiSpec(apiSpec)}
       >
         <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
       </div>
-      <div className="menu-icon pr-2">
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-          <div
-            className="dropdown-item close-item"
-            onClick={(e) => {
-              dropdownTippyRef.current.hide();
-              setCloseApiSpecModal(true);
-            }}
-          >
-            <span className="dropdown-icon">
-              <IconX size={16} strokeWidth={2} />
-            </span>
-            Remove
-          </div>
-        </Dropdown>
+      <div className="pr-2">
+        <MenuDropdown
+          items={menuItems}
+          placement="bottom-start"
+          appendTo={dropdownContainerRef?.current || document.body}
+          popperOptions={{ strategy: 'fixed' }}
+        >
+          <ActionIcon className="collection-actions">
+            <IconDots size={18} />
+          </ActionIcon>
+        </MenuDropdown>
       </div>
     </div>
   );
