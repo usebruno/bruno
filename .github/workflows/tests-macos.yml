@@ -132,3 +132,30 @@ jobs:
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/macos/run-oauth1-cli-tests
+
+  oauth2-tests:
+    name: OAuth 2.0 Auth Tests (macOS)
+    timeout-minutes: 60
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Keycloak
+        uses: ./.github/actions/auth/oauth2/posix/setup-keycloak
+
+      - name: Run OAuth2 E2E Tests
+        uses: ./.github/actions/auth/oauth2/posix/run-oauth2-e2e-tests
+        with:
+          artifact-suffix: macos
+
+      # Runs even when setup-keycloak or the test step failed, so a broken IdP is debuggable.
+      - name: Collect Keycloak Logs
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/auth/oauth2/posix/collect-keycloak-logs
+        with:
+          artifact-suffix: macos

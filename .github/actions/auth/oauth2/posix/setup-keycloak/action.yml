@@ -1,0 +1,53 @@
+name: 'Setup Keycloak - POSIX'
+description: 'Provision and start a Keycloak IdP (realm imported) for the OAuth2 e2e tests on Linux and macOS'
+
+inputs:
+  port:
+    description: 'HTTP port Keycloak listens on'
+    required: false
+    default: '8090'
+  keycloak-version:
+    description: 'Keycloak release to download and run'
+    required: false
+    default: '26.3.3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java 21 (Temurin)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Download and start Keycloak
+      shell: bash
+      env:
+        KEYCLOAK_VERSION: ${{ inputs.keycloak-version }}
+        KEYCLOAK_PORT: ${{ inputs.port }}
+      run: |
+        set -euo pipefail
+
+        curl -fsSL -o /tmp/keycloak.zip \
+          "https://github.com/keycloak/keycloak/releases/download/${KEYCLOAK_VERSION}/keycloak-${KEYCLOAK_VERSION}.zip"
+        unzip -q /tmp/keycloak.zip -d /tmp
+        KC_HOME="/tmp/keycloak-${KEYCLOAK_VERSION}"
+
+        mkdir -p "${KC_HOME}/data/import"
+        cp "${GITHUB_WORKSPACE}/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
+          "${KC_HOME}/data/import/realm-export.json"
+
+        nohup "${KC_HOME}/bin/kc.sh" start-dev --http-port="${KEYCLOAK_PORT}" --import-realm \
+          > /tmp/keycloak.log 2>&1 &
+
+        echo "Waiting for Keycloak (realm bruno) on :${KEYCLOAK_PORT} ..."
+        for i in $(seq 1 60); do
+          if curl -fsS "http://localhost:${KEYCLOAK_PORT}/realms/bruno/.well-known/openid-configuration" > /dev/null 2>&1; then
+            echo "Keycloak is ready."
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "::error::Keycloak did not become ready in time"
+        tail -n 100 /tmp/keycloak.log || true
+        exit 1
