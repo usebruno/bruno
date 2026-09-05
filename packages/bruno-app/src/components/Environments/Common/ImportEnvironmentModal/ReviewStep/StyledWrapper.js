@@ -5,29 +5,25 @@ export const StyledWrapper = styled.div`
   .modal-content {
     display: flex;
     flex-direction: column;
-    height: 45vh;
+    height: 450px;
+    max-height: calc(100vh - 180px);
     overflow: hidden;
-  }
-
-  .modal-header {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
   }
 
   .scroll-area {
+    display: flex;
+    flex-direction: column;
     flex: 1;
-    overflow-y: auto;
-    padding-right: 0.25rem;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .environments-list-container {
-    border: 1px solid ${(props) => props.theme.border.border0};
-    border-radius: ${(props) => props.theme.border.radius.base};
     display: flex;
     flex-direction: column;
-    background-color: ${(props) => props.theme.background.base};
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -46,17 +42,18 @@ export const StyledWrapper = styled.div`
     letter-spacing: normal;
     display: flex;
     align-items: center;
-    color: ${(props) => props.theme.text};
+    gap: 6px;
+    color: inherit;
 
     &:not(:last-child) {
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
   }
 
   .warning-title {
-    font-weight: 700;
+    font-weight: 500;
   }
-  
+
   .warning-icon {
     color: ${(props) => props.theme.colors.text.yellow};
   }
@@ -65,13 +62,18 @@ export const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
   }
 
+  .search-block input {
+    height: 28px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
   .search-block {
     display: flex;
     align-items: center;
-    padding: 0.75rem;
+    padding: 12px 1.25rem;
     flex-shrink: 0;
     gap: 1rem;
-    border-bottom: 1px solid ${(props) => props.theme.border.border0};
     background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
@@ -79,99 +81,144 @@ export const StyledWrapper = styled.div`
     flex: 1;
   }
 
-  .expand-all-wrapper {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .expand-all-text {
-    font-size: ${(props) => props.theme.font.size.base};
-    font-weight: 500;
-    line-height: 20px;
-    letter-spacing: normal;
-    min-width: 4.5rem;
-  }
-
   .groups-scroll-area {
+    flex: 1;
+    min-height: 0;
+    border-top: 1px solid ${(props) => props.theme.border.border0};
     overflow-y: auto;
-    max-height: calc(45vh - 160px);
-  }
+    scrollbar-gutter: stable;
 
-  .group-container {
-    &:not(:last-child) {
-      border-bottom: 1px solid ${(props) => props.theme.border.border0};
+    &::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${(props) => rgba(props.theme.colors.text.muted, 0.45)};
+      border: 3px solid transparent;
+      border-radius: 10px;
+      background-clip: content-box;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: ${(props) => rgba(props.theme.colors.text.muted, 0.7)};
+      border: 3px solid transparent;
+      background-clip: content-box;
     }
   }
 
+  .group-header .group-count {
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
   .group-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
-    padding: 0.5rem;
-    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
-    max-height: 2.5rem;
+    gap: 8px;
+    height: 35px;
+    padding: 9px 20px 9px 14px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface0 : props.theme.background.mantle)};
+    border-bottom: 1px solid ${(props) => props.theme.border.border0};
+
+    &:hover {
+      background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface1 : props.theme.background.crust)};
+    }
   }
 
   .group-title-wrapper {
     display: flex;
     align-items: center;
+    gap: 8px;
     cursor: pointer;
     flex: 1;
     user-select: none;
   }
 
   .group-title {
-    font-weight: 600;
-    margin-left: 0.5rem;
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 500;
   }
 
   .group-checkbox {
-    margin-left: 0.5rem;
-    margin-right: 0.25rem;
+    width: 13px;
+    height: 13px;
+    flex: none;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .chevron-icon {
+    width: 16px;
+    height: 16px;
+    flex: none;
     color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
+  .blocked-icon {
+    flex: none;
+    color: ${(props) => props.theme.colors.text.danger};
   }
 
   .group-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.5rem 0;
-    background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.mantle : 'transparent')};
   }
 
   .env-item {
     display: flex;
-    align-items: flex-start;
-    padding-left: 0.625rem;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px 8px 38px;
+    background: transparent;
+    border-bottom: 1px solid ${(props) => rgba(props.theme.border.border0, 0.6)};
+
+    &:hover {
+      background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface0 : props.theme.background.mantle)};
+    }
   }
 
   .env-import-invalid-item {
-    padding-left: 2.125rem;
+    padding: 8px 20px 8px 60px;
+    background: transparent;
+    border-bottom: 1px solid ${(props) => rgba(props.theme.border.border0, 0.6)};
+
+    &:hover {
+      background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.surface0 : props.theme.background.mantle)};
+    }
   }
 
   .env-item-label {
     display: flex;
     flex: 1;
-    align-items: flex-start;
+    align-items: center;
     cursor: pointer;
     min-width: 0;
-    margin-left: 1.375rem;
+    gap: 10px;
   }
 
   .env-item-checkbox {
-    margin-right: 0.75rem;
-    margin-top: 0.25rem;
+    width: 13px;
+    height: 13px;
+    flex: none;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .env-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
     flex: 1;
     min-width: 0;
   }
@@ -179,78 +226,67 @@ export const StyledWrapper = styled.div`
   .env-name {
     color: ${(props) => props.theme.text};
     font-family: Inter, sans-serif;
-    font-weight: 500;
+    font-weight: 400;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
   }
 
-  .env-filepath {
-    font-weight: 500;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.subtext1};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 0.125rem;
-  }
-
   .env-error {
-    font-size: ${(props) => props.theme.font.size.sm};
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 400;
     color: ${(props) => props.theme.colors.text.danger};
-    margin-top: 0.125rem;
+    margin-top: 2px;
   }
 
   .env-actions {
     display: flex;
     align-items: center;
-    gap: 0.125rem;
-    padding: 0.125rem;
-    margin-right: 0.5rem;
+    gap: 0;
+    padding: 2px;
     border-radius: ${(props) => props.theme.border.radius.base};
     background: ${(props) => (props.theme.mode === 'dark' ? props.theme.background.crust : props.theme.background.mantle)};
-    margin-left: 0.5rem;
     flex-shrink: 0;
   }
 
   .empty-state {
-    padding-left: 1.5rem;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    font-size: 0.875rem;
-    color: ${(props) => props.theme.colors.text.subtext0};
-  }
-
-  .footer-left-content {
-    font-size: 13px;
-    line-height: 20px;
-    letter-spacing: normal;
-    font-weight: 500;
+    padding: 14px 20px 14px 38px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 400;
     color: ${(props) => props.theme.colors.text.subtext0};
   }
 `;
 
-export const DropdownTrigger = styled.div`
+export const ImportModalHeader = styled.div`
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+
+  .title {
+    font-size: ${(props) => props.theme.font.size.md};
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .count {
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 400;
+    color: ${(props) => props.theme.colors.text.subtext0};
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+export const ImportFooterSummary = styled.div`
   font-size: ${(props) => props.theme.font.size.sm};
-  background-color: ${(props) => props.theme.dropdown.bg};
-  border: 1px solid ${(props) => props.theme.dropdown.separator};
-  border-radius: ${(props) => props.theme.border.radius.base};
-  padding: 0.25rem 0.5rem;
-  margin-left: 0.5rem;
-  cursor: pointer;
-  color: ${(props) => props.theme.dropdown.color};
-  .icon-chevron {
-    color: ${(props) => props.theme.dropdown.iconColor};
-    margin-left: 0.25rem;
-  }
+  line-height: 20px;
+  letter-spacing: normal;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: ${(props) => props.theme.colors.text.subtext0};
 
-  &:hover {
-    background-color: ${(props) => props.theme.dropdown.hoverBg};
-  }
-
-  &:focus {
-    outline: none;
+  .selected-count {
+    color: ${(props) => props.theme.text};
+    font-weight: 500;
   }
 `;
 
@@ -258,7 +294,11 @@ export const ResolutionButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  line-height: 1;
+  padding: 5px 9px;
+  font-size: ${(props) => props.theme.font.size.xs};
+  font-weight: 500;
+  white-space: nowrap;
   border-radius: ${(props) => props.theme.border.radius.sm};
   border: 1.24px solid transparent;
 
@@ -267,7 +307,7 @@ export const ResolutionButton = styled.button`
       ? css`
           background: ${props.theme.background.base};
           border-color: ${props.theme.border.border0};
-          color: ${props.theme.brand};
+          color: ${props.theme.text};
         `
       : css`
           background: transparent;

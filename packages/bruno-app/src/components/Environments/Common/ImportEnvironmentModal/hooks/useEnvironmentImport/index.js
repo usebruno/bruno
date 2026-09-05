@@ -84,41 +84,34 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       setIsImporting(true);
       const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
 
-      const filesByFormat = {};
-      const detectionFailures = [];
+      const valid = [];
+      const invalid = [];
 
-      parsedFiles.forEach((file) => {
+      for (const file of parsedFiles) {
         try {
           const format = detectEnvironmentFormat(file.content);
-          (filesByFormat[format] = filesByFormat[format] || []).push(file);
+          const result = format === 'postman'
+            ? await importPostmanEnvironment([file])
+            : await importBrunoEnvironment([file]);
+          valid.push(...result.valid);
+          invalid.push(...result.invalid);
         } catch (err) {
-          detectionFailures.push({ fileName: file.fileName || 'Unknown', error: 'Failed to detect environment format' });
+          invalid.push({ fileName: file.fileName || 'Unknown', error: 'Could not be read' });
         }
-      });
+      }
 
-      const results = await Promise.all(
-        Object.entries(filesByFormat).map(([format, filesForFormat]) =>
-          format === 'postman' ? importPostmanEnvironment(filesForFormat) : importBrunoEnvironment(filesForFormat)
-        )
-      );
-
-      const result = {
-        valid: results.flatMap((r) => r.valid),
-        invalid: results.flatMap((r) => r.invalid)
-      };
-
-      const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = result.valid
+      const validEnvironments = valid.filter((env) => env.name && env.name !== 'undefined');
+      const missingNameEnvs = valid
         .filter((env) => !env.name || env.name === 'undefined')
         .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
 
-      const allInvalid = [...invalidFiles, ...detectionFailures, ...result.invalid, ...missingNameEnvs];
+      const allInvalid = [...invalidFiles, ...invalid, ...missingNameEnvs];
 
-      const existingNamesNormalized = existingNames.map(normalizeEnvName);
+      const existingNamesNormalized = new Set(existingNames.map(normalizeEnvName));
 
       let itemIndex = 0;
       const validItems = validEnvironments.map((env) => {
-        const isDuplicate = existingNamesNormalized.includes(normalizeEnvName(env.name));
+        const isDuplicate = existingNamesNormalized.has(normalizeEnvName(env.name));
         return { ...env, id: `env-${itemIndex++}`, status: isDuplicate ? ENV_STATUS.DUPLICATE : ENV_STATUS.NEW };
       });
 
@@ -126,23 +119,13 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
         ...env, id: `env-${itemIndex++}`, status: ENV_STATUS.INVALID
       }));
 
-      const newItems = [...validItems, ...invalidItems];
-      const duplicates = validItems.filter((e) => e.status === ENV_STATUS.DUPLICATE);
-
-      if (duplicates.length === 0 && allInvalid.length === 0) {
-        await commitEnvironments(validItems, new Map());
-        return;
-      }
-
-      setItems(newItems);
-
-      const initialSelected = new Set(validItems.map((i) => i.id));
-      setSelected(initialSelected);
+      setItems([...validItems, ...invalidItems]);
+      setSelected(new Set(validItems.map((item) => item.id)));
 
       const initialResolutions = new Map();
-      duplicates.forEach((e) => {
-        initialResolutions.set(e.id, RESOLUTION_TYPES.COPY);
-      });
+      validItems
+        .filter((item) => item.status === ENV_STATUS.DUPLICATE)
+        .forEach((item) => initialResolutions.set(item.id, RESOLUTION_TYPES.COPY));
       setResolutions(initialResolutions);
 
       setStep(IMPORT_STEPS.REVIEW);
@@ -167,6 +150,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
 
   return {
     step,
+    isImporting,
     items,
     selected,
     setSelected,

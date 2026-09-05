@@ -8,6 +8,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
   const {
     step,
+    isImporting,
     items,
     selected,
     setSelected,
@@ -21,7 +22,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
     console.error('ImportEnvironmentModal: collection prop is required when type is "collection"');
     return null;
   }
-  const modalTitle = isGlobal ? 'Import Global Environment' : 'Import Environment';
+  const modalTitle = isGlobal ? 'Import global environments' : 'Import environments';
   const modalTestId = isGlobal ? 'import-global-environment-modal' : 'import-environment-modal';
   const importTestId = isGlobal ? 'import-global-environment' : 'import-environment';
 
@@ -43,6 +44,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
       modalTestId={modalTestId}
       onClose={onClose}
       handleConfirmImport={handleConfirmImport}
+      isImporting={isImporting}
       items={items}
       selected={selected}
       setSelected={setSelected}

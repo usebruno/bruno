@@ -15,8 +15,13 @@ export const RESOLUTION_TYPES = {
   REPLACE: 'replace'
 };
 
+export const RESOLUTION_SHORT_LABELS = {
+  [RESOLUTION_TYPES.COPY]: 'Clone',
+  [RESOLUTION_TYPES.REPLACE]: 'Replace'
+};
+
 export const RESOLUTION_LABELS = {
   [RESOLUTION_TYPES.CUSTOM]: 'Custom',
-  [RESOLUTION_TYPES.COPY]: 'Import as copy',
+  [RESOLUTION_TYPES.COPY]: 'Import as clone',
   [RESOLUTION_TYPES.REPLACE]: 'Replace existing'
 };

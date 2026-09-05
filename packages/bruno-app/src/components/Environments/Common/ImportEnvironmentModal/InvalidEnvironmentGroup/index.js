@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { IconBan, IconChevronDown, IconChevronRight } from '@tabler/icons';
 import CountBadge from 'ui/CountBadge';
 
 const InvalidEnvironmentGroup = ({ invalid, isExpanded, toggleExpanded }) => {
@@ -11,12 +11,13 @@ const InvalidEnvironmentGroup = ({ invalid, isExpanded, toggleExpanded }) => {
       <div className="group-header">
         <div className="group-title-wrapper" onClick={toggleExpanded} role="button" tabIndex={0}>
           {isExpanded ? (
-            <IconChevronDown size={16} className="chevron-icon" />
+            <IconChevronDown size={16} className="chevron-icon" strokeWidth={1.6} />
           ) : (
-            <IconChevronRight size={16} className="chevron-icon" />
+            <IconChevronRight size={16} className="chevron-icon" strokeWidth={1.6} />
           )}
-          <span className="group-title">Invalid or unsupported</span>
-          <CountBadge variant="danger" className="ml-2" data-testid="env-import-invalid-count">
+          <IconBan size={16} className="blocked-icon" />
+          <span className="group-title">Could not be read</span>
+          <CountBadge className="group-count" data-testid="env-import-invalid-count">
             {invalid.length}
           </CountBadge>
         </div>
