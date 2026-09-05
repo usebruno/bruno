@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('../grammar-cache');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../utils');
 const parseRequest = require('./request/bruToJson');
@@ -13,7 +13,7 @@ const astBaseAttribute = require('../common/attributes');
  * Supports all body types from request side but response body stays as simple text.
  */
 
-const exampleGrammar = ohm.grammar(`Example {
+const exampleGrammar = compileGrammar('example', `Example {
   ExampleFile = (name | description | request | response)*
   
   nl = "\\r"? "\\n"
