@@ -25,8 +25,10 @@ const DocsEditor = ({
   collectionPath,
   emptyPreviewContent,
   onRequestEdit,
-  initialScroll,
-  onScroll,
+  initialRichTextScroll,
+  onRichTextScrollChange,
+  initialMarkdownScroll,
+  onMarkdownScrollChange,
   testId
 }) => {
   const { displayedTheme } = useTheme();
@@ -136,9 +138,12 @@ const DocsEditor = ({
   useTrackScroll({
     ref: richTextWrapperRef,
     selector: '.rich-text-editor-content',
-    onChange: onScroll || (() => {}),
+    onChange: onRichTextScrollChange,
     enabled: !(isEditing && isMarkdownMode),
-    initialValue: initialScroll
+    initialValue: initialRichTextScroll,
+    // Code blocks and tables mount asynchronously after the initial render,
+    // so restore the saved position while the content is still settling.
+    settleAfterAsyncLayout: true
   });
 
   return (
@@ -170,8 +175,8 @@ const DocsEditor = ({
             onEdit={onEdit}
             onSave={onSave}
             mode="gfm"
-            initialScroll={initialScroll}
-            onScroll={onScroll}
+            initialScroll={initialMarkdownScroll}
+            onScroll={onMarkdownScrollChange}
           />
         </div>
       )}

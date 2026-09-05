@@ -13,9 +13,8 @@ const Documentation = ({ collection, folder }) => {
   const { isEditing, setEditing } = useDocsEditingState();
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
-  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
-  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
-  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
+  const [richTextScroll, setRichTextScroll] = usePersistedState({ key: `folder-docs-scroll-richtext-${folder.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `folder-docs-scroll-markdown-${folder.uid}`, default: 0 });
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -48,8 +47,10 @@ const Documentation = ({ collection, folder }) => {
           collection={collection}
           collectionPath={collection.pathname}
           onRequestEdit={toggleViewMode}
-          initialScroll={scroll}
-          onScroll={setScroll}
+          initialRichTextScroll={richTextScroll}
+          onRichTextScrollChange={setRichTextScroll}
+          initialMarkdownScroll={markdownScroll}
+          onMarkdownScrollChange={setMarkdownScroll}
         />
       </div>
 
