@@ -822,7 +822,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
                   data-testid="request-item-chevron"
                 />
               </ActionIcon>
-            ) : null}
+            ) : (
+              <div style={{ width: 16, minWidth: 16 }} />
+            )}
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />

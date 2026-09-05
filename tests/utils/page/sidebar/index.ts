@@ -19,6 +19,7 @@ export const buildSidebarLocators = (page: Page) => {
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    requestMethod: (name: string) => itemRow(name).getByTestId('sidebar-request-method'),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
