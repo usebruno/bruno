@@ -1,38 +1,71 @@
-import type { ElectronApplication } from '@playwright/test';
-import { expect, test } from '../../../playwright';
+import { closeElectronApp, expect, test } from '../../../playwright';
 import { buildCommonLocators, waitForReadyPage } from '../../utils/page';
+import { buildTitleBarLocators } from '../../utils/page/title-bar';
+import {
+  clickOpenWorkspace,
+  stubOpenDirectoryDialog
+} from '../../utils/page/workspace/open-workspace';
+import { createWorkspaceFromYml } from '../../utils/workspace';
 
 test.describe('Open Workspace', () => {
-  test('click on cancel button, should just close the dialog', async ({
+  test('TC-1011: Verify the Open Workspace from the device', { tag: '@sanity' }, async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    const userDataPath = await createTmpDir('open-workspace-from-device');
+    const workspaceName = 'Device Workspace';
+    const workspacePath = await createWorkspaceFromYml(createTmpDir, 'open-workspace-source', workspaceName);
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+    const titleBar = buildTitleBarLocators(page);
+    const locators = buildCommonLocators(page);
+
+    await test.step('Workspace menu lists all four workspace actions', async () => {
+      await titleBar.workspaceMenuTrigger().click();
+      await expect(titleBar.createWorkspaceOption()).toBeVisible();
+      await expect(titleBar.openWorkspaceOption()).toBeVisible();
+      await expect(titleBar.importWorkspaceOption()).toBeVisible();
+      await expect(titleBar.manageWorkspacesOption()).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('Pick a valid workspace directory from the file explorer', async () => {
+      await stubOpenDirectoryDialog(app, workspacePath);
+      await clickOpenWorkspace(page);
+    });
+
+    await test.step('Verify success toast is shown', async () => {
+      await expect(locators.toast.byMessage('Workspace opened successfully')).toBeVisible();
+    });
+
+    await test.step('Verify the opened workspace becomes the active workspace', async () => {
+      await expect(titleBar.activeWorkspaceName()).toHaveText(workspaceName);
+    });
+
+    await closeElectronApp(app);
+  });
+
+  test('TC-3213: click on cancel button, should just close the dialog', { tag: '@sanity' }, async ({
     launchElectronApp,
     createTmpDir
   }) => {
     const userDataPath = await createTmpDir('open-workspace-cancel');
 
-    let app: ElectronApplication = await launchElectronApp({ userDataPath });
+    const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
-    const locators = buildCommonLocators(page);
+    const titleBar = buildTitleBarLocators(page);
 
-    const initialWorkspaceName = await page
-      .getByTestId('workspace-name')
-      .textContent();
+    const initialWorkspaceName = await titleBar.activeWorkspaceName().textContent();
 
-    await app.evaluate(({ dialog }) => {
-      (
-        dialog as { showOpenDialog: typeof dialog.showOpenDialog }
-      ).showOpenDialog = () =>
-        Promise.resolve({ canceled: true, filePaths: [] });
-    });
+    await stubOpenDirectoryDialog(app);
 
-    await test.step('Open the workspace menu and click "Open workspace"', async () => {
-      await page.getByTestId('workspace-menu').click();
-      await locators.dropdown.item('Open workspace').click();
-    });
+    await clickOpenWorkspace(page);
 
     await test.step('Workspace unchanged after canceling the dialog', async () => {
       expect(initialWorkspaceName).not.toBeNull();
       const workspaceName = initialWorkspaceName as string;
-      await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName);
+      await expect(titleBar.activeWorkspaceName()).toHaveText(workspaceName);
     });
   });
 });
