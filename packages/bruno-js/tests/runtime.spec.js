@@ -1,8 +1,12 @@
 const { describe, it, expect, beforeAll } = require('@jest/globals');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
+const { makeNpmModule } = require('./utils/helpers');
 
 describe('runtime', () => {
   describe('test-runtime', () => {
@@ -89,6 +93,39 @@ describe('runtime', () => {
       ]);
     });
 
+    it('should expose test and jwt through a cached npm module', async () => {
+      const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+      try {
+        makeNpmModule(collectionPath, 'test-runtime-reader', `
+          module.exports = {
+            read: () => typeof test + ':' + typeof jwt.sign
+          };
+        `);
+
+        const runtime = new TestRuntime({ runtime: 'nodevm' });
+        const result = await runtime.runTests(
+          `
+            test('cached runtime globals', () => {
+              expect(require('test-runtime-reader').read()).to.equal('function:function');
+            });
+          `,
+          { ...baseRequest },
+          { ...baseResponse },
+          {},
+          {},
+          collectionPath,
+          null,
+          process.env
+        );
+
+        expect(result.results).toEqual([
+          expect.objectContaining({ description: 'cached runtime globals', status: 'pass' })
+        ]);
+      } finally {
+        fs.rmSync(collectionPath, { recursive: true, force: true });
+      }
+    });
+
     it('should return stopExecution when bru.runner.stopExecution() is called in tests (nodevm)', async () => {
       const testFile = `bru.runner.stopExecution();`;
 
@@ -173,6 +210,75 @@ describe('runtime', () => {
         expect(result.runtimeVariables.validation).toBeTruthy();
       });
 
+      it('should expose the real request runtime through a cached npm module', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'request-runtime-reader', `
+            module.exports = {
+              read: () => req.getMethod() + ':' + req.getUrl()
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const result = await runtime.runRequestScript(
+            `bru.setVar('runtime', require('request-runtime-reader').read());`,
+            {
+              method: 'POST',
+              url: 'http://localhost:3000/runtime',
+              headers: {},
+              data: undefined
+            },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env
+          );
+
+          expect(result.runtimeVariables.runtime).toBe('POST:http://localhost:3000/runtime');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
+      });
+
+      it('should expose each request URL to a cached module across sequential runs', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'sequential-request-reader', `
+            const urlAtLoad = req.getUrl();
+            module.exports = {
+              dynamic: () => req.getUrl(),
+              captured: () => urlAtLoad
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const run = (url) => runtime.runRequestScript(
+            `
+              const reader = require('sequential-request-reader');
+              bru.setVar('dynamicUrl', reader.dynamic());
+              bru.setVar('capturedUrl', reader.captured());
+            `,
+            { method: 'GET', url, headers: {}, data: undefined },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env
+          );
+
+          const first = await run('https://example.com/first');
+          const second = await run('https://example.com/second');
+
+          expect(first.runtimeVariables.dynamicUrl).toBe('https://example.com/first');
+          expect(second.runtimeVariables.dynamicUrl).toBe('https://example.com/second');
+          expect(first.runtimeVariables.capturedUrl).toBe('https://example.com/first');
+          expect(second.runtimeVariables.capturedUrl).toBe('https://example.com/second');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
+      });
+
       it('should return variable updates made in req.onFail', async () => {
         const script = `
           bru.setVar('runtimeToken', 'before');
@@ -249,6 +355,43 @@ describe('runtime', () => {
           process.env
         );
         expect(result.runtimeVariables.validation).toBeTruthy();
+      });
+
+      it('should expose the real response runtime through a cached npm module', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'response-runtime-reader', `
+            module.exports = {
+              read: () => res.getStatus() + ':' + res.getHeader('content-type')
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const result = await runtime.runResponseScript(
+            `bru.setVar('runtime', require('response-runtime-reader').read());`,
+            {
+              method: 'GET',
+              url: 'http://localhost:3000/',
+              headers: {},
+              data: undefined
+            },
+            {
+              status: 201,
+              statusText: 'Created',
+              headers: { 'content-type': 'application/json' },
+              data: {}
+            },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env
+          );
+
+          expect(result.runtimeVariables.runtime).toBe('201:application/json');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
       });
     });
   });

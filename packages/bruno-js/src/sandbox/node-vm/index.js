@@ -4,7 +4,7 @@ const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
-const { createCustomRequire } = require('./cjs-loader');
+const { createCustomRequire, runWithScriptContext } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -109,9 +109,13 @@ async function runScriptInNodeVm({
     };
 
     try {
-      await compiledScript.runInContext(isolatedContext, {
-        displayErrors: true
-      });
+      // npm modules loaded by this script (or already cached from an earlier one)
+      // resolve `bru`, `req`, `res`, ... against this context while it runs
+      await runWithScriptContext(scriptContext, () =>
+        compiledScript.runInContext(isolatedContext, {
+          displayErrors: true
+        })
+      );
     } catch (error) {
       // V8 invokes prepareStackTrace lazily on first .stack access.
       // Reading .stack here so custom handler runs and populates error.__callSites

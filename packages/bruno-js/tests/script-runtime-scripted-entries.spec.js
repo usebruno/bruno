@@ -34,8 +34,12 @@ jest.mock('@usebruno/requests', () => {
   };
 });
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const TestRuntime = require('../src/runtime/test-runtime');
+const { makeNpmModule } = require('./utils/helpers');
 
 const baseRequest = { method: 'GET', url: 'http://localhost/', headers: {}, data: undefined };
 const baseResponse = { status: 200, statusText: 'OK', data: {} };
@@ -117,6 +121,54 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
           scope: { type: 'request', sourceFile: 'driver.bru' }
         })
       );
+    });
+
+    test('cached npm modules preserve bru.runRequest attribution', async () => {
+      const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-script-runtime-'));
+      try {
+        makeNpmModule(collectionPath, 'run-request-reader', `
+          module.exports = {
+            run: (pathname) => bru.runRequest(pathname)
+          };
+        `);
+
+        const host = jest.fn(async (_pathname, callerBru) => {
+          callerBru._recordScriptedRequest({
+            source: 'runRequest',
+            request: { method: 'GET', url: 'https://example.com/cached', headers: {}, data: undefined },
+            response: null,
+            error: null,
+            startedAt: 0,
+            completedAt: 1
+          });
+          return { status: 200 };
+        });
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+        const result = await runtime.runRequestScript(
+          `
+            __bruSetScope({ type: 'request', sourceFile: 'cached-driver.bru' });
+            await require('run-request-reader').run('cached-target.bru');
+          `,
+          { ...baseRequest },
+          {},
+          {},
+          collectionPath,
+          null,
+          process.env,
+          {},
+          host
+        );
+
+        expect(host).toHaveBeenCalledWith('cached-target.bru', expect.anything());
+        expect(result.scriptedRequestEntries).toEqual([
+          expect.objectContaining({
+            source: 'runRequest',
+            scope: { type: 'request', sourceFile: 'cached-driver.bru' }
+          })
+        ]);
+      } finally {
+        fs.rmSync(collectionPath, { recursive: true, force: true });
+      }
     });
   });
 

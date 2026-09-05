@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { runScriptInNodeVm } = require('./index');
+const { __resetNpmModuleStateForTests } = require('./cjs-loader');
 
 // Windows denies symlink creation without developer mode / admin. Probe once at
 // module load so the dependent tests can be marked skipped in the reporter
@@ -610,6 +611,307 @@ describe('node-vm sandbox', () => {
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'A-B');
+    });
+  });
+
+  describe('createCustomRequire - npm modules are shared across script executions', () => {
+    beforeEach(() => {
+      __resetNpmModuleStateForTests();
+    });
+
+    it('should evaluate an npm module once per process, not once per script context', async () => {
+      // Every script execution gets a fresh vm context. Re-evaluating npm modules
+      // in each of them made large packages (faker, moment, ...) cost tens of MB
+      // per request (usebruno/bruno#9074). The module body increments a host-side
+      // counter so we can count evaluations across two separate executions.
+      const marker = `_npmEvalCount_${Date.now()}`;
+      makePkg(path.join(collectionPath, 'node_modules'), 'counted-module', {
+        'index.js': `
+          process.${marker} = (process.${marker} || 0) + 1;
+          module.exports = { token: Symbol('counted') };
+        `
+      });
+
+      const script = `
+        const mod = require('counted-module');
+        bru.setVar('token', mod.token);
+      `;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(process[marker]).toBe(1);
+      // Both scripts got the same module instance
+      expect(contextA.bru.setVar.mock.calls[0][1]).toBe(contextB.bru.setVar.mock.calls[0][1]);
+      delete process[marker];
+    });
+
+    it('should let a cached npm module see the bru of the script currently running', async () => {
+      // A module evaluated during execution A must not keep pointing at A's bru
+      // when it is called from execution B.
+      makePkg(path.join(collectionPath, 'node_modules'), 'bru-reader', {
+        'index.js': `module.exports = { read: (name) => bru.getVar(name) };`
+      });
+
+      const script = `
+        const reader = require('bru-reader');
+        bru.setVar('seen', reader.read('who'));
+      `;
+      const contextA = { bru: { getVar: jest.fn().mockReturnValue('A'), setVar: jest.fn() }, console };
+      const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
+      expect(contextA.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
+    });
+
+    it('should switch req dynamically but preserve the module-load URL snapshot', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'request-url-reader', {
+        'index.js': `
+          const urlAtLoad = req.getUrl();
+          module.exports = {
+            read: () => req.getUrl(),
+            readCaptured: () => urlAtLoad
+          };
+        `
+      });
+
+      const script = `
+        const reader = require('request-url-reader');
+        bru.setVar('dynamicUrl', reader.read());
+        bru.setVar('capturedUrl', reader.readCaptured());
+      `;
+      const makeContext = (url) => ({
+        bru: { setVar: jest.fn() },
+        req: { getUrl: jest.fn().mockReturnValue(url) },
+        console
+      });
+      const contextA = makeContext('https://example.com/a');
+      const contextB = makeContext('https://example.com/b');
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/a');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/b');
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('capturedUrl', 'https://example.com/a');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('capturedUrl', 'https://example.com/b');
+    });
+
+    it.each([
+      ['the first-started script finishes first', 5, 40],
+      ['the first-started script finishes last', 40, 5]
+    ])('should keep interleaved executions bound to their own bru when %s', async (_, delayA, delayB) => {
+      // Two scripts run concurrently and both await before calling into the same cached
+      // npm module. A global "current context" stack only survives LIFO completion: when
+      // the first-started script finishes first, its module call would read the other
+      // script's bru and its cleanup would pop the other script's entry.
+      makePkg(path.join(collectionPath, 'node_modules'), 'bru-reader-async', {
+        'index.js': `module.exports = { read: (name) => bru.getVar(name) };`
+      });
+
+      const scriptFor = (delayMs) => `
+        const reader = require('bru-reader-async');
+        await new Promise((resolve) => setTimeout(resolve, ${delayMs}));
+        bru.setVar('seen', reader.read('who'));
+      `;
+      const contextA = { bru: { getVar: jest.fn().mockReturnValue('A'), setVar: jest.fn() }, console };
+      const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
+
+      await Promise.all([
+        runScriptInNodeVm({ script: scriptFor(delayA), context: contextA, collectionPath, scriptingConfig: {} }),
+        runScriptInNodeVm({ script: scriptFor(delayB), context: contextB, collectionPath, scriptingConfig: {} })
+      ]);
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
+      expect(contextA.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
+    });
+
+    it('should let a module that captured bru at load time talk to the current script', async () => {
+      // `const captured = bru` runs once, during the first load (execution A). A plain
+      // accessor would hand that module A's bru forever; the facade stays late-bound.
+      makePkg(path.join(collectionPath, 'node_modules'), 'bru-capturer', {
+        'index.js': `
+          const captured = bru;
+          const { getVar } = bru;
+          module.exports = {
+            viaCaptured: (name) => captured.getVar(name),
+            viaDestructured: (name) => getVar(name),
+            hasSetVar: () => 'setVar' in captured,
+            setThroughCaptured: (name, value) => { captured.setVar(name, value); },
+            types: () => typeof captured + '/' + typeof console + '/' + typeof test
+          };
+        `
+      });
+
+      const script = `
+        const capturer = require('bru-capturer');
+        capturer.setThroughCaptured('seen', capturer.viaCaptured('who') + capturer.viaDestructured('who'));
+        bru.setVar('hasSetVar', capturer.hasSetVar());
+        bru.setVar('types', capturer.types());
+      `;
+      const makeContext = (who) => ({
+        bru: { getVar: jest.fn().mockReturnValue(who), setVar: jest.fn() },
+        test: () => {},
+        console
+      });
+      const contextA = makeContext('A');
+      const contextB = makeContext('B');
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'AA');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'BB');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('hasSetVar', true);
+      // The facades keep the value's typeof: objects stay objects, functions stay callable
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('types', 'object/object/function');
+      expect(contextA.bru.getVar).toHaveBeenCalledTimes(2);
+      expect(contextB.bru.getVar).toHaveBeenCalledTimes(2);
+    });
+
+    it('should preserve mutable singleton state across script executions', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'stateful-module', {
+        'index.js': `
+          let count = 0;
+          module.exports = { next: () => ++count };
+        `
+      });
+
+      const script = `bru.setVar('count', require('stateful-module').next());`;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('count', 1);
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 2);
+    });
+
+    it('should preserve Bruno global identity and cross-realm behavior inside npm modules', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'identity-reader', {
+        'index.js': `
+          module.exports = {
+            sameBru: () => bru === globalThis.bru,
+            readArray: (value) => Array.isArray(value)
+          };
+        `
+      });
+
+      const array = [];
+      const context = { bru: { setVar: jest.fn() }, array, console };
+      const script = `
+        const reader = require('identity-reader');
+        bru.setVar('sameBru', reader.sameBru());
+        bru.setVar('arrayIsArray', reader.readArray(array));
+      `;
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('sameBru', true);
+      expect(context.bru.setVar).toHaveBeenCalledWith('arrayIsArray', true);
+    });
+
+    it('should bind callbacks created by cached npm modules to their calling script', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'callback-runner', {
+        'index.js': `
+          module.exports = {
+            runLater: (callback) => new Promise((resolve) => {
+              setTimeout(() => { callback(); resolve(); }, 5);
+            })
+          };
+        `
+      });
+
+      const scriptFor = (value) => `
+        await require('callback-runner').runLater(() => bru.setVar('value', '${value}'));
+      `;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await Promise.all([
+        runScriptInNodeVm({ script: scriptFor('A'), context: contextA, collectionPath, scriptingConfig: {} }),
+        runScriptInNodeVm({ script: scriptFor('B'), context: contextB, collectionPath, scriptingConfig: {} })
+      ]);
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('value', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('value', 'B');
+    });
+
+    it('should read a missing key as undefined and still call it once a later execution provides a function', async () => {
+      // Execution A exposes `helper` as undefined: the module must see plain undefined (as it
+      // would in the script's own context); execution B provides a function and calls it.
+      makePkg(path.join(collectionPath, 'node_modules'), 'helper-caller', {
+        'index.js': `module.exports = { probe: () => typeof helper, run: () => helper('x') };`
+      });
+
+      const contextA = { bru: { setVar: jest.fn() }, helper: undefined, console };
+      await runScriptInNodeVm({
+        script: `bru.setVar('probe', require('helper-caller').probe());`,
+        context: contextA, collectionPath, scriptingConfig: {}
+      });
+
+      const helper = jest.fn().mockReturnValue('called');
+      const contextB = { bru: { setVar: jest.fn() }, helper, console };
+      await runScriptInNodeVm({
+        script: `bru.setVar('ran', require('helper-caller').run());`,
+        context: contextB, collectionPath, scriptingConfig: {}
+      });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('probe', 'undefined');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('ran', 'called');
+      expect(helper).toHaveBeenCalledWith('x');
+    });
+
+    it('should preserve primitive custom globals for npm modules', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'primitive-reader', {
+        'index.js': `
+          module.exports = {
+            read: () => [typeof scalar, scalar, typeof flag, flag].join(':')
+          };
+        `
+      });
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        scalar: 'value',
+        flag: false,
+        console
+      };
+
+      await runScriptInNodeVm({
+        script: `bru.setVar('result', require('primitive-reader').read());`,
+        context,
+        collectionPath,
+        scriptingConfig: {}
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'string:value:boolean:false');
+    });
+
+    it('should keep collection-local modules per script context', async () => {
+      // Local modules may capture per-request state; they keep the per-context cache.
+      const marker = `_localEvalCount_${Date.now()}`;
+      fs.writeFileSync(
+        path.join(collectionPath, 'local-counted.js'),
+        `process.${marker} = (process.${marker} || 0) + 1; module.exports = {};`
+      );
+      const script = `require('./local-counted');`;
+
+      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig: {} });
+
+      expect(process[marker]).toBe(2);
+      delete process[marker];
     });
   });
 
