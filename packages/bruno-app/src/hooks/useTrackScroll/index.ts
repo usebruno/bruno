@@ -14,6 +14,8 @@ export type UseTrackScrollOptions = {
   selector?: string | null;
   /** Set false to pause tracking (e.g. edit mode in Docs where CodeEditor handles its own scroll). */
   enabled?: boolean;
+  /** When false, skip restoring scroll on mount so a row-focus scroll can win. */
+  restoreOnMount?: boolean;
 };
 
 /**
@@ -28,10 +30,11 @@ export type UseTrackScrollOptions = {
  *   <CodeEditor initialScroll={scroll} onScroll={setScroll} />
  */
 export function useTrackScroll(options: UseTrackScrollOptions): void {
-  const { onChange, initialValue, ref, selector, enabled = true } = options;
+  const { onChange, initialValue, ref, selector, enabled = true, restoreOnMount = true } = options;
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollPosRef = useRef<number>(initialValue ?? 0);
+  const restoreOnMountRef = useRef(restoreOnMount);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -45,7 +48,9 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
       : ref.current;
     if (!el) return;
 
-    el.scrollTop = scrollPosRef.current;
+    if (restoreOnMountRef.current) {
+      el.scrollTop = scrollPosRef.current;
+    }
 
     const handleScroll = () => {
       scrollPosRef.current = el.scrollTop;

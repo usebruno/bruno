@@ -11,6 +11,9 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
 const ROW_HEIGHT = 35;
+// Keep in sync with the row-focus-flash animation in StyledWrapper.
+const FOCUS_FLASH_DURATION = 2500;
+const FOCUS_SCROLL_FRAMES = 90;
 
 const findScrollParent = (element) => {
   let parent = element?.parentElement;
@@ -20,6 +23,50 @@ const findScrollParent = (element) => {
     parent = parent.parentElement;
   }
   return null;
+};
+
+const findFocusRowIndex = (rows, keyColumn, { uid, name } = {}) => {
+  if (uid) {
+    const byUid = rows.findIndex((row) => row.uid === uid);
+    if (byUid !== -1) return byUid;
+  }
+
+  if (!keyColumn || !name) return -1;
+  const targetName = String(name).toLowerCase();
+  let index = -1;
+  rows.forEach((row, rowIndex) => {
+    const rowName = row[keyColumn.key];
+    if (typeof rowName === 'string' && rowName.toLowerCase() === targetName) {
+      index = rowIndex;
+    }
+  });
+  return index;
+};
+
+const findRenderedRow = (wrapper, rowIndex) =>
+  wrapper?.querySelector(`tr[data-item-index="${rowIndex}"]`) || null;
+
+const isRowInViewport = (row, scrollParent) => {
+  if (!row || !scrollParent?.getBoundingClientRect) return false;
+  const rowRect = row.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
+};
+
+/** Scroll toward an unrendered row. Measure from the wrapper sticky thead moves the table. */
+const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
+  if (!wrapper || !scrollParent?.getBoundingClientRect) return;
+
+  const wrapperOffset = wrapper.getBoundingClientRect().top
+    - scrollParent.getBoundingClientRect().top
+    + scrollParent.scrollTop;
+  const headerHeight = wrapper.querySelector('thead')?.offsetHeight || ROW_HEIGHT;
+  const rowTop = wrapperOffset + headerHeight + (rowIndex * ROW_HEIGHT);
+  const nextTop = Math.max(0, rowTop - (scrollParent.clientHeight / 2));
+
+  if (Math.abs(scrollParent.scrollTop - nextTop) > 1) {
+    scrollParent.scrollTop = nextTop;
+  }
 };
 
 const TableRow = React.memo(
@@ -36,23 +83,25 @@ const TableRow = React.memo(
       handleDragHandleMouseDown,
       isRowEditable,
       getRowClassName,
-      getRowTestId
+      getRowTestId,
+      flashedRowUid
     } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(item);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(item) ?? true);
     const isDragOver = canDrag && dragOverKey === item?.uid;
     const isBeingDragged = canDrag && draggingKey === item?.uid;
     const className = classnames(rest.className, {
       'drag-over': isDragOver,
-      'dragging-source': isBeingDragged
-    }, getRowClassName(item));
+      'dragging-source': isBeingDragged,
+      'row-focus-flash': !!item?.uid && flashedRowUid === item.uid
+    }, getRowClassName?.(item));
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
       <tr
         {...rest}
         className={className}
-        data-testid={getRowTestId(item)}
+        data-testid={getRowTestId?.(item)}
         data-row-name={rowName || undefined}
         {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
       >
@@ -97,13 +146,15 @@ const EditableTable = ({
   initialScroll = 0,
   onColumnWidthsChange,
   sortStorageKey,
-  isDraft
+  isDraft,
+  focusRow,
+  onFocusRowHandled
 }) => {
   const {
-    isEditable: isRowEditable = () => true,
-    isCheckboxDisabled = () => false,
-    className: getRowClassName = () => '',
-    testId: getRowTestId = () => undefined,
+    isEditable: isRowEditable,
+    isCheckboxDisabled,
+    className: getRowClassName,
+    testId: getRowTestId,
     renderFullWidth: renderFullWidthRow,
     renderActionCell
   } = rowConfig;
@@ -115,6 +166,7 @@ const EditableTable = ({
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
+  const [flashedRow, setFlashedRow] = useState(null);
   const widths = columnWidths || {};
 
   const sortColumn = useMemo(() => columns.find((col) => col.sortable), [columns]);
@@ -258,7 +310,7 @@ const EditableTable = ({
 
     // Always keep one empty add-row under section/default rows.
     const lastRow = rows[rows.length - 1];
-    if (isRowEditable(lastRow) && !hasAnyValue(lastRow)) {
+    if ((isRowEditable?.(lastRow) ?? true) && !hasAnyValue(lastRow)) {
       return rows;
     }
 
@@ -283,14 +335,21 @@ const EditableTable = ({
   }, [rowsWithEmpty.length, isEmptyRow, showAddRow]);
 
   useEffect(() => {
-    if (rowsWithEmpty.length > prevRowCountRef.current && prevRowCountRef.current > 0) {
-      virtuosoRef.current?.scrollToIndex({
-        index: rowsWithEmpty.length - 1,
-        behavior: 'smooth'
-      });
+    const previousCount = prevRowCountRef.current;
+    const nextCount = rowsWithEmpty.length;
+    prevRowCountRef.current = nextCount;
+
+    // Only follow a newly appended add-row, not inherited rows being prepended.
+    if (previousCount > 0 && nextCount === previousCount + 1) {
+      const lastIndex = nextCount - 1;
+      if (isLastEmptyRow(rowsWithEmpty[lastIndex], lastIndex)) {
+        virtuosoRef.current?.scrollToIndex({
+          index: lastIndex,
+          behavior: 'smooth'
+        });
+      }
     }
-    prevRowCountRef.current = rowsWithEmpty.length;
-  }, [rowsWithEmpty.length]);
+  }, [isLastEmptyRow, rowsWithEmpty]);
 
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
@@ -305,7 +364,7 @@ const EditableTable = ({
 
     // Drop empty data rows; keep section/default rows. The add-row is rebuilt.
     const result = showAddRow
-      ? updatedRows.filter((row) => !isRowEditable(row) || hasAnyValue(row))
+      ? updatedRows.filter((row) => !(isRowEditable?.(row) ?? true) || hasAnyValue(row))
       : updatedRows;
 
     onChange(result);
@@ -330,7 +389,7 @@ const EditableTable = ({
   const handleRowReorder = useCallback((fromUid, toUid) => {
     if (!onReorder) return;
     const reorderableRows = (showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty)
-      .filter(isRowEditable);
+      .filter((row) => isRowEditable?.(row) ?? true);
     const fromIndex = reorderableRows.findIndex((row) => row.uid === fromUid);
     const toIndex = reorderableRows.findIndex((row) => row.uid === toUid);
     if (fromIndex === -1 || toIndex === -1) return;
@@ -400,6 +459,84 @@ const EditableTable = ({
   }, [isLastEmptyRow, getRowError, handleValueChange]);
 
   const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
+  const rowsWithEmptyRef = useRef(rowsWithEmpty);
+  rowsWithEmptyRef.current = rowsWithEmpty;
+  const keyColumnRef = useRef(keyColumn);
+  keyColumnRef.current = keyColumn;
+  const onFocusRowHandledRef = useRef(onFocusRowHandled);
+  onFocusRowHandledRef.current = onFocusRowHandled;
+
+  const focusRowUid = focusRow?.uid;
+  const focusRowName = focusRow?.name;
+  const focusRowRequestedAt = focusRow?.requestedAt;
+
+  // Depend on focus primitives only row/column objects change every render.
+  useEffect(() => {
+    if ((!focusRowUid && !focusRowName) || !scrollParent) return;
+
+    const rows = rowsWithEmptyRef.current;
+    const index = findFocusRowIndex(rows, keyColumnRef.current, {
+      uid: focusRowUid,
+      name: focusRowName
+    });
+    if (index === -1) {
+      onFocusRowHandledRef.current?.();
+      return;
+    }
+
+    const uid = rows[index].uid;
+    setFlashedRow((prev) => (
+      prev?.uid === uid && prev?.requestedAt === focusRowRequestedAt
+        ? prev
+        : { uid, requestedAt: focusRowRequestedAt }
+    ));
+
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+
+    const finish = () => {
+      if (!cancelled) onFocusRowHandledRef.current?.();
+    };
+
+    const revealRow = () => {
+      if (cancelled) return;
+      attempts += 1;
+
+      // scrollToIndex is a no-op until measured; also set scrollTop so the row mounts.
+      virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'auto' });
+      scrollNearRow(scrollParent, wrapperRef.current, index);
+
+      const row = findRenderedRow(wrapperRef.current, index);
+      if (row) {
+        row.scrollIntoView({ block: 'center', inline: 'nearest' });
+        if (isRowInViewport(row, scrollParent)) {
+          finish();
+          return;
+        }
+      }
+
+      if (attempts >= FOCUS_SCROLL_FRAMES) {
+        finish();
+        return;
+      }
+
+      frame = requestAnimationFrame(revealRow);
+    };
+
+    frame = requestAnimationFrame(revealRow);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [focusRowUid, focusRowName, focusRowRequestedAt, scrollParent]);
+
+  useEffect(() => {
+    if (!flashedRow) return;
+
+    const timer = setTimeout(() => setFlashedRow(null), FOCUS_FLASH_DURATION);
+    return () => clearTimeout(timer);
+  }, [flashedRow]);
 
   const virtuosoContext = useMemo(() => ({
     reorderable,
@@ -412,8 +549,9 @@ const EditableTable = ({
     handleDragHandleMouseDown,
     isRowEditable,
     getRowClassName,
-    getRowTestId
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId]);
+    getRowTestId,
+    flashedRowUid: flashedRow?.uid || null
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId, flashedRow]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
@@ -460,7 +598,7 @@ const EditableTable = ({
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
-    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && isRowEditable(row);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(row) ?? true);
     const fullWidthContent = renderFullWidthRow?.(row);
 
     if (fullWidthContent) {
@@ -497,7 +635,7 @@ const EditableTable = ({
                 className="mousetrap"
                 data-testid="column-checkbox"
                 checked={row[checkboxKey] ?? true}
-                disabled={disableCheckbox || isCheckboxDisabled(row)}
+                disabled={disableCheckbox || isCheckboxDisabled?.(row)}
                 onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
               />
             )}
@@ -528,7 +666,7 @@ const EditableTable = ({
                 return customAction;
               }
 
-              return !isEmpty && isRowEditable(row) && (
+              return !isEmpty && (isRowEditable?.(row) ?? true) && (
                 <button
                   data-testid="column-delete"
                   onClick={() => handleRemoveRow(row.uid)}
@@ -543,13 +681,15 @@ const EditableTable = ({
     );
   }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, isRowEditable, renderFullWidthRow, renderActionCell, columns, showDelete, keyColumn, handleDragHandleMouseDown, checkboxKey, disableCheckbox, isCheckboxDisabled, handleCheckboxChange, renderCell, handleRemoveRow]);
 
-  const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
+  const initialTopMostItemIndex = useRef(
+    (focusRow?.uid || focusRow?.name) ? 0 : Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))
+  ).current;
 
   return (
     <StyledWrapper
       ref={wrapperRef}
       data-testid={testId}
-      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}
+      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''} ${renderFullWidthRow ? 'has-section-rows' : ''}`}
     >
       {scrollParent && (
         <TableVirtuoso
@@ -560,6 +700,7 @@ const EditableTable = ({
           components={{ TableRow }}
           context={virtuosoContext}
           defaultItemHeight={ROW_HEIGHT}
+          {...(renderFullWidthRow ? { increaseViewportBy: 2000 } : {})}
           initialTopMostItemIndex={initialTopMostItemIndex}
           totalListHeightChanged={handleTotalHeightChanged}
           computeItemKey={(_, item) => item.uid}

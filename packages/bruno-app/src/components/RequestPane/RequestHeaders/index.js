@@ -1,21 +1,28 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  IconAlertTriangle,
   IconChevronDown,
   IconChevronRight,
+  IconExternalLink,
   IconEye,
   IconEyeOff,
   IconInfoCircle
 } from '@tabler/icons';
 import { BRUNO_DEFAULT_HEADERS, getBrunoRuntimeUserAgent } from '@usebruno/common';
 import { useTheme } from 'providers/Theme';
-import { moveRequestHeader, setRequestHeaders, updateItemSettings } from 'providers/ReduxStore/slices/collections';
+import {
+  moveRequestHeader,
+  setRequestHeaders,
+  updateItemSettings,
+  updateSettingsSelectedTab,
+  updatedFolderSettingsSelectedTab
+} from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
+import { addTab, setFocusTableRow, updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
+import { Tooltip } from 'react-tooltip';
 import SingleLineEditor from 'components/SingleLineEditor';
-import ToolHint from 'components/ToolHint';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
@@ -26,16 +33,48 @@ import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { version as appVersion } from '../../../../package.json';
+import { filterUnclaimedHeaders, getInheritedHeaders } from './getInheritedHeaders';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const ROW_TYPE = {
   REQUEST: 'request',
   DEFAULT: 'default',
+  INHERITED: 'inherited',
   SECTION: 'section'
 };
 
 const isRequestRow = (row) => !row.rowType || row.rowType === ROW_TYPE.REQUEST;
+
+/** Portaled so overflow-hidden table cells cannot clip the hint. */
+const HEADER_HINT_STYLE = {
+  maxWidth: 220,
+  whiteSpace: 'normal',
+  overflowWrap: 'break-word',
+  wordWrap: 'break-word'
+};
+
+const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId, children }) => (
+  <>
+    <span id={id} className={className} data-testid={testId}>
+      {children}
+    </span>
+    {createPortal(
+      <Tooltip
+        anchorId={id}
+        className="tooltip-mod"
+        content={text}
+        place={place}
+        positionStrategy="fixed"
+        delayShow={500}
+        opacity={1}
+        style={HEADER_HINT_STYLE}
+        render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
+      />,
+      document.body
+    )}
+  </>
+);
 
 const getDefaultHeaderValue = (header, requestUrl) => {
   if (header.name === 'User-Agent') {
@@ -63,11 +102,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const settings = (item.draft ? get(item, 'draft.settings', {}) : get(item, 'settings', {})) || {};
   const isHttpRequest = item.type === 'http-request';
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
-  const [showDefaultHeaders, setShowDefaultHeaders] = usePersistedState({
+  const [showInheritedHeaders, setShowInheritedHeaders] = usePersistedState({
     key: `request-show-default-headers-${item.uid}`,
     default: false
   });
-  const [isDefaultHeadersExpanded, setIsDefaultHeadersExpanded] = usePersistedState({
+  const [isInheritedHeadersExpanded, setIsInheritedHeadersExpanded] = usePersistedState({
     key: `request-default-headers-expanded-${item.uid}`,
     default: true
   });
@@ -78,6 +117,24 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
+
+  const pinHeadersToTop = useCallback(() => {
+    const pane = wrapperRef.current?.closest('.flex-boundary');
+    if (!pane) {
+      setScroll(0);
+      return;
+    }
+
+    const pin = () => {
+      pane.scrollTop = 0;
+    };
+    pin();
+    requestAnimationFrame(() => {
+      pin();
+      requestAnimationFrame(pin);
+    });
+    setScroll(0);
+  }, [setScroll]);
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -117,34 +174,38 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     [settings.omitHeaders]
   );
 
-  const enabledRequestHeaderNames = useMemo(
+  const requestHeaderNames = useMemo(
     () => new Set((headers || [])
-      .filter((header) => header.enabled !== false && header.name)
+      .filter((header) => header.name)
       .map((header) => header.name.toLowerCase())),
     [headers]
   );
 
-  const enabledDefaultHeaderNames = useMemo(
-    () => new Set(BRUNO_DEFAULT_HEADERS
-      .map((header) => header.name.toLowerCase())
-      .filter((name) => !omittedHeaderNames.has(name))),
-    [omittedHeaderNames]
+  const inheritedHeaders = useMemo(
+    () => isHttpRequest ? getInheritedHeaders(collection, item, requestHeaderNames) : [],
+    [collection, isHttpRequest, item, requestHeaderNames]
   );
 
-  const defaultHeaders = useMemo(() => BRUNO_DEFAULT_HEADERS.map((header) => {
+  const defaultHeaders = useMemo(() => filterUnclaimedHeaders(BRUNO_DEFAULT_HEADERS, [
+    ...requestHeaderNames,
+    ...inheritedHeaders.map((header) => header.name)
+  ]).map((header) => {
     const normalizedName = header.name.toLowerCase();
-    const enabled = !omittedHeaderNames.has(normalizedName);
 
     return {
       uid: `bruno-default-${normalizedName}`,
       rowType: ROW_TYPE.DEFAULT,
       name: header.name,
       value: getDefaultHeaderValue(header, request?.url),
-      enabled,
-      omittable: header.omittable,
-      overridden: enabled && enabledRequestHeaderNames.has(normalizedName)
+      enabled: !omittedHeaderNames.has(normalizedName),
+      omittable: header.omittable
     };
-  }), [enabledRequestHeaderNames, omittedHeaderNames, request?.url]);
+  }), [inheritedHeaders, omittedHeaderNames, request?.url, requestHeaderNames]);
+
+  const allInheritedHeaders = useMemo(
+    () => [...inheritedHeaders, ...defaultHeaders],
+    [defaultHeaders, inheritedHeaders]
+  );
 
   const tableRows = useMemo(() => {
     if (!isHttpRequest) {
@@ -153,21 +214,21 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
     const requestRows = (headers || []).map((header) => ({ ...header, rowType: ROW_TYPE.REQUEST }));
 
-    // Hide the defaults accordion.
-    if (!showDefaultHeaders) {
+    // Hide inherited and runtime-default headers until explicitly requested.
+    if (!showInheritedHeaders) {
       return requestRows;
     }
 
     return [
       {
-        uid: 'default-headers-section',
+        uid: 'inherited-headers-section',
         rowType: ROW_TYPE.SECTION,
-        section: ROW_TYPE.DEFAULT,
+        section: ROW_TYPE.INHERITED,
         label: 'Inherited Headers',
-        count: defaultHeaders.length,
-        expanded: isDefaultHeadersExpanded
+        count: allInheritedHeaders.length,
+        expanded: isInheritedHeadersExpanded
       },
-      ...(isDefaultHeadersExpanded ? defaultHeaders : []),
+      ...(isInheritedHeadersExpanded ? allInheritedHeaders : []),
       {
         uid: 'request-headers-section',
         rowType: ROW_TYPE.SECTION,
@@ -179,12 +240,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       ...(isRequestHeadersExpanded ? requestRows : [])
     ];
   }, [
-    defaultHeaders,
+    allInheritedHeaders,
     headers,
-    isDefaultHeadersExpanded,
+    isInheritedHeadersExpanded,
     isHttpRequest,
     isRequestHeadersExpanded,
-    showDefaultHeaders
+    showInheritedHeaders
   ]);
 
   const updateOmitHeaders = useCallback((headerName, enabled) => {
@@ -206,6 +267,10 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   }, [collection.uid, dispatch, item.uid, settings.omitHeaders]);
 
   const handleHeaderCheckboxChange = useCallback((row, checked) => {
+    if (row.rowType === ROW_TYPE.INHERITED) {
+      return;
+    }
+
     if (row.rowType === ROW_TYPE.DEFAULT) {
       updateOmitHeaders(row.name, checked);
       return;
@@ -222,8 +287,11 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       return null;
     }
 
-    const toggle = row.section === ROW_TYPE.DEFAULT
-      ? () => setIsDefaultHeadersExpanded(!isDefaultHeadersExpanded)
+    const toggle = row.section === ROW_TYPE.INHERITED
+      ? () => {
+          pinHeadersToTop();
+          setIsInheritedHeadersExpanded(!isInheritedHeadersExpanded);
+        }
       : () => setIsRequestHeadersExpanded(!isRequestHeadersExpanded);
 
     return (
@@ -238,7 +306,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         <span>{row.label} ({row.count})</span>
       </button>
     );
-  }, [isDefaultHeadersExpanded, isRequestHeadersExpanded, setIsDefaultHeadersExpanded, setIsRequestHeadersExpanded]);
+  }, [isInheritedHeadersExpanded, isRequestHeadersExpanded, pinHeadersToTop, setIsInheritedHeadersExpanded, setIsRequestHeadersExpanded]);
 
   const getRowError = useCallback((row, index, key) => {
     if (row.rowType && row.rowType !== ROW_TYPE.REQUEST) {
@@ -272,44 +340,122 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     item
   });
 
-  const renderDefaultHeaderAction = useCallback((row) => {
+  const inheritedDescriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    collection,
+    item,
+    readOnly: true
+  });
+
+  // Open the source Headers tab and flash this row.
+  const navigateToHeaderSource = useCallback((source, header) => {
+    const isFolder = source.type === 'folder';
+    const targetUid = isFolder ? source.uid : collection.uid;
+
+    dispatch(addTab({
+      uid: targetUid,
+      collectionUid: collection.uid,
+      type: isFolder ? 'folder-settings' : 'collection-settings'
+    }));
+
+    if (isFolder) {
+      dispatch(updatedFolderSettingsSelectedTab({
+        collectionUid: collection.uid,
+        folderUid: source.uid,
+        tab: 'headers'
+      }));
+    } else {
+      dispatch(updateSettingsSelectedTab({
+        collectionUid: collection.uid,
+        tab: 'headers'
+      }));
+    }
+
+    dispatch(setFocusTableRow({
+      uid: targetUid,
+      tableId: isFolder ? 'folder-headers' : 'collection-headers',
+      rowUid: header.sourceRowUid,
+      rowName: header.name,
+      requestedAt: Date.now()
+    }));
+  }, [collection.uid, dispatch]);
+
+  const renderInheritedHeaderAction = useCallback((row) => {
+    if (row.rowType === ROW_TYPE.INHERITED) {
+      const sourceName = row.source.name || 'Unnamed';
+      const sourceLabel = row.source.type === 'folder'
+        ? `folder “${sourceName}”`
+        : `collection “${sourceName}”`;
+
+      return (
+        <HeaderHint
+          id={`inherited-header-source-hint-${row.uid}`}
+          text={`Open headers in ${sourceLabel}`}
+          className="inherited-header-source"
+          place="top-end"
+        >
+          <button
+            type="button"
+            aria-label={`Open headers in ${sourceLabel}`}
+            data-testid={`inherited-header-source-${(row.name || 'unnamed').toLowerCase()}`}
+            onClick={() => navigateToHeaderSource(row.source, row)}
+          >
+            <IconExternalLink size={16} strokeWidth={1.5} />
+          </button>
+        </HeaderHint>
+      );
+    }
+
     if (row.rowType !== ROW_TYPE.DEFAULT) {
       return null;
     }
 
     return (
-      <ToolHint
+      <HeaderHint
+        id={`default-header-info-hint-${row.uid}`}
         text={row.omittable
           ? 'Automatically added at runtime'
           : 'Required by HTTP, cannot be omitted'}
-        toolhintId={`default-header-info-${row.uid}`}
         className="default-header-info"
-        dataTestId={`default-header-info-${row.name.toLowerCase()}`}
+        testId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
-        place="bottom-end"
-        positionStrategy="fixed"
-        tooltipStyle={{ opacity: 1 }}
+        place="top-end"
       >
         <IconInfoCircle
           size={16}
           strokeWidth={1.5}
         />
-      </ToolHint>
+      </HeaderHint>
     );
-  }, []);
+  }, [navigateToHeaderSource]);
 
   const rowConfig = useMemo(() => ({
     isEditable: isRequestRow,
-    isCheckboxDisabled: (row) => row.rowType === ROW_TYPE.DEFAULT && !row.omittable,
+    isCheckboxDisabled: (row) => row.rowType === ROW_TYPE.INHERITED
+      || (row.rowType === ROW_TYPE.DEFAULT && !row.omittable),
     className: (row) => (row.rowType ? `${row.rowType}-header-row` : ''),
     testId: (row) => {
       if (row.rowType === ROW_TYPE.SECTION) return `${row.section}-headers-section-row`;
       if (row.rowType === ROW_TYPE.DEFAULT) return `default-header-row-${row.name.toLowerCase()}`;
+      if (row.rowType === ROW_TYPE.INHERITED) {
+        return row.name ? `inherited-header-row-${row.name.toLowerCase()}` : 'inherited-header-row';
+      }
       return row.name ? `request-header-row-${row.name.toLowerCase()}` : 'request-header-add-row';
     },
-    renderFullWidth: isHttpRequest && showDefaultHeaders ? renderSectionRow : undefined,
-    renderActionCell: isHttpRequest && showDefaultHeaders ? renderDefaultHeaderAction : undefined
-  }), [isHttpRequest, showDefaultHeaders, renderSectionRow, renderDefaultHeaderAction]);
+    renderFullWidth: isHttpRequest && showInheritedHeaders ? renderSectionRow : undefined,
+    renderActionCell: isHttpRequest && showInheritedHeaders ? renderInheritedHeaderAction : undefined
+  }), [isHttpRequest, showInheritedHeaders, renderSectionRow, renderInheritedHeaderAction]);
+
+  // Use the editor so variables still highlight and show their hover popover.
+  const renderInheritedValue = (value) => (
+    <SingleLineEditor
+      value={value || ''}
+      theme={storedTheme}
+      collection={collection}
+      item={item}
+      readOnly
+    />
+  );
 
   const columns = [
     {
@@ -319,58 +465,30 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Name',
       width: '20%',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.DEFAULT) {
+        if (row.rowType === ROW_TYPE.INHERITED) {
           return (
             <div className="header-name-cell">
-              <span className="default-header-value">{value}</span>
-              {row.overridden && (
-                <ToolHint
-                  text="Overridden by a request header"
-                  toolhintId={`default-header-conflict-${row.uid}`}
-                  className="header-conflict-icon"
-                  dataTestId={`default-header-conflict-${row.name.toLowerCase()}`}
-                  tooltipTestId={`default-header-conflict-tooltip-${row.name.toLowerCase()}`}
-                  place="bottom-start"
-                  positionStrategy="fixed"
-                  tooltipStyle={{ opacity: 1 }}
-                >
-                  <IconAlertTriangle size={16} strokeWidth={1.5} />
-                </ToolHint>
-              )}
+              {renderInheritedValue(value)}
             </div>
           );
         }
 
+        if (row.rowType === ROW_TYPE.DEFAULT) {
+          return <span className="default-header-value">{value}</span>;
+        }
+
         return (
-          <div className="header-name-cell">
-            <SingleLineEditor
-              value={value || ''}
-              theme={storedTheme}
-              onSave={onSave}
-              onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
-              autocomplete={headerAutoCompleteList}
-              onRun={handleRun}
-              collection={collection}
-              item={item}
-              placeholder={!value ? 'Name' : ''}
-            />
-            {row.enabled !== false
-              && row.name
-              && enabledDefaultHeaderNames.has(row.name.toLowerCase()) && (
-              <ToolHint
-                text="Overrides Bruno's default header"
-                toolhintId={`request-header-conflict-${row.uid}`}
-                className="header-conflict-icon"
-                dataTestId={`request-header-conflict-${row.name.toLowerCase()}`}
-                tooltipTestId={`request-header-conflict-tooltip-${row.name.toLowerCase()}`}
-                place="bottom-start"
-                positionStrategy="fixed"
-                tooltipStyle={{ opacity: 1 }}
-              >
-                <IconAlertTriangle size={16} strokeWidth={1.5} />
-              </ToolHint>
-            )}
-          </div>
+          <SingleLineEditor
+            value={value || ''}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
+            autocomplete={headerAutoCompleteList}
+            onRun={handleRun}
+            collection={collection}
+            item={item}
+            placeholder={!value ? 'Name' : ''}
+          />
         );
       }
     },
@@ -378,27 +496,39 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange }) => row.rowType === ROW_TYPE.DEFAULT
-        ? <span className="default-header-value">{value}</span>
-        : (
-            <SingleLineEditor
-              value={value || ''}
-              theme={storedTheme}
-              onSave={onSave}
-              onChange={onChange}
-              onRun={handleRun}
-              autocomplete={MimeTypes}
-              collection={collection}
-              item={item}
-              placeholder={!value ? 'Value' : ''}
-            />
-          )
+      render: ({ row, value, onChange }) => {
+        if (row.rowType === ROW_TYPE.INHERITED) {
+          return renderInheritedValue(value);
+        }
+
+        return row.rowType === ROW_TYPE.DEFAULT
+          ? <span className="default-header-value">{value}</span>
+          : (
+              <SingleLineEditor
+                value={value || ''}
+                theme={storedTheme}
+                onSave={onSave}
+                onChange={onChange}
+                onRun={handleRun}
+                autocomplete={MimeTypes}
+                collection={collection}
+                item={item}
+                placeholder={!value ? 'Value' : ''}
+              />
+            );
+      }
     },
     {
       ...descriptionColumn,
-      render: (cellProps) => (cellProps.row.rowType === ROW_TYPE.DEFAULT
-        ? null
-        : descriptionColumn.render(cellProps))
+      render: (cellProps) => {
+        if (cellProps.row.rowType === ROW_TYPE.INHERITED) {
+          return inheritedDescriptionColumn.render(cellProps);
+        }
+
+        return cellProps.row.rowType && cellProps.row.rowType !== ROW_TYPE.REQUEST
+          ? null
+          : descriptionColumn.render(cellProps);
+      }
     }
   ];
 
@@ -433,7 +563,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         defaultRow={defaultRow}
         getRowError={getRowError}
         reorderable={true}
-        showAddRow={!isHttpRequest || !showDefaultHeaders || isRequestHeadersExpanded}
+        showAddRow={!isHttpRequest || !showInheritedHeaders || isRequestHeadersExpanded}
         initialScroll={scroll}
         onReorder={handleHeaderDrag}
         onCheckboxChange={isHttpRequest ? handleHeaderCheckboxChange : undefined}
@@ -446,17 +576,24 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           {isHttpRequest && (
             <button
               type="button"
-              className="btn-action toggle-default-headers select-none flex items-center gap-1"
-              data-testid="toggle-default-headers"
-              onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
+              className="btn-action toggle-inherited-headers select-none flex items-center gap-1"
+              data-testid="toggle-inherited-headers"
+              onClick={() => {
+                const next = !showInheritedHeaders;
+                pinHeadersToTop();
+                setShowInheritedHeaders(next);
+                if (next) {
+                  setIsInheritedHeadersExpanded(true);
+                }
+              }}
             >
-              {showDefaultHeaders
+              {showInheritedHeaders
                 ? <IconEyeOff size={16} strokeWidth={1.5} />
                 : <IconEye size={16} strokeWidth={1.5} />}
               <span>
-                {showDefaultHeaders
+                {showInheritedHeaders
                   ? 'Hide Inherited Headers'
-                  : `Show Inherited Headers (${defaultHeaders.length})`}
+                  : `Show Inherited Headers (${allInheritedHeaders.length})`}
               </span>
             </button>
           )}
