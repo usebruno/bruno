@@ -3,7 +3,7 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError, resolveVmFilename } = require('./utils');
+const { ScriptError, resolveVmFilename, releaseScriptContext } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
@@ -18,7 +18,8 @@ const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
  * @param {string} options.collectionPath - Path to the collection directory
  * @param {Object} options.scriptingConfig - Scripting configuration options
  * @param {string} [options.scriptPath] - Path to the source file for accurate stack traces
- * @returns {Promise<Object>} Execution results including variables and test results
+ * @param {boolean} [options.deferContextRelease=false] - When true, return a release callback instead of clearing the VM context immediately (for deferred callbacks like req.onFail)
+ * @returns {Promise<Function|void>} releaseContext callback when deferContextRelease is true
  * @throws {ScriptError} When script execution fails
  */
 async function runScriptInNodeVm({
@@ -26,11 +27,27 @@ async function runScriptInNodeVm({
   context,
   collectionPath,
   scriptingConfig,
-  scriptPath
+  scriptPath,
+  deferContextRelease = false
 }) {
   if (script.trim().length === 0) {
     return;
   }
+
+  let scriptContext;
+  let localModuleCache;
+  let compiledScript;
+  let released = false;
+
+  const releaseContext = () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    releaseScriptContext(scriptContext, localModuleCache);
+    scriptContext = null;
+    localModuleCache = null;
+  };
 
   try {
     // Compute allowed context roots for security validation
@@ -43,7 +60,7 @@ async function runScriptInNodeVm({
     additionalContextRootsAbsolute.push(path.normalize(collectionPath));
 
     // Build the script context with Bruno objects and globals
-    const scriptContext = buildScriptContext(context, scriptingConfig);
+    scriptContext = buildScriptContext(context, scriptingConfig);
 
     // Create truly isolated context - scriptContext becomes the global object
     // Scripts can ONLY access what's explicitly in scriptContext
@@ -55,7 +72,7 @@ async function runScriptInNodeVm({
     scriptContext.globalThis = scriptContext;
 
     // Create module cache for CJS modules
-    const localModuleCache = new Map();
+    localModuleCache = new Map();
 
     // Add require() function for CJS module loading
     scriptContext.require = createCustomRequire({
@@ -70,7 +87,6 @@ async function runScriptInNodeVm({
 
     // Execute the script in the isolated context
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
-    let compiledScript;
     try {
       compiledScript = new vm.Script(wrappedScript, {
         filename: vmFilename
@@ -122,8 +138,19 @@ async function runScriptInNodeVm({
       Error.prepareStackTrace = originalPrepareStackTrace;
     }
   } catch (error) {
-    throw new ScriptError(error, script);
+    const scriptError = new ScriptError(error, script);
+    if (deferContextRelease) {
+      scriptError.releaseNodeVmContext = releaseContext;
+    }
+    throw scriptError;
+  } finally {
+    compiledScript = null;
+    if (!deferContextRelease) {
+      releaseContext();
+    }
   }
+
+  return deferContextRelease ? releaseContext : undefined;
 }
 
 /**

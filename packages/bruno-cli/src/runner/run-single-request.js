@@ -171,8 +171,8 @@ const runSingleRequest = async function (
     }
   };
 
+  let request;
   try {
-    let request;
     let nextRequestName;
     let shouldStopRunnerExecution = false;
     let preRequestTestResults = [];
@@ -1041,6 +1041,9 @@ const runSingleRequest = async function (
       preRequestTestResults: [],
       postResponseTestResults: []
     };
+  } finally {
+    request?.releaseNodeVmContext?.();
+    delete request?.releaseNodeVmContext;
   }
 };
 
