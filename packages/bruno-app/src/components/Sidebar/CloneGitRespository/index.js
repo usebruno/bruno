@@ -153,7 +153,14 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         const repoName = getRepoNameFromUrl(repositoryUrl);
         const targetPath = path.join(collectionLocation, repoName);
 
-        await dispatch(cloneGitRepository({ url: repositoryUrl, path: targetPath, processUid, branch }));
+        await dispatch(
+          cloneGitRepository({
+            url: repositoryUrl,
+            path: targetPath,
+            processUid,
+            branch: branch || branchListing.defaultBranch
+          })
+        );
 
         cloneFinished();
         dispatch(removeGitOperationProgress(processUid));
