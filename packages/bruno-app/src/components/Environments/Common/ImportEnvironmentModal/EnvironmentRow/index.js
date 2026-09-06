@@ -3,8 +3,6 @@ import { ResolutionButton } from '../ReviewStep/StyledWrapper';
 import { RESOLUTION_OPTIONS } from '../utils';
 
 const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setItemResolution, showResolutions }) => {
-  const sourceFile = env.filePath || env.fileName;
-
   return (
     <div className="env-item" data-testid="env-import-item">
       <label className="env-item-label">
@@ -16,7 +14,7 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           data-testid="env-import-item-checkbox"
         />
         <div className="env-item-content">
-          <div className="env-name" title={sourceFile}>{env.name}</div>
+          <div className="env-name" title={env.name}>{env.name}</div>
         </div>
       </label>
       {showResolutions && (

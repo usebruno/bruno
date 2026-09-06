@@ -27,7 +27,7 @@ const InvalidEnvironmentGroup = ({ invalid, isExpanded, toggleExpanded }) => {
           {invalid.map((item, idx) => (
             <div key={`${item.fileName}-${idx}`} className="env-import-invalid-item" data-testid="env-import-invalid-item">
               <div className="env-item-content">
-                <div className="env-name">{item.fileName}</div>
+                <div className="env-name" title={item.fileName}>{item.fileName}</div>
                 <div className="env-error">{item.error}</div>
               </div>
             </div>
