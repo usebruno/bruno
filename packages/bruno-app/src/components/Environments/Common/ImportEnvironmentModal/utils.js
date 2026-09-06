@@ -10,18 +10,11 @@ export const detectEnvironmentFormat = (data) => {
 };
 
 export const RESOLUTION_TYPES = {
-  CUSTOM: 'custom',
   COPY: 'copy',
   REPLACE: 'replace'
 };
 
-export const RESOLUTION_SHORT_LABELS = {
-  [RESOLUTION_TYPES.COPY]: 'Clone',
-  [RESOLUTION_TYPES.REPLACE]: 'Replace'
-};
-
-export const RESOLUTION_LABELS = {
-  [RESOLUTION_TYPES.CUSTOM]: 'Custom',
-  [RESOLUTION_TYPES.COPY]: 'Import as clone',
-  [RESOLUTION_TYPES.REPLACE]: 'Replace existing'
-};
+export const RESOLUTION_OPTIONS = [
+  { value: RESOLUTION_TYPES.COPY, label: 'New', title: 'Import as a new environment', testId: 'env-import-copy-btn' },
+  { value: RESOLUTION_TYPES.REPLACE, label: 'Replace', title: 'Replace existing', testId: 'env-import-replace-btn' }
+];
