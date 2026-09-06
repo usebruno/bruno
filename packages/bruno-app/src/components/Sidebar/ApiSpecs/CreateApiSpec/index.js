@@ -73,28 +73,31 @@ const CreateApiSpec = ({ onClose }) => {
     }),
     onSubmit: async (values) => {
       let yamlContent = '';
+      let exportWarnings = [];
       if (values?.importFrom === 'collection' && values?.collectionLocation && collectionData) {
-        const { files, envVariables, processEnvVariables } = collectionData;
+        const { files, envVariables, processEnvVariables, collectionVariables } = collectionData;
         let variables = {
+          ...(collectionVariables || {}),
           processEnvVariables
         };
-        // Get selected env's variables
         if (values?.environment && values?.environment?.length) {
           variables = {
+            ...(collectionVariables || {}),
             ...getEnvironmentVariablesKeyValuePairs(envVariables[values?.environment] || {}),
-            ...variables
+            processEnvVariables
           };
         }
         // Convert envVariables (keyed by filename) to environments array for multi-server export
         const environmentsList = Object.entries(envVariables || {}).map(([envFile, vars]) => ({
-          name: envFile.replace(/\.(bru|yml)$/, ''),
+          name: envFile.replace(/\.(bru|ya?ml)$/i, ''),
           variables: vars
         }));
         // Create API spec yaml
-        let exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: files, environments: environmentsList });
+        const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: files, environments: environmentsList });
         if (exportedYamlContentData?.content) {
           yamlContent = exportedYamlContentData?.content;
         }
+        exportWarnings = exportedYamlContentData?.warnings || [];
       }
 
       dispatch(createApiSpecFile(`${values.apiSpecName}.yaml`, values.apiSpecLocation, yamlContent))
@@ -103,6 +106,9 @@ const CreateApiSpec = ({ onClose }) => {
             dispatch(showApiSpecPage());
           }, 200);
           toast.success('ApiSpec created');
+          if (exportWarnings.length) {
+            toast(`Created with ${exportWarnings.length} warning(s); some request bodies could not be fully parsed`, { icon: '⚠️' });
+          }
           onClose();
         })
         .catch((err) => toast.error(err?.message));
@@ -151,17 +157,21 @@ const CreateApiSpec = ({ onClose }) => {
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke('renderer:get-collection-json', collectionLocation)
-        .then(({ files, name, envVariables, processEnvVariables }) => {
-          setCollectionData({ name, files, envVariables, processEnvVariables });
+        .then(({ files, name, envVariables, processEnvVariables, collectionVariables, skipped }) => {
+          setCollectionData({ name, files, envVariables, processEnvVariables, collectionVariables });
           const environments = envVariables || {};
           const environmentNames = Object.keys(environments);
-          if (environmentNames?.length) {
-            setEnvironments(environments);
-            formik.setFieldValue('environment', environmentNames[0] || '');
+          setEnvironments(environments);
+          formik.setFieldValue('environment', environmentNames[0] || '');
+          if (skipped?.length) {
+            toast.error(`${skipped.length} file(s) could not be parsed and were skipped`);
           }
         })
         .catch((err) => {
           console.error('Error loading collection:', err);
+          setCollectionData(null);
+          setEnvironments({});
+          formik.setFieldValue('environment', '');
           toast.error('Failed to load collection');
         });
     }
