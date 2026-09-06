@@ -51,13 +51,13 @@ test.describe('Import environment - name conflict handling', () => {
       await test.step('Copy is the default resolution and can be switched to Replace', async () => {
         const item = environment.importReviewItem('Production');
         await expect(item).toBeVisible();
-        await expect(environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'true');
+        await expect(environment.importCreateNewButton('Production')).toHaveAttribute('aria-pressed', 'true');
         await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'false');
 
         await environment.importReplaceButton('Production').click();
 
         await expect(environment.importReplaceButton('Production')).toHaveAttribute('aria-pressed', 'true');
-        await expect(environment.importCopyButton('Production')).toHaveAttribute('aria-pressed', 'false');
+        await expect(environment.importCreateNewButton('Production')).toHaveAttribute('aria-pressed', 'false');
       });
 
       await modal.closeButton().click();

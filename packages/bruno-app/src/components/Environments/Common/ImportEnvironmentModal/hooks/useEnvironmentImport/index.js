@@ -34,7 +34,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
         const isDuplicate = environment.status === ENV_STATUS.DUPLICATE;
 
         if (isDuplicate) {
-          const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.COPY;
+          const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.CREATE_NEW;
           const normalizedName = normalizeEnvName(environment.name);
           if (resolution === RESOLUTION_TYPES.REPLACE && !replacedNames.has(normalizedName)) {
             const existingEnv = getExistingEnv(environment.name);
@@ -125,7 +125,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
       const initialResolutions = new Map();
       validItems
         .filter((item) => item.status === ENV_STATUS.DUPLICATE)
-        .forEach((item) => initialResolutions.set(item.id, RESOLUTION_TYPES.COPY));
+        .forEach((item) => initialResolutions.set(item.id, RESOLUTION_TYPES.CREATE_NEW));
       setResolutions(initialResolutions);
 
       setStep(IMPORT_STEPS.REVIEW);
