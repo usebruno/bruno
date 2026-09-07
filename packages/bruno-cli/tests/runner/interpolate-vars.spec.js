@@ -1,5 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 const interpolateVars = require('../../src/runner/interpolate-vars');
+const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('interpolate-vars: interpolateVars', () => {
   it('keeps stream-backed JSON request bodies intact', () => {
@@ -102,15 +103,8 @@ describe('interpolate-vars: api key header name sidecar', () => {
 });
 
 describe('interpolate-vars: digest auth', () => {
-  const digestRequest = () => ({
-    digestConfig: {
-      username: 'user',
-      password: '{{digestPw}}'
-    }
-  });
-
   it('interpolates digest credentials from environment variables', () => {
-    const request = digestRequest();
+    const request = { digestConfig: { username: 'user', password: '{{digestPw}}' } };
     const envVariables = { digestPw: 'passwd' };
 
     interpolateVars(request, envVariables, {}, {});
@@ -119,10 +113,23 @@ describe('interpolate-vars: digest auth', () => {
   });
 
   it('interpolates digest credentials from runtime variables', () => {
-    const request = digestRequest();
+    const request = { digestConfig: { username: 'user', password: '{{digestPw}}' } };
     const runtimeVariables = { digestPw: 'passwd' };
 
     interpolateVars(request, {}, runtimeVariables, {});
+
+    expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
+  });
+
+  it('interpolates digest credentials inherited from the collection', async () => {
+    const collection = {
+      root: { request: { auth: { mode: 'digest', digest: { username: 'user', password: '{{digestPw}}' } } } }
+    };
+    const item = { request: { method: 'GET', headers: [], params: [], url: 'https://example.com', auth: { mode: 'inherit' } } };
+    const envVariables = { digestPw: 'passwd' };
+
+    const request = await prepareRequest(item, collection);
+    interpolateVars(request, envVariables, {}, {});
 
     expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
   });
