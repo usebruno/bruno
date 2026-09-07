@@ -17,8 +17,9 @@ const adoptLegacyFileIndex = (db) => {
     try {
       db._db.exec(`
         INSERT OR IGNORE INTO file_index_entries
-          (collection_path, relative_path, id, mtime, hash, data, raw, created_at, updated_at)
+          (collection_path, relative_path, id, mtime, hash, data, raw, content_bytes, created_at, updated_at)
         SELECT collection_path, relative_path, id, mtime, hash, data, raw,
+               LENGTH(data) + LENGTH(COALESCE(raw, '')),
                COALESCE(created_at, unixepoch()), COALESCE(updated_at, unixepoch())
         FROM legacy.file_index_entries
       `);
