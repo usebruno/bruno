@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import {
-  addEnvironmentVariable,
+  addEnvironmentVariables,
   closeEnvironmentPanel,
   createCollection,
   createEnvironment,
@@ -26,16 +26,20 @@ for (const { position, prefix } of [
       await page.setViewportSize({ width: 1000, height: 720 });
       await createCollection(page, collectionName, await createTmpDir('new-request-tooltip'));
       await createEnvironment(page, 'Example', 'collection');
-      await addEnvironmentVariable(page, { name: 'apiKey', value: variableValue });
+      await addEnvironmentVariables(page, [
+        { name: 'apiKey', value: variableValue },
+        { name: 'apiKeyBackup', value: 'backup-api-key' }
+      ]);
       await saveEnvironment(page);
       await closeEnvironmentPanel(page);
     });
 
-    await test.step('Select URL autocomplete in the New Request dialog', async () => {
+    await test.step('Select the exact URL autocomplete option among overlapping variable names', async () => {
       await openNewRequestModal(page, collectionName);
       await request.requestNameInput().fill(requestName);
       await request.newRequestUrl().click();
       await page.keyboard.type(`${prefix}{{api`);
+      await expect(codeMirror.hint('apiKeyBackup')).toBeVisible();
       await codeMirror.hint('apiKey').click();
       await expect(request.newRequestUrl()).toContainClass('CodeMirror-focused');
       await page.keyboard.type('}}');

@@ -138,7 +138,7 @@ export const buildCommonLocators = (page: Page) => ({
     searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
-    hint: (name: string) => page.locator('.CodeMirror-hint').filter({ hasText: name }),
+    hint: (name: string) => page.locator('.CodeMirror-hints:visible').getByRole('option', { name, exact: true }),
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
