@@ -615,6 +615,8 @@ describe('node-vm sandbox', () => {
   });
 
   describe('createCustomRequire - npm modules are shared across script executions', () => {
+    const scriptingConfig = { cacheModules: true };
+
     beforeEach(() => {
       __resetNpmModuleStateForTests();
     });
@@ -639,8 +641,8 @@ describe('node-vm sandbox', () => {
       const contextA = { bru: { setVar: jest.fn() }, console };
       const contextB = { bru: { setVar: jest.fn() }, console };
 
-      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(process[marker]).toBe(1);
       // Both scripts got the same module instance
@@ -662,8 +664,8 @@ describe('node-vm sandbox', () => {
       const contextA = { bru: { getVar: jest.fn().mockReturnValue('A'), setVar: jest.fn() }, console };
       const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
 
-      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
@@ -695,8 +697,8 @@ describe('node-vm sandbox', () => {
       const contextA = makeContext('https://example.com/a');
       const contextB = makeContext('https://example.com/b');
 
-      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/a');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('dynamicUrl', 'https://example.com/b');
@@ -725,8 +727,8 @@ describe('node-vm sandbox', () => {
       const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
 
       await Promise.all([
-        runScriptInNodeVm({ script: scriptFor(delayA), context: contextA, collectionPath, scriptingConfig: {} }),
-        runScriptInNodeVm({ script: scriptFor(delayB), context: contextB, collectionPath, scriptingConfig: {} })
+        runScriptInNodeVm({ script: scriptFor(delayA), context: contextA, collectionPath, scriptingConfig }),
+        runScriptInNodeVm({ script: scriptFor(delayB), context: contextB, collectionPath, scriptingConfig })
       ]);
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
@@ -766,8 +768,8 @@ describe('node-vm sandbox', () => {
       const contextA = makeContext('A');
       const contextB = makeContext('B');
 
-      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'AA');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'BB');
@@ -790,8 +792,8 @@ describe('node-vm sandbox', () => {
       const contextA = { bru: { setVar: jest.fn() }, console };
       const contextB = { bru: { setVar: jest.fn() }, console };
 
-      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('count', 1);
       expect(contextB.bru.setVar).toHaveBeenCalledWith('count', 2);
@@ -815,7 +817,7 @@ describe('node-vm sandbox', () => {
         bru.setVar('arrayIsArray', reader.readArray(array));
       `;
 
-      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
 
       expect(context.bru.setVar).toHaveBeenCalledWith('sameBru', true);
       expect(context.bru.setVar).toHaveBeenCalledWith('arrayIsArray', true);
@@ -839,8 +841,8 @@ describe('node-vm sandbox', () => {
       const contextB = { bru: { setVar: jest.fn() }, console };
 
       await Promise.all([
-        runScriptInNodeVm({ script: scriptFor('A'), context: contextA, collectionPath, scriptingConfig: {} }),
-        runScriptInNodeVm({ script: scriptFor('B'), context: contextB, collectionPath, scriptingConfig: {} })
+        runScriptInNodeVm({ script: scriptFor('A'), context: contextA, collectionPath, scriptingConfig }),
+        runScriptInNodeVm({ script: scriptFor('B'), context: contextB, collectionPath, scriptingConfig })
       ]);
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('value', 'A');
@@ -857,14 +859,14 @@ describe('node-vm sandbox', () => {
       const contextA = { bru: { setVar: jest.fn() }, helper: undefined, console };
       await runScriptInNodeVm({
         script: `bru.setVar('probe', require('helper-caller').probe());`,
-        context: contextA, collectionPath, scriptingConfig: {}
+        context: contextA, collectionPath, scriptingConfig
       });
 
       const helper = jest.fn().mockReturnValue('called');
       const contextB = { bru: { setVar: jest.fn() }, helper, console };
       await runScriptInNodeVm({
         script: `bru.setVar('ran', require('helper-caller').run());`,
-        context: contextB, collectionPath, scriptingConfig: {}
+        context: contextB, collectionPath, scriptingConfig
       });
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('probe', 'undefined');
@@ -892,7 +894,7 @@ describe('node-vm sandbox', () => {
         script: `bru.setVar('result', require('primitive-reader').read());`,
         context,
         collectionPath,
-        scriptingConfig: {}
+        scriptingConfig
       });
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'string:value:boolean:false');
@@ -907,8 +909,8 @@ describe('node-vm sandbox', () => {
       );
       const script = `require('./local-counted');`;
 
-      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig: {} });
-      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig: {} });
+      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: { bru: {}, console }, collectionPath, scriptingConfig });
 
       expect(process[marker]).toBe(2);
       delete process[marker];
