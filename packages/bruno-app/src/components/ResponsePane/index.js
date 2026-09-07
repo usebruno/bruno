@@ -155,7 +155,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
           <QueryResult
@@ -259,7 +259,7 @@ const ResponsePane = ({ item, collection }) => {
           </div>
         </>
       ) : null}
-      <div className="flex items-center response-pane-status">
+      <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
         {item.response?.stream?.running
           ? <ResponseStopWatch startTimestamp={item.requestSent?.timestamp} />

@@ -1,0 +1,25 @@
+meta {
+  name: grpc-request
+  type: grpc
+  seq: 3
+}
+
+grpc {
+  url: http://link-aware.test/grpc-url
+  method: /hello.HelloService/SayHello
+  body: grpc
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "link": "http://link-aware.test/grpc-body"
+    }
+  '''
+}
+
+docs {
+  See http://link-aware.test/grpc-docs for details.
+}

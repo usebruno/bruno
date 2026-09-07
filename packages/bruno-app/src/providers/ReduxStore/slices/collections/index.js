@@ -24,7 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
+import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
@@ -200,6 +200,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
+  selectedSidebarUids: [],
+  lastClickedSidebarUid: null,
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
@@ -408,6 +410,10 @@ export const collectionsSlice = createSlice({
         if (collection.environmentsDraft?.environmentUid === environment.uid) {
           collection.environmentsDraft = null;
         }
+
+        // TODO: if the deleted environment was the active one, clear activeEnvironmentUid here
+        // (set it to null). Right now it's left pointing at a uid no longer present
+        // in `environments`. _deleteGlobalEnvironment already does correctly for global environments.
       }
     },
     saveEnvironment: (state, action) => {
@@ -835,6 +841,60 @@ export const collectionsSlice = createSlice({
         }
       });
     },
+    grpcScriptError: (state, action) => {
+      const { itemUid, collectionUid, scriptType, errorMessage, errorContext } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
+        item.beforeCallStartScriptErrorMessage = errorMessage;
+        item.beforeCallStartScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
+        item.afterCallEndScriptErrorMessage = errorMessage;
+        item.afterCallEndScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND) {
+        item.beforeMessageSendScriptErrorMessage = errorMessage;
+        item.beforeMessageSendScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        item.afterMessageReceiveScriptErrorMessage = errorMessage;
+        item.afterMessageReceiveScriptErrorContext = errorContext || null;
+      }
+    },
+    grpcTestResults: (state, action) => {
+      const { itemUid, collectionUid, scriptType, results, messageIndex } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
+        item.beforeCallStartTestResults = results;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
+        item.afterCallEndTestResults = results;
+      }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND || scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        const isBeforeSend = scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND;
+        const resultsKey = isBeforeSend ? 'beforeMessageSendTestResults' : 'afterMessageReceiveTestResults';
+
+        if (!item[resultsKey]) {
+          item[resultsKey] = [];
+        }
+        item[resultsKey].push(...results.map((result) => ({ ...result, messageIndex })));
+      }
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -851,6 +911,10 @@ export const collectionsSlice = createSlice({
           item.preRequestTestResults = [];
           item.postResponseTestResults = [];
           item.testResults = [];
+          item.beforeCallStartTestResults = [];
+          item.afterCallEndTestResults = [];
+          item.beforeMessageSendTestResults = [];
+          item.afterMessageReceiveTestResults = [];
         }
       }
     },
@@ -1024,6 +1088,35 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = false;
+      }
+    },
+    collapseCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = true;
+      }
+    },
+    expandItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
+    collapseItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = true;
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -1960,6 +2053,27 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.script = item.draft.request.script || {};
           item.draft.request.script.res = action.payload.script;
+        }
+      }
+    },
+    updateGrpcScript: (state, action) => {
+      const { collectionUid, itemUid, hook, script } = action.payload;
+
+      if (!GRPC_SCRIPT_KEYS.includes(hook)) {
+        return;
+      }
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script[hook] = script;
         }
       }
     },
@@ -3260,6 +3374,18 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorContext = null;
       item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
+      item.beforeCallStartScriptErrorMessage = null;
+      item.afterCallEndScriptErrorMessage = null;
+      item.beforeMessageSendScriptErrorMessage = null;
+      item.afterMessageReceiveScriptErrorMessage = null;
+      item.beforeCallStartScriptErrorContext = null;
+      item.afterCallEndScriptErrorContext = null;
+      item.beforeMessageSendScriptErrorContext = null;
+      item.afterMessageReceiveScriptErrorContext = null;
+      item.beforeCallStartTestResults = [];
+      item.afterCallEndTestResults = [];
+      item.beforeMessageSendTestResults = [];
+      item.afterMessageReceiveTestResults = [];
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3404,6 +3530,7 @@ export const collectionsSlice = createSlice({
 
           collection.runnerResult.items.push({
             uid: request.uid,
+            requestUid: action.payload.requestUid,
             status: 'queued'
           });
         }
@@ -3976,6 +4103,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    setSidebarSelection: (state, action) => {
+      state.selectedSidebarUids = action.payload;
+    },
+    toggleSidebarSelection: (state, action) => {
+      const uid = action.payload;
+      const index = state.selectedSidebarUids.indexOf(uid);
+      if (index > -1) {
+        state.selectedSidebarUids.splice(index, 1);
+      } else {
+        state.selectedSidebarUids.push(uid);
+      }
+    },
+    clearSidebarSelection: (state) => {
+      state.selectedSidebarUids = [];
+      state.lastClickedSidebarUid = null;
+    },
+    setLastClickedSidebarUid: (state, action) => {
+      state.lastClickedSidebarUid = action.payload;
+    },
+
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
@@ -4079,6 +4226,8 @@ export const {
   responseReceived,
   runGrpcRequestEvent,
   grpcResponseReceived,
+  grpcScriptError,
+  grpcTestResults,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
@@ -4094,6 +4243,9 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  collapseCollection,
+  expandItem,
+  collapseItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
@@ -4131,6 +4283,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseScript,
+  updateGrpcScript,
   updateRequestTests,
   updateRequestMethod,
   updateRequestProtoPath,
@@ -4211,6 +4364,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  setSidebarSelection,
+  toggleSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
 
   /* Response Example Actions - Start */
   addResponseExample,

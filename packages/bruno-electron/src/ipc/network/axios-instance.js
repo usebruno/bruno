@@ -8,7 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { getSentHeaders, applyOmitConnectionToAxiosConfig } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
 
@@ -377,6 +377,8 @@ function makeAxiosInstance({
               ...error.config.headers
             }
           };
+
+          handleNtlmRedirect(requestConfig, error.config.url, redirectUrl, forwardAuthorizationHeader);
 
           if (!isSameOrigin(error.config.url, redirectUrl)) {
             /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin

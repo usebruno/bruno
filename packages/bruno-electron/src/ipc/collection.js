@@ -1634,6 +1634,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         validatePathIsInsideCollection(item.pathname);
 
         if (item?.type === 'folder') {
+          if (!fs.existsSync(item.pathname)) {
+            continue;
+          }
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
             meta: {
@@ -1725,13 +1728,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // is reflected in every nested path.
         const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourcePathname, targetPathname));
 
-        await copyPathTo(sourcePathname, targetPathname);
-        await removePath(sourcePathname);
-
         // move the request uids of the previous file/folders to the new file/folder items
         pathnamesAfter?.forEach((_, index) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
+
+        try {
+          await copyPathTo(sourcePathname, targetPathname);
+          await removePath(sourcePathname);
+        } catch (error) {
+          pathnamesAfter?.forEach((_, index) => {
+            moveRequestUid(pathnamesAfter[index], pathnamesBefore[index]);
+          });
+          throw error;
+        }
 
         return { newPathname: targetPathname };
       } catch (error) {
@@ -1763,10 +1773,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
 
         // Resolve collisions silently with a numeric suffix instead of erroring.
-        const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetExt, finalContent);
-        await removePath(sourcePathname);
+        const desiredTargetPathname = path.join(targetDirname, `${filenameWithoutExt}.${targetExt}`);
+        const targetPathname = getUniqueRenamePath(sourcePathname, desiredTargetPathname);
 
         moveRequestUid(sourcePathname, targetPathname);
+
+        try {
+          await fs.promises.writeFile(targetPathname, finalContent, { flag: 'wx' });
+          await removePath(sourcePathname);
+        } catch (error) {
+          moveRequestUid(targetPathname, sourcePathname);
+          throw error;
+        }
 
         return { newPathname: targetPathname };
       } catch (error) {

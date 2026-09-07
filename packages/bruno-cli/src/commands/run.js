@@ -834,8 +834,8 @@ const handler = async function (argv) {
                 filename: relativePath
               },
               request: {
-                method: null,
-                url: null,
+                method: ri.request?.method || null,
+                url: ri.request?.url || null,
                 headers: null,
                 data: null
               },

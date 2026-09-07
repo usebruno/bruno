@@ -215,6 +215,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
             <div className="flex-1 min-h-0">
               <QueryEditor
                 ref={queryEditorRef}
+                item={item}
                 collection={collection}
                 theme={displayedTheme}
                 schema={schema}
