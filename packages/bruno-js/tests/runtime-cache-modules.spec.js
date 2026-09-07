@@ -553,7 +553,6 @@ describe('runtime (cacheModules)', () => {
       return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, runtimeVariables, process.env);
     };
 
-    // Ensures each QuickJS evaluation gets a fresh context
     describe('quickjs context isolation across iterations', () => {
       const ITERATION_COUNT = 350;
 
@@ -581,14 +580,12 @@ describe('runtime (cacheModules)', () => {
       });
 
       it('should not return stale data from a previous iteration', () => {
-        // First call with status 200
         runAssertions(
           [{ name: 'res.status', value: 'eq 200', enabled: true }],
           { status: 200, statusText: 'OK', data: { token: 'bearer_abc' }, headers: { authorization: 'bearer xyz' } },
           'quickjs'
         );
 
-        // Second call with status 404 — must not return 200 or any data from previous call
         const results = runAssertions(
           [
             { name: 'res.status', value: 'eq 404', enabled: true },
@@ -603,7 +600,6 @@ describe('runtime (cacheModules)', () => {
       });
 
       it('should not persist runtime variables from a previous call', () => {
-        // First call with runtime variable token = "one"
         const results1 = runAssertions(
           [{ name: 'token', value: 'eq one', enabled: true }],
           { status: 200, statusText: 'OK', data: {}, headers: {} },
@@ -612,13 +608,11 @@ describe('runtime (cacheModules)', () => {
         );
         expect(results1[0].status).toBe('pass');
 
-        // Second call without token
         const results2 = runAssertions(
           [{ name: 'token', value: 'eq one', enabled: true }],
           { status: 200, statusText: 'OK', data: {}, headers: {} },
           'quickjs'
         );
-        // Must fail — token should not exist in a fresh context
         expect(results2[0].status).toBe('fail');
       });
     });
@@ -643,8 +637,6 @@ describe('runtime (cacheModules)', () => {
       it('should pass for objects from a different realm (e.g. after res.setBody in node-vm)', async () => {
         const response = makeResponse({ id: 1, name: 'original' });
 
-        // res.setBody() inside node-vm creates a cross-realm object whose
-        // constructor is the VM's Object, not the host's Object
         const scriptRuntime = new ScriptRuntime({ runtime: 'nodevm' });
         await scriptRuntime.runResponseScript(
           `res.setBody({ id: 2, name: 'updated' });`,

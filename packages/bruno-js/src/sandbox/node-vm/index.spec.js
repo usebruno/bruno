@@ -622,10 +622,6 @@ describe('node-vm sandbox', () => {
     });
 
     it('should evaluate an npm module once per process, not once per script context', async () => {
-      // Every script execution gets a fresh vm context. Re-evaluating npm modules
-      // in each of them made large packages (faker, moment, ...) cost tens of MB
-      // per request (usebruno/bruno#9074). The module body increments a host-side
-      // counter so we can count evaluations across two separate executions.
       const marker = `_npmEvalCount_${Date.now()}`;
       makePkg(path.join(collectionPath, 'node_modules'), 'counted-module', {
         'index.js': `
@@ -645,14 +641,11 @@ describe('node-vm sandbox', () => {
       await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
 
       expect(process[marker]).toBe(1);
-      // Both scripts got the same module instance
       expect(contextA.bru.setVar.mock.calls[0][1]).toBe(contextB.bru.setVar.mock.calls[0][1]);
       delete process[marker];
     });
 
     it('should let a cached npm module see the bru of the script currently running', async () => {
-      // A module evaluated during execution A must not keep pointing at A's bru
-      // when it is called from execution B.
       makePkg(path.join(collectionPath, 'node_modules'), 'bru-reader', {
         'index.js': `module.exports = { read: (name) => bru.getVar(name) };`
       });
@@ -710,10 +703,6 @@ describe('node-vm sandbox', () => {
       ['the first-started script finishes first', 5, 40],
       ['the first-started script finishes last', 40, 5]
     ])('should keep interleaved executions bound to their own bru when %s', async (_, delayA, delayB) => {
-      // Two scripts run concurrently and both await before calling into the same cached
-      // npm module. A global "current context" stack only survives LIFO completion: when
-      // the first-started script finishes first, its module call would read the other
-      // script's bru and its cleanup would pop the other script's entry.
       makePkg(path.join(collectionPath, 'node_modules'), 'bru-reader-async', {
         'index.js': `module.exports = { read: (name) => bru.getVar(name) };`
       });
@@ -738,8 +727,6 @@ describe('node-vm sandbox', () => {
     });
 
     it('should let a module that captured bru at load time talk to the current script', async () => {
-      // `const captured = bru` runs once, during the first load (execution A). A plain
-      // accessor would hand that module A's bru forever; the facade stays late-bound.
       makePkg(path.join(collectionPath, 'node_modules'), 'bru-capturer', {
         'index.js': `
           const captured = bru;
@@ -774,7 +761,6 @@ describe('node-vm sandbox', () => {
       expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'AA');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'BB');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('hasSetVar', true);
-      // The facades keep the value's typeof: objects stay objects, functions stay callable
       expect(contextB.bru.setVar).toHaveBeenCalledWith('types', 'object/object/function');
       expect(contextA.bru.getVar).toHaveBeenCalledTimes(2);
       expect(contextB.bru.getVar).toHaveBeenCalledTimes(2);
@@ -850,8 +836,6 @@ describe('node-vm sandbox', () => {
     });
 
     it('should read a missing key as undefined and still call it once a later execution provides a function', async () => {
-      // Execution A exposes `helper` as undefined: the module must see plain undefined (as it
-      // would in the script's own context); execution B provides a function and calls it.
       makePkg(path.join(collectionPath, 'node_modules'), 'helper-caller', {
         'index.js': `module.exports = { probe: () => typeof helper, run: () => helper('x') };`
       });
@@ -901,8 +885,6 @@ describe('node-vm sandbox', () => {
     });
 
     it('should re-evaluate a parent that snapshots a context-bound dependency at load time', async () => {
-      // leaf reads bru during evaluation; parent re-exports that snapshot without touching bru
-      // itself. Context-bound status must propagate so script B does not see A's value.
       makePkg(path.join(collectionPath, 'node_modules'), 'leaf-bru-snapshot', {
         'index.js': `module.exports = { who: bru.getVar('who') };`
       });
@@ -985,7 +967,6 @@ describe('node-vm sandbox', () => {
     });
 
     it('should keep collection-local modules per script context', async () => {
-      // Local modules may capture per-request state; they keep the per-context cache.
       const marker = `_localEvalCount_${Date.now()}`;
       fs.writeFileSync(
         path.join(collectionPath, 'local-counted.js'),

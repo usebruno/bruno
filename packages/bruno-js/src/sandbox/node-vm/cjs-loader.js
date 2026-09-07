@@ -292,7 +292,7 @@ function createCustomRequire({
       return require(moduleName);
     }
 
-    // 4. Handle npm modules - shared when inert, per-script when load-time globals are read
+    // 4. Handle npm modules - load INTO vm context
     return loadNpmModule({
       moduleName,
       collectionPath,
@@ -384,8 +384,7 @@ function loadLocalModule({
 }
 
 /**
- * Executes an npm module in the shared npm context, caching it process-wide,
- * with special file handling
+ * Executes a module in the VM context with caching and special file handling
  * @param {Object} options - Configuration options
  * @returns {*} The exported content of the loaded module
  * @throws {Error} When module cannot be loaded
@@ -597,7 +596,6 @@ function loadNpmModule({
  * @returns {Function} Custom require function for npm module dependencies
  */
 function markParentContextBoundIfNeeded(resolvedPath) {
-  // Context-bound status is contagious through load-time requires.
   const evalStore = npmModuleEval.getStore();
   if (evalStore && contextBoundModulePaths.has(resolvedPath)) {
     evalStore.touched.add('*');

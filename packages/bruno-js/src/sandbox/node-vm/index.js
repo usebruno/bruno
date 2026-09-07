@@ -115,8 +115,6 @@ async function runScriptInNodeVm({
         displayErrors: true
       });
       if (cacheModules) {
-        // npm modules loaded by this script (or already cached from an earlier one)
-        // resolve `bru`, `req`, `res`, ... against this context while it runs
         await runWithScriptContext(scriptContext, runScript);
       } else {
         await runScript();
