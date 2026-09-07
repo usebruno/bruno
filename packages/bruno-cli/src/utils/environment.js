@@ -72,7 +72,7 @@ const environmentsIn = (directory, fileExt) =>
     .map((fileName) => {
       try {
         return {
-          ...parseEnvironment(path.join(directory, fileName)),
+          ...parseEnvFile(path.join(directory, fileName)),
           name: environmentNameOf(fileName)
         };
       } catch {
@@ -87,7 +87,7 @@ const environmentsIn = (directory, fileExt) =>
  * separately as `inheritedVariables`.
  */
 const resolveEnvironmentInheritance = ({ filePath, merge }) => {
-  const targetEnvironment = parseEnvironment(filePath);
+  const targetEnvironment = parseEnvFile(filePath);
   const environment = { ...targetEnvironment, name: environmentNameOf(filePath) };
 
   const environments = environment.extends
@@ -111,7 +111,7 @@ const resolveEnvironmentInheritance = ({ filePath, merge }) => {
 const loadEnvironmentFromFile = ({ filePath, name, resolveInheritance = true }) => {
   const fileExt = path.extname(filePath).toLowerCase();
 
-  const environment = resolveInheritance ? resolveEnvironmentInheritance({ filePath }) : parseEnvironment(filePath);
+  const environment = resolveInheritance ? resolveEnvironmentInheritance({ filePath }) : parseEnvFile(filePath);
   const variables = getEnvVars(environment);
 
   if (fileExt === '.json') {

@@ -3,9 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
 const { stringifyEnvironment } = require('@usebruno/filestore');
-const { loadEnvironments } = require('../../src/utils/environment');
+const { loadEnvironments, loadEnvironmentFromFile } = require('../../src/utils/environment');
 const { getEnvVars } = require('../../src/utils/bru');
-const { loadEnvironmentFromFile } = require('../../src/utils/environment');
+
+const variable = (props) => ({ enabled: true, secret: false, ...props });
+
+const secret = (props) => variable({ ...props, secret: true });
 
 describe('loadEnvironments', () => {
   let collDir;
@@ -105,9 +108,6 @@ describe('loadEnvironments', () => {
 });
 
 describe('getEnvVars', () => {
-  const variable = (props) => ({ enabled: true, secret: false, ...props });
-  const secret = (props) => variable({ ...props, secret: true });
-
   it('returns an empty object for an environment with no variables', () => {
     expect(getEnvVars({})).toEqual({});
   });
