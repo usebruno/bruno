@@ -31,8 +31,10 @@ const makeInitialState = (envVars = [], opts = {}) => ({
         {
           uid: ENV_UID,
           name: 'Test',
-          variables: envVars
-        }
+          variables: envVars,
+          ...(opts.inheritedVars ? { extends: 'Base' } : {})
+        },
+        ...(opts.inheritedVars ? [{ uid: 'env-base', name: 'Base', variables: opts.inheritedVars }] : [])
       ],
       environmentsDraft: opts.draft || null,
       _scriptEnvBaseline: opts.baseline || undefined,
@@ -103,6 +105,26 @@ describe('scriptEnvironmentUpdateEvent — draft-aware merge', () => {
 
       expect(getEnv(state).variables).toHaveLength(2);
       expect(getEnv(state).variables[1].name).toBe('DISABLED_VAR');
+    });
+  });
+
+  describe('inherited variables — a script write lands only when the value differs', () => {
+    test('a write of the value already inherited leaves the environment empty', () => {
+      let state = makeInitialState([], { inheritedVars: [makeVar('BASE_ONLY', 'base_only_value')] });
+
+      state = reducer(state, scriptEvent({ BASE_ONLY: 'base_only_value', __name__: 'Test' }));
+
+      expect(getEnv(state).variables).toEqual([]);
+    });
+
+    test('a write of a different value becomes a row of the environment own', () => {
+      let state = makeInitialState([], { inheritedVars: [makeVar('SESSION_ID', 'base_session')] });
+
+      state = reducer(state, scriptEvent({ SESSION_ID: 'script_session', __name__: 'Test' }));
+
+      expect(getEnv(state).variables).toEqual([
+        expect.objectContaining({ name: 'SESSION_ID', value: 'script_session', enabled: true })
+      ]);
     });
   });
 
@@ -506,6 +528,14 @@ describe('scriptEnvironmentUpdateEvent — draft-aware merge', () => {
       const v = getEnv(state).variables.find((v) => v.name === 'CONFIG');
       expect(v.value).toEqual({ port: 3000 });
       expect(v.dataType).toBe('object');
+    });
+
+    test('leaves an inherited typed var the script echoed back unchanged out of the environment', () => {
+      let state = makeInitialState([], { inheritedVars: [{ ...makeVar('PORT', '3000'), dataType: 'number' }] });
+
+      state = reducer(state, scriptEvent({ PORT: 3000, __name__: 'Test' }));
+
+      expect(getEnv(state).variables).toEqual([]);
     });
 
     test('keeps existing dataType on a typed var the script did not touch', () => {

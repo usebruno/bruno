@@ -896,6 +896,7 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    scriptingConfig.cacheModules = false;
 
     try {
       request.signal = abortController.signal;
@@ -1427,6 +1428,7 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid, collection);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      scriptingConfig.cacheModules = false;
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
