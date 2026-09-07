@@ -56,13 +56,16 @@ describe('createDatabase', () => {
   it('backs up an unusable database file and rebuilds it', () => {
     writeFileSync(dbPath, 'this is not a sqlite database');
     const { createDatabase } = require('../../src/node/index');
+    const { migrations } = require('../../src/generated/node/migrations');
 
     const { db, statements } = createDatabase(dbPath);
 
     expect(db).toBeDefined();
     expect(statements).toBeDefined();
     expect(existsSync(dbPath)).toBe(true);
-    expect(db._db.prepare('SELECT name FROM _migrations').all()).toEqual([]);
+    expect(db._db.prepare('SELECT name FROM _migrations ORDER BY sequence').all()).toEqual(
+      migrations.map(({ name }: { name: string }) => ({ name }))
+    );
     db.close();
   });
 

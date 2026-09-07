@@ -375,7 +375,7 @@ const useIpcEvents = () => {
     });
 
     const removeCollectionLoadingStateListener = ipcRenderer.on('main:collection-loading-state-updated', (val) => {
-      dispatch(updateCollectionLoadingState(val));
+      dispatch(updateCollectionLoadingState({ ...val, at: Date.now() }));
     });
 
     const gitVersionListener = ipcRenderer.on('main:git-version', (val) => {
@@ -417,7 +417,7 @@ const useIpcEvents = () => {
     });
 
     const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
-      dispatch(updateCollectionLoadingState(val));
+      dispatch(updateCollectionLoadingState({ ...val, at: Date.now() }));
     });
 
     const removeBrunoConfigUpdateV2Listener = ipcRenderer.on('main:bruno-config-update-v2', (val) => {

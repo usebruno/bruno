@@ -287,12 +287,21 @@ export const collectionsSlice = createSlice({
         if (action.payload.mountStatus) {
           collection.mountStatus = action.payload.mountStatus;
         }
+        if (action.payload.mountStartedAt) {
+          collection.mountStartedAt = action.payload.mountStartedAt;
+          collection.mountUsedFileCache = action.payload.mountUsedFileCache;
+          collection.mountDurationMs = null;
+        }
       }
     },
     updateCollectionLoadingState: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         collection.isLoading = action.payload.isLoading;
+        if (!action.payload.isLoading && collection.mountStartedAt && action.payload.at) {
+          collection.mountDurationMs = action.payload.at - collection.mountStartedAt;
+          collection.mountStartedAt = null;
+        }
       }
     },
     setCollectionSecurityConfig: (state, action) => {

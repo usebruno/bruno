@@ -3160,8 +3160,15 @@ export const loadLargeRequest
 export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
-      dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
+      dispatch(
+        updateCollectionMountStatus({
+          collectionUid,
+          mountStatus: 'mounting',
+          mountStartedAt: Date.now(),
+          mountUsedFileCache: Boolean(fileCacheEnabled)
+        })
+      );
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
         callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
