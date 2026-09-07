@@ -66,8 +66,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     virtuosoRef.current?.scrollIntoView({ index, behavior: 'auto' });
   }, [activeTabUid]);
 
+  // Clear the multi-selection when the user clicks empty sidebar space. With virtualization
+  // the empty area below the rows belongs to Virtuoso's internal scroller (not this container),
+  // so `currentTarget === target` never holds. Instead, clear on any click that didn't land
+  // inside a selectable row.
   const handleContainerClick = (e) => {
-    if (e.currentTarget === e.target) {
+    const onRow = e.target.closest('[data-testid="sidebar-collection-item-row"], [data-testid="sidebar-collection-row');
+    if (!onRow) {
       dispatch(clearSidebarSelection());
     }
   };
