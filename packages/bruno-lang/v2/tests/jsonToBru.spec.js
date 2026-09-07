@@ -533,6 +533,7 @@ describe('jsonToBru stringify: multipart contentType', () => {
     const output = stringify(input);
     expect(output).toContain('@contentType(application/json)');
     expect(output).toContain('@contentType(image/png)');
+    expect(output).not.toContain('@contentType()');
 
     const parsed = parser(output);
     expect(parsed.body.multipartForm).toEqual([
