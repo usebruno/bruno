@@ -1,6 +1,6 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag, IconClock } from '@tabler/icons';
+import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
 import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
 import { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -174,27 +174,6 @@ const Info = ({ collection }) => {
             </div>
           </div>
           {showGenerateDocumentationModal && <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />}
-
-          {/* Load Time Row */}
-          <div className="flex items-start">
-            <div className="icon-box requests flex-shrink-0 p-3 rounded-lg">
-              <IconClock className="w-5 h-5" stroke={1.5} />
-            </div>
-            <div className="ml-4">
-              <div className="font-medium">Load time</div>
-              <div className="mt-1 text-muted" data-testid="info-load-time">
-                {collection.mountDurationMs === null || collection.mountDurationMs === undefined ? (
-                  isCollectionLoading ? 'measuring…' : 'not measured this session'
-                ) : (
-                  <>
-                    <strong>{(collection.mountDurationMs / 1000).toFixed(2)}s</strong>
-                    {' '}({collection.mountDurationMs} ms) — file cache{' '}
-                    {collection.mountUsedFileCache ? 'ON' : 'OFF'}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
 
           <Migration collection={collection} />
         </div>
