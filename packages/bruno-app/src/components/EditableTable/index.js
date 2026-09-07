@@ -5,15 +5,13 @@ import { Tooltip } from 'react-tooltip';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import { useRevealFocusedTableRow } from 'hooks/useRevealFocusedTableRow';
 import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
 import ColumnSortHeader from './ColumnSortHeader';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
 const ROW_HEIGHT = 35;
-// Keep in sync with the row-focus-flash animation in StyledWrapper.
-const FOCUS_FLASH_DURATION = 2500;
-const FOCUS_SCROLL_FRAMES = 90;
 
 const findScrollParent = (element) => {
   let parent = element?.parentElement;
@@ -23,50 +21,6 @@ const findScrollParent = (element) => {
     parent = parent.parentElement;
   }
   return null;
-};
-
-const findFocusRowIndex = (rows, keyColumn, { uid, name } = {}) => {
-  if (uid) {
-    const byUid = rows.findIndex((row) => row.uid === uid);
-    if (byUid !== -1) return byUid;
-  }
-
-  if (!keyColumn || !name) return -1;
-  const targetName = String(name).toLowerCase();
-  let index = -1;
-  rows.forEach((row, rowIndex) => {
-    const rowName = row[keyColumn.key];
-    if (typeof rowName === 'string' && rowName.toLowerCase() === targetName) {
-      index = rowIndex;
-    }
-  });
-  return index;
-};
-
-const findRenderedRow = (wrapper, rowIndex) =>
-  wrapper?.querySelector(`tr[data-item-index="${rowIndex}"]`) || null;
-
-const isRowInViewport = (row, scrollParent) => {
-  if (!row || !scrollParent?.getBoundingClientRect) return false;
-  const rowRect = row.getBoundingClientRect();
-  const parentRect = scrollParent.getBoundingClientRect();
-  return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
-};
-
-/** Scroll toward an unrendered row. Measure from the wrapper sticky thead moves the table. */
-const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
-  if (!wrapper || !scrollParent?.getBoundingClientRect) return;
-
-  const wrapperOffset = wrapper.getBoundingClientRect().top
-    - scrollParent.getBoundingClientRect().top
-    + scrollParent.scrollTop;
-  const headerHeight = wrapper.querySelector('thead')?.offsetHeight || ROW_HEIGHT;
-  const rowTop = wrapperOffset + headerHeight + (rowIndex * ROW_HEIGHT);
-  const nextTop = Math.max(0, rowTop - (scrollParent.clientHeight / 2));
-
-  if (Math.abs(scrollParent.scrollTop - nextTop) > 1) {
-    scrollParent.scrollTop = nextTop;
-  }
 };
 
 const TableRow = React.memo(
@@ -166,7 +120,6 @@ const EditableTable = ({
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
-  const [flashedRow, setFlashedRow] = useState(null);
   const widths = columnWidths || {};
 
   const sortColumn = useMemo(() => columns.find((col) => col.sortable), [columns]);
@@ -459,84 +412,15 @@ const EditableTable = ({
   }, [isLastEmptyRow, getRowError, handleValueChange]);
 
   const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
-  const rowsWithEmptyRef = useRef(rowsWithEmpty);
-  rowsWithEmptyRef.current = rowsWithEmpty;
-  const keyColumnRef = useRef(keyColumn);
-  keyColumnRef.current = keyColumn;
-  const onFocusRowHandledRef = useRef(onFocusRowHandled);
-  onFocusRowHandledRef.current = onFocusRowHandled;
-
-  const focusRowUid = focusRow?.uid;
-  const focusRowName = focusRow?.name;
-  const focusRowRequestedAt = focusRow?.requestedAt;
-
-  // Depend on focus primitives only row/column objects change every render.
-  useEffect(() => {
-    if ((!focusRowUid && !focusRowName) || !scrollParent) return;
-
-    const rows = rowsWithEmptyRef.current;
-    const index = findFocusRowIndex(rows, keyColumnRef.current, {
-      uid: focusRowUid,
-      name: focusRowName
-    });
-    if (index === -1) {
-      onFocusRowHandledRef.current?.();
-      return;
-    }
-
-    const uid = rows[index].uid;
-    setFlashedRow((prev) => (
-      prev?.uid === uid && prev?.requestedAt === focusRowRequestedAt
-        ? prev
-        : { uid, requestedAt: focusRowRequestedAt }
-    ));
-
-    let cancelled = false;
-    let frame = 0;
-    let attempts = 0;
-
-    const finish = () => {
-      if (!cancelled) onFocusRowHandledRef.current?.();
-    };
-
-    const revealRow = () => {
-      if (cancelled) return;
-      attempts += 1;
-
-      // scrollToIndex is a no-op until measured; also set scrollTop so the row mounts.
-      virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'auto' });
-      scrollNearRow(scrollParent, wrapperRef.current, index);
-
-      const row = findRenderedRow(wrapperRef.current, index);
-      if (row) {
-        row.scrollIntoView({ block: 'center', inline: 'nearest' });
-        if (isRowInViewport(row, scrollParent)) {
-          finish();
-          return;
-        }
-      }
-
-      if (attempts >= FOCUS_SCROLL_FRAMES) {
-        finish();
-        return;
-      }
-
-      frame = requestAnimationFrame(revealRow);
-    };
-
-    frame = requestAnimationFrame(revealRow);
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [focusRowUid, focusRowName, focusRowRequestedAt, scrollParent]);
-
-  useEffect(() => {
-    if (!flashedRow) return;
-
-    const timer = setTimeout(() => setFlashedRow(null), FOCUS_FLASH_DURATION);
-    return () => clearTimeout(timer);
-  }, [flashedRow]);
+  const flashedRowUid = useRevealFocusedTableRow({
+    focusRow,
+    rows: rowsWithEmpty,
+    keyColumn,
+    scrollParent,
+    wrapperRef,
+    virtuosoRef,
+    onFocusRowHandled
+  });
 
   const virtuosoContext = useMemo(() => ({
     reorderable,
@@ -550,8 +434,8 @@ const EditableTable = ({
     isRowEditable,
     getRowClassName,
     getRowTestId,
-    flashedRowUid: flashedRow?.uid || null
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId, flashedRow]);
+    flashedRowUid
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId, flashedRowUid]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
