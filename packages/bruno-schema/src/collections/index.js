@@ -47,6 +47,18 @@ const environmentSchema = Yup.object({
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required'),
   externalSecrets: externalSecretsSchema.nullable().optional(),
   color: Yup.string().nullable().optional(),
+  extends: Yup.mixed()
+    .test(
+      'is-environment-reference',
+      'extends must be an environment name or a list of environment names',
+      (value) =>
+        value === undefined ||
+        value === null ||
+        typeof value === 'string' ||
+        (Array.isArray(value) && value.every((reference) => typeof reference === 'string'))
+    )
+    .nullable()
+    .optional(),
   pathname: Yup.string().nullable()
 })
   .noUnknown(true)
