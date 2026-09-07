@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { sendNetworkRequest } from 'utils/network/index';
 import { findEnvironmentInCollection } from 'utils/collections';
 import {
@@ -159,7 +160,11 @@ const AppView = ({ item, collection, code }) => {
   );
 
   const environment = useMemo(
-    () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
     [collection]
   );
   const variables = useMemo(() => buildVariables(collection, item), [collection, item]);
