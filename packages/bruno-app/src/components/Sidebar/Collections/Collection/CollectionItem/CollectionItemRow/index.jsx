@@ -46,7 +46,6 @@ import StyledWrapper from '../StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
-import ExampleItem from '../ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
@@ -835,23 +834,6 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
       </div>
 
       {children}
-
-      {/* Show examples when expanded (only for HTTP requests) */}
-      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
-        <div>
-          {(item.examples || []).map((example, index) => {
-            return (
-              <ExampleItem
-                key={example.uid || index}
-                example={example}
-                item={item}
-                index={index}
-                collection={collection}
-              />
-            );
-          })}
-        </div>
-      )}
     </StyledWrapper>
   );
 };
