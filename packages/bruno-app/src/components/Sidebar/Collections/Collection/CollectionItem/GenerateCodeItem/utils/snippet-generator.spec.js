@@ -529,6 +529,67 @@ describe('generateSnippet – header inclusion in output', () => {
   });
 });
 
+describe('generateSnippet – cookie header casing', () => {
+  it('renames a `cookie` header to `Cookie` so curl no longer renders it twice', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--header \'Cookie: cookie1=value1\'');
+    expect(result).not.toContain('--cookie');
+  });
+
+  // Kept as a plain header, so HTTPSnippet never URI-encodes the value.
+  it('does not corrupt a cookie value containing characters encodeURIComponent would escape', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'session=abc+def/ghi==', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('session=abc+def/ghi==');
+    expect(result).not.toContain('%2B');
+    expect(result).not.toContain('%2F');
+    expect(result).not.toContain('%3D');
+  });
+});
+
 describe('generateSnippet with edge-case bodies', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
