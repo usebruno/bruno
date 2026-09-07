@@ -107,7 +107,7 @@ const CreateApiSpec = ({ onClose }) => {
           }, 200);
           toast.success('ApiSpec created');
           if (exportWarnings.length) {
-            toast(`Created with ${exportWarnings.length} warning(s); some request bodies could not be fully parsed`, { icon: '⚠️' });
+            toast(`Created with ${exportWarnings.length} ${exportWarnings.length === 1 ? 'warning' : 'warnings'}; some request bodies could not be fully parsed`, { icon: '⚠️' });
           }
           onClose();
         })
