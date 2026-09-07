@@ -24,15 +24,39 @@ const isDenied = (relativePathPosix, patterns) => {
 
 const walk = (root, denylist) => {
   const out = [];
+  const visited = new Set();
   const visit = (absDir, relDir) => {
+    let canonicalDir;
+    try {
+      canonicalDir = fs.realpathSync(absDir);
+    } catch (err) {
+      return;
+    }
+    if (visited.has(canonicalDir)) return;
+    visited.add(canonicalDir);
+
     const entries = fs.readdirSync(absDir, { withFileTypes: true });
     for (const entry of entries) {
       const childAbs = path.join(absDir, entry.name);
       const childRel = relDir ? path.join(relDir, entry.name) : entry.name;
-      if (entry.isDirectory()) {
+
+      let isDir = entry.isDirectory();
+      let isFile = entry.isFile();
+
+      if (entry.isSymbolicLink()) {
+        try {
+          const stat = fs.statSync(childAbs);
+          isDir = stat.isDirectory();
+          isFile = stat.isFile();
+        } catch (err) {
+          continue;
+        }
+      }
+
+      if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
         visit(childAbs, childRel);
-      } else if (entry.isFile()) {
+      } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;
         out.push({ relativePath: childRel, absolutePath: childAbs });
       }

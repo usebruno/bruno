@@ -16,7 +16,12 @@ const setBrunoConfig = (collectionUid, brunoConfig) => {
   config[collectionUid] = brunoConfig;
 };
 
+const clearBrunoConfig = (collectionUid) => {
+  delete config[collectionUid];
+};
+
 module.exports = {
   getBrunoConfig,
-  setBrunoConfig
+  setBrunoConfig,
+  clearBrunoConfig
 };

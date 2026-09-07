@@ -1,0 +1,61 @@
+{
+  "info": {
+    "name": "Postman Collection with Settings",
+    "description": "Test collection using Postman Collection Format v2.1 with settings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "settings-test-1234"
+  },
+  "item": [
+    {
+      "name": "Request with Auth Forwarding",
+      "protocolProfileBehavior": {
+        "followAuthorizationHeader": true,
+        "followRedirects": true,
+        "disableUrlEncoding": true,
+        "maxRedirects": 10
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com/api/get",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "path": [
+            "api",
+            "get"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Disabled Auth Forwarding Request",
+      "protocolProfileBehavior": {
+        "followAuthorizationHeader": false
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com/api/get",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "path": [
+            "api",
+            "get"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

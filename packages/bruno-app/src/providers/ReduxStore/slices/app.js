@@ -4,6 +4,16 @@ import brunoClipboard from 'utils/bruno-clipboard';
 import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import {
+  DEFAULT_SIDEBAR_WIDTH,
+  DEFAULT_SIDEBAR_COLLAPSED
+} from 'utils/common/constants';
+import {
+  getLocalStorageValue,
+  setLocalStorageValue,
+  SIDEBAR_WIDTH_KEY,
+  SIDEBAR_COLLAPSED_KEY
+} from 'utils/common/localStorage';
 
 const initialState = {
   isDragging: false,
@@ -15,8 +25,8 @@ const initialState = {
     activeCollectionPathname: null,
     startedAt: null
   },
-  leftSidebarWidth: 250,
-  sidebarCollapsed: false,
+  leftSidebarWidth: null,
+  sidebarCollapsed: null,
   showSidebarSearch: false,
   focusedSidebarPath: null,
   screenWidth: 500,
@@ -39,6 +49,9 @@ const initialState = {
       timeout: 0,
       oauth2: {
         useSystemBrowser: false
+      },
+      clientCertificates: {
+        certs: []
       }
     },
     font: {
@@ -108,7 +121,8 @@ const initialState = {
       secrets: { query: '', expanded: false }
     }
   },
-  isCreatingCollection: false
+  isCreatingCollection: false,
+  isOpeningCollection: false
 };
 
 export const appSlice = createSlice({
@@ -120,6 +134,16 @@ export const appSlice = createSlice({
     },
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
+    },
+    setSidebarState: (state, action) => {
+      const { width, collapsed } = action.payload || {};
+      if (width !== undefined) {
+        state.leftSidebarWidth = width;
+      }
+      if (collapsed !== undefined) {
+        state.sidebarCollapsed = collapsed;
+      }
+      state.sidebarHydrated = true;
     },
     startSnapshotHydrationSession: (state, action) => {
       const {
@@ -256,6 +280,9 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
+    },
+    setIsOpeningCollection: (state, action) => {
+      state.isOpeningCollection = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -277,6 +304,7 @@ export const appSlice = createSlice({
 export const {
   idbConnectionReady,
   setSnapshotReady,
+  setSidebarState,
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession,
@@ -307,8 +335,57 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection
+  setIsCreatingCollection,
+  setIsOpeningCollection
 } = appSlice.actions;
+
+/**
+ * NOTE:
+ * We generally avoid persisting the same piece of application state in multiple
+ * places (snapshot + localStorage) as it increases complexity and can lead to
+ * consistency issues.
+ *
+ * This is an intentional exception. The sidebar renders before the snapshot has
+ * finished loading, which can briefly cause an incorrect UI state (visible
+ * flicker). localStorage provides an immediate value during startup, while the
+ * snapshot remains the canonical persisted state.
+ *
+ * Ideally, rendering would wait until snapshot hydration completes, but that
+ * introduces a noticeable startup delay that we want to avoid.
+ */
+export const hydrateSidebarState = () => async (dispatch) => {
+  if (!window.ipcRenderer) {
+    return;
+  }
+  try {
+    const localWidth = getLocalStorageValue(SIDEBAR_WIDTH_KEY, null, (val) => {
+      const width = parseInt(val, 10);
+      return Number.isFinite(width) ? width : null;
+    });
+    const localCollapsed = getLocalStorageValue(SIDEBAR_COLLAPSED_KEY, null, (val) => val === 'true');
+    const hasLocalWidth = localWidth !== null;
+    const hasLocalCollapsed = localCollapsed !== null;
+    if (hasLocalWidth && hasLocalCollapsed) {
+      dispatch(setSidebarState({
+        width: localWidth,
+        collapsed: localCollapsed
+      }));
+    }
+    const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');
+    dispatch(setSidebarState({
+      width: hasLocalWidth ? localWidth : sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH,
+      collapsed: hasLocalCollapsed ? localCollapsed : sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED
+    }));
+    if (!hasLocalWidth) {
+      setLocalStorageValue(SIDEBAR_WIDTH_KEY, sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH);
+    }
+    if (!hasLocalCollapsed) {
+      setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED);
+    }
+  } catch (error) {
+    console.error('Failed to hydrate snapshot:', error);
+  }
+};
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
   const previous = getState().app.preferences;

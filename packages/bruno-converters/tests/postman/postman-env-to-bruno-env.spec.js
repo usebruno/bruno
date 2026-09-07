@@ -112,6 +112,52 @@ describe('postmanToBrunoEnvironment Function', () => {
     expect(brunoEnvironment).toEqual(expectedEnvironment);
   });
 
+  it('should default enabled to true when Postman omits or nulls it', async () => {
+    const postmanEnvironment = {
+      id: 'some-id',
+      name: 'My Environment',
+      values: [
+        {
+          key: 'noEnabled',
+          value: 'value1',
+          type: 'default'
+        },
+        {
+          key: 'nullEnabled',
+          value: 'value2',
+          enabled: null,
+          type: 'default'
+        }
+      ]
+    };
+
+    const brunoEnvironment = await postmanToBrunoEnvironment(postmanEnvironment);
+
+    const expectedEnvironment = {
+      name: 'My Environment',
+      variables: [
+        {
+          name: 'noEnabled',
+          value: 'value1',
+          enabled: true,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        },
+        {
+          name: 'nullEnabled',
+          value: 'value2',
+          enabled: true,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        }
+      ]
+    };
+
+    expect(brunoEnvironment).toEqual(expectedEnvironment);
+  });
+
   it.skip('should throw Error when JSON parsing fails', async () => {
     const invalidBrunoEnvironment = {
       id: 'some-id',

@@ -1,0 +1,11 @@
+meta {
+  name: http-request-2
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/api/wait-for?time=2000
+  body: none
+  auth: inherit
+}

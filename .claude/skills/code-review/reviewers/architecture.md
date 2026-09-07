@@ -6,8 +6,9 @@ Adopt the reviewer persona and return findings in the output contract defined in
 `_contract.md`.
 
 Review the diff against **`.claude/rules/architecture.md`** — read its "Dependency direction &
-ownership boundaries" section. The `@usebruno/*` packages form a strict dependency DAG and some
-carry hard platform constraints. Report violations with `file:line`, severity:
+ownership boundaries" section, plus "Declared dependencies must match real imports" when the diff
+touches a `package.json`. The `@usebruno/*` packages form a strict dependency DAG and some carry hard
+platform constraints. Report violations with `file:line`, severity:
 
 - **blocker** — a new internal `@usebruno/*` dependency that points *upward* or forms a cycle (a
   shared lib importing `@usebruno/app` or `@usebruno/electron`); `bruno-common` importing a Node
@@ -17,5 +18,7 @@ carry hard platform constraints. Report violations with `file:line`, severity:
 - **suggestion** — code placed in the wrong package/layer: renderer-only logic in a shared lib,
   host/Electron wiring pushed into `bruno-js`, or a util added to `bruno-common` that needs another
   package; a new shared dependency that would be better kept local.
+- **suggestion** — manifest drift breaking the rule's **Declared dependencies must match real
+  imports**, read against the importing package's own `package.json`.
 - **Not a finding:** dependency edges already in the DAG, or a new *downward* dependency that fits
   the established direction.

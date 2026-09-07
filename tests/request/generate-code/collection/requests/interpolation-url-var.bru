@@ -1,0 +1,15 @@
+meta {
+  name: interpolation-url-var
+  type: http
+  seq: 50
+}
+
+get {
+  url: {{host}}/api/echo/anything/ping
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

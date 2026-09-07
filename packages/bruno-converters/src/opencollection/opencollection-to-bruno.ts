@@ -1,15 +1,19 @@
 import { OpenCollection } from "@opencollection/types";
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
-import { fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
+import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
 import { fromOpenCollectionEnvironments } from "./environment";
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: unknown };
+    openapi?: BrunoConfig['openapi'];
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -26,7 +30,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     brunoConfig.version = String(oc.info.version);
   }
 
-  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
+  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl || brunoExtension?.presets?.defaultEnvironment) {
     brunoConfig.presets = {};
     if (brunoExtension.presets.requestType) {
       brunoConfig.presets.requestType = brunoExtension.presets.requestType;
@@ -34,6 +38,19 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     if (brunoExtension.presets.requestUrl) {
       brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
     }
+    if (brunoExtension.presets.defaultEnvironment) {
+      brunoConfig.presets.defaultEnvironment = brunoExtension.presets.defaultEnvironment;
+    }
+  }
+
+  const scriptFlow = brunoExtension?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoConfig.scripts = { flow: scriptFlow };
+  }
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtension?.openapi);
+  if (openApiEntries.length > 0) {
+    brunoConfig.openapi = openApiEntries;
   }
 
   const config = oc.config;
@@ -64,6 +81,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   if (config.clientCertificates?.length) {
     brunoConfig.clientCertificates = {
       certs: config.clientCertificates.map((cert) => {
+        const disabled = cert.disabled === true;
         if (cert.type === 'pem') {
           const pemCert = cert as PemCertificate;
           return {
@@ -71,7 +89,8 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
             type: 'pem' as const,
             certFilePath: pemCert.certificateFilePath || '',
             keyFilePath: pemCert.privateKeyFilePath || '',
-            passphrase: pemCert.passphrase || ''
+            passphrase: pemCert.passphrase || '',
+            ...(disabled && { disabled: true })
           };
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert = cert as Pkcs12Certificate;
@@ -79,7 +98,8 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
             domain: pkcs12Cert.domain || '',
             type: 'pkcs12' as const,
             pfxFilePath: pkcs12Cert.pkcs12FilePath || '',
-            passphrase: pkcs12Cert.passphrase || ''
+            passphrase: pkcs12Cert.passphrase || '',
+            ...(disabled && { disabled: true })
           };
         }
         return null;
@@ -94,12 +114,16 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
   const root: BrunoCollectionRoot = {};
 
   if (oc.request) {
-    const scripts = fromOpenCollectionScripts(oc.request.scripts);
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = fromOpenCollectionScripts(oc.request.scripts, HTTP_SCRIPT_KEYS);
     root.request = {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),
       script: scripts?.script,
-      vars: fromOpenCollectionVariables(oc.request.variables),
+      vars: {
+        ...fromOpenCollectionVariables(oc.request.variables),
+        res: fromOpenCollectionActions(oc.request.actions)
+      },
       tests: scripts?.tests
     };
   }

@@ -39,3 +39,11 @@ Guardrails this enforces:
 5. **bruno-schema (Yup) and bruno-schema-types (TS types) are distinct and both live.** app +
    converters use `@usebruno/schema` for runtime validation; filestore + converters use
    `@usebruno/schema-types` for compile-time types. A data-model change usually touches both.
+
+## Declared dependencies must match real imports
+
+A package's `package.json` is the contract; workspace hoisting hides breaches of it. Declare every
+import in the manifest of the package that imports it — one resolving only because a sibling or the
+root happens to pull it in is a latent break. Test- and build-only packages belong in
+`devDependencies`; anything in `dependencies` ships to users with its transitive tree. Drop a
+declaration when the change removes its last consumer.

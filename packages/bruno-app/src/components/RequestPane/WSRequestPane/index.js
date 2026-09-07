@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import ActionIcon from 'ui/ActionIcon';
@@ -20,6 +21,7 @@ import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_WS } from 'utils/common/constants';
 
@@ -176,33 +178,40 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
   }
 
   let rightContent = null;
-  if (requestPaneTab === 'auth') {
-    rightContent = (
-      <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-        <WSAuthMode item={item} collection={collection} />
-      </div>
-    );
-  } else if (requestPaneTab === 'body') {
-    rightContent = (
-      <div ref={rightContentRef} className="flex items-center gap-2">
-        <ToolHint text="Prettify All" toolhintId="prettify-all-ws">
-          <ActionIcon
-            data-testid="ws-prettify-all"
-            onClick={onPrettifyAll}
-          >
-            <IconWand size={14} strokeWidth={1.5} />
-          </ActionIcon>
-        </ToolHint>
-        <ToolHint text="Add Message" toolhintId="add-msg-ws">
-          <ActionIcon
-            data-testid="ws-add-message"
-            onClick={addNewMessage}
-          >
-            <IconPlus size={15} strokeWidth={1.5} />
-          </ActionIcon>
-        </ToolHint>
-      </div>
-    );
+  switch (requestPaneTab) {
+    case 'auth':
+      rightContent = (
+        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+          <WSAuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={rightContentRef} className="flex items-center gap-2">
+          <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    case 'body':
+      rightContent = (
+        <div ref={rightContentRef} className="flex items-center gap-2">
+          <ToolHint text="Prettify All" toolhintId="prettify-all-ws">
+            <ActionIcon data-testid="ws-prettify-all" onClick={onPrettifyAll}>
+              <IconWand size={14} strokeWidth={1.5} />
+            </ActionIcon>
+          </ToolHint>
+          <ToolHint text="Add Message" toolhintId="add-msg-ws">
+            <ActionIcon data-testid="ws-add-message" onClick={addNewMessage}>
+              <IconPlus size={15} strokeWidth={1.5} />
+            </ActionIcon>
+          </ToolHint>
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
   }
 
   return (

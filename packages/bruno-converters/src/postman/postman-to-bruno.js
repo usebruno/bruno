@@ -1,4 +1,5 @@
-import { transformExampleStatusInCollection } from '@usebruno/common';
+import mime from 'mime-types';
+import { transformExampleStatusInCollection, utils } from '@usebruno/common';
 import each from 'lodash/each';
 import get from 'lodash/get';
 import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
@@ -10,6 +11,8 @@ import {
 } from './postman-package-detector';
 import postmanTranslation from './postman-translations';
 
+const { parseMaxRedirects } = utils;
+
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
   BEARER: 'bearer',
@@ -20,6 +23,7 @@ const AUTH_TYPES = Object.freeze({
   OAUTH2: 'oauth2',
   EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
+  NTLM: 'ntlm',
   NONE: 'none'
 });
 
@@ -97,6 +101,16 @@ const ensureMaxBodySize = (value) => {
   if (value == null || value === '') return null;
   const num = Number(value);
   return isNaN(num) ? null : num;
+};
+
+/**
+ * Postman's `mode: "file"` body carries no per-file content type. Infer it from the
+ * file extension; fall back to application/octet-stream (RFC 2046 §4.5.1) when the
+ * extension is missing or unknown.
+ * https://datatracker.ietf.org/doc/html/rfc2046#section-4.5.1
+ */
+const inferBinaryContentType = (filePath) => {
+  return mime.lookup(filePath || '') || 'application/octet-stream';
 };
 
 /**
@@ -186,7 +200,10 @@ const constructUrl = (url) => {
   return '';
 };
 
-const importScriptsFromEvents = (events, requestObject) => {
+const translateOrPreserve = (exec, preserveScripts) =>
+  preserveScripts ? (Array.isArray(exec) ? exec.join('\n') : exec) : postmanTranslation(exec);
+
+const importScriptsFromEvents = (events, requestObject, preserveScripts = false) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -195,7 +212,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = postmanTranslation(event.script.exec);
+          requestObject.script.req = translateOrPreserve(event.script.exec, preserveScripts);
         } else {
           requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -208,7 +225,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.res = postmanTranslation(event.script.exec);
+          requestObject.script.res = translateOrPreserve(event.script.exec, preserveScripts);
         } else {
           requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -223,7 +240,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
     uid: uuid(),
     name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
     value: v.value == null ? '' : typeof v.value === 'string' ? v.value : JSON.stringify(v.value),
-    enabled: true
+    enabled: !v.disabled
   }));
 
   requestObject.vars.req = vars;
@@ -302,6 +319,15 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
       };
       break;
+    case AUTH_TYPES.NTLM:
+      // Postman's `workstation` field has no Bruno equivalent, so it is dropped here.
+      requestObject.auth.ntlm = {
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password),
+        domain: ensureString(authValues.domain)
+      };
+      break;
+
     case AUTH_TYPES.OAUTH1:
       requestObject.auth.oauth1 = {
         consumerKey: ensureString(authValues.consumerKey),
@@ -336,8 +362,35 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       const postmanGrantType = findValueUsingKey('grant_type');
       const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
+      // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
+      // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
+      const sendAsToSendIn = { request_header: 'headers', request_url: 'queryparams', request_body: 'body' };
+      const mapRequestParams = (params) => (Array.isArray(params) ? params : []).map((param) => ({
+        name: ensureString(param.key),
+        value: ensureString(param.value),
+        sendIn: sendAsToSendIn[param.send_as] || 'headers',
+        enabled: param.enabled !== false
+      }));
+      const additionalParameters = {};
+      if (Array.isArray(authValues.authRequestParams)) {
+        additionalParameters.authorization = mapRequestParams(authValues.authRequestParams);
+      }
+      if (Array.isArray(authValues.tokenRequestParams)) {
+        additionalParameters.token = mapRequestParams(authValues.tokenRequestParams);
+      }
+      if (Array.isArray(authValues.refreshRequestParams)) {
+        additionalParameters.refresh = mapRequestParams(authValues.refreshRequestParams);
+      }
+      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      // The schema requires an `authorization` array for the authorization_code grant, so ensure it
+      // exists when any additional params are attached to this grant type.
+      if (hasAdditionalParameters && targetGrantType === 'authorization_code' && !additionalParameters.authorization) {
+        additionalParameters.authorization = [];
+      }
+
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
+        ...(hasAdditionalParameters ? { additionalParameters } : {}),
         grantType: targetGrantType,
         accessTokenUrl: findValueUsingKey('accessTokenUrl'),
         refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
@@ -348,7 +401,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
         tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
         tokenQueryKey: 'access_token',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
+        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
+        credentialsId: findValueUsingKey('tokenName')
       };
 
       switch (postmanGrantType) {
@@ -399,7 +453,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap, issues = [], parentPath = '') => {
+const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false } = {}, scriptMap, issues = [], parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -443,7 +497,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             script: {},
@@ -459,17 +514,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap, issues, itemPath);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts }, scriptMap, issues, itemPath);
       }
 
       if (i.event) {
-        if (useWorkers) {
+        if (scriptMap) {
           scriptMap.set(brunoFolderItem.uid, {
             events: i.event,
             request: brunoFolderItem.root.request
           });
         } else {
-          importScriptsFromEvents(i.event, brunoFolderItem.root.request);
+          importScriptsFromEvents(i.event, brunoFolderItem.root.request, preserveScripts);
         }
       }
 
@@ -510,7 +565,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -520,14 +576,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               text: null,
               xml: null,
               formUrlEncoded: [],
-              multipartForm: []
+              multipartForm: [],
+              file: []
             },
             docs: transformDescription(i.request.description)
           }
         };
 
         const settings = {
-          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
+          forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
         };
 
         // Handle followRedirects setting
@@ -535,15 +593,23 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
           settings.followRedirects = i.protocolProfileBehavior.followRedirects;
         }
 
-        // Handle maxRedirects setting
-        if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
-          settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+        // Postman's schema types maxRedirects as a number but its exports are not guaranteed to
+        // honour that, and an unusable value must not cost us the request.
+        const maxRedirects = parseMaxRedirects(i.protocolProfileBehavior?.maxRedirects);
+        if (maxRedirects !== undefined) {
+          settings.maxRedirects = maxRedirects;
+        } else if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+          issues.push({
+            path: itemPath,
+            severity: 'warning',
+            message: 'Invalid maxRedirects, ignored (must be a number of 0 or more)'
+          });
         }
 
         brunoRequestItem.settings = settings;
 
         if (i.event) {
-          if (useWorkers) {
+          if (scriptMap) {
             scriptMap.set(brunoRequestItem.uid, {
               events: i.event,
               request: brunoRequestItem.request
@@ -555,7 +621,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
+                  brunoRequestItem.request.script.req = translateOrPreserve(event.script.exec, preserveScripts);
                 } else {
                   brunoRequestItem.request.script.req = '';
                   console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -566,7 +632,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   brunoRequestItem.request.script = {};
                 }
                 if (event.script.exec && event.script.exec.length > 0) {
-                  brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
+                  brunoRequestItem.request.script.res = translateOrPreserve(event.script.exec, preserveScripts);
                 } else {
                   brunoRequestItem.request.script.res = '';
                   console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -629,6 +695,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               brunoRequestItem.request.body.mode = 'text';
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
+          }
+
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            const filePath = ensureString(i.request.body.file?.src);
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath,
+              contentType: inferBinaryContentType(filePath)
+            });
           }
         }
 
@@ -712,7 +789,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   text: null,
                   xml: null,
                   formUrlEncoded: [],
-                  multipartForm: []
+                  multipartForm: [],
+                  file: []
                 }
               },
               response: {
@@ -824,6 +902,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   example.request.body.mode = 'text';
                   example.request.body.text = originalRequest.body.raw;
                 }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                const filePath = ensureString(originalRequest.body.file?.src);
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath,
+                  contentType: inferBinaryContentType(filePath)
+                });
               }
             }
 
@@ -966,7 +1053,7 @@ const rewriteRequiresInBrunoCollection = (brunoCollection) => {
   return Array.from(injected);
 };
 
-const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
+const importPostmanV2Collection = async (collection, { useWorkers = false, preserveScripts = false }) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
@@ -987,7 +1074,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         script: {},
@@ -998,7 +1086,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   };
 
   if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request);
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, preserveScripts);
   }
 
   const issues = [];
@@ -1015,9 +1103,9 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   processAuth(collection.auth, brunoCollection.root.request, true);
 
   // Create a single scriptMap for all items
-  const scriptMap = useWorkers ? new Map() : null;
+  const scriptMap = useWorkers && !preserveScripts ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, { useWorkers }, scriptMap, issues);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts }, scriptMap, issues);
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
@@ -1079,7 +1167,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   return { collection: brunoCollection, issues };
 };
 
-const parsePostmanCollection = async (collection, { useWorkers = false }) => {
+const parsePostmanCollection = async (collection, { useWorkers = false, preserveScripts = false }) => {
   try {
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
     const parsedCollection = collection.collection?.info ? collection.collection : collection;
@@ -1094,7 +1182,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(parsedCollection, { useWorkers });
+      return await importPostmanV2Collection(parsedCollection, { useWorkers, preserveScripts });
     }
 
     throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
@@ -1108,7 +1196,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
   }
 };
 
-const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) => {
+const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveScripts = false } = {}) => {
   try {
     // Resolve the actual collection envelope (Postman wraps newer exports
     // in a `{ collection: {...} }` shell) so the raw scan sees real events.
@@ -1117,20 +1205,21 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) =>
       : postmanCollection;
     const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
 
-    const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers });
+    const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts });
     const transformedCollection = transformItemsInCollection(parsedCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     // Apply backward compatibility transformation for string status to number
     const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
     const validatedCollection = validateSchema(statusTransformedCollection);
 
-    // Rewrite any pm.require() calls that survived the Bruno-side translator
+    // When preserving script option is enabled, skip any rewrite.
+    // Otherwise rewrite any pm.require() calls that survived the Bruno-side translator
     // so the imported scripts use plain require(). The post-scan also picks
     // up translator-injected globals (cheerio, tv4, ...) - packages Postman
     // exposed as sandbox globals that the raw pre-scan can't see. The
     // schema is strict + noUnknown so we attach the report by mutating
     // the already-validated collection.
-    const injectedPackages = rewriteRequiresInBrunoCollection(validatedCollection);
+    const injectedPackages = preserveScripts ? [] : rewriteRequiresInBrunoCollection(validatedCollection);
     validatedCollection.packageReport = buildPackageReport([...rawPackages, ...injectedPackages]);
 
     return { collection: validatedCollection, issues };

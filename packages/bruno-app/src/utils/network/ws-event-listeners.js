@@ -92,6 +92,16 @@ const useWsEventListeners = () => {
       }));
     });
 
+    // Handle WebSocket disconnecting event
+    const removeWsDisconnectingListener = ipcRenderer.on('main:ws:disconnecting', (requestId, collectionUid, eventData) => {
+      dispatch(wsResponseReceived({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        eventType: 'disconnecting',
+        eventData: eventData
+      }));
+    });
+
     const removeWsConnectionsChangedListener = ipcRenderer.on('main:ws:connections-changed', (data) => {
       dispatch(updateActiveConnectionsInStore(data));
     });
@@ -105,6 +115,7 @@ const useWsEventListeners = () => {
       removeWsCloseListener();
       removeWsErrorListener();
       removeWsConnectingListener();
+      removeWsDisconnectingListener();
       removeWsConnectionsChangedListener();
     };
   }, [isElectron]);

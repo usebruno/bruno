@@ -1,0 +1,23 @@
+meta {
+  name: grpc-request
+  type: grpc
+  seq: 2
+}
+
+grpc {
+  url: grpcs://localhost:9444
+  method: /hello.HelloService/SayHello
+  body: grpc
+  auth: none
+  methodType: unary
+  protoPath: ../../../../server/hello.proto
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "bruno"
+    }
+  '''
+}

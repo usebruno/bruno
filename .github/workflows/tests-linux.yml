@@ -14,7 +14,9 @@ jobs:
   unit-test:
     name: Unit Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       contents: read
     steps:
@@ -28,7 +30,9 @@ jobs:
 
   cli-test:
     name: CLI Tests (Linux)
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write
@@ -52,9 +56,16 @@ jobs:
           check_run: false
 
   e2e-test:
-    name: Playwright E2E Tests (Linux)
+    name: Playwright E2E Tests (Linux) ${{ matrix.shard }}/${{ matrix.shardTotal }}
     timeout-minutes: 240
-    runs-on: ubuntu-24.04
+    runs-on: 
+      - ubuntu-24.04
+      - self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        shardTotal: [4]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v6
 
@@ -81,10 +92,43 @@ jobs:
         uses: ./.github/actions/tests/run-e2e-tests
         with:
           os: ubuntu
+          shard: ${{ matrix.shard }}/${{ matrix.shardTotal }}
 
-      - name: Upload Playwright Report
+      - name: Upload blob report
         uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
+        with:
+          name: blob-report-linux-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+
+  e2e-test-report:
+    name: Merge Playwright Reports (Linux)
+    if: ${{ !cancelled() }}
+    needs: [e2e-test]
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          skip-build: 'true'
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v6
+        with:
+          path: all-blob-reports
+          pattern: blob-report-linux-*
+          merge-multiple: true
+
+      - name: Merge into HTML report
+        run: npx playwright merge-reports --config=playwright.merge.config.ts ./all-blob-reports
+
+      - name: Upload merged Playwright report
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-linux
           path: playwright-report/
@@ -93,7 +137,9 @@ jobs:
   ssl-test:
     name: SSL Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write
@@ -110,11 +156,17 @@ jobs:
       - name: Setup CA Certificates
         uses: ./.github/actions/ssl/linux/setup-ca-certs
 
+      - name: Setup Client Certificates
+        uses: ./.github/actions/ssl/linux/setup-client-certs
+
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/linux/run-basic-ssl-cli-tests
 
       - name: Run Custom CA Certs CLI Tests
         uses: ./.github/actions/ssl/linux/run-custom-ca-certs-cli-tests
+
+      - name: Run Client Certs CLI Tests
+        uses: ./.github/actions/ssl/linux/run-client-certs-cli-tests
 
       - name: Run Custom CA Certs E2E Tests
         uses: ./.github/actions/ssl/linux/run-ssl-e2e-tests
@@ -122,7 +174,9 @@ jobs:
   oauth1-tests:
     name: OAuth 1.0 Auth Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write

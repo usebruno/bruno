@@ -63,6 +63,16 @@ test.describe('API Spec Panel - open & preview validation', () => {
     ).toBeVisible();
   });
 
+  test('Render a spec whose paths live in a referenced file', async ({ page, electronApp }) => {
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-multifile.yaml');
+    await openApiSpecFromDialog(page, electronApp, openApiFile);
+    await openApiSpecSidebarItem(page, 'Multi File API');
+    // "Hello endpoint" lives only in openapi-multifile-endpoint.yaml, so a preview showing it
+    // proves the referenced file was resolved relative to the spec and not to the app's resources.
+    await expect(page.getByText('Hello endpoint').first()).toBeVisible();
+    await expect(page.getByText(/Could not resolve reference/i)).toHaveCount(0);
+  });
+
   test('Render a valid spec without any preview error', async ({ page, electronApp }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-simple.json');
     await openApiSpecFromDialog(page, electronApp, openApiFile);

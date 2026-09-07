@@ -5,23 +5,25 @@ const filestore = require('@usebruno/filestore');
 
 const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 
-const REDACT_BODY_THRESHOLD = 512 * 1024;
+const LARGE_FILE_REDACT_THRESHOLD = 64 * 1024;
 
-const parseLargeBruRequest = (content, format) => {
-  const { bruFileStringWithRedactedBody, extractedBodyContent } = filestore.parseRequestAndRedactBody(content, { format });
-  const data = filestore.parseRequest(bruFileStringWithRedactedBody, { format });
-  data.request = data.request || {};
-  data.request.body = data.request.body || {};
-  const body = extractedBodyContent || {};
-  if (body.json) data.request.body.json = body.json;
-  if (body.text) data.request.body.text = body.text;
-  if (body.xml) data.request.body.xml = body.xml;
-  if (body.sparql) data.request.body.sparql = body.sparql;
-  if (body.graphql) {
-    data.request.body.graphql = data.request.body.graphql || {};
-    data.request.body.graphql.query = body.graphql;
+const parseLargeBru = (content, format, type) => {
+  const { skeleton, blocks } = filestore.redactLargeBruTextBlocks(content);
+  let data;
+  switch (type) {
+    case 'request':
+      data = filestore.parseRequest(skeleton, { format });
+      break;
+    case 'collection':
+      data = filestore.parseCollection(skeleton, { format });
+      break;
+    case 'folder':
+      data = filestore.parseFolder(skeleton, { format });
+      break;
+    default:
+      return null;
   }
-  return data;
+  return filestore.restoreRedactedBlocks(data, blocks);
 };
 
 const extractBruMeta = (content) => {
@@ -45,13 +47,16 @@ const extractBruMeta = (content) => {
 const parseContent = (content, format, type, byteSize) => {
   if (type === 'config' || format === 'json') return JSON.parse(content);
   const options = { format };
+  const isLargeBru = format === 'bru' && byteSize >= LARGE_FILE_REDACT_THRESHOLD;
   switch (type) {
     case 'request':
-      if (format === 'bru' && byteSize >= REDACT_BODY_THRESHOLD) return parseLargeBruRequest(content, format);
+      if (isLargeBru) return parseLargeBru(content, format, type);
       return filestore.parseRequest(content, options);
     case 'collection':
+      if (isLargeBru) return parseLargeBru(content, format, type);
       return filestore.parseCollection(content, options);
     case 'folder':
+      if (isLargeBru) return parseLargeBru(content, format, type);
       return filestore.parseFolder(content, options);
     case 'environment':
       return filestore.parseEnvironment(content, options);

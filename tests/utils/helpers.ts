@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+export const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * Read and JSON-parse a file, retrying until it has parseable content.
  *

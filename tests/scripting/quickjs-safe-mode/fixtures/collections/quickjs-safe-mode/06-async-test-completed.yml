@@ -1,0 +1,23 @@
+info:
+  name: 06-async-test-completed
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test('the awaited test callback finished before its run returned', function() {
+          expect(bru.getVar('asyncTestRan')).to.equal('yes');
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

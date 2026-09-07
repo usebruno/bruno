@@ -14,6 +14,15 @@ import {
 } from '../../utils/page';
 import { AUTH_MODE_LABELS } from '../../utils/constants';
 
+const DEFAULT_SENT_HEADERS: Array<[string, string | RegExp]> = [
+  ['Accept', 'application/json, text/plain, */*'],
+  ['User-Agent', /^bruno-runtime\/\S+$/],
+  ['request-start-time', /^\d+$/],
+  ['Accept-Encoding', 'gzip, compress, deflate, br'],
+  ['Host', 'testbench-sanity.usebruno.com'],
+  ['Connection', 'keep-alive']
+];
+
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);
 });
@@ -63,10 +72,14 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     await expect(locators.response.statusCode()).toContainText('401 Unauthorized');
   });
 
-  await test.step('Open the latest timeline entry and verify no Authorization header was sent', async () => {
+  await test.step('Open the latest timeline entry and verify no Authorization header & only the default headers were sent', async () => {
     const timelineItem = locators.timeline.lastItem();
     await locators.timeline.itemHeader(timelineItem).click();
-    await expect(timelineItem).toContainText('No Headers');
+    for (const [name, value] of DEFAULT_SENT_HEADERS) {
+      await expect(locators.timeline.headerRow(timelineItem, name), `header "${name}"`).toHaveCount(1);
+      await expect(locators.timeline.headerValue(timelineItem, name), `header "${name}"`).toHaveText(value);
+    }
+    await expect(locators.timeline.headerRow(timelineItem, 'Authorization')).toHaveCount(0);
     await locators.timeline.clearButton().click();
   });
 

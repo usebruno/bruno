@@ -1,5 +1,5 @@
 import { test, expect, Locator, Page } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { waitForPredicate } from '../../utils/wait';
 
@@ -10,16 +10,7 @@ const isRequestSaved = async (saveButton: Locator) => {
 
 const setup = async (page: Page, createTmpDir: (tag?: string | undefined) => Promise<string>) => {
   await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
-
-  const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection' });
-  await sourceCollection.hover();
-  await sourceCollection.locator('.collection-actions .icon').click();
-  await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-  await page.getByPlaceholder('Request Name').fill('test-request');
-  await page.locator('#new-request-url .CodeMirror').click();
-  await page.locator('textarea').fill('https://echo.usebruno.com');
-  await page.getByRole('button', { name: 'Create' }).click();
-  await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
+  await createRequest(page, 'test-request', 'source-collection', { url: 'https://echo.usebruno.com' });
 };
 
 test.describe.serial('save requests', () => {

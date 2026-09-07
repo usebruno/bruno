@@ -1,8 +1,10 @@
-import { toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
+import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -53,6 +55,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           if (cert.passphrase) {
             pemCert.passphrase = cert.passphrase;
           }
+          if (cert.disabled === true) {
+            pemCert.disabled = true;
+          }
           return pemCert;
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert: Pkcs12Certificate = {
@@ -62,6 +67,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           };
           if (cert.passphrase) {
             pkcs12Cert.passphrase = cert.passphrase;
+          }
+          if (cert.disabled === true) {
+            pkcs12Cert.disabled = true;
           }
           return pkcs12Cert;
         }
@@ -78,6 +86,7 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
   return Boolean(
     request?.headers?.length ||
     request?.vars?.req?.length ||
+    request?.vars?.res?.length ||
     request?.script?.req ||
     request?.script?.res ||
     request?.tests ||
@@ -136,7 +145,12 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
       openCollection.request.variables = variables;
     }
 
-    const scripts = toOpenCollectionScripts(request as any);
+    const actions = toOpenCollectionActions(request?.vars?.res);
+    if (actions) {
+      openCollection.request.actions = actions;
+    }
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = toOpenCollectionScripts(request as any, HTTP_SCRIPT_KEYS);
     if (scripts) {
       openCollection.request.scripts = scripts;
     }
@@ -154,6 +168,8 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const brunoExtension: {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: 'sandwich' | 'sequential' };
+    openapi?: BrunoConfig['openapi'];
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -161,7 +177,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   }
 
   const presets = brunoConfig?.presets;
-  if (presets?.requestType || presets?.requestUrl) {
+  if (presets?.requestType || presets?.requestUrl || presets?.defaultEnvironment) {
     brunoExtension.presets = {};
     if (presets.requestType) {
       brunoExtension.presets.requestType = presets.requestType;
@@ -169,6 +185,19 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     if (presets.requestUrl) {
       brunoExtension.presets.requestUrl = presets.requestUrl;
     }
+    if (presets.defaultEnvironment) {
+      brunoExtension.presets.defaultEnvironment = presets.defaultEnvironment;
+    }
+  }
+
+  const scriptFlow = brunoConfig?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoExtension.scripts = { flow: scriptFlow };
+  }
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig?.openapi);
+  if (openApiEntries.length > 0) {
+    brunoExtension.openapi = openApiEntries;
   }
 
   if (Object.keys(brunoExtension).length > 0) {

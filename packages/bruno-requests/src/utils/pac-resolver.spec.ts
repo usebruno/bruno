@@ -9,6 +9,12 @@ describe('pac-resolver (shared)', () => {
     jest.clearAllMocks();
   });
 
+  const expectedPacOptions = expect.objectContaining({
+    sandbox: expect.objectContaining({
+      myIpAddress: expect.any(Function)
+    })
+  });
+
   /** Mock pac-resolver (v7: { createPacResolver }) and quickjs-emscripten */
   const setupPacMocks = (resolverFn: (...args: any[]) => Promise<any> = async () => 'PROXY p.example:8080; DIRECT') => {
     jest.doMock('quickjs-emscripten', () => ({
@@ -64,8 +70,31 @@ describe('pac-resolver (shared)', () => {
 
     const directives = await wrapper.resolve('http://foo.example/');
     expect(directives).toEqual(['PROXY p.example:8080', 'DIRECT']);
-    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript);
+    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript, expectedPacOptions);
     expect(axiosGet).toHaveBeenCalledWith(pacSource, expect.objectContaining({ proxy: false }));
+  });
+
+  test('overrides PAC myIpAddress helper with a local interface lookup', async () => {
+    const os = require('node:os');
+    const networkInterfacesSpy = jest.spyOn(os, 'networkInterfaces').mockReturnValue({
+      lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      eth0: [{ address: '10.24.0.5', family: 'IPv4', internal: false }]
+    } as any);
+
+    mockAxiosSuccess('script');
+    const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
+
+    try {
+      const { getPacResolver } = require('./pac-resolver');
+      await getPacResolver({ pacSource: 'http://example.com/proxy.pac' });
+
+      const options = createPacResolverMock.mock.calls[0][2];
+      expect(options).toEqual(expectedPacOptions);
+      expect(options.sandbox.myIpAddress()).toBe('10.24.0.5');
+      expect(networkInterfacesSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      networkInterfacesSpy.mockRestore();
+    }
   });
 
   test('passes TLS options to https.Agent for HTTPS pac URLs', async () => {
@@ -196,7 +225,7 @@ describe('pac-resolver (shared)', () => {
 
     expect(readFile).toHaveBeenCalledWith(expectedPath, 'utf8');
     expect(axiosGetMock).not.toHaveBeenCalled();
-    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript);
+    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript, expectedPacOptions);
 
     const directives = await wrapper.resolve('http://foo.example/');
     expect(directives).toEqual(['PROXY p.example:8080']);

@@ -1,10 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconAppWindow } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
-import { buildAiContextPayload } from 'utils/ai';
 import { updateAppCode } from 'providers/ReduxStore/slices/collections';
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -26,11 +24,6 @@ const AppCodeEditor = ({ item, collection }) => {
     dispatch(setTabAppPreview({ uid: item.uid, appPreview: true }));
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-
-  const { requestContext, variables: aiVariables } = useMemo(
-    () => buildAiContextPayload(item, collection),
-    [item, collection]
-  );
 
   return (
     <StyledWrapper className="w-full h-full flex flex-col">
@@ -59,13 +52,6 @@ const AppCodeEditor = ({ item, collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           mode="htmlmixed"
-        />
-        <AIAssist
-          scriptType="app-request"
-          currentScript={code || ''}
-          requestContext={requestContext}
-          variables={aiVariables}
-          onApply={onEdit}
         />
       </div>
     </StyledWrapper>

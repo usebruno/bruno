@@ -77,13 +77,12 @@ const Devtools = ({ mainSectionRef }) => {
           cursor: 'row-resize',
           backgroundColor: isResizingDevtools ? dragHandleColor : 'transparent',
           transition: 'background-color 0.2s ease',
-          zIndex: 20,
           position: 'relative'
         }}
         onMouseEnter={(e) => e.target.style.backgroundColor = dragHandleColor}
         onMouseLeave={(e) => e.target.style.backgroundColor = isResizingDevtools ? dragHandleColor : 'transparent'}
       />
-      <div style={{ height: `${devtoolsHeight}px`, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ height: `${devtoolsHeight}px`, overflow: 'hidden', position: 'relative', isolation: 'isolate' }}>
         <Console />
       </div>
     </>

@@ -1,0 +1,82 @@
+info:
+  name: MessageHooksUnary
+  type: grpc
+  seq: 11
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  metadata:
+    - name: x-keep
+      value: kept-value
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "{{unaryGreeting}}"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: |-
+        bru.setVar('unaryGreeting', 'unary-hooks');
+        bru.setVar('lastReply', '');
+    - type: grpc:before-message-send
+      code: |-
+        // Interpolation has already run by the time the message is handed to this hook.
+        test('the hook is handed the message about to go out', () => {
+          expect(bru.grpc.request.message.data.greeting).to.equal('unary-hooks');
+          expect(bru.grpc.request.message.timestamp).to.be.a('number');
+        });
+
+        // `messages` reports what the call has sent, and this one has yet to send anything.
+        test('the message has not joined request.messages yet', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(0);
+        });
+
+        // Same scope as beforeCallStart — there is nothing to respond with yet.
+        test('no response is in scope before the message is sent', () => {
+          expect(bru.grpc.response).to.be.undefined;
+        });
+
+        test('metadata is read-only once the call is under way', () => {
+          expect(bru.grpc.request.metadata.get('x-keep')).to.equal('kept-value');
+          expect(() => bru.grpc.request.metadata.upsert('x-late', '1')).to.throw();
+        });
+    - type: grpc:after-message-receive
+      code: |-
+        test('the hook is handed the reply that just arrived', () => {
+          expect(bru.grpc.response.message.data.reply).to.equal('hello unary-hooks');
+          expect(bru.grpc.response.message.timestamp).to.be.a('number');
+        });
+
+        test('the reply is also folded into response.messages', () => {
+          expect(bru.grpc.response.messages.count()).to.equal(1);
+          expect(bru.grpc.response.messages.get(0).data.reply).to.equal('hello unary-hooks');
+        });
+
+        // A unary call never streams, so the sent message is rebuilt from the authored body.
+        test('the sent message is visible from here', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(1);
+          expect(bru.grpc.request.messages.get(0).data.greeting).to.equal('unary-hooks');
+        });
+
+        // `message` belongs to the request in the send hook and to the response in this one.
+        test('the request carries no message in this hook', () => {
+          expect(bru.grpc.request.message).to.be.undefined;
+        });
+
+        bru.setVar('lastReply', bru.grpc.response.message.data.reply);
+    - type: grpc:after-call-end
+      code: |-
+        // The call is over here, so the fields afterMessageReceive saw as unknown are filled in.
+        test('the completed call reports its status and duration', () => {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+          expect(bru.grpc.response.duration).to.be.a('number').and.to.be.above(0);
+        });
+
+        test('afterCallEnd carries no single message', () => {
+          expect(bru.grpc.response.message).to.be.undefined;
+        });

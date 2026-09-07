@@ -13,7 +13,7 @@ automatically when you launch from the project root.
 | Path | What it is | Loads |
 |------|------------|-------|
 | `CLAUDE.md` | Project overview — commands, key architecture, coding standards, index of rules/references. | Every session (auto). |
-| `rules/*.md` | Path-scoped engineering guidance: `architecture` (`@usebruno/*` dependency boundaries), `redux-store`, `electron-ipc`, `dsl-changes` (on-disk `.bru`/`.yml` format), `cross-platform`, `testing`, `conventions` (readability + comment/diff hygiene). | When Claude touches files matching each rule's `paths:`. |
+| `rules/*.md` | Path-scoped engineering guidance: `architecture` (`@usebruno/*` dependency boundaries + manifests), `bruno-app-layout` (component directories, `src/ui` vs `src/components`), `redux-store`, `electron-ipc`, `dsl-changes` (on-disk `.bru`/`.yml` format), `cross-platform`, `testing`, `conventions` (readability, reuse, replacement hygiene, comment/diff hygiene). | When Claude touches files matching each rule's `paths:`. |
 | `reference/architecture.md` | The monorepo map — request pipeline, sandbox, file formats, core types, dependency versions. Too big to auto-load. | On demand only (Claude reads it when a task needs it). |
 | `skills/code-review/` | `/code-review` — reviews the current branch/PR via focused lenses in parallel; takes base pointers from `.coderabbit.yaml`. | On invocation / when relevant. |
 | `skills/write-e2e-test/` | `/write-e2e-test` — writes a Playwright E2E test following Bruno's fixtures and conventions. | On invocation / when relevant. |

@@ -36,6 +36,35 @@ reviews:
         - Avoid relying on Unix-only signals (e.g., `SIGKILL`) without Windows fallbacks
         - Use `os.tmpdir()` instead of hardcoding `/tmp`
         - Environment variable access should handle platform differences (e.g., `HOME` vs `USERPROFILE`)
+    - path: 'packages/**/*.{js,jsx,ts,tsx}'
+      instructions: |
+        Some packages in this monorepo are being migrated to TypeScript incrementally, others are
+        still plain JS by design. Before applying any of the guidance below, check whether the
+        package the changed file belongs to (its `packages/<name>/package.json`) already lists
+        `typescript` as a dependency or devDependency. If it does not, skip this guidance entirely
+        for that file — do not suggest converting a package to TypeScript that hasn't opted in.
+
+        A `typescript` entry in `package.json` alone isn't sufficient — also check for a real
+        `tsconfig.json`, a build/type-check script that compiles or type-checks source (not just
+        test config), and existing `.ts`/`.tsx` files under the package's source directory (not
+        only under `tests/`). If `typescript` is present only for tests or tooling (e.g. `ts-node`
+        for scripts, `ts-jest`, a `.d.ts`-only setup) and the package's actual build/runtime source
+        is still JavaScript-only, treat it the same as a non-opted-in package and skip this
+        guidance.
+
+        For packages that do have `typescript` wired into their real build/runtime (not just tests
+        or tooling):
+        - If the PR adds a **new** file as `.js`/`.jsx`, flag it and suggest `.ts`/`.tsx` instead,
+          unless the PR description gives a clear reason (e.g. it's deliberately a near-identical
+          copy of an existing JS sibling for a diff-driven change).
+        - If a PR renames an existing `.js`/`.jsx` file to `.ts`/`.tsx` **and** changes its logic
+          in the same diff, flag it — conversions should be their own standalone, minimal-diff
+          commit/PR (rename only), separate from behavioral changes.
+        - When a file is converted to TypeScript, flag use of `any` used as a shortcut rather than
+          a genuinely unknown/dynamic type — prefer modeling the real shape (reuse types from
+          `@usebruno/schema-types` where applicable).
+        - Do not ask for unrelated `.js` files to be converted as part of an unrelated PR — that
+          contradicts an incremental, file-at-a-time migration approach.
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:

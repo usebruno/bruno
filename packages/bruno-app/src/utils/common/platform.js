@@ -16,7 +16,11 @@ export const resolveRequestFilename = (name, extension = 'bru') => {
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   const relativePath = path.relative(rootPath, pathname);
-  return relativePath ? relativePath.split(path.sep) : [];
+  if (!relativePath || path.isAbsolute(relativePath)) {
+    return [];
+  }
+  const segments = relativePath.split(path.sep);
+  return segments[0] === '..' ? [] : segments;
 };
 
 export const isWindowsOS = () => {

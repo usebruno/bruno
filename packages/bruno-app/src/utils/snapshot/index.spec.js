@@ -17,6 +17,8 @@ const {
   hydrateCollectionTabs,
   isActiveTab,
   getActiveTabFromSnapshot,
+  serializeTab,
+  serializeActiveTab,
   getCollectionSnapshotFromLookups
 } = require('./index');
 
@@ -219,12 +221,219 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(lookups.hasWorkspaceScopedTabs).toBe(true);
 
-    // Each workspace should resolve to its own selected environment for the shared collection.
     expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceAPath)).toMatchObject({
       selectedEnvironment: 'env-a'
     });
     expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceBPath)).toMatchObject({
       selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('prioritizes active workspace collection data in collectionsByPath when later non-active entries would otherwise overwrite it', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      activeWorkspacePath: '/workspaces/active',
+      workspaces: [
+        {
+          pathname: '/workspaces/active',
+          sorting: 'default',
+          collections: [collectionPath]
+        },
+        {
+          pathname: '/workspaces/other',
+          sorting: 'default',
+          collections: [collectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/active',
+          environment: {
+            collection: 'env-active',
+            global: ''
+          },
+          selectedEnvironment: 'env-active',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/other',
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+  });
+
+  it('keeps workspace-scoped collection lookups distinct when active workspace preference is applied', () => {
+    const collectionPath = '/collections/shared';
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+
+    const snapshot = {
+      activeWorkspacePath: workspaceAPath,
+      workspaces: [
+        { pathname: workspaceAPath, sorting: 'default', collections: [collectionPath] },
+        { pathname: workspaceBPath, sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-a', global: '' },
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: 'env-b', global: '' },
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(collectionPath, lookups, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(collectionPath, lookups, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('prefers blank active workspace collection data over a later non-active entry with environment data', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      activeWorkspacePath: '/workspaces/active',
+      workspaces: [
+        { pathname: '/workspaces/active', sorting: 'default', collections: [collectionPath] },
+        { pathname: '/workspaces/other', sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/active',
+          environment: { collection: '', global: '' },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/other',
+          environment: { collection: 'env-other', global: '' },
+          selectedEnvironment: 'env-other',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: '',
+      environment: { collection: '', global: '' }
+    });
+  });
+
+  it('prefers an active workspace entry with environment data over an earlier blank active entry for the same path', () => {
+    const collectionPath = '/collections/shared';
+    const activeWorkspacePath = '/workspaces/active';
+
+    const snapshot = {
+      activeWorkspacePath,
+      workspaces: [
+        { pathname: activeWorkspacePath, sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: { collection: '', global: '' },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: { collection: 'env-second', global: '' },
+          selectedEnvironment: 'env-second',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-second',
+      environment: { collection: 'env-second', global: '' }
+    });
+  });
+
+  it('uses last-write-wins for collectionsByPath when activeWorkspacePath is absent', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      workspaces: [
+        { pathname: '/workspaces/a', sorting: 'default', collections: [collectionPath] },
+        { pathname: '/workspaces/b', sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/a',
+          environment: { collection: 'env-a', global: '' },
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/b',
+          environment: { collection: 'env-b', global: '' },
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-b',
+      environment: { collection: 'env-b', global: '' }
     });
   });
 
@@ -302,6 +511,69 @@ describe('deserializeTab', () => {
     expect(firstTab.uid).not.toBe('variables');
     expect(secondTab.uid).not.toBe('variables');
     expect(firstTab.uid).not.toBe(secondTab.uid);
+  });
+
+  it('restores mock-server tab with stable uid from mockServerUid', () => {
+    const snapshotTab = {
+      type: 'mock-server',
+      accessor: 'type::mockServerUid',
+      mockServerUid: 'mock-server-1',
+      name: 'My Mock Server',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+
+    expect(tab.type).toBe('mock-server');
+    expect(tab.uid).toBe('mock-server-1');
+    expect(tab.mockServerUid).toBe('mock-server-1');
+    expect(tab.tabName).toBe('My Mock Server');
+    expect(tab.preview).toBe(false);
+  });
+
+  it('migrates legacy mocker snapshots to mock-server', () => {
+    const snapshotTab = {
+      type: 'mocker',
+      accessor: 'type::mockServerUid',
+      mockServerUid: 'mock-server-1',
+      name: 'My Mock Server',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+
+    expect(tab.type).toBe('mock-server');
+    expect(tab.uid).toBe('mock-server-1');
+    expect(tab.mockServerUid).toBe('mock-server-1');
+    expect(tab.tabName).toBe('My Mock Server');
+  });
+
+  it('migrates legacy mock-server-dashboard snapshots to mock-server', () => {
+    const snapshotTab = {
+      type: 'mock-server-dashboard',
+      accessor: 'type',
+      mockServerUid: 'mock-server-legacy',
+      permanent: false
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+
+    expect(tab.type).toBe('mock-server');
+    expect(tab.uid).toBe('mock-server-legacy');
+  });
+
+  it('generates uid when mock-server snapshot has no mockServerUid', () => {
+    const snapshotTab = {
+      type: 'mock-server',
+      accessor: 'type',
+      permanent: false
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+
+    expect(tab.type).toBe('mock-server');
+    expect(tab.uid).toBeTruthy();
+    expect(tab.uid).not.toBe('mock-server');
   });
 
   it('restores preferences uid scoped to collection uid', () => {
@@ -590,6 +862,41 @@ describe('deserializeTab', () => {
 });
 
 describe('active tab matching', () => {
+  const collection = {
+    uid: 'collection-uid',
+    pathname: '/collections/a'
+  };
+
+  it('matches mock-server tabs by mockServerUid', () => {
+    const tab = {
+      uid: 'mock-server-1',
+      type: 'mock-server',
+      mockServerUid: 'mock-server-1'
+    };
+
+    expect(isActiveTab(tab, { accessor: 'type::mockServerUid', value: 'mock-server-1' }, collection)).toBe(true);
+    expect(isActiveTab(tab, { accessor: 'type::mockServerUid', value: 'mock-server-2' }, collection)).toBe(false);
+  });
+
+  it('serializes and restores mock-server active tab by mockServerUid', () => {
+    const tab = {
+      uid: 'mock-server-1',
+      type: 'mock-server',
+      mockServerUid: 'mock-server-1',
+      tabName: 'My Mock Server',
+      preview: false
+    };
+
+    const serialized = serializeTab(tab, collection);
+    expect(serialized.type).toBe('mock-server');
+    expect(serialized.accessor).toBe('type::mockServerUid');
+    expect(serialized.mockServerUid).toBe('mock-server-1');
+    expect(serialized.name).toBe('My Mock Server');
+
+    const activeTab = serializeActiveTab(tab, collection);
+    expect(activeTab).toEqual({ accessor: 'type::mockServerUid', value: 'mock-server-1' });
+  });
+
   it('does not mark response example tab as active for pathname accessor', () => {
     const collection = {
       uid: 'collection-uid',
@@ -617,6 +924,45 @@ describe('active tab matching', () => {
     };
 
     expect(isActiveTab(tab, activeTab, collection)).toBe(false);
+  });
+
+  it('matches mock-response tabs by response uid', () => {
+    const tab = {
+      uid: 'mock-response-1',
+      type: 'mock-response',
+      mockServerUid: 'mock-server-1',
+      responseName: 'Premium'
+    };
+
+    expect(isActiveTab(tab, { accessor: 'type::mockResponseUid', value: 'mock-response-1' }, collection)).toBe(true);
+    expect(isActiveTab(tab, { accessor: 'type::mockResponseUid', value: 'mock-response-2' }, collection)).toBe(false);
+  });
+
+  it('serializes and restores mock-response tabs by response uid', () => {
+    const tab = {
+      uid: 'mock-response-1',
+      type: 'mock-response',
+      mockServerUid: 'mock-server-1',
+      responseName: 'Premium',
+      tabName: 'Premium',
+      preview: false
+    };
+
+    const serialized = serializeTab(tab, collection);
+    expect(serialized.type).toBe('mock-response');
+    expect(serialized.accessor).toBe('type::mockResponseUid');
+    expect(serialized.mockServerUid).toBe('mock-server-1');
+    expect(serialized.responseUid).toBe('mock-response-1');
+    expect(serialized.name).toBe('Premium');
+
+    const activeTab = serializeActiveTab(tab, collection);
+    expect(activeTab).toEqual({ accessor: 'type::mockResponseUid', value: 'mock-response-1' });
+
+    const restored = deserializeTab(serialized, collection);
+    expect(restored.type).toBe('mock-response');
+    expect(restored.uid).toBe('mock-response-1');
+    expect(restored.mockServerUid).toBe('mock-server-1');
+    expect(restored.responseName).toBe('Premium');
   });
 });
 
