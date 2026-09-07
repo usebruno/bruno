@@ -5,6 +5,7 @@ const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
 const { createCustomRequire } = require('./cjs-loader');
+const { createCustomImport } = require('./esm-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -66,15 +67,26 @@ async function runScriptInNodeVm({
       additionalContextRootsAbsolute
     });
 
+    const customImport = createCustomImport({
+      collectionPath,
+      isolatedContext,
+      currentModuleDir: collectionPath,
+      localModuleCache,
+      additionalContextRootsAbsolute
+    });
+
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
     // Execute the script in the isolated context
     const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
     let compiledScript;
     try {
-      compiledScript = new vm.Script(wrappedScript, {
-        filename: vmFilename
-      });
+      const scriptOptions = {
+        filename: vmFilename,
+        importModuleDynamically: customImport
+      };
+
+      compiledScript = new vm.Script(wrappedScript, scriptOptions);
     } catch (error) {
       // V8 puts "filename:line" as the first line of syntax error stacks.
       // Parse it so the error formatter can map to the correct source location.
