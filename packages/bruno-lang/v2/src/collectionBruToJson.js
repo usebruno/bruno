@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('./grammar-cache');
 const _ = require('lodash');
 const {
   safeParseJson,
@@ -13,7 +13,7 @@ const {
 // the key is hidden and not added into the json automatically
 const ANNOTATIONS_KEY = Symbol('annotations');
 
-const grammar = ohm.grammar(`Bru {
+const grammar = compileGrammar('collection', `Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
 

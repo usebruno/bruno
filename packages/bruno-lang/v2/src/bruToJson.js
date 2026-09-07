@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('./grammar-cache');
 const _ = require('lodash');
 const {
   safeParseJson,
@@ -40,7 +40,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *  ]
  *
  */
-const grammar = ohm.grammar(`Bru {
+const grammar = compileGrammar('bru', `Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
