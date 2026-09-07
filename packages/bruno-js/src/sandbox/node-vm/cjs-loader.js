@@ -34,6 +34,16 @@ const BRUNO_CONTEXT_KEYS = [
 
 const facades = new Map();
 
+const RUN_LOADER_STATE = Symbol('brunoRunLoaderState');
+
+function attachRunLoaderState(scriptContext, { localModuleCache, vmContext }) {
+  scriptContext[RUN_LOADER_STATE] = { localModuleCache, vmContext };
+}
+
+function getRunLoaderState(store) {
+  return store?.[RUN_LOADER_STATE];
+}
+
 /**
  * Late-bound facade for a Bruno global in the shared npm context.
  * @param {string} key - The Bruno global's name
@@ -667,8 +677,9 @@ function createNpmModuleRequire({
     // Shared parents keep this require for the process lifetime; always prefer the
     // active script run's cache/context so lazy context-bound leaves re-eval.
     const store = cacheModules ? activeScriptContext.getStore() : null;
-    const runLocalCache = store?.__brunoLocalModuleCache ?? localModuleCache;
-    const runContext = store?.__brunoVmContext ?? isolatedContext;
+    const runState = getRunLoaderState(store);
+    const runLocalCache = runState?.localModuleCache ?? localModuleCache;
+    const runContext = runState?.vmContext ?? isolatedContext;
 
     // Handle relative imports within npm module
     if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
@@ -711,6 +722,7 @@ module.exports = {
   createCustomRequire,
   runWithScriptContext,
   getSharedNpmContext,
+  attachRunLoaderState,
   __resetNpmModuleStateForTests: () => {
     sharedNpmModuleCache.clear();
     contextBoundModulePaths.clear();

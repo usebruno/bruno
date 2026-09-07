@@ -4,7 +4,7 @@ const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
-const { createCustomRequire, runWithScriptContext, getSharedNpmContext } = require('./cjs-loader');
+const { createCustomRequire, runWithScriptContext, getSharedNpmContext, attachRunLoaderState } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -68,86 +68,89 @@ async function runScriptInNodeVm({
       cacheModules
     });
     // Stashed for shared npm requires that outlive this run's createCustomRequire closure.
-    scriptContext.__brunoLocalModuleCache = localModuleCache;
-    scriptContext.__brunoVmContext = vmContext;
+    // Symbol key so runWithScriptContext does not publish these as sandbox globals.
+    attachRunLoaderState(scriptContext, { localModuleCache, vmContext });
 
     // cacheModules: onFail runs after the script's ALS store exits, so re-bind
     // registered callbacks to this run's context (bru/req/... facades).
     let restoreOnFail;
     if (cacheModules && typeof scriptContext.req?.onFail === 'function') {
       const req = scriptContext.req;
-      const originalOnFail = req.onFail.bind(req);
+      const originalOnFail = req.onFail;
       req.onFail = (callback) => {
         if (typeof callback !== 'function') {
-          return originalOnFail(callback);
+          return originalOnFail.call(req, callback);
         }
-        return originalOnFail((error) => runWithScriptContext(scriptContext, () => callback(error)));
+        return originalOnFail.call(req, (error) => runWithScriptContext(scriptContext, () => callback(error)));
       };
       restoreOnFail = () => {
         req.onFail = originalOnFail;
       };
     }
 
-    const vmFilename = resolveVmFilename(scriptPath, collectionPath);
-
-    // Execute the script in the isolated context
-    const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
-    let compiledScript;
     try {
-      compiledScript = new vm.Script(wrappedScript, {
-        filename: vmFilename
-      });
-    } catch (error) {
-      // V8 puts "filename:line" as the first line of syntax error stacks.
-      // Parse it so the error formatter can map to the correct source location.
-      const firstLine = error.stack?.split('\n')[0];
-      const match = firstLine?.match(/^(.+):(\d+)$/);
-      if (match && match[1] === vmFilename) {
-        error.__callSites = [{
-          filePath: vmFilename,
-          line: parseInt(match[2], 10),
-          column: null,
-          functionName: null
-        }];
+      const vmFilename = resolveVmFilename(scriptPath, collectionPath);
+
+      // Execute the script in the isolated context
+      const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
+      let compiledScript;
+      try {
+        compiledScript = new vm.Script(wrappedScript, {
+          filename: vmFilename
+        });
+      } catch (error) {
+        // V8 puts "filename:line" as the first line of syntax error stacks.
+        // Parse it so the error formatter can map to the correct source location.
+        const firstLine = error.stack?.split('\n')[0];
+        const match = firstLine?.match(/^(.+):(\d+)$/);
+        if (match && match[1] === vmFilename) {
+          error.__callSites = [{
+            filePath: vmFilename,
+            line: parseInt(match[2], 10),
+            column: null,
+            functionName: null
+          }];
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    // Capture structured call sites for error-formatter line mapping
-    const originalPrepareStackTrace = Error.prepareStackTrace;
-    Error.prepareStackTrace = (error, callSites) => {
-      error.__callSites = callSites
-        .filter((site) => site.getFileName() === vmFilename)
-        .map((site) => ({
-          filePath: site.getFileName(),
-          line: site.getLineNumber(),
-          column: site.getColumnNumber(),
-          functionName: site.getFunctionName() || null
-        }));
+      // Capture structured call sites for error-formatter line mapping
+      const originalPrepareStackTrace = Error.prepareStackTrace;
+      Error.prepareStackTrace = (error, callSites) => {
+        error.__callSites = callSites
+          .filter((site) => site.getFileName() === vmFilename)
+          .map((site) => ({
+            filePath: site.getFileName(),
+            line: site.getLineNumber(),
+            column: site.getColumnNumber(),
+            functionName: site.getFunctionName() || null
+          }));
 
-      return error.toString() + '\n' + callSites
-        .map((site) => `    at ${site}`)
-        .join('\n');
-    };
+        return error.toString() + '\n' + callSites
+          .map((site) => `    at ${site}`)
+          .join('\n');
+      };
 
-    try {
-      const runScript = () => compiledScript.runInContext(vmContext, {
-        displayErrors: true
-      });
-      if (cacheModules) {
-        await runWithScriptContext(scriptContext, runScript);
-      } else {
-        await runScript();
+      try {
+        const runScript = () => compiledScript.runInContext(vmContext, {
+          displayErrors: true
+        });
+        if (cacheModules) {
+          await runWithScriptContext(scriptContext, runScript);
+        } else {
+          await runScript();
+        }
+      } catch (error) {
+        // V8 invokes prepareStackTrace lazily on first .stack access.
+        // Reading .stack here so custom handler runs and populates error.__callSites
+        // (used later by the error formatter to map stack frames to the .bru/.yml script)
+        void error.stack;
+        throw error;
+      } finally {
+        Error.prepareStackTrace = originalPrepareStackTrace;
       }
-    } catch (error) {
-      // V8 invokes prepareStackTrace lazily on first .stack access.
-      // Reading .stack here so custom handler runs and populates error.__callSites
-      // (used later by the error formatter to map stack frames to the .bru/.yml script)
-      void error.stack;
-      throw error;
     } finally {
       restoreOnFail?.();
-      Error.prepareStackTrace = originalPrepareStackTrace;
     }
   } catch (error) {
     throw new ScriptError(error, script);

@@ -927,6 +927,67 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('token', 'after');
     });
 
+    it('should restore req.onFail after a syntax-error run so a later run uses a fresh wrapper', async () => {
+      let onFailHandler;
+      const req = {
+        onFail(callback) {
+          onFailHandler = callback;
+        }
+      };
+      const originalOnFail = req.onFail;
+
+      await expect(
+        runScriptInNodeVm({
+          script: 'this is not valid js {{{',
+          context: { bru: {}, req, console },
+          collectionPath,
+          scriptingConfig
+        })
+      ).rejects.toThrow();
+
+      expect(req.onFail).toBe(originalOnFail);
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        req,
+        console
+      };
+      await runScriptInNodeVm({
+        script: `
+          req.onFail(() => {
+            bru.setVar('token', 'after');
+          });
+        `,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      expect(typeof onFailHandler).toBe('function');
+      onFailHandler(new Error('Connection failed'));
+      expect(context.bru.setVar).toHaveBeenCalledWith('token', 'after');
+    });
+
+    it('should not expose loader internals as script globals', async () => {
+      const context = {
+        bru: { setVar: jest.fn() },
+        console
+      };
+
+      await runScriptInNodeVm({
+        script: `
+          bru.setVar('vm', typeof __brunoVmContext);
+          bru.setVar('cache', typeof __brunoLocalModuleCache);
+        `,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('vm', 'undefined');
+      expect(context.bru.setVar).toHaveBeenCalledWith('cache', 'undefined');
+    });
+
     it('should read a missing key as undefined and still call it once a later execution provides a function', async () => {
       makePkg(path.join(collectionPath, 'node_modules'), 'helper-caller', {
         'index.js': `module.exports = { probe: () => typeof helper, run: () => helper('x') };`
