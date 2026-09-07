@@ -34,7 +34,11 @@ export const buildMockServerLocators = (page: Page) => ({
 
   createModal: () => page.locator('.bruno-modal-card'),
   nameInput: () => page.getByTestId('mock-server-name-input'),
+  nameRequiredError: () => page.getByText('Name is required'),
+  collectionRequiredError: () => page.getByText('Collection is required'),
+  collectionSelect: () => page.getByTestId('mock-server-collection-select'),
   modalSubmit: () => page.getByTestId('modal-submit-btn'),
+  modalCancel: () => page.locator('.bruno-modal-card').getByRole('button', { name: 'Cancel' }),
   sidebarCreateBtn: () => page.getByTestId('mock-servers-create-btn'),
   sourceCollectionRadio: () => page.getByTestId('mock-server-source-collection'),
   sourceSpecRadio: () => page.getByTestId('mock-server-source-spec'),

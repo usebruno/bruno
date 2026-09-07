@@ -4,6 +4,7 @@ import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -148,8 +149,8 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     if (actions) {
       openCollection.request.actions = actions;
     }
-
-    const scripts = toOpenCollectionScripts(request as any);
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = toOpenCollectionScripts(request as any, HTTP_SCRIPT_KEYS);
     if (scripts) {
       openCollection.request.scripts = scripts;
     }

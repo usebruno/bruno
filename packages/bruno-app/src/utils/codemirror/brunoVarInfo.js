@@ -787,31 +787,35 @@ export const renderVarInfo = (token, options) => {
         }
       };
 
-      const addToScopesState = store.getState();
-      const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
+      const buildAddToScopes = () => {
+        const addToScopesState = store.getState();
+        const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
 
-      // Use the latest collection state so "Add to Environment" targets the real
-      // active environment, not the environment currently being viewed in environment settings.
-      const freshCollectionForScopes = collection?.uid
-        ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
-        : null;
-      const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
-        (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
-      )?.name;
-      const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
-        (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
-      )?.name;
-      const addToScopes = getAvailableAddToScopes({
-        // add activeEnvironmentUid only if activeEnvironmentName is there with the active id
-        activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
-        activeEnvironmentName,
-        activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
-        activeGlobalEnvironmentName,
-        item,
-        parentFolder: folderScopeTarget,
-        isSelfFolder: isInFolderSettings,
-        hasCollection: !!collection?.uid
-      });
+        const freshCollectionForScopes = collection?.uid
+          ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
+          : null;
+        const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
+          (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
+        )?.name;
+        const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
+          (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
+        )?.name;
+
+        return getAvailableAddToScopes({
+          activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
+          activeEnvironmentName,
+          activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
+          activeGlobalEnvironmentName,
+          item,
+          parentFolder: folderScopeTarget,
+          isSelfFolder: isInFolderSettings,
+          hasCollection: !!collection?.uid
+        });
+      };
+
+      const getFreshScopeForType = (type) => buildAddToScopes().find((s) => s.type === type);
+
+      const addToScopes = buildAddToScopes();
 
       // If there's only one available scope, select it by default. Otherwise, use the detected scope if it's available.
       const initialScope = addToScopes.find((s) => s.type === scopeInfo.type)
@@ -892,7 +896,8 @@ export const renderVarInfo = (token, options) => {
             return Promise.reject(new Error('Environment already exists'));
           }
 
-          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }));
+          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }))
+            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.GLOBAL));
         }
 
         if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
@@ -907,7 +912,8 @@ export const renderVarInfo = (token, options) => {
 
           return dispatch(addEnvironment(trimmedName, collection.uid))
             .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
-            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)))
+            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.ENVIRONMENT));
         }
 
         return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));

@@ -548,8 +548,10 @@ const grpcRequestSchema = Yup.object({
     .strict()
     .required('body is required'),
   script: Yup.object({
-    req: Yup.string().nullable(),
-    res: Yup.string().nullable()
+    beforeCallStart: Yup.string().nullable(),
+    beforeMessageSend: Yup.string().nullable(),
+    afterMessageReceive: Yup.string().nullable(),
+    afterCallEnd: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
