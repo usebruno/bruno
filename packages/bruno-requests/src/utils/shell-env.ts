@@ -24,14 +24,14 @@ export const fetchShellEnv = async (): Promise<Record<string, string> | null> =>
 };
 
 /**
- * Initializes process.env with shell environment variables.
- * Should be called early in the app startup.
+ * Merges already-fetched shell environment variables into process.env.
  *
- * @returns The fetched shell environment variables
+ * Separate from the fetch so a caller that gives up waiting on the shell can decline to apply a
+ * result that arrives late, rather than having process.env change under a run already in progress.
+ *
+ * @returns The variables that were applied
  */
-export const initializeShellEnv = async (): Promise<Record<string, string>> => {
-  const shellEnvVars = await fetchShellEnv();
-
+export const applyShellEnv = (shellEnvVars: Record<string, string> | null): Record<string, string> => {
   if (shellEnvVars === null) {
     return {};
   }
@@ -45,3 +45,11 @@ export const initializeShellEnv = async (): Promise<Record<string, string>> => {
   }
   return shellEnvVars;
 };
+
+/**
+ * Initializes process.env with shell environment variables.
+ * Should be called early in the app startup.
+ *
+ * @returns The fetched shell environment variables
+ */
+export const initializeShellEnv = async (): Promise<Record<string, string>> => applyShellEnv(await fetchShellEnv());

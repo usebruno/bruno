@@ -20,6 +20,7 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { ensureShellEnv } = require('../utils/shell-env');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -293,6 +294,8 @@ const builder = async (yargs) => {
 };
 
 const handler = async function (argv) {
+  await ensureShellEnv();
+
   try {
     let {
       paths,
