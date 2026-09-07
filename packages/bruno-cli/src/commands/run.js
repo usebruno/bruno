@@ -136,6 +136,11 @@ const builder = async (yargs) => {
       default: 'safe',
       type: 'string'
     })
+    .option('experimental-cache-modules', {
+      type: 'boolean',
+      default: false,
+      describe: 'Share npm modules across script runs in the developer sandbox (experimental)'
+    })
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
@@ -311,6 +316,7 @@ const handler = async function (argv) {
       reporterJunit,
       reporterHtml,
       sandbox,
+      experimentalCacheModules,
       testsOnly,
       bail,
       reporterSkipAllHeaders,
@@ -607,6 +613,10 @@ const handler = async function (argv) {
     if (verbose) {
       options['verbose'] = true;
     }
+    if (experimentalCacheModules && sandbox !== 'developer') {
+      console.warn(chalk.yellow('--experimental-cache-modules requires --sandbox developer; ignoring flag'));
+    }
+    options['cacheModules'] = sandbox === 'developer' && experimentalCacheModules === true;
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
