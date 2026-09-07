@@ -158,8 +158,9 @@ const Select = ({
   const handleTriggerKeyDown = useCallback(
     (e) => {
       if (disabled) return;
-      if (ACTION_KEYS.includes(e.key) || NAVIGATION_KEYS.includes(e.key)) {
+      if (e.key !== 'Escape' && (ACTION_KEYS.includes(e.key) || NAVIGATION_KEYS.includes(e.key))) {
         e.preventDefault();
+        e.stopPropagation();
         if (!isOpen) {
           handleOpen();
         }
@@ -172,6 +173,7 @@ const Select = ({
     (e) => {
       if (NAVIGATION_KEYS.includes(e.key)) {
         e.preventDefault();
+        e.stopPropagation();
         if (e.key === 'Escape') {
           handleClose();
           return;
@@ -188,6 +190,7 @@ const Select = ({
 
       if (ACTION_KEYS.includes(e.key)) {
         e.preventDefault();
+        e.stopPropagation();
         if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
           handleSelect(filteredOptions[focusedIndex]);
         }
@@ -288,8 +291,9 @@ const Select = ({
 
   const triggerKeyHandler = searchable
     ? (e) => {
-        if (!isOpen && (ACTION_KEYS.includes(e.key) || NAVIGATION_KEYS.includes(e.key))) {
+        if (!isOpen && e.key !== 'Escape' && (ACTION_KEYS.includes(e.key) || NAVIGATION_KEYS.includes(e.key))) {
           e.preventDefault();
+          e.stopPropagation();
           handleOpen();
         }
       }
