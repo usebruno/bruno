@@ -898,6 +898,35 @@ describe('node-vm sandbox', () => {
       expect(contextB.bru.setVar).toHaveBeenCalledWith('value', 'B');
     });
 
+    it('should keep bru available when req.onFail runs after the script ends', async () => {
+      let onFailHandler;
+      const req = {
+        onFail(callback) {
+          onFailHandler = callback;
+        }
+      };
+      const context = {
+        bru: { setVar: jest.fn() },
+        req,
+        console
+      };
+
+      await runScriptInNodeVm({
+        script: `
+          req.onFail(() => {
+            bru.setVar('token', 'after');
+          });
+        `,
+        context,
+        collectionPath,
+        scriptingConfig
+      });
+
+      expect(typeof onFailHandler).toBe('function');
+      onFailHandler(new Error('Connection failed'));
+      expect(context.bru.setVar).toHaveBeenCalledWith('token', 'after');
+    });
+
     it('should read a missing key as undefined and still call it once a later execution provides a function', async () => {
       makePkg(path.join(collectionPath, 'node_modules'), 'helper-caller', {
         'index.js': `module.exports = { probe: () => typeof helper, run: () => helper('x') };`

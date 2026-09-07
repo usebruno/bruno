@@ -71,6 +71,23 @@ async function runScriptInNodeVm({
     scriptContext.__brunoLocalModuleCache = localModuleCache;
     scriptContext.__brunoVmContext = vmContext;
 
+    // cacheModules: onFail runs after the script's ALS store exits, so re-bind
+    // registered callbacks to this run's context (bru/req/... facades).
+    let restoreOnFail;
+    if (cacheModules && typeof scriptContext.req?.onFail === 'function') {
+      const req = scriptContext.req;
+      const originalOnFail = req.onFail.bind(req);
+      req.onFail = (callback) => {
+        if (typeof callback !== 'function') {
+          return originalOnFail(callback);
+        }
+        return originalOnFail((error) => runWithScriptContext(scriptContext, () => callback(error)));
+      };
+      restoreOnFail = () => {
+        req.onFail = originalOnFail;
+      };
+    }
+
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
     // Execute the script in the isolated context
@@ -129,6 +146,7 @@ async function runScriptInNodeVm({
       void error.stack;
       throw error;
     } finally {
+      restoreOnFail?.();
       Error.prepareStackTrace = originalPrepareStackTrace;
     }
   } catch (error) {
