@@ -59,6 +59,36 @@ jobs:
           comment_mode: off
           check_run: false
 
+  cli-test-cache-modules:
+    name: CLI Tests with experimental-cache-modules (Windows)
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Run CLI Tests
+        uses: ./.github/actions/tests/run-cli-tests
+        with:
+          shell: pwsh
+          experimental_cache_modules: 'true'
+
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: always()
+        with:
+          check_name: CLI Test Results with experimental-cache-modules (Windows)
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: off
+          check_run: false
+
   e2e-test:
     name: Playwright E2E Tests (Windows)
     timeout-minutes: 240
