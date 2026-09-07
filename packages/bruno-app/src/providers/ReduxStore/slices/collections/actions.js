@@ -116,6 +116,7 @@ import {
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
+import { getPersistedCollectionDraftSession } from 'providers/ReduxStore/utils/draftSession';
 
 // Display name for a cloned/pasted item: always "<source> copy" (semantic).
 // Filename uniqueness is resolved silently by the electron main process
@@ -2850,12 +2851,19 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
       brunoConfig
     };
 
+    const persistedDraftSession = getPersistedCollectionDraftSession(pathname);
+
     ipcRenderer
       .invoke('renderer:get-collection-security-config', pathname)
       .then((securityConfig) => {
         collectionSchema
           .validate(collection)
-          .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+          .then(() => dispatch(_createCollection({
+            ...collection,
+            securityConfig,
+            draft: persistedDraftSession?.collectionDraft || null,
+            persistedDraftSession
+          })))
           .then(resolve)
           .catch(reject);
       })
@@ -2937,10 +2945,17 @@ export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) =>
       brunoConfig: brunoConfig
     };
 
+    const persistedDraftSession = getPersistedCollectionDraftSession(pathname);
+
     ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
       collectionSchema
         .validate(collection)
-        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+        .then(() => dispatch(_createCollection({
+          ...collection,
+          securityConfig,
+          draft: persistedDraftSession?.collectionDraft || null,
+          persistedDraftSession
+        })))
         .then(() => {
           const currentState = getState();
 
