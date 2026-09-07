@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { dialog, ipcMain } = require('electron');
+const { ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
@@ -20,6 +20,12 @@ const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   version: Yup.string().notRequired(),
+  // Collection-level presets (defaults shared with the collection)
+  presets: Yup.object({
+    requestType: Yup.string().notRequired(),
+    requestUrl: Yup.string().notRequired(),
+    defaultEnvironment: Yup.string().notRequired()
+  }).notRequired(),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired(),
   // OpenAPI sync configuration (array, one entry per synced spec)
@@ -80,41 +86,6 @@ const getCollectionConfigFile = async (pathname) => {
   return config;
 };
 
-const openCollectionDialog = async (win, watcher) => {
-  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory', 'multiSelections']
-  });
-
-  if (!canceled && filePaths?.length > 0) {
-    // Using Set to remove duplicates
-    const { openCollectionPromises, invalidPaths } = [...new Set(filePaths)].reduce((acc, filePath) => {
-      const resolvedPath = path.resolve(filePath);
-
-      if (isDirectory(resolvedPath)) {
-        // Open each valid collection in parallel
-        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath).catch((err) => {
-          console.error(`[ERROR] Failed to open collection at "${resolvedPath}":`, err.message);
-          return { error: err, path: resolvedPath };
-        }));
-      } else {
-        acc.invalidPaths.push(resolvedPath);
-        console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
-      }
-
-      return acc;
-    },
-    { openCollectionPromises: [], invalidPaths: [] });
-
-    // Wait for all valid collections to be opened
-    await Promise.all(openCollectionPromises);
-
-    // Notify about any invalid paths
-    if (invalidPaths.length > 0) {
-      win.webContents.send('main:display-error', `Some selected folders could not be opened: ${invalidPaths.join(', ')}`);
-    }
-  }
-};
-
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
   // If watcher already exists, collection is already loaded in the app
   // Just send the collection info so frontend can add to workspace if needed
@@ -126,7 +97,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
       return {
         path: collectionPath,
         opened: true,
@@ -162,7 +133,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.size = size;
     brunoConfig.filesCount = filesCount;
 
-    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
     return {
       path: collectionPath,
@@ -225,7 +196,6 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
 module.exports = {
   getCollectionConfigFile,
   openCollection,
-  openCollectionDialog,
   openCollectionsByPathname,
   registerScratchCollectionPath
 };

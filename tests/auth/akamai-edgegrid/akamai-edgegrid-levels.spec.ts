@@ -16,7 +16,7 @@ import {
  * EdgeGrid is configurable at collection settings, folder settings, and request level. These
  * tests verify each renders without crashing (collection-level was a `null` crash regression),
  * persists all 8 fields across a save, and that a request which inherits the auth actually
- * signs and is accepted by the local simulator — asserting the echoed effective values.
+ * signs and is accepted by the local simulator - asserting the echoed effective values.
  */
 
 const { TEST_EDGEGRID } = require('../../../packages/bruno-tests/src/auth/edgegrid');
@@ -74,13 +74,16 @@ const expectInheritedEdgeGridSignature = async (page, expectedNonce: string) => 
   expect(body).toContain('localhost:8081');
 };
 
-test.describe('Akamai EdgeGrid Authentication — collection, folder & inherit', () => {
+test.describe('Akamai EdgeGrid Authentication - collection, folder & inherit', () => {
+  // Each flow fills 8 credential fields character-by-character, switches auth modes, re-verifies
+  // every field, and makes real signed round-trips — more than the default 30s under parallel load.
+  test.describe.configure({ timeout: 60_000 });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   test('Collection level: renders, persists, and an inheriting request signs', async ({ page, createTmpDir }) => {
-    test.setTimeout(120_000);
     const values = valuesFor('collection-nonce');
     await createCollection(page, 'edgegrid-collection', await createTmpDir());
 
@@ -116,7 +119,6 @@ test.describe('Akamai EdgeGrid Authentication — collection, folder & inherit',
   });
 
   test('Folder level: renders, persists, and an inheriting request signs', async ({ page, createTmpDir }) => {
-    test.setTimeout(120_000);
     const values = valuesFor('folder-nonce');
     await createCollection(page, 'edgegrid-collection', await createTmpDir());
     await createFolder(page, 'folder-1', 'edgegrid-collection', true);

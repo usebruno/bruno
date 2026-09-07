@@ -66,9 +66,8 @@ export const writePersistedEditorState = ({ scope, key, state }) => {
   }
 };
 
-export const captureEditorState = (editor) => {
+export const captureViewState = (editor) => {
   if (!editor) return null;
-  const doc = editor.getDoc();
   const folds = editor
     .getAllMarks()
     .filter((m) => m.__isFold)
@@ -76,12 +75,20 @@ export const captureEditorState = (editor) => {
     .filter(Boolean)
     .map((range) => range.from);
   return {
+    folds,
+    scrollY: editor.getScrollInfo().top
+  };
+};
+
+export const captureEditorState = (editor) => {
+  if (!editor) return null;
+  const doc = editor.getDoc();
+  return {
     contentLength: doc.getValue().length,
     cursor: doc.getCursor(),
     selections: doc.listSelections(),
     history: doc.getHistory(),
-    folds,
-    scrollY: editor.getScrollInfo().top
+    ...captureViewState(editor)
   };
 };
 

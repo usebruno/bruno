@@ -21,14 +21,16 @@ export const toJsArg = (value) =>
 
 const FRAGMENT_STYLES = `<style>
   * { box-sizing: border-box; }
+  html, body {
+    background: transparent;
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
-    background: #ffffff;
     color: #1e1e1e;
-    transition: background-color 0.15s, color 0.15s;
+    transition: color 0.15s;
   }
-  body.dark { background: #1e1e1e; color: #e0e0e0; }
+  body.dark { color: #e0e0e0; }
 </style>`;
 
 /**

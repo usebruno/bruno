@@ -48,6 +48,8 @@ test.describe('Collection Environment Import Tests', () => {
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(envFile);
 
+    await page.getByTestId('import-environment-modal-submit-btn').click();
+
     // Wait for import to complete and environment settings modal to open
     await expect(page.locator('.current-environment')).toContainText('Test Collection Environment');
 

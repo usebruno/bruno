@@ -50,3 +50,21 @@ request:
     expect(reqVars[5]).toMatchObject({ name: 'flag', value: 'maybe', dataType: 'boolean' });
   });
 });
+
+describe('parseFolder — seq', () => {
+  it('leaves seq undefined when folder.yml has no seq field', () => {
+    const yml = `info:\n  name: my-folder\n`;
+    const { meta } = parseFolder(yml);
+
+    expect(meta).toEqual(expect.objectContaining({ name: 'my-folder' }));
+    expect(meta!.seq).toBeUndefined();
+  });
+
+  it('preserves an explicit numeric seq from the file', () => {
+    const yml = `info:\n  name: my-folder\n  seq: 3\n`;
+    const { meta } = parseFolder(yml);
+
+    expect(meta).toEqual(expect.objectContaining({ name: 'my-folder' }));
+    expect(meta!.seq).toBe(3);
+  });
+});

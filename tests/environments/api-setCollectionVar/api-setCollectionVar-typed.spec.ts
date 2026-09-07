@@ -67,10 +67,10 @@ test.describe.serial('bru.setCollectionVar(name, value) — typed value persiste
       const strRow = newLocators.environment.variableRowByName('coll_str');
 
       await expect(numRow).toBeVisible();
-      await expect(newLocators.dataTypeSelector.typeLabel(numRow)).toHaveText('number', { timeout: 5000 });
-      await expect(newLocators.dataTypeSelector.typeLabel(boolRow)).toHaveText('boolean');
-      await expect(newLocators.dataTypeSelector.typeLabel(objRow)).toHaveText('object');
-      await expect(newLocators.dataTypeSelector.typeLabel(strRow)).toHaveText('string');
+      await expect(newLocators.dataTypeSelector.typeLabel(numRow)).toHaveAttribute('data-selected-type', 'number', { timeout: 5000 });
+      await expect(newLocators.dataTypeSelector.typeLabel(boolRow)).toHaveAttribute('data-selected-type', 'boolean');
+      await expect(newLocators.dataTypeSelector.typeLabel(objRow)).toHaveAttribute('data-selected-type', 'object');
+      await expect(newLocators.dataTypeSelector.typeLabel(strRow)).toHaveAttribute('data-selected-type', 'string');
 
       await closeElectronApp(newApp);
     });

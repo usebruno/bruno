@@ -107,6 +107,11 @@ class FileIndex {
     this.#db.exec('VACUUM');
   }
 
+  clearCollection(collectionPath) {
+    const root = normalize(collectionPath);
+    this.#db.run('DELETE FROM file_index_entries WHERE collection_path = ?', root);
+  }
+
   get dbPath() {
     return this.#dbPath;
   }

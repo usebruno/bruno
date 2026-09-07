@@ -2,7 +2,20 @@ import React from 'react';
 import ReactJson from 'react-json-view';
 import ErrorBanner from 'ui/ErrorBanner';
 
-const JsonPreview = ({ data, displayedTheme }) => {
+const isHttpUrl = (value) => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(value.trim());
+    return ['http:', 'https:'].includes(parsedUrl.protocol);
+  } catch (e) {
+    return false;
+  }
+};
+
+const JsonPreview = ({ data, displayedTheme, onLinkClick }) => {
   // Helper function to validate and parse JSON data
   const validateJsonData = (data) => {
     // If data is already an object or array, use it directly
@@ -41,6 +54,14 @@ const JsonPreview = ({ data, displayedTheme }) => {
     return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: 'Data cannot be rendered as a JSON tree. Expected a JSON object or array.' }]} />;
   }
 
+  const handleSelect = (selection) => {
+    if (typeof onLinkClick !== 'function' || !isHttpUrl(selection?.value)) {
+      return;
+    }
+
+    onLinkClick(selection.value.trim());
+  };
+
   return (
     <ReactJson
       src={jsonData.data}
@@ -49,6 +70,7 @@ const JsonPreview = ({ data, displayedTheme }) => {
       displayDataTypes={false}
       displayObjectSize={true}
       enableClipboard={true}
+      onSelect={handleSelect}
       name={false}
       style={{
         backgroundColor: 'transparent',

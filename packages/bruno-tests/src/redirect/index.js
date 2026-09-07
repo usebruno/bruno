@@ -64,6 +64,9 @@ router.post('/multipart-redirect-target', function (req, res) {
 router.get('/anything', function (req, res) {
   const { body, files } = parseMultipartFormData(req);
 
+  // End of the chain, so no redirects are left to follow. See the /:count route.
+  res.set('x-redirect-hop', '0');
+
   // Parse query parameters
   const args = req.query;
 
@@ -103,6 +106,13 @@ router.get('/anything', function (req, res) {
   });
 });
 
+router.get('/cross-origin', function (req, res) {
+  const host = req.headers.host || 'localhost:8081';
+  const targetHost = host.includes('127.0.0.1') ? host.replace('127.0.0.1', 'localhost') : host.replace('localhost', '127.0.0.1');
+  const protocol = req.secure ? 'https' : 'http';
+  res.status(302).set('Location', `${protocol}://${targetHost}/api/redirect/anything`).send('Redirecting cross-origin');
+});
+
 router.get('/:count', function (req, res) {
   const count = parseInt(req.params.count, 10);
 
@@ -110,6 +120,9 @@ router.get('/:count', function (req, res) {
   if (isNaN(count)) {
     return res.status(404).json({ error: 'Invalid redirect count. Must be a number.' });
   }
+
+  // Redirects still to follow, so a client walking the chain sees a distinct value per hop.
+  res.set('x-redirect-hop', String(count));
 
   if (count > 1) {
     // Redirect to the next redirect in the chain

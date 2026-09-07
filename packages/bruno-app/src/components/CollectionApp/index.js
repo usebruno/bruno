@@ -24,7 +24,7 @@ import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
-import EmptyAppState from '../AppView/EmptyAppState';
+import EmptyAppState from 'components/EmptyAppState';
 import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
@@ -344,23 +344,34 @@ const CollectionApp = ({ item, collection }) => {
     <StyledWrapper data-testid="collection-app">
       <div className="app-toolbar">
         <span>App - {item.name}</span>
-        <div className="view-toggle" data-testid="collection-app-view-toggle">
-          <button
-            type="button"
-            data-testid="collection-app-view-code"
-            className={classnames('view-btn', { active: view === 'code' })}
-            onClick={() => setView('code')}
-          >
-            Code
-          </button>
-          <button
-            type="button"
-            data-testid="collection-app-view-preview"
-            className={classnames('view-btn', { active: view === 'preview' })}
-            onClick={() => setView('preview')}
-          >
-            Preview
-          </button>
+        <div className="flex items-center gap-2">
+          {view === 'code' && (
+            <AIAssist
+              scriptType="app-collection"
+              currentScript={code || ''}
+              docsContext={docsContext}
+              variables={aiVariables}
+              onApply={onEdit}
+            />
+          )}
+          <div className="view-toggle" data-testid="collection-app-view-toggle">
+            <button
+              type="button"
+              data-testid="collection-app-view-code"
+              className={classnames('view-btn', { active: view === 'code' })}
+              onClick={() => setView('code')}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              data-testid="collection-app-view-preview"
+              className={classnames('view-btn', { active: view === 'preview' })}
+              onClick={() => setView('preview')}
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
@@ -376,13 +387,6 @@ const CollectionApp = ({ item, collection }) => {
             onSave={onSave}
             mode="htmlmixed"
           />
-          <AIAssist
-            scriptType="app-collection"
-            currentScript={code || ''}
-            docsContext={docsContext}
-            variables={aiVariables}
-            onApply={onEdit}
-          />
         </div>
       ) : code && code.trim().length ? (
         <div className="app-pane app-webview-container" data-testid="collection-app-preview">
@@ -397,8 +401,8 @@ const CollectionApp = ({ item, collection }) => {
       ) : (
         <div className="app-pane" data-testid="collection-app-preview">
           <EmptyAppState
-            title="No app yet"
-            hint="Switch to Code and write some HTML/JS"
+            hint="Add HTML/JS in the Code view to render a custom UI for this app."
+            onAddCode={() => setView('code')}
           />
         </div>
       )}

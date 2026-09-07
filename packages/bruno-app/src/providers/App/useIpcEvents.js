@@ -2,8 +2,16 @@ import { useEffect } from 'react';
 import {
   updateCookies,
   updatePreferences,
-  setGitVersion
+  setGitVersion,
+  setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
+import {
+  updateServerStatus,
+  addRequestLogEntries,
+  syncRunningMockServers
+} from 'providers/ReduxStore/slices/mock-server/index';
+import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
+import { mockServerFileEvent, mockServerFileDeletedEvent } from 'utils/mock-server/mock-server-instances';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
@@ -39,6 +47,7 @@ import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
+import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -123,9 +132,16 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+    const removeCollectionMigrationProgressListener = ipcRenderer.on(
+      'main:collection-migration-progress',
+      (progress) => {
+        dispatch(migrationProgressEvent(progress));
+      }
+    );
+
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig, options) => {
       try {
-        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig, options));
       } finally {
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
       }
@@ -133,6 +149,10 @@ const useIpcEvents = () => {
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
+      dispatch(setIsOpeningCollection(true));
     });
 
     const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
@@ -362,9 +382,35 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    // Mock server events
+    const removeMockServerStatusListener = ipcRenderer.on('main:mock-server-status-changed', (val) => {
+      dispatch(updateServerStatus(val));
+    });
+
+    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log-batch', (val) => {
+      if (!isMockServerLogListening(val?.mockServerUid)) {
+        return;
+      }
+
+      dispatch(addRequestLogEntries(val));
+    });
+
+    const removeMockServerAddedListener = ipcRenderer.on('main:workspace-mock-server-added', (workspaceUid, mockServerFile) => {
+      dispatch(mockServerFileEvent(workspaceUid, mockServerFile));
+    });
+
+    const removeMockServerChangedListener = ipcRenderer.on('main:workspace-mock-server-changed', (workspaceUid, mockServerFile) => {
+      dispatch(mockServerFileEvent(workspaceUid, mockServerFile));
+    });
+
+    const removeMockServerDeletedListener = ipcRenderer.on('main:workspace-mock-server-deleted', (workspaceUid, mockServerUid) => {
+      dispatch(mockServerFileDeletedEvent(workspaceUid, mockServerUid));
+    });
+
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
+    dispatch(syncRunningMockServers());
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
@@ -385,7 +431,9 @@ const useIpcEvents = () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
+      removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
+      removeOpenCollectionModalListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();
@@ -416,6 +464,11 @@ const useIpcEvents = () => {
       removeRuntimeVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeMockServerStatusListener();
+      removeMockServerRequestLogListener();
+      removeMockServerAddedListener();
+      removeMockServerChangedListener();
+      removeMockServerDeletedListener();
       removeLoadNotificationsListener();
     };
   }, [isElectron]);

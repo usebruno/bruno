@@ -9,10 +9,18 @@ jest.mock('react-hot-toast', () => ({
   error: jest.fn()
 }));
 
+jest.mock('../collections/actions', () => ({
+  createCollection: jest.fn(() => () => Promise.resolve()),
+  openMultipleCollections: jest.fn(() => () => Promise.resolve({ opened: [], failed: [], invalid: [] })),
+  openScratchCollectionEvent: jest.fn(() => () => Promise.resolve()),
+  mountCollection: jest.fn(() => () => Promise.resolve()),
+  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve())
+}));
+
 import os from 'os';
 import path from 'path';
 import { configureStore } from '@reduxjs/toolkit';
-import workspacesReducer from './index';
+import workspacesReducer, { updateWorkspace } from './index';
 import collectionsReducer from '../collections';
 import chatReducer, { openAiSidebar } from '../chat';
 import appReducer from '../app';
@@ -114,5 +122,125 @@ describe('switchWorkspace', () => {
 
     expect(store.getState().chat.isOpen).toBe(false);
     expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_B);
+  });
+});
+
+describe('collections that fail to open on workspace switch', () => {
+  let switchWorkspace;
+  let toast;
+  let openMultipleCollections;
+
+  const WS_B_PATH = path.join(os.tmpdir(), 'ws-b');
+  const HEALTHY_COLL = path.join(os.tmpdir(), 'healthy-coll');
+  const MISSING_COLL = path.join(os.tmpdir(), 'missing-coll');
+  const EMPTY_COLL = path.join(os.tmpdir(), 'empty-coll');
+  const BROKEN_COLL = path.join(os.tmpdir(), 'broken-coll');
+
+  let workspaceCollections;
+  let unopenableCollections;
+  let openResult;
+
+  beforeAll(async () => {
+    ({ default: toast } = await import('react-hot-toast'));
+    ({ openMultipleCollections } = await import('../collections/actions'));
+    ({ switchWorkspace } = await import('./actions'));
+  });
+
+  beforeEach(() => {
+    toast.error.mockClear();
+    openMultipleCollections.mockClear();
+
+    workspaceCollections = [{ name: 'Healthy', path: HEALTHY_COLL }];
+    unopenableCollections = [];
+    openResult = { opened: [HEALTHY_COLL], failed: [], invalid: [] };
+
+    openMultipleCollections.mockImplementation(() => () => Promise.resolve(openResult));
+
+    // actions.js captures `const { ipcRenderer } = window` at import time, so mutate
+    // the existing object's `invoke` rather than reassigning window.ipcRenderer.
+    window.ipcRenderer.invoke = jest.fn((channel) => {
+      if (channel === 'renderer:load-workspace-collections') {
+        return Promise.resolve(workspaceCollections);
+      }
+      if (channel === 'renderer:load-unopenable-workspace-collections') {
+        return Promise.resolve(unopenableCollections);
+      }
+      return mockIpcInvoke(channel);
+    });
+  });
+
+  const switchToWorkspaceB = async () => {
+    const store = createStore();
+    store.dispatch(updateWorkspace({ uid: WS_B, pathname: WS_B_PATH }));
+    await store.dispatch(switchWorkspace(WS_B));
+    return store;
+  };
+
+  it('does not notify when every collection opens', async () => {
+    await switchToWorkspaceB();
+
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the per-collection errors from main so the aggregate toast is the only notification', async () => {
+    await switchToWorkspaceB();
+
+    expect(openMultipleCollections).toHaveBeenCalledWith(
+      [HEALTHY_COLL],
+      { workspacePath: WS_B_PATH, dontSendDisplayErrors: true }
+    );
+  });
+
+  it('notifies about entries that the workspace config could not resolve', async () => {
+    unopenableCollections = [
+      { name: 'Missing', path: MISSING_COLL },
+      { name: 'Empty', path: EMPTY_COLL }
+    ];
+
+    await switchToWorkspaceB();
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
+  });
+
+  it('uses the singular form for a single failure', async () => {
+    unopenableCollections = [{ name: 'Missing', path: MISSING_COLL }];
+
+    await switchToWorkspaceB();
+
+    expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+  });
+
+  it('notifies when a resolvable collection fails to open at runtime', async () => {
+    workspaceCollections = [{ name: 'Broken', path: BROKEN_COLL }];
+    openResult = { opened: [], failed: [{ path: BROKEN_COLL, error: 'boom' }], invalid: [] };
+
+    await switchToWorkspaceB();
+
+    expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+  });
+
+  it('counts a collection once when both the config and the open attempt report it', async () => {
+    workspaceCollections = [{ name: 'Broken', path: BROKEN_COLL }];
+    unopenableCollections = [{ name: 'Broken', path: BROKEN_COLL }];
+    openResult = { opened: [], failed: [{ path: BROKEN_COLL, error: 'boom' }], invalid: [] };
+
+    await switchToWorkspaceB();
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+  });
+
+  it('notifies when every collection in the workspace is unresolvable', async () => {
+    workspaceCollections = [];
+    unopenableCollections = [
+      { name: 'Missing', path: MISSING_COLL },
+      { name: 'Empty', path: EMPTY_COLL }
+    ];
+
+    await switchToWorkspaceB();
+
+    expect(openMultipleCollections).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
   });
 });

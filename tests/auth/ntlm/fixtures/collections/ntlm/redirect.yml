@@ -1,0 +1,22 @@
+info:
+  name: redirect
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{process.env.NTLM_BASE_URL}}/redirect?to={{process.env.NTLM_BASE_URL}}/landing"
+  auth:
+    type: ntlm
+    username: ntlmtest
+    password: Br!unoNtlm
+    domain: ""
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("redirect authenticates on the new connection", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.url).to.equal("/landing");
+        });

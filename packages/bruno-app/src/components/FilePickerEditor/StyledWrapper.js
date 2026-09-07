@@ -16,7 +16,7 @@ const StyledWrapper = styled.div`
     background: transparent;
     border: none;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     transition: color 0.15s ease;
     font-size: 12px;
     white-space: nowrap;
@@ -76,6 +76,29 @@ const StyledWrapper = styled.div`
       margin-right: 4px;
     }
 
+    &.has-warning {
+      background-color: ${(props) => props.theme.status.warning.background};
+      font-weight: 500;
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      padding: 4px;
+    }
+
+    .warning-icon {
+      color: ${(props) => props.theme.status.warning.text};
+      margin-right: 4px;
+    }
+
+    .warning-tooltip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      svg {
+        color: ${(props) => props.theme.status.warning.text};
+        flex-shrink: 0;
+      }
+    }
+
     .file-name {
       flex: 1;
       font-size: 12px;
@@ -96,7 +119,7 @@ const StyledWrapper = styled.div`
       background: transparent;
       border: none;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: ${(props) => props.theme.border.radius.sm};
       transition: color 0.15s ease;
       flex-shrink: 0;
 

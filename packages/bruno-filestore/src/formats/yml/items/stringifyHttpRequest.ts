@@ -17,7 +17,10 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
-import { isNumber, isNonEmptyString } from '../../../utils';
+import { normalizeOmitHeaders } from '../common/omit-headers';
+import { isNonEmptyString } from '../../../utils';
+import { resolveTimeoutSetting, toMaxRedirects } from '@usebruno/common/utils';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
@@ -84,7 +87,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;
@@ -120,12 +123,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.encodeUrl = true;
     }
 
-    const timeout = httpSettings?.timeout;
-    if (isNumber(timeout)) {
-      settings.timeout = timeout;
-    } else {
-      settings.timeout = 0;
-    }
+    settings.timeout = resolveTimeoutSetting(httpSettings?.timeout);
 
     if (httpSettings?.followRedirects === true) {
       settings.followRedirects = true;
@@ -135,11 +133,13 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.followRedirects = true;
     }
 
-    const maxRedirects = httpSettings?.maxRedirects;
-    if (isNumber(maxRedirects)) {
-      settings.maxRedirects = maxRedirects;
-    } else {
-      settings.maxRedirects = 5;
+    settings.maxRedirects = toMaxRedirects(httpSettings?.maxRedirects);
+
+    settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
+
+    const omitHeaders = normalizeOmitHeaders(httpSettings?.omitHeaders);
+    if (omitHeaders) {
+      settings.omitHeaders = omitHeaders;
     }
 
     ocRequest.settings = settings;

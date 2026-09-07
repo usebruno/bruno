@@ -1,0 +1,19 @@
+meta {
+  name: wss-request
+  type: ws
+  seq: 3
+}
+
+ws {
+  url: wss://localhost:9443/ws
+  auth: none
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {
+      "ping": true
+    }
+  '''
+}

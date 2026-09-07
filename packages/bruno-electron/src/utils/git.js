@@ -81,7 +81,8 @@ const getCollectionGitRepoUrl = async (gitRootPath) => {
         reject(err);
         return;
       }
-      resolve(data.trim());
+      const url = data.trim();
+      resolve(url === 'origin' ? '' : url);
     });
   });
 };

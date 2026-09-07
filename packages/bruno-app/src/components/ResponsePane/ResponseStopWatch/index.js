@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const ResponseStopWatch = ({ startMillis }) => {
-  const [milliseconds, setMilliseconds] = useState(startMillis);
+const TICK_INTERVAL = 100;
 
-  const tickInterval = 100;
-  const tick = () => {
-    setMilliseconds((_milliseconds) => _milliseconds + tickInterval);
-  };
+const ResponseStopWatch = ({ startTimestamp }) => {
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    let timerID = setInterval(() => {
-      tick();
-    }, tickInterval);
+    const timerID = setInterval(() => {
+      setNow(Date.now());
+    }, TICK_INTERVAL);
     return () => {
       clearInterval(timerID);
     };
   }, []);
 
-  let seconds = milliseconds / 1000;
-  let secondsFormatted = `${seconds.toFixed(1)}s`;
-  let width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
-  return <StyledWrapper className="ml-2" style={{ width: `${width}rem` }}>{secondsFormatted}</StyledWrapper>;
+  const isValidTimestamp = Number.isFinite(startTimestamp) && startTimestamp > 0;
+
+  const elapsedMillis = isValidTimestamp ? Math.max(0, now - startTimestamp) : 0;
+  const secondsFormatted = `${(elapsedMillis / 1000).toFixed(1)}s`;
+  const width = secondsFormatted.length * 0.4;
+
+  return (
+    <StyledWrapper className="ml-2" style={{ width: `${width}rem` }} data-testid="response-elapsed-time">
+      {secondsFormatted}
+    </StyledWrapper>
+  );
 };
 
 export default React.memo(ResponseStopWatch);

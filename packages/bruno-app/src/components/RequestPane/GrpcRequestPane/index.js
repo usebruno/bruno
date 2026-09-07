@@ -1,19 +1,32 @@
 import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { GRPC_SCRIPT_KEYS } from '@usebruno/common';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/RequestPane/GrpcBody';
+import GrpcScript from 'components/RequestPane/GrpcScript';
 import GrpcAuth from './GrpcAuth/index';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
+import StatusBadge from 'ui/StatusBadge';
+
+const hasGrpcScriptError = (item) =>
+  Boolean(
+    item.beforeCallStartScriptErrorMessage
+    || item.beforeMessageSendScriptErrorMessage
+    || item.afterMessageReceiveScriptErrorMessage
+    || item.afterCallEndScriptErrorMessage
+  );
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -43,6 +56,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       case 'auth': {
         return <GrpcAuth item={item} collection={collection} />;
       }
+      case 'script': {
+        return <GrpcScript item={item} collection={collection} handleRun={handleRun} />;
+      }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
       }
@@ -55,6 +71,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
+  const script = getPropertyFromDraftOrRequest(item, 'request.script');
+  const hasScript = GRPC_SCRIPT_KEYS.some((hook) => script?.[hook]?.trim().length > 0);
+  const hasScriptError = hasGrpcScriptError(item);
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),
@@ -96,12 +115,22 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: hasAuth ? <StatusDot type="default" dataTestId="auth" /> : null
       },
       {
+        key: 'script',
+        label: (
+          <span className="flex items-center gap-2">
+            Script
+            <StatusBadge status="info" size="xs">Beta</StatusBadge>
+          </span>
+        ),
+        indicator: hasScript ? <StatusDot type={hasScriptError ? 'error' : 'default'} dataTestId="script" /> : null
+      },
+      {
         key: 'docs',
         label: 'Docs',
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, docs]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, hasScript, hasScriptError, docs]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {
@@ -120,11 +149,26 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     return null;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-      <GrpcAuthMode item={item} collection={collection} />
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'auth':
+      rightContent = (
+        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+          <GrpcAuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={rightContentRef} className="flex items-center gap-2">
+          <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

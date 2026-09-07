@@ -1,10 +1,18 @@
 import { Worker } from 'node:worker_threads';
 
+type WorkerTaskType
+  = | 'parse'
+    | 'stringify'
+    | 'parseFolder'
+    | 'stringifyFolder'
+    | 'parseEnvironment'
+    | 'stringifyEnvironment';
+
 interface QueuedTask {
   priority: number;
   scriptPath: string;
   data: any;
-  taskType: 'parse' | 'stringify';
+  taskType: WorkerTaskType;
   resolve?: (value: any) => void;
   reject?: (reason?: any) => void;
 }
@@ -58,7 +66,7 @@ class WorkerQueue {
     }
   }
 
-  async runWorker({ scriptPath, data, taskType }: { scriptPath: string; data: any; taskType: 'parse' | 'stringify' }) {
+  async runWorker({ scriptPath, data, taskType }: { scriptPath: string; data: any; taskType: WorkerTaskType }) {
     return new Promise(async (resolve, reject) => {
       let worker = await this.getWorkerForScriptPath(scriptPath);
 

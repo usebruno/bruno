@@ -219,6 +219,20 @@ describe('parseCurlCommand', () => {
       });
     });
 
+    it('should keep inline binary data as the body (not an @file reference)', () => {
+      const result = parseCurlCommand(`
+        curl --data-binary '{"pageUri": "/mobile-phones-store"}' https://api.example.com/page/fetch
+      `);
+
+      expect(result).toEqual({
+        method: 'post',
+        data: '{"pageUri": "/mobile-phones-store"}',
+        isDataBinary: true,
+        url: 'https://api.example.com/page/fetch',
+        urlWithoutQuery: 'https://api.example.com/page/fetch'
+      });
+    });
+
     it('should parse raw data flag', () => {
       const result = parseCurlCommand(`
         curl --data-raw '{"raw": "data"}' https://api.example.com

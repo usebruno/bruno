@@ -1,0 +1,6 @@
+{
+  "name": "Bruno Env",
+  "variables": [
+    { "name": "base_url", "value": "https://bruno.example.com", "enabled": true, "secret": false }
+  ]
+}

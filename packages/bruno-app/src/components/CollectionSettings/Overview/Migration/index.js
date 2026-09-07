@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useDispatch } from 'react-redux';
 import { IconFileCode, IconTransform } from '@tabler/icons';
+import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
 import Button from 'ui/Button';
-import MigrateToYmlModal from './MigrateToYmlModal';
 import StyledWrapper from './StyledWrapper';
 
 const Migration = ({ collection }) => {
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const dispatch = useDispatch();
 
   // Only show for bru format collections
   if (collection.format !== 'bru') {
     return null;
   }
+
+  const handleMigrateClick = () => {
+    dispatch(
+      showMigrateToYmlModal({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        collectionName: collection.name
+      })
+    );
+  };
 
   return (
     <StyledWrapper>
@@ -43,20 +54,13 @@ const Migration = ({ collection }) => {
               size="sm"
               color="primary"
               className="mt-2"
-              onClick={() => setShowConfirmModal(true)}
+              onClick={handleMigrateClick}
             >
               Convert to YML
             </Button>
           </div>
         </div>
       </div>
-
-      {showConfirmModal && (
-        <MigrateToYmlModal
-          collection={collection}
-          onClose={() => setShowConfirmModal(false)}
-        />
-      )}
     </StyledWrapper>
   );
 };

@@ -202,6 +202,8 @@ for (const { format, collectionName } of FORMATS) {
         await page.getByTestId('import-environment').click();
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles(exportedFile);
+
+        await locators.environment.importSubmitButton('collection').click();
       });
 
       await test.step(`Select the imported "${IMPORTED_ENV_NAME}" in the env editor sidebar`, async () => {

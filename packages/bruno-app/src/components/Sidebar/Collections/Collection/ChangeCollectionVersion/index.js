@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconArrowRight, IconCopy, IconCheck, IconAlertTriangle } from '@tabler/icons';
+import { IconArrowRight, IconAlertTriangle } from '@tabler/icons';
 
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
@@ -30,14 +30,12 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
   const isYml = isOpenCollectionFormat(collection);
   const targetKey = isYml ? 'info.version' : 'collectionVersion';
   const targetFile = isYml ? 'opencollection.yml' : 'bruno.json';
-  const [newVersion, setNewVersion] = useState(currentVersion);
+  const [newVersion, setNewVersion] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
     }
   }, []);
 
@@ -53,15 +51,6 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
     dispatch(saveCollectionVersion(collectionUid, trimmedVersion))
       .then(() => onClose())
       .catch(() => setIsSaving(false));
-  };
-
-  const handleCopy = () => {
-    if (!trimmedVersion || !navigator.clipboard) return;
-    navigator.clipboard.writeText(trimmedVersion)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }).catch(() => {});
   };
 
   if (!collection) {
@@ -98,32 +87,20 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
 
               <div className="version-col">
                 <div className="col-label">New Version</div>
-                <div className="input-wrap">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    className="textbox w-full"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    placeholder="e.g. v1.0.0"
-                    maxLength={50}
-                    value={newVersion}
-                    onChange={(e) => setNewVersion(e.target.value)}
-                    data-testid="change-version-input"
-                  />
-                  <button
-                    type="button"
-                    className="copy-btn"
-                    aria-label={copied ? 'Copied' : 'Copy version'}
-                    onClick={handleCopy}
-                    disabled={!trimmedVersion}
-                    data-testid="change-version-copy"
-                  >
-                    {copied ? <IconCheck size={15} stroke={1.5} /> : <IconCopy size={15} stroke={1.5} />}
-                  </button>
-                </div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="textbox w-full new-version-input"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  placeholder="e.g. v1.0.0"
+                  maxLength={50}
+                  value={newVersion}
+                  onChange={(e) => setNewVersion(e.target.value)}
+                  data-testid="change-version-input"
+                />
               </div>
             </div>
 

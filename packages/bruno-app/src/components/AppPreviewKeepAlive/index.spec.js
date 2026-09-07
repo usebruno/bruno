@@ -5,18 +5,22 @@ import { Provider } from 'react-redux';
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 import AppPreviewKeepAlive from './index';
 
-jest.mock('components/AppView', () => ({ item }) => (
-  <div data-testid="mock-app-view">{item.name}</div>
-));
-jest.mock('components/CollectionApp', () => ({ item }) => (
-  <div data-testid="mock-collection-app">{item.name}</div>
-));
+const collectionSnapshots = { appView: null, collectionApp: null };
+
+jest.mock('components/AppView', () => ({ item, collection }) => {
+  collectionSnapshots.appView = collection;
+  return <div data-testid="mock-app-view">{item.name}</div>;
+});
+jest.mock('components/CollectionApp', () => ({ item, collection }) => {
+  collectionSnapshots.collectionApp = collection;
+  return <div data-testid="mock-collection-app">{item.name}</div>;
+});
 jest.mock('components/RequestTabPanel/TabPanelErrorBoundary', () => ({ children }) => children);
 jest.mock('hooks/usePersistedState/PersistedScopeProvider', () => ({
   ScopedPersistenceProvider: ({ children }) => children
 }));
 
-const makeStore = ({ tabs, activeTabUid, collections }) => {
+const makeStore = ({ tabs, activeTabUid, collections, globalEnvironments = [], activeGlobalEnvironmentUid = null }) => {
   const tabsSlice = createSlice({
     name: 'tabs',
     initialState: { tabs, activeTabUid },
@@ -34,9 +38,18 @@ const makeStore = ({ tabs, activeTabUid, collections }) => {
     initialState: { collections },
     reducers: {}
   });
+  const globalEnvironmentsSlice = createSlice({
+    name: 'globalEnvironments',
+    initialState: { globalEnvironments, activeGlobalEnvironmentUid },
+    reducers: {}
+  });
   return {
     store: configureStore({
-      reducer: { tabs: tabsSlice.reducer, collections: collectionsSlice.reducer }
+      reducer: {
+        tabs: tabsSlice.reducer,
+        collections: collectionsSlice.reducer,
+        globalEnvironments: globalEnvironmentsSlice.reducer
+      }
     }),
     actions: tabsSlice.actions
   };
@@ -71,6 +84,11 @@ const collection = {
 const tabFor = (item) => ({ uid: item.uid, collectionUid: 'coll-1', type: item.type, pathname: '' });
 
 describe('AppPreviewKeepAlive', () => {
+  beforeEach(() => {
+    collectionSnapshots.appView = null;
+    collectionSnapshots.collectionApp = null;
+  });
+
   it('renders nothing when no app tab has been activated', () => {
     const { store } = makeStore({
       tabs: [tabFor(plainRequestItem)],
@@ -150,6 +168,46 @@ describe('AppPreviewKeepAlive', () => {
     act(() => store.dispatch(actions.closeTab(requestAppItem.uid)));
 
     expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();
+  });
+
+  it('folds the active global environment into the collection reaching request apps', () => {
+    const { store } = makeStore({
+      tabs: [tabFor(requestAppItem)],
+      activeTabUid: requestAppItem.uid,
+      collections: [collection],
+      globalEnvironments: [
+        {
+          uid: 'g1',
+          variables: [
+            { name: 'base_url', value: 'https://httpbin.org', enabled: true },
+            { name: 'token', value: 't', enabled: true, secret: true }
+          ]
+        }
+      ],
+      activeGlobalEnvironmentUid: 'g1'
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(collectionSnapshots.appView.globalEnvironmentVariables).toEqual({
+      base_url: 'https://httpbin.org',
+      token: 't'
+    });
+    expect(collectionSnapshots.appView.globalEnvSecrets).toEqual(['token']);
+  });
+
+  it('folds the active global environment into the collection reaching standalone apps', () => {
+    const { store } = makeStore({
+      tabs: [tabFor(standaloneAppItem)],
+      activeTabUid: standaloneAppItem.uid,
+      collections: [collection],
+      globalEnvironments: [
+        { uid: 'g1', variables: [{ name: 'base_url', value: 'https://httpbin.org', enabled: true }] }
+      ],
+      activeGlobalEnvironmentUid: 'g1'
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(collectionSnapshots.collectionApp.globalEnvironmentVariables).toEqual({
+      base_url: 'https://httpbin.org'
+    });
   });
 
   it('ignores special tab types that resolve to app items via pathname', () => {

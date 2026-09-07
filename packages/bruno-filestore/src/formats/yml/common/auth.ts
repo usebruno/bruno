@@ -20,11 +20,11 @@ interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
-  nonce?: string;
-  timestamp?: string;
-  baseURL?: string;
-  headersToSign?: string;
-  maxBodySize?: number;
+  baseURL?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  headersToSign?: string | null;
+  maxBodySize?: number | null;
 }
 
 const buildAwsV4Auth = (config?: BrunoAuth['awsv4']): AuthAwsV4 => {

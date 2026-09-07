@@ -3,9 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
-const { spawn } = require('child_process');
-
-const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
+const { runCli } = require('./helpers/run-cli');
 
 const writeFixtureFile = (filePath, content) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -64,19 +62,6 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  // spawnSync blocks jest's event loop, starving the in-process HTTP server → ECONNREFUSED.
-  // Use async spawn so the server stays responsive.
-  const runCli = (args, cwd = tmpDir) =>
-    new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, [CLI_BIN, ...args], { cwd, env: { ...process.env } });
-      let stdout = '';
-      let stderr = '';
-      child.stdout.on('data', (chunk) => { stdout += chunk; });
-      child.stderr.on('data', (chunk) => { stderr += chunk; });
-      child.on('error', reject);
-      child.on('close', (code) => resolve({ code, stdout, stderr }));
-    });
-
   const assertDiskState = () => {
     const envContent = fs.readFileSync(path.join(tmpDir, 'environments', 'Test.bru'), 'utf8');
     expect(envContent).toMatch(/@number\s+envNum:\s*42/);
@@ -119,7 +104,7 @@ describe('CLI run — typed env + collection vars set via scripts are persisted 
 
     const result = await runCli([
       'run', 'set-typed-vars.bru', '--env', 'Test', '--sandbox', sandbox, '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -314,7 +299,7 @@ script:post-response {
       '--env-file', 'External.json',
       '--sandbox', 'developer',
       '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -376,7 +361,7 @@ script:post-response {
       '--env-file', 'External.yml',
       '--sandbox', 'developer',
       '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -441,7 +426,7 @@ script:post-response {
       '--env-file', 'External.json',
       '--sandbox', 'developer',
       '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -501,7 +486,7 @@ script:post-response {
       '--env-file', 'External.bru',
       '--sandbox', 'developer',
       '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -557,7 +542,7 @@ script:post-response {
       '--env-var', 'token=transient-cli-value',
       '--sandbox', 'developer',
       '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -611,7 +596,7 @@ script:post-response {
 
     const result = await runCli([
       'run', 'set-then-throw.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
-    ]);
+    ], tmpDir);
 
     // Pin failure exit first — otherwise the persistence assertion below could pass for the
     // wrong reason (e.g. the script never ran).
@@ -667,7 +652,7 @@ tests {
 
     const result = await runCli([
       'run', 'set-from-tests.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -718,7 +703,7 @@ vars:post-response {
 
     const result = await runCli([
       'run', 'set-from-vars-block.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
-    ]);
+    ], tmpDir);
 
     if (result.code !== 0) {
       throw new Error(
@@ -774,7 +759,7 @@ tests {
 
     const result = await runCli([
       'run', 'set-then-throw-in-tests.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'
-    ]);
+    ], tmpDir);
 
     // Pin failure exit first — otherwise the persistence assertion below could pass for the
     // wrong reason (e.g. the script never ran).

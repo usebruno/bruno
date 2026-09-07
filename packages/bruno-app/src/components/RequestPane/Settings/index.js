@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
+import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
@@ -14,8 +15,9 @@ import Tags from './Tags/index';
 const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
-  maxRedirects: 5,
-  timeout: 'inherit'
+  maxRedirects: utils.DEFAULT_MAX_REDIRECTS,
+  timeout: 'inherit',
+  forwardAuthorizationHeader: true
 };
 
 const Settings = ({ item, collection }) => {
@@ -27,7 +29,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
   const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
 
   // Reusable function to update settings
@@ -46,6 +48,9 @@ const Settings = ({ item, collection }) => {
 
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
+
+  const onToggleForwardAuthorizationOnRedirect = useCallback(() =>
+    updateSetting({ forwardAuthorizationHeader: !forwardAuthorizationHeader }), [forwardAuthorizationHeader, updateSetting]);
 
   const onToggleEnableApp = useCallback(() => {
     const next = !enableApp;
@@ -143,14 +148,27 @@ const Settings = ({ item, collection }) => {
 
           <div className="flex flex-col gap-4">
             <ToggleSelector
-              checked={enableApp}
-              onChange={onToggleEnableApp}
-              label="Enable App"
-              description="Show the App tab and app view mode for this request"
+              checked={forwardAuthorizationHeader}
+              onChange={onToggleForwardAuthorizationOnRedirect}
+              label="Forward Authorization on Redirect"
+              description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
               size="medium"
-              data-testid="enable-app-toggle"
+              data-testid="forward-auth-header-toggle"
             />
           </div>
+
+          {item.type === 'http-request' && (
+            <div className="flex flex-col gap-4">
+              <ToggleSelector
+                checked={enableApp}
+                onChange={onToggleEnableApp}
+                label="Enable App"
+                description="Show the App tab and app view mode for this request"
+                size="medium"
+                data-testid="enable-app-toggle"
+              />
+            </div>
+          )}
 
           <SettingsInput
             id="maxRedirects"

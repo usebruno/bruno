@@ -15,8 +15,10 @@ import {
   fromOpenCollectionActions,
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
-  toOpenCollectionAssertions
+  toOpenCollectionAssertions,
+  resolveTimeoutSetting
 } from '../common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   HttpRequest,
   HttpRequestSettings,
@@ -35,6 +37,9 @@ import type {
 } from '../types';
 import type { HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
 
+
+const { toBool, toMaxRedirects } = utils;
+
 const getHttpBody = (body: HttpRequestBody | Array<{ title: string; selected?: boolean; body: HttpRequestBody }> | undefined): HttpRequestBody | undefined => {
   if (!body) return undefined;
   if (Array.isArray(body)) {
@@ -49,7 +54,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   const http = ocRequest.http;
   const runtime = ocRequest.runtime;
 
-  const scripts = fromOpenCollectionScripts(runtime?.scripts);
+  const scripts = fromOpenCollectionScripts(runtime?.scripts, HTTP_SCRIPT_KEYS);
   const httpBody = getHttpBody(http?.body as HttpRequestBody);
 
   // variables (pre-request from variables, post-response from actions)
@@ -104,10 +109,11 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
 
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {
-      encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
-      timeout: typeof ocRequest.settings.timeout === 'number' ? ocRequest.settings.timeout : 0,
-      followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
-      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
+      encodeUrl: toBool(ocRequest.settings.encodeUrl, true),
+      timeout: resolveTimeoutSetting(ocRequest.settings.timeout),
+      followRedirects: toBool(ocRequest.settings.followRedirects, true),
+      maxRedirects: toMaxRedirects(ocRequest.settings.maxRedirects),
+      forwardAuthorizationHeader: toBool(ocRequest.settings.forwardAuthorizationHeader, true)
     };
     brunoItem.settings = settings;
   }
@@ -195,7 +201,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     hasRuntime = true;
   }
 
-  const scripts = toOpenCollectionScripts(brunoRequest);
+  const scripts = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
   if (scripts) {
     runtime.scripts = scripts;
     hasRuntime = true;
@@ -220,10 +226,11 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
   }
 
   const settings: HttpRequestSettings = {
-    encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
-    timeout: typeof brunoSettings?.timeout === 'number' ? brunoSettings.timeout : 0,
-    followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    encodeUrl: toBool(brunoSettings?.encodeUrl, true),
+    timeout: resolveTimeoutSetting(brunoSettings?.timeout),
+    followRedirects: toBool(brunoSettings?.followRedirects, true),
+    maxRedirects: toMaxRedirects(brunoSettings?.maxRedirects),
+    forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;
 

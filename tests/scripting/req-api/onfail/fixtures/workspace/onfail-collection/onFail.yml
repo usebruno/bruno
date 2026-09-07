@@ -1,0 +1,29 @@
+info:
+  name: onFail
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://127.0.0.1:45123/nope
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar("var", "original");
+        bru.setEnvVar("envVar", "original");
+        bru.setGlobalEnvVar("globalEnvVar", "original");
+
+        if (bru.getVar("var") !== "original") throw new Error("var was not set");
+        if (bru.getEnvVar("envVar") !== "original") throw new Error("envVar was not set");
+        if (bru.getGlobalEnvVar("globalEnvVar") !== "original") throw new Error("globalEnvVar was not set");
+
+        req.onFail(() => {
+          bru.setVar("var", "updated");
+          bru.setEnvVar("envVar", "updated");
+          bru.setGlobalEnvVar("globalEnvVar", "updated");
+        });
+
+settings:
+  timeout: 500

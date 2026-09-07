@@ -1,0 +1,15 @@
+opencollection: "1.0.0"
+
+info:
+  name: client-certs-enabled-yml
+
+config:
+  clientCertificates:
+    - domain: localhost
+      type: pem
+      certificateFilePath: ../../../../server/certs/client-cert.pem
+      privateKeyFilePath: ../../../../server/certs/client-key.pem
+  protobuf:
+    protoFiles:
+      - path: ../../../../server/hello.proto
+        type: file

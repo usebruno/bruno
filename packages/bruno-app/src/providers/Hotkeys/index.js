@@ -11,7 +11,10 @@ import { findCollectionByUid, findItemInCollection, flattenItems, isItemARequest
 import { addTab, focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, reopenClosedTab } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import { isEnvironmentValidationError } from 'utils/environments';
+import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -28,6 +31,7 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestsModal, setShowSaveRequestsModal] = useState(false);
   const [tabUidsToClose, setTabUidsToClose] = useState([]);
   const preferences = useSelector((state) => state.app.preferences);
+  const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -223,7 +227,10 @@ export const HotkeysProvider = (props) => {
         const { environmentUid, variables } = collection.environmentsDraft;
         const environment = findEnvironmentInCollection(collection, environmentUid);
         if (environment && variables) {
-          dispatch(saveEnvironment(variables, environmentUid, collectionUid));
+          dispatch(saveEnvironment(variables, environmentUid, collectionUid))
+            .catch((err) =>
+              toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment')
+            );
         }
       }
 
@@ -261,13 +268,14 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     bindAction('collapseSidebar', (e) => {
       dispatch(toggleSidebarCollapse());
+      setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
       return false;
     });
 
     return () => {
       unbindAction('collapseSidebar');
     };
-  }, [dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [dispatch, userKeyBindings, keybindingsEnabled, sidebarCollapsed]);
 
   // Open terminal — context-aware:
   // focusedSidebarPath: null = no sidebar focus, '' = request focused (no-op), '/path' = folder/collection

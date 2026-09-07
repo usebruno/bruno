@@ -1,5 +1,5 @@
 import { expect, test } from '../../playwright';
-import { openRequest, selectRequestPaneTab, closeAllCollections } from '../utils/page/actions';
+import { openRequest, selectRequestPaneTab, closeAllOpenTabs } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
@@ -7,8 +7,9 @@ const LONG_MSG_REQ = 'ws-long-msg';
 const TWO_MSG_REQ = 'ws-two-long-msgs';
 
 test.describe('websocket message list scroll on tab switch', () => {
+  // Discard the draft rather than save it. Selecting a message drafts the request.
   test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
+    await closeAllOpenTabs(page);
   });
 
   test('does not scroll the expanded message list when switching request pane tabs', async ({

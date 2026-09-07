@@ -37,7 +37,8 @@ const BodyModeSelector = ({
   disabled = false,
   className = '',
   wrapperClassName = '',
-  placement = 'bottom-end'
+  placement = 'bottom-end',
+  'data-testid': testId
 }) => {
   // Add onClick handlers to mode options
   const menuItems = useMemo(() => {
@@ -61,6 +62,7 @@ const BodyModeSelector = ({
           selectedItemId={currentMode}
           showGroupDividers={false}
           groupStyle="select"
+          data-testid={testId}
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
             {humanizeRequestBodyMode(currentMode)}
