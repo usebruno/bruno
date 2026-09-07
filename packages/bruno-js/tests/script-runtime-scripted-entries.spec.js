@@ -155,7 +155,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
           collectionPath,
           null,
           process.env,
-          {},
+          { cacheModules: true },
           host
         );
 
