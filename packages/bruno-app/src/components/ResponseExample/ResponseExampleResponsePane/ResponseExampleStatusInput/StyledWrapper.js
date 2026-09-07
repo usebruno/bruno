@@ -11,8 +11,8 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
     color: ${(props) => props.theme.text.primary};
-    min-width: 140px;
-    max-width: 220px;
+    min-width: 160px;
+    max-width: 250px;
     cursor: pointer;
 
     &:focus {

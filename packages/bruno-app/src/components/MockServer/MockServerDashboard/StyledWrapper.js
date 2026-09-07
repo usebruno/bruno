@@ -95,7 +95,7 @@ const StyledWrapper = styled.div`
         }
 
         input {
-          width: 70px;
+          width: calc(8ch + 32px);
           padding: 6px 8px;
           font-size: ${(props) => props.theme.font.size.sm};
           line-height: 1.2;

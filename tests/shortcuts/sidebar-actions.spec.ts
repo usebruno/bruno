@@ -245,49 +245,25 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
     test.describe('SHORTCUT: Clone Item', () => {
       test.describe('SHORTCUT: Clone Item for request (Cmd/Ctrl+D)', () => {
-        test('default Cmd/Ctrl+D open clone item modal for request', async ({ pageWithUserData: page }) => {
+        test('default Cmd/Ctrl+D clones the request in place (one-click)', async ({ pageWithUserData: page }) => {
           await openRequest(page, 'kb-collection', 'req-1', { persist: true });
           await pressShortcut(page, modifier, 'KeyD');
 
-          // Verify clone modal opens
-          const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-          await expect(cloneModal).toBeVisible();
-
-          // Fill in the clone req name
-          const requestNameInput = page.locator('#collection-item-name');
-          await requestNameInput.fill('req-1 clone 1');
-
-          // Click the clone button
-          await page.getByTestId('clone-item-button').click();
-
-          // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1 clone 1', { exact: true }) })).toBeVisible();
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-1 copy', { exact: true }) })).toBeVisible();
         });
       });
 
       test.describe('SHORTCUT: Clone Item for folder (Cmd/Ctrl+D)', () => {
-        test('default Cmd/Ctrl+D open clone item modal for folder', async ({ pageWithUserData: page }) => {
+        test('default Cmd/Ctrl+D clones the folder in place (one-click)', async ({ pageWithUserData: page }) => {
           await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
           await pressShortcut(page, modifier, 'KeyD');
 
-          // Verify clone modal opens
-          const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-          await expect(cloneModal).toBeVisible();
-
-          // Fill in the clone kb-folder name
-          const folderNameInput = page.locator('#collection-item-name');
-          await folderNameInput.fill('kb-folder clone 1');
-
-          // Click the clone button
-          await page.getByTestId('clone-item-button').click();
-
-          // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder clone 1', { exact: true }) })).toBeVisible();
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder copy', { exact: true }) })).toBeVisible();
         });
       });
 
       test.describe('SHORTCUT: Clone Item for request (customized Alt+D)', () => {
-        test('customized Alt+D open clone item modal for request', async ({ pageWithUserData: page }) => {
+        test('customized Alt+D clones the request in place (one-click)', async ({ pageWithUserData: page }) => {
           // Remap cloneItem to Alt+D
           await openKeybindingsTab(page);
           const row = page.getByTestId('keybinding-row-cloneItem');
@@ -303,24 +279,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           await pressShortcut(page, 'Alt', 'KeyD');
 
-          // Verify clone modal opens
-          const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone request/i });
-          await expect(cloneModal).toBeVisible();
-
-          // Fill in the clone req name
-          const requestNameInput = page.locator('#collection-item-name');
-          await requestNameInput.fill('req-2 clone 1');
-
-          // Click the clone button
-          await page.getByTestId('clone-item-button').click();
-
-          // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-2 clone 1', { exact: true }) })).toBeVisible();
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-2 copy', { exact: true }) })).toBeVisible();
         });
       });
 
       test.describe('SHORTCUT: Clone Item for folder (customized Alt+D)', () => {
-        test('customized Alt+D open clone item modal for folder', async ({ pageWithUserData: page }) => {
+        test('customized Alt+D clones the folder in place (one-click)', async ({ pageWithUserData: page }) => {
           // Remap cloneItem to Alt+D (keybindings are reset after each test, so re-bind here).
           await remapKeybinding(page, 'cloneItem', 'Alt', 'KeyD');
           await closePreferencesTab(page);
@@ -330,19 +294,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src', { exact: true }) }).first().click();
           await pressShortcut(page, 'Alt', 'KeyD');
 
-          // Verify clone modal opens
-          const cloneModal = page.locator('.bruno-modal-card').filter({ hasText: /clone folder/i });
-          await expect(cloneModal).toBeVisible();
-
-          // Fill in the clone req name
-          const folderNameInput = page.locator('#collection-item-name');
-          await folderNameInput.fill('kb-folder-clone-src copy 1');
-
-          // Click the clone button
-          await page.getByTestId('clone-item-button').click();
-
-          // Verify renamed request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src copy 1', { exact: true }) })).toBeVisible();
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-clone-src copy', { exact: true }) })).toBeVisible();
         });
       });
     });
@@ -354,8 +306,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await pressShortcut(page, modifier, 'KeyC');
           await pressShortcut(page, modifier, 'KeyV');
 
-          // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 (1)', { exact: true }) })).toBeVisible();
+          // Paste creates a "<name> copy" request in the sidebar.
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-3 copy', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -365,8 +317,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           await pressShortcut(page, modifier, 'KeyC');
           await pressShortcut(page, modifier, 'KeyV');
 
-          // Verify copied item appears in sidebar as child of folder
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) })).toHaveCount(2);
+          // Paste creates a "<name> copy" inside the folder.
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder copy', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -399,8 +351,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           await pressShortcut(page, 'Alt', 'KeyV');
 
-          // Verify cloned request appears in sidebar
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-4 (1)', { exact: true }) })).toBeVisible();
+          // Paste creates a "<name> copy" request in the sidebar.
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('req-4 copy', { exact: true }) })).toBeVisible();
         });
       });
 
@@ -415,8 +367,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
           await pressShortcut(page, 'Alt', 'KeyV');
 
-          // Verify copied item appears in sidebar as child of folder
-          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-copy-src', { exact: true }) })).toHaveCount(2);
+          // Paste creates a "<name> copy" inside the folder.
+          await expect(page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder-copy-src copy', { exact: true }) })).toBeVisible();
         });
       });
     });

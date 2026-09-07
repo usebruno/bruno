@@ -62,11 +62,36 @@ const dropWrittenSecretNamesakes = (variables, writtenNames) => {
  *
  * Pure: does not mutate the input array or its entries. Returns a new array of new objects.
  */
-export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys = [] } = {}) => {
+export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys = [], inheritedVariables = [] } = {}) => {
   const scriptVarNames = new Set(Object.keys(scriptVars));
   const skip = new Set(skipKeys);
   const next = (variables || []).map((v) => ({ ...v }));
   const writtenNames = new Set();
+  // A rotated inherited secret lands here as an override; as a plain var its value would be
+  // written to the environment file in cleartext, so the parent's secret flag has to come with it.
+  const inheritedSecretNames = new Set(inheritedVariables.filter((v) => v.secret).map((v) => v.name));
+
+  const writeScriptValue = (name, value) => {
+    writtenNames.add(name);
+    // Target only the enabled slot — a draft-disabled var with the same name must be preserved.
+    const existing = next.find((v) => v.name === name && v.enabled);
+    if (!existing) {
+      // A disabled row is never a write target, so the appended row is the one the value lands on.
+      // Appended as a plain row it would carry a secret this name already stands for — whether the
+      // parent chain declares it or a disabled row here does — into the file in cleartext.
+      const isSecretName = inheritedSecretNames.has(name) || next.some((v) => v.name === name && v.secret);
+      next.push({ uid: uuid(), name, value, type: 'text', secret: isSecretName, enabled: true });
+      return;
+    }
+
+    existing.value = value;
+    // A plain row of the same name shadows the parent's secret rather than replacing it, so the
+    // rotated value would otherwise land on that plain row and reach disk in cleartext. The row
+    // becoming a secret is the cost of keeping the value off disk.
+    if (inheritedSecretNames.has(name)) {
+      existing.secret = true;
+    }
+  };
 
   if (baseline) {
     Object.entries(scriptVars).forEach(([key, value]) => {
@@ -77,14 +102,7 @@ export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys =
       const isModified = !isNew && !isEqual(baseline[key], value);
 
       if (isNew || isModified) {
-        writtenNames.add(key);
-        // Target only the enabled slot — a draft-disabled var with the same name must be preserved.
-        const existing = next.find((v) => v.name === key && v.enabled);
-        if (existing) {
-          existing.value = value;
-        } else {
-          next.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
-        }
+        writeScriptValue(key, value);
       }
     });
 
@@ -97,13 +115,7 @@ export const applyScriptEnvVars = (variables, scriptVars, baseline, { skipKeys =
 
   Object.entries(scriptVars).forEach(([key, value]) => {
     if (skip.has(key)) return;
-    writtenNames.add(key);
-    const existing = next.find((v) => v.name === key && v.enabled);
-    if (existing) {
-      existing.value = value;
-    } else {
-      next.push({ uid: uuid(), name: key, value, type: 'text', secret: false, enabled: true });
-    }
+    writeScriptValue(key, value);
   });
 
   return dropWrittenSecretNamesakes(next.filter((v) => !v.enabled || scriptVarNames.has(v.name)), writtenNames);
@@ -157,6 +169,20 @@ export const getDuplicateSecretNames = (variables) => {
   return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
 };
 
+export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();
+
+export const generateCopyName = (baseName, existingNames) => {
+  const normalizedExisting = existingNames.map(normalizeEnvName);
+
+  let counter = 1;
+  let newName = `${baseName} copy`;
+  while (normalizedExisting.includes(normalizeEnvName(newName))) {
+    counter++;
+    newName = `${baseName} copy ${counter}`;
+  }
+  return newName;
+};
+
 /**
  * Strips the duplicate secrets out of an imported environment, so an import never lands the user
  * with a collision they did not author. Keeps whichever twin holds a value, since a Postman export
@@ -180,6 +206,43 @@ export const dedupeImportedSecrets = (variables) => {
     const name = (v.name || '').trim();
     return !v.secret || !duplicates.has(name) || survivors.get(name) === v;
   });
+};
+
+/**
+ * Orders environments so one imported alongside its parent lands after it. A parent only reveals
+ * the name it was created under — a collision appends a suffix — once it exists, and the child's
+ * `extends` has to be repointed at that name. A reference to an environment outside the set, or
+ * one caught in a cycle, keeps its input position.
+ */
+export const orderEnvironmentsByInheritance = (environments) => {
+  const firstByName = new Map();
+  environments.forEach((environment) => {
+    if (!firstByName.has(environment.name)) {
+      firstByName.set(environment.name, environment);
+    }
+  });
+
+  const ordered = [];
+  const placed = new Set();
+
+  const place = (environment, seen) => {
+    if (placed.has(environment) || seen.has(environment)) {
+      return;
+    }
+    seen.add(environment);
+
+    const parent = typeof environment.extends === 'string' ? firstByName.get(environment.extends) : undefined;
+    if (parent) {
+      place(parent, seen);
+    }
+
+    placed.add(environment);
+    ordered.push(environment);
+  };
+
+  environments.forEach((environment) => place(environment, new Set()));
+
+  return ordered;
 };
 
 /**
@@ -207,19 +270,4 @@ export const writesCollidingSecrets = (submittedVariables, savedVariables) => {
   }
   const secretsKey = (variables) => JSON.stringify((variables || []).filter((v) => v.secret).map(stripEnvVarUid));
   return secretsKey(submittedVariables) !== secretsKey(savedVariables);
-};
-
-/**
- * Settles a collision in favour of the row just edited, dropping its namesakes. Since a save is
- * refused while secrets collide, editing one row is how the user clears it.
- *
- * Names compare exactly, not trimmed: the store keys on the untrimmed name, so `token` and
- * `  token  ` are two separately readable secrets and dropping either would discard a live value.
- */
-export const resolveSecretNameCollision = (variables, editedVariable) => {
-  const editedName = editedVariable?.name;
-  if (!editedVariable?.secret || !editedName?.trim() || !getDuplicateSecretNames(variables).has(editedName.trim())) {
-    return variables;
-  }
-  return (variables || []).filter((v) => v.uid === editedVariable.uid || !(v.secret && v.name === editedName));
 };

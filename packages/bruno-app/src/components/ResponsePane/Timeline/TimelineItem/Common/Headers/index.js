@@ -9,7 +9,7 @@ const toEntries = (headers) => {
   return Object.entries(headers).map(([name, value]) => ({ name, value }));
 };
 
-const Headers = ({ headers }) => {
+const Headers = ({ headers, variant }) => {
   const [isOpen, setIsOpen] = useState(true);
   const entries = toEntries(headers);
   const count = entries.length;
@@ -33,12 +33,12 @@ const Headers = ({ headers }) => {
         count === 0
           ? <div className="tl-empty">No Headers</div>
           : (
-              <table className="tl-headers-table">
+              <table className="tl-headers-table" data-testid={`tl-headers-table-${variant}`}>
                 <tbody>
                   {entries.map((h, i) => (
-                    <tr key={i}>
-                      <td className="tl-headers-key">{h.name}</td>
-                      <td className="tl-headers-val">{String(h.value)}</td>
+                    <tr key={i} data-testid={`tl-header-row-${variant}`}>
+                      <td className="tl-headers-key" data-testid={`tl-header-name-${variant}`}>{h.name}</td>
+                      <td className="tl-headers-val" data-testid={`tl-header-value-${variant}`}>{String(h.value)}</td>
                     </tr>
                   ))}
                 </tbody>

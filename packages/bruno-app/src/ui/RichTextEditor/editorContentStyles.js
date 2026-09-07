@@ -109,11 +109,7 @@ const editorContentStyles = css`
     cursor: pointer;
     vertical-align: top;
     background-color: transparent;
-    color-scheme: dark;
-
-    html.light & {
-      color-scheme: light;
-    }
+    color-scheme: ${(props) => props.theme.mode};
   }
 
   ul[data-type='taskList'] > li > div,
@@ -134,20 +130,16 @@ const editorContentStyles = css`
   }
 
   code {
-    background-color: transparent;
+    background-color: ${(props) => (props.theme.mode === 'light' ? props.theme.sidebar.bg : 'transparent')};
     border: solid 1px ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
     font-size: 0.85em;
     padding: 0.15em 0.35em;
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
-
-    html.light & {
-      background-color: ${(props) => props.theme.sidebar.bg};
-    }
   }
 
   pre {
-    background-color: transparent;
+    background-color: ${(props) => (props.theme.mode === 'light' ? props.theme.sidebar.bg : 'transparent')};
     border: solid 1px ${(props) => props.theme.border.border0};
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
@@ -155,10 +147,6 @@ const editorContentStyles = css`
     padding: 0.75rem 1rem;
     border-radius: ${(props) => props.theme.border.radius.base};
     overflow-x: auto;
-
-    html.light & {
-      background-color: ${(props) => props.theme.sidebar.bg};
-    }
 
     code {
       background-color: transparent;
@@ -292,9 +280,6 @@ const editorContentStyles = css`
 
   .editor-raw-html-block {
     margin: 0.5rem 0;
-    padding: 0.5rem;
-    border: dashed 1px ${(props) => props.theme.border.border0};
-    border-radius: ${(props) => props.theme.border.radius.sm};
   }
 
   /* Syntax Highlighting for code blocks (highlight.js classes from lowlight) */

@@ -60,8 +60,8 @@ const MockResponsesList = ({ instance, collection }) => {
   ), [workspaces, activeWorkspaceUid]);
 
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const spec = useMemo(() => (
     resolveInstanceSpec(instance, apiSpecs)
@@ -69,7 +69,7 @@ const MockResponsesList = ({ instance, collection }) => {
 
   useEffect(() => {
     dispatch(loadMockResponses(location));
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   const openResponseTab = (response) => {
     dispatch(addTab({
@@ -354,6 +354,7 @@ const MockResponsesList = ({ instance, collection }) => {
       {showCreateModal ? (
         <CreateMockResponseModal
           collection={isSpecServer ? null : resolvedCollection}
+          existingResponses={responses}
           onCreate={handleCreate}
           onClose={() => setShowCreateModal(false)}
         />

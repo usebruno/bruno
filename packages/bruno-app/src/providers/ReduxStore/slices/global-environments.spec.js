@@ -8,6 +8,7 @@ jest.mock('@usebruno/schema', () => ({
 
 import { configureStore } from '@reduxjs/toolkit';
 import globalEnvironmentsReducer, {
+  addGlobalEnvironment,
   globalEnvironmentsUpdateEvent,
   _clearScriptGlobalEnvBaseline,
   updateGlobalEnvironments
@@ -30,10 +31,20 @@ beforeAll(() => {
 });
 
 const createStore = (envVars = [], opts = {}) => {
+  const parentEnvironments = opts.inheritedVars
+    ? [{ uid: 'genv-parent', name: 'Base', variables: opts.inheritedVars, color: null }]
+    : [];
   const preloadedState = {
     globalEnvironments: {
       globalEnvironments: [
-        { uid: ENV_UID, name: 'GlobalTest', variables: envVars, color: null }
+        ...parentEnvironments,
+        {
+          uid: ENV_UID,
+          name: 'GlobalTest',
+          variables: envVars,
+          color: null,
+          ...(opts.inheritedVars ? { extends: 'Base' } : {})
+        }
       ],
       activeGlobalEnvironmentUid: ENV_UID,
       globalEnvironmentDraft: opts.draft || null,
@@ -397,6 +408,14 @@ describe('globalEnvironmentsUpdateEvent — draft-aware merge', () => {
       expect(v.dataType).toBe('object');
     });
 
+    test('leaves an inherited typed var the script echoed back unchanged out of the environment', () => {
+      const store = createStore([], { inheritedVars: [{ ...makeVar('PORT', '3000'), dataType: 'number' }] });
+
+      store.dispatch(globalEnvironmentsUpdateEvent({ globalEnvironmentVariables: { PORT: 3000 } }));
+
+      expect(getEnv(store).variables).toEqual([]);
+    });
+
     test('keeps existing dataType on a typed var the script did not touch', () => {
       const typedVar = { ...makeVar('COUNT', 42), dataType: 'number' };
       const store = createStore([typedVar, makeVar('HOST', 'https://example.com')]);
@@ -472,6 +491,34 @@ describe('globalEnvironmentsUpdateEvent — draft-aware merge', () => {
       expect(xVars.find((v) => v.enabled === false).value).toBe('archived');
       expect(xVars.find((v) => v.enabled === true).value).toBe('updated');
     });
+  });
+});
+
+describe('addGlobalEnvironment — inheritance', () => {
+  const addEnvironment = async (payload) => {
+    const invoke = jest.fn().mockResolvedValue({});
+    window.ipcRenderer = { invoke };
+    const store = createStore();
+
+    await store.dispatch(addGlobalEnvironment(payload));
+
+    const [, createArgs] = invoke.mock.calls.find(([channel]) => channel === 'renderer:create-global-environment');
+    const added = store.getState().globalEnvironments.globalEnvironments.find((env) => env.name === payload.name);
+    return { createArgs, added };
+  };
+
+  test('an imported environment persists and stores its extends reference', async () => {
+    const { createArgs, added } = await addEnvironment({ name: 'dev', variables: [], extends: 'Base' });
+
+    expect(createArgs.extends).toBe('Base');
+    expect(added.extends).toBe('Base');
+  });
+
+  test('an environment created without a parent has no extends reference', async () => {
+    const { createArgs, added } = await addEnvironment({ name: 'dev', variables: [] });
+
+    expect(createArgs.extends).toBeUndefined();
+    expect(added.extends).toBeUndefined();
   });
 });
 

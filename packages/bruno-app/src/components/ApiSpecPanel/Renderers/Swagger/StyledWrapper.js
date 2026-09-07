@@ -156,13 +156,18 @@ const StyledWrapper = styled.div`
             font-size: ${(props) => props.theme.font.size.xs};
             color: ${(props) => props.theme.colors.text.muted};
           }
+        }
 
-          .opblock-summary-control {
-            svg {
-              fill: ${(props) => props.theme.colors.text.muted};
-              width: 14px;
-              height: 14px;
-            }
+        .opblock-control-arrow {
+          color: inherit;
+          background: none;
+          border: none;
+
+          svg,
+          svg path {
+            fill: ${(props) => props.theme.text};
+            width: 12px;
+            height: 12px;
           }
         }
 
@@ -216,8 +221,12 @@ const StyledWrapper = styled.div`
 
       /* Lock / authorization icons */
       .authorization__btn {
+        color: inherit;
+        background: none;
+        border: none;
 
-        svg {
+        svg,
+        svg path {
           fill: ${(props) => props.theme.colors.text.muted};
           width: 14px;
           height: 14px;
@@ -282,7 +291,17 @@ const StyledWrapper = styled.div`
           padding: 6px 10px;
           margin: 0;
 
-          svg {
+          svg,
+          svg path {
+            fill: ${(props) => props.theme.colors.text.muted};
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .models-control {
+          svg,
+          svg path {
             fill: ${(props) => props.theme.colors.text.muted};
             width: 16px;
             height: 16px;
@@ -372,6 +391,7 @@ const StyledWrapper = styled.div`
       .models-control,
       .opblock-summary,
       .opblock-summary-control,
+      .opblock-control-arrow,
       .opblock-tag {
         outline: none !important;
         box-shadow: none !important;
@@ -402,7 +422,8 @@ const StyledWrapper = styled.div`
         }
 
         /* chevron / arrow icon */
-        .json-schema-2020-12-accordion__icon {
+        .json-schema-2020-12-accordion__icon,
+        .json-schema-2020-12-accordion__icon path {
           fill: ${(props) => props.theme.colors.text.muted} !important;
         }
 
@@ -636,18 +657,30 @@ const StyledWrapper = styled.div`
       }
 
       /* ── SVGs / icons ── */
-      svg {
+      svg:not(.opblock-summary-method) {
         fill: ${(props) => props.theme.colors.text.muted};
       }
 
-      svg.arrow {
+      svg:not(.opblock-summary-method) path {
+        fill: currentColor;
+      }
+
+      svg.arrow,
+      svg.arrow path {
         fill: ${(props) => props.theme.text};
         width: 12px;
         height: 12px;
         margin-left: 4px;
       }
 
-      .expand-operation svg {
+      .expand-operation {
+        color: inherit;
+        background: none;
+        border: none;
+      }
+
+      .expand-operation svg,
+      .expand-operation svg path {
         fill: ${(props) => props.theme.colors.text.muted};
         width: 14px;
         height: 14px;
@@ -721,6 +754,21 @@ const StyledWrapper = styled.div`
         button {
           border-radius: 3px;
         }
+      }
+
+      .opblock-summary .view-line-link.copy-to-clipboard {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .view-line-link.copy-to-clipboard button {
+        background: none;
+        border: none;
+        padding: 0;
+        height: auto;
+        min-width: unset;
+        flex-grow: unset;
+        flex-shrink: unset;
       }
 
       /* Dialog / modal overrides */
@@ -866,8 +914,15 @@ const StyledWrapper = styled.div`
             }
 
             /* Authorize / Close buttons */
+            .auth-btn-wrapper {
+              display: flex;
+              gap: 8px;
+              margin-top: 12px;
+            }
+
             .btn-done,
             .auth-btn-wrapper .btn {
+              margin: 0;
               font-size: ${(props) => props.theme.font.size.sm};
               border-radius: 4px;
               padding: 6px 16px;

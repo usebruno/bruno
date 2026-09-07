@@ -10,7 +10,7 @@ import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { uuid, ensureString } from '../../../utils';
 import { utils } from '@usebruno/common';
-const { toBool, toNumber } = utils;
+const { toBool, toMaxRedirects } = utils;
 
 const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -123,7 +123,7 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     }
 
     settings.followRedirects = toBool(ocRequest.settings.followRedirects, true);
-    settings.maxRedirects = toNumber(ocRequest.settings.maxRedirects, 5);
+    settings.maxRedirects = toMaxRedirects(ocRequest.settings.maxRedirects);
     settings.forwardAuthorizationHeader = toBool(ocRequest.settings.forwardAuthorizationHeader, true);
 
     brunoItem.settings = settings;

@@ -191,16 +191,18 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
     findOccurrences(collection, collectionVars);
 
     // Add request and response vars
-    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+    const reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
       key: v.name,
       value: v.value,
-      type: 'default'
+      type: 'default',
+      ...(v.enabled === false ? { disabled: true } : {})
     }));
 
-    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+    const resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
       key: v.name,
       value: v.value,
-      type: 'default'
+      type: 'default',
+      ...(v.enabled === false ? { disabled: true } : {})
     }));
 
     // Merge and deduplicate final result

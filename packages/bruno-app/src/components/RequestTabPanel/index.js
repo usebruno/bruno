@@ -115,6 +115,8 @@ const RequestTabPanel = () => {
       const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
       collection.globalEnvironmentVariables = globalEnvironmentVariables;
       collection.globalEnvSecrets = globalEnvSecrets;
+      collection.globalEnvironments = globalEnvironments;
+      collection.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
     }
   });
 
@@ -534,7 +536,11 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'variables') {
-    return <VariablesEditor collection={collection} />;
+    return (
+      <ScopedPersistenceProvider scope={focusedTab.uid}>
+        <VariablesEditor collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'collection-settings') {

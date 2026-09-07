@@ -6,10 +6,6 @@ import { modifier, pressShortcut, remapKeybinding, resetKeybindings } from '../s
 // keybinding which is bound in Tiptap and also has a global handler (Cmd/Ctrl+B) should not trigger the global handler when docs is focused.
 // keybinding which is not bound in Tiptap (Cmd/Ctrl+,) should still trigger the global handler when docs is focused.
 test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -100,9 +96,6 @@ test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys'
 test.describe('Rich Text Editor - Keyboard Shortcut with Global Hotkeys (remapped)', () => {
   // we are remapping the preferences shortcuts which will store in keybindings.json.
   // now we need to use pageWithUserData so that other tests don't get affected by the remapping.
-  test.beforeEach(async ({ pageWithUserData: page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await resetKeybindings(page);

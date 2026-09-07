@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .add-rule-link {
+    color: ${(props) => props.theme.textLink};
+    cursor: pointer;
+  }
+
   .rule-operator {
     line-height: 1.42857143;
     padding: 0.25rem 0.45rem;

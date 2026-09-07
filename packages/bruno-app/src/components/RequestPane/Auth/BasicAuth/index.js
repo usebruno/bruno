@@ -64,6 +64,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -79,6 +80,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           item={item}
           isSecret={true}
           isCompact
+          disableLinkAwareClick={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
       </div>

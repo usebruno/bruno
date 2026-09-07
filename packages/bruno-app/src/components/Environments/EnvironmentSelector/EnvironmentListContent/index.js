@@ -139,7 +139,7 @@ const EnvironmentListContent = ({
               <IconPlus size={16} strokeWidth={1.5} />
               Create
             </button>
-            <button onClick={onImportClick} id="import-env">
+            <button onClick={onImportClick} id="import-env" data-testid="empty-state-import-env-btn">
               <IconDownload size={16} strokeWidth={1.5} />
               Import
             </button>
