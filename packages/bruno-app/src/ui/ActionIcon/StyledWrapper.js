@@ -45,7 +45,7 @@ const StyledWrapper = styled.button`
 
   ${(props) => props.$colorOnHover && css`
     &:hover:not(:disabled) {
-      color: ${props.$colorOnHover};
+      color: ${props.theme.colors?.text?.[props.$colorOnHover] || props.$colorOnHover};
     }
   `}
 `;
