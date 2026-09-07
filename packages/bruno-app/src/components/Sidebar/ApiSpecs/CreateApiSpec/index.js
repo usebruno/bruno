@@ -13,6 +13,8 @@ import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
 
+const MAX_SKIPPED_FILES_LISTED = 5;
+
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
   each(envVariables, (variable) => {
@@ -164,7 +166,9 @@ const CreateApiSpec = ({ onClose }) => {
           setEnvironments(environments);
           formik.setFieldValue('environment', environmentNames[0] || '');
           if (skipped?.length) {
-            toast.error(`${skipped.length} file(s) could not be parsed and were skipped`);
+            const names = skipped.slice(0, MAX_SKIPPED_FILES_LISTED).join(', ');
+            const more = skipped.length > MAX_SKIPPED_FILES_LISTED ? ` and ${skipped.length - MAX_SKIPPED_FILES_LISTED} more` : '';
+            toast.error(`Could not parse ${names}${more}; ${skipped.length === 1 ? 'it was' : 'they were'} skipped`);
           }
         })
         .catch((err) => {
