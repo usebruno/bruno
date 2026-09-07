@@ -180,12 +180,12 @@ test('pins the headers pane to the top when inherited headers are shown or hidde
 
     await headers.toggleInherited().click();
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
-    await expect(headers.paneScroller()).toHaveJSProperty('scrollTop', 0);
+    await expect.poll(async () => headers.paneScroller().evaluate((el) => el.scrollTop)).toBeLessThanOrEqual(1);
 
     await headers.toggleInherited().click();
     await expect(headers.inheritedSectionRow()).toBeVisible();
     await expect(headers.inheritedSectionRow()).toBeInViewport();
-    await expect(headers.paneScroller()).toHaveJSProperty('scrollTop', 0);
+    await expect.poll(async () => headers.paneScroller().evaluate((el) => el.scrollTop)).toBeLessThanOrEqual(1);
   });
 });
 

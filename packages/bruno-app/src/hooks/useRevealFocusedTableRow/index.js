@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ROW_HEIGHT = 35;
-const FOCUS_SCROLL_FRAMES = 90;
 // Keep in sync with the row-focus-flash animation in EditableTable/StyledWrapper.
 const FOCUS_FLASH_DURATION = 2500;
 
@@ -23,32 +21,6 @@ const findFocusRowIndex = (rows, keyColumn, { uid, name } = {}) => {
   return index;
 };
 
-const findRenderedRow = (wrapper, rowIndex) =>
-  wrapper?.querySelector(`tr[data-item-index="${rowIndex}"]`) || null;
-
-const isRowInViewport = (row, scrollParent) => {
-  if (!row || !scrollParent?.getBoundingClientRect) return false;
-  const rowRect = row.getBoundingClientRect();
-  const parentRect = scrollParent.getBoundingClientRect();
-  return rowRect.top >= parentRect.top && rowRect.bottom <= parentRect.bottom;
-};
-
-/** Scroll toward an unrendered row. Measure from the wrapper sticky thead moves the table. */
-const scrollNearRow = (scrollParent, wrapper, rowIndex) => {
-  if (!wrapper || !scrollParent?.getBoundingClientRect) return;
-
-  const wrapperOffset = wrapper.getBoundingClientRect().top
-    - scrollParent.getBoundingClientRect().top
-    + scrollParent.scrollTop;
-  const headerHeight = wrapper.querySelector('thead')?.offsetHeight || ROW_HEIGHT;
-  const rowTop = wrapperOffset + headerHeight + (rowIndex * ROW_HEIGHT);
-  const nextTop = Math.max(0, rowTop - (scrollParent.clientHeight / 2));
-
-  if (Math.abs(scrollParent.scrollTop - nextTop) > 1) {
-    scrollParent.scrollTop = nextTop;
-  }
-};
-
 /**
  * Scroll a virtualized EditableTable row into view and flash it.
  */
@@ -57,7 +29,6 @@ export const useRevealFocusedTableRow = ({
   rows,
   keyColumn,
   scrollParent,
-  wrapperRef,
   virtuosoRef,
   onFocusRowHandled
 }) => {
@@ -94,44 +65,25 @@ export const useRevealFocusedTableRow = ({
     ));
 
     let cancelled = false;
-    let frame = 0;
-    let attempts = 0;
-
     const finish = () => {
       if (!cancelled) onFocusRowHandledRef.current?.();
     };
 
-    const revealRow = () => {
-      if (cancelled) return;
-      attempts += 1;
+    if (!virtuosoRef.current?.scrollIntoView) {
+      finish();
+      return;
+    }
 
-      // scrollToIndex is a no-op until measured; also set scrollTop so the row mounts.
-      virtuosoRef.current?.scrollToIndex({ index, align: 'center', behavior: 'auto' });
-      scrollNearRow(scrollParent, wrapperRef.current, index);
+    virtuosoRef.current.scrollIntoView({
+      index,
+      behavior: 'auto',
+      done: finish
+    });
 
-      const row = findRenderedRow(wrapperRef.current, index);
-      if (row) {
-        row.scrollIntoView({ block: 'center', inline: 'nearest' });
-        if (isRowInViewport(row, scrollParent)) {
-          finish();
-          return;
-        }
-      }
-
-      if (attempts >= FOCUS_SCROLL_FRAMES) {
-        finish();
-        return;
-      }
-
-      frame = requestAnimationFrame(revealRow);
-    };
-
-    frame = requestAnimationFrame(revealRow);
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame);
     };
-  }, [focusRowUid, focusRowName, focusRowRequestedAt, scrollParent, virtuosoRef, wrapperRef]);
+  }, [focusRowUid, focusRowName, focusRowRequestedAt, scrollParent, virtuosoRef]);
 
   useEffect(() => {
     if (!flashedRow) return;

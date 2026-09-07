@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
@@ -78,7 +78,7 @@ const TableRow = React.memo(
   }
 );
 
-const EditableTable = ({
+const EditableTable = React.forwardRef(({
   tableId, // Not being used kept to maintain uniqueness & pass similar in onColumnWidthsChange
   columns,
   rows: rowsProp,
@@ -103,7 +103,7 @@ const EditableTable = ({
   isDraft,
   focusRow,
   onFocusRowHandled
-}) => {
+}, ref) => {
   const {
     isEditable: isRowEditable,
     isCheckboxDisabled,
@@ -115,6 +115,11 @@ const EditableTable = ({
 
   const wrapperRef = useRef(null);
   const virtuosoRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToTop: () => virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start' })
+  }), []);
+
   const emptyRowUidRef = useRef(null);
   const prevRowCountRef = useRef(0);
   const [resizing, setResizing] = useState(null);
@@ -417,7 +422,6 @@ const EditableTable = ({
     rows: rowsWithEmpty,
     keyColumn,
     scrollParent,
-    wrapperRef,
     virtuosoRef,
     onFocusRowHandled
   });
@@ -594,6 +598,5 @@ const EditableTable = ({
       )}
     </StyledWrapper>
   );
-};
-
+});
 export default EditableTable;

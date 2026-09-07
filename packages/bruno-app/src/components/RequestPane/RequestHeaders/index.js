@@ -114,24 +114,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     default: true
   });
   const wrapperRef = useRef(null);
+  const tableRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
   const pinHeadersToTop = useCallback(() => {
-    const pane = wrapperRef.current?.closest('.flex-boundary');
-    if (!pane) {
-      setScroll(0);
-      return;
-    }
-
-    const pin = () => {
-      pane.scrollTop = 0;
-    };
-    pin();
-    requestAnimationFrame(() => {
-      pin();
-      requestAnimationFrame(pin);
-    });
+    tableRef.current?.scrollToTop();
     setScroll(0);
   }, [setScroll]);
 
@@ -554,6 +542,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   return (
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
+        ref={tableRef}
         tableId="request-headers"
         testId="request-headers-table"
         columns={columns}
