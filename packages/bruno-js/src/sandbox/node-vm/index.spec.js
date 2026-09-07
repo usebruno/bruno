@@ -922,6 +922,42 @@ describe('node-vm sandbox', () => {
 
       expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
       expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
+      expect(contextA.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextA.bru.setVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.setVar).toHaveBeenCalledTimes(1);
+    });
+
+    it('should re-evaluate a three-level parent chain that snapshots bru at the leaf', async () => {
+      makePkg(path.join(collectionPath, 'node_modules'), 'deep-leaf-bru', {
+        'index.js': `module.exports = { who: bru.getVar('who') };`
+      });
+      makePkg(path.join(collectionPath, 'node_modules'), 'deep-mid-bru', {
+        'index.js': `
+          const leaf = require('deep-leaf-bru');
+          module.exports = { who: leaf.who };
+        `
+      });
+      makePkg(path.join(collectionPath, 'node_modules'), 'deep-root-bru', {
+        'index.js': `
+          const mid = require('deep-mid-bru');
+          module.exports = { who: mid.who };
+        `
+      });
+
+      const script = `bru.setVar('seen', require('deep-root-bru').who);`;
+      const contextA = { bru: { getVar: jest.fn().mockReturnValue('A'), setVar: jest.fn() }, console };
+      const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
+      expect(contextA.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.getVar).toHaveBeenCalledTimes(1);
+      expect(contextA.bru.setVar).toHaveBeenCalledTimes(1);
+      expect(contextB.bru.setVar).toHaveBeenCalledTimes(1);
     });
 
     it('should still share an inert transitive npm module tree across scripts', async () => {
