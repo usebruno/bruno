@@ -71,7 +71,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // so `currentTarget === target` never holds. Instead, clear on any click that didn't land
   // inside a selectable row.
   const handleContainerClick = (e) => {
-    const onRow = e.target.closest('[data-testid="sidebar-collection-item-row"], [data-testid="sidebar-collection-row');
+    const onRow = e.target.closest('[data-testid="sidebar-collection-item-row"], [data-testid="sidebar-collection-row"]');
     if (!onRow) {
       dispatch(clearSidebarSelection());
     }
