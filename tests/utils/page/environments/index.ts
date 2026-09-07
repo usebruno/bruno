@@ -131,11 +131,9 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importSelectedCount: () => page.getByTestId('env-import-selected-count'),
   importReviewItem: (name: string) => page.getByTestId('env-import-item').filter({ has: page.getByText(name, { exact: true }) }),
   importItemCheckbox: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-item-checkbox'),
-  importCopyButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-copy-btn'),
+  importCreateNewButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-create-new-btn'),
   importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
-  importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
-  importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
-  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importReviewItemNames: () => page.getByTestId('env-import-item').locator('.env-name'),
   importInvalidGroup: () => page.getByTestId('env-import-invalid-group'),
   importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
   importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
