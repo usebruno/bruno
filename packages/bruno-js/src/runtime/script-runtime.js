@@ -53,7 +53,7 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request, { envVariables, runtimeVariables, processEnvVars });
+    const req = new BrunoRequest(request);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
