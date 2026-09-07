@@ -386,15 +386,15 @@ const isResponseParamReassigned = (j, handlerPath) => {
 /**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
- * @param {Object} callbackPath - Path of the callback argument
- * @returns {Object} - Transformed callback function
+ * @param {Object} callPath - Path of the `pm.sendRequest` call expression
+ * @returns {Object|null} - The callback, made async with its response access rewritten in place, or null if not a function
  */
-const transformCallback = (j, callbackPath) => {
+const transformCallback = (j, callPath) => {
+  const callbackPath = callPath.get('arguments', 1);
   const callback = callbackPath.value;
   if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
 
   const params = callback.params;
-  const callbackBody = callback.body;
 
   // Get the response parameter name (typically the second param)
   let responseVarName = 'response'; // Default if not found
@@ -402,23 +402,12 @@ const transformCallback = (j, callbackPath) => {
     responseVarName = params[1].name;
   }
 
-  let errorVarName = 'error'; // Default if not found
-  if (params.length >= 1 && params[0].type === 'Identifier') {
-    errorVarName = params[0].name;
-  }
-
   rewriteResponseAccess(j, callbackPath, responseVarName);
 
-  // a concise arrow body is a single expression with no statement list to re-wrap,
-  // so the arrow is kept as written: `(err, res) => res.json()` -> `(err, res) => res.data`
-  if (callbackBody.type !== 'BlockStatement') return callback;
+  // `bru.sendRequest` callbacks may await, so the translated callback is always async
+  callback.async = true;
 
-  // Create the callback block
-  return j.functionExpression(
-    null,
-    [j.identifier(errorVarName), j.identifier(responseVarName)],
-    j.blockStatement(callbackBody.body)
-  );
+  return callback;
 };
 
 /**
@@ -473,7 +462,6 @@ const sendRequestTransformer = (path, j) => {
   if (!args.length) return;
 
   const requestOptions = args[0];
-  const callback = args[1];
 
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
@@ -492,16 +480,7 @@ const sendRequestTransformer = (path, j) => {
     findAndTransformVariableDeclaration(j, root, variableName);
   }
 
-  let transformedCallback = null;
-  if (callback) {
-    const callbackPath = callPath.get('arguments', 1);
-    transformedCallback = transformCallback(j, callbackPath);
-
-    // Add async keyword to the callback function
-    if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
-      transformedCallback.async = true;
-    }
-  }
+  const transformedCallback = transformCallback(j, callPath);
 
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),

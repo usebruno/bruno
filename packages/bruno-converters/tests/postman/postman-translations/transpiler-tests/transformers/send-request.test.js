@@ -41,7 +41,7 @@ describe('Send Request Translation', () => {
             data: JSON.stringify({
                 "x": 1
             })
-        }, async function(error, response) {
+        }, async function (error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
@@ -638,7 +638,7 @@ describe('Send Request Translation', () => {
             await bru.sendRequest({
                 url: "https://echo.usebruno.com",
                 method: "GET"
-            }, async function(error, response) {
+            }, async (error, response) => {
                 console.log(response.data);
             });
         } catch (err) {
@@ -671,7 +671,7 @@ describe('Send Request Translation', () => {
             await bru.sendRequest({
                 url: "https://echo.usebruno.com",
                 method: "GET"
-            }, async function(error, response) {
+            }, async (error, response) => {
                 await new Promise(resolve => {
                     setTimeout(() => {
                         resolve();
@@ -728,7 +728,7 @@ describe('Send Request Translation', () => {
                 "x": 1
             })
         };
-        await bru.sendRequest(requestConfig, async function(error, response) {
+        await bru.sendRequest(requestConfig, async function (error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
@@ -789,7 +789,7 @@ describe('Send Request Translation', () => {
         const requestConfig1 = requestConfig;
         const requestConfig2 = requestConfig1;
         const requestConfig3 = requestConfig2;
-        await bru.sendRequest(requestConfig3, async function(error, response) {
+        await bru.sendRequest(requestConfig3, async function (error, response) {
             if (error) {
                 const errorCode = error.code;
                 console.log(errorCode);
@@ -1567,15 +1567,16 @@ await bru.sendRequest({
       `);
     });
 
-    it('should leave block-body callbacks on the existing function form', () => {
+    it('should keep block-body arrow callbacks as arrows', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => { console.log(res.code); });
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, res) {
-                console.log(res.status);
-        });
+        await bru.sendRequest(
+                { url: 'https://echo.usebruno.com' },
+                async (err, res) => { console.log(res.status); }
+        );
       `);
     });
   });
