@@ -49,6 +49,9 @@ const prepareRequest = async (item = {}, collection = {}) => {
     pathname: item.pathname,
     tags: item.tags || [],
     pathParams: request.params?.filter((param) => param.type === 'path'),
+    queryParams: request.params?.filter(
+      (param) => param.type === 'query' && param.enabled !== false && param.name?.length > 0
+    ),
     settings: item.settings,
     responseType: 'arraybuffer',
     mode: request.body?.mode
