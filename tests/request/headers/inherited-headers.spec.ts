@@ -367,7 +367,7 @@ test('sends the request value when it overrides an inherited header', async ({ p
   });
 });
 
-test('hides an inherited header when a disabled request header uses the same name', async ({ page, createTmpDir }) => {
+test('shows the inherited header when the matching request header is disabled', async ({ page, createTmpDir }) => {
   const collectionName = 'inherited-headers-disabled-request-ui';
   await createCollection(page, collectionName, await createTmpDir(collectionName));
   await seedCollectionHeaders(page, collectionName, 'X-Token: collection-token');
@@ -376,12 +376,13 @@ test('hides an inherited header when a disabled request header uses the same nam
   await selectRequestPaneTab(page, 'Headers');
   const headers = await showInheritedHeaders(page);
 
-  await test.step('Keep the inherited row hidden after unchecking the request header', async () => {
+  await test.step('Hide inherited while the request header is enabled, then show it again when unchecked', async () => {
     await fillRequestHeaderName(page, headers.addRow(), 'X-Token');
     await expect(headers.inheritedRow('X-Token')).not.toBeVisible();
     await headers.requestRow('X-Token').getByTestId('column-checkbox').uncheck();
     await expect(headers.requestRow('X-Token').getByTestId('column-checkbox')).not.toBeChecked();
-    await expect(headers.inheritedRow('X-Token')).not.toBeVisible();
+    await expect(headers.inheritedRow('X-Token')).toBeVisible();
+    await expect(headers.inheritedRow('X-Token')).toContainText('collection-token');
   });
 });
 

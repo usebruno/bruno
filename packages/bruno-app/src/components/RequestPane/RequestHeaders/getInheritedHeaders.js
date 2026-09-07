@@ -26,7 +26,7 @@ export const getInheritedHeaderSources = (collection, item) => {
   ];
 };
 
-// Nearest enabled value wins. `claimedNames` hides names already set on the request.
+// Nearest enabled value wins. `claimedNames` hides names enabled on the request.
 export const getInheritedHeaders = (collection, item, claimedNames) => {
   const claimed = new Set(
     claimedNames ? [...claimedNames].map((name) => String(name).toLowerCase()) : []

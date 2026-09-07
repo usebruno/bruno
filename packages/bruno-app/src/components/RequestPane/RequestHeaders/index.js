@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -28,6 +27,7 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
+import Portal from 'ui/Portal';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -59,7 +59,7 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
     <span id={id} className={className} data-testid={testId}>
       {children}
     </span>
-    {createPortal(
+    <Portal>
       <Tooltip
         anchorId={id}
         className="tooltip-mod"
@@ -70,9 +70,8 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
         opacity={1}
         style={HEADER_HINT_STYLE}
         render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
-      />,
-      document.body
-    )}
+      />
+    </Portal>
   </>
 );
 
@@ -176,7 +175,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
   const requestHeaderNames = useMemo(
     () => new Set((headers || [])
-      .filter((header) => header.name)
+      .filter((header) => header.name && header.enabled)
       .map((header) => header.name.toLowerCase())),
     [headers]
   );
