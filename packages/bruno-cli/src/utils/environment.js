@@ -100,7 +100,7 @@ const resolveEnvironmentInheritance = ({ filePath, merge }) => {
     merge
   });
 
-  return { ...resolved, name: targetEnvironment.name };
+  return { ...resolved, name: environment.name };
 };
 
 // Helper to load environment variables from a file. Returns the inherited variables too, so

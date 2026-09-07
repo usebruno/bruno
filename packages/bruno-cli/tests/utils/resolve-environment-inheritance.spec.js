@@ -432,11 +432,13 @@ describe('resolveEnvironmentInheritance', () => {
   describe('the merged variable list', () => {
     it('places the inherited rows ahead of the environment rows, disabled ones included', () => {
       writeEnvironment({
-        name: 'base',
+        name: 'Renamed Base',
+        fileName: 'base',
         variables: [variable({ name: 'host', value: 'base-host' }), secretVariable({ name: 'token' })]
       });
       const filePath = writeEnvironment({
-        name: 'dev',
+        name: 'Renamed Dev',
+        fileName: 'dev',
         extends: 'base',
         variables: [
           variable({ name: 'token', value: 'dev-plain-token' }),
@@ -446,6 +448,7 @@ describe('resolveEnvironmentInheritance', () => {
 
       const result = resolveEnvironmentInheritance({ filePath, merge: true });
 
+      expect(result.name).toBe('dev');
       expect(result.inheritedVariables).toBeUndefined();
       expect(withoutUids(result.variables)).toEqual([
         { ...variable({ name: 'host', value: 'base-host' }), inheritedFrom: { name: 'base' } },
