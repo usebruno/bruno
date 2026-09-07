@@ -1590,61 +1590,6 @@ describe('buildHar — defensive / robustness', () => {
   });
 });
 
-describe('buildHar — cookie header casing', () => {
-  it('lowercase `cookie` header is renamed to `Cookie`, value untouched, and har.cookies stays empty', async () => {
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }] }),
-      shouldInterpolate: false
-    });
-    expect(har.headers).toEqual([{ name: 'Cookie', value: 'cookie1=value1' }]);
-    expect(har.cookies).toEqual([]);
-  });
-
-  it('a header already named `Cookie` is left untouched', async () => {
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'Cookie', value: 'cookie1=value1', enabled: true }] }),
-      shouldInterpolate: false
-    });
-    expect(har.headers).toEqual([{ name: 'Cookie', value: 'cookie1=value1' }]);
-  });
-
-  it('multiple cookies in one header value are kept as a single raw header value, unsplit', async () => {
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'cookie', value: 'a=1; b=2', enabled: true }] }),
-      shouldInterpolate: false
-    });
-    expect(har.headers).toEqual([{ name: 'Cookie', value: 'a=1; b=2' }]);
-  });
-
-  it('no cookie header → har.headers is untouched', async () => {
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'X-Keep', value: 'on', enabled: true }] }),
-      shouldInterpolate: false
-    });
-    expect(har.cookies).toEqual([]);
-    expect(har.headers.map((h) => h.name)).toEqual(['X-Keep']);
-  });
-
-  it('disabled cookie header is dropped entirely, not renamed', async () => {
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: false }] }),
-      shouldInterpolate: false
-    });
-    expect(har.cookies).toEqual([]);
-    expect(har.headers).toEqual([]);
-  });
-
-  // Kept as a plain header, so HTTPSnippet never URI-encodes the value.
-  it('a cookie value with characters encodeURIComponent would escape is not corrupted', async () => {
-    const rawValue = 'session=abc+def/ghi==';
-    const { har } = await buildHar({
-      request: baseRequest({ headers: [{ name: 'cookie', value: rawValue, enabled: true }] }),
-      shouldInterpolate: false
-    });
-    expect(har.headers).toEqual([{ name: 'Cookie', value: rawValue }]);
-  });
-});
-
 /**
  * `#` encoding decision-tree matrix — covers every scenario from the
  * fixings/snippet-vs-sendrequest.md docs. Each scenario asserts both the

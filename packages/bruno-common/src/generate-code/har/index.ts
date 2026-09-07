@@ -660,12 +660,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const allHeaders = mergeAndDedupeHeaders(working.headers, authHeaders);
 
   // Step 6 — Finalize headers (filter enabled, lowercase, default content-type).
-  const finalizedHeaders = finalizeHeaders(working, allHeaders);
-
-  // Step 6b — Rename a `cookie` header to `Cookie`. HTTPSnippet's curl target
-  // only double-renders a header named exactly lowercase "cookie" (BRU-3783), so
-  // this small rename avoids the duplicate without changing the header's value.
-  const harHeaders = finalizedHeaders.map((h) => (h.name.toLowerCase() === 'cookie' ? { ...h, name: 'Cookie' } : h));
+  const harHeaders = finalizeHeaders(working, allHeaders);
 
   // Step 7 — Query string array. HAR's queryString is the single source of
   // truth for what HTTPSnippet renders into the URL slot. The URL itself
