@@ -56,15 +56,22 @@ const collection = {
   mountStatus: 'mounted'
 };
 
+const apiSpec = {
+  uid: 'spec-1',
+  name: 'Petstore',
+  pathname: '/tmp/pet.yaml',
+  filename: 'pet.yaml'
+};
+
 const storeState = {
   collections: { collections: [collection] },
-  apiSpec: { apiSpecs: [] },
+  apiSpec: { apiSpecs: [apiSpec] },
   workspaces: {
     activeWorkspaceUid: 'ws-1',
     workspaces: [{
       uid: 'ws-1',
       collections: [{ path: '/tmp/shop' }],
-      apiSpecs: []
+      apiSpecs: [{ path: '/tmp/pet.yaml' }]
     }]
   },
   mockServer: { instancesByWorkspace: { 'ws-1': [] } }
@@ -114,6 +121,31 @@ describe('CreateMockServerModal validation', () => {
     });
     await waitFor(() => {
       expect(screen.queryByText('Collection is required')).not.toBeInTheDocument();
+    });
+  });
+
+  it('updates required-field errors after an invalid Create when switching to an API spec', async () => {
+    renderModal();
+
+    fireEvent.change(screen.getByTestId('mock-server-name-input'), {
+      target: { value: 'Spec Server' }
+    });
+    fireEvent.click(screen.getByTestId('modal-submit-btn'));
+    expect(await screen.findByText('Collection is required')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('mock-server-source-spec'));
+    await waitFor(() => {
+      expect(screen.queryByText('Collection is required')).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('modal-submit-btn'));
+    expect(await screen.findByText('API spec is required')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('mock-server-spec-select'), {
+      target: { value: 'spec-1' }
+    });
+    await waitFor(() => {
+      expect(screen.queryByText('API spec is required')).not.toBeInTheDocument();
     });
   });
 });
