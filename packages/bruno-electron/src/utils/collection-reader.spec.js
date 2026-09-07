@@ -255,6 +255,17 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
+  it('reports a malformed collection root in skipped so the missing collection variables are surfaced', async () => {
+    const dir = mkTmp('bad-root');
+    writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'BruColl' }));
+    writeFile(dir, 'collection.bru', 'vars:pre-request {{{ broken');
+    writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', '{{baseUrl}}/users'), { format: 'bru' }));
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.skipped).toEqual(['collection.bru']);
+    expect(result.collectionVariables).toEqual({});
+    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+  });
+
   it('returns an empty result for an empty collection folder', async () => {
     const dir = mkTmp('empty');
     const result = await readCollectionForApiSpec(dir);

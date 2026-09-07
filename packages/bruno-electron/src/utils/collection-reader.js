@@ -73,6 +73,7 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
         });
       } catch (err) {
         console.error(`Failed to parse collection root ${relativePath}:`, err);
+        skipped.push(relativePath);
       }
     }
   }
