@@ -13,6 +13,8 @@ const activeScriptContext = new AsyncLocalStorage();
 const npmModuleEval = new AsyncLocalStorage();
 const sharedNpmModuleCache = new Map();
 const contextBoundModulePaths = new Set();
+// path -> paths required while that module was evaluating (for context-bound eviction)
+const moduleRequireGraph = new Map();
 let sharedNpmSandbox = null;
 let sharedNpmContext = null;
 
@@ -91,10 +93,18 @@ function facadeFor(key, callable) {
       if (targetDescriptor && !targetDescriptor.configurable) {
         return true;
       }
+      if (!Object.isExtensible(target)) {
+        return false;
+      }
       const value = current();
       return !isMissing(value) && prop in Object(value);
     },
     ownKeys: () => {
+      // Once freeze/preventExtensions runs, only report keys on the inert target
+      // or Proxy throws and the poisoned facade breaks every later script.
+      if (!Object.isExtensible(target)) {
+        return Reflect.ownKeys(target);
+      }
       const value = current();
       const currentKeys = isMissing(value) ? [] : Reflect.ownKeys(Object(value));
       return [...new Set([...Reflect.ownKeys(target), ...currentKeys])];
@@ -103,6 +113,9 @@ function facadeFor(key, callable) {
       const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
       if (targetDescriptor && !targetDescriptor.configurable) {
         return targetDescriptor;
+      }
+      if (!Object.isExtensible(target)) {
+        return undefined;
       }
       const value = current();
       const descriptor = isMissing(value) ? undefined : Object.getOwnPropertyDescriptor(Object(value), prop);
@@ -143,6 +156,11 @@ function defineDynamicGlobal(key) {
       if (typeof value !== 'object' && typeof value !== 'function') {
         return value;
       }
+      // Custom script globals (arrays, plain data, callbacks, require) stay raw so
+      // Array.isArray / identity work. Bruno APIs need facades for late-binding.
+      if (!BRUNO_CONTEXT_KEYS.includes(key)) {
+        return value;
+      }
       return facadeFor(key, typeof value === 'function');
     }
   });
@@ -176,7 +194,7 @@ function getSharedNpmContext() {
 function runWithScriptContext(scriptContext, fn) {
   getSharedNpmContext();
   for (const key of Object.keys(scriptContext)) {
-    if (key !== 'global' && key !== 'globalThis' && key !== 'require') {
+    if (key !== 'global' && key !== 'globalThis') {
       defineDynamicGlobal(key);
     }
   }
@@ -383,6 +401,38 @@ function loadLocalModule({
   }
 }
 
+function recordRequireEdge(resolvedPath) {
+  const parent = npmModuleEval.getStore();
+  if (!parent?.resolvedPath) {
+    return;
+  }
+  if (!moduleRequireGraph.has(parent.resolvedPath)) {
+    moduleRequireGraph.set(parent.resolvedPath, new Set());
+  }
+  moduleRequireGraph.get(parent.resolvedPath).add(resolvedPath);
+}
+
+function evictContextBoundGraph(rootPath, rootModuleObj, localModuleCache) {
+  const stack = [rootPath];
+  const visited = new Set();
+  while (stack.length) {
+    const modulePath = stack.pop();
+    if (visited.has(modulePath)) {
+      continue;
+    }
+    visited.add(modulePath);
+    contextBoundModulePaths.add(modulePath);
+    const moduleObj = modulePath === rootPath ? rootModuleObj : sharedNpmModuleCache.get(modulePath);
+    sharedNpmModuleCache.delete(modulePath);
+    if (moduleObj) {
+      localModuleCache.set(modulePath, moduleObj);
+    }
+    for (const dep of moduleRequireGraph.get(modulePath) || []) {
+      stack.push(dep);
+    }
+  }
+}
+
 /**
  * Executes a module in the VM context with caching and special file handling
  * @param {Object} options - Configuration options
@@ -397,6 +447,10 @@ function executeModuleInVmContext({
   localModuleCache,
   cacheModules = false
 }) {
+  if (cacheModules) {
+    recordRequireEdge(resolvedPath);
+  }
+
   if (!cacheModules) {
     if (localModuleCache.has(resolvedPath)) {
       return localModuleCache.get(resolvedPath).exports;
@@ -508,9 +562,7 @@ function evaluateNpmModule({
     if (cacheModules && useSharedContext) {
       npmModuleEval.run(evalStore, runModule);
       if (evalStore.touched.size > 0) {
-        contextBoundModulePaths.add(resolvedPath);
-        sharedNpmModuleCache.delete(resolvedPath);
-        localModuleCache.set(resolvedPath, moduleObj);
+        evictContextBoundGraph(resolvedPath, moduleObj, localModuleCache);
       }
     } else {
       runModule();
@@ -612,6 +664,12 @@ function createNpmModuleRequire({
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
   return (moduleName) => {
+    // Shared parents keep this require for the process lifetime; always prefer the
+    // active script run's cache/context so lazy context-bound leaves re-eval.
+    const store = cacheModules ? activeScriptContext.getStore() : null;
+    const runLocalCache = store?.__brunoLocalModuleCache ?? localModuleCache;
+    const runContext = store?.__brunoVmContext ?? isolatedContext;
+
     // Handle relative imports within npm module
     if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
       const resolvedPath = moduleRequire.resolve(moduleName);
@@ -619,8 +677,8 @@ function createNpmModuleRequire({
         resolvedPath,
         moduleName,
         collectionPath,
-        isolatedContext,
-        localModuleCache,
+        isolatedContext: runContext,
+        localModuleCache: runLocalCache,
         cacheModules
       });
       markParentContextBoundIfNeeded(resolvedPath);
@@ -640,8 +698,8 @@ function createNpmModuleRequire({
       resolvedPath,
       moduleName,
       collectionPath,
-      isolatedContext,
-      localModuleCache,
+      isolatedContext: runContext,
+      localModuleCache: runLocalCache,
       cacheModules
     });
     markParentContextBoundIfNeeded(resolvedPath);
@@ -652,9 +710,11 @@ function createNpmModuleRequire({
 module.exports = {
   createCustomRequire,
   runWithScriptContext,
+  getSharedNpmContext,
   __resetNpmModuleStateForTests: () => {
     sharedNpmModuleCache.clear();
     contextBoundModulePaths.clear();
+    moduleRequireGraph.clear();
     facades.clear();
     sharedNpmSandbox = null;
     sharedNpmContext = null;

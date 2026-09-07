@@ -4,7 +4,7 @@ const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
 const { ScriptError, resolveVmFilename } = require('./utils');
-const { createCustomRequire, runWithScriptContext } = require('./cjs-loader');
+const { createCustomRequire, runWithScriptContext, getSharedNpmContext } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
@@ -44,29 +44,32 @@ async function runScriptInNodeVm({
 
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
-
-    // Create truly isolated context - scriptContext becomes the global object
-    // Scripts can ONLY access what's explicitly in scriptContext
-    const isolatedContext = vm.createContext(scriptContext);
-
-    // Add global/globalThis pointing to the isolated context (not host global)
-    // This allows libraries that reference 'global' to work while maintaining isolation
-    scriptContext.global = scriptContext;
-    scriptContext.globalThis = scriptContext;
-
-    // Create module cache for CJS modules
     const localModuleCache = new Map();
     const cacheModules = get(scriptingConfig, 'cacheModules', false) === true;
 
-    // Add require() function for CJS module loading
+    // cacheModules: one shared VM realm for scripts + npm modules so instanceof
+    // matches. Per-run bru/req/res/require resolve via ALS facades on that realm.
+    // Otherwise: fresh isolated context per script (default).
+    let vmContext;
+    if (cacheModules) {
+      vmContext = getSharedNpmContext();
+    } else {
+      vmContext = vm.createContext(scriptContext);
+      scriptContext.global = scriptContext;
+      scriptContext.globalThis = scriptContext;
+    }
+
     scriptContext.require = createCustomRequire({
       collectionPath,
-      isolatedContext,
+      isolatedContext: vmContext,
       currentModuleDir: collectionPath,
       localModuleCache,
       additionalContextRootsAbsolute,
       cacheModules
     });
+    // Stashed for shared npm requires that outlive this run's createCustomRequire closure.
+    scriptContext.__brunoLocalModuleCache = localModuleCache;
+    scriptContext.__brunoVmContext = vmContext;
 
     const vmFilename = resolveVmFilename(scriptPath, collectionPath);
 
@@ -111,7 +114,7 @@ async function runScriptInNodeVm({
     };
 
     try {
-      const runScript = () => compiledScript.runInContext(isolatedContext, {
+      const runScript = () => compiledScript.runInContext(vmContext, {
         displayErrors: true
       });
       if (cacheModules) {
