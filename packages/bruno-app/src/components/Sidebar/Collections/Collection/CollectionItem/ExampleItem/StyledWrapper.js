@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .collection-item-name {
+  &.collection-item-name {
     height: 1.6rem;
     cursor: pointer;
     user-select: none;
