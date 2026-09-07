@@ -9,18 +9,13 @@ const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
 
 // Shared npm context (once per process) so modules aren't re-eval'd per script. #9074
-// Bruno globals resolve via AsyncLocalStorage to the current script context.
 const activeScriptContext = new AsyncLocalStorage();
-// Set while an npm module body runs; records Bruno globals read at load time.
 const npmModuleEval = new AsyncLocalStorage();
 const sharedNpmModuleCache = new Map();
-// npm paths that read bru/req/res/... during evaluation — re-run per script.
 const contextBoundModulePaths = new Set();
 let sharedNpmSandbox = null;
 let sharedNpmContext = null;
 
-// Keys that scripts get from Bruno rather than from the host: always exposed as
-// dynamic accessors on the shared context (extended on the fly by runWithScriptContext).
 const BRUNO_CONTEXT_KEYS = [
   'bru',
   'req',
@@ -38,16 +33,7 @@ const BRUNO_CONTEXT_KEYS = [
 const facades = new Map();
 
 /**
- * Late-bound stand-in for one Bruno global (`bru`, `req`, ...) inside the shared
- * npm context. Every trap resolves the *current* script context's value, so a
- * module that captured `bru` at load time (`const captured = bru` during
- * execution A) still talks to execution B's `bru` when called from B. The
- * target is a plain object for object-valued globals (so `typeof bru` stays
- * 'object') and an arrow function for callable ones (so `test(...)` works);
- * neither has a non-configurable own property that would constrain the traps.
- * One facade per (key, callability), picked from the value the current
- * execution provides, so a key that is an object in one execution and a
- * function in another is served correctly in both.
+ * Late-bound facade for a Bruno global in the shared npm context.
  * @param {string} key - The Bruno global's name
  * @param {boolean} callable - Whether the current value is a function
  */
@@ -59,9 +45,8 @@ function facadeFor(key, callable) {
   const current = () => activeScriptContext.getStore()?.[key];
   const isMissing = (value) => value === undefined || value === null;
   const target = callable ? () => {} : {};
-  // Methods are handed out as late-bound wrappers too, so `const { getVar } = bru`
-  // at module scope keeps calling the current script's getVar. Cached per method
-  // name so `bru.setVar === bru.setVar` holds within the facade.
+
+  // Cache wrappers so `bru.setVar === bru.setVar` remains true.
   const methods = new Map();
   const lateBoundMethod = (prop) => {
     if (!methods.has(prop)) {
@@ -78,6 +63,10 @@ function facadeFor(key, callable) {
   };
   const facade = new Proxy(target, {
     get: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable && !targetDescriptor.writable) {
+        return targetDescriptor.value;
+      }
       const value = current();
       if (isMissing(value)) {
         return undefined;
@@ -86,6 +75,10 @@ function facadeFor(key, callable) {
       return typeof member === 'function' ? lateBoundMethod(prop) : member;
     },
     set: (_, prop, newValue) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable && !targetDescriptor.writable) {
+        return Object.is(targetDescriptor.value, newValue);
+      }
       const value = current();
       if (isMissing(value)) {
         return false;
@@ -94,14 +87,23 @@ function facadeFor(key, callable) {
       return true;
     },
     has: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable) {
+        return true;
+      }
       const value = current();
       return !isMissing(value) && prop in Object(value);
     },
     ownKeys: () => {
       const value = current();
-      return isMissing(value) ? [] : Reflect.ownKeys(Object(value));
+      const currentKeys = isMissing(value) ? [] : Reflect.ownKeys(Object(value));
+      return [...new Set([...Reflect.ownKeys(target), ...currentKeys])];
     },
     getOwnPropertyDescriptor: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable) {
+        return targetDescriptor;
+      }
       const value = current();
       const descriptor = isMissing(value) ? undefined : Object.getOwnPropertyDescriptor(Object(value), prop);
       return descriptor ? { ...descriptor, configurable: true } : undefined;
@@ -130,8 +132,6 @@ function defineDynamicGlobal(key) {
     enumerable: true,
     configurable: true,
     get: () => {
-      // A key the current execution does not provide reads as undefined, exactly
-      // as it would inside the script's own context (e.g. `res` before a response).
       const evalStore = npmModuleEval.getStore();
       if (evalStore) {
         evalStore.touched.add(key);
@@ -140,8 +140,6 @@ function defineDynamicGlobal(key) {
       if (value === undefined || value === null) {
         return undefined;
       }
-      // Primitive context values cannot be represented by an object facade.
-      // Return them directly, preserving the pre-shared-context behavior.
       if (typeof value !== 'object' && typeof value !== 'function') {
         return value;
       }
@@ -598,6 +596,14 @@ function loadNpmModule({
  * @param {Object} options - Configuration options
  * @returns {Function} Custom require function for npm module dependencies
  */
+function markParentContextBoundIfNeeded(resolvedPath) {
+  // Context-bound status is contagious through load-time requires.
+  const evalStore = npmModuleEval.getStore();
+  if (evalStore && contextBoundModulePaths.has(resolvedPath)) {
+    evalStore.touched.add('*');
+  }
+}
+
 function createNpmModuleRequire({
   collectionPath,
   currentModuleDir,
@@ -611,7 +617,7 @@ function createNpmModuleRequire({
     // Handle relative imports within npm module
     if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
       const resolvedPath = moduleRequire.resolve(moduleName);
-      return executeModuleInVmContext({
+      const exports = executeModuleInVmContext({
         resolvedPath,
         moduleName,
         collectionPath,
@@ -619,6 +625,8 @@ function createNpmModuleRequire({
         localModuleCache,
         cacheModules
       });
+      markParentContextBoundIfNeeded(resolvedPath);
+      return exports;
     }
 
     // Handle builtins
@@ -630,7 +638,7 @@ function createNpmModuleRequire({
 
     // Handle npm dependencies - resolve from current module's directory
     const resolvedPath = moduleRequire.resolve(moduleName);
-    return executeModuleInVmContext({
+    const exports = executeModuleInVmContext({
       resolvedPath,
       moduleName,
       collectionPath,
@@ -638,6 +646,8 @@ function createNpmModuleRequire({
       localModuleCache,
       cacheModules
     });
+    markParentContextBoundIfNeeded(resolvedPath);
+    return exports;
   };
 }
 

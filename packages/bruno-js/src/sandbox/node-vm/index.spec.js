@@ -900,6 +900,54 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'string:value:boolean:false');
     });
 
+    it('should re-evaluate a parent that snapshots a context-bound dependency at load time', async () => {
+      // leaf reads bru during evaluation; parent re-exports that snapshot without touching bru
+      // itself. Context-bound status must propagate so script B does not see A's value.
+      makePkg(path.join(collectionPath, 'node_modules'), 'leaf-bru-snapshot', {
+        'index.js': `module.exports = { who: bru.getVar('who') };`
+      });
+      makePkg(path.join(collectionPath, 'node_modules'), 'parent-bru-snapshot', {
+        'index.js': `
+          const leaf = require('leaf-bru-snapshot');
+          module.exports = { who: leaf.who };
+        `
+      });
+
+      const script = `bru.setVar('seen', require('parent-bru-snapshot').who);`;
+      const contextA = { bru: { getVar: jest.fn().mockReturnValue('A'), setVar: jest.fn() }, console };
+      const contextB = { bru: { getVar: jest.fn().mockReturnValue('B'), setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
+
+      expect(contextA.bru.setVar).toHaveBeenCalledWith('seen', 'A');
+      expect(contextB.bru.setVar).toHaveBeenCalledWith('seen', 'B');
+    });
+
+    it('should still share an inert transitive npm module tree across scripts', async () => {
+      const marker = `_inertParentEval_${Date.now()}`;
+      makePkg(path.join(collectionPath, 'node_modules'), 'inert-leaf', {
+        'index.js': `module.exports = { token: Symbol('inert') };`
+      });
+      makePkg(path.join(collectionPath, 'node_modules'), 'inert-parent', {
+        'index.js': `
+          process.${marker} = (process.${marker} || 0) + 1;
+          module.exports = { token: require('inert-leaf').token };
+        `
+      });
+
+      const script = `bru.setVar('token', require('inert-parent').token);`;
+      const contextA = { bru: { setVar: jest.fn() }, console };
+      const contextB = { bru: { setVar: jest.fn() }, console };
+
+      await runScriptInNodeVm({ script, context: contextA, collectionPath, scriptingConfig });
+      await runScriptInNodeVm({ script, context: contextB, collectionPath, scriptingConfig });
+
+      expect(process[marker]).toBe(1);
+      expect(contextA.bru.setVar.mock.calls[0][1]).toBe(contextB.bru.setVar.mock.calls[0][1]);
+      delete process[marker];
+    });
+
     it('should keep collection-local modules per script context', async () => {
       // Local modules may capture per-request state; they keep the per-context cache.
       const marker = `_localEvalCount_${Date.now()}`;
