@@ -818,6 +818,9 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
+    // Seed the dynamic config lookup before chokidar evaluates the initial tree.
+    setBrunoConfig(collectionUid, brunoConfig);
+
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
