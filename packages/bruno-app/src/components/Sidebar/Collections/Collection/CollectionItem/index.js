@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -61,7 +61,6 @@ import {
   determineCollectionItemDrop,
   getInitialExampleName,
   findParentItemInCollection,
-  getSelectionInfo,
   getSortedDraggedItems
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -73,10 +72,9 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
-import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu }) => {
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isMultiDragDisabled, multiDragItems: multiDragItemsForSelection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -94,8 +92,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+
+  const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
   const allCollections = useSelector((state) => state.collections.collections);
-  const collection = allCollections?.find((c) => c.uid === collectionUid);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(item.uid);
@@ -107,16 +106,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
   const dispatch = useDispatch();
 
-  // When dragging a multi-selected row, carry all effectively-selected folders/requests
-  // (excluding collections) so dropping one moves the entire selection together.
-  const multiDragItems = useMemo(() => {
-    if (!isSelected || selectedSidebarUids.length < 2) return null;
-    const { effectiveSelection, hasCollection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
-    if (hasCollection) return null;
-    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
-  }, [isSelected, selectedSidebarUids, allCollections]);
-
-  const isDragDisabled = useMultiSelectDragDisabled({ isSelected, selectedSidebarUids, allCollections });
+  const multiDragItems = isMultiSelected ? multiDragItemsForSelection : null;
+  const isDragDisabled = isMultiSelected && isMultiDragDisabled;
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -853,17 +844,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {appItems && appItems.length
             ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {showEmptyFolderMessage ? (
