@@ -17,8 +17,10 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
+import { normalizeOmitHeaders } from '../common/omit-headers';
 import { isNonEmptyString } from '../../../utils';
 import { resolveTimeoutSetting, toMaxRedirects } from '@usebruno/common/utils';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
@@ -85,7 +87,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;
@@ -134,6 +136,11 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     settings.maxRedirects = toMaxRedirects(httpSettings?.maxRedirects);
 
     settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
+
+    const omitHeaders = normalizeOmitHeaders(httpSettings?.omitHeaders);
+    if (omitHeaders) {
+      settings.omitHeaders = omitHeaders;
+    }
 
     ocRequest.settings = settings;
 

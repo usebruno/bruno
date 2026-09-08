@@ -244,4 +244,59 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure[0]['@type']).toBe('failure');
     expect(failcase.failure[0]['@message']).toBe('expected 200 to equal 404');
   });
+
+  it('should report every request of a single iteration, naming bail only when it is the skip reason', () => {
+    const buildExecutedResult = (name, status, error) => ({
+      name,
+      path: `${name}.yml`,
+      test: { filename: `${name}.yml` },
+      request: { method: 'GET', url: 'https://api.example.com/users' },
+      testResults: [{ description: 'Status is 200', status, error }],
+      runDuration: 1.2345678
+    });
+
+    const buildSkippedResult = (name, skipReason) => ({
+      name,
+      path: `${name}.yml`,
+      test: { filename: `${name}.yml` },
+      request: { method: 'GET', url: 'https://api.example.com/users' },
+      status: 'skipped',
+      skipped: true,
+      ...(skipReason ? { skipReason } : {}),
+      assertionResults: [],
+      testResults: [],
+      runDuration: 0
+    });
+
+    const results = [
+      buildSkippedResult('1st API'),
+      buildExecutedResult('2nd API', 'pass'),
+      buildExecutedResult('3rd API', 'fail', 'expected 200 to equal 500'),
+      buildSkippedResult('4th API', 'bail')
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+
+    expect(createStub).toHaveBeenCalled();
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+    const suites = junit.testsuites.testsuite;
+
+    expect(suites.length).toBe(4);
+
+    expect(suites[0]).toMatchObject({ '@name': '1st API', '@failures': 0, '@skipped': 1, '@tests': 0 });
+    expect(suites[0].skipped[0]['@message']).toBe('Request Skipped');
+    expect(suites[0].testcase.length).toBe(0);
+
+    expect(suites[1]).toMatchObject({ '@name': '2nd API', '@failures': 0, '@skipped': 0, '@tests': 1 });
+    expect(suites[1].skipped).toBeUndefined();
+    expect(suites[1].testcase.length).toBe(1);
+
+    expect(suites[2]).toMatchObject({ '@name': '3rd API', '@failures': 1, '@skipped': 0, '@tests': 1 });
+    expect(suites[2].skipped).toBeUndefined();
+
+    expect(suites[3]).toMatchObject({ '@name': '4th API', '@failures': 0, '@skipped': 1, '@tests': 0 });
+    expect(suites[3].skipped[0]['@message']).toBe('Request skipped due to bail');
+    expect(suites[3].testcase.length).toBe(0);
+  });
 });

@@ -132,6 +132,7 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleAccessKeyIdChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -145,6 +146,7 @@ const AwsV4Auth = ({ collection }) => {
           collection={collection}
           isSecret={true}
           isCompact
+          disableLinkAwareClick={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
@@ -158,6 +160,7 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleSessionTokenChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -170,6 +173,7 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleServiceChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -182,6 +186,7 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleRegionChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
 
@@ -194,6 +199,7 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleProfileNameChange(val)}
           collection={collection}
           isCompact
+          disableLinkAwareClick={true}
         />
       </div>
     </StyledWrapper>

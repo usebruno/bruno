@@ -1,0 +1,45 @@
+meta {
+  name: http-request
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://testbench-sanity.usebruno.com/api/echo/json
+  body: json
+  auth: none
+}
+
+params:query {
+  q: http://link-aware.test/http-params
+}
+
+body:json {
+  {
+    "link": "http://link-aware.test/http-body"
+  }
+}
+
+vars:pre-request {
+  linkVar: http://link-aware.test/http-vars
+}
+
+assert {
+  res.status: eq http://link-aware.test/http-assert
+}
+
+script:pre-request {
+  // http://link-aware.test/http-script
+}
+
+script:post-response {
+  // http://link-aware.test/http-script
+}
+
+tests {
+  // http://link-aware.test/http-tests
+}
+
+docs {
+  See http://link-aware.test/http-docs for details.
+}

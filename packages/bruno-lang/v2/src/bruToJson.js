@@ -186,9 +186,13 @@ const grammar = ohm.grammar(`Bru {
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
 
-  script = scriptreq | scriptres
+  script = scriptreq | scriptres | scriptbeforecallstart | scriptbeforemessagesend | scriptaftermessagereceive | scriptaftercallend
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
+  scriptbeforecallstart = "script:grpc:before-call-start" st* "{" nl* textblock tagend
+  scriptbeforemessagesend = "script:grpc:before-message-send" st* "{" nl* textblock tagend
+  scriptaftermessagereceive = "script:grpc:after-message-receive" st* "{" nl* textblock tagend
+  scriptaftercallend = "script:grpc:after-call-end" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -606,6 +610,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       _settings.keepAliveInterval = keepAliveInterval;
     }
 
+    if (Array.isArray(settings.omitHeaders) && settings.omitHeaders.length) {
+      _settings.omitHeaders = settings.omitHeaders
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter((name) => name.length > 0);
+    }
+
     return {
       settings: _settings
     };
@@ -806,7 +816,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const username = usernameKey ? usernameKey.value : '';
     const password = passwordKey ? passwordKey.value : '';
-    const domain = passwordKey ? domainKey.value : '';
+    const domain = domainKey ? domainKey.value : '';
 
     return {
       auth: {
@@ -1197,6 +1207,34 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         res: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptbeforecallstart(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        beforeCallStart: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptbeforemessagesend(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        beforeMessageSend: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptaftermessagereceive(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        afterMessageReceive: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptaftercallend(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        afterCallEnd: outdentString(textblock.sourceString)
       }
     };
   },

@@ -29,7 +29,24 @@ export const buildRequestLocators = (page: Page) => ({
     const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
     return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
   },
-  pane: () => page.getByTestId('request-pane')
+  pane: () => page.getByTestId('request-pane'),
+  headers: {
+    table: () => page.getByTestId('request-headers-table'),
+    defaultSectionToggle: () => page.getByTestId('default-headers-section-toggle'),
+    requestSectionToggle: () => page.getByTestId('request-headers-section-toggle'),
+    defaultSectionRow: () => page.getByTestId('default-headers-section-row'),
+    requestSectionRow: () => page.getByTestId('request-headers-section-row'),
+    defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
+    requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
+    addRow: () => page.getByTestId('request-header-add-row'),
+    toggleDefaults: () => page.getByTestId('toggle-default-headers'),
+    defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
+    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`),
+    defaultConflict: (name: string) => page.getByTestId(`default-header-conflict-${name.toLowerCase()}`),
+    requestConflict: (name: string) => page.getByTestId(`request-header-conflict-${name.toLowerCase()}`),
+    defaultConflictTooltip: (name: string) => page.getByTestId(`default-header-conflict-tooltip-${name.toLowerCase()}`),
+    requestConflictTooltip: (name: string) => page.getByTestId(`request-header-conflict-tooltip-${name.toLowerCase()}`)
+  }
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —
@@ -104,3 +121,39 @@ export const createRequestFromCurl = async (
 };
 
 export type { CreateRequestFromCurlOptions };
+
+/**
+ * Type a header name into an EditableTable Name cell (CodeMirror).
+ */
+export const fillRequestHeaderName = async (page: Page, row: Locator, name: string) => {
+  const nameEditor = row.getByTestId('column-name').locator('.CodeMirror');
+  await nameEditor.click();
+  await page.keyboard.type(name);
+};
+
+/**
+ * Type a header value into an EditableTable Value cell (CodeMirror).
+ */
+export const fillRequestHeaderValue = async (page: Page, row: Locator, value: string) => {
+  const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
+  await valueEditor.click();
+  await page.keyboard.type(value);
+};
+
+/**
+ * Reveal the Default Headers accordion (hidden by default) and return header locators.
+ */
+export const showDefaultHeaders = async (page: Page) => {
+  const headers = buildRequestLocators(page).headers;
+  await headers.toggleDefaults().click();
+  await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
+  return headers;
+};
+
+/**
+ * Read the visible response preview editor text.
+ */
+export const readResponsePreviewBody = async (page: Page) => {
+  const texts = await page.getByTestId('response-preview-container').locator('.CodeMirror-scroll').allInnerTexts();
+  return texts.join('\n');
+};
