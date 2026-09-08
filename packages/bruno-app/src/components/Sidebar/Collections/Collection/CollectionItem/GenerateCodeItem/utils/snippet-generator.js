@@ -37,7 +37,8 @@ const addCurlAuthFlags = (curlCommand, auth) => {
 // the shared Axios instance used by interceptors and other global configuration.
 const normalizeNodeAxiosImport = (snippet, language) => {
   if (language.target === 'node' && language.client === 'axios') {
-    return snippet.replaceAll('require(\'axios\').default', 'require(\'axios\')');
+    const pattern = /^const axios = require\('axios'\)\.default;/;
+    return snippet.replace(pattern, 'const axios = require(\'axios\');');
   }
 
   return snippet;
