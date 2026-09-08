@@ -163,18 +163,16 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-<<<<<<< HEAD
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
-=======
           return (
             <WSMessagesList
               order={-1}
               messages={item.response.data}
               streamFormat={focusedTab?.streamFormat}
               streamViewTab={focusedTab?.streamViewTab || 'editor'}
+              item={item}
+              collection={collection}
             />
           );
->>>>>>> 1fc4b92e6 (fix: persist SSE response format preference)
         }
         return (
           <QueryResult
