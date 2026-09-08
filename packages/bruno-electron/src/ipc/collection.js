@@ -2516,11 +2516,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error(`Collection path does not exist: ${collectionPath}`);
     }
 
+    const decryptSecrets = createEnvSecretsDecryptor({
+      getEnvSecrets: (environmentName) => environmentSecretsStore.getEnvSecrets(collectionPath, { name: environmentName }),
+      decryptSecretValue: (value) => decryptStringSafe(value).value
+    });
+
     return readCollectionForApiSpec(collectionPath, {
-      decryptEnvSecrets: createEnvSecretsDecryptor({
-        getEnvSecrets: (environmentName) => environmentSecretsStore.getEnvSecrets(collectionPath, { name: environmentName }),
-        decryptSecretValue: (value) => decryptStringSafe(value).value
-      })
+      decryptEnvSecrets: (environment, environmentName) => {
+        if (!envHasSecrets(environment)) return;
+        decryptSecrets(environment, environmentName);
+      }
     });
   });
 

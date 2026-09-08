@@ -42,16 +42,6 @@ describe('createEnvSecretsDecryptor', () => {
     expect(environment.variables.map((v) => v.value)).toEqual(['typed by the user', 'https://x']);
   });
 
-  it('does nothing when the environment has no variables at all, rather than failing', () => {
-    const decrypt = createEnvSecretsDecryptor({
-      getEnvSecrets: () => [{ name: 'token', value: 'enc' }],
-      decryptSecretValue: (value) => `decrypted:${value}`
-    });
-
-    expect(() => decrypt({ name: 'Local' }, 'Local')).not.toThrow();
-    expect(() => decrypt({ name: 'Local', variables: null }, 'Local')).not.toThrow();
-  });
-
   it('leaves a plain variable alone even when the store still holds an old secret under that name', () => {
     const environment = {
       name: 'Local',

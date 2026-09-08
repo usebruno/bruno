@@ -181,6 +181,27 @@ describe('readCollectionForApiSpec: robustness', () => {
     expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
     expect(result.envVariables['Local.yml'].find((v) => v.name === 'token').value).toBe('decrypted');
   });
+
+  it.each(['bru', 'yml'])('%s: marks which variables are secret, so the caller can tell a secret environment apart', async (format) => {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    const dir = mkCollection(`secret-flag-${format}`);
+    writeFile(
+      dir,
+      path.join('environments', `Local.${ext}`),
+      stringifyEnvironment(
+        envObj('Local', [
+          { name: 'token', value: '', enabled: true, secret: true, type: 'text' },
+          { name: 'baseUrl', value: 'https://x', enabled: true, secret: false, type: 'text' }
+        ]),
+        { format }
+      )
+    );
+
+    const result = await readCollectionForApiSpec(dir);
+    const byName = Object.fromEntries(result.envVariables[`Local.${ext}`].map((v) => [v.name, v.secret]));
+
+    expect(byName).toEqual({ token: true, baseUrl: false });
+  });
 });
 
 describe('readCollectionForApiSpec: yml collection config (opencollection.yml)', () => {
