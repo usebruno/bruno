@@ -811,9 +811,16 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           const copyToClipboard = async (data) => {
             try {
               const textToCopy = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+              let copied = false;
               if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(textToCopy);
-              } else {
+                try {
+                  await navigator.clipboard.writeText(textToCopy);
+                  copied = true;
+                } catch (err) {
+                  console.warn('Clipboard API failed, trying textarea fallback:', err);
+                }
+              }
+              if (!copied) {
                 const textarea = document.createElement('textarea');
                 textarea.value = textToCopy;
                 textarea.setAttribute('readonly', '');
