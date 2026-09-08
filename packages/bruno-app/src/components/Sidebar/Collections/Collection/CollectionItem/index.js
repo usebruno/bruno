@@ -22,7 +22,7 @@ import {
   IconAppWindow,
   IconEyeOff
 } from '@tabler/icons';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
@@ -92,9 +92,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-
   const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
-  const allCollections = useSelector((state) => state.collections.collections);
+  const store = useStore();
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(item.uid);
@@ -244,7 +243,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
 
       const draggedItems = getSortedDraggedItems({
         draggedItem,
-        allCollections,
+        allCollections: store.getState().collections.collections,
         workspaces,
         activeWorkspace,
         collectionSortOrder,
