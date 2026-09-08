@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
@@ -24,10 +24,11 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
+  resolveEnabledVariable,
+  buildSidebarEntries,
+  getVisibleSidebarUidsInOrder,
   generateTransientRequestName,
-  isPutObjectPresignedUrl,
-  flattenItems,
-  resolveEnabledVariable
+  isPutObjectPresignedUrl
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -59,6 +60,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
+  saveEnvironmentExtends as _saveEnvironmentExtends,
   updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
   saveFolderDraft,
@@ -74,7 +76,8 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  toggleCollection,
+  setSidebarSelection
 } from './index';
 
 import { each } from 'lodash';
@@ -472,7 +475,10 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid)
+    });
 
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
@@ -513,7 +519,10 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
 
     // WS connect does not run user scripts — no baseline to clear.
 
@@ -645,7 +654,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       })
     );
 
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const isGrpcRequest = itemCopy.type === 'grpc-request';
     const isWsRequest = itemCopy.type === 'ws-request';
     if (isGrpcRequest) {
@@ -765,7 +777,10 @@ export const runCollectionFolder
         return reject(new Error('Folder not found'));
       }
 
-      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      const environment = resolveEnvironmentInheritance({
+        environments: collectionCopy.environments,
+        targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+      });
 
       dispatch(
         resetRunResults({
@@ -1128,152 +1143,224 @@ export const moveItem
       });
     };
 
-export const handleCollectionItemDrop
-  = ({ targetItem, draggedItem, dropType, collectionUid }) =>
+export const handleMultipleCollectionItemsDrop
+  = ({ targetItem, draggedItems, dropType, collectionUid }) =>
     (dispatch, getState) => {
       const state = getState();
       const collection = findCollectionByUid(state.collections.collections, collectionUid);
-      // if its withincollection set the source to current collection,
-      // if its cross collection set the source to the source collection
-      const sourceCollectionUid = draggedItem.sourceCollectionUid;
-      const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
-      const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
-      const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
       const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-      const targetItemDirectory = findParentItemInCollection(collection, targetItemUid) || collection;
-      const targetItemDirectoryItems = cloneDeep(targetItemDirectory.items);
-      const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
-      const draggedItemDirectoryItems = cloneDeep(draggedItemDirectory.items);
 
-      const sourceFormat = sourceCollection?.format || 'bru';
-      const targetFormat = collection?.format || 'bru';
-      const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
-
-      const handleMoveToNewLocation = async ({
-        draggedItem,
-        draggedItemDirectoryItems,
-        targetItem,
-        targetItemDirectoryItems,
-        newPathname,
-        dropType
-      }) => {
-        const { uid: targetItemUid } = targetItem;
-        const { pathname: draggedItemPathname, uid: draggedItemUid } = draggedItem;
-
-        const newDirname = path.dirname(newPathname);
-
-        if (isCrossFormatMove && isItemARequest(draggedItem)) {
-          const { ipcRenderer } = window;
-          const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
-            targetDirname: newDirname,
-            sourcePathname: draggedItemPathname,
-            sourceFormat,
-            targetFormat
-          });
-          newPathname = result.newPathname;
-        } else {
-          const result = await dispatch(moveItem({
-            targetDirname: newDirname,
-            sourcePathname: draggedItemPathname
-          }));
-          // Reconcile to the path electron actually used (it may have suffixed
-          // the name to resolve a collision), so the optimistic node is correct.
-          if (result?.newPathname) {
-            newPathname = result.newPathname;
-          }
+      // cache of directories by uid -> items array
+      const directoryCache = new Map();
+      const getDirectoryItems = (dir) => {
+        if (!directoryCache.has(dir.uid)) {
+          directoryCache.set(dir.uid, cloneDeep(dir.items));
         }
-
-        // Update sequences in the source directory
-        if (draggedItemDirectoryItems?.length) {
-          // reorder items in the source directory
-          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
-          const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-            items: draggedItemDirectoryItemsWithoutDraggedItem
-          });
-          if (reorderedSourceItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
-          }
-        }
-
-        // Update sequences in the target directory (if dropping above/below)
-        if (dropType === 'above' || dropType === 'below') {
-          const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
-
-          const draggedItemWithNewPathAndSequence = {
-            ...draggedItem,
-            pathname: newPathname,
-            seq: targetItemSequence
-          };
-
-          // draggedItem is added to the targetItem's directory
-          const reorderedTargetItems = getReorderedItemsInTargetDirectory({
-            items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
-            targetItemUid,
-            draggedItemUid,
-            dropType
-          });
-
-          if (reorderedTargetItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedTargetItems, collectionUid }));
-          }
-        }
+        return directoryCache.get(dir.uid);
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
-        const { uid: targetItemUid } = targetItem;
-        const { uid: draggedItemUid } = draggedItem;
+      const isDropInside = dropType === 'inside';
+      const targetDir = isDropInside ? targetItem : (findParentItemInCollection(collection, targetItemUid) || collection);
+      if (!directoryCache.has(targetDir.uid)) {
+        directoryCache.set(targetDir.uid, cloneDeep(targetDir.items || []));
+      }
 
-        // reorder items in the targetItem's directory
-        const reorderedItems = getReorderedItemsInTargetDirectory({
-          items: targetItemDirectoryItems,
-          targetItemUid,
-          draggedItemUid,
-          dropType
-        });
+      let currentTargetItemUid = targetItemUid;
 
-        if (reorderedItems?.length) {
-          await dispatch(updateItemsSequences({ itemsToResequence: reorderedItems, collectionUid }));
+      const itemsToResequenceMap = new Map();
+      const trackResequence = (collUid, changedItems) => {
+        if (!itemsToResequenceMap.has(collUid)) {
+          itemsToResequenceMap.set(collUid, new Map());
         }
+        const collMap = itemsToResequenceMap.get(collUid);
+        changedItems.forEach((item) => collMap.set(item.uid, item));
       };
 
       return new Promise(async (resolve, reject) => {
         try {
-          const newPathname = calculateDraggedItemNewPathname({
+          const { ipcRenderer } = window;
+          const uidsToClose = [];
+
+          // Moves the dragged item to a different directory (cross-folder or cross-collection),
+          // then updates sequences in both the source and (if dropping above/below) target directory.
+          const handleMoveToNewLocation = async ({
             draggedItem,
-            targetItem,
-            dropType,
-            collectionPathname: collection.pathname
-          });
-          if (!newPathname) return;
-          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
+            draggedItemUid,
+            draggedItemPathname,
+            draggedItemDirectory,
+            newPathname,
+            sourceCollectionUid,
+            sourceFormat,
+            targetFormat,
+            isCrossFormatMove,
+            currentSourceItems,
+            currentTargetItems
+          }) => {
+            const newDirname = path.dirname(newPathname);
+            let finalNewPathname = newPathname;
 
-          if (isCrossFormatMove && isItemAFolder(draggedItem)) {
-            toast.error('Moving folders between collections with different formats is not supported');
-            return;
-          }
+            if (isCrossFormatMove && isItemARequest(draggedItem)) {
+              const result = await ipcRenderer.invoke('renderer:move-item-cross-format', {
+                targetDirname: newDirname,
+                sourcePathname: draggedItemPathname,
+                sourceFormat,
+                targetFormat
+              });
+              finalNewPathname = result.newPathname;
+            } else {
+              const result = await dispatch(moveItem({
+                targetDirname: newDirname,
+                sourcePathname: draggedItemPathname
+              }));
+              // Reconcile to the path electron actually used (it may have suffixed
+              // the name to resolve a collision), so the optimistic node is correct.
+              if (result?.newPathname) {
+                finalNewPathname = result.newPathname;
+              }
+            }
 
-          // Discard operation if dragging a root item to the collection name (same location)
-          const isTargetTheCollection = targetItemPathname === collection.pathname;
-          const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
-          if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
-            return;
-          }
+            // Update sequences in the source directory
+            if (currentSourceItems?.length) {
+              // reorder items in the source directory
+              const currentSourceItemsWithoutDraggedItem = currentSourceItems.filter((i) => i.uid !== draggedItemUid);
+              const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+                items: currentSourceItemsWithoutDraggedItem
+              });
 
-          if (newPathname !== draggedItemPathname) {
-            await handleMoveToNewLocation({
-              targetItem,
-              targetItemDirectoryItems,
-              draggedItem,
-              draggedItemDirectoryItems,
-              newPathname,
+              directoryCache.set(draggedItemDirectory.uid, currentSourceItemsWithoutDraggedItem);
+
+              if (reorderedSourceItems?.length) {
+                trackResequence(sourceCollectionUid || collectionUid, reorderedSourceItems);
+              }
+            }
+
+            // Update sequences in the target directory (if dropping above/below)
+            if (dropType === 'above' || dropType === 'below') {
+              const targetItemSequence = currentTargetItems.find((i) => i.uid === currentTargetItemUid)?.seq;
+              const draggedItemWithNewPathAndSequence = {
+                ...draggedItem,
+                pathname: finalNewPathname,
+                seq: targetItemSequence
+              };
+              const newTargetItems = [...currentTargetItems, draggedItemWithNewPathAndSequence];
+              const reorderedTargetItems = getReorderedItemsInTargetDirectory({
+                items: newTargetItems,
+                targetItemUid: currentTargetItemUid,
+                draggedItemUid,
+                dropType
+              });
+
+              reorderedTargetItems?.forEach((reordered) => {
+                const item = newTargetItems.find((i) => i.uid === reordered.uid);
+                if (item) item.seq = reordered.seq;
+              });
+              directoryCache.set(targetDir.uid, newTargetItems);
+
+              if (reorderedTargetItems?.length) {
+                trackResequence(collectionUid, reorderedTargetItems);
+              }
+            }
+          };
+
+          // Reorders the dragged item within the directory it already lives in.
+          const handleReorderInSameLocation = ({ draggedItemUid, currentTargetItems }) => {
+            // Re-sort currentTargetItems by strict sequence so getReorderedItemsInTargetDirectory evaluates the true relative order
+            const sortedTargetItems = [...currentTargetItems].sort((a, b) => a.seq - b.seq);
+            const reorderedItems = getReorderedItemsInTargetDirectory({
+              items: sortedTargetItems,
+              targetItemUid: currentTargetItemUid,
+              draggedItemUid,
               dropType
             });
-          } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
+
+            reorderedItems?.forEach((reordered) => {
+              const item = currentTargetItems.find((i) => i.uid === reordered.uid);
+              if (item) item.seq = reordered.seq;
+            });
+
+            directoryCache.set(targetDir.uid, currentTargetItems);
+
+            if (reorderedItems?.length) {
+              trackResequence(collectionUid, reorderedItems);
+            }
+          };
+
+          for (const draggedItem of draggedItems) {
+            const sourceCollectionUid = draggedItem.sourceCollectionUid;
+            const isCrossCollectionMove = sourceCollectionUid && collectionUid !== sourceCollectionUid;
+            const sourceCollection = isCrossCollectionMove ? findCollectionByUid(state.collections.collections, sourceCollectionUid) : collection;
+            const sourceFormat = sourceCollection?.format || 'bru';
+            const targetFormat = collection?.format || 'bru';
+            const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
+
+            const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+
+            // Remove the dragged item from any pending resequences (from previous iterations)
+            // so we don't accidentally write to its old pathname and recreate it.
+            for (const collMap of itemsToResequenceMap.values()) {
+              collMap.delete(draggedItemUid);
+            }
+
+            const newPathname = calculateDraggedItemNewPathname({
+              draggedItem,
+              targetItem,
+              dropType,
+              collectionPathname: collection.pathname
+            });
+
+            if (!newPathname) continue;
+            if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) continue;
+            if (isCrossFormatMove && isItemAFolder(draggedItem)) {
+              toast.error('Moving folders between collections with different formats is not supported');
+              continue;
+            }
+
+            const draggedItemDirectory = findParentItemInCollection(sourceCollection, draggedItemUid) || sourceCollection;
+            const isTargetTheCollection = targetItemPathname === collection.pathname;
+            const isDraggedItemAtRoot = draggedItemDirectory === sourceCollection;
+            if (isTargetTheCollection && isDraggedItemAtRoot && !isCrossCollectionMove) {
+              continue;
+            }
+
+            const currentSourceItems = getDirectoryItems(draggedItemDirectory);
+            const currentTargetItems = directoryCache.get(targetDir.uid) || [];
+
+            if (newPathname !== draggedItemPathname) {
+              await handleMoveToNewLocation({
+                draggedItem,
+                draggedItemUid,
+                draggedItemPathname,
+                draggedItemDirectory,
+                newPathname,
+                sourceCollectionUid,
+                sourceFormat,
+                targetFormat,
+                isCrossFormatMove,
+                currentSourceItems,
+                currentTargetItems
+              });
+            } else {
+              handleReorderInSameLocation({ draggedItemUid, currentTargetItems });
+            }
+
+            if (dropType === 'below') {
+              currentTargetItemUid = draggedItemUid;
+            }
+
+            if (isCrossCollectionMove) {
+              uidsToClose.push(draggedItemUid);
+            }
           }
 
-          if (isCrossCollectionMove) {
-            dispatch(closeTabs({ tabUids: [draggedItemUid] }));
+          for (const [collUid, collMap] of itemsToResequenceMap.entries()) {
+            const itemsToResequence = Array.from(collMap.values());
+            if (itemsToResequence.length > 0) {
+              await dispatch(updateItemsSequences({ itemsToResequence, collectionUid: collUid }));
+            }
+          }
+
+          if (uidsToClose.length > 0) {
+            dispatch(closeTabs({ tabUids: uidsToClose }));
           }
 
           resolve();
@@ -1500,8 +1587,10 @@ export const newGrpcRequest = (params) => (dispatch, getState) => {
           res: []
         },
         script: {
-          req: null,
-          res: null
+          beforeCallStart: null,
+          beforeMessageSend: null,
+          afterMessageReceive: null,
+          afterCallEnd: null
         },
         assertions: [],
         tests: null
@@ -1791,14 +1880,6 @@ export const newApp = (params) => (dispatch, getState) => {
     const parentPath = parent.pathname;
     const siblings = parent.items || [];
 
-    const dupe = find(
-      siblings,
-      (i) => i.type !== 'folder' && trim(i.filename) === trim(resolvedFilename)
-    );
-    if (dupe) {
-      return reject(new Error('An item with this name already exists in this folder'));
-    }
-
     const orderableSiblings = filter(
       siblings,
       (i) => isItemAFolder(i) || isItemARequest(i) || i.type === 'app'
@@ -1846,7 +1927,10 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const runtimeVariables = collectionCopy.runtimeVariables;
 
     try {
@@ -1892,7 +1976,10 @@ export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, 
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const runtimeVariables = collectionCopy.runtimeVariables;
 
     const { ipcRenderer } = window;
@@ -1930,7 +2017,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = ({ name, variables, color, collectionUid }) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, color, extends: inheritedEnvironmentName, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -1942,7 +2029,7 @@ export const importEnvironment = ({ name, variables, color, collectionUid }) => 
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color, inheritedEnvironmentName)
       .then(
         dispatch(
           updateLastAction({
@@ -1979,7 +2066,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const variablesToCopy = baseEnv.variables || [];
 
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy, undefined, baseEnv.extends)
       .then(
         dispatch(
           updateLastAction({
@@ -2106,6 +2193,30 @@ export const updateEnvironmentColor = (environmentUid, color, collectionUid) => 
     ipcRenderer.invoke('renderer:update-environment-color', collection.pathname, environment.name, color)
       .then(() => {
         dispatch(_updateEnvironmentColor({ environmentUid, color, collectionUid }));
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+export const saveEnvironmentExtends = ({ environmentUid, inheritedEnvironmentName, collectionUid }) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const environment = findEnvironmentInCollection(collection, environmentUid);
+    if (!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:save-environment-extends', collection.pathname, environment.name, inheritedEnvironmentName)
+      .then(() => {
+        dispatch(_saveEnvironmentExtends({ environmentUid, collectionUid, extends: inheritedEnvironmentName }));
         resolve();
       })
       .catch(reject);
@@ -2494,6 +2605,25 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();
   });
+};
+
+export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) => {
+  const state = getState();
+  const { collections, collectionSortOrder, lastClickedSidebarUid } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+
+  const sidebarEntries = buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder });
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+
+  const clickedIndex = visibleUids.indexOf(uid);
+  if (clickedIndex === -1) return;
+
+  const lastClickedIndex = visibleUids.indexOf(lastClickedSidebarUid);
+  const anchorIndex = lastClickedIndex === -1 ? clickedIndex : lastClickedIndex;
+  const start = Math.min(anchorIndex, clickedIndex);
+  const end = Math.max(anchorIndex, clickedIndex);
+  dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
 export const removeCollection = (collectionUid) => (dispatch, getState) => {
@@ -3418,6 +3548,11 @@ export const cloneGitRepository = (data) => (dispatch, getState) => {
         reject();
       });
   });
+};
+
+export const fetchBranchesForRepositoryUrl = (url) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:list-remote-branches-for-url', { url });
 };
 
 export const scanForBrunoFiles = (dir) => (dispatch, getState) => {

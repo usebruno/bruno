@@ -4,7 +4,8 @@ const {
   parseAnnotationMultilineTextBlock,
   unescapeAnnotationDoubleQuotedArg,
   applyDescriptionFromAnnotations,
-  extractTypedAnnotations
+  extractTypedAnnotations,
+  validatedEnvironmentExtendsFrom
 } = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
@@ -22,7 +23,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 // }
 const indentLevel = 4;
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars | secretvars | externalsecrets | color)*
+  BruEnvFile = (vars | secretvars | externalsecrets | extends | color)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -31,6 +32,7 @@ const grammar = ohm.grammar(`Bru {
   optionalnl = ~tagend nl
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend | multilinetextblockstart) any
+  singlelinechar = ~nl any
 
   multilinetextblockdelimiter = "'''"
   multilinetextblockstart = "'''" nl
@@ -76,7 +78,20 @@ const grammar = ohm.grammar(`Bru {
   externalsecretsname = externalsecretsnamechar+
   externalsecretsnamechar = ~(st | nl | "{") any
   vars = "vars" dictionary
-  color = "color:" any*
+  extends = "extends" (extendslist | extendsname)
+  extendslist = st* "[" stnl* extendsvaluelist stnl* "]"
+  extendsvaluelist = stnl* extendsvalue stnl* ("," stnl* extendsvalue)*
+  // A name containing a list delimiter or a quote is written quoted; every other name stays bare.
+  extendsvalue = quotedextendsvalue | unquotedextendsvalue
+  quotedextendsvalue = "\\"" quotedextendsvaluechar* "\\""
+  quotedextendsvaluechar = quotedextendsvalueesc | quotedextendsvaluenorm
+  quotedextendsvalueesc = "\\\\" any
+  quotedextendsvaluenorm = ~("\\"" | nl) any
+  // Environment names may contain spaces, so unlike arrayvaluechar this stops only at a delimiter.
+  unquotedextendsvalue = unquotedextendsvaluechar*
+  unquotedextendsvaluechar = ~(nl | "[" | "]" | ",") any
+  extendsname = ":" singlelinechar*
+  color = "color:" singlelinechar*
 }`);
 
 const mapPairListToKeyValPairs = (pairList = []) => {
@@ -327,6 +342,31 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   externalsecretsname(chars) {
     return chars.sourceString;
+  },
+  extends: (_1, reference) => {
+    const extendedEnvironmentReference = validatedEnvironmentExtendsFrom(reference.ast);
+    if (extendedEnvironmentReference) {
+      return { extends: extendedEnvironmentReference };
+    }
+    return {};
+  },
+  extendsname(_1, reference) {
+    return reference.sourceString.trim();
+  },
+  extendslist(_1, _2, _3, valuelist, _4, _5) {
+    return valuelist.ast.filter((name) => name.length > 0);
+  },
+  extendsvaluelist(_1, value, _2, _3, _4, rest) {
+    return [value.ast, ...rest.ast];
+  },
+  extendsvalue(value) {
+    return value.ast;
+  },
+  quotedextendsvalue(_1, chars, _2) {
+    return unescapeAnnotationDoubleQuotedArg(chars.sourceString);
+  },
+  unquotedextendsvalue(chars) {
+    return chars.sourceString.trim();
   },
   color: (_1, anystring) => {
     return {

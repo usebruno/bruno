@@ -56,7 +56,7 @@ class ScriptRuntime {
     const req = new BrunoRequest(request);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -130,6 +130,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)
@@ -205,7 +206,7 @@ class ScriptRuntime {
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -268,6 +269,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)

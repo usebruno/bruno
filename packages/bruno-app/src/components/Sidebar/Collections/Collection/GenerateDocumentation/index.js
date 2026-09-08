@@ -90,6 +90,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const [docTags, setDocTags] = useState({ include: [], exclude: [] });
   const [includeGitLink, setIncludeGitLink] = useState(true);
   const { gitCollectionUrl, isResolved: gitUrlLoaded } = useCollectionGitRemoteUrl(collection?.pathname);
+  const hasGitUrl = gitUrlLoaded && Boolean(gitCollectionUrl);
 
   const handleGenerate = useCallback(() => {
     try {
@@ -192,6 +193,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
                   onTagsChange={setDocTags}
                   includeGitLink={includeGitLink}
                   onGitLinkToggle={() => setIncludeGitLink((prev) => !prev)}
+                  hasGitUrl={hasGitUrl}
                 />
               </div>
 

@@ -1,0 +1,16 @@
+name: workspace_dev
+extends: workspace_base
+variables:
+  - name: workspace_overridden
+    value: from_workspace_dev
+  - name: workspace_dev_only
+    value: workspace_dev_only_value
+  - name: workspace_typed_override
+    value: overridden_in_workspace_dev
+  - name: workspace_shadowed_by_disabled
+    value: never_applied
+    disabled: true
+  - name: workspace_overridden_secret
+    value: plain_wins_in_workspace_dev
+  - secret: true
+    name: workspace_overridden_plain
