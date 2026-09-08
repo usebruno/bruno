@@ -19,52 +19,49 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
     });
   });
 
+  // pre-request scripts run before the request is interpolated, so req.url is still a template
   describe('templated urls', () => {
-    const envVariables = { BASEURL: 'https://api.example.com' };
+    it('reports the template as written rather than resolving it', () => {
+      const req = new BrunoRequest(makeRequest({ url: '{{BASEURL}}/path?a=1&b={{B}}' }));
 
-    it('resolves variables before parsing the url', () => {
-      const req = new BrunoRequest(makeRequest({ url: '{{BASEURL}}/path?a=1&b=2' }), { envVariables });
-
-      expect(req.getHost()).toBe('api.example.com');
+      expect(req.getHost()).toBe('{{BASEURL}}');
       expect(req.getPath()).toBe('/path');
-      expect(req.getQueryString()).toBe('a=1&b=2');
+      expect(req.getQueryString()).toBe('a=1&b={{B}}');
     });
 
-    it('applies path params, resolving templated values', () => {
+    it('reports a template that is only part of the host', () => {
+      const req = new BrunoRequest(makeRequest({ url: 'https://{{ENV}}.example.com/path' }));
+
+      expect(req.getHost()).toBe('{{ENV}}.example.com');
+      expect(req.getPath()).toBe('/path');
+    });
+
+    it('reports a template inside the path and query', () => {
+      const req = new BrunoRequest(makeRequest({ url: 'https://api.example.com/{{path}}/users?a={{x}}' }));
+
+      expect(req.getHost()).toBe('api.example.com');
+      expect(req.getPath()).toBe('/{{path}}/users');
+      expect(req.getQueryString()).toBe('a={{x}}');
+    });
+
+    it('leaves text that looks like the internal placeholder alone', () => {
+      const req = new BrunoRequest(makeRequest({ url: 'https://api.example.com/brunotemplate0/{{v}}' }));
+
+      expect(req.getPath()).toBe('/brunotemplate0/{{v}}');
+    });
+
+    it('applies path params, leaving templated values as written', () => {
       const req = new BrunoRequest(
         makeRequest({
           url: '{{BASEURL}}/path/:p1/:p2',
           pathParams: [
             { name: 'p1', value: '10' },
             { name: 'p2', value: '{{P2}}' }
-          ],
-          collectionVariables: { P2: '20' }
-        }),
-        { envVariables }
+          ]
+        })
       );
 
-      expect(req.getPath()).toBe('/path/10/20');
-    });
-
-    it('resolves variables from every scope', () => {
-      const req = new BrunoRequest(
-        makeRequest({
-          url: '{{globalEnvVar}}{{envVar}}{{runtimeVar}}/{{collectionVar}}/{{folderVar}}/{{requestVar}}/{{oauth2Var}}/{{promptVar}}',
-          globalEnvironmentVariables: { globalEnvVar: 'https://' },
-          collectionVariables: { collectionVar: 'collection' },
-          folderVariables: { folderVar: 'folder' },
-          requestVariables: { requestVar: 'request' },
-          oauth2CredentialVariables: { oauth2Var: 'oauth2' },
-          promptVariables: { promptVar: 'prompt' }
-        }),
-        {
-          envVariables: { envVar: 'api.example.com' },
-          runtimeVariables: { runtimeVar: ':8080' }
-        }
-      );
-
-      expect(req.getHost()).toBe('api.example.com:8080');
-      expect(req.getPath()).toBe('/collection/folder/request/oauth2/prompt');
+      expect(req.getPath()).toBe('/path/10/{{P2}}');
     });
   });
 });

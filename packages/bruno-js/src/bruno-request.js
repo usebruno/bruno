@@ -46,10 +46,34 @@ class BrunoRequest {
     this.req.url = url;
   }
 
+  __parseUrl() {
+    const rawUrl = this.req.url;
+
+    if (!rawUrl) {
+      throw new Error('URL is empty');
+    }
+
+    const referenceVariables = [];
+    const maskedUrl = rawUrl.replace(/\{\{[^{}]*\}\}/g, (referenceVariable) => {
+      referenceVariables.push(referenceVariable);
+
+      return `reference-variable-${referenceVariables.length - 1}`;
+    });
+
+    const restore = (value) =>
+      value.replace(/reference-variable-(\d+)/g, (match, index) => referenceVariables[Number(index)] ?? match);
+    const url = new URL(/^[a-z][a-z\d+\-.]*:\/\//i.test(maskedUrl) ? maskedUrl : `https://${maskedUrl}`);
+
+    return {
+      host: restore(url.host),
+      pathname: restore(url.pathname),
+      search: restore(url.search.substring(1))
+    };
+  }
+
   getHost() {
     try {
-      const url = new URL(this.req.url);
-      return url.host;
+      return this.__parseUrl().host;
     } catch (e) {
       return '';
     }
@@ -57,10 +81,9 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
-      let pathname = url.pathname;
+      let { pathname } = this.__parseUrl();
 
-      // If path params exist, interpolate them into the pathname
+      // If path params exist, substitute them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
         pathname = pathname
           .split('/')
@@ -91,9 +114,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
-      // Return query string without the leading '?'
-      return url.search ? url.search.substring(1) : '';
+      return this.__parseUrl().search;
     } catch (e) {
       return '';
     }
