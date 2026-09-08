@@ -12,8 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
-
-const MAX_SKIPPED_FILES_LISTED = 5;
+import { buildSkippedFilesMessage, getCollectionImportError } from 'utils/common/apiSpec';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -76,19 +75,18 @@ const CreateApiSpec = ({ onClose }) => {
     onSubmit: async (values) => {
       let yamlContent = '';
       let exportWarnings = [];
-      if (values?.importFrom === 'collection' && values?.collectionLocation && collectionData) {
+      if (values?.importFrom === 'collection') {
+        const importError = getCollectionImportError(collectionData);
+        if (importError) {
+          toast.error(importError);
+          return;
+        }
         const { files, envVariables, processEnvVariables, collectionVariables } = collectionData;
-        let variables = {
+        const variables = {
           ...(collectionVariables || {}),
+          ...(values?.environment ? getEnvironmentVariablesKeyValuePairs(envVariables[values.environment] || {}) : {}),
           processEnvVariables
         };
-        if (values?.environment && values?.environment?.length) {
-          variables = {
-            ...(collectionVariables || {}),
-            ...getEnvironmentVariablesKeyValuePairs(envVariables[values?.environment] || {}),
-            processEnvVariables
-          };
-        }
         // Convert envVariables (keyed by filename) to environments array for multi-server export
         const environmentsList = Object.entries(envVariables || {}).map(([envFile, vars]) => ({
           name: envFile.replace(/\.(bru|ya?ml)$/i, ''),
@@ -113,7 +111,7 @@ const CreateApiSpec = ({ onClose }) => {
           }
           onClose();
         })
-        .catch((err) => toast.error(err?.message));
+        .catch((err) => toast.error(err?.message || 'Failed to create the API spec'));
     }
   });
 
@@ -159,16 +157,14 @@ const CreateApiSpec = ({ onClose }) => {
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke('renderer:get-collection-json', collectionLocation)
-        .then(({ files, name, envVariables, processEnvVariables, collectionVariables, skipped }) => {
-          setCollectionData({ name, files, envVariables, processEnvVariables, collectionVariables });
+        .then(({ files, name, configFile, envVariables, processEnvVariables, collectionVariables, skipped }) => {
+          setCollectionData({ name, configFile, files, envVariables, processEnvVariables, collectionVariables });
           const environments = envVariables || {};
           const environmentNames = Object.keys(environments);
           setEnvironments(environments);
           formik.setFieldValue('environment', environmentNames[0] || '');
           if (skipped?.length) {
-            const names = skipped.slice(0, MAX_SKIPPED_FILES_LISTED).join(', ');
-            const more = skipped.length > MAX_SKIPPED_FILES_LISTED ? ` and ${skipped.length - MAX_SKIPPED_FILES_LISTED} more` : '';
-            toast.error(`Could not parse ${names}${more}; ${skipped.length === 1 ? 'it was' : 'they were'} skipped`);
+            toast.error(buildSkippedFilesMessage(skipped));
           }
         })
         .catch((err) => {
@@ -176,7 +172,7 @@ const CreateApiSpec = ({ onClose }) => {
           setCollectionData(null);
           setEnvironments({});
           formik.setFieldValue('environment', '');
-          toast.error('Failed to load collection');
+          toast.error(err?.message || 'Failed to load collection');
         });
     }
   }, [formik.values.collectionLocation]);

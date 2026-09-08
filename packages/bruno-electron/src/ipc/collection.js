@@ -2508,15 +2508,22 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
-  ipcMain.handle('renderer:get-collection-json', (event, collectionPath) =>
-    readCollectionForApiSpec(collectionPath, {
+  ipcMain.handle('renderer:get-collection-json', (event, collectionPath) => {
+    if (typeof collectionPath !== 'string' || !collectionPath) {
+      throw new Error('collectionPath is required');
+    }
+    if (!fs.existsSync(collectionPath) || !fs.statSync(collectionPath).isDirectory()) {
+      throw new Error(`Collection path does not exist: ${collectionPath}`);
+    }
+
+    return readCollectionForApiSpec(collectionPath, {
       decryptEnvSecrets: createEnvSecretsDecryptor({
         envHasSecrets,
         getEnvSecrets: (environmentName) => environmentSecretsStore.getEnvSecrets(collectionPath, { name: environmentName }),
         decryptSecretValue: (value) => decryptStringSafe(value).value
       })
-    })
-  );
+    });
+  });
 
   ipcMain.handle('renderer:export-collection-zip', async (event, collectionPath, collectionName) => {
     try {

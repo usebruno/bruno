@@ -32,6 +32,12 @@ const writeFile = (dir, rel, content) => {
   fs.writeFileSync(full, content);
 };
 
+const mkCollection = (tag) => {
+  const dir = mkTmp(tag);
+  writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'MyCollection' }));
+  return dir;
+};
+
 afterAll(() => {
   tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }));
 });
@@ -90,7 +96,7 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
 
 describe('readCollectionForApiSpec: robustness', () => {
   it('skips an unparseable request file instead of failing the whole load, and reports it in skipped', async () => {
-    const dir = mkTmp('bad');
+    const dir = mkCollection('bad');
     writeFile(dir, 'Good.bru', stringifyRequest(httpItem('Good', 'https://api.test/ok'), { format: 'bru' }));
     writeFile(dir, 'Broken.bru', 'not valid bru at all {{{{');
     const result = await readCollectionForApiSpec(dir);
@@ -99,7 +105,7 @@ describe('readCollectionForApiSpec: robustness', () => {
   });
 
   it('rejects when a directory inside the collection cannot be read, so the load error is surfaced', async () => {
-    const dir = mkTmp('noaccess');
+    const dir = mkCollection('noaccess');
     writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/ok'), { format: 'bru' }));
     writeFile(dir, path.join('locked', 'Hidden.bru'), stringifyRequest(httpItem('Hidden', 'https://api.test/hidden'), { format: 'bru' }));
     const lockedDir = path.join(dir, 'locked');
@@ -120,7 +126,7 @@ describe('readCollectionForApiSpec: robustness', () => {
   });
 
   it('rejects when the collection root itself cannot be read, instead of returning an empty result', async () => {
-    const dir = mkTmp('noaccess-root');
+    const dir = mkCollection('noaccess-root');
     writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/ok'), { format: 'bru' }));
     const realReaddir = fs.readdirSync;
     const spy = jest.spyOn(fs, 'readdirSync').mockImplementation((p, opts) => {
@@ -139,7 +145,7 @@ describe('readCollectionForApiSpec: robustness', () => {
   });
 
   it('reports a malformed bru environment in skipped instead of raising an unhandled promise rejection', async () => {
-    const dir = mkTmp('bad-env');
+    const dir = mkCollection('bad-env');
     writeFile(dir, path.join('environments', 'Broken.bru'), '@@@ not valid bru @@@\n');
     writeFile(dir, path.join('environments', 'Good.bru'), stringifyEnvironment(envObj('Good', [{ name: 'baseUrl', value: 'https://x', enabled: true, secret: false, type: 'text' }]), { format: 'bru' }));
     const result = await readCollectionForApiSpec(dir);
@@ -148,14 +154,14 @@ describe('readCollectionForApiSpec: robustness', () => {
   });
 
   it('reads .env into processEnvVariables', async () => {
-    const dir = mkTmp('dotenv');
+    const dir = mkCollection('dotenv');
     writeFile(dir, '.env', 'API_TOKEN=secret123\n');
     const result = await readCollectionForApiSpec(dir);
     expect(result.processEnvVariables.API_TOKEN).toBe('secret123');
   });
 
   it('applies the injected decryptEnvSecrets callback to a bru environment secret', async () => {
-    const dir = mkTmp('secret');
+    const dir = mkCollection('secret');
     writeFile(dir, path.join('environments', 'Local.bru'), stringifyEnvironment(envObj('Local', [{ name: 'token', value: '', enabled: true, secret: true, type: 'text' }]), { format: 'bru' }));
     const decryptEnvSecrets = jest.fn((environment) => {
       environment.variables.find((v) => v.name === 'token').value = 'decrypted';
@@ -166,7 +172,7 @@ describe('readCollectionForApiSpec: robustness', () => {
   });
 
   it('applies injected decryptEnvSecrets to a yml environment secret, stripping the .yml extension for the name', async () => {
-    const dir = mkTmp('secret-yml');
+    const dir = mkCollection('secret-yml');
     writeFile(dir, path.join('environments', 'Local.yml'), stringifyEnvironment(envObj('Local', [{ name: 'token', value: '', enabled: true, secret: true, type: 'text' }]), { format: 'yml' }));
     const decryptEnvSecrets = jest.fn((environment) => {
       environment.variables.find((v) => v.name === 'token').value = 'decrypted';
@@ -191,7 +197,7 @@ describe('readCollectionForApiSpec: yml collection config (opencollection.yml)',
 
 describe('readCollectionForApiSpec: .yaml extension environments', () => {
   it('stores a .yaml environment under its file name and strips the extension for the secrets lookup', async () => {
-    const dir = mkTmp('yaml-env');
+    const dir = mkCollection('yaml-env');
     writeFile(dir, path.join('environments', 'Local.yaml'), stringifyEnvironment(envObj('Local', [{ name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }]), { format: 'yml' }));
     const decryptEnvSecrets = jest.fn();
     const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
@@ -266,13 +272,49 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
-  it('returns an empty result for an empty collection folder', async () => {
+  it('reads a real collection that has no requests in it and simply finds nothing to export', async () => {
     const dir = mkTmp('empty');
+    writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'Empty' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.files).toEqual([]);
     expect(result.envVariables).toEqual({});
     expect(result.collectionVariables).toEqual({});
     expect(result.skipped).toEqual([]);
-    expect(result.name).toBe('');
+    expect(result.name).toBe('Empty');
+  });
+});
+
+describe('readCollectionForApiSpec: folders that are not Bruno collections', () => {
+  it('refuses a folder that does not contain a Bruno collection file', async () => {
+    const dir = mkTmp('not-a-collection');
+    writeFile(dir, 'readme.txt', 'i am not a collection');
+    await expect(readCollectionForApiSpec(dir)).rejects.toThrow('No bruno.json or opencollection.yml found');
+  });
+
+  it('refuses a completely empty folder', async () => {
+    await expect(readCollectionForApiSpec(mkTmp('bare'))).rejects.toThrow('No bruno.json or opencollection.yml found');
+  });
+
+  it('refuses a folder that does not exist, rather than pretending the collection was empty', async () => {
+    const missing = path.join(mkTmp('missing'), 'gone');
+    await expect(readCollectionForApiSpec(missing)).rejects.toThrow('No bruno.json or opencollection.yml found');
+  });
+
+  it('says which Bruno collection file it found, so the app can tell a real collection from any other folder', async () => {
+    const ymlDir = mkTmp('marker-yml');
+    writeFile(ymlDir, 'opencollection.yml', stringifyCollection({}, { name: 'FromYml', version: '1' }));
+    expect((await readCollectionForApiSpec(ymlDir)).configFile).toBe('opencollection.yml');
+
+    const jsonDir = mkTmp('marker-json');
+    writeFile(jsonDir, 'bruno.json', JSON.stringify({ version: '1', name: 'FromJson' }));
+    expect((await readCollectionForApiSpec(jsonDir)).configFile).toBe('bruno.json');
+  });
+
+  it('accepts a collection that uses the older bruno.json file', async () => {
+    const dir = mkTmp('json-only');
+    writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'JsonOnly' }));
+    writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/ok'), { format: 'bru' }));
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
   });
 });

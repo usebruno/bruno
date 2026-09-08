@@ -40,6 +40,25 @@ describe('createEnvSecretsDecryptor', () => {
     expect(environment.variables.find((v) => v.name === 'token').value).toBe('');
   });
 
+  it('puts the secret into the first variable when two variables share the same name', () => {
+    const environment = {
+      name: 'Local',
+      variables: [
+        { name: 'token', value: 'first', secret: true, enabled: true },
+        { name: 'token', value: 'second', secret: true, enabled: true }
+      ]
+    };
+    const decrypt = createEnvSecretsDecryptor({
+      envHasSecrets: () => true,
+      getEnvSecrets: () => [{ name: 'token', value: 'enc' }],
+      decryptSecretValue: (value) => `decrypted:${value}`
+    });
+
+    decrypt(environment, 'Local');
+
+    expect(environment.variables.map((v) => v.value)).toEqual(['decrypted:enc', 'second']);
+  });
+
   it('skips a stored secret with no matching variable or an empty value', () => {
     const environment = makeEnv();
     const decrypt = createEnvSecretsDecryptor({

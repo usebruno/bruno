@@ -1,3 +1,4 @@
+import jsyaml from 'js-yaml';
 import { exportApiSpec } from './openapi-spec';
 import path from 'path';
 import openApiToBruno from '../../../../bruno-converters/src/openapi/openapi-to-bruno';
@@ -1000,5 +1001,38 @@ describe('exportApiSpec - descriptions', () => {
         expect.objectContaining({ name: 'X-Version', in: 'header', description: 'API version header' })
       ])
     );
+  });
+});
+
+describe('exportApiSpec - collections that do not have any requests in them', () => {
+  it('still produces a usable spec file when the collection has no requests in it yet', () => {
+    const result = exportApiSpec({ name: 'EmptyColl', variables: {}, items: [], environments: [] });
+    const spec = jsyaml.load(result.content);
+    expect(spec.openapi).toBe('3.0.0');
+    expect(spec.info).toEqual({ title: 'EmptyColl', version: '1.0.0' });
+    expect(spec.paths).toEqual({});
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('keeps the server addresses from each environment even when there are no requests', () => {
+    const result = exportApiSpec({
+      name: 'EmptyColl',
+      variables: { baseUrl: 'https://api.test' },
+      items: [],
+      environments: [{ name: 'Local', variables: [{ name: 'baseUrl', value: 'https://local.test', enabled: true }] }]
+    });
+    const spec = jsyaml.load(result.content);
+    expect(spec.paths).toEqual({});
+    expect(spec.servers.map((server) => server.url)).toEqual(['https://api.test', 'https://local.test']);
+  });
+
+  it('treats a collection that only contains folders as having no requests', () => {
+    const result = exportApiSpec({
+      name: 'FoldersOnly',
+      variables: {},
+      items: [{ type: 'folder', name: 'A' }],
+      environments: []
+    });
+    expect(jsyaml.load(result.content).paths).toEqual({});
   });
 });

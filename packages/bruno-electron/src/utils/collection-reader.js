@@ -10,11 +10,21 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
 
   const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
   const brunoConfigPath = path.join(collectionPath, 'bruno.json');
+
+  let configFile = null;
+  if (fs.existsSync(ocYmlPath)) {
+    configFile = 'opencollection.yml';
+  } else if (fs.existsSync(brunoConfigPath)) {
+    configFile = 'bruno.json';
+  } else {
+    throw new Error(`No bruno.json or opencollection.yml found in ${collectionPath}`);
+  }
+
   try {
-    if (fs.existsSync(ocYmlPath)) {
+    if (configFile === 'opencollection.yml') {
       const parsed = await parseCollection(fs.readFileSync(ocYmlPath, 'utf8'), { format: 'yml' });
       brunoConfig = parsed?.brunoConfig || null;
-    } else if (fs.existsSync(brunoConfigPath)) {
+    } else {
       brunoConfig = JSON.parse(fs.readFileSync(brunoConfigPath, 'utf8'));
     }
     name = brunoConfig?.name || '';
@@ -78,7 +88,7 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
     }
   }
 
-  return { name, files, envVariables, processEnvVariables, collectionVariables, skipped };
+  return { name, configFile, files, envVariables, processEnvVariables, collectionVariables, skipped };
 };
 
 module.exports = { readCollectionForApiSpec };
