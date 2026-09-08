@@ -267,18 +267,6 @@ const createDirectory = async (dir) => {
   return fs.mkdirSync(dir);
 };
 
-const removeDirectory = async (dir) => {
-  if (!dir) {
-    throw new Error(`directory: path is null`);
-  }
-
-  if (!fs.existsSync(dir)) {
-    throw new Error(`directory: ${dir} does not exist`);
-  }
-
-  return fs.rmdirSync(dir, { recursive: true });
-};
-
 const browseDirectory = async (win) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openDirectory', 'createDirectory']
@@ -776,7 +764,6 @@ module.exports = {
   hasBruExtension,
   hasRequestExtension,
   createDirectory,
-  removeDirectory,
   browseDirectory,
   browseDirectories,
   browseFiles,

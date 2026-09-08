@@ -18,7 +18,6 @@ import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
-import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
@@ -49,7 +48,6 @@ export const buildCommonLocators = (page: Page) => ({
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
-  cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
   variablesTab: buildVariablesTabLocators(page),
