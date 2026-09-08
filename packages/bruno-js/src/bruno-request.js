@@ -46,6 +46,10 @@ class BrunoRequest {
     this.req.url = url;
   }
 
+  /**
+   * new URL() mangles {{var}} reference variables, so the url is split by hand. The comments
+   * below show each step for 'https://{{HOST}}/users/:id?role=admin'.
+   */
   __parseUrl() {
     const rawUrl = this.req.url;
 
@@ -53,21 +57,36 @@ class BrunoRequest {
       throw new Error('URL is empty');
     }
 
-    const referenceVariables = [];
-    const maskedUrl = rawUrl.replace(/\{\{[^{}]*\}\}/g, (referenceVariable) => {
-      referenceVariables.push(referenceVariable);
+    let url = rawUrl;
 
-      return `reference-variable-${referenceVariables.length - 1}`;
-    });
+    // the scheme may itself be a {{var}}, so match anything up to the '://'
+    const schemePattern = /^[^/?#]*:\/\//;
 
-    const restore = (value) =>
-      value.replace(/reference-variable-(\d+)/g, (match, index) => referenceVariables[Number(index)] ?? match);
-    const url = new URL(/^[a-z][a-z\d+\-.]*:\/\//i.test(maskedUrl) ? maskedUrl : `https://${maskedUrl}`);
+    // Add a default protocol when the URL does not have one.
+    if (!schemePattern.test(url)) {
+      url = `https://${url}`;
+    }
+
+    const protocolMatch = url.match(schemePattern); // 'https://'
+
+    // everything after the scheme, minus any #fragment: '{{HOST}}/users/:id?role=admin'
+    const remainder = url.substring(protocolMatch[0].length).split('#')[0];
+
+    // capturing the separator keeps it, so the first piece is the host and rejoining the rest
+    // rebuilds what followed: '{{HOST}}' and '/users/:id?role=admin'
+    const [authority, ...rest] = remainder.split(/([/?])/);
+    const restUrl = rest.join('');
+
+    // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
+    const queryIndex = restUrl.indexOf('?');
+    const path = queryIndex === -1 ? restUrl : restUrl.substring(0, queryIndex);
+    const search = queryIndex === -1 ? '' : restUrl.substring(queryIndex + 1);
 
     return {
-      host: restore(url.host),
-      pathname: restore(url.pathname),
-      search: restore(url.search.substring(1))
+      // the host is the authority without any user:password@ prefix
+      host: authority.split('@').pop(),
+      pathname: path,
+      search
     };
   }
 

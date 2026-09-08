@@ -44,10 +44,26 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
       expect(req.getQueryString()).toBe('a={{x}}');
     });
 
-    it('leaves text that looks like the internal placeholder alone', () => {
-      const req = new BrunoRequest(makeRequest({ url: 'https://api.example.com/brunotemplate0/{{v}}' }));
+    it('reports a variable used as the port', () => {
+      const req = new BrunoRequest(makeRequest({ url: 'https://api.example.com:{{PORT}}/path' }));
 
-      expect(req.getPath()).toBe('/brunotemplate0/{{v}}');
+      expect(req.getHost()).toBe('api.example.com:{{PORT}}');
+      expect(req.getPath()).toBe('/path');
+    });
+
+    it('reports a variable used as the scheme', () => {
+      const req = new BrunoRequest(makeRequest({ url: '{{PROTO}}://{{HOST}}/path' }));
+
+      expect(req.getHost()).toBe('{{HOST}}');
+      expect(req.getPath()).toBe('/path');
+    });
+
+    it('drops the user:password@ prefix and the #fragment', () => {
+      const req = new BrunoRequest(makeRequest({ url: 'https://user:pass@{{HOST}}:8080/path?a=1#top' }));
+
+      expect(req.getHost()).toBe('{{HOST}}:8080');
+      expect(req.getPath()).toBe('/path');
+      expect(req.getQueryString()).toBe('a=1');
     });
 
     it('applies path params, leaving templated values as written', () => {
