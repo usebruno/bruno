@@ -2330,7 +2330,12 @@ const LINK_AWARE_METHOD_LABEL: Record<LinkAwareRequestType, string | null> = {
 };
 
 const setCodeMirrorValue = async (cm: Locator, value: string) => {
-  await cm.evaluate((el: any, v: string) => el.CodeMirror?.setValue(v), value);
+  await cm.evaluate((el: any, v: string) => {
+    // Silently skipping the write leaves the editor empty and fails a later, unrelated-looking
+    // assertion; naming the unattached instance points at the real setup problem.
+    if (!el.CodeMirror) throw new Error('CodeMirror instance is not attached to this element yet');
+    el.CodeMirror.setValue(v);
+  }, value);
 };
 
 const linkAwareUrlBarCm = (page: Page, type: LinkAwareRequestType): Locator =>
@@ -2399,11 +2404,17 @@ const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modi
  * cursor), never intercepted to open a transient request.
  */
 const expectNoLink = async (cm: Locator) => {
+  const page = cm.page();
+  const tabCountBefore = await page.locator('.request-tab').count();
+
   await cm.click();
   await expect(cm).toContainClass('CodeMirror-focused');
 
   await cm.click({ modifiers: [LINK_CLICK_MODIFIER] });
   await expect(cm).toContainClass('CodeMirror-focused');
+
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
 /**
