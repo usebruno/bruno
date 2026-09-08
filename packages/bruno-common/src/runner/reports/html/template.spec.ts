@@ -3,11 +3,11 @@ import htmlTemplateString, { getFilteredRequestResults } from './template';
 import vm from 'vm';
 
 const readEmbeddedIterations = (html: string) => {
-  const base64 = html.match(/decodeBase64\('([^']*)'\)/)?.[1];
-  if (!base64) {
-    throw new Error('The report did not embed its results as a base64 payload');
+  const match = html.match(/const rawResults = ([^;]+);/);
+  if (!match) {
+    throw new Error('The report did not embed its results as a JSON payload');
   }
-  return JSON.parse(Buffer.from(base64, 'base64').toString()).results;
+  return JSON.parse(match[1]).results;
 };
 
 describe('getFilteredRequestResults', () => {

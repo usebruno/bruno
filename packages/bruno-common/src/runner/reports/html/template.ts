@@ -19,12 +19,15 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Would use latest version, you'd better specify a version -->
     <script src="https://unpkg.com/naive-ui"></script>
 
     <title>Bruno</title>
     <style>
+      :root { color-scheme: light dark; }
       .error > .status {
         color: red;
       }
@@ -395,13 +398,21 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             v-if="result.request.data"
             title="REQUEST BODY"
           >
+          <div style="margin-bottom: 8px;">
+            <n-button text type="primary" size="small" @click="copyToClipboard(result.request.data)" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" style="width: 1em; height: 1em; vertical-align: -0.125em;"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21a2,2 0 0,0 2,2H19a2,2 0 0,0 2,-2V7a2,2 0 0,0 -2,-2M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg>
+            </n-button>
+          </div>
+          <div style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px;">
           <iframe
+            loading="lazy"
             v-if="result.request.isHtml"
             :srcdoc="result.request.data"
             style="width: 100%; height: 400px; border: none;"
           ></iframe>
 
           <pre v-else>{{ result.request.data }}</pre>
+          </div>
           </n-card>
           <n-card title="RESPONSE HEADERS">
             <n-data-table
@@ -413,13 +424,22 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             v-if="result.response.data"
             title="RESPONSE BODY"
           >
+          <div style="margin-bottom: 8px;">
+            <n-button text type="primary" size="small" @click="copyToClipboard(result.response.data)" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" style="width: 1em; height: 1em; vertical-align: -0.125em;"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21a2,2 0 0,0 2,2H19a2,2 0 0,0 2,-2V7a2,2 0 0,0 -2,-2M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg>
+            </n-button>
+          </div>
+          <div style="max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; padding: 8px; border-radius: 4px;">
           <iframe
+            loading="lazy"
             v-if="result.response.isHtml"
             :srcdoc="result.response.data"
             style="width: 100%; height: 400px; border: none;"
           ></iframe>
 
-          <pre v-else>{{ result.response.data }}</pre>          </n-card>
+          <pre v-else>{{ result.response.data }}</pre>
+          </div>
+          </n-card>
           <n-card title="ASSERTIONS INFORMATION">
             <n-data-table
               :columns="assertionsColumns"
@@ -468,12 +488,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 
       const App = {
         setup() {
-          function decodeBase64(base64) {
-            const binary = atob(base64);
-            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-            return new TextDecoder().decode(bytes);
-          }
-          const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+          const rawResults = ${resutsJsonString};
 
           const res = computed(() => {
             return mergeTests(rawResults.results);
@@ -790,6 +805,22 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             }
             return hasError.value || hasFailure.value ? 'error' : 'success';
           });
+          const copyToClipboard = (data) => {
+            try {
+              const textToCopy = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+              navigator.clipboard.writeText(textToCopy).then(() => {
+                if (window.naive && window.naive.message) {
+                  window.naive.message.success('Copied to clipboard!');
+                } else {
+                  console.log('Copied to clipboard!');
+                }
+              }).catch((err) => {
+                console.error('Failed to copy to clipboard:', err);
+              });
+            } catch (e) {
+              console.error('Error copying to clipboard:', e.message);
+            }
+          };
           return {
             headerColumns,
             headerDataRequest,
@@ -808,6 +839,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             resultTitle,
             resultSummary,
             getAlertType,
+            copyToClipboard,
             iterationIndex: props?.result?.iterationIndex
           };
         }
