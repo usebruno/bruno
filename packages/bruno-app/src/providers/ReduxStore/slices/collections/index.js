@@ -4,7 +4,6 @@ import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
-  addDepth,
   areItemsTheSameExceptSeqUpdate,
   collapseAllItemsInCollection,
   deleteItemInCollection,
@@ -271,7 +270,6 @@ export const collectionsSlice = createSlice({
       collection.lastAction = null;
 
       collapseAllItemsInCollection(collection);
-      addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
@@ -482,7 +480,6 @@ export const collectionsSlice = createSlice({
             item.items.push(action.payload.item);
           }
         }
-        addDepth(collection.items);
       }
     },
     deleteItem: (state, action) => {
@@ -3128,7 +3125,6 @@ export const collectionsSlice = createSlice({
             });
           }
         }
-        addDepth(collection.items);
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
@@ -3180,7 +3176,6 @@ export const collectionsSlice = createSlice({
           }
           currentSubItems = childItem.items;
         });
-        addDepth(collection.items);
       }
     },
     collectionChangeFileEvent: (state, action) => {
@@ -3775,7 +3770,6 @@ export const collectionsSlice = createSlice({
         };
         annotateTransient(collection.items);
       }
-      addDepth(collection.items);
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;

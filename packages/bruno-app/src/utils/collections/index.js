@@ -19,20 +19,6 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   return str.replaceAll('\t', ' '.repeat(numSpaces));
 };
 
-export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
-      i.depth = initialDepth;
-
-      if (i.items && i.items.length) {
-        depth(i.items, initialDepth + 1);
-      }
-    });
-  };
-
-  depth(items, 1);
-};
-
 const setCollapsedRecursively = (items, collapsed) => {
   each(items, (i) => {
     i.collapsed = collapsed;

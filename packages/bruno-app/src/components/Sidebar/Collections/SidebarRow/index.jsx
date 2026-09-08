@@ -39,6 +39,7 @@ const renderRow = ({ row, searchText, openBulkMenu, itemsByUid, collectionsByUid
       return (
         <CollectionItemRow
           item={item}
+          depth={row.depth}
           collectionUid={row.collectionUid}
           collectionPathname={row.collectionPathname}
           searchText={searchText}
@@ -60,7 +61,7 @@ const renderRow = ({ row, searchText, openBulkMenu, itemsByUid, collectionsByUid
       const collection = collectionsByUid.get(row.collectionUid);
       const example = item?.examples?.[row.exampleIndex];
       if (!item || !collection || !example) return null;
-      return <ExampleItem example={example} item={item} collection={collection} />;
+      return <ExampleItem example={example} item={item} collection={collection} depth={row.depth} />;
     }
     default:
       return null;

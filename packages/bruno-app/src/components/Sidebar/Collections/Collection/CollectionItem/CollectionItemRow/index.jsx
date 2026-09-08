@@ -72,7 +72,7 @@ import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, children }) => {
+const CollectionItemRow = ({ item, depth, collectionUid, collectionPathname, searchText, openBulkMenu, children }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -414,7 +414,7 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
     menuDropdownRef.current?.show();
   };
 
-  const indents = range(item.depth);
+  const indents = range(depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
