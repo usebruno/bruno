@@ -1,6 +1,7 @@
 const path = require('path');
 
 const watcherHandlers = {};
+const mockInitialIgnoreResults = [];
 const mockWatcher = {
   on: jest.fn((event, handler) => {
     watcherHandlers[event] = handler;
@@ -10,7 +11,10 @@ const mockWatcher = {
 };
 
 jest.mock('chokidar', () => ({
-  watch: jest.fn(() => mockWatcher)
+  watch: jest.fn((watchPath, options) => {
+    mockInitialIgnoreResults.push(options.ignored(require('path').join(watchPath, 'myfolder', 'somefile.yml')));
+    return mockWatcher;
+  })
 }));
 
 jest.mock('../utils/filesystem', () => ({
@@ -76,6 +80,7 @@ describe('CollectionWatcher', () => {
   afterEach(() => {
     collectionWatcher.closeAllWatchers();
     Object.keys(watcherHandlers).forEach((event) => delete watcherHandlers[event]);
+    mockInitialIgnoreResults.length = 0;
     jest.clearAllMocks();
   });
 
@@ -87,12 +92,10 @@ describe('CollectionWatcher', () => {
 
     collectionWatcher.addWatcher(win, watchPath, collectionUid, brunoConfig);
 
-    const ignored = mockWatcher.on.mock.calls.length > 0
-      ? require('chokidar').watch.mock.calls[0][1].ignored
-      : null;
-
     expect(getBrunoConfig(collectionUid)).toEqual(brunoConfig);
-    expect(ignored(path.join(watchPath, 'myfolder', 'somefile.yml'))).toBe(true);
+    expect(mockInitialIgnoreResults).toEqual([true]);
+
+    const ignored = require('chokidar').watch.mock.calls[0][1].ignored;
     expect(ignored(path.join(watchPath, 'visible', 'somefile.yml'))).toBe(false);
   });
 });
