@@ -3,7 +3,7 @@ import htmlTemplateString, { getFilteredRequestResults } from './template';
 import vm from 'vm';
 
 const readEmbeddedIterations = (html: string) => {
-  const match = html.match(/const rawResults = ([^;]+);/);
+  const match = html.match(/const rawResults = ([\s\S]*?);\s*\n\s*const res = computed/);
   if (!match) {
     throw new Error('The report did not embed its results as a JSON payload');
   }
