@@ -1,8 +1,7 @@
-const createEnvSecretsDecryptor = ({ envHasSecrets, getEnvSecrets, decryptSecretValue }) => (environment, environmentName) => {
-  if (!envHasSecrets(environment)) return;
+const createEnvSecretsDecryptor = ({ getEnvSecrets, decryptSecretValue }) => (environment, environmentName) => {
   const secrets = getEnvSecrets(environmentName) || [];
   secrets.forEach((secret) => {
-    const variable = environment.variables.find((v) => v.name === secret.name);
+    const variable = environment.variables?.find((v) => v.name === secret.name && v.secret);
     if (variable && secret.value) {
       variable.value = decryptSecretValue(secret.value);
     }

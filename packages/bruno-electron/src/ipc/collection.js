@@ -2518,7 +2518,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
     return readCollectionForApiSpec(collectionPath, {
       decryptEnvSecrets: createEnvSecretsDecryptor({
-        envHasSecrets,
         getEnvSecrets: (environmentName) => environmentSecretsStore.getEnvSecrets(collectionPath, { name: environmentName }),
         decryptSecretValue: (value) => decryptStringSafe(value).value
       })
