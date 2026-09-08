@@ -1,5 +1,5 @@
-import { expect, Page, test } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openRequest, selectRequestPaneTab, selectScriptSubTab } from '../utils/page';
+import { Page, test } from '../../playwright';
+import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkDoesNotOpenRequest, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openRequest, selectRequestPaneTab, selectScriptSubTab } from '../utils/page';
 
 const pane = (page: Page) => buildCommonLocators(page).request.pane();
 const url = (path: string) => `http://link-aware.test/${path}`;
@@ -21,13 +21,7 @@ test.describe('CodeMirror link-aware - GraphQL request tab', () => {
 
   test('URL Bar: plain click does not open a request; Cmd/Ctrl+Click opens it externally', async ({ page }) => {
     const cm = buildCommonLocators(page).request.urlInput();
-    const link = cm.locator('.CodeMirror-link').first();
-    await expect(link).toBeVisible();
-
-    await link.click();
-    await expect(cm).toContainClass('CodeMirror-focused');
-
-    await expectLinkOpensExternally(page, cm);
+    await expectLinkDoesNotOpenRequest(page, cm);
   });
 
   test('Query editor: plain click opens a transient GraphQL request', async ({ page }) => {
@@ -41,10 +35,10 @@ test.describe('CodeMirror link-aware - GraphQL request tab', () => {
     await expectLinkOpensRequest(page, cm, { type: 'graphql', url: url('graphql-variables') });
   });
 
-  test('Vars: plain click opens a transient GraphQL request', async ({ page }) => {
+  test('Vars: plain click does not open a request; Cmd/Ctrl+Click opens it externally', async ({ page }) => {
     await selectRequestPaneTab(page, 'Vars');
     const cm = buildCommonLocators(page).codeMirror.valueCellAt(pane(page));
-    await expectLinkOpensRequest(page, cm, { type: 'graphql', url: url('graphql-vars') });
+    await expectLinkDoesNotOpenRequest(page, cm);
   });
 
   test('Pre-Request-Script: plain click opens a transient GraphQL request', async ({ page }) => {

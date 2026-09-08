@@ -15,6 +15,10 @@ import {
 } from '../utils/page';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
+// Echo back the raw request body with a matching Content-Type, so the response auto-selects
+// the corresponding preview format (xml/text) the same way echo/json does for JSON.
+const XML_ECHO_URL = 'http://localhost:8081/api/echo/xml-raw';
+const TEXT_ECHO_URL = 'http://localhost:8081/api/echo/text';
 const responsePane = (page: Page) => buildCommonLocators(page).response.pane();
 const requestPane = (page: Page) => buildCommonLocators(page).request.pane();
 // HttpMethodSelector lives in the query-url-wrapper, a sibling of [data-testid="request-pane"], not inside it.
@@ -41,6 +45,42 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
     await expect(value).toBeVisible();
     await value.click();
     await expectTransientRequestOpened(page, { type: 'http', url: 'http://link-aware.test/http-body' });
+  });
+
+  test('Body - XML preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+    await createCollection(page, 'response-xml-preview', await createTmpDir('response-xml-preview'));
+    await createRequest(page, 'echo', 'response-xml-preview', { url: XML_ECHO_URL, method: 'POST' });
+    await openRequest(page, 'response-xml-preview', 'echo');
+
+    await selectRequestBodyMode(page, 'XML');
+    await setCmValue(buildCommonLocators(page).codeMirror.within(page.locator('.request-pane')), '<root><link>http://link-aware.test/xml-body</link></root>');
+    await sendRequestAndWaitForResponse(page);
+
+    await switchResponseFormat(page, 'XML');
+    await switchToPreviewTab(page);
+
+    const value = responsePane(page).locator('.xml-value').filter({ hasText: 'link-aware.test/xml-body' });
+    await expect(value).toBeVisible();
+    await value.click();
+    await expectTransientRequestOpened(page, { type: 'http', url: 'http://link-aware.test/xml-body' });
+  });
+
+  test('Body - Text preview: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+    await createCollection(page, 'response-text-preview', await createTmpDir('response-text-preview'));
+    await createRequest(page, 'echo', 'response-text-preview', { url: TEXT_ECHO_URL, method: 'POST' });
+    await openRequest(page, 'response-text-preview', 'echo');
+
+    await selectRequestBodyMode(page, 'TEXT');
+    await setCmValue(buildCommonLocators(page).codeMirror.within(page.locator('.request-pane')), 'See http://link-aware.test/text-body for details');
+    await sendRequestAndWaitForResponse(page);
+
+    await switchResponseFormat(page, 'Raw');
+    await switchToPreviewTab(page);
+
+    const value = responsePane(page).getByTestId('text-preview-link');
+    await expect(value).toBeVisible();
+    await value.click();
+    await expectTransientRequestOpened(page, { type: 'http', url: 'http://link-aware.test/text-body' });
   });
 
   test('presigned "PutObject" URL defaults the new request to PUT and opens on the Body tab', async ({ page, createTmpDir }) => {

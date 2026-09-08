@@ -107,11 +107,11 @@ const QueryResultPreview = ({
     }
 
     case 'preview-text': {
-      return <TextPreview data={data} />;
+      return <TextPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} />;
+      return <XmlPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     default:

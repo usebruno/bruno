@@ -1,9 +1,10 @@
 import ErrorBanner from 'ui/ErrorBanner';
 import React, { useState, useMemo } from 'react';
+import { isHttpUrl } from 'utils/url';
 import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
-export default function XmlPreview({ data, defaultExpanded = true }) {
+export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }) {
   const parsedResult = useMemo(() => {
     if (typeof data !== 'string') {
       return {
@@ -83,6 +84,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
           isRoot={true}
           isLast={true}
           defaultExpanded={defaultExpanded}
+          onLinkClick={onLinkClick}
         />
       </div>
     </StyledWrapper>
@@ -90,7 +92,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
 }
 
 // Component for rendering array entries with expand/collapse functionality
-const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
+const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true, onLinkClick }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const toggle = (e) => {
@@ -122,6 +124,7 @@ const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
               isLast={itemIdx === items.length - 1}
               defaultExpanded={false}
               depth={depth + 2}
+              onLinkClick={onLinkClick}
             />
           ))}
         </div>
@@ -136,7 +139,8 @@ const XmlNode = ({
   isRoot = false,
   isLast = true,
   defaultExpanded = true,
-  depth = 0
+  depth = 0,
+  onLinkClick
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -155,6 +159,7 @@ const XmlNode = ({
             isLast={idx === node.length - 1}
             defaultExpanded={false}
             depth={depth}
+            onLinkClick={onLinkClick}
           />
         ))}
       </>
@@ -170,6 +175,12 @@ const XmlNode = ({
     setExpanded((v) => !v);
   };
 
+  const handleValueClick = (value) => {
+    if (typeof onLinkClick === 'function' && isHttpUrl(value)) {
+      onLinkClick(value);
+    }
+  };
+
   // For leaf nodes with text content or attributes with empty values
   if (isLeaf && isTextNode(node)) {
     const value = String(node);
@@ -182,7 +193,7 @@ const XmlNode = ({
             <span className="xml-separator">:</span>
           </>
         )}
-        <span className="xml-value">{value}</span>
+        <span className="xml-value" onClick={() => handleValueClick(value)}>{value}</span>
       </div>
     );
   }
@@ -222,6 +233,7 @@ const XmlNode = ({
               isLast={idx === childEntries.length - 1}
               defaultExpanded={defaultExpanded}
               depth={0}
+              onLinkClick={onLinkClick}
             />
           ))}
         </div>
@@ -276,7 +288,12 @@ const XmlNode = ({
                 <div key={key + idx} className="flex items-start mb-1" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
                   <span className="xml-node-name">{key}</span>
                   <span className="xml-separator">:</span>
-                  <span className={value === '' ? 'xml-empty-value' : 'xml-value'}>{displayValue}</span>
+                  <span
+                    className={value === '' ? 'xml-empty-value' : 'xml-value'}
+                    onClick={() => handleValueClick(displayValue)}
+                  >
+                    {displayValue}
+                  </span>
                 </div>
               );
             }
@@ -292,6 +309,7 @@ const XmlNode = ({
                   items={value}
                   depth={depth}
                   defaultExpanded={true}
+                  onLinkClick={onLinkClick}
                 />
               );
             }
@@ -304,6 +322,7 @@ const XmlNode = ({
                 isLast={idx === childEntries.length - 1}
                 defaultExpanded={false}
                 depth={depth + 1}
+                onLinkClick={onLinkClick}
               />
             );
           })}

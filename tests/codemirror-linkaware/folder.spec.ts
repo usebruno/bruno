@@ -1,5 +1,5 @@
 import { Page, test } from '../../playwright';
-import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openfolder, selectfolderPaneTab } from '../utils/page';
+import { buildCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkDoesNotOpenRequest, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openfolder, selectfolderPaneTab } from '../utils/page';
 
 const FOLDER_NAME = 'folder-fixture';
 const settings = (page: Page) => buildCommonLocators(page).paneTabs.folderSettingsContent();
@@ -15,10 +15,10 @@ test.describe('CodeMirror link-aware - Folder settings', () => {
     await closeAllCollections(page);
   });
 
-  test('Vars: plain click creates a transient request', async ({ page }) => {
+  test('Vars: plain click does not open a request; Cmd/Ctrl+Click opens it externally', async ({ page }) => {
     await selectfolderPaneTab(page, 'vars');
     const cm = buildCommonLocators(page).codeMirror.valueCellAt(settings(page));
-    await expectLinkOpensRequest(page, cm, { type: 'http', url: url('folder-vars') });
+    await expectLinkDoesNotOpenRequest(page, cm);
   });
 
   test('Pre-Request-Script: plain click creates a transient request', async ({ page }) => {
@@ -72,8 +72,10 @@ test.describe('CodeMirror link-aware - Folder settings', () => {
   });
 
   test('Folder Settings use the parent collections Presets (HTTP), not a folder-local default', async ({ page }) => {
-    await selectfolderPaneTab(page, 'vars');
-    const cm = buildCommonLocators(page).codeMirror.valueCellAt(settings(page));
-    await expectLinkOpensRequest(page, cm, { type: 'http', url: url('folder-vars') });
+    const locators = buildCommonLocators(page);
+    await selectfolderPaneTab(page, 'script');
+    await locators.paneTabs.tabTrigger('pre-request').click();
+    const cm = locators.codeMirror.byTestId('folder-pre-request-script-editor');
+    await expectLinkOpensRequest(page, cm, { type: 'http', url: url('folder-script') });
   });
 });

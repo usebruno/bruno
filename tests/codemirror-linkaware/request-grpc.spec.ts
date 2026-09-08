@@ -1,5 +1,5 @@
-import { expect, Page, test } from '../../playwright';
-import { buildCommonLocators, buildGrpcCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openRequest, selectRequestPaneTab } from '../utils/page';
+import { Page, test } from '../../playwright';
+import { buildCommonLocators, buildGrpcCommonLocators, closeAllCollections, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkDoesNotOpenRequest, expectLinkOpensExternally, expectLinkOpensRequest, expectRichTextLinkOpensExternally, expectRichTextLinkOpensRequest, LINK_CLICK_MODIFIER, openCollectionFromDialog, openRequest, selectRequestPaneTab } from '../utils/page';
 
 const pane = (page: Page) => buildCommonLocators(page).request.pane();
 const url = (path: string) => `http://link-aware.test/${path}`;
@@ -16,13 +16,7 @@ test.describe('CodeMirror link-aware - gRPC request tab', () => {
 
   test('URL Bar: plain click does not open a request; Cmd/Ctrl+Click opens it externally', async ({ page }) => {
     const cm = buildGrpcCommonLocators(page).request.queryUrlContainer().locator('.CodeMirror');
-    const link = cm.locator('.CodeMirror-link').first();
-    await expect(link).toBeVisible();
-
-    await link.click();
-    await expect(cm).toContainClass('CodeMirror-focused');
-
-    await expectLinkOpensExternally(page, cm);
+    await expectLinkDoesNotOpenRequest(page, cm);
   });
 
   test('Body / Messages: plain click opens a transient gRPC request', async ({ page }) => {

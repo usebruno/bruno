@@ -72,7 +72,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
@@ -86,7 +85,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
