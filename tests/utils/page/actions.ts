@@ -124,7 +124,13 @@ const openCollection = async (page: Page, collectionName: string) => {
 const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
   await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
     await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+      // Restore on first call: `electronApp` is worker-scoped, so a permanent patch would hand
+      // this path to every later picker in the worker instead of its own mock or a real dialog.
+      const originalShowOpenDialog = dialog.showOpenDialog;
+      dialog.showOpenDialog = async () => {
+        dialog.showOpenDialog = originalShowOpenDialog;
+        return { canceled: false, filePaths: [dir] };
+      };
     }, collectionPath);
 
     const locators = buildCommonLocators(page);
