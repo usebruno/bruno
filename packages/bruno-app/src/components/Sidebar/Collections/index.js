@@ -7,14 +7,14 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries } from 'utils/collections/index';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
 
@@ -30,6 +30,23 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
+
+  const selectionInfo = useMemo(
+    () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
+    [collections, selectedSidebarUids]
+  );
+
+  const isMultiDragDisabled = !!selectionInfo && selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp);
+
+  const multiDragCollections = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest) return null;
+    return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
+  }, [selectionInfo]);
+
+  const multiDragItems = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasCollection) return null;
+    return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [selectionInfo]);
 
   const handleContainerClick = (e) => {
     if (e.currentTarget === e.target) {
@@ -71,7 +88,17 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} openBulkMenu={openBulkMenu} />;
+            return (
+              <Collection
+                searchText={searchText}
+                collection={entry.collection}
+                key={entry.key}
+                openBulkMenu={openBulkMenu}
+                isMultiDragDisabled={isMultiDragDisabled}
+                multiDragCollections={multiDragCollections}
+                multiDragItems={multiDragItems}
+              />
+            );
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
