@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp, ElectronApplication } from '../../../playwright';
 import { createWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
@@ -9,13 +9,19 @@ import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Manage Workspace — rename', () => {
+  let app: ElectronApplication;
+
+  test.afterEach(async () => {
+    if (app) await closeElectronApp(app);
+  });
+
   test('TC-2612: Verify renaming a workspace from manage workspace section', { tag: '@sanity' }, async ({
     launchElectronApp,
     createTmpDir
   }) => {
     const wsLocation = await createTmpDir('ws-location-rename');
 
-    const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+    app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
 
     const { manageWorkspace, titleBar } = buildCommonLocators(page);
@@ -71,8 +77,6 @@ test.describe('Manage Workspace — rename', () => {
       );
       expect(config).toMatchObject({ info: { name: 'Renamed WS' } });
     });
-
-    await closeElectronApp(app);
   });
 
   test('TC-6086: Verify renaming a workspace to an existing name is rejected', async ({
@@ -81,7 +85,7 @@ test.describe('Manage Workspace — rename', () => {
   }) => {
     const wsLocation = await createTmpDir('ws-location-rename-conflict');
 
-    const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+    app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
 
     const { manageWorkspace } = buildCommonLocators(page);
@@ -106,7 +110,5 @@ test.describe('Manage Workspace — rename', () => {
       await expect(manageWorkspace.workspaceItem('Rename Conflict WS')).toBeVisible();
       await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
     });
-
-    await closeElectronApp(app);
   });
 });
