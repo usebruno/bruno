@@ -408,7 +408,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             loading="lazy"
             v-if="result.request.isHtml"
             :srcdoc="result.request.data"
-            style="width: 100%; height: 400px; border: none;"
+            style="width: 100%; height: 350px; border: none;"
           ></iframe>
 
           <pre v-else>{{ result.request.data }}</pre>
@@ -434,7 +434,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             loading="lazy"
             v-if="result.response.isHtml"
             :srcdoc="result.response.data"
-            style="width: 100%; height: 400px; border: none;"
+            style="width: 100%; height: 350px; border: none;"
           ></iframe>
 
           <pre v-else>{{ result.response.data }}</pre>
@@ -488,7 +488,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 
       const App = {
         setup() {
-          const rawResults = ${resutsJsonString};
+          const rawResults = ${resutsJsonString.replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')};
 
           const res = computed(() => {
             return mergeTests(rawResults.results);
