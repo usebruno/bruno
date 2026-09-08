@@ -67,14 +67,12 @@ class BrunoRequest {
       url = `https://${url}`;
     }
 
-    const protocolMatch = url.match(schemePattern); // 'https://'
-
-    // everything after the scheme, minus any #fragment: '{{HOST}}/users/:id?role=admin'
-    const remainder = url.substring(protocolMatch[0].length).split('#')[0];
+    // everything after the scheme: '{{HOST}}/users/:id?role=admin'
+    const remainder = url.substring(url.match(schemePattern)[0].length);
 
     // capturing the separator keeps it, so the first piece is the host and rejoining the rest
     // rebuilds what followed: '{{HOST}}' and '/users/:id?role=admin'
-    const [authority, ...rest] = remainder.split(/([/?])/);
+    const [host, ...rest] = remainder.split(/([/?#])/);
     const restUrl = rest.join('');
 
     // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
@@ -83,8 +81,7 @@ class BrunoRequest {
     const search = queryIndex === -1 ? '' : restUrl.substring(queryIndex + 1);
 
     return {
-      // the host is the authority without any user:password@ prefix
-      host: authority.split('@').pop(),
+      host,
       pathname: path,
       search
     };
@@ -102,7 +99,7 @@ class BrunoRequest {
     try {
       let { pathname } = this.__parseUrl();
 
-      // If path params exist, substitute them into the pathname
+      // If path params exist, interpolate them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
         pathname = pathname
           .split('/')
