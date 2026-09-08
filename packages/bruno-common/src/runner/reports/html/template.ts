@@ -805,20 +805,35 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             }
             return hasError.value || hasFailure.value ? 'error' : 'success';
           });
-          const copyToClipboard = (data) => {
+          const copyToClipboard = async (data) => {
             try {
               const textToCopy = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-              navigator.clipboard.writeText(textToCopy).then(() => {
-                if (window.naive && window.naive.message) {
-                  window.naive.message.success('Copied to clipboard!');
-                } else {
-                  console.log('Copied to clipboard!');
-                }
-              }).catch((err) => {
-                console.error('Failed to copy to clipboard:', err);
-              });
-            } catch (e) {
-              console.error('Error copying to clipboard:', e.message);
+              if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(textToCopy);
+              } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (!ok) throw new Error('Copy command was rejected');
+              }
+              if (window.naive && window.naive.message) {
+                window.naive.message.success('Copied to clipboard!');
+              } else {
+                console.log('Copied to clipboard!');
+              }
+            } catch (err) {
+              console.error('Failed to copy to clipboard:', err);
+              if (window.naive && window.naive.message) {
+                window.naive.message.error('Failed to copy to clipboard');
+              }
             }
           };
           return {
