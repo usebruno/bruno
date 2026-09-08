@@ -1,8 +1,5 @@
 import { Page } from '../../../../playwright';
 
-/**
- * Rename Workspace modal locators.
- */
 export const buildRenameWorkspaceModalLocators = (page: Page) => {
   const modal = () => page.getByTestId('rename-workspace-modal');
 

@@ -5,9 +5,6 @@ import { buildRenameWorkspaceModalLocators } from './rename-workspace-modal';
 
 type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
 
-/**
- * Manage Workspace section locators.
- */
 export const buildManageWorkspaceLocators = (page: Page) => {
   const workspaceItem = (workspaceName: string) => page.getByTestId(`workspace-item-${workspaceName}`);
 

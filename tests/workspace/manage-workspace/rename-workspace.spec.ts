@@ -4,7 +4,6 @@ import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { createWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { buildTitleBarLocators } from '../../utils/page/title-bar';
 import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -19,8 +18,7 @@ test.describe('Manage Workspace — rename', () => {
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
 
-    const { manageWorkspace } = buildCommonLocators(page);
-    const titleBar = buildTitleBarLocators(page);
+    const { manageWorkspace, titleBar } = buildCommonLocators(page);
 
     await createWorkspace(page, 'Rename Me WS');
 
