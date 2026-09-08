@@ -80,3 +80,7 @@ runtime:
         test('afterCallEnd carries no single message', () => {
           expect(bru.grpc.response.message).to.be.undefined;
         });
+
+        // Cleared once every assertion above has read it: the two sandbox modes share this
+        // collection, so a value left behind would let the next mode pass without the hook running.
+        bru.setVar('unaryGreeting', '');
