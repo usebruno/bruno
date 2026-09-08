@@ -1,0 +1,62 @@
+info:
+  name: dirname-request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: '{{host}}/ping'
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("requestDir", __dirname);
+        bru.setEnvVar("requestFile", __filename);
+        // fs is only reachable in the developer (node-vm) sandbox, so skip in safe mode.
+        if (!bru.isSafeMode()) {
+          const fs = require('fs');
+          const path = require('path');
+          const raw = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf-8');
+          bru.setEnvVar("readData", JSON.parse(raw).greeting);
+        }
+    - type: tests
+      code: |-
+        test("collection, parent folder, and child folder __dirname are all distinct", function() {
+          const collectionDir = bru.getCollectionVar("collectionDir");
+          const parentDir = bru.getEnvVar("parentDir");
+          const childDir = bru.getEnvVar("childDir");
+          expect(collectionDir).to.not.equal(parentDir);
+          expect(parentDir).to.not.equal(childDir);
+          expect(collectionDir).to.not.equal(childDir);
+        });
+
+        test("child folder __dirname is nested under parent folder __dirname", function() {
+          const parentDir = bru.getEnvVar("parentDir");
+          const childDir = bru.getEnvVar("childDir");
+          expect(childDir.startsWith(parentDir)).to.equal(true);
+          expect(childDir.length).to.be.greaterThan(parentDir.length);
+        });
+
+        test("child folder and request live in the same directory", function() {
+          expect(bru.getEnvVar("childDir")).to.equal(bru.getEnvVar("requestDir"));
+        });
+
+        test("collection __filename ends with opencollection.yml", function() {
+          expect(bru.getCollectionVar("collectionFile").endsWith("opencollection.yml")).to.equal(true);
+        });
+
+        test("parent folder __filename ends with folder.yml", function() {
+          expect(bru.getEnvVar("parentFile").endsWith("folder.yml")).to.equal(true);
+        });
+
+        test("child folder __filename ends with folder.yml but differs from parent", function() {
+          const parentFile = bru.getEnvVar("parentFile");
+          const childFile = bru.getEnvVar("childFile");
+          expect(childFile.endsWith("folder.yml")).to.equal(true);
+          expect(childFile).to.not.equal(parentFile);
+        });
+
+        test("request __filename ends with dirname-request.yml", function() {
+          expect(bru.getEnvVar("requestFile").endsWith("dirname-request.yml")).to.equal(true);
+        });

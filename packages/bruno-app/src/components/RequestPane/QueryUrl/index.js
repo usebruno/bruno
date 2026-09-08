@@ -414,6 +414,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             highlightPathParams={true}
             item={item}
             showNewlineArrow={true}
+            disableLinkAwareClick={true}
           />
           <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
             <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">
