@@ -1557,6 +1557,18 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     expect(result).not.toContain('SECRET');
   });
 
+  it('uses the shared CommonJS Axios instance for Node.js snippets', async () => {
+    const result = await generateSnippet({
+      language: { target: 'node', client: 'axios' },
+      item: makeItem('https://example.com/data'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('const axios = require(\'axios\');');
+    expect(result).not.toContain('require(\'axios\').default');
+  });
+
   it('keeps the template when the resolved value holds a character encodeUrl would rewrite', async () => {
     const result = await generateSnippet({
       language: { target: 'shell', client: 'curl' },
