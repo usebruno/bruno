@@ -78,7 +78,7 @@ const QueryResultPreview = ({
   switch (previewMode) {
     case 'preview-web': {
       const baseUrl = item.requestSent?.url || '';
-      return <HtmlPreview data={data} baseUrl={baseUrl} />;
+      return <HtmlPreview data={data} baseUrl={baseUrl} onLinkClick={handleResponseLinkClick} />;
     }
     case 'preview-image': {
       return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;

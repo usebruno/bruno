@@ -1,8 +1,10 @@
-import React, { Fragment, memo, useMemo } from 'react';
 import LinkifyIt from 'linkify-it';
+import React, { Fragment, memo, useMemo, useState } from 'react';
 import { isHttpUrl } from 'utils/url';
 
 const linkify = new LinkifyIt();
+
+const CHUNK_SIZE = 300;
 
 const TextPreview = memo(({ data, onLinkClick }) => {
   const displayData = useMemo(() => {
@@ -47,9 +49,27 @@ const TextPreview = memo(({ data, onLinkClick }) => {
     return parts;
   }, [displayData, onLinkClick]);
 
+  /* This preview isn't viewport-virtualized like CodeMirror's markUrls, so a huge response
+   * renders in capped chunks instead of all at once; "Show more" reveals the rest on demand.
+   * When a new response comes in, segments is a new array, so this brings the cap back
+   * down to CHUNK_SIZE for it. Checked and set here instead of in an effect, so it takes
+   * effect in this same render instead of one render late.
+   */
+  const [visibleCount, setVisibleCount] = useState(Math.min(segments.length, CHUNK_SIZE));
+  const [prevSegments, setPrevSegments] = useState(segments);
+  if (segments !== prevSegments) {
+    setPrevSegments(segments);
+    setVisibleCount(Math.min(segments.length, CHUNK_SIZE));
+  }
+
+  const remaining = segments.length - visibleCount;
+
   return (
-    <div className="p-4 font-mono text-[13px] whitespace-pre-wrap break-words overflow-auto overflow-x-hidden w-full max-w-full h-full">
-      {segments.map((segment, index) =>
+    <div
+      data-testid="text-preview-container"
+      className="p-4 font-mono text-[13px] whitespace-pre-wrap break-words overflow-auto overflow-x-hidden w-full max-w-full h-full"
+    >
+      {segments.slice(0, visibleCount).map((segment, index) =>
         segment.url ? (
           <span
             key={index}
@@ -62,6 +82,16 @@ const TextPreview = memo(({ data, onLinkClick }) => {
         ) : (
           <Fragment key={index}>{segment.text}</Fragment>
         )
+      )}
+      {remaining > 0 && (
+        <button
+          type="button"
+          data-testid="text-preview-show-more"
+          className="block mt-2 px-2 py-1 rounded border border-current text-xs font-semibold not-italic no-underline opacity-80 hover:opacity-100"
+          onClick={() => setVisibleCount((count) => Math.min(count + CHUNK_SIZE, segments.length))}
+        >
+          Show {Math.min(remaining, CHUNK_SIZE)} more ({remaining} remaining)
+        </button>
       )}
     </div>
   );

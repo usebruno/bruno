@@ -1,7 +1,44 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ErrorBanner from 'ui/ErrorBanner';
-import React, { useState, useMemo } from 'react';
 import { isHttpUrl } from 'utils/url';
 import StyledWrapper from './StyledWrapper';
+
+const CHUNK_SIZE = 200;
+
+/*
+ * A node with a large number of children (e.g. a wide array) renders them in chunks
+ * instead of all at once. A sentinel div sits after the last rendered child, and scrolling
+ * it into view reveals the next chunk - the same pattern as an infinite-scroll list.
+ */
+const useChunkedReveal = (total) => {
+  const [visibleCount, setVisibleCount] = useState(Math.min(total, CHUNK_SIZE));
+  const [prevTotal, setPrevTotal] = useState(total);
+  if (total !== prevTotal) {
+    setPrevTotal(total);
+    setVisibleCount(Math.min(total, CHUNK_SIZE));
+  }
+
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    if (visibleCount >= total) return undefined;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleCount((count) => Math.min(count + CHUNK_SIZE, total));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [visibleCount, total]);
+
+  return [visibleCount, sentinelRef];
+};
 
 // The expected "data" prop must be an XML string.
 export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }) {
@@ -76,7 +113,7 @@ export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="xml-preview-container">
       <div className="xml-container" data-testid="xml-tree">
         <XmlNode
           node={rootNode}
@@ -94,6 +131,7 @@ export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }
 // Component for rendering array entries with expand/collapse functionality
 const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true, onLinkClick }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [visibleCount, sentinelRef] = useChunkedReveal(items.length);
 
   const toggle = (e) => {
     e.stopPropagation();
@@ -116,7 +154,7 @@ const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true, onLinkCl
       </div>
       {expanded && (
         <div className="array-content">
-          {items.map((item, itemIdx) => (
+          {items.slice(0, visibleCount).map((item, itemIdx) => (
             <XmlNode
               key={`${arrayKey}-${itemIdx}`}
               node={item}
@@ -127,6 +165,7 @@ const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true, onLinkCl
               onLinkClick={onLinkClick}
             />
           ))}
+          {visibleCount < items.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       )}
     </div>
@@ -143,6 +182,9 @@ const XmlNode = ({
   onLinkClick
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const childEntries = getChildrenEntries(node);
+  const childCount = getChildCount(node);
+  const [visibleCount, sentinelRef] = useChunkedReveal(childCount);
 
   let displayNodeName = nodeName;
 
@@ -150,7 +192,7 @@ const XmlNode = ({
     // For repeated XML elements with same name (e.g. <item>...</item><item>...</item>)
     return (
       <>
-        {node.map((item, idx) => (
+        {node.slice(0, visibleCount).map((item, idx) => (
           <XmlNode
             key={idx}
             node={item}
@@ -162,12 +204,11 @@ const XmlNode = ({
             onLinkClick={onLinkClick}
           />
         ))}
+        {visibleCount < node.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
       </>
     );
   }
 
-  const childEntries = getChildrenEntries(node);
-  const childCount = getChildCount(node);
   const isLeaf = isTextNode(node) || (typeof node === 'object' && childCount === 0);
 
   const toggle = (e) => {
@@ -225,7 +266,7 @@ const XmlNode = ({
     if (childEntries.length > 0) {
       return (
         <div>
-          {childEntries.map(([key, value], idx) => (
+          {childEntries.slice(0, visibleCount).map(([key, value], idx) => (
             <XmlNode
               key={key + idx}
               node={value}
@@ -236,6 +277,7 @@ const XmlNode = ({
               onLinkClick={onLinkClick}
             />
           ))}
+          {visibleCount < childEntries.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       );
     }
@@ -246,10 +288,6 @@ const XmlNode = ({
   if (!displayNodeName) {
     displayNodeName = '(unnamed)';
   }
-
-  // Determine if this node's value is an array
-  const hasArrayValue = Array.isArray(node);
-  const arrayLength = hasArrayValue ? node.length : 0;
 
   return (
     <div style={{ paddingLeft: `${depth * 20}px` }}>
@@ -276,7 +314,7 @@ const XmlNode = ({
 
       {expanded && childEntries.length > 0 && (
         <div>
-          {childEntries.map(([key, value], idx) => {
+          {childEntries.slice(0, visibleCount).map(([key, value], idx) => {
             // Check if this is an attribute (starts with _)
             const isAttribute = key.startsWith('_');
 
@@ -326,6 +364,7 @@ const XmlNode = ({
               />
             );
           })}
+          {visibleCount < childEntries.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       )}
     </div>
