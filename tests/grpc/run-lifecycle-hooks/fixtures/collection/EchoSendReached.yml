@@ -18,6 +18,6 @@ runtime:
   scripts:
     - type: grpc:after-call-end
       code: |-
-        // Cleared once this request has echoed it: the two sandbox modes share this collection, so a
+        // Deleted once this request has echoed it: the two sandbox modes share this collection, so a
         // value left behind would let the next mode pass without BrokenBeforeMessageSend's hook running.
-        bru.setVar('sendReached', '');
+        bru.deleteVar('sendReached');

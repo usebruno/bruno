@@ -22,7 +22,7 @@ runtime:
     - type: grpc:before-call-start
       code: |-
         bru.setVar('unaryGreeting', 'unary-hooks');
-        bru.setVar('lastReply', '');
+        bru.deleteVar('lastReply');
     - type: grpc:before-message-send
       code: |-
         // Interpolation has already run by the time the message is handed to this hook.
@@ -81,6 +81,6 @@ runtime:
           expect(bru.grpc.response.message).to.be.undefined;
         });
 
-        // Cleared once every assertion above has read it: the two sandbox modes share this
+        // Deleted once every assertion above has read it: the two sandbox modes share this
         // collection, so a value left behind would let the next mode pass without the hook running.
-        bru.setVar('unaryGreeting', '');
+        bru.deleteVar('unaryGreeting');
