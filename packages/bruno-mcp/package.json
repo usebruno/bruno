@@ -1,0 +1,43 @@
+{
+  "name": "@usebruno/mcp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Model Context Protocol server for Bruno collections — lets AI clients discover and execute Bruno requests reusing Bruno's runtime, auth, and environments.",
+  "main": "src/index.js",
+  "bin": {
+    "bruno-mcp": "./bin/bruno-mcp.js"
+  },
+  "bugs": {
+    "url": "https://github.com/usebruno/bruno/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usebruno/bruno.git"
+  },
+  "keywords": [
+    "bruno",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "api-testing",
+    "claude",
+    "cursor"
+  ],
+  "files": [
+    "src",
+    "bin",
+    "readme.md",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@usebruno/cli": "1.16.0",
+    "@usebruno/filestore": "^0.1.0",
+    "js-yaml": "^4.1.0",
+    "yargs": "^17.6.2",
+    "zod": "^3.23.8"
+  }
+}
