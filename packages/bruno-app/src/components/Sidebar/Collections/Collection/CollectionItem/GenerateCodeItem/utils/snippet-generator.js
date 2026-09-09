@@ -13,7 +13,7 @@ const mergeCookieHeaderForCurl = (headers) => {
   let cookieHeaderIndex = -1;
   const merged = [];
   for (const header of headers) {
-    if (header.name !== 'cookie' && header.name !== 'Cookie') {
+    if (header.name.toLowerCase() !== 'cookie') {
       merged.push(header);
       continue;
     }
@@ -21,10 +21,7 @@ const mergeCookieHeaderForCurl = (headers) => {
       cookieHeaderIndex = merged.length;
       merged.push({ ...header, name: 'Cookie' });
     } else {
-      merged[cookieHeaderIndex] = {
-        ...merged[cookieHeaderIndex],
-        value: `${merged[cookieHeaderIndex].value}; ${header.value}`
-      };
+      merged[cookieHeaderIndex].value += `; ${header.value}`;
     }
   }
   return merged;
