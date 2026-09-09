@@ -588,7 +588,6 @@ const EditableTable = React.forwardRef(({
           components={{ TableRow }}
           context={virtuosoContext}
           defaultItemHeight={ROW_HEIGHT}
-          {...(renderFullWidthRow ? { increaseViewportBy: 2000 } : {})}
           initialTopMostItemIndex={initialTopMostItemIndex}
           totalListHeightChanged={handleTotalHeightChanged}
           computeItemKey={(_, item) => item.uid}

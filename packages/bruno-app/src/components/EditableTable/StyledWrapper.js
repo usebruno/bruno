@@ -191,9 +191,6 @@ const StyledWrapper = styled.div`
       }
 
       &.section-header-row {
-        position: sticky;
-        top: 34px;
-        z-index: 12;
         background: ${(props) => props.theme.sidebar.bg};
 
         td.full-width-row {

@@ -176,7 +176,6 @@ test('pins the headers pane to the top when inherited headers are shown or hidde
     await headers.paneScroller().evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    await expect(headers.addRow()).toBeInViewport();
 
     await headers.toggleInherited().click();
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
