@@ -18,6 +18,8 @@ const statements = () => {
   return ready;
 };
 
+const applicationVersion = () => require('electron').app.getVersion();
+
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
 class FileIndex {
@@ -99,7 +101,8 @@ class FileIndex {
       mtime,
       hash,
       data: JSON.stringify(data),
-      raw: raw ?? null
+      raw: raw ?? null,
+      application_version: applicationVersion()
     });
   }
 

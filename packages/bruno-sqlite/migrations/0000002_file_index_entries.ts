@@ -16,6 +16,14 @@
  * Speed is not the deciding factor - the two measure the same within noise, INTEGER wins on
  * correct ordering and on binding the value the filesystem already hands us, without a conversion
  * every writer has to remember.
+ *
+ * `content_bytes` holds the byte size of each cached file (`data` + `raw`), and is indexed.
+ * The cache size shown in Preferences is a SUM over it, so that query scans a small index
+ * instead of opening every row to measure the cached content itself.
+ *
+ * `application_version` is the app version that wrote the row. mtime and hash only catch a changed
+ * file, a new build can parse an unchanged file into different `data`, so a row whose version does
+ * not match the running build has to be re-parsed regardless of what mtime and hash.
  */
 export const up = (): string => {
   return `
@@ -27,6 +35,8 @@ export const up = (): string => {
       hash TEXT NOT NULL,
       data TEXT NOT NULL,
       raw TEXT,
+      content_bytes INTEGER,
+      application_version TEXT,
       created_at INTEGER,
       updated_at INTEGER,
       PRIMARY KEY (collection_path, relative_path)
@@ -34,6 +44,9 @@ export const up = (): string => {
 
     CREATE INDEX IF NOT EXISTS idx_file_index_lookup
       ON file_index_entries(collection_path, relative_path, mtime, hash, id);
+
+    CREATE INDEX IF NOT EXISTS idx_file_index_content_bytes
+      ON file_index_entries(content_bytes);
 
     CREATE INDEX IF NOT EXISTS idx_file_index_url
       ON file_index_entries(json_extract(data, '$.request.url'));

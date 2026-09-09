@@ -1,5 +1,5 @@
 -- name: file_index_stored :many :bigints
-SELECT relative_path AS relativePath, id, mtime, hash
+SELECT relative_path AS relativePath, id, mtime, hash, application_version AS applicationVersion
 FROM file_index_entries
 WHERE collection_path = @collection_path;
 
@@ -10,16 +10,18 @@ WHERE collection_path = @collection_path;
 
 -- name: file_index_upsert :exec
 INSERT INTO file_index_entries
-  (collection_path, relative_path, id, mtime, hash, data, raw, content_bytes, created_at, updated_at)
+  (collection_path, relative_path, id, mtime, hash, data, raw, content_bytes, application_version,
+   created_at, updated_at)
 VALUES
   (@collection_path, @relative_path, @id, @mtime, @hash, @data, @raw,
-   LENGTH(@data) + LENGTH(COALESCE(@raw, '')), unixepoch(), unixepoch())
+   LENGTH(@data) + LENGTH(COALESCE(@raw, '')), @application_version, unixepoch(), unixepoch())
 ON CONFLICT(collection_path, relative_path) DO UPDATE SET
   mtime = excluded.mtime,
   hash = excluded.hash,
   data = excluded.data,
   raw = excluded.raw,
   content_bytes = excluded.content_bytes,
+  application_version = excluded.application_version,
   updated_at = unixepoch();
 
 -- name: file_index_delete_entry :exec
