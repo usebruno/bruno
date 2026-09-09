@@ -46,4 +46,28 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
 
     expect(req.getPath()).toBe('/path/10/{{P2}}');
   });
+
+  it('excludes credentials from the host', () => {
+    const req = new BrunoRequest(makeRequest('https://user:p%40ss@api.example.com:8080/path?a=1'));
+
+    expect(req.getHost()).toBe('api.example.com:8080');
+    expect(req.getPath()).toBe('/path');
+    expect(req.getQueryString()).toBe('a=1');
+  });
+
+  it('excludes the fragment from the path and the query string', () => {
+    const req = new BrunoRequest(makeRequest('https://api.example.com/path?a=1#section'));
+
+    expect(req.getHost()).toBe('api.example.com');
+    expect(req.getPath()).toBe('/path');
+    expect(req.getQueryString()).toBe('a=1');
+  });
+
+  it('applies path params to a path followed by a fragment', () => {
+    const req = new BrunoRequest(
+      makeRequest('{{BASEURL}}/path/:p1#section', { pathParams: [{ name: 'p1', value: '10' }] })
+    );
+
+    expect(req.getPath()).toBe('/path/10');
+  });
 });

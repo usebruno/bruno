@@ -68,12 +68,20 @@ class BrunoRequest {
     }
 
     // everything after the scheme: '{{HOST}}/users/:id?role=admin'
-    const remainder = url.substring(url.match(schemePattern)[0].length);
+    let remainder = url.substring(url.match(schemePattern)[0].length);
 
-    // capturing the separator keeps it, so the first piece is the host and rejoining the rest
-    // rebuilds what followed: '{{HOST}}' and '/users/:id?role=admin'
-    const [host, ...rest] = remainder.split(/([/?#])/);
+    // a fragment belongs to none of the host, path or query, so drop it before splitting
+    const fragmentIndex = remainder.indexOf('#');
+    if (fragmentIndex !== -1) {
+      remainder = remainder.substring(0, fragmentIndex);
+    }
+
+    // split into authority and the rest: '{{HOST}}' and '/users/:id?role=admin'
+    const [authority, ...rest] = remainder.split(/([/?])/);
     const restUrl = rest.join('');
+
+    // credentials are part of the authority but not of the host: 'user:pass@{{HOST}}' -> '{{HOST}}'
+    const host = authority.substring(authority.lastIndexOf('@') + 1);
 
     // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
     const queryIndex = restUrl.indexOf('?');
