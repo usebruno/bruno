@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
+import { useSettleScrollAfterMount } from 'hooks/useSettleScrollAfterMount';
 
 const SAVE_DEBOUNCE_MS = 200;
 
@@ -14,6 +15,8 @@ export type UseTrackScrollOptions = {
   selector?: string | null;
   /** Set false to pause tracking (e.g. edit mode in Docs where CodeEditor handles its own scroll). */
   enabled?: boolean;
+  /** Code blocks and tables mount after the initial render, Keep restoring until the layout settles. */
+  settleAfterAsyncLayout?: boolean;
 };
 
 /**
@@ -28,12 +31,14 @@ export type UseTrackScrollOptions = {
  *   <CodeEditor initialScroll={scroll} onScroll={setScroll} />
  */
 export function useTrackScroll(options: UseTrackScrollOptions): void {
-  const { onChange, initialValue, ref, selector, enabled = true } = options;
+  const { onChange, initialValue, ref, selector, enabled = true, settleAfterAsyncLayout = false } = options;
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollPosRef = useRef<number>(initialValue ?? 0);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const settleController = useSettleScrollAfterMount();
 
   useEffect(() => {
     if (!enabled || !ref) return;
@@ -45,9 +50,23 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
       : ref.current;
     if (!el) return;
 
-    el.scrollTop = scrollPosRef.current;
+    // Captured once, before any clamping can happen, so the settle pass
+    // below always aims at what we actually meant to restore.
+    const targetScroll = scrollPosRef.current;
+
+    if (settleAfterAsyncLayout) {
+      settleController.writeScrollTop(el, targetScroll);
+    } else {
+      el.scrollTop = targetScroll;
+    }
+
+    const settleHandle = settleAfterAsyncLayout ? settleController.settle(el, targetScroll) : null;
 
     const handleScroll = () => {
+      // ignore this scroll event if it is caused programmatically.
+      if (settleAfterAsyncLayout && settleController.consumeSuppressedScroll()) return;
+      // on a user scroll stop the mutation observer
+      settleHandle?.stop();
       scrollPosRef.current = el.scrollTop;
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => onChangeRef.current(scrollPosRef.current), SAVE_DEBOUNCE_MS);
@@ -57,7 +76,8 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
     return () => {
       el.removeEventListener('scroll', handleScroll);
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      settleHandle?.stop();
       onChangeRef.current(scrollPosRef.current);
     };
-  }, [ref, selector, enabled]);
+  }, [ref, selector, enabled, settleAfterAsyncLayout]);
 }
