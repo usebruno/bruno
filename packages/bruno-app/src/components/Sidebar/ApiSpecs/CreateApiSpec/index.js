@@ -81,7 +81,7 @@ const CreateApiSpec = ({ onClose }) => {
           toast.error(importError);
           return;
         }
-        const { files, envVariables, processEnvVariables, collectionVariables } = collectionData;
+        const { requests, envVariables, processEnvVariables, collectionVariables } = collectionData;
         const variables = {
           ...(collectionVariables || {}),
           ...(values?.environment ? getEnvironmentVariablesKeyValuePairs(envVariables[values.environment] || {}) : {}),
@@ -93,7 +93,7 @@ const CreateApiSpec = ({ onClose }) => {
           variables: vars
         }));
         // Create API spec yaml
-        const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: files, environments: environmentsList });
+        const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: requests, environments: environmentsList });
         if (exportedYamlContentData?.content) {
           yamlContent = exportedYamlContentData?.content;
         }
@@ -157,8 +157,8 @@ const CreateApiSpec = ({ onClose }) => {
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke('renderer:get-collection-json', collectionLocation)
-        .then(({ files, name, configFile, envVariables, processEnvVariables, collectionVariables, skipped }) => {
-          setCollectionData({ name, configFile, files, envVariables, processEnvVariables, collectionVariables });
+        .then(({ requests, name, configFile, envVariables, processEnvVariables, collectionVariables, skipped }) => {
+          setCollectionData({ name, configFile, requests, envVariables, processEnvVariables, collectionVariables });
           const environments = envVariables || {};
           const environmentNames = Object.keys(environments);
           setEnvironments(environments);

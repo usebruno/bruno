@@ -62,7 +62,7 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
   });
 
   it('reads every http and graphql request, including nested folders', () => {
-    const byName = Object.fromEntries(result.files.map((f) => [f.name, f.type]));
+    const byName = Object.fromEntries(result.requests.map((f) => [f.name, f.type]));
     expect(byName).toEqual({ GetUsers: 'http-request', GetPosts: 'http-request', GqlUsers: 'graphql-request' });
   });
 
@@ -71,7 +71,7 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
   });
 
   it('sets pathname and depth so folder tags/operationIds match the in-app export', () => {
-    const byName = Object.fromEntries(result.files.map((f) => [f.name, f]));
+    const byName = Object.fromEntries(result.requests.map((f) => [f.name, f]));
     expect(byName.GetUsers.depth).toBe(1);
     expect(byName.GetPosts.depth).toBe(2);
     expect(byName.GqlUsers.depth).toBe(2);
@@ -80,7 +80,7 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
   });
 
   it('keeps the graphql query intact in the parsed request body', () => {
-    const gql = result.files.find((f) => f.name === 'GqlUsers');
+    const gql = result.requests.find((f) => f.name === 'GqlUsers');
     expect(gql.request.body.mode).toBe('graphql');
     expect(gql.request.body.graphql.query).toContain('users');
   });
@@ -100,7 +100,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     writeFile(dir, 'Good.bru', stringifyRequest(httpItem('Good', 'https://api.test/ok'), { format: 'bru' }));
     writeFile(dir, 'Broken.bru', 'not valid bru at all {{{{');
     const result = await readCollectionForApiSpec(dir);
-    expect(result.files.map((f) => f.name)).toEqual(['Good']);
+    expect(result.requests.map((f) => f.name)).toEqual(['Good']);
     expect(result.skipped).toEqual(['Broken.bru']);
   });
 
@@ -212,7 +212,7 @@ describe('readCollectionForApiSpec: yml collection config (opencollection.yml)',
     writeFile(dir, path.join('drafts', 'Scratch.yml'), stringifyRequest(httpItem('Scratch', 'https://api.test/scratch'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.name).toBe('YmlColl');
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 });
 
@@ -237,7 +237,7 @@ describe('readCollectionForApiSpec: collection-level variables', () => {
     writeFile(dir, 'GetUsers.yml', stringifyRequest(httpItem('GetUsers', '{{baseUrl}}/users'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.collectionVariables).toEqual({ baseUrl: 'https://coll.test' });
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
   it('extracts collection variables from a bru collection root, which parses to a different shape than yml', async () => {
@@ -247,7 +247,7 @@ describe('readCollectionForApiSpec: collection-level variables', () => {
     writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', '{{baseUrl}}/users'), { format: 'bru' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.collectionVariables).toEqual({ baseUrl: 'https://coll.test' });
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
   it('leaves out disabled collection variables', async () => {
@@ -279,7 +279,7 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     writeFile(dir, 'GetUsers.yml', stringifyRequest(httpItem('GetUsers', 'https://api.test/users'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.name).toBe('');
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
   it('reports a malformed collection root in skipped so the missing collection variables are surfaced', async () => {
@@ -290,14 +290,14 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     const result = await readCollectionForApiSpec(dir);
     expect(result.skipped).toEqual(['collection.bru']);
     expect(result.collectionVariables).toEqual({});
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 
   it('reads a real collection that has no requests in it and simply finds nothing to export', async () => {
     const dir = mkTmp('empty');
     writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'Empty' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(result.files).toEqual([]);
+    expect(result.requests).toEqual([]);
     expect(result.envVariables).toEqual({});
     expect(result.collectionVariables).toEqual({});
     expect(result.skipped).toEqual([]);
@@ -336,6 +336,6 @@ describe('readCollectionForApiSpec: folders that are not Bruno collections', () 
     writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'JsonOnly' }));
     writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/ok'), { format: 'bru' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(result.files.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 });

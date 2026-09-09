@@ -56,7 +56,7 @@ describe('buildSkippedFilesMessage', () => {
 });
 
 describe('getCollectionImportError', () => {
-  const collection = (files) => ({ name: 'C', configFile: 'bruno.json', files, envVariables: {}, collectionVariables: {} });
+  const collection = (requests) => ({ name: 'C', configFile: 'bruno.json', requests, envVariables: {}, collectionVariables: {} });
 
   it('stops the user creating a spec when the chosen collection could not be read', () => {
     expect(getCollectionImportError(null)).toMatch(/bruno.json or opencollection.yml/);
