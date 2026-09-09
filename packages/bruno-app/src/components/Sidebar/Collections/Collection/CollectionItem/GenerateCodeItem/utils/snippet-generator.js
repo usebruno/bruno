@@ -32,6 +32,18 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+// HTTPSnippet's Node.js Axios target uses the ESM interop default export form,
+// but this generator emits CommonJS code. Requiring Axios directly preserves
+// the shared Axios instance used by interceptors and other global configuration.
+const normalizeNodeAxiosImport = (snippet, language) => {
+  if (language.target === 'node' && language.client === 'axios') {
+    const pattern = /^const axios = require\('axios'\)\.default;/;
+    return snippet.replace(pattern, 'const axios = require(\'axios\');');
+  }
+
+  return snippet;
+};
+
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -80,7 +92,7 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
 
     // Generate snippet using HTTPSnippet
     const snippet = new HTTPSnippet(har);
-    let result = snippet.convert(language.target, language.client);
+    let result = normalizeNodeAxiosImport(snippet.convert(language.target, language.client), language);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
     if (language.target === 'shell' && language.client === 'curl') {
