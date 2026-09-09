@@ -66,10 +66,6 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
     expect(byName).toEqual({ GetUsers: 'http-request', GetPosts: 'http-request', GqlUsers: 'graphql-request' });
   });
 
-  it('reads the collection name from the config file for its format', () => {
-    expect(result.name).toBe('MyCollection');
-  });
-
   it('sets pathname and depth so folder tags/operationIds match the in-app export', () => {
     const byName = Object.fromEntries(result.requests.map((f) => [f.name, f]));
     expect(byName.GetUsers.depth).toBe(1);
@@ -205,13 +201,12 @@ describe('readCollectionForApiSpec: robustness', () => {
 });
 
 describe('readCollectionForApiSpec: yml collection config (opencollection.yml)', () => {
-  it('reads the name from opencollection.yml and honors its ignore patterns for a yml collection', async () => {
+  it('honors the ignore patterns from opencollection.yml for a yml collection', async () => {
     const dir = mkTmp('ocignore');
     writeFile(dir, 'opencollection.yml', stringifyCollection({}, { name: 'YmlColl', version: '1', ignore: ['drafts/**'] }));
     writeFile(dir, 'GetUsers.yml', stringifyRequest(httpItem('GetUsers', 'https://api.test/users'), { format: 'yml' }));
     writeFile(dir, path.join('drafts', 'Scratch.yml'), stringifyRequest(httpItem('Scratch', 'https://api.test/scratch'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(result.name).toBe('YmlColl');
     expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
   });
 });
@@ -270,7 +265,7 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     writeFile(dir, 'opencollection.yml', stringifyCollection({}, { name: 'FromYml', version: '1' }));
     writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'FromJson' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(result.name).toBe('FromYml');
+    expect(result.configFile).toBe('opencollection.yml');
   });
 
   it('still loads requests when opencollection.yml is malformed, and reports the config as skipped', async () => {
@@ -278,7 +273,6 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     writeFile(dir, 'opencollection.yml', ':: not valid yaml ::\n\t');
     writeFile(dir, 'GetUsers.yml', stringifyRequest(httpItem('GetUsers', 'https://api.test/users'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(result.name).toBe('');
     expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
     expect(result.skipped).toEqual(['opencollection.yml']);
   });
@@ -318,7 +312,6 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     expect(result.envVariables).toEqual({});
     expect(result.collectionVariables).toEqual({});
     expect(result.skipped).toEqual([]);
-    expect(result.name).toBe('Empty');
   });
 });
 

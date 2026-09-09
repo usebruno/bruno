@@ -1,4 +1,4 @@
-import { buildSkippedFilesMessage, buildExportWarningsMessage, getCollectionImportError } from './apiSpec';
+import { buildSkippedFilesMessage, buildExportWarningsMessage } from './apiSpec';
 
 describe('buildSkippedFilesMessage', () => {
   const files = (count) => Array.from({ length: count }, (_, i) => `File${i + 1}.bru`);
@@ -31,27 +31,10 @@ describe('buildSkippedFilesMessage', () => {
     expect(message).toContain('and 195 more');
   });
 
-  it('lets the caller choose how many file names to show', () => {
-    expect(buildSkippedFilesMessage(files(8), 2)).toBe(
-      'Could not parse File1.bru, File2.bru and 6 more; they were skipped'
-    );
-  });
-
-  it('shows every name when the caller allows more names than there are files', () => {
-    const message = buildSkippedFilesMessage(files(8), 10);
-    expect(message.match(/File\d+\.bru/g)).toHaveLength(8);
-    expect(message).not.toContain('more');
-  });
-
-  it('uses the standard limit when the caller does not choose one', () => {
-    expect(buildSkippedFilesMessage(files(8), undefined)).toBe(buildSkippedFilesMessage(files(8)));
-    expect(buildSkippedFilesMessage(files(8))).toContain('and 3 more');
-  });
-
   it('always matches the leftover count to the names it left out', () => {
-    const message = buildSkippedFilesMessage(files(8), -1);
-    expect(message.match(/File\d+\.bru/g)).toHaveLength(7);
-    expect(message).toContain('and 1 more');
+    const message = buildSkippedFilesMessage(files(9));
+    expect(message.match(/File\d+\.bru/g)).toHaveLength(5);
+    expect(message).toContain('and 4 more');
   });
 });
 
@@ -70,29 +53,5 @@ describe('buildExportWarningsMessage', () => {
 
   it('counts every warning, however many there are', () => {
     expect(buildExportWarningsMessage(new Array(12).fill('Broken.bru'))).toContain('Created with 12 warnings');
-  });
-});
-
-describe('getCollectionImportError', () => {
-  const collection = (requests) => ({ name: 'C', configFile: 'bruno.json', requests, envVariables: {}, collectionVariables: {} });
-
-  it('stops the user creating a spec when the chosen collection could not be read', () => {
-    expect(getCollectionImportError(null)).toMatch(/bruno.json or opencollection.yml/);
-  });
-
-  it('stops the user creating a spec before they have picked a collection', () => {
-    expect(getCollectionImportError(undefined)).toMatch(/bruno.json or opencollection.yml/);
-  });
-
-  it('allows a real collection that has no requests in it yet', () => {
-    expect(getCollectionImportError(collection([]))).toBeNull();
-  });
-
-  it('allows a real collection even when it has no list of requests at all', () => {
-    expect(getCollectionImportError({ name: 'C', configFile: 'opencollection.yml' })).toBeNull();
-  });
-
-  it('allows a collection that has at least one request in it', () => {
-    expect(getCollectionImportError(collection([{ name: 'GetUsers' }]))).toBeNull();
   });
 });

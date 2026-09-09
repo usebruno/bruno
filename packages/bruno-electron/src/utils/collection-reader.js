@@ -109,7 +109,6 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
   }
 
   return {
-    name: brunoConfig?.name || '',
     configFile,
     requests,
     envVariables,

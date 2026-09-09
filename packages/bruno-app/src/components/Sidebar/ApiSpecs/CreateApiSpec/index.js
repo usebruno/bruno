@@ -12,7 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { buildSkippedFilesMessage, buildExportWarningsMessage, getCollectionImportError } from 'utils/common/apiSpec';
+import { buildSkippedFilesMessage, buildExportWarningsMessage } from 'utils/common/apiSpec';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -76,9 +76,8 @@ const CreateApiSpec = ({ onClose }) => {
       let yamlContent = '';
       let exportWarnings = [];
       if (values?.importFrom === 'collection') {
-        const importError = getCollectionImportError(collectionData);
-        if (importError) {
-          toast.error(importError);
+        if (!collectionData?.configFile) {
+          toast.error('Could not load that collection. Pick a folder that contains a bruno.json or opencollection.yml.');
           return;
         }
         const { requests, envVariables, processEnvVariables, collectionVariables } = collectionData;
@@ -156,9 +155,9 @@ const CreateApiSpec = ({ onClose }) => {
       const { ipcRenderer } = window;
       ipcRenderer
         .invoke('renderer:get-collection-json', collectionLocation)
-        .then(({ requests, name, configFile, envVariables, processEnvVariables, collectionVariables, skipped }) => {
-          setCollectionData({ name, configFile, requests, envVariables, processEnvVariables, collectionVariables });
-          const environments = envVariables || {};
+        .then(({ skipped, ...collectionData }) => {
+          setCollectionData(collectionData);
+          const environments = collectionData.envVariables || {};
           const environmentNames = Object.keys(environments);
           setEnvironments(environments);
           formik.setFieldValue('environment', environmentNames[0] || '');
