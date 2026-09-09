@@ -1,47 +1,11 @@
 import { coerceEnvColor, coerceEnvName } from 'utils/environments';
 import {
   buildReviewItems,
-  describeUnusableName,
   ENV_STATUS,
-  hasUsableName,
   initialResolutions,
   initialSelection,
   RESOLUTION_TYPES
 } from './utils';
-
-describe('hasUsableName', () => {
-  it.each([
-    ['a plain name', 'dev', true],
-    ['a name with surrounding space', '  dev  ', true],
-    ['an empty string', '', false],
-    ['whitespace only', '   ', false],
-    ['undefined', undefined, false],
-    ['null', null, false],
-    // The truthy non-strings are the ones that used to reach normalizeEnvName and throw.
-    ['a number', 123, false],
-    ['zero', 0, false],
-    ['a boolean', true, false],
-    ['an object', {}, false],
-    ['a non-empty array', ['dev'], false],
-    ['an empty array', [], false]
-  ])('rejects or accepts %s', (_label, name, expected) => {
-    expect(hasUsableName({ name })).toBe(expected);
-  });
-
-  it('tolerates a missing environment', () => {
-    expect(hasUsableName(undefined)).toBe(false);
-  });
-});
-
-describe('describeUnusableName', () => {
-  it.each([[undefined], [null], [''], ['   ']])('reports an absent name for %p', (name) => {
-    expect(describeUnusableName(name)).toBe('Environment has no name');
-  });
-
-  it.each([[123], [true], [{}], [['dev']]])('reports a wrong type for %p', (name) => {
-    expect(describeUnusableName(name)).toBe('Environment name must be text');
-  });
-});
 
 describe('coerceEnvName', () => {
   it.each([
@@ -126,11 +90,25 @@ describe('buildReviewItems', () => {
     expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
   });
 
-  it('demotes an environment with an unusable name instead of dropping the batch', () => {
+  it('demotes an environment whose name never went through coercion', () => {
     const items = buildReviewItems({ valid: [env('dev'), { name: 123, fileName: 'odd.json' }], existingNames: [] });
 
     expect(items.map((item) => item.status)).toEqual([ENV_STATUS.NEW, ENV_STATUS.INVALID]);
-    expect(items[1]).toMatchObject({ fileName: 'odd.json', error: 'Environment name must be text' });
+    expect(items[1]).toMatchObject({ fileName: 'odd.json', error: 'Could not be read' });
+  });
+
+  it('survives a null entry among the importable environments', () => {
+    const items = buildReviewItems({ valid: [env('dev'), null, env('prod')], existingNames: [] });
+
+    expect(items.map((item) => item.status)).toEqual([ENV_STATUS.NEW, ENV_STATUS.NEW, ENV_STATUS.INVALID]);
+    expect(items[2]).toMatchObject({ fileName: 'Unknown', error: 'Could not be read' });
+  });
+
+  it('survives a null entry among the failures, which sits outside the loop', () => {
+    const items = buildReviewItems({ valid: [env('dev')], invalid: [null], existingNames: [] });
+
+    expect(items.map((item) => item.status)).toEqual([ENV_STATUS.NEW, ENV_STATUS.INVALID]);
+    expect(items[1]).toMatchObject({ fileName: 'Unknown' });
   });
 
   it('survives an environment that throws while being classified', () => {

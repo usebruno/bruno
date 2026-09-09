@@ -24,15 +24,8 @@ export const RESOLUTION_OPTIONS = [
   { value: RESOLUTION_TYPES.REPLACE, label: 'Replace', title: 'Replace existing', testId: 'env-import-replace-btn' }
 ];
 
-export const hasUsableName = (env) => typeof env?.name === 'string' && env.name.trim() !== '';
-
-export const describeUnusableName = (name) =>
-  name === undefined || name === null || typeof name === 'string'
-    ? 'Environment has no name'
-    : 'Environment name must be text';
-
-const failedRow = ({ fileName }, error) => ({
-  fileName: fileName || 'Unknown',
+const failedRow = (source, error) => ({
+  fileName: source?.fileName || 'Unknown',
   error,
   status: ENV_STATUS.INVALID
 });
@@ -40,14 +33,10 @@ const failedRow = ({ fileName }, error) => ({
 export const buildReviewItems = ({ valid = [], invalid = [], existingNames = [] }) => {
   const takenNames = new Set(existingNames.map(normalizeEnvName));
   const importable = [];
-  const failures = invalid.map((failure) => failedRow(failure, failure.error));
+  const failures = invalid.map((failure) => failedRow(failure, failure?.error));
 
   for (const env of valid) {
     try {
-      if (!hasUsableName(env)) {
-        failures.push(failedRow(env, describeUnusableName(env.name)));
-        continue;
-      }
       const status = takenNames.has(normalizeEnvName(env.name)) ? ENV_STATUS.DUPLICATE : ENV_STATUS.NEW;
       importable.push({ ...env, status });
     } catch (err) {
