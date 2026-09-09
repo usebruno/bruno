@@ -3,7 +3,8 @@ import sidebarRowStyles from 'components/Sidebar/SidebarRowStyles';
 
 const Wrapper = styled.div`
   .collection-name {
-    ${sidebarRowStyles({ selectedClass: 'collection-focused-in-tab', keyboardFocusedClass: 'collection-keyboard-focused' })}
+    padding-left: 4px;
+    ${sidebarRowStyles({ selectedClass: 'collection-focused-in-tab', keyboardFocusedClass: 'collection-keyboard-focused', actionsClass: 'collection-actions' })}
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -15,10 +16,6 @@ const Wrapper = styled.div`
 
     &.drag-disabled:active {
       cursor: not-allowed !important;
-    }
-
-    &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
     div.tippy-box {

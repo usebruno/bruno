@@ -1,13 +1,12 @@
 import { css } from 'styled-components';
 
-const sidebarRowStyles = ({ selectedClass, keyboardFocusedClass }) => css`
+const sidebarRowStyles = ({ selectedClass, keyboardFocusedClass, actionsClass }) => css`
   height: 1.6rem;
   cursor: pointer;
   user-select: none;
-  padding-left: 4px;
   border-left: 4px solid transparent;
 
-  .collection-actions {
+  .${actionsClass} {
     visibility: hidden;
   }
 
@@ -15,13 +14,13 @@ const sidebarRowStyles = ({ selectedClass, keyboardFocusedClass }) => css`
   &:focus-within,
   &.${keyboardFocusedClass} {
     background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    .collection-actions {
+    .${actionsClass} {
       visibility: visible;
       background-color: transparent !important;
     }
   }
 
-  .collection-actions[aria-expanded='true'] {
+  .${actionsClass}[aria-expanded='true'] {
     visibility: visible;
   }
 

@@ -21,7 +21,7 @@ const Wrapper = styled.div`
   }
 
   .api-spec-item {
-    ${sidebarRowStyles({ selectedClass: 'active', keyboardFocusedClass: 'api-spec-keyboard-focused' })}
+    ${sidebarRowStyles({ selectedClass: 'active', keyboardFocusedClass: 'api-spec-keyboard-focused', actionsClass: 'apispec-row-actions' })}
   }
 
   .placeholder {

@@ -47,6 +47,8 @@ const ApiSpecItem = ({ apiSpec }) => {
         isActive && !isKeyboardFocused ? 'active' : ''
       } ${isKeyboardFocused ? 'api-spec-keyboard-focused' : ''}`}
       tabIndex={0}
+      data-testid="sidebar-api-spec-row"
+      data-selected={isActive ? 'true' : undefined}
       onFocus={() => setIsKeyboardFocused(true)}
       onBlur={() => setIsKeyboardFocused(false)}
       onKeyDown={handleRowKeyDown}
@@ -56,7 +58,7 @@ const ApiSpecItem = ({ apiSpec }) => {
         className="cursor-pointer flex items-center flex-grow w-[80%] justify-between"
         onClick={handleOpenApiSpec(apiSpec)}
       >
-        <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
+        <span className="pl-3 flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
       </div>
       <div className="pr-2">
         <MenuDropdown
@@ -64,8 +66,9 @@ const ApiSpecItem = ({ apiSpec }) => {
           placement="bottom-start"
           appendTo={dropdownContainerRef?.current || document.body}
           popperOptions={{ strategy: 'fixed' }}
+          data-testid="api-spec-actions"
         >
-          <ActionIcon className="collection-actions">
+          <ActionIcon className="apispec-row-actions">
             <IconDots size={18} />
           </ActionIcon>
         </MenuDropdown>
