@@ -64,9 +64,8 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
   });
 
   it('applies path params to a path followed by a fragment', () => {
-    const req = new BrunoRequest(
-      makeRequest('{{BASEURL}}/path/:p1#section', { pathParams: [{ name: 'p1', value: '10' }] })
-    );
+    const request = makeRequest('{{BASEURL}}/path/:p1#section', { pathParams: [{ name: 'p1', value: '10' }] });
+    const req = new BrunoRequest(request);
 
     expect(req.getPath()).toBe('/path/10');
   });
