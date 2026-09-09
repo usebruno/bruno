@@ -25,13 +25,21 @@ const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) =
 };
 
 const renderRow = (props) => {
-  const { row, searchText, openBulkMenu, collectionsByUid } = props;
+  const { row, searchText, openBulkMenu, collectionsByUid, isMultiDragDisabled, multiDragCollections, multiDragItems } = props;
   const resolved = resolveRowObject(props);
 
   switch (row.kind) {
     case 'collection': {
       if (!resolved) return null;
-      return <CollectionRow collection={resolved} searchText={searchText} openBulkMenu={openBulkMenu} />;
+      return (
+        <CollectionRow
+          collection={resolved}
+          searchText={searchText}
+          openBulkMenu={openBulkMenu}
+          isMultiDragDisabled={isMultiDragDisabled}
+          multiDragCollections={multiDragCollections}
+        />
+      );
     }
     case 'folder':
     case 'app':
@@ -45,6 +53,8 @@ const renderRow = (props) => {
           collectionPathname={row.collectionPathname}
           searchText={searchText}
           openBulkMenu={openBulkMenu}
+          isMultiDragDisabled={isMultiDragDisabled}
+          multiDragItems={multiDragItems}
         />
       );
     }
