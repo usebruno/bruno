@@ -13,3 +13,11 @@ grpc:
         {
           "greeting": "send-{{sendReached}}"
         }
+
+runtime:
+  scripts:
+    - type: grpc:after-call-end
+      code: |-
+        // Deleted once this request has echoed it: the two sandbox modes share this collection, so a
+        // value left behind would let the next mode pass without BrokenBeforeMessageSend's hook running.
+        bru.deleteVar('sendReached');
