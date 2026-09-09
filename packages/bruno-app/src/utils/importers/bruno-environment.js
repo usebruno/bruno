@@ -1,10 +1,15 @@
 import { BrunoError } from 'utils/common/error';
-import { buildEnvVariable, dedupeImportedSecrets } from 'utils/environments';
+import { buildEnvVariable, coerceEnvColor, coerceEnvName, dedupeImportedSecrets } from 'utils/environments';
 import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
 
 const validateBrunoEnvironment = (env, filePath, fileName) => {
   if (!env || typeof env !== 'object') {
     throw new BrunoError('Invalid environment: expected an object');
+  }
+
+  const name = coerceEnvName(env.name);
+  if (name === null) {
+    throw new BrunoError('Invalid environment: missing or invalid name');
   }
 
   if (!Array.isArray(env.variables)) {
@@ -30,9 +35,9 @@ const validateBrunoEnvironment = (env, filePath, fileName) => {
   const variables = env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }));
 
   return {
-    name: env.name,
+    name,
     variables: dedupeImportedSecrets(variables),
-    color: env.color,
+    color: coerceEnvColor(env.color),
     extends: environmentExtendsFrom,
     filePath,
     fileName

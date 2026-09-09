@@ -26,9 +26,19 @@ const EMPTY_STATE_DESCRIPTIONS = {
 };
 
 /**
- * Generates background color with transparency for environment badges
+ * Generates background color with transparency for environment badges.
+ * polished throws on anything it cannot parse, and the colour comes from a .bru file that may
+ * have been hand-edited, so an unreadable value has to degrade to no tint - not take the render
+ * down with it.
  */
-const getEnvBackgroundColor = (color) => (color ? transparentize(1 - 0.12, color) : 'transparent');
+const getEnvBackgroundColor = (color) => {
+  if (!color) return 'transparent';
+  try {
+    return transparentize(1 - 0.12, color);
+  } catch {
+    return 'transparent';
+  }
+};
 
 /**
  * Calculates the style for an environment badge section
