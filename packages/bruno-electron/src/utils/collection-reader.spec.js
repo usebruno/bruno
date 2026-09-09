@@ -273,13 +273,30 @@ describe('readCollectionForApiSpec: config edge cases', () => {
     expect(result.name).toBe('FromYml');
   });
 
-  it('still loads requests when opencollection.yml is malformed', async () => {
+  it('still loads requests when opencollection.yml is malformed, and reports the config as skipped', async () => {
     const dir = mkTmp('bad-config');
     writeFile(dir, 'opencollection.yml', ':: not valid yaml ::\n\t');
     writeFile(dir, 'GetUsers.yml', stringifyRequest(httpItem('GetUsers', 'https://api.test/users'), { format: 'yml' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.name).toBe('');
     expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
+    expect(result.skipped).toEqual(['opencollection.yml']);
+  });
+
+  it('reports a malformed bruno.json as skipped, since its ignore patterns are lost', async () => {
+    const dir = mkTmp('bad-json');
+    writeFile(dir, 'bruno.json', '{ not valid json');
+    writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/users'), { format: 'bru' }));
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.skipped).toEqual(['bruno.json']);
+    expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
+  });
+
+  it('leaves skipped empty when the config is fine but carries no collection config', async () => {
+    const dir = mkTmp('ok-config');
+    writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'Fine' }));
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.skipped).toEqual([]);
   });
 
   it('reports a malformed collection root in skipped so the missing collection variables are surfaced', async () => {

@@ -20,17 +20,17 @@ const readCollectionConfig = async (collectionPath) => {
   try {
     if (configFile === 'opencollection.yml') {
       const parsed = await parseCollection(fs.readFileSync(configPath, 'utf8'), { format: 'yml' });
-      return { configFile, brunoConfig: parsed?.brunoConfig || null };
+      return { configFile, brunoConfig: parsed?.brunoConfig || null, configParsed: true };
     }
-    return { configFile, brunoConfig: JSON.parse(fs.readFileSync(configPath, 'utf8')) };
+    return { configFile, brunoConfig: JSON.parse(fs.readFileSync(configPath, 'utf8')), configParsed: true };
   } catch (err) {
-    console.error(err);
-    return { configFile, brunoConfig: null };
+    console.error(`Failed to parse ${configFile}:`, err);
+    return { configFile, brunoConfig: null, configParsed: false };
   }
 };
 
 const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = {}) => {
-  const { configFile, brunoConfig } = await readCollectionConfig(collectionPath);
+  const { configFile, brunoConfig, configParsed } = await readCollectionConfig(collectionPath);
 
   const requests = [];
   const envVariables = {};
@@ -38,12 +38,22 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
   const skipped = [];
   let processEnvVariables;
 
+  const markSkipped = (relativePath) => {
+    if (!skipped.includes(relativePath)) {
+      skipped.push(relativePath);
+    }
+  };
+
+  if (!configParsed) {
+    markSkipped(configFile);
+  }
+
   const collect = async (label, relativePath, read) => {
     try {
       await read();
     } catch (err) {
       console.error(`Failed to parse ${label} ${relativePath}:`, err);
-      skipped.push(relativePath);
+      markSkipped(relativePath);
     }
   };
 

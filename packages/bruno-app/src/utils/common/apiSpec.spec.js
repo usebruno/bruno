@@ -1,4 +1,4 @@
-import { buildSkippedFilesMessage, getCollectionImportError } from './apiSpec';
+import { buildSkippedFilesMessage, buildExportWarningsMessage, getCollectionImportError } from './apiSpec';
 
 describe('buildSkippedFilesMessage', () => {
   const files = (count) => Array.from({ length: count }, (_, i) => `File${i + 1}.bru`);
@@ -52,6 +52,24 @@ describe('buildSkippedFilesMessage', () => {
     const message = buildSkippedFilesMessage(files(8), -1);
     expect(message.match(/File\d+\.bru/g)).toHaveLength(7);
     expect(message).toContain('and 1 more');
+  });
+});
+
+describe('buildExportWarningsMessage', () => {
+  it('says "warning" when only one request could not be read fully', () => {
+    expect(buildExportWarningsMessage(['GetUsers.bru'])).toBe(
+      'Created with 1 warning; some request bodies could not be fully parsed'
+    );
+  });
+
+  it('says "warnings" when several requests could not be read fully', () => {
+    expect(buildExportWarningsMessage(['GetUsers.bru', 'CreateUser.bru'])).toBe(
+      'Created with 2 warnings; some request bodies could not be fully parsed'
+    );
+  });
+
+  it('counts every warning, however many there are', () => {
+    expect(buildExportWarningsMessage(new Array(12).fill('Broken.bru'))).toContain('Created with 12 warnings');
   });
 });
 

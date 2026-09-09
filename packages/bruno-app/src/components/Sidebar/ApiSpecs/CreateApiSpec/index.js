@@ -12,7 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { buildSkippedFilesMessage, getCollectionImportError } from 'utils/common/apiSpec';
+import { buildSkippedFilesMessage, buildExportWarningsMessage, getCollectionImportError } from 'utils/common/apiSpec';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -106,7 +106,7 @@ const CreateApiSpec = ({ onClose }) => {
           }, 200);
           toast.success('ApiSpec created');
           if (exportWarnings.length) {
-            toast(`Created with ${exportWarnings.length} ${exportWarnings.length === 1 ? 'warning' : 'warnings'}; some request bodies could not be fully parsed`, { icon: '⚠️' });
+            toast(buildExportWarningsMessage(exportWarnings), { icon: '⚠️' });
           }
           onClose();
         })

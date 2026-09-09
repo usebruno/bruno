@@ -9,6 +9,11 @@ export const buildSkippedFilesMessage = (skipped, maxListed = MAX_SKIPPED_FILES_
   return `Could not parse ${summary}; ${subject} skipped`;
 };
 
+export const buildExportWarningsMessage = (warnings) => {
+  const label = warnings.length === 1 ? 'warning' : 'warnings';
+  return `Created with ${warnings.length} ${label}; some request bodies could not be fully parsed`;
+};
+
 export const getCollectionImportError = (collectionData) => {
   if (!collectionData?.configFile) {
     return 'Could not load that collection. Pick a folder that contains a bruno.json or opencollection.yml.';
