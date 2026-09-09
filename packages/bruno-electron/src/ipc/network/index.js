@@ -1528,7 +1528,8 @@ const registerNetworkIpc = (mainWindow) => {
                       data: res.data,
                       dataBuffer: res.dataBuffer,
                       size: res.size,
-                      duration: res.duration
+                      duration: res.duration,
+                      timeline: res.timeline
                     }
                   : null,
                 error: err || (res?.error ? { message: res.error } : null),
