@@ -55,10 +55,10 @@ const ApiSpecItem = ({ apiSpec }) => {
     >
       {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
       <div
-        className="cursor-pointer flex items-center flex-grow w-[80%] justify-between"
+        className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
         onClick={handleOpenApiSpec(apiSpec)}
       >
-        <span className="pl-3 flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
+        <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
       </div>
       <div className="pr-2">
         <MenuDropdown

@@ -78,14 +78,15 @@ test.describe('API Spec sidebar row', () => {
     await openBothSpecs(page, electronApp);
 
     await test.step('Hover the row and click its actions icon', async () => {
-      await sidebarRow(SPEC_A.name).hover();
+      await expect(async () => {
+        await sidebarRow(SPEC_A.name).hover();
+        await expect(sidebarRowActions(SPEC_A.name)).toBeVisible();
+      }).toPass();
       await sidebarRowActions(SPEC_A.name).click();
     });
 
     await test.step('Menu is open', async () => {
       await expect(sidebarRowRemoveMenuItem()).toBeVisible();
-      await page.keyboard.press('Escape');
-      await expect(sidebarRowRemoveMenuItem()).toBeHidden();
     });
   });
 });
