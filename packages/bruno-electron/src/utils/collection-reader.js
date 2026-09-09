@@ -74,10 +74,11 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
       case 'environment':
         await collect('environment', relativePath, async () => {
           const environment = await parseEnvironment(fs.readFileSync(absolutePath, 'utf8'), { format });
+          const environmentName = basename.replace(/\.(bru|ya?ml)$/i, '');
           if (decryptEnvSecrets) {
-            decryptEnvSecrets(environment, basename.replace(/\.(bru|ya?ml)$/i, ''));
+            decryptEnvSecrets(environment, environmentName);
           }
-          envVariables[basename] = environment.variables;
+          envVariables[environmentName] = environment.variables;
         });
         break;
 

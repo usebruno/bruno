@@ -87,10 +87,9 @@ const CreateApiSpec = ({ onClose }) => {
           ...(values?.environment ? getEnvironmentVariablesKeyValuePairs(envVariables[values.environment] || {}) : {}),
           processEnvVariables
         };
-        // Convert envVariables (keyed by filename) to environments array for multi-server export
-        const environmentsList = Object.entries(envVariables || {}).map(([envFile, vars]) => ({
-          name: envFile.replace(/\.(bru|ya?ml)$/i, ''),
-          variables: vars
+        const environmentsList = Object.entries(envVariables || {}).map(([name, variables]) => ({
+          name,
+          variables
         }));
         // Create API spec yaml
         const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: requests, environments: environmentsList });

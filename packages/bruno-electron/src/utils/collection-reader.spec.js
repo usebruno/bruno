@@ -86,10 +86,10 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
   });
 
   it('loads every environment with its own variables', () => {
-    expect(Object.keys(result.envVariables).sort()).toEqual([`Local.${ext}`, `Prod.${ext}`]);
-    const local = result.envVariables[`Local.${ext}`].find((v) => v.name === 'baseUrl');
+    expect(Object.keys(result.envVariables).sort()).toEqual(['Local', 'Prod']);
+    const local = result.envVariables.Local.find((v) => v.name === 'baseUrl');
     expect(local.value).toBe('https://local.test');
-    const prod = result.envVariables[`Prod.${ext}`].find((v) => v.name === 'baseUrl');
+    const prod = result.envVariables.Prod.find((v) => v.name === 'baseUrl');
     expect(prod.value).toBe('https://prod.test');
   });
 });
@@ -149,7 +149,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     writeFile(dir, path.join('environments', 'Broken.bru'), '@@@ not valid bru @@@\n');
     writeFile(dir, path.join('environments', 'Good.bru'), stringifyEnvironment(envObj('Good', [{ name: 'baseUrl', value: 'https://x', enabled: true, secret: false, type: 'text' }]), { format: 'bru' }));
     const result = await readCollectionForApiSpec(dir);
-    expect(Object.keys(result.envVariables)).toEqual(['Good.bru']);
+    expect(Object.keys(result.envVariables)).toEqual(['Good']);
     expect(result.skipped).toEqual([path.join('environments', 'Broken.bru')]);
   });
 
@@ -168,7 +168,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     });
     const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
     expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
-    expect(result.envVariables['Local.bru'].find((v) => v.name === 'token').value).toBe('decrypted');
+    expect(result.envVariables.Local.find((v) => v.name === 'token').value).toBe('decrypted');
   });
 
   it('applies injected decryptEnvSecrets to a yml environment secret, stripping the .yml extension for the name', async () => {
@@ -179,7 +179,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     });
     const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
     expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
-    expect(result.envVariables['Local.yml'].find((v) => v.name === 'token').value).toBe('decrypted');
+    expect(result.envVariables.Local.find((v) => v.name === 'token').value).toBe('decrypted');
   });
 
   it.each(['bru', 'yml'])('%s: marks which variables are secret, so the caller can tell a secret environment apart', async (format) => {
@@ -198,7 +198,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     );
 
     const result = await readCollectionForApiSpec(dir);
-    const byName = Object.fromEntries(result.envVariables[`Local.${ext}`].map((v) => [v.name, v.secret]));
+    const byName = Object.fromEntries(result.envVariables.Local.map((v) => [v.name, v.secret]));
 
     expect(byName).toEqual({ token: true, baseUrl: false });
   });
@@ -217,12 +217,12 @@ describe('readCollectionForApiSpec: yml collection config (opencollection.yml)',
 });
 
 describe('readCollectionForApiSpec: .yaml extension environments', () => {
-  it('stores a .yaml environment under its file name and strips the extension for the secrets lookup', async () => {
+  it('handles a .yaml extension too, storing the environment under its name', async () => {
     const dir = mkCollection('yaml-env');
     writeFile(dir, path.join('environments', 'Local.yaml'), stringifyEnvironment(envObj('Local', [{ name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }]), { format: 'yml' }));
     const decryptEnvSecrets = jest.fn();
     const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
-    expect(Object.keys(result.envVariables)).toEqual(['Local.yaml']);
+    expect(Object.keys(result.envVariables)).toEqual(['Local']);
     expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
   });
 });
