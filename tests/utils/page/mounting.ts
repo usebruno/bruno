@@ -225,7 +225,7 @@ export const getCollectionTreeStructure = async (
     await waitForCollectionMount(page, collectionName);
 
     // Expand every folder so the whole subtree is present in the flat, virtualized list.
-    await expandAllFolders(page, collectionName, locators);
+    await expandAllFolders(collectionName, locators);
 
     // The sidebar is a flat, DFS-ordered list of rows. reconstruct the tree from each row's
     // indent depth (number of `.indent-block` spacers).
@@ -248,27 +248,23 @@ export const getCollectionTreeStructure = async (
 
 type FlatItem = { name: string; isFolder: boolean; depth: number; method?: string };
 
-/** Expand every collapsed folder in the collection */
+/** Expand every collapsed folder in the collection. */
 async function expandAllFolders(
-  page: Page,
   collectionName: string,
   locators: ReturnType<typeof buildCollectionTreeLocators>
 ): Promise<void> {
-  for (let pass = 0; pass < 200; pass++) {
-    const chevrons = locators.item.allRows(collectionName).getByTestId('folder-chevron');
-    const total = await chevrons.count();
-    let clicked = false;
-    for (let i = 0; i < total; i++) {
-      const chevron = chevrons.nth(i);
-      const expanded = await chevron.evaluate((el) => el.classList.contains('rotate-90')).catch(() => true);
-      if (!expanded) {
-        await chevron.click();
-        await page.waitForTimeout(50);
-        clicked = true;
-        break;
-      }
-    }
-    if (!clicked) break;
+  const collapsedChevrons = () =>
+    locators.item.allRows(collectionName).locator('[data-testid="folder-chevron"]:not(.rotate-90)');
+
+  // Expand the first collapsed folder until all folders are expanded. Pin the clicked chevron so
+  // re-resolving `.first()` after the click doesn't target a different row.
+  // Poll `rotate-90` to confirm the expansion.
+  while ((await collapsedChevrons().count()) > 0) {
+    const chevron = collapsedChevrons().first();
+    const handle = await chevron.elementHandle();
+    if (!handle) continue;
+    await chevron.click();
+    await expect.poll(() => handle.evaluate((el) => el.classList.contains('rotate-90'))).toBe(true);
   }
 }
 

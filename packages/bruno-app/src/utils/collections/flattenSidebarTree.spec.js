@@ -166,8 +166,8 @@ describe('buildIndexes', () => {
   });
   it('item-uid map targets the item row, not its example rows', () => {
     const c = collection('C', [request('r1', { uid: 'req-x', examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
-    const { rowIndexByItemUid } = buildIndexes(flatten([loaded(c)]));
     const rows = flatten([loaded(c)]);
+    const { rowIndexByItemUid } = buildIndexes(rows);
     expect(rows[rowIndexByItemUid.get('req-x')].kind).toBe('request');
   });
   it('indexes example rows by exampleUid', () => {

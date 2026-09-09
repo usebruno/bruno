@@ -109,6 +109,9 @@ const areEqual = (prev, next) => {
     && a.collectionPathname === b.collectionPathname
     && a.exampleIndex === b.exampleIndex
     && prev.searchText === next.searchText
+    && prev.isMultiDragDisabled === next.isMultiDragDisabled
+    && prev.multiDragCollections === next.multiDragCollections
+    && prev.multiDragItems === next.multiDragItems
     && resolveRowObject(prev) === resolveRowObject(next)
   );
 };

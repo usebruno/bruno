@@ -126,15 +126,9 @@ const closeAllCollections = async (page) => {
 // out of the viewport, and Virtuoso unmounts it once it passes the overscan.
 // Reset the list to the top so the header row is rendered before we locate it.
 const revealCollectionsTop = async (page: Page) => {
-  const collections = page.getByTestId('collections');
-  if (!(await collections.count())) return;
-
-  await collections.evaluate((root) => {
-    const scroller
-      = root.querySelector('[data-testid="sidebar-collections-scroller"]')
-        || Array.from(root.querySelectorAll('*')).find((el) => el.scrollHeight > el.clientHeight);
-    (scroller as HTMLElement | undefined)?.scrollTo({ top: 0 });
-  });
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
 };
 
 const openCollection = async (page: Page, collectionName: string) => {
