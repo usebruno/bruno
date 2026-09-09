@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -38,7 +38,7 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
+import { getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from '../RenameCollection';
@@ -57,9 +57,8 @@ import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
-import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
 
-const CollectionRow = ({ collection, searchText, openBulkMenu, children }) => {
+const CollectionRow = ({ collection, searchText, openBulkMenu, children, isMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -95,19 +94,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children }) => {
   const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
-  const isDragDisabled = useMultiSelectDragDisabled({ isSelected, selectedSidebarUids, allCollections });
-
-  // When dragging a multi-selected collection, carry all other selected collections along
-  // so dropping one reorders the entire selection together. Mixed selections (a collection
-  // alongside a folder/request) are drag-disabled entirely, so this only ever needs to
-  // handle collection-only selections.
-  const multiDragItems = useMemo(() => {
-    if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return null;
-    const { effectiveSelection, hasFolder, hasRequest } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
-    if (hasFolder || hasRequest) return null;
-    const collectionEntries = effectiveSelection.filter((entry) => entry.type === 'collection');
-    return collectionEntries.map((entry) => entry.collection);
-  }, [isSelected, selectedSidebarUids, allCollections]);
+  const isDragDisabled = isMultiSelected && isMultiDragDisabled;
+  const multiDragItems = isMultiSelected ? multiDragCollections : null;
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {

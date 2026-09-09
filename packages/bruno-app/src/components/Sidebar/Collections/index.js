@@ -7,7 +7,7 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries } from 'utils/collections/index';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
@@ -15,7 +15,7 @@ import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
@@ -48,6 +48,24 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     }
     return map;
   }, [sidebarEntries]);
+
+  // Multi-select drag context, computed once for the whole list and threaded to rows via SidebarRow.
+  const selectionInfo = useMemo(
+    () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
+    [collections, selectedSidebarUids]
+  );
+
+  const isMultiDragDisabled = !!selectionInfo && selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp);
+
+  const multiDragCollections = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest) return null;
+    return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
+  }, [selectionInfo]);
+
+  const multiDragItems = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasCollection) return null;
+    return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [selectionInfo]);
 
   const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
 
@@ -121,6 +139,9 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}
               ghostsByPath={ghostsByPath}
+              isMultiDragDisabled={isMultiDragDisabled}
+              multiDragCollections={multiDragCollections}
+              multiDragItems={multiDragItems}
             />
           )}
         />
