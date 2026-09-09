@@ -13,7 +13,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
-import { transparentize, toColorString, parseToRgb } from 'polished';
+import { transparentize } from 'polished';
 
 const TABS = [
   { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
@@ -27,9 +27,6 @@ const EMPTY_STATE_DESCRIPTIONS = {
 
 /**
  * Generates background color with transparency for environment badges.
- * polished throws on anything it cannot parse, and the colour comes from a .bru file that may
- * have been hand-edited, so an unreadable value has to degrade to no tint - not take the render
- * down with it.
  */
 const getEnvBackgroundColor = (color) => {
   if (!color) return 'transparent';

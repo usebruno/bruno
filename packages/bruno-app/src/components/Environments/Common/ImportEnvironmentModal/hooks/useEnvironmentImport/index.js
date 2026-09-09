@@ -18,10 +18,6 @@ import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
 export { ENV_STATUS, IMPORT_STEPS };
 
-/**
- * Reads every picked file with the importer its format calls for. A file that cannot be read is
- * recorded and the loop moves on, so one bad file never costs the user the rest of the batch.
- */
 const parseEnvironmentFiles = async (parsedFiles) => {
   const valid = [];
   const invalid = [];
