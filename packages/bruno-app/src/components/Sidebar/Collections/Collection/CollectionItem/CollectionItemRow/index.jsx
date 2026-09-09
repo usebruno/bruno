@@ -781,7 +781,7 @@ const CollectionItemRow = ({ item, depth, collectionUid, collectionPathname, sea
                   data-testid="folder-chevron"
                 />
               </ActionIcon>
-            ) : hasExamples ? (
+            ) : hasExamples && !hasSearchText ? (
               <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
