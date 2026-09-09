@@ -679,6 +679,38 @@ describe('generateSnippet – cookie header casing', () => {
     expect(result).toContain('UseCookies = false,');
     expect(result).toContain('cookie1=value1');
   });
+
+  // Folding still applies to non-curl targets; only the rename-to-`Cookie` is curl-specific.
+  it('folds multiple case-varied `cookie` headers into one for non-curl targets too', async () => {
+    const language = { target: 'csharp', client: 'httpclient' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [
+          { name: 'cookie', value: 'a=1', enabled: true },
+          { name: 'COOKIE', value: 'b=2', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('{ "cookie", "a=1; b=2" }');
+    expect(result).not.toContain('COOKIE');
+  });
 });
 
 describe('generateSnippet with edge-case bodies', () => {

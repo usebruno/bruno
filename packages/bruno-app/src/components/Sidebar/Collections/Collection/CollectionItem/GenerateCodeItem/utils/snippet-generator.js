@@ -7,8 +7,8 @@ import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from '
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
-// Folds any `cookie`/`Cookie` header into a single `Cookie` header.
-const mergeCookieHeaders = (headers) => {
+// Folds any `cookie`/`Cookie` header into a single header.
+const mergeCookieHeaders = (headers, isCurl) => {
   let cookieHeaderIndex = -1;
   const merged = [];
   for (const header of headers) {
@@ -18,7 +18,8 @@ const mergeCookieHeaders = (headers) => {
     }
     if (cookieHeaderIndex === -1) {
       cookieHeaderIndex = merged.length;
-      merged.push({ ...header, name: 'Cookie' });
+      // Rename to 'Cookie' for curl to avoid HTTPSnippet's double-cookie bug
+      merged.push({ ...header, name: isCurl ? 'Cookie' : header.name });
     } else {
       merged[cookieHeaderIndex].value += `; ${header.value}`;
     }
@@ -100,7 +101,7 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     const isCurl = language.target === 'shell' && language.client === 'curl';
 
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers) });
+    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl) });
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
