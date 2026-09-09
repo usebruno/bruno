@@ -1512,18 +1512,7 @@ await bru.sendRequest({
   describe('response members wrapped in other expressions', () => {
     it('should keep the call wrapping a response property', () => {
       const code = `
-        pm.sendRequest({
-          url: 'https://echo.usebruno.com',
-          method: 'POST',
-          header: {
-            'Content-Type': 'application/json'
-          },
-          body: {
-            mode: 'raw',
-            raw: JSON.stringify({ hello: 'world' })
-          }
-        }, function (err, response) {
-
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
           const json = response.json();
           const text = response.text();
           const code = response.code;
@@ -1537,14 +1526,7 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({
-          url: 'https://echo.usebruno.com',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          data: JSON.stringify({ hello: 'world' })
-        }, async function(err, response) {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async function(err, response) {
           const json = response.data;
           const text = response.data;
           const code = response.status;
@@ -1573,6 +1555,7 @@ await bru.sendRequest({
         });
       `);
     });
+    
     it('should rewrite a response member nested inside a call argument', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
