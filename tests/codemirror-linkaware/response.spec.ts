@@ -15,9 +15,7 @@ import {
 } from '../utils/page';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
-// Echo back the raw request body with a matching Content-Type, so the response auto-selects
-// the corresponding preview format (xml/text) the same way echo/json does for JSON.
-const XML_ECHO_URL = 'http://localhost:8081/api/echo/xml-raw';
+const CUSTOM_ECHO_URL = 'http://localhost:8081/api/echo/custom';
 const TEXT_ECHO_URL = 'http://localhost:8081/api/echo/text';
 const responsePane = (page: Page) => buildCommonLocators(page).response.pane();
 const requestPane = (page: Page) => buildCommonLocators(page).request.pane();
@@ -49,11 +47,14 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
 
   test('Body - XML preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
     await createCollection(page, 'response-xml-preview', await createTmpDir('response-xml-preview'));
-    await createRequest(page, 'echo', 'response-xml-preview', { url: XML_ECHO_URL, method: 'POST' });
+    await createRequest(page, 'echo', 'response-xml-preview', { url: CUSTOM_ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-xml-preview', 'echo');
 
-    await selectRequestBodyMode(page, 'XML');
-    await setCmValue(buildCommonLocators(page).codeMirror.within(page.locator('.request-pane')), '<root><link>http://link-aware.test/xml-body</link></root>');
+    await selectRequestBodyMode(page, 'JSON');
+    await setCmValue(
+      buildCommonLocators(page).codeMirror.within(page.locator('.request-pane')),
+      '{ "headers": { "content-type": "application/xml" }, "content": "<root><link>http://link-aware.test/xml-body</link></root>" }'
+    );
     await sendRequestAndWaitForResponse(page);
 
     await switchResponseFormat(page, 'XML');
