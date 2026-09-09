@@ -1,4 +1,5 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -568,7 +569,7 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     await locators.sidebar.collection(collectionName).click();
 
     const request = page
-      .locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`)
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
       .locator('.collection-item-name')
       .filter({ hasText: requestName });
 
@@ -1228,7 +1229,7 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
     const request = page
-      .locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`)
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
       .getByTestId('sidebar-collection-item-row')
       .filter({ hasText: requestName });
     if (!persist) {
@@ -1251,7 +1252,7 @@ const openfolder = async (page: Page, collectionName: string, folderName: string
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
     const folder = page
-      .locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`)
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
       .getByTestId('sidebar-collection-item-row')
       .filter({ hasText: folderName });
     if (!persist) {

@@ -51,29 +51,25 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
 
-  // Resolve the active tab's row index. ref lets the scroll effect read the current index
-  // without depending on it, so rows shifting above the active row don't re-fire the scroll.
+  // Resolve the active tab's row index (item rows first, then collection headers).
   const rowIndex = rowIndexByItemUid.get(activeTabUid);
   const activeRowIndex = activeTabUid !== null
     ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
     : null;
-  const activeRowIndexRef = useRef(activeRowIndex);
-  activeRowIndexRef.current = activeRowIndex;
 
   useEffect(() => {
-    const index = activeRowIndexRef.current;
-    if (index === null) return;
-    virtuosoRef.current?.scrollIntoView({ index, behavior: 'auto' });
+    if (activeRowIndex === null) return;
+    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabUid]);
 
-  // Clear the multi-selection on empty-space clicks (not on a row). The `contains` guard drops
-  // events React propagates here from portaled modals/menus in <body>, which sit outside the sidebar.
+  // Clear multi-selection only when clicking the bare scroller background.
+  // The `contains` guard ignores events propagated from portaled menus/modals in <body>.
+  // The `[data-sidebar-row]` check covers all row types and inline menus/modals rendered within a row.
   const handleContainerClick = (e) => {
     if (!e.currentTarget.contains(e.target)) return;
-    const onRow = e.target.closest('[data-testid="sidebar-collection-item-row"], [data-testid="sidebar-collection-row"]');
-    if (!onRow) {
-      dispatch(clearSidebarSelection());
-    }
+    if (e.target.closest('[data-sidebar-row]')) return;
+    dispatch(clearSidebarSelection());
   };
 
   if (!sidebarEntries.length) {

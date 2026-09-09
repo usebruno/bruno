@@ -1,4 +1,5 @@
 import { isItemAFolder, isItemARequest } from './index';
+import { collectionSlug } from './collectionSlug';
 import { sortByNameThenSequence } from 'utils/common/index';
 import {
   doesRequestMatchSearchText,
@@ -187,10 +188,7 @@ const flattenCollection = ({
   }
 
   // Used for readable test selectors. collectionUid remains the unique identity.
-  const slugifyCollectionName = (name) =>
-    (name || '').replace(/\s+/g, '-').toLowerCase();
-
-  const collectionId = slugifyCollectionName(collection.name);
+  const collectionId = collectionSlug(collection.name);
 
   appendRow({
     id: `col:${collection.uid}`,

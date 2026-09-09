@@ -1,4 +1,5 @@
 import { Locator, Page } from '../../../../playwright';
+import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -12,7 +13,7 @@ export const buildSidebarLocators = (page: Page) => {
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
   const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
 
-  const collectionScope = (name: string) => page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`);
+  const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),

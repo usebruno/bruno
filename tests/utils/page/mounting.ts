@@ -1,4 +1,5 @@
 import { test, expect, Page, ElectronApplication } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 /**
  * Collection tree item structure for assertions
@@ -23,7 +24,7 @@ export const buildCollectionTreeLocators = (page: Page) => {
     has: page.locator('#sidebar-collection-name', { hasText: name })
   });
 
-  const collectionScope = (name: string) => page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`);
+  const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
   const itemScope = (collectionName?: string) => collectionName ? collectionScope(collectionName) : page;
 
   return {

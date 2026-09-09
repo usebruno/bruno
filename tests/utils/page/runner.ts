@@ -1,4 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
@@ -156,7 +157,7 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
 export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
     // Flat, virtualized sidebar: scope by `data-collection-id` / `data-parent-name` rather than DOM nesting.
-    const collectionScope = page.locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`);
+    const collectionScope = page.locator(`[data-collection-id="${collectionSlug(collectionName)}"]`);
     await collectionScope.first().waitFor({ state: 'visible', timeout: 5000 });
 
     let scope = collectionScope;

@@ -2,7 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   position: relative;
-  
+
+  .indent-block {
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
+  }
+
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
     visibility: hidden;

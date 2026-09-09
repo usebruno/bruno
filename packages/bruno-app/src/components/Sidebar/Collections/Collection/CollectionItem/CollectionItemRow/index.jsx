@@ -33,7 +33,6 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from '../RenameCollectionItem';
-import CloneCollectionItem from '../CloneCollectionItem';
 import DeleteCollectionItems from '../DeleteCollectionItems';
 import IgnoreCollectionItem from '../IgnoreCollectionItem';
 import RunCollectionItem from '../RunCollectionItem';
@@ -42,7 +41,7 @@ import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs'
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
-import StyledWrapper from '../StyledWrapper';
+import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
@@ -183,17 +182,6 @@ const CollectionItemRow = ({ item, depth, collectionUid, collectionPathname, sea
       dropEffect: 'move'
     }
   });
-
-  // Auto-scroll to show this item when its tab becomes active
-  useEffect(() => {
-    if (isTabForItemActive && ref.current) {
-      try {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors (some environments may not support smooth scrolling)
-      }
-    }
-  }, [isTabForItemActive]);
 
   const resolveDropFromMonitor = (monitor) => {
     return determineCollectionItemDrop({

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -42,7 +42,7 @@ import { getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from '../RenameCollection';
-import StyledWrapper from '../StyledWrapper';
+import StyledWrapper from './StyledWrapper';
 import CloneCollection from '../CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
@@ -377,19 +377,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children }) => {
   drag(drop(collectionRef));
   dragPreview(getEmptyImage(), { captureDraggingState: true });
 
-  useEffect(() => {
-    if (isCollectionFocused && collectionRef.current) {
-      try {
-        collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors
-      }
-    }
-  }, [isCollectionFocused]);
-
-  // Debounce showing empty state to prevent flicker
-  // Race condition: isLoading can become false before items batch arrives from IPC
-
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;
@@ -558,7 +545,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children }) => {
   ];
 
   return (
-    <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
+    <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
       {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
       {showNewAppModal && <NewApp collectionUid={collection.uid} onClose={() => setShowNewAppModal(false)} />}

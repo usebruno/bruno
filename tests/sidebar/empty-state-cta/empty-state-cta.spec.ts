@@ -1,4 +1,5 @@
 import { test, expect, Page } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import { buildCommonLocators, closeAllCollections } from '../../utils/page';
 
 test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
@@ -16,7 +17,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
   // across the describe block, and multiple expanded collections would otherwise
   // make `getByTestId('add-request-cta')` match more than one element.
   const collectionScope = (page: Page, name: string) =>
-    page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`);
+    page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
 
   const expandCollection = async (name: string) => {
     const collection = locators.sidebar.collection(name);

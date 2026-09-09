@@ -24,21 +24,22 @@ const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) =
   }
 };
 
-const renderRow = ({ row, searchText, openBulkMenu, itemsByUid, collectionsByUid, ghostsByPath }) => {
+const renderRow = (props) => {
+  const { row, searchText, openBulkMenu, collectionsByUid } = props;
+  const resolved = resolveRowObject(props);
+
   switch (row.kind) {
     case 'collection': {
-      const collection = collectionsByUid.get(row.collectionUid);
-      if (!collection) return null;
-      return <CollectionRow collection={collection} searchText={searchText} openBulkMenu={openBulkMenu} />;
+      if (!resolved) return null;
+      return <CollectionRow collection={resolved} searchText={searchText} openBulkMenu={openBulkMenu} />;
     }
     case 'folder':
     case 'app':
     case 'request': {
-      const item = itemsByUid.get(row.itemUid);
-      if (!item) return null;
+      if (!resolved) return null;
       return (
         <CollectionItemRow
-          item={item}
+          item={resolved}
           depth={row.depth}
           collectionUid={row.collectionUid}
           collectionPathname={row.collectionPathname}
@@ -48,16 +49,14 @@ const renderRow = ({ row, searchText, openBulkMenu, itemsByUid, collectionsByUid
       );
     }
     case 'empty-cta': {
-      const collection = collectionsByUid.get(row.collectionUid);
-      return <EmptyCtaRow collection={collection} itemUid={row.itemUid} depth={row.depth} />;
+      return <EmptyCtaRow collection={resolved} itemUid={row.itemUid} depth={row.depth} />;
     }
     case 'ghost': {
-      const entry = ghostsByPath.get(row.collectionPathname);
-      if (!entry) return null;
-      return <GitRemoteCollectionRow entry={entry} />;
+      if (!resolved) return null;
+      return <GitRemoteCollectionRow entry={resolved} />;
     }
     case 'example': {
-      const item = itemsByUid.get(row.itemUid);
+      const item = resolved;
       const collection = collectionsByUid.get(row.collectionUid);
       const example = item?.examples?.[row.exampleIndex];
       if (!item || !collection || !example) return null;
@@ -74,6 +73,7 @@ const SidebarRow = (props) => {
   if (inner === null) return null;
   return (
     <div
+      data-sidebar-row
       data-collection-id={row.collectionId || undefined}
       data-collection-uid={row.collectionUid || undefined}
       data-parent-name={row.parentName || undefined}
