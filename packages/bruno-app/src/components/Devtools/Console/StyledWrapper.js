@@ -107,6 +107,12 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
     background: ${(props) => props.theme.console.contentBg};
     min-height: 0;
+
+    &.cmd-ctrl-pressed .log-link:hover {
+      cursor: pointer;
+      color: ${(props) => props.theme.textLink};
+      text-decoration: underline;
+    }
   }
 
   .network-with-details {
@@ -346,6 +352,14 @@ const StyledWrapper = styled.div`
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
+
+    .log-link {
+      cursor: text;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
     
     .log-object {
       margin: 4px 0;
