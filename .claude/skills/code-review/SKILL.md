@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: Review a Bruno diff, PR, or branch via focused reviewers run in parallel —
-  correctness, security, DSL, React, cross-platform, tests. Mirrors the CodeRabbit /
+  correctness, security, DSL, React, cross-platform, sqlite, tests. Mirrors the CodeRabbit /
   CODING_STANDARDS review.
 ---
 
@@ -77,6 +77,7 @@ Each file is a self-contained checklist for one lens:
 | `reviewers/cross-platform.md` | Cross-platform (macOS/Windows/Linux) | all files |
 | `reviewers/security.md` | Security & data safety | all source (excl. `tests/**`) |
 | `reviewers/dsl-changes.md` | On-disk DSL & serialization (backward compat) | `bruno-app`, `bruno-electron`, `bruno-cli`, `bruno-lang`, `bruno-filestore`, `bruno-schema(-types)`, `bruno-converters` |
+| `reviewers/sqlite.md` | SQLite storage — schema, statements, migrations, perf | `packages/bruno-sqlite/**` |
 | `reviewers/e2e-tests.md` | Playwright E2E tests | `tests/**` |
 
 ## Shared reviewer persona & output contract
