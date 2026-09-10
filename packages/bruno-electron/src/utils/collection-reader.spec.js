@@ -156,26 +156,26 @@ describe('readCollectionForApiSpec: robustness', () => {
     expect(result.processEnvVariables.API_TOKEN).toBe('secret123');
   });
 
-  it('applies the injected decryptEnvSecrets callback to a bru environment secret', async () => {
-    const dir = mkCollection('secret');
-    writeFile(dir, path.join('environments', 'Local.bru'), stringifyEnvironment(envObj('Local', [{ name: 'token', value: '', enabled: true, secret: true, type: 'text' }]), { format: 'bru' }));
-    const decryptEnvSecrets = jest.fn((environment) => {
-      environment.variables.find((v) => v.name === 'token').value = 'decrypted';
-    });
-    const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
-    expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
-    expect(result.envVariables.Local.find((v) => v.name === 'token').value).toBe('decrypted');
-  });
+  it.each(['bru', 'yml'])('%s: a secret variable comes back empty while the ordinary ones keep their values, so a password can never end up in the spec file', async (format) => {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    const dir = mkCollection(`secret-${format}`);
+    writeFile(
+      dir,
+      path.join('environments', `Local.${ext}`),
+      stringifyEnvironment(
+        envObj('Local', [
+          { name: 'token', value: '', enabled: true, secret: true, type: 'text' },
+          { name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }
+        ]),
+        { format }
+      )
+    );
 
-  it('applies injected decryptEnvSecrets to a yml environment secret, stripping the .yml extension for the name', async () => {
-    const dir = mkCollection('secret-yml');
-    writeFile(dir, path.join('environments', 'Local.yml'), stringifyEnvironment(envObj('Local', [{ name: 'token', value: '', enabled: true, secret: true, type: 'text' }]), { format: 'yml' }));
-    const decryptEnvSecrets = jest.fn((environment) => {
-      environment.variables.find((v) => v.name === 'token').value = 'decrypted';
-    });
-    const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
-    expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
-    expect(result.envVariables.Local.find((v) => v.name === 'token').value).toBe('decrypted');
+    const result = await readCollectionForApiSpec(dir);
+    const byName = Object.fromEntries(result.envVariables.Local.map((v) => [v.name, v.value]));
+
+    expect(byName.token).toBe('');
+    expect(byName.baseUrl).toBe('https://local.test');
   });
 
   it.each(['bru', 'yml'])('%s: marks which variables are secret, so the caller can tell a secret environment apart', async (format) => {
@@ -215,10 +215,8 @@ describe('readCollectionForApiSpec: .yaml extension environments', () => {
   it('handles a .yaml extension too, storing the environment under its name', async () => {
     const dir = mkCollection('yaml-env');
     writeFile(dir, path.join('environments', 'Local.yaml'), stringifyEnvironment(envObj('Local', [{ name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }]), { format: 'yml' }));
-    const decryptEnvSecrets = jest.fn();
-    const result = await readCollectionForApiSpec(dir, { decryptEnvSecrets });
+    const result = await readCollectionForApiSpec(dir);
     expect(Object.keys(result.envVariables)).toEqual(['Local']);
-    expect(decryptEnvSecrets).toHaveBeenCalledWith(expect.anything(), 'Local');
   });
 });
 

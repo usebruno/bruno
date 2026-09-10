@@ -28,8 +28,6 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { readCollectionForApiSpec } = require('../utils/collection-reader');
-const { createEnvSecretsDecryptor } = require('../utils/env-secrets');
-const { decryptStringSafe } = require('../utils/encryption');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
@@ -2516,17 +2514,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error(`Collection path does not exist: ${collectionPath}`);
     }
 
-    const decryptSecrets = createEnvSecretsDecryptor({
-      getEnvSecrets: (environmentName) => environmentSecretsStore.getEnvSecrets(collectionPath, { name: environmentName }),
-      decryptSecretValue: (value) => decryptStringSafe(value).value
-    });
-
-    return readCollectionForApiSpec(collectionPath, {
-      decryptEnvSecrets: (environment, environmentName) => {
-        if (!envHasSecrets(environment)) return;
-        decryptSecrets(environment, environmentName);
-      }
-    });
+    // Secret values are deliberately left as they sit on disk, which is empty: an
+    // exported spec is shared, so it must not carry decrypted credentials.
+    return readCollectionForApiSpec(collectionPath);
   });
 
   ipcMain.handle('renderer:export-collection-zip', async (event, collectionPath, collectionName) => {

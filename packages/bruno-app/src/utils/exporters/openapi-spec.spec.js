@@ -1035,4 +1035,8 @@ describe('exportApiSpec - collections that do not have any requests in them', ()
     });
     expect(jsyaml.load(result.content).paths).toEqual({});
   });
+
+  it('refuses to guess when the list of requests is missing altogether', () => {
+    expect(() => exportApiSpec({ name: 'NoList', variables: {}, environments: [] })).toThrow();
+  });
 });

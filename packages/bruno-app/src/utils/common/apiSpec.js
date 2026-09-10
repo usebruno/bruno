@@ -1,4 +1,24 @@
+import { each } from 'lodash';
+
 const MAX_SKIPPED_FILES_LISTED = 5;
+
+const hasValue = (value) => value !== undefined && value !== null && value !== '';
+
+export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
+  const variables = {};
+  each(envVariables, (variable) => {
+    if (variable.name && variable.enabled && hasValue(variable.value)) {
+      variables[variable.name] = variable.value;
+    }
+  });
+  return variables;
+};
+
+export const buildSpecVariables = ({ collectionVariables, envVariables, environment, processEnvVariables }) => ({
+  ...(collectionVariables || {}),
+  ...(environment ? getEnvironmentVariablesKeyValuePairs(envVariables?.[environment] || {}) : {}),
+  process: { env: { ...(processEnvVariables || {}) } }
+});
 
 export const buildSkippedFilesMessage = (skipped) => {
   const listed = skipped.slice(0, MAX_SKIPPED_FILES_LISTED);

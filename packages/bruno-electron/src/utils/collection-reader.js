@@ -29,7 +29,7 @@ const readCollectionConfig = async (collectionPath) => {
   }
 };
 
-const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = {}) => {
+const readCollectionForApiSpec = async (collectionPath) => {
   const { configFile, brunoConfig, configParsed } = await readCollectionConfig(collectionPath);
 
   const requests = [];
@@ -85,9 +85,6 @@ const readCollectionForApiSpec = async (collectionPath, { decryptEnvSecrets } = 
         await collect('environment', relativePath, async () => {
           const environment = await parseEnvironment(fs.readFileSync(absolutePath, 'utf8'), { format });
           const environmentName = basename.replace(/\.(bru|ya?ml)$/i, '');
-          if (decryptEnvSecrets) {
-            decryptEnvSecrets(environment, environmentName);
-          }
           envVariables[environmentName] = environment.variables;
         });
         break;

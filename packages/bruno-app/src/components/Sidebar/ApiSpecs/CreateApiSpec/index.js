@@ -9,20 +9,9 @@ import { createApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
 import { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { exportApiSpec } from 'utils/exporters/openapi-spec';
-import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { buildSkippedFilesMessage, buildExportWarningsMessage } from 'utils/common/apiSpec';
-
-export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
-  let variables = {};
-  each(envVariables, (variable) => {
-    if (variable.name && variable.value && variable.enabled) {
-      variables[variable.name] = variable.value;
-    }
-  });
-  return variables;
-};
+import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariables } from 'utils/common/apiSpec';
 
 const CreateApiSpec = ({ onClose }) => {
   const inputRef = useRef();
@@ -81,21 +70,27 @@ const CreateApiSpec = ({ onClose }) => {
           return;
         }
         const { requests, envVariables, processEnvVariables, collectionVariables } = collectionData;
-        const variables = {
-          ...(collectionVariables || {}),
-          ...(values?.environment ? getEnvironmentVariablesKeyValuePairs(envVariables[values.environment] || {}) : {}),
-          processEnvVariables
-        };
-        const environmentsList = Object.entries(envVariables || {}).map(([name, variables]) => ({
-          name,
-          variables
-        }));
-        // Create API spec yaml
-        const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: requests, environments: environmentsList });
-        if (exportedYamlContentData?.content) {
-          yamlContent = exportedYamlContentData?.content;
+        try {
+          const variables = buildSpecVariables({
+            collectionVariables,
+            envVariables,
+            environment: values?.environment,
+            processEnvVariables
+          });
+          const environmentsList = Object.entries(envVariables || {}).map(([name, variables]) => ({
+            name,
+            variables
+          }));
+          const exportedYamlContentData = exportApiSpec({ name: values?.apiSpecName, variables, items: requests, environments: environmentsList });
+          if (exportedYamlContentData?.content) {
+            yamlContent = exportedYamlContentData?.content;
+          }
+          exportWarnings = exportedYamlContentData?.warnings || [];
+        } catch (error) {
+          console.error('Failed to build the API spec from the collection:', error);
+          toast.error('Could not build an API spec from that collection');
+          return;
         }
-        exportWarnings = exportedYamlContentData?.warnings || [];
       }
 
       dispatch(createApiSpecFile(`${values.apiSpecName}.yaml`, values.apiSpecLocation, yamlContent))
