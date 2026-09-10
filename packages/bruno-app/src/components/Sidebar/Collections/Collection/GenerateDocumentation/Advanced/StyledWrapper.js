@@ -87,35 +87,15 @@ const StyledWrapper = styled.div`
     margin-left: 1.125rem;
   }
 
-  .segmented {
+  .seg-row .seg-option {
+    height: 1.75rem;
+    padding: 0.375rem;
+  }
+
+  .seg-with-hint {
     display: inline-flex;
-    border: 1px solid ${(props) => props.theme.background.surface2};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    overflow: hidden;
-
-    .seg {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 0.375rem;
-      background-color: ${(props) => props.theme.background.base};
-      border: none;
-      cursor: pointer;
-      font-size: ${(props) => props.theme.font.size.sm};
-      font-weight: 400;
-      color: ${(props) => props.theme.colors.text.subtext1};
-
-      & + .seg {
-        border-left: 1px solid ${(props) => props.theme.background.surface2};
-      }
-
-      &.active {
-        background-color: ${(props) => props.theme.background.surface1};
-        color: ${(props) => props.theme.text};
-        font-weight: 500;
-      }
-
-    }
+    align-items: center;
+    gap: 2px;
   }
 
   .seg-hint {
