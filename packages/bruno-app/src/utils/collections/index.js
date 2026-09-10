@@ -2011,6 +2011,15 @@ const getSelectionEntryType = (item) => {
   return 'file';
 };
 
+// Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
+export const isCollectionItemCollapsed = (item) => (isItemAFolder(item) ? !!item.collapsed : item.collapsed ?? true);
+
+// Finds the parent request of an example, since examples are nested within requests and lack their own pathnames.
+const findRequestOwningExample = (collection, exampleUid) => {
+  const flattenedItems = flattenItems(collection.items);
+  return find(flattenedItems, (i) => i.examples && find(i.examples, (ex) => ex.uid === exampleUid));
+};
+
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
   const resolved = selectedUids
     .map((uid) => {
@@ -2021,23 +2030,52 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       const owningCollection = findCollectionByItemUid(collections, uid);
       const item = owningCollection && findItemInCollection(owningCollection, uid);
-      if (!item) return null;
+      if (item) {
+        return {
+          uid,
+          type: getSelectionEntryType(item),
+          collectionUid: owningCollection.uid,
+          pathname: item.pathname,
+          item
+        };
+      }
 
-      return {
-        uid,
-        type: getSelectionEntryType(item),
-        collectionUid: owningCollection.uid,
-        pathname: item.pathname,
-        item
-      };
+      const requestCollection = find(collections, (c) => findRequestOwningExample(c, uid));
+      const requestItem = requestCollection && findRequestOwningExample(requestCollection, uid);
+      const example = requestItem && find(requestItem.examples, (ex) => ex.uid === uid);
+      if (example) {
+        return {
+          uid,
+          type: 'example',
+          collectionUid: requestCollection.uid,
+          pathname: null,
+          item: requestItem,
+          example
+        };
+      }
+
+      return null;
     })
     .filter(Boolean);
 
   const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
   const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+  const selectedRequestPathnames = resolved.filter((r) => r.type === 'request').map((r) => r.pathname);
+
+  // Since examples lack pathnames, they are considered absorbed if their parent request is selected
+  // (either directly or via an ancestor folder/collection).
+  const isExampleAbsorbed = (entry) => {
+    const parentPathname = entry.item.pathname;
+    return (
+      selectedRequestPathnames.includes(parentPathname)
+      || selectedCollectionPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+      || selectedFolderPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+    );
+  };
 
   const effectiveSelection = resolved.filter((entry) => {
     if (entry.type === 'collection') return true;
+    if (entry.type === 'example') return !isExampleAbsorbed(entry);
     if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
     return !selectedFolderPathnames.some(
       (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
@@ -2049,7 +2087,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request'),
-    hasApp: effectiveSelection.some((e) => e.type === 'app')
+    hasApp: effectiveSelection.some((e) => e.type === 'app'),
+    hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
 };
 

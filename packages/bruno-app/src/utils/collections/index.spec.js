@@ -13,7 +13,8 @@ import {
   getVisibleSidebarUidsInOrder,
   getSelectionInfo,
   getUniqueTagsFromItems,
-  getCollectionVersion
+  getCollectionVersion,
+  isCollectionItemCollapsed
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -654,6 +655,100 @@ describe('getSelectionInfo', () => {
 
     expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
     expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+
+  describe('examples', () => {
+    const collectionsWithExample = [
+      buildCollectionA({
+        collection: {
+          items: [
+            buildFolderA({
+              items: [
+                { uid: 'reqA1', type: 'http-request', request: {}, name: 'Alpha', seq: 1, pathname: '/colA/folderA/Alpha.bru', examples: [{ uid: 'exNested', itemUid: 'reqA1', name: 'Nested Example', type: 'http-request' }] }
+              ]
+            }),
+            {
+              uid: 'reqRoot',
+              type: 'http-request',
+              request: {},
+              name: 'Root',
+              seq: 2,
+              pathname: '/colA/Root.bru',
+              examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }]
+            }
+          ]
+        }
+      }),
+      buildCollectionB()
+    ];
+
+    it('resolves a selected example to its parent request, with no pathname of its own', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['ex1', 'reqB1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['ex1', 'reqB1']);
+      expect(info).toMatchObject({ hasExample: true, hasRequest: true });
+
+      const exampleEntry = info.effectiveSelection.find((e) => e.uid === 'ex1');
+      expect(exampleEntry).toMatchObject({ type: 'example', collectionUid: 'colA', pathname: null });
+      expect(exampleEntry.item.uid).toBe('reqRoot');
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside an unrelated collection', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colB', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colB', 'ex1']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: true });
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside a different, unrelated request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['exNested', 'reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: true });
+    });
+
+    it('applies parent-wins when selected together with its own parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor folder of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['folderA', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['folderA']);
+      expect(info).toMatchObject({ hasFolder: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor collection of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colA', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: false });
+    });
+  });
+});
+
+describe('isCollectionItemCollapsed', () => {
+  it('treats a folder as expanded by default (item.collapsed unset)', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder' })).toBe(false);
+  });
+
+  it('treats a folder as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder', collapsed: true })).toBe(true);
+  });
+
+  it('treats a request as collapsed by default (item.collapsed unset), unlike a folder', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {} })).toBe(true);
+  });
+
+  it('treats a request as expanded once item.collapsed is explicitly false', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: false })).toBe(false);
+  });
+
+  it('treats a request as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: true })).toBe(true);
   });
 });
 

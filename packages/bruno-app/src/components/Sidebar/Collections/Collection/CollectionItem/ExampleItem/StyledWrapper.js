@@ -44,6 +44,10 @@ const StyledWrapper = styled.div`
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
     }
+
+    &.drag-disabled:active {
+      cursor: not-allowed !important;
+    }
   }
 
   .example-icon {

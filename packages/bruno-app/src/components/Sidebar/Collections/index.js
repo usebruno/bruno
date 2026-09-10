@@ -36,15 +36,19 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [collections, selectedSidebarUids]
   );
 
-  const isMultiDragDisabled = !!selectionInfo && selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp);
+  const isMultiDragDisabled = !!selectionInfo && (
+    selectionInfo.hasExample || (selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp))
+  );
+
+  const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
 
   const multiDragCollections = useMemo(() => {
-    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest) return null;
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp || selectionInfo.hasExample) return null;
     return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
   }, [selectionInfo]);
 
   const multiDragItems = useMemo(() => {
-    if (!selectionInfo || selectionInfo.hasCollection) return null;
+    if (!selectionInfo || selectionInfo.hasCollection || selectionInfo.hasExample) return null;
     return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [selectionInfo]);
 
@@ -95,6 +99,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
                 key={entry.key}
                 openBulkMenu={openBulkMenu}
                 isMultiDragDisabled={isMultiDragDisabled}
+                isItemMultiDragDisabled={isItemMultiDragDisabled}
                 multiDragCollections={multiDragCollections}
                 multiDragItems={multiDragItems}
               />

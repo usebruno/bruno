@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { createCollection, createFolder, createRequest, expandFolder, closeAllCollections, clickEmptySidebarSpace, createApp } from '../../utils/page/actions';
+import { createCollection, createFolder, createRequest, expandFolder, closeAllCollections, clickEmptySidebarSpace, createApp, createExampleFromSidebar } from '../../utils/page/actions';
 
 // Ctrl on Windows/Linux, Cmd on macOS (matches app's navigator.userAgent check).
 const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -614,6 +614,73 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await expect(rows.nth(2)).toContainText(collectionBName);
   });
 
+  test('A collection selected together with its own folder and request: dragging from a descendant row moves the collection itself (parent-wins takes over the drag)', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionAName = 'collectiontakesover Collection A';
+    const collectionBName = 'collectiontakesover Collection B';
+    const collectionCName = 'collectiontakesover Collection C';
+
+    await createCollection(page, collectionAName, await createTmpDir('collectiontakesover-a'));
+    await createCollection(page, collectionBName, await createTmpDir('collectiontakesover-b'));
+    await createCollection(page, collectionCName, await createTmpDir('collectiontakesover-c'));
+    await createFolder(page, 'Folder A', collectionAName);
+    await expandFolder(page, 'Folder A');
+    await createRequest(page, 'Req A1', 'Folder A', { inFolder: true });
+    await clickEmptySidebarSpace(page);
+
+    const collectionARow = locators.sidebar.collectionRow(collectionAName);
+    const folderARow = locators.sidebar.itemRow('Folder A');
+    const reqA1Row = locators.sidebar.itemRow('Req A1');
+
+    await test.step('Select the collection together with its own folder and nested request', async () => {
+      await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.request('Req A1').click({ modifiers: [SELECT_MODIFIER] });
+    });
+
+    await test.step('Parent-wins reduces this to a plain collection drag: none of the rows show as drag-disabled', async () => {
+      await expect(collectionARow).not.toHaveClass(/drag-disabled/);
+      await expect(folderARow).not.toHaveClass(/drag-disabled/);
+      await expect(reqA1Row).not.toHaveClass(/drag-disabled/);
+    });
+
+    await test.step('Dragging from the nested request row moves the whole collection, not just the request', async () => {
+      // Initial order is [A, B, C]; dropping A just above C reorders to [B, A, C] — a change
+      // only explainable by the collection itself having moved.
+      await reqA1Row.dragTo(locators.sidebar.collectionRow(collectionCName), {
+        targetPosition: { x: 5, y: 5 }
+      });
+
+      const rows = locators.sidebar.collectionRows();
+      await expect(rows.nth(0)).toContainText(collectionBName);
+      await expect(rows.nth(1)).toContainText(collectionAName);
+      await expect(rows.nth(2)).toContainText(collectionCName);
+
+      // Only the collection's position in the sidebar changed — its contents (Folder A, Req A1)
+      // stayed inside it, moving along as part of the same unit rather than independently.
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Folder A')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Req A1')).toBeVisible();
+
+      // A successful drop clears the selection.
+      await expect(collectionARow).not.toHaveAttribute('data-selected', 'true');
+    });
+
+    await test.step('Re-select the collection with its folder and drag from the folder row this time', async () => {
+      await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+
+      // Order is [B, A, C]; dropping A just above B reorders back to [A, B, C].
+      await folderARow.dragTo(locators.sidebar.collectionRow(collectionBName), {
+        targetPosition: { x: 5, y: 5 }
+      });
+
+      const rows = locators.sidebar.collectionRows();
+      await expect(rows.nth(0)).toContainText(collectionAName);
+      await expect(rows.nth(1)).toContainText(collectionBName);
+      await expect(rows.nth(2)).toContainText(collectionCName);
+    });
+  });
+
   test('Dragging a selection that mixes a collection with a folder, request, or app has no common target and is blocked', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'blockeddrag');
 
@@ -890,6 +957,53 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
   });
 
+  test('A request with examples is eligible for bulk Collapse/Expand alongside a folder', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionName = 'requestcollapse Collection';
+
+    await createCollection(page, collectionName, await createTmpDir('requestcollapse'));
+    await createFolder(page, 'Folder One', collectionName);
+    await expandFolder(page, 'Folder One');
+    await createRequest(page, 'Req One', 'Folder One', { inFolder: true });
+    await createRequest(page, 'Req Root', collectionName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await clickEmptySidebarSpace(page);
+
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const folderOneRow = locators.sidebar.itemRow('Folder One');
+    const exampleRow = locators.sidebar.example('Example 1');
+
+    await test.step('Examples are collapsed by default; expand via the request\'s own chevron', async () => {
+      await expect(exampleRow).not.toBeVisible();
+      await locators.sidebar.requestExamplesToggle('Req Root').click();
+      await expect(exampleRow).toBeVisible();
+    });
+
+    await test.step('Selected together with an already-expanded folder, bulk Collapse acts on both', async () => {
+      await folderOneRow.click({ modifiers: [SELECT_MODIFIER] });
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      await reqRootRow.click({ button: 'right' });
+      await expect(locators.dropdown.item('Collapse')).toBeVisible();
+      await locators.dropdown.item('Collapse').click();
+
+      await expect(exampleRow).not.toBeVisible();
+      await expect(locators.sidebar.request('Req One')).not.toBeVisible();
+    });
+
+    await test.step('Bulk Expand brings both back', async () => {
+      await folderOneRow.click({ modifiers: [SELECT_MODIFIER] });
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      await reqRootRow.click({ button: 'right' });
+      await expect(locators.dropdown.item('Expand')).toBeVisible();
+      await locators.dropdown.item('Expand').click();
+
+      await expect(exampleRow).toBeVisible();
+      await expect(locators.sidebar.request('Req One')).toBeVisible();
+    });
+  });
+
   test('Cancelling the bulk delete confirmation keeps the selection intact; confirming clears it', async ({ page, createTmpDir }) => {
     const { locators } = await setupFixture(page, createTmpDir, 'cancelkeep');
 
@@ -976,6 +1090,169 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
       await expect(locators.sidebar.collection(collectionAName)).not.toBeVisible();
       await expect(locators.sidebar.collection(collectionBName)).not.toBeVisible();
+    });
+  });
+
+  test('A response example is selectable, applies parent-wins when selected with its own request but blocks drag with anything else, and supports bulk delete', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionAName = 'exampleselect Collection A';
+    const collectionBName = 'exampleselect Collection B';
+
+    await createCollection(page, collectionAName, await createTmpDir('exampleselect-a'));
+    await createCollection(page, collectionBName, await createTmpDir('exampleselect-b'));
+    await createRequest(page, 'Req Root', collectionAName, {});
+    await createRequest(page, 'Req Other', collectionAName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await clickEmptySidebarSpace(page);
+    await locators.sidebar.requestExamplesToggle('Req Root').click();
+
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const reqOtherRow = locators.sidebar.itemRow('Req Other');
+    const exampleRow = locators.sidebar.example('Example 1');
+
+    await test.step('Ctrl/Cmd-click selects the example', async () => {
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+      await expect(exampleRow).toHaveAttribute('data-selected', 'true');
+      await clickEmptySidebarSpace(page);
+    });
+
+    await test.step('Selected together with its own parent request, parent-wins applies: both rows stay draggable', async () => {
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      // Parent-wins absorbs the example into the request, so dragging from either row is
+      // redirected to moving the request — neither is drag-disabled in this state.
+      await expect(reqRootRow).not.toHaveClass(/drag-disabled/);
+      await expect(exampleRow).not.toHaveClass(/drag-disabled/);
+      await clickEmptySidebarSpace(page);
+    });
+
+    await test.step('Selected together with an unrelated request (not its parent), drag is blocked for the whole selection', async () => {
+      await reqOtherRow.click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      await expect(reqOtherRow).toHaveClass(/drag-disabled/);
+      await expect(exampleRow).toHaveClass(/drag-disabled/);
+    });
+
+    await test.step('Right-click offers Delete, and bulk-deleting removes both the example and the unrelated request', async () => {
+      await exampleRow.click({ button: 'right' });
+      await expect(locators.dropdown.item('Delete')).toBeVisible();
+      await locators.dropdown.item('Delete').click();
+
+      const deleteModal = locators.modal.byTitle('Delete Items');
+      await expect(deleteModal).toBeVisible();
+      await expect(deleteModal.getByText('1 request and 1 example')).toBeVisible();
+      await locators.modal.button('Delete').click();
+
+      await expect(exampleRow).not.toBeVisible();
+      await expect(reqOtherRow).not.toBeVisible();
+      await expect(reqRootRow).toBeVisible();
+    });
+  });
+
+  test('Dragging from an example whose parent request is also selected moves the request itself, not the example', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionAName = 'exampledragredirect Collection A';
+    const collectionBName = 'exampledragredirect Collection B';
+
+    await createCollection(page, collectionAName, await createTmpDir('exampledragredirect-a'));
+    await createCollection(page, collectionBName, await createTmpDir('exampledragredirect-b'));
+    await createRequest(page, 'Req Root', collectionAName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await clickEmptySidebarSpace(page);
+    await locators.sidebar.requestExamplesToggle('Req Root').click();
+
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const exampleRow = locators.sidebar.example('Example 1');
+
+    await test.step('Select the request together with its own example', async () => {
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      await expect(reqRootRow).not.toHaveClass(/drag-disabled/);
+      await expect(exampleRow).not.toHaveClass(/drag-disabled/);
+    });
+
+    await test.step('Dragging from the example row moves the parent request, not the example', async () => {
+      await exampleRow.dragTo(locators.sidebar.collection(collectionBName));
+
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).toHaveCount(0);
+
+      // A successful drop clears the selection.
+      await expect(reqRootRow).not.toHaveAttribute('data-selected', 'true');
+    });
+  });
+
+  test('The example-to-parent-request redirect is exclusive to that pairing: adding a third, unrelated collection blocks both rows again', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionAName = 'exampleredirectexclusive Collection A';
+    const collectionBName = 'exampleredirectexclusive Collection B';
+
+    await createCollection(page, collectionAName, await createTmpDir('exampleredirectexclusive-a'));
+    await createCollection(page, collectionBName, await createTmpDir('exampleredirectexclusive-b'));
+    await createRequest(page, 'Req Root', collectionAName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await clickEmptySidebarSpace(page);
+    await locators.sidebar.requestExamplesToggle('Req Root').click();
+
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const exampleRow = locators.sidebar.example('Example 1');
+    const collectionBRow = locators.sidebar.collectionRow(collectionBName);
+
+    await test.step('Request + its own example alone: both draggable (redirect applies)', async () => {
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      await expect(reqRootRow).not.toHaveClass(/drag-disabled/);
+      await expect(exampleRow).not.toHaveClass(/drag-disabled/);
+    });
+
+    await test.step('Adding an unrelated collection to the selection blocks the request\'s own drag, and the example follows suit', async () => {
+      await locators.sidebar.collection(collectionBName).click({ modifiers: [SELECT_MODIFIER] });
+
+      await expect(reqRootRow).toHaveClass(/drag-disabled/);
+      await expect(collectionBRow).toHaveClass(/drag-disabled/);
+      await expect(exampleRow).toHaveClass(/drag-disabled/);
+    });
+  });
+
+  test('Dragging from an example bundles in a sibling request also selected alongside its own parent request', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionAName = 'examplebundle Collection A';
+    const collectionBName = 'examplebundle Collection B';
+
+    await createCollection(page, collectionAName, await createTmpDir('examplebundle-a'));
+    await createCollection(page, collectionBName, await createTmpDir('examplebundle-b'));
+    await createRequest(page, 'Req Root', collectionAName, {});
+    await createRequest(page, 'Req Sibling', collectionAName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await clickEmptySidebarSpace(page);
+    await locators.sidebar.requestExamplesToggle('Req Root').click();
+
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const reqSiblingRow = locators.sidebar.itemRow('Req Sibling');
+    const exampleRow = locators.sidebar.example('Example 1');
+
+    await test.step('Select the request, its own example, and an unrelated sibling request', async () => {
+      await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: [SELECT_MODIFIER] });
+      await reqSiblingRow.click({ modifiers: [SELECT_MODIFIER] });
+
+      // A sibling request is a normal bundle partner, not a blocker — all three rows stay draggable.
+      await expect(reqRootRow).not.toHaveClass(/drag-disabled/);
+      await expect(reqSiblingRow).not.toHaveClass(/drag-disabled/);
+      await expect(exampleRow).not.toHaveClass(/drag-disabled/);
+    });
+
+    await test.step('Dragging from the example moves both requests, not just its own parent', async () => {
+      await exampleRow.dragTo(locators.sidebar.collection(collectionBName));
+
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Sibling')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).toHaveCount(0);
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Req Sibling')).toHaveCount(0);
     });
   });
 });
