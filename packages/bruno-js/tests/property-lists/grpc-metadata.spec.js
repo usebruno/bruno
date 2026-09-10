@@ -1,15 +1,21 @@
-const GrpcMetadataList = require('../src/grpc/grpc-metadata-list');
-const ReadOnlyPropertyList = require('../src/readonly-property-list');
+const { createPropertyList } = require('../../src/property-lists/create-property-list');
+const { PropertyList } = require('../../src/property-lists/property-list');
 
-describe('GrpcMetadataList', () => {
+describe('gRPC metadata property list', () => {
   const defaultMetadata = {
     'X-Token': 'abc123',
     'content-type': 'application/grpc'
   };
 
   function createList({ metadata = { ...defaultMetadata }, writable = true } = {}) {
-    return { list: new GrpcMetadataList(() => metadata, { writable }), metadata };
+    const list = createPropertyList('bru.grpc.request.metadata', { readMetadata: () => metadata, writable });
+    return { list, metadata };
   }
+
+  test('is a PropertyList', () => {
+    const { list } = createList();
+    expect(PropertyList.isPropertyList(list)).toBe(true);
+  });
 
   describe('read methods', () => {
     test('get() matches the key case-insensitively', () => {
@@ -32,6 +38,20 @@ describe('GrpcMetadataList', () => {
       expect(list.has('x-token', 'abc123')).toBe(true);
       expect(list.has('x-token', 'wrong')).toBe(false);
       expect(list.has('missing')).toBe(false);
+    });
+
+    test('idx() returns the entry at a position', () => {
+      const { list } = createList();
+      expect(list.idx(0)).toEqual({ key: 'X-Token', value: 'abc123' });
+      expect(list.idx(10)).toBeUndefined();
+    });
+
+    test('indexOf() matches by key string or { key, value }, case-insensitively', () => {
+      const { list } = createList();
+      expect(list.indexOf('x-token')).toBe(0);
+      expect(list.indexOf({ key: 'X-TOKEN', value: 'abc123' })).toBe(0);
+      expect(list.indexOf({ key: 'X-TOKEN', value: 'wrong' })).toBe(-1);
+      expect(list.indexOf('missing')).toBe(-1);
     });
 
     test('reads re-run against the backing map on every call', () => {
@@ -117,5 +137,23 @@ describe('GrpcMetadataList', () => {
     }
 
     expect(metadata).toEqual(defaultMetadata);
+  });
+
+  test('positional mutators throw the unordered error, before the readonly check', () => {
+    const { list } = createList({ writable: false });
+
+    for (const method of ['insert', 'insertAfter', 'prepend', 'append']) {
+      expect(() => list[method]({ key: 'x', value: '1' })).toThrow(
+        `${method}() is not available on gRPC metadata — it is a key-value map with no ordering`
+      );
+    }
+  });
+
+  test('response metadata and trailers surfaces are read-only', () => {
+    for (const path of ['bru.grpc.response.metadata', 'bru.grpc.response.trailers']) {
+      const list = createPropertyList(path, { readMetadata: () => ({ ...defaultMetadata }) });
+      expect(list.get('x-token')).toBe('abc123');
+      expect(() => list.upsert('x', '1')).toThrow('metadata.upsert() is not available once the call has been sent');
+    }
   });
 });
