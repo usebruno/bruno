@@ -4,15 +4,17 @@ import { isMacOS } from 'utils/common/platform';
 const useEnvironmentBulkSelection = ({
   environments,
   filteredEnvironments,
-  activeEnvironmentUid,
-  selectedEnvironment,
   collectionUid,
-  onOpenEnvironment
+  onOpenEnvironment,
+  onRenameEnvironment
 }) => {
   const [selectedEnvUids, setSelectedEnvUids] = useState([]);
   const [lastClickedEnvUid, setLastClickedEnvUid] = useState(null);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const scopeRef = useRef(null);
 
   const envUids = useMemo(() => (environments ? environments.map((env) => env.uid) : []), [environments]);
@@ -21,7 +23,7 @@ const useEnvironmentBulkSelection = ({
   useEffect(() => {
     setSelectedEnvUids([]);
     setLastClickedEnvUid(null);
-    setIsSelectionMode(false);
+    setMenuVisible(false);
   }, [collectionUid]);
 
   useEffect(() => {
@@ -33,11 +35,25 @@ const useEnvironmentBulkSelection = ({
   }, [envUids]);
 
   const hasSelection = selectedEnvUids.length > 0;
-  const isAllFilteredSelected = filteredEnvUids.length > 0 && filteredEnvUids.every((uid) => selectedEnvUids.includes(uid));
   const selectedEnvironmentsList = useMemo(
     () => environments?.filter((env) => selectedEnvUids.includes(env.uid)) || [],
     [environments, selectedEnvUids]
   );
+
+  const openMenuAt = useCallback((e) => {
+    setMenuPosition({ x: e.clientX, y: e.clientY });
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuVisible(false);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedEnvUids([]);
+    setLastClickedEnvUid(null);
+    setMenuVisible(false);
+  }, []);
 
   const toggleEnvSelection = useCallback((uid) => {
     setSelectedEnvUids((prev) => (prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]));
@@ -57,13 +73,15 @@ const useEnvironmentBulkSelection = ({
     });
   }, [lastClickedEnvUid, filteredEnvUids]);
 
+  // Matches the Sidebar's own convention (see useSidebarSelectionClick):
+  // the multi-select toggle modifier is OS-appropriate — Cmd on macOS,
+  // Ctrl on Windows/Linux — and it only builds the selection, quietly.
   const handleRowInteraction = useCallback((e, env) => {
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
 
     if (isSelectionModifierPressed) {
       e.preventDefault();
       e.stopPropagation();
-      setIsSelectionMode(true);
       toggleEnvSelection(env.uid);
       setLastClickedEnvUid(env.uid);
       return;
@@ -72,107 +90,126 @@ const useEnvironmentBulkSelection = ({
     if (e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
-      setIsSelectionMode(true);
       selectEnvRange(env.uid);
       setLastClickedEnvUid(env.uid);
       return;
     }
 
-    if (isSelectionMode) {
-      toggleEnvSelection(env.uid);
-      setLastClickedEnvUid(env.uid);
-      return;
+    if (hasSelection) {
+      clearSelection();
     }
 
     onOpenEnvironment?.(env);
-  }, [isSelectionMode, toggleEnvSelection, selectEnvRange, onOpenEnvironment]);
+  }, [toggleEnvSelection, selectEnvRange, hasSelection, clearSelection, onOpenEnvironment]);
 
-  const handleToggleSelectionMode = useCallback(() => {
-    if (isSelectionMode) {
-      setIsSelectionMode(false);
-      setSelectedEnvUids([]);
-      setLastClickedEnvUid(null);
-      return;
+  const handleRowContextMenu = useCallback((e, env) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isPartOfMultiSelection = selectedEnvUids.includes(env.uid) && selectedEnvUids.length > 1;
+    if (!isPartOfMultiSelection) {
+      setSelectedEnvUids([env.uid]);
+      setLastClickedEnvUid(env.uid);
     }
 
-    setIsSelectionMode(true);
-    const target = environments?.find((env) => env.uid === selectedEnvironment?.uid)
-      || environments?.find((env) => env.uid === activeEnvironmentUid)
-      || environments?.[0];
-    if (target) {
-      setSelectedEnvUids([target.uid]);
-      setLastClickedEnvUid(target.uid);
-    }
-  }, [isSelectionMode, environments, selectedEnvironment, activeEnvironmentUid]);
-
-  const handleCancelSelection = useCallback(() => {
-    setSelectedEnvUids([]);
-    setLastClickedEnvUid(null);
-    setIsSelectionMode(false);
-  }, []);
-
-  const handleSelectAllToggle = useCallback(() => {
-    if (isAllFilteredSelected) {
-      setSelectedEnvUids([]);
-      setLastClickedEnvUid(null);
-      return;
-    }
-    setSelectedEnvUids((prev) => Array.from(new Set([...prev, ...filteredEnvUids])));
-  }, [isAllFilteredSelected, filteredEnvUids]);
+    openMenuAt(e);
+  }, [selectedEnvUids, openMenuAt]);
 
   const handleDeleted = useCallback((failedUids) => {
     setSelectedEnvUids(failedUids || []);
     if (!failedUids || !failedUids.length) {
       setLastClickedEnvUid(null);
-      setIsSelectionMode(false);
     }
   }, []);
+
+  const openExportModal = useCallback(() => {
+    setShowExportModal(true);
+    closeMenu();
+  }, [closeMenu]);
+
+  const closeExportModal = useCallback(() => {
+    setShowExportModal(false);
+  }, []);
+
+  const openCopyModal = useCallback(() => {
+    setShowCopyModal(true);
+    closeMenu();
+  }, [closeMenu]);
+
+  const closeCopyModal = useCallback(() => {
+    setShowCopyModal(false);
+  }, []);
+
+  const handleRenameSelected = useCallback(() => {
+    const target = selectedEnvironmentsList[0];
+    closeMenu();
+    clearSelection();
+    if (target) {
+      onRenameEnvironment?.(target);
+    }
+  }, [selectedEnvironmentsList, closeMenu, clearSelection, onRenameEnvironment]);
+
+  const startExportForEnv = useCallback((env) => {
+    setSelectedEnvUids([env.uid]);
+    setShowExportModal(true);
+  }, []);
+
+  const startCopyForEnv = useCallback((env) => {
+    setSelectedEnvUids([env.uid]);
+    setShowCopyModal(true);
+  }, []);
+
+  const startDeleteForEnv = useCallback((env) => {
+    setSelectedEnvUids([env.uid]);
+    setShowDeleteModal(true);
+  }, []);
+
+  const startRenameForEnv = useCallback((env) => {
+    onRenameEnvironment?.(env);
+  }, [onRenameEnvironment]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       const isWithinScope = scopeRef.current?.contains(document.activeElement);
       if (!isWithinScope) return;
 
-      const target = e.target;
-      const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      const isSelectAllCombo = (isMacOS() ? e.metaKey : e.ctrlKey) && (e.key === 'a' || e.key === 'A');
-
-      if (isSelectAllCombo && !isTextInput) {
-        if (!filteredEnvUids.length) return;
-        e.preventDefault();
-        setIsSelectionMode(true);
-        setSelectedEnvUids(filteredEnvUids);
-        setLastClickedEnvUid(null);
-        return;
-      }
-
-      if (e.key === 'Escape' && isSelectionMode) {
-        setIsSelectionMode(false);
-        setSelectedEnvUids([]);
-        setLastClickedEnvUid(null);
+      if (e.key === 'Escape' && hasSelection) {
+        clearSelection();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [filteredEnvUids, isSelectionMode]);
+  }, [hasSelection, clearSelection]);
 
   return {
     scopeRef,
-    isSelectionMode,
     hasSelection,
     selectedEnvUids,
-    filteredEnvUids,
-    isAllFilteredSelected,
     selectedEnvironmentsList,
     showDeleteModal,
-    openDeleteModal: () => setShowDeleteModal(true),
+    openDeleteModal: () => {
+      setShowDeleteModal(true);
+      closeMenu();
+    },
     closeDeleteModal: () => setShowDeleteModal(false),
+    showExportModal,
+    openExportModal,
+    closeExportModal,
+    showCopyModal,
+    openCopyModal,
+    closeCopyModal,
+    handleRenameSelected,
+    startExportForEnv,
+    startCopyForEnv,
+    startDeleteForEnv,
+    startRenameForEnv,
     handleRowInteraction,
-    handleToggleSelectionMode,
-    handleCancelSelection,
-    handleSelectAllToggle,
-    handleDeleted
+    handleRowContextMenu,
+    handleDeleted,
+    menuVisible,
+    menuPosition,
+    closeMenu
   };
 };
 

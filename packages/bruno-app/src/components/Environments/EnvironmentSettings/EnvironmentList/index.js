@@ -14,7 +14,9 @@ import DotEnvFileEditor from 'components/Environments/DotEnvFileEditor';
 import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import DeleteEnvironments from '../DeleteEnvironments';
-import { useEnvironmentBulkSelection, SelectModeButton, SelectionBar } from './EnvironmentSelection';
+import CopyEnvironment from '../CopyEnvironment';
+import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
+import { useEnvironmentBulkSelection, SelectionContextMenu, RowActionsMenu } from './EnvironmentSelection';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -485,10 +487,9 @@ const EnvironmentList = ({
   const bulkSelection = useEnvironmentBulkSelection({
     environments,
     filteredEnvironments,
-    activeEnvironmentUid,
-    selectedEnvironment,
     collectionUid: collection?.uid,
-    onOpenEnvironment: handleEnvironmentClick
+    onOpenEnvironment: handleEnvironmentClick,
+    onRenameEnvironment: handleEnvironmentDoubleClick
   });
 
   const selectedDotEnvData = dotEnvFiles.find((f) => f.filename === selectedDotEnvFile);
@@ -568,6 +569,33 @@ const EnvironmentList = ({
         />
       )}
 
+      {bulkSelection.showExportModal && (
+        <ExportEnvironmentModal
+          environments={bulkSelection.selectedEnvironmentsList}
+          environmentType="collection"
+          onClose={bulkSelection.closeExportModal}
+        />
+      )}
+
+      {bulkSelection.showCopyModal && bulkSelection.selectedEnvironmentsList[0] && (
+        <CopyEnvironment
+          collection={collection}
+          environment={bulkSelection.selectedEnvironmentsList[0]}
+          onClose={bulkSelection.closeCopyModal}
+        />
+      )}
+
+      <SelectionContextMenu
+        visible={bulkSelection.menuVisible}
+        position={bulkSelection.menuPosition}
+        selectedCount={bulkSelection.selectedEnvUids.length}
+        onExport={bulkSelection.openExportModal}
+        onRename={bulkSelection.handleRenameSelected}
+        onDuplicate={bulkSelection.openCopyModal}
+        onDelete={bulkSelection.openDeleteModal}
+        onClose={bulkSelection.closeMenu}
+      />
+
       <div className="environments-container">
         {switchEnvConfirmClose && (
           <div className="confirm-switch-overlay">
@@ -585,13 +613,6 @@ const EnvironmentList = ({
                 onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
                 actions={(
                   <>
-                    <SelectModeButton
-                      isActive={bulkSelection.isSelectionMode}
-                      onClick={() => {
-                        if (!environmentsExpanded) setEnvironmentsExpanded(true);
-                        bulkSelection.handleToggleSelectionMode();
-                      }}
-                    />
                     <button
                       type="button"
                       className="btn-action"
@@ -655,21 +676,10 @@ const EnvironmentList = ({
                   )}
                 </div>
 
-                {bulkSelection.hasSelection && (
-                  <SelectionBar
-                    selectedCount={bulkSelection.selectedEnvUids.length}
-                    visibleCount={bulkSelection.filteredEnvUids.length}
-                    isSearchActive={Boolean(searchText)}
-                    isAllSelected={bulkSelection.isAllFilteredSelected}
-                    onToggleSelectAll={bulkSelection.handleSelectAllToggle}
-                    onDelete={bulkSelection.openDeleteModal}
-                    onCancel={bulkSelection.handleCancelSelection}
-                  />
-                )}
-
                 <div className="environments-list">
                   {filteredEnvironments.map((env) => {
                     const isEnvSelected = bulkSelection.selectedEnvUids.includes(env.uid);
+                    const isEnvMultiSelected = isEnvSelected && bulkSelection.selectedEnvUids.length > 1;
                     return (
                       <div
                         key={env.uid}
@@ -685,7 +695,8 @@ const EnvironmentList = ({
                           'is-selected': isEnvSelected
                         })}
                         onClick={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowInteraction(e, env)}
-                        onDoubleClick={() => !bulkSelection.isSelectionMode && handleEnvironmentDoubleClick(env)}
+                        onContextMenu={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowContextMenu(e, env)}
+                        onDoubleClick={() => handleEnvironmentDoubleClick(env)}
                       >
                         {renamingEnvUid === env.uid ? (
                           <div className="rename-container" ref={renameContainerRef}>
@@ -725,6 +736,14 @@ const EnvironmentList = ({
                             <ColorBadge color={env.color} size={8} />
                             <span className="environment-name">{env.name}</span>
                             <div className="environment-actions">
+                              {!isEnvMultiSelected && (
+                                <RowActionsMenu
+                                  onExport={() => bulkSelection.startExportForEnv(env)}
+                                  onRename={() => bulkSelection.startRenameForEnv(env)}
+                                  onDuplicate={() => bulkSelection.startCopyForEnv(env)}
+                                  onDelete={() => bulkSelection.startDeleteForEnv(env)}
+                                />
+                              )}
                               {activeEnvironmentUid === env.uid ? (
                                 <div className="activated-checkmark" title="Active environment">
                                   <IconCheck size={16} strokeWidth={2} />
