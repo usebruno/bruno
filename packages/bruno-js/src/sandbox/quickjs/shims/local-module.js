@@ -2,6 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const { marshallToVm } = require('../utils');
 
+const OUTSIDE_COLLECTION_ERROR = 'Access to files outside of the collectionPath is not allowed.';
+const moduleNotFoundError = (filename) => `Cannot find module ${filename}`;
+
 /**
  * Creates the host function that loads a collection-local module's source.
  *
@@ -26,11 +29,11 @@ const createLocalModuleLoaderHandle = (vm, collectionPath) => {
 
     // Ensure the resolved file path is inside the collectionPath
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-      throw new Error('Access to files outside of the collectionPath is not allowed.');
+      throw new Error(OUTSIDE_COLLECTION_ERROR);
     }
 
     if (!fs.existsSync(filePath)) {
-      throw new Error(`Cannot find module ${filename}`);
+      throw new Error(moduleNotFoundError(filename));
     }
 
     const code = fs.readFileSync(filePath).toString();
@@ -39,4 +42,8 @@ const createLocalModuleLoaderHandle = (vm, collectionPath) => {
   });
 };
 
-module.exports = createLocalModuleLoaderHandle;
+module.exports = {
+  createLocalModuleLoaderHandle,
+  OUTSIDE_COLLECTION_ERROR,
+  moduleNotFoundError
+};
