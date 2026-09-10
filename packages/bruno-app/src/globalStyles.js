@@ -429,7 +429,9 @@ const GlobalStyle = createGlobalStyle`
 
   /* Scope Badge */
   .CodeMirror-brunoVarInfo .var-scope-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     padding: 0.125rem 0.375rem;
     background: ${(props) => rgba(props.theme.brand, 0.07)};
     border: 1px solid ${(props) => rgba(props.theme.brand, 0.08)};
@@ -438,6 +440,19 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
     flex-shrink: 0;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-badge-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   .bruno-var-definition-target {
@@ -626,10 +641,10 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
   }
 
-  /* "Add to" scope switcher (shown below the value editor for brand new variables) */
+   /* "Add to" scope switcher (shown below the value editor for brand new variables) */
   .CodeMirror-brunoVarInfo .var-add-to-switcher {
     margin-top: 0.5rem;
-    max-width: 18rem;
+    width: 19rem;
   }
 
   /* Toggle and Secret checkbox sit in one row. */
@@ -674,6 +689,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-add-to-secret-checkbox {
     margin: 0;
     cursor: pointer;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron {
@@ -709,7 +725,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-add-to-option-trigger {
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.375rem;
     width: 100%;
     height: 1.5rem;
     min-width: 0;
@@ -732,12 +748,17 @@ const GlobalStyle = createGlobalStyle`
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 1.125rem;
+    height: 1.125rem;
     border-radius: ${(props) => props.theme.border.radius.sm};
     font-size: 0.5rem;
     font-weight: 600;
     line-height: 1;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-icon-request {
@@ -799,6 +820,7 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.dropdown.mutedText};
     line-height: 1.25rem;
+    white-space: nowrap;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-link-button {

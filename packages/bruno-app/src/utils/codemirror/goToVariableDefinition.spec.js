@@ -197,4 +197,24 @@ describe('goToVariableDefinition', () => {
 
     expect(addTab).toHaveBeenCalledWith(expect.objectContaining({ uid: 'col-1-global-environment-settings' }));
   });
+
+  it('does not reuse another collection Global Environment Settings tab', () => {
+    store.getState.mockReturnValueOnce({
+      globalEnvironments: { activeGlobalEnvironmentUid: undefined },
+      tabs: {
+        activeTabUid: 'col-2-global-environment-settings',
+        tabs: [
+          { uid: 'col-2-global-environment-settings', collectionUid: 'col-2', type: 'global-environment-settings' }
+        ]
+      }
+    });
+    const scopeInfo = { type: 'global', data: { variable: { name: 'apiToken', secret: false } } };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiToken');
+
+    expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      uid: 'col-1-global-environment-settings',
+      collectionUid: 'col-1'
+    }));
+  });
 });

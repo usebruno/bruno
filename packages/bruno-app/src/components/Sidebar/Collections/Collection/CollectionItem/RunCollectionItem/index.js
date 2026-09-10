@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
+import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
@@ -38,7 +39,9 @@ const RunCollectionItem = ({ collectionUid, item: runTargetFolder, onClose }) =>
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
-  const onSubmit = ({ recursive, selectedRequestUids }) => {
+  const clearStoredRunnerExchanges = useClearStoredRunnerExchanges(collection.uid);
+
+  const onSubmit = async (recursive, selectedRequestUids) => {
     dispatch(
       addTab({
         uid: uuid(),
@@ -47,6 +50,7 @@ const RunCollectionItem = ({ collectionUid, item: runTargetFolder, onClose }) =>
       })
     );
     if (!isCollectionRunInProgress) {
+      await clearStoredRunnerExchanges();
       dispatch(runCollectionFolder(
         collection.uid,
         runTargetFolder ? runTargetFolder.uid : null,
@@ -54,8 +58,7 @@ const RunCollectionItem = ({ collectionUid, item: runTargetFolder, onClose }) =>
         delay ? Number(delay) : null,
         tags,
         selectedRequestUids
-      ));
-    }
+      ));    }
     onClose();
   };
 

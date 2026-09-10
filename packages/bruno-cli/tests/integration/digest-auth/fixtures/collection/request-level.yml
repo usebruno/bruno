@@ -1,0 +1,20 @@
+info:
+  name: request-level
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "https://www.httpfaker.org/api/auth/digest/auth/user/passwd"
+  auth:
+    type: digest
+    username: "user"
+    password: "{{digestPw}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test('digest auth succeeds with the resolved password', function() {
+          expect(res.getStatus()).to.equal(200);
+        });

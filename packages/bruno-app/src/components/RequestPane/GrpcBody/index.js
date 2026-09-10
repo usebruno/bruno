@@ -99,9 +99,13 @@ const SingleGrpcMessage = ({ message, item, collection, index, methodType, handl
 
   const onSend = async () => {
     try {
-      await sendGrpcMessage(item, collection.uid, content);
+      const { success, error } = await sendGrpcMessage(item, collection.uid, content);
+      if (!success) {
+        toastError(new Error(error), 'Message not sent');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toastError(error, 'Message not sent');
     }
   };
 
