@@ -127,6 +127,75 @@ const StyledWrapper = styled.div`
     padding: 0 4px;
   }
 
+  .env-selection-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 4px 6px 4px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: ${(props) => rgba(props.theme.primary.text, 0.08)};
+    border: 1px solid ${(props) => rgba(props.theme.primary.solid, 0.25)};
+    font-size: 12px;
+    color: ${(props) => props.theme.text};
+
+    .env-selection-count {
+      white-space: nowrap;
+    }
+
+    .env-selection-link {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      color: ${(props) => props.theme.colors.accent};
+      font-weight: 500;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .env-selection-spacer {
+      flex: 1;
+    }
+
+    .env-selection-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: ${(props) => props.theme.colors.text.muted};
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+
+      &:hover {
+        background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+        color: ${(props) => props.theme.text};
+      }
+    }
+
+    .env-selection-delete-btn {
+      color: ${(props) => props.theme.colors.text.danger};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.colors.text.danger, 0.12)};
+        color: ${(props) => props.theme.colors.text.danger};
+      }
+    }
+
+    .env-selection-delete-wrap {
+      margin-right: -4px;
+    }
+  }
+
   .btn-action {
     display: flex;
     align-items: center;
@@ -148,6 +217,16 @@ const StyledWrapper = styled.div`
 
     &.active {
       color: ${(props) => props.theme.colors.accent};
+    }
+
+    &.btn-action-active {
+      color: ${(props) => props.theme.colors.accent};
+      background: ${(props) => rgba(props.theme.colors.accent, 0.14)};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.colors.accent, 0.2)};
+        color: ${(props) => props.theme.colors.accent};
+      }
     }
   }
 
@@ -221,6 +300,19 @@ const StyledWrapper = styled.div`
     &.active {
       background: ${(props) => props.theme.background.surface0};
       color: ${(props) => props.theme.text};
+    }
+
+    &.is-selected {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.primary.text, 0.22)};
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.primary.solid};
+      outline-offset: -2px;
     }
 
     &.renaming,
