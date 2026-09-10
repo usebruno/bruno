@@ -60,7 +60,6 @@ const StyledWrapper = styled.div`
 
     &.has-script-error {
       height: auto;
-      overflow-y: auto;
     }
   }
 

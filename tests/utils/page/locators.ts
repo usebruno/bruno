@@ -493,6 +493,14 @@ export const buildScriptErrorLocators = (page: Page) => ({
   title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
   /** Close button within a card */
   closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  /** Expand/collapse toggle within a card */
+  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
+  /** Copy-error button within a card */
+  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
+  /** Scrollable body (source label, snippet, message, stack) within a card */
+  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
+  /** Response pane section that hosts the error cards and the response content */
+  responsePaneContent: () => page.getByTestId('response-pane-content'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */
@@ -507,8 +515,6 @@ export const buildScriptErrorLocators = (page: Page) => ({
   stackToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-stack-toggle'),
   /** Stack trace content within a card */
   stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
-  /** Scrollable response content that contains script error cards */
-  scrollContainer: () => page.getByTestId('response-pane-content'),
   /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
   errorIcon: () => page.getByTestId('script-error-icon')
 });

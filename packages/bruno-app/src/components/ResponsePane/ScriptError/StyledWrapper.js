@@ -1,7 +1,12 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
   .script-error-card {
+    min-height: 0;
     background-color: ${(props) => props.theme.background.base};
     border: solid 1px ${(props) => props.theme.border.border2};
     border-left: 4px solid ${(props) => props.theme.colors.text.danger};
@@ -10,7 +15,32 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    overflow-y: visible;
+  }
+
+  .script-error-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 8rem;
+    overflow-y: auto;
+
+    /* .scrollbar-hover uses the theme scrollbar color; match the CodeMirror overlay scrollbar
+       in the response pane since the two scrollbars sit side by side. */
+    &:hover::-webkit-scrollbar-thumb,
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: ${(props) => (props.theme.mode === 'dark' ? '#444444' : '#D2D7DB')};
+    }
+  }
+
+  .script-error-card.expanded .script-error-body {
+    max-height: 50rem;
+    overflow-y: auto;
+  }
+
+  .script-error-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .script-error-header {
@@ -19,7 +49,7 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
   }
 
-  .close-button {
+  .icon-button {
     all: unset;
     opacity: 0.7;
     transition: opacity 0.2s;

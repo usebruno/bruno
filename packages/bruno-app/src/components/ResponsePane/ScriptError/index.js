@@ -1,13 +1,16 @@
+import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2, IconCheck, IconChevronDown, IconChevronRight, IconCopy, IconExternalLink, IconX } from '@tabler/icons';
+import { SCRIPT_TYPES } from '@usebruno/common';
+import classnames from 'classnames';
+import CodeSnippet from 'components/CodeSnippet';
+import useCopyToClipboard from 'hooks/useCopyToClipboard';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { addTab, setFocusErrorLine, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
-import { SCRIPT_TYPES } from '@usebruno/common';
+import toast from 'react-hot-toast';
 import ErrorBanner from 'ui/ErrorBanner';
-import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
-import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } from 'providers/ReduxStore/slices/tabs';
-import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
 /**
@@ -81,9 +84,21 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   return { sourceType: 'request', label: 'Request' };
 };
 
+const formatErrorForClipboard = (errorContext, message, displayFilePath) => {
+  const lineSuffix = typeof errorContext.errorLine === 'number' ? `:${errorContext.errorLine}` : '';
+  const errorParts = [
+    `${errorContext.errorType || 'Error'}: ${message}`,
+    displayFilePath && `File: ${displayFilePath}${lineSuffix}`,
+    errorContext.stack
+  ].filter(Boolean);
+  return errorParts.join('\n\n');
+};
+
 const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose }) => {
   const dispatch = useDispatch();
   const [showStack, setShowStack] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { copied, copyToClipboard } = useCopyToClipboard(1500);
 
   const displayFilePath = errorContext?.filePath ? normalizePath(errorContext.filePath) : null;
 
@@ -150,61 +165,92 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     }
   };
 
+  const handleCopy = () => {
+    const errorText = formatErrorForClipboard(errorContext, message, displayFilePath);
+    copyToClipboard(errorText)
+      .then(() => toast.success('Script error details copied to clipboard'))
+      .catch(() => toast.error('Failed to copy script error details'));
+  };
+
   if (!errorContext) {
     return <ErrorBanner errors={[{ title, message }]} onClose={onClose} />;
   }
 
   return (
     <StyledWrapper>
-      <div className="script-error-card" data-testid="script-error-card">
+      <div className={classnames('script-error-card', { expanded: isExpanded })} data-testid="script-error-card">
         <div className="script-error-header">
           <div className="error-title" data-testid="script-error-title">{title}</div>
-          {onClose && (
-            <button className="close-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose} aria-label="Close error">
-              <IconX size={16} strokeWidth={1.5} />
+          <div className="script-error-header-actions">
+            <button
+              className="icon-button flex-shrink-0 cursor-pointer"
+              data-testid="script-error-copy"
+              onClick={handleCopy}
+              aria-label="Copy error"
+              title={copied ? 'Copied' : 'Copy error'}
+            >
+              {copied ? <IconCheck size={16} strokeWidth={1.5} /> : <IconCopy size={16} strokeWidth={1.5} />}
             </button>
+            <button
+              className="icon-button flex-shrink-0 cursor-pointer"
+              data-testid="script-error-expand-toggle"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? 'Collapse error' : 'Expand error'}
+              title={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              {isExpanded ? <IconArrowsDiagonalMinimize2 size={16} strokeWidth={1.5} /> : <IconArrowsDiagonal size={16} strokeWidth={1.5} />}
+            </button>
+
+            {onClose && (
+              <button className="icon-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose} aria-label="Close error">
+                <IconX size={16} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="script-error-body scrollbar-hover" data-testid="script-error-body">
+          {(sourceInfo || displayFilePath) && (
+            <div className="script-error-source-label" data-testid="script-error-source-label">
+              {sourceInfo && <span>{sourceInfo.label}</span>}
+              {displayFilePath && (
+                <span
+                  className={`script-error-file-path${canNavigate ? ' navigable' : ''}`}
+                  data-testid="script-error-file-path"
+                  role={canNavigate ? 'button' : undefined}
+                  tabIndex={canNavigate ? 0 : undefined}
+                  onClick={handleNavigate}
+                  onKeyDown={handleNavigateKeyDown}
+                  title={canNavigate ? `Open ${displayFilePath}` : undefined}
+                >
+                  <span>{displayFilePath}</span>
+                  {canNavigate && <IconExternalLink size={12} className="flex-shrink-0" />}
+                </span>
+              )}
+            </div>
+          )}
+          <CodeSnippet lines={errorContext.lines} variant="error" />
+          <div className="script-error-message" data-testid="script-error-message">
+            {errorContext.errorType || 'Error'}: {message}
+          </div>
+          {errorContext.stack && (
+            <div>
+              <button
+                className="script-error-stack-toggle"
+                data-testid="script-error-stack-toggle"
+                onClick={() => setShowStack(!showStack)}
+                aria-expanded={showStack}
+                aria-label={`${showStack ? 'Hide' : 'Show'} stack trace`}
+              >
+                {showStack ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                <span>{showStack ? 'Hide' : 'Show'} stack trace</span>
+              </button>
+              {showStack && (
+                <pre className="script-error-stack" data-testid="script-error-stack">{errorContext.stack}</pre>
+              )}
+            </div>
           )}
         </div>
-        {(sourceInfo || displayFilePath) && (
-          <div className="script-error-source-label" data-testid="script-error-source-label">
-            {sourceInfo && <span>{sourceInfo.label}</span>}
-            {displayFilePath && (
-              <span
-                className={`script-error-file-path${canNavigate ? ' navigable' : ''}`}
-                data-testid="script-error-file-path"
-                role={canNavigate ? 'button' : undefined}
-                tabIndex={canNavigate ? 0 : undefined}
-                onClick={handleNavigate}
-                onKeyDown={handleNavigateKeyDown}
-                title={canNavigate ? `Open ${displayFilePath}` : undefined}
-              >
-                <span>{displayFilePath}</span>
-                {canNavigate && <IconExternalLink size={12} className="flex-shrink-0" />}
-              </span>
-            )}
-          </div>
-        )}
-        <CodeSnippet lines={errorContext.lines} variant="error" />
-        <div className="script-error-message" data-testid="script-error-message">
-          {errorContext.errorType || 'Error'}: {message}
-        </div>
-        {errorContext.stack && (
-          <div>
-            <button
-              className="script-error-stack-toggle"
-              data-testid="script-error-stack-toggle"
-              onClick={() => setShowStack(!showStack)}
-              aria-expanded={showStack}
-              aria-label={`${showStack ? 'Hide' : 'Show'} stack trace`}
-            >
-              {showStack ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-              <span>{showStack ? 'Hide' : 'Show'} stack trace</span>
-            </button>
-            {showStack && (
-              <pre className="script-error-stack" data-testid="script-error-stack">{errorContext.stack}</pre>
-            )}
-          </div>
-        )}
       </div>
     </StyledWrapper>
   );
@@ -236,7 +282,7 @@ const ScriptError = ({ item, collection, onClose }) => {
   }
 
   return (
-    <div className="mb-2 flex flex-col gap-2">
+    <div className="mb-2 flex flex-col gap-2 min-h-0">
       {errors.map(({ phase, title, message, errorContext }) => (
         <ScriptErrorCard
           key={phase}
