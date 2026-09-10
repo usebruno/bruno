@@ -90,7 +90,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      return parseUrl(this.req.url).search;
+      return parseUrl(this.req.url).queryString;
     } catch (e) {
       return '';
     }

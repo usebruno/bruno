@@ -3,10 +3,6 @@
  * below show each step for 'https://user:pass@{{HOST}}/users/:id?role=admin#section'.
  */
 const parseTemplatedUrl = (rawUrl) => {
-  if (!rawUrl) {
-    throw new Error('URL is empty');
-  }
-
   // drop the protocol -> 'user:pass@{{HOST}}/users/:id?role=admin#section'
   let remainder = rawUrl.replace(/^[^/?#]*:\/\//, '');
 
@@ -26,24 +22,28 @@ const parseTemplatedUrl = (rawUrl) => {
   // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
   const queryIndex = restUrl.indexOf('?');
   const path = queryIndex === -1 ? restUrl : restUrl.substring(0, queryIndex);
-  const search = queryIndex === -1 ? '' : restUrl.substring(queryIndex + 1);
+  const queryString = queryIndex === -1 ? '' : restUrl.substring(queryIndex + 1);
 
   return {
     host,
     pathname: path,
-    search
+    queryString
   };
 };
 
 const parseUrl = (rawUrl) => {
+  if (!rawUrl) {
+    throw new Error('URL is empty');
+  }
+
   // Parse templated URLs manually to preserve the variable casing
-  if (!rawUrl?.includes('{{')) {
+  if (!rawUrl.includes('{{')) {
     try {
       const url = new URL(rawUrl);
       return {
         host: url.host,
         pathname: url.pathname,
-        search: url.search.replace(/^\?/, '')
+        queryString: url.search.replace(/^\?/, '')
       };
     } catch (e) {
       // not a url new URL() accepts
@@ -54,6 +54,5 @@ const parseUrl = (rawUrl) => {
 };
 
 module.exports = {
-  parseUrl,
-  parseTemplatedUrl
+  parseUrl
 };
