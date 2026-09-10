@@ -78,16 +78,8 @@ const WSAuth = ({ item, collection }) => {
           );
         }
 
-        // Only show inherited auth if it's one of the supported types
         if (inheritedSource && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)) {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div> Auth inherited from {inheritedSource.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-              </div>
-            </>
-          );
+          return null;
         } else {
           return (
             <>
@@ -104,10 +96,22 @@ const WSAuth = ({ item, collection }) => {
     }
   };
 
+  const inheritedLabel = authMode === 'inherit'
+    && inheritedSource
+    && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
+    && inheritedSource.auth?.mode !== 'oauth1'
+    && inheritedSource.auth?.mode !== 'oauth2' ? (
+        <div className="flex flex-row items-center gap-2">
+          <div>Auth inherited from {inheritedSource.name}: </div>
+          <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
+        </div>
+      ) : null;
+
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex justify-start items-center mb-4">
+      <div className="flex items-center justify-between mb-4">
         <WSAuthMode item={item} collection={collection} />
+        {inheritedLabel}
       </div>
       {getAuthView()}
     </StyledWrapper>

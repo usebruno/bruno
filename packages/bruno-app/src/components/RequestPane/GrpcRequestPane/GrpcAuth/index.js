@@ -66,25 +66,14 @@ const GrpcAuth = ({ item, collection }) => {
         return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
-        // Only show inherited auth if it's one of the supported types
         if (inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode)) {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Auth inherited from {inheritedSource.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-              </div>
-            </>
-          );
-        } else {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
-              </div>
-            </>
-          );
+          return null;
         }
+        return (
+          <div className="flex flex-row w-full gap-2">
+            <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
+          </div>
+        );
       }
       default: {
         return null;
@@ -92,10 +81,20 @@ const GrpcAuth = ({ item, collection }) => {
     }
   };
 
+  const inheritedLabel = authMode === 'inherit'
+    && inheritedSource
+    && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode) ? (
+        <div className="flex flex-row items-center gap-2">
+          <div>Auth inherited from {inheritedSource.name}: </div>
+          <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
+        </div>
+      ) : null;
+
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex justify-start items-center mb-4">
+      <div className="flex items-center justify-between mb-4">
         <GrpcAuthMode item={item} collection={collection} />
+        {inheritedLabel}
       </div>
       {getAuthView()}
     </StyledWrapper>
