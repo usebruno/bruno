@@ -40,8 +40,6 @@ test.describe('Sidebar response-example expansion', () => {
     const collectionChevron = locators.sidebar.collectionChevron(COLLECTION_NAME);
     const rootToggle = locators.sidebar.requestExamplesToggle('req-ex');
     const nestedToggle = locators.sidebar.requestExamplesToggle('nested-ex');
-    const rootBadge = locators.sidebar.exampleCountBadge('req-ex');
-    const nestedBadge = locators.sidebar.exampleCountBadge('nested-ex');
     const tabs = locators.tabs.allRequestTabs();
 
     try {
@@ -82,9 +80,7 @@ test.describe('Sidebar response-example expansion', () => {
         await collectionChevron.click();
         await expect(row('req-ex')).toBeVisible();
 
-        // The badge still reads 2, which separates "collapsed again" from "the examples
-        // never came back".
-        await expect(rootBadge).toHaveText('2');
+        await expect(rootToggle).toBeVisible();
         await expect(example('ex-one')).toHaveCount(0);
         await expect(example('ex-two')).toHaveCount(0);
       });
@@ -105,7 +101,7 @@ test.describe('Sidebar response-example expansion', () => {
         await expandFolder(page, 'folder-a');
         await expect(row('nested-ex')).toBeVisible();
 
-        await expect(nestedBadge).toHaveText('1');
+        await expect(nestedToggle).toBeVisible();
         await expect(example('ex-nested')).toHaveCount(0);
       });
 

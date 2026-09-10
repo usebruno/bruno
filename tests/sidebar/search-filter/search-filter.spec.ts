@@ -16,7 +16,7 @@ const buildCollectionOnDisk = (dir: string) => {
 };
 
 test.describe('Sidebar search filtering', () => {
-  test('filters by request name, force-expands matching folders, and excludes apps', async ({ launchElectronApp, createTmpDir }) => {
+  test('filters by request name, force-expands collapsed matches without persisting it, and excludes apps', async ({ launchElectronApp, createTmpDir }) => {
     const collectionDir = path.join(await createTmpDir('search-filter'), COLLECTION_NAME);
     buildCollectionOnDisk(collectionDir);
 
@@ -30,30 +30,51 @@ test.describe('Sidebar search filtering', () => {
     const row = locators.sidebar.item;
 
     try {
-      await test.step('Load the collection, expand the folder, add an app', async () => {
+      await test.step('Load the collection and add an app, leaving `auth` collapsed', async () => {
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(row('search-me')).toBeVisible({ timeout: 15000 });
-        // Expand `auth` for real so its requests stay visible after the search is cleared.
-        await expandFolder(page, 'auth');
-        await expect(row('login')).toBeVisible();
+        await expect(row('auth')).toBeVisible();
+        // Folders mount collapsed, so `auth`'s requests start hidden. That is the precondition
+        // for the force-expand assertion below — pre-expanding the folder would make it vacuous.
+        await expect(row('login')).toHaveCount(0);
+        await expect(row('logout')).toHaveCount(0);
         // An app whose name also matches "log" — it must still be excluded from search results.
         await createApp(page, 'log-app', { collectionName: COLLECTION_NAME });
         await expect(row('log-app')).toBeVisible({ timeout: 10000 });
+        await page.getByTitle('Search requests').click();
       });
 
-      await test.step('Searching "log" shows matching requests, but hides non-matches and the app', async () => {
-        await page.getByTitle('Search requests').click();
+      await test.step('Searching "log" force-expands the collapsed folder and hides non-matches', async () => {
         await searchInput.fill('log');
+        await expect(row('auth')).toBeVisible();
+        // `auth` is still collapsed in state; the search overrides that at render time.
         await expect(row('login')).toBeVisible();
         await expect(row('logout')).toBeVisible();
-        await expect(row('auth')).toBeVisible();
         await expect(row('search-me')).toHaveCount(0);
         await expect(row('health')).toHaveCount(0);
         // Apps are never surfaced while searching, even though "log-app" matches "log".
         await expect(row('log-app')).toHaveCount(0);
       });
 
-      await test.step('Clearing the search restores the entire tree', async () => {
+      await test.step('Clearing the search collapses `auth` again', async () => {
+        await searchInput.fill('');
+        // The force-expand is a render-time override, not a state change, so the folder must
+        // go back to collapsed rather than staying open.
+        await expect(row('login')).toHaveCount(0);
+        await expect(row('logout')).toHaveCount(0);
+        for (const name of ['search-me', 'health', 'auth', 'log-app']) {
+          await expect(row(name)).toBeVisible();
+        }
+      });
+
+      await test.step('A folder the user expanded stays expanded across a search', async () => {
+        await expandFolder(page, 'auth');
+        await expect(row('login')).toBeVisible();
+
+        await searchInput.fill('log');
+        await expect(row('login')).toBeVisible();
+        await expect(row('logout')).toBeVisible();
+
         await searchInput.fill('');
         for (const name of ['search-me', 'health', 'auth', 'login', 'logout', 'log-app']) {
           await expect(row(name)).toBeVisible();
