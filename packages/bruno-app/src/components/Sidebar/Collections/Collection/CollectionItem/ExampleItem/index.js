@@ -53,7 +53,6 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
       ...(parentMultiDragItems ? { multiSelectedItems: parentMultiDragItems } : {})
     },
     canDrag: isRedirectedToRequestDrag,
-    collect: () => ({}),
     options: {
       dropEffect: 'move'
     }
@@ -230,7 +229,7 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
       data-testid="sidebar-response-example-item"
       data-selected={isSelected ? 'true' : undefined}
       className={itemRowClassName}
-      onMouseDown={isRedirectedToRequestDrag ? undefined : startBlockedDragTracking}
+      onMouseDown={isMultiSelected && !isRedirectedToRequestDrag ? startBlockedDragTracking : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}

@@ -2017,21 +2017,27 @@ const getSelectionEntryType = (item) => {
 };
 
 // Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
-export const isCollectionItemCollapsed = (item) => (isItemAFolder(item) ? !!item.collapsed : item.collapsed ?? true);
+export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
 
-// Locates the collection, request, and example for an example uid in a single pass, since examples
-// are nested within requests and lack their own pathnames.
-const findExampleOwner = (collections, exampleUid) => {
+// Indexes every example by uid in a single pass over all collections, since examples are nested
+// within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
+// callers whose selection contains no examples never pay for it.
+const buildExampleOwnerIndex = (collections) => {
+  const index = new Map();
   for (const collection of collections) {
     for (const item of flattenItems(collection.items)) {
-      const example = item.examples && find(item.examples, (ex) => ex.uid === exampleUid);
-      if (example) return { collection, item, example };
+      if (!item.examples) continue;
+      for (const example of item.examples) {
+        index.set(example.uid, { collection, item, example });
+      }
     }
   }
-  return null;
+  return index;
 };
 
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  let exampleOwnerIndex = null;
+
   const resolved = selectedUids
     .map((uid) => {
       const collection = findCollectionByUid(collections, uid);
@@ -2051,7 +2057,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
         };
       }
 
-      const exampleOwner = findExampleOwner(collections, uid);
+      exampleOwnerIndex = exampleOwnerIndex || buildExampleOwnerIndex(collections);
+      const exampleOwner = exampleOwnerIndex.get(uid);
       if (exampleOwner) {
         return {
           uid,

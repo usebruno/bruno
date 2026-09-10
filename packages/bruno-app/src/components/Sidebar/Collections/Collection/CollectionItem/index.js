@@ -76,7 +76,7 @@ import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isItemMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -109,7 +109,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
 
   const multiDragItems = isMultiSelected ? multiDragItemsForSelection : null;
   const isRedirectedToCollectionDrag = isMultiSelected && multiDragCollections?.length > 0;
-  const isDragDisabled = isMultiSelected && isMultiDragDisabled && !isRedirectedToCollectionDrag;
+  const isDragDisabled = isMultiSelected && isItemMultiDragDisabled && !isRedirectedToCollectionDrag;
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -388,7 +388,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     e.stopPropagation();
     e.preventDefault();
     dispatch(
-      (itemIsCollapsed ? expandItem : collapseItem)({
+      (isCollectionItemCollapsed(item) ? expandItem : collapseItem)({
         itemUid: item.uid,
         collectionUid: collectionUid
       })
@@ -850,17 +850,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {appItems && appItems.length
             ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {showEmptyFolderMessage ? (

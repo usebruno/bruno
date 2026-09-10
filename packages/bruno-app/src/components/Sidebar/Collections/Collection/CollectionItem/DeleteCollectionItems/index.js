@@ -83,7 +83,6 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
         await dispatch(saveRequest(itemUid, collectionUid, true));
       } catch (error) {
         console.error(`Error saving request ${itemUid} after deleting examples`, error);
-        toast.error(error?.message || 'Error saving request after deleting examples');
       }
     }
 

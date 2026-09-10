@@ -67,7 +67,7 @@ import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled, isItemMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
+const Collection = ({ collection, searchText, openBulkMenu, isCollectionMultiDragDisabled, isItemMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -107,7 +107,7 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
   const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
-  const isDragDisabled = isMultiSelected && isMultiDragDisabled;
+  const isDragDisabled = isMultiSelected && isCollectionMultiDragDisabled;
   const multiDragItems = isMultiSelected ? multiDragCollections : null;
 
   // Open the OpenAPI Sync tab
@@ -667,13 +667,13 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
         {!collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
             })}
             {appItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
             })}
             {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
             })}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">

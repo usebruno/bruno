@@ -36,10 +36,16 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [collections, selectedSidebarUids]
   );
 
-  const isMultiDragDisabled = !!selectionInfo && (
-    selectionInfo.hasExample || (selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp))
+  // A collection can't be dragged together with folders/requests/apps from inside it.
+  const hasMixedCollectionSelection = Boolean(
+    selectionInfo?.hasCollection
+    && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp)
   );
 
+  // Whether a selected collection row can be dragged as part of the multi-selection.
+  const isCollectionMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || hasMixedCollectionSelection);
+
+  // Whether a selected folder/request/app row can be dragged as part of the multi-selection.
   const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
 
   const multiDragCollections = useMemo(() => {
@@ -98,7 +104,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
                 collection={entry.collection}
                 key={entry.key}
                 openBulkMenu={openBulkMenu}
-                isMultiDragDisabled={isMultiDragDisabled}
+                isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
                 isItemMultiDragDisabled={isItemMultiDragDisabled}
                 multiDragCollections={multiDragCollections}
                 multiDragItems={multiDragItems}
