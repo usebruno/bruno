@@ -1,4 +1,5 @@
 const HeaderList = require('./header-list');
+const { parseUrl } = require('./utils/url');
 
 class BrunoRequest {
   /**
@@ -46,58 +47,9 @@ class BrunoRequest {
     this.req.url = url;
   }
 
-  /**
-   * new URL() mangles {{var}} reference variables, so the url is split by hand. The comments
-   * below show each step for 'https://user:pass@{{HOST}}/users/:id?role=admin#section'.
-   */
-  __parseUrl() {
-    const rawUrl = this.req.url;
-
-    if (!rawUrl) {
-      throw new Error('URL is empty');
-    }
-
-    let url = rawUrl;
-
-    // the scheme may itself be a {{var}}, so match anything up to the '://'
-    const schemePattern = /^[^/?#]*:\/\//;
-
-    // Add a default protocol when the URL does not have one.
-    if (!schemePattern.test(url)) {
-      url = `https://${url}`;
-    }
-
-    // everything after the scheme: 'user:pass@{{HOST}}/users/:id?role=admin#section'
-    let remainder = url.substring(url.match(schemePattern)[0].length);
-
-    // a fragment belongs to no part of the url below, so drop it: 'user:pass@{{HOST}}/users/:id?role=admin'
-    const fragmentIndex = remainder.indexOf('#');
-    if (fragmentIndex !== -1) {
-      remainder = remainder.substring(0, fragmentIndex);
-    }
-
-    // split into host and the rest: 'user:pass@{{HOST}}' and '/users/:id?role=admin'
-    const [hostWithCredentials, ...rest] = remainder.split(/([/?])/);
-    const restUrl = rest.join('');
-
-    // credentials are not part of the host: 'user:pass@{{HOST}}' -> '{{HOST}}'
-    const host = hostWithCredentials.substring(hostWithCredentials.lastIndexOf('@') + 1);
-
-    // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
-    const queryIndex = restUrl.indexOf('?');
-    const path = queryIndex === -1 ? restUrl : restUrl.substring(0, queryIndex);
-    const search = queryIndex === -1 ? '' : restUrl.substring(queryIndex + 1);
-
-    return {
-      host,
-      pathname: path,
-      search
-    };
-  }
-
   getHost() {
     try {
-      return this.__parseUrl().host;
+      return parseUrl(this.req.url).host;
     } catch (e) {
       return '';
     }
@@ -105,7 +57,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      let { pathname } = this.__parseUrl();
+      let { pathname } = parseUrl(this.req.url);
 
       // If path params exist, interpolate them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
@@ -138,7 +90,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      return this.__parseUrl().search;
+      return parseUrl(this.req.url).search;
     } catch (e) {
       return '';
     }
