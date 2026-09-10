@@ -59,9 +59,6 @@ export const buildSidebarLocators = (page: Page) => {
     },
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
-
-    exampleCountBadge: (requestName: string) =>
-      page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('example-count-badge'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
     scopedItem: function (collectionName: string, itemName: string) {
