@@ -41,4 +41,24 @@ describe('property-list manifest', () => {
       });
     }
   );
+
+  test.each(['req.headerList', 'res.headerList'])('bridge method sets for %s', (path) => {
+    expect(bridgeMethodSets(path)).toEqual({
+      syncReadMethods: READS,
+      syncReadObjectMethods: READ_OBJECTS,
+      syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate', ...POSITIONAL],
+      asyncWriteMethods: [],
+      withIterators: true
+    });
+  });
+
+  test('bridge method sets for bru.cookies (async writes)', () => {
+    expect(bridgeMethodSets('bru.cookies')).toEqual({
+      syncReadMethods: READS,
+      syncReadObjectMethods: READ_OBJECTS,
+      syncWriteMethods: POSITIONAL,
+      asyncWriteMethods: ['add', 'upsert', 'remove', 'delete', 'clear'],
+      withIterators: true
+    });
+  });
 });

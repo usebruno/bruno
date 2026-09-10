@@ -3,7 +3,7 @@ const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
-const CookieList = require('./cookie-list');
+const { createPropertyList } = require('./property-lists/create-property-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -79,7 +79,7 @@ class Bru {
     };
     this.runtime = runtime;
     this.requestUrl = requestUrl;
-    this.cookies = new CookieList({
+    this.cookies = createPropertyList('bru.cookies', {
       getUrl: () => this.interpolate(this.requestUrl),
       interpolate: (str) => this.interpolate(str),
       createCookieJar,

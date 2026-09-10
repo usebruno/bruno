@@ -18,8 +18,10 @@ const { POSITIONAL_METHODS } = require('./property-list');
  *   uniqueKeys       Keys are unique; enables string-key `indexOf` and object-form
  *                    `has` shortcuts.
  *   writeMethods     The surface's write API, implemented verbatim by its store.
+ *   extras           Non-collection surface methods the store provides (e.g. `jar`).
  *   serializers      `{ toString, toObject }` serializer ids (see property-list.js).
- *   errors           `{ readonly(method), unordered(method) }` message templates.
+ *   errors           `{ readonly(method), unordered(method) }` message templates;
+ *                    `readonly` may be omitted on surfaces that are always writable.
  */
 
 const GRPC_METADATA_ERRORS = {
@@ -39,6 +41,47 @@ const GRPC_METADATA_SURFACE = {
 };
 
 const PROPERTY_LIST_MANIFEST = [
+  {
+    path: 'bru.cookies',
+    ordered: false,
+    writable: true,
+    async: true,
+    caseInsensitive: false,
+    uniqueKeys: false,
+    writeMethods: ['add', 'upsert', 'remove', 'delete', 'clear'],
+    extras: ['jar'],
+    serializers: { toString: 'pairs', toObject: 'basic' },
+    errors: {
+      unordered: (method) => `${method}() is not available on bru.cookies — the cookie jar has no ordering`
+    }
+  },
+  {
+    path: 'req.headerList',
+    ordered: false,
+    writable: true,
+    async: false,
+    caseInsensitive: true,
+    uniqueKeys: true,
+    writeMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
+    serializers: { toString: 'httpWire', toObject: 'postmanHeaders' },
+    errors: {
+      unordered: (method) => `${method}() is not available on req.headerList — request headers are a keyed map with no ordering`
+    }
+  },
+  {
+    path: 'res.headerList',
+    ordered: false,
+    writable: false,
+    async: false,
+    caseInsensitive: true,
+    uniqueKeys: true,
+    writeMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
+    serializers: { toString: 'httpWire', toObject: 'postmanHeaders' },
+    errors: {
+      readonly: () => 'HeaderList is read-only (response headers cannot be modified)',
+      unordered: (method) => `${method}() is not available on res.headerList — response headers are a keyed map with no ordering`
+    }
+  },
   {
     path: 'bru.grpc.request.metadata',
     ...GRPC_METADATA_SURFACE,

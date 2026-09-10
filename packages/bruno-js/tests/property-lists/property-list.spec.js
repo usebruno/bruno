@@ -471,7 +471,7 @@ describe('PropertyList', () => {
       expect(list.idx(1)).toEqual({ key: 'b', value: '2' });
     });
 
-    test("writable: 'wiring' resolves from the wiring flag", () => {
+    test('writable: \'wiring\' resolves from the wiring flag', () => {
       const writableList = assemblePropertyList(makeDescriptor({ writable: 'wiring' }), new ArrayStore(abcItems), {
         writable: true
       });
