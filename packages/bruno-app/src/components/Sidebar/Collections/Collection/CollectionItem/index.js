@@ -174,6 +174,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
           wasSelected: isSelected,
           ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
         },
+    canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -289,11 +290,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     })
   });
 
-  drop(ref);
-  if (!isDragDisabled) {
-    drag(ref);
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }
+  drag(drop(ref));
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   useEffect(() => {
     if (!isOver) {

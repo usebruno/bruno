@@ -1965,6 +1965,11 @@ export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText =
     requestItems.forEach((request) => {
       if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
       uids.push(request.uid);
+
+      const examplesVisible = request.type === 'http-request' && (hasSearchText || !isCollectionItemCollapsed(request));
+      if (examplesVisible && request.examples?.length) {
+        request.examples.forEach((example) => uids.push(example.uid));
+      }
     });
   };
 
@@ -2014,10 +2019,16 @@ const getSelectionEntryType = (item) => {
 // Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
 export const isCollectionItemCollapsed = (item) => (isItemAFolder(item) ? !!item.collapsed : item.collapsed ?? true);
 
-// Finds the parent request of an example, since examples are nested within requests and lack their own pathnames.
-const findRequestOwningExample = (collection, exampleUid) => {
-  const flattenedItems = flattenItems(collection.items);
-  return find(flattenedItems, (i) => i.examples && find(i.examples, (ex) => ex.uid === exampleUid));
+// Locates the collection, request, and example for an example uid in a single pass, since examples
+// are nested within requests and lack their own pathnames.
+const findExampleOwner = (collections, exampleUid) => {
+  for (const collection of collections) {
+    for (const item of flattenItems(collection.items)) {
+      const example = item.examples && find(item.examples, (ex) => ex.uid === exampleUid);
+      if (example) return { collection, item, example };
+    }
+  }
+  return null;
 };
 
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
@@ -2040,17 +2051,15 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
         };
       }
 
-      const requestCollection = find(collections, (c) => findRequestOwningExample(c, uid));
-      const requestItem = requestCollection && findRequestOwningExample(requestCollection, uid);
-      const example = requestItem && find(requestItem.examples, (ex) => ex.uid === uid);
-      if (example) {
+      const exampleOwner = findExampleOwner(collections, uid);
+      if (exampleOwner) {
         return {
           uid,
           type: 'example',
-          collectionUid: requestCollection.uid,
+          collectionUid: exampleOwner.collection.uid,
           pathname: null,
-          item: requestItem,
-          example
+          item: exampleOwner.item,
+          example: exampleOwner.example
         };
       }
 

@@ -293,6 +293,7 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
       wasSelected: isSelected,
       ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
     },
+    canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -375,11 +376,8 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
     })
   });
 
-  drop(collectionRef);
-  if (!isDragDisabled) {
-    drag(collectionRef);
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }
+  drag(drop(collectionRef));
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   useEffect(() => {
     if (isCollectionFocused && collectionRef.current) {

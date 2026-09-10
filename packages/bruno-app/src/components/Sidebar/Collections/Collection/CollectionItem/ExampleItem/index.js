@@ -52,15 +52,14 @@ const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isPa
       wasSelected: true,
       ...(parentMultiDragItems ? { multiSelectedItems: parentMultiDragItems } : {})
     },
+    canDrag: isRedirectedToRequestDrag,
     collect: () => ({}),
     options: {
       dropEffect: 'move'
     }
   });
-  if (isRedirectedToRequestDrag) {
-    drag(exampleRef);
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }
+  drag(exampleRef);
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);

@@ -9,13 +9,13 @@ const DRAG_THRESHOLD_PX = 4;
 
 let dragStart = null;
 let isTrackingDrag = false;
-let suppressNextClick = false;
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const stopTracking = () => {
   window.removeEventListener('mousemove', onMouseMove);
   window.removeEventListener('mouseup', onMouseUp);
+  window.removeEventListener('blur', onWindowBlur);
   document.body.classList.remove(BLOCKED_CURSOR_CLASS);
   dragStart = null;
   isTrackingDrag = false;
@@ -29,10 +29,26 @@ function onMouseMove(e) {
   document.body.classList.add(BLOCKED_CURSOR_CLASS);
 }
 
+// A click only follows mouseup when mousedown and mouseup shared a target, so releasing over a
+// different element never fires one — drop the listener on the next tick instead of waiting
+// indefinitely, or it would go on to swallow the user's next, unrelated click.
+function suppressTrailingClickOnce() {
+  const suppress = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  document.addEventListener('click', suppress, { capture: true, once: true });
+  setTimeout(() => document.removeEventListener('click', suppress, true), 0);
+}
+
 function onMouseUp() {
   if (isTrackingDrag) {
-    suppressNextClick = true;
+    suppressTrailingClickOnce();
   }
+  stopTracking();
+}
+
+function onWindowBlur() {
   stopTracking();
 }
 
@@ -42,17 +58,5 @@ export const startBlockedDragTracking = (e) => {
   dragStart = { x: e.clientX, y: e.clientY };
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
+  window.addEventListener('blur', onWindowBlur);
 };
-
-if (typeof document !== 'undefined') {
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (!suppressNextClick) return;
-      suppressNextClick = false;
-      e.preventDefault();
-      e.stopPropagation();
-    },
-    true
-  );
-}

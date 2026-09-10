@@ -624,6 +624,53 @@ describe('getVisibleSidebarUidsInOrder', () => {
     expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'alpha' }))
       .toEqual(['colA', 'folderA', 'reqA1']);
   });
+
+  const buildRequestWithExample = (overrides = {}) => ({
+    uid: 'reqRoot',
+    type: 'http-request',
+    request: {},
+    name: 'Root',
+    seq: 2,
+    pathname: '/colA/Root.bru',
+    examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }],
+    ...overrides
+  });
+
+  it('includes a request\'s examples once its examples are expanded', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample({ collapsed: false })] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'ex1']);
+  });
+
+  it('excludes a request\'s examples while its examples are collapsed (the default)', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot']);
+  });
+
+  it('includes examples while searching even though examples are otherwise collapsed', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'root' }))
+      .toEqual(['colA', 'reqRoot', 'ex1']);
+  });
 });
 
 describe('getSelectionInfo', () => {

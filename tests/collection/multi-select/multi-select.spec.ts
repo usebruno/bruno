@@ -125,6 +125,37 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
   });
 
+  test('Shift-click range spanning an expanded request\'s examples includes those examples too', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionName = 'shiftexample Collection';
+
+    await createCollection(page, collectionName, await createTmpDir('shiftexample'));
+    await createFolder(page, 'Folder A', collectionName);
+    await expandFolder(page, 'Folder A');
+    await createRequest(page, 'Req A1', 'Folder A', { inFolder: true });
+    await createRequest(page, 'Req Root', collectionName, {});
+    await createExampleFromSidebar(page, 'Req Root', 'Example 1');
+    await locators.sidebar.requestExamplesToggle('Req Root').click();
+    await clickEmptySidebarSpace(page);
+
+    const folderARow = locators.sidebar.itemRow('Folder A');
+    const reqA1Row = locators.sidebar.itemRow('Req A1');
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
+    const exampleRow = locators.sidebar.example('Example 1');
+
+    await test.step('Select Folder A, then Shift-click the expanded example', async () => {
+      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+      await exampleRow.click({ modifiers: ['Shift'] });
+    });
+
+    await test.step('The range from Folder A through the example, inclusive, is selected', async () => {
+      await expect(folderARow).toHaveAttribute('data-selected', 'true');
+      await expect(reqA1Row).toHaveAttribute('data-selected', 'true');
+      await expect(reqRootRow).toHaveAttribute('data-selected', 'true');
+      await expect(exampleRow).toHaveAttribute('data-selected', 'true');
+    });
+  });
+
   test('Shift-click with no prior click anchor selects only the clicked row, not everything above it', async ({ page, createTmpDir }) => {
     const { locators, collectionAName } = await setupFixture(page, createTmpDir, 'shiftnoanchor');
 
@@ -984,8 +1015,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
 
       await reqRootRow.click({ button: 'right' });
-      await expect(locators.dropdown.item('Collapse')).toBeVisible();
-      await locators.dropdown.item('Collapse').click();
+      const collapseItem = locators.dropdown.item('Collapse');
+      await expect(collapseItem).toBeVisible();
+      await collapseItem.click();
 
       await expect(exampleRow).not.toBeVisible();
       await expect(locators.sidebar.request('Req One')).not.toBeVisible();
@@ -996,8 +1028,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await reqRootRow.click({ modifiers: [SELECT_MODIFIER] });
 
       await reqRootRow.click({ button: 'right' });
-      await expect(locators.dropdown.item('Expand')).toBeVisible();
-      await locators.dropdown.item('Expand').click();
+      const expandItem = locators.dropdown.item('Expand');
+      await expect(expandItem).toBeVisible();
+      await expandItem.click();
 
       await expect(exampleRow).toBeVisible();
       await expect(locators.sidebar.request('Req One')).toBeVisible();
@@ -1137,8 +1170,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await test.step('Right-click offers Delete, and bulk-deleting removes both the example and the unrelated request', async () => {
       await exampleRow.click({ button: 'right' });
-      await expect(locators.dropdown.item('Delete')).toBeVisible();
-      await locators.dropdown.item('Delete').click();
+      const deleteItem = locators.dropdown.item('Delete');
+      await expect(deleteItem).toBeVisible();
+      await deleteItem.click();
 
       const deleteModal = locators.modal.byTitle('Delete Items');
       await expect(deleteModal).toBeVisible();
