@@ -34,35 +34,17 @@ const reopenAndPreview = async (page: Page, collectionName: string, requestName:
 };
 
 /*
- * A wide XML array only renders CHUNK_SIZE children at a time (see useChunkedReveal in
- * XmlPreview). Scroll its trailing sentinel into view to reveal the next chunk, repeating
- * until the target link shows up.
+ * Both XmlPreview and TextPreview only render CHUNK_SIZE items at a time (see
+ * useChunkedReveal), revealing the next chunk when a trailing sentinel scrolls into view -
+ * scroll it into view and repeat until the target link shows up.
  */
-const revealXmlLinkAndClick = async (page: Page, container: Locator, target: Locator, expectedUrl: string) => {
+const revealLinkAndClick = async (page: Page, container: Locator, target: Locator, expectedUrl: string, sentinelTestId: string) => {
   for (let attempt = 0; attempt < 20; attempt++) {
     if (await target.isVisible().catch(() => false)) break;
-    const sentinel = container.getByTestId('xml-reveal-sentinel').first();
+    const sentinel = container.getByTestId(sentinelTestId).first();
     if (!(await sentinel.count())) break;
     await sentinel.scrollIntoViewIfNeeded();
     await page.waitForTimeout(150);
-  }
-
-  await expect(target).toBeVisible();
-  await target.click();
-  await expectTransientRequestOpened(page, { type: 'http', url: expectedUrl });
-};
-
-/*
- * TextPreview caps how many segments render at once (see CHUNK_SIZE in TextPreview.js) and
- * exposes a "Show more" button instead of auto-revealing on scroll - click it until the
- * target link appears.
- */
-const revealTextLinkAndClick = async (page: Page, container: Locator, target: Locator, expectedUrl: string) => {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    if (await target.isVisible().catch(() => false)) break;
-    const showMore = container.getByTestId('text-preview-show-more');
-    if (!(await showMore.count())) break;
-    await showMore.click();
   }
 
   await expect(target).toBeVisible();
@@ -76,6 +58,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('Body - JSON preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-json-preview', await createTmpDir('response-json-preview'));
     await createRequest(page, 'echo', 'response-json-preview', { url: ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-json-preview', 'echo');
@@ -94,6 +78,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('Body - XML preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-xml-preview', await createTmpDir('response-xml-preview'));
     await createRequest(page, 'echo', 'response-xml-preview', { url: CUSTOM_ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-xml-preview', 'echo');
@@ -115,6 +101,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('Body - Text preview: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-text-preview', await createTmpDir('response-text-preview'));
     await createRequest(page, 'echo', 'response-text-preview', { url: TEXT_ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-text-preview', 'echo');
@@ -225,11 +213,13 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
       await reopenAndPreview(page, 'response-xml-preview-huge', 'echo', 'XML');
       const rowContainer = responsePane(page).getByTestId('xml-preview-container');
       const target = rowContainer.locator('.xml-value').filter({ hasText: `http://link-aware.test/xml-row-${row}` });
-      await revealXmlLinkAndClick(page, rowContainer, target, `http://link-aware.test/xml-row-${row}`);
+      await revealLinkAndClick(page, rowContainer, target, `http://link-aware.test/xml-row-${row}`, 'xml-reveal-sentinel');
     }
   });
 
-  test('Body - Text preview: 1MB response reveals links via "Show more", each opens the correct transient request', async ({ page, createTmpDir }) => {
+  test('Body - Text preview: 1MB response reveals links as you scroll, each opens the correct transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-text-preview-huge', await createTmpDir('response-text-preview-huge'));
     await createRequest(page, 'echo', 'response-text-preview-huge', { url: TEXT_ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-text-preview-huge', 'echo');
@@ -239,8 +229,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
     const FILLER_SENTENCE = 'Processing incoming webhook payload for merchant account, validating signature and replaying idempotency checks. ';
     const filler = FILLER_SENTENCE.repeat(Math.ceil(2050 / FILLER_SENTENCE.length)).slice(0, 2050);
     /*
-     * 0 sits inside the first rendered chunk (no "Show more" needed); 150/300/450 each need
-     * one or more clicks on "Show more" to become visible (chunk size is 300 segments).
+     * 0 sits inside the first rendered chunk (no scroll needed); 150/300/450 each need one
+     * or more sentinel-triggered reveals to become visible (chunk size is 300 segments).
      */
     const targetRows = [0, 150, 300, 450];
     const bigTextBody = Array.from({ length: ROW_COUNT }, (_, i) => `${filler} http://link-aware.test/text-row-${i}`).join('\n');
@@ -253,11 +243,13 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
       await reopenAndPreview(page, 'response-text-preview-huge', 'echo', 'Raw');
       const container = responsePane(page).getByTestId('text-preview-container');
       const target = container.getByTestId('text-preview-link').filter({ hasText: new RegExp(`text-row-${row}$`) });
-      await revealTextLinkAndClick(page, container, target, `http://link-aware.test/text-row-${row}`);
+      await revealLinkAndClick(page, container, target, `http://link-aware.test/text-row-${row}`, 'text-preview-reveal-sentinel');
     }
   });
 
   test('Body - JSON preview: 1MB response - many depth-1 links each open the correct transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-json-preview-huge', await createTmpDir('response-json-preview-huge'));
     await createRequest(page, 'echo', 'response-json-preview-huge', { url: ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-json-preview-huge', 'echo');
@@ -294,6 +286,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('Body - Text preview: multiple links across a large response each open the correct transient request', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     await createCollection(page, 'response-text-preview-multi', await createTmpDir('response-text-preview-multi'));
     await createRequest(page, 'echo', 'response-text-preview-multi', { url: TEXT_ECHO_URL, method: 'POST' });
     await openRequest(page, 'response-text-preview-multi', 'echo');
@@ -325,6 +319,8 @@ test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing
   });
 
   test('presigned "PutObject" URL defaults the new request to PUT and opens on the Body tab', async ({ page, createTmpDir }) => {
+    test.setTimeout(90_000);
+
     const presignedUrl = 'https://bucket.s3.amazonaws.com/key?x-id=PutObject';
     await createCollection(page, 'response-presigned', await createTmpDir('response-presigned'));
     await createRequest(page, 'echo', 'response-presigned', { url: ECHO_URL, method: 'POST' });

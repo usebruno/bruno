@@ -1,10 +1,9 @@
 import LinkifyIt from 'linkify-it';
-import React, { Fragment, memo, useMemo, useState } from 'react';
+import React, { Fragment, memo, useMemo } from 'react';
+import { useChunkedReveal } from 'hooks/useChunkedReveal';
 import { isHttpUrl } from 'utils/url';
 
 const linkify = new LinkifyIt();
-
-const CHUNK_SIZE = 300;
 
 const TextPreview = memo(({ data, onLinkClick }) => {
   const displayData = useMemo(() => {
@@ -49,15 +48,7 @@ const TextPreview = memo(({ data, onLinkClick }) => {
     return parts;
   }, [displayData, onLinkClick]);
 
-  // Resets the cap when segments changes - a new response arrived
-  const [visibleCount, setVisibleCount] = useState(Math.min(segments.length, CHUNK_SIZE));
-  const [prevSegments, setPrevSegments] = useState(segments);
-  if (segments !== prevSegments) {
-    setPrevSegments(segments);
-    setVisibleCount(Math.min(segments.length, CHUNK_SIZE));
-  }
-
-  const remaining = segments.length - visibleCount;
+  const [visibleCount, sentinelRef] = useChunkedReveal(segments.length);
 
   return (
     <div
@@ -78,16 +69,7 @@ const TextPreview = memo(({ data, onLinkClick }) => {
           <Fragment key={index}>{segment.text}</Fragment>
         )
       )}
-      {remaining > 0 && (
-        <button
-          type="button"
-          data-testid="text-preview-show-more"
-          className="block mt-2 px-2 py-1 rounded border border-current text-xs font-semibold not-italic no-underline opacity-80 hover:opacity-100"
-          onClick={() => setVisibleCount((count) => Math.min(count + CHUNK_SIZE, segments.length))}
-        >
-          Show {Math.min(remaining, CHUNK_SIZE)} more ({remaining} remaining)
-        </button>
-      )}
+      {visibleCount < segments.length && <div ref={sentinelRef} data-testid="text-preview-reveal-sentinel" />}
     </div>
   );
 });
