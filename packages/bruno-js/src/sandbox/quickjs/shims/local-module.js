@@ -13,17 +13,22 @@ const addLocalModuleLoaderShimToContext = (vm, collectionPath) => {
     const hasExtension = path.extname(filename) !== '';
     const resolvedFilename = hasExtension ? filename : `${filename}.js`;
 
-    // Resolve the file path and check if it's within the collectionPath
-    const filePath = path.resolve(collectionPath, resolvedFilename);
-    const relativePath = path.relative(collectionPath, filePath);
+    let realCollectionPath;
+    let filePath;
+
+    try {
+      // Resolve real paths on both sides so the boundary check sees the file that will actually be read
+      realCollectionPath = fs.realpathSync(collectionPath);
+      filePath = fs.realpathSync(path.resolve(realCollectionPath, resolvedFilename));
+    } catch (error) {
+      throw new Error(moduleNotFoundError(filename));
+    }
+
+    const relativePath = path.relative(realCollectionPath, filePath);
 
     // Ensure the resolved file path is inside the collectionPath
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
       throw new Error(OUTSIDE_COLLECTION_ERROR);
-    }
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error(moduleNotFoundError(filename));
     }
 
     let code = fs.readFileSync(filePath).toString();
