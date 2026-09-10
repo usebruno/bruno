@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp, ElectronApplication } from '../../../playwright';
 import { createWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { goToManageWorkspace, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
@@ -14,7 +14,6 @@ test.describe('Manage Workspace — rename', () => {
     createTmpDir
   }) => {
     const wsLocation = await createTmpDir('ws-location-rename');
-
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     try {
       const page = await waitForReadyPage(app);
@@ -82,7 +81,6 @@ test.describe('Manage Workspace — rename', () => {
     createTmpDir
   }) => {
     const wsLocation = await createTmpDir('ws-location-rename-conflict');
-
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     try {
       const page = await waitForReadyPage(app);
