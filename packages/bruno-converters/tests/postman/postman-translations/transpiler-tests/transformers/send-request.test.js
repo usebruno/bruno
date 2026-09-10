@@ -1546,13 +1546,15 @@ await bru.sendRequest({
 
     it('should rewrite response members inside a concise object body', () => {
       const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => ({ status: res.code, body: res.json() }));
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }, (err, res) => ({ status: res.code, body: res.json(), statusText: res.status, text: res.text() }));
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
         await bru.sendRequest({ url: 'https://echo.usebruno.com' }, async (err, res) => ({
                 status: res.status,
-                body: res.data
+                body: res.data,
+                statusText: res.statusText,
+                text: res.data
         }));
       `);
     });

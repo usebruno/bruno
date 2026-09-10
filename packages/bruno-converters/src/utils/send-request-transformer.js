@@ -386,11 +386,10 @@ const isResponseParamReassigned = (j, handlerPath) => {
 /**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
- * @param {Object} callPath - Path of the `pm.sendRequest` call expression
+ * @param {Object} callbackPath - Path of the callback argument
  * @returns {Object|null} - The callback, made async with its response access rewritten in place, or null if not a function
  */
-const transformCallback = (j, callPath) => {
-  const callbackPath = callPath.get('arguments', 1);
+const transformCallback = (j, callbackPath) => {
   const callback = callbackPath.value;
   if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
 
@@ -480,7 +479,8 @@ const sendRequestTransformer = (path, j) => {
     findAndTransformVariableDeclaration(j, root, variableName);
   }
 
-  const transformedCallback = transformCallback(j, callPath);
+  const callbackPath = callPath.get('arguments', 1);
+  const transformedCallback = transformCallback(j, callbackPath);
 
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),
