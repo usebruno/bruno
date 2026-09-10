@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
@@ -52,7 +52,10 @@ const QueryResultPreview = ({
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   // Same type as the request this response belongs to (HTTP -> HTTP, GraphQL -> GraphQL).
-  const handleResponseLinkClick = resolveLinkClickHandler(item, collection);
+  const handleResponseLinkClick = useMemo(
+    () => resolveLinkClickHandler(item, collection),
+    [item, collection]
+  );
 
   if (selectedTab === 'editor') {
     return (
@@ -78,7 +81,7 @@ const QueryResultPreview = ({
   switch (previewMode) {
     case 'preview-web': {
       const baseUrl = item.requestSent?.url || '';
-      return <HtmlPreview data={data} baseUrl={baseUrl} onLinkClick={handleResponseLinkClick} />;
+      return <HtmlPreview data={data} baseUrl={baseUrl} />;
     }
     case 'preview-image': {
       return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;

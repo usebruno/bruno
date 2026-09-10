@@ -49,12 +49,7 @@ const TextPreview = memo(({ data, onLinkClick }) => {
     return parts;
   }, [displayData, onLinkClick]);
 
-  /* This preview isn't viewport-virtualized like CodeMirror's markUrls, so a huge response
-   * renders in capped chunks instead of all at once; "Show more" reveals the rest on demand.
-   * When a new response comes in, segments is a new array, so this brings the cap back
-   * down to CHUNK_SIZE for it. Checked and set here instead of in an effect, so it takes
-   * effect in this same render instead of one render late.
-   */
+  // Resets the cap when segments changes - a new response arrived
   const [visibleCount, setVisibleCount] = useState(Math.min(segments.length, CHUNK_SIZE));
   const [prevSegments, setPrevSegments] = useState(segments);
   if (segments !== prevSegments) {
