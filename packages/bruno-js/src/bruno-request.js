@@ -48,7 +48,7 @@ class BrunoRequest {
 
   /**
    * new URL() mangles {{var}} reference variables, so the url is split by hand. The comments
-   * below show each step for 'https://{{HOST}}/users/:id?role=admin'.
+   * below show each step for 'https://user:pass@{{HOST}}/users/:id?role=admin#section'.
    */
   __parseUrl() {
     const rawUrl = this.req.url;
@@ -67,21 +67,21 @@ class BrunoRequest {
       url = `https://${url}`;
     }
 
-    // everything after the scheme: '{{HOST}}/users/:id?role=admin'
+    // everything after the scheme: 'user:pass@{{HOST}}/users/:id?role=admin#section'
     let remainder = url.substring(url.match(schemePattern)[0].length);
 
-    // a fragment belongs to none of the host, path or query, so drop it before splitting
+    // a fragment belongs to no part of the url below, so drop it: 'user:pass@{{HOST}}/users/:id?role=admin'
     const fragmentIndex = remainder.indexOf('#');
     if (fragmentIndex !== -1) {
       remainder = remainder.substring(0, fragmentIndex);
     }
 
-    // split into authority and the rest: '{{HOST}}' and '/users/:id?role=admin'
-    const [authority, ...rest] = remainder.split(/([/?])/);
+    // split into host and the rest: 'user:pass@{{HOST}}' and '/users/:id?role=admin'
+    const [hostWithCredentials, ...rest] = remainder.split(/([/?])/);
     const restUrl = rest.join('');
 
-    // credentials are part of the authority but not of the host: 'user:pass@{{HOST}}' -> '{{HOST}}'
-    const host = authority.substring(authority.lastIndexOf('@') + 1);
+    // credentials are not part of the host: 'user:pass@{{HOST}}' -> '{{HOST}}'
+    const host = hostWithCredentials.substring(hostWithCredentials.lastIndexOf('@') + 1);
 
     // before the '?' is the path, after it the query: '/users/:id' and 'role=admin'
     const queryIndex = restUrl.indexOf('?');

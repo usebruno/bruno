@@ -35,20 +35,17 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
   });
 
   it('applies path params, leaving templated values as written', () => {
-    const req = new BrunoRequest(
-      makeRequest('{{BASEURL}}/path/:p1/:p2', {
-        pathParams: [
-          { name: 'p1', value: '10' },
-          { name: 'p2', value: '{{P2}}' }
-        ]
-      })
-    );
+    const pathParams = [
+      { name: 'p1', value: '10' },
+      { name: 'p2', value: '{{P2}}' }
+    ];
+    const req = new BrunoRequest(makeRequest('{{BASEURL}}/path/:p1/:p2', { pathParams }));
 
     expect(req.getPath()).toBe('/path/10/{{P2}}');
   });
 
   it('excludes credentials from the host', () => {
-    const req = new BrunoRequest(makeRequest('https://user:p%40ss@api.example.com:8080/path?a=1'));
+    const req = new BrunoRequest(makeRequest('https://user:p@ss@api.example.com:8080/path?a=1'));
 
     expect(req.getHost()).toBe('api.example.com:8080');
     expect(req.getPath()).toBe('/path');
@@ -63,10 +60,44 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
     expect(req.getQueryString()).toBe('a=1');
   });
 
+  it('reports an empty string when there is no url', () => {
+    const req = new BrunoRequest(makeRequest(''));
+
+    expect(req.getHost()).toBe('');
+    expect(req.getPath()).toBe('');
+    expect(req.getQueryString()).toBe('');
+  });
+
   it('applies path params to a path followed by a fragment', () => {
     const request = makeRequest('{{BASEURL}}/path/:p1#section', { pathParams: [{ name: 'p1', value: '10' }] });
     const req = new BrunoRequest(request);
 
     expect(req.getPath()).toBe('/path/10');
+  });
+});
+
+// post-response scripts run after interpolation, so req.url is already resolved
+describe('BrunoRequest - getHost(), getPath(), getQueryString() after interpolation', () => {
+  it('reports a resolved url without applying the path params a second time', () => {
+    const request = makeRequest('https://api.example.com:8080/path/10/20?a=1', {
+      pathParams: [
+        { name: 'p1', value: '10' },
+        { name: 'p2', value: '20' }
+      ]
+    });
+    const req = new BrunoRequest(request);
+
+    expect(req.getHost()).toBe('api.example.com:8080');
+    expect(req.getPath()).toBe('/path/10/20');
+    expect(req.getQueryString()).toBe('a=1');
+  });
+
+  // interpolateVars() only strips the fragment when path params exist
+  it('excludes a fragment that survived interpolation', () => {
+    const req = new BrunoRequest(makeRequest('https://api.example.com/path?a=1#section'));
+
+    expect(req.getHost()).toBe('api.example.com');
+    expect(req.getPath()).toBe('/path');
+    expect(req.getQueryString()).toBe('a=1');
   });
 });
