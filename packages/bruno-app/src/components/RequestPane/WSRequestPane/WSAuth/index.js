@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
+import WSAuthMode from './WSAuthMode';
 import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
@@ -105,6 +106,9 @@ const WSAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
+      <div className="flex justify-start items-center mb-4">
+        <WSAuthMode item={item} collection={collection} />
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );

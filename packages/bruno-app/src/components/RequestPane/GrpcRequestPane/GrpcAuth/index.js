@@ -94,6 +94,9 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
+      <div className="flex justify-start items-center mb-4">
+        <GrpcAuthMode item={item} collection={collection} />
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );

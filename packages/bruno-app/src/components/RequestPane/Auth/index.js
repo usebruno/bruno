@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 
 import ApiKeyAuth from './ApiKeyAuth';
 import EdgeGridAuth from './EdgeGridAuth';
+import AuthMode from './AuthMode';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
@@ -87,6 +88,9 @@ const Auth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-auto">
+      <div className="flex justify-start items-center mb-4">
+        <AuthMode item={item} collection={collection} />
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );
