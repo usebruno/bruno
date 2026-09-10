@@ -17,8 +17,6 @@ import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 
 export const buildCommonLocators = (page: Page) => ({
-  // The app root carries `data-app-state="loaded"` once the renderer has finished booting.
-  appReady: () => page.locator('[data-app-state="loaded"]'),
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),

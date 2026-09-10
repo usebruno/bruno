@@ -699,6 +699,20 @@ const expandFolder = async (page: Page, folderName: string) => {
   });
 };
 
+/**
+ * Collapse a folder in the sidebar so its child requests/subfolders unmount.
+ * No-op if the folder is already collapsed.
+ */
+const collapseFolder = async (page: Page, folderName: string) => {
+  await test.step(`Collapse folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded) await chevron.click();
+  });
+};
+
 type EnvironmentType = 'collection' | 'global';
 
 /**
@@ -2707,6 +2721,7 @@ export {
   addFolderScript,
   addCollectionScript,
   expandFolder,
+  collapseFolder,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   resetResponse,

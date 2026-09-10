@@ -39,6 +39,9 @@ export const buildSidebarLocators = (page: Page) => {
     },
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
+
+    exampleCountBadge: (requestName: string) =>
+      page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('example-count-badge'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.

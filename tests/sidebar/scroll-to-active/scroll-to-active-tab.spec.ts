@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, openRequest } from '../../utils/page';
+import { buildCommonLocators, openRequest, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
 
 // A collection large enough that its bottom rows start well below the sidebar viewport.
@@ -23,12 +23,11 @@ test.describe('Sidebar scroll-to-active-tab', () => {
       initUserDataPath: path.join(__dirname, 'init-user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     const locators = buildCommonLocators(page);
 
     try {
       await test.step('App loads with the collection populated', async () => {
-        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         // Expand the collection, then wait for the last request
         // deterministic since every file already exists on disk
         await locators.sidebar.collection(COLLECTION_NAME).click();

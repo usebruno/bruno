@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp, type Locator } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, renameCollectionItem } from '../../utils/page';
+import { buildCommonLocators, renameCollectionItem, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'ScrollKeepCol';
@@ -36,7 +36,7 @@ test.describe('Sidebar scroll-position preservation', () => {
       initUserDataPath: path.join(__dirname, 'init-user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     const locators = buildCommonLocators(page);
 
     const firstRow = locators.sidebar.request(FIRST_REQUEST);
@@ -45,7 +45,6 @@ test.describe('Sidebar scroll-position preservation', () => {
 
     try {
       await test.step('Load and scroll down into the middle of the list', async () => {
-        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(firstRow).toBeVisible({ timeout: 15000 });
         // Scroll the target into view (Playwright auto-scrolls on hover). the reference sits just above it.

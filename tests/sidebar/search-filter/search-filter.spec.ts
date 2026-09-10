@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, createApp, expandFolder } from '../../utils/page';
+import { buildCommonLocators, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'SearchCol';
@@ -24,14 +24,13 @@ test.describe('Sidebar search filtering', () => {
       initUserDataPath: path.join(__dirname, 'init-user-data'),
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
-    const page = await app.firstWindow();
+    const page = await waitForReadyPage(app);
     const locators = buildCommonLocators(page);
     const searchInput = page.getByTestId('sidebar-search-input');
     const row = locators.sidebar.item;
 
     try {
       await test.step('Load the collection, expand the folder, add an app', async () => {
-        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(row('search-me')).toBeVisible({ timeout: 15000 });
         // Expand `auth` for real so its requests stay visible after the search is cleared.
