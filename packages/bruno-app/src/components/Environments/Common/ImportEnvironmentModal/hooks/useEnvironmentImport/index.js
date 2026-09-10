@@ -5,11 +5,38 @@ import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { toastError } from 'utils/common/error';
 import { generateCopyName, normalizeEnvName, orderEnvironmentsByInheritance } from 'utils/environments';
-import { detectEnvironmentFormat, RESOLUTION_TYPES } from '../../utils';
+import {
+  buildReviewItems,
+  detectEnvironmentFormat,
+  ENV_STATUS,
+  IMPORT_STEPS,
+  initialResolutions,
+  initialSelection,
+  RESOLUTION_TYPES
+} from '../../utils';
 import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
-export const IMPORT_STEPS = { UPLOAD: 'UPLOAD', REVIEW: 'REVIEW' };
-export const ENV_STATUS = { NEW: 'new', DUPLICATE: 'duplicate', INVALID: 'invalid' };
+export { ENV_STATUS, IMPORT_STEPS };
+
+const parseEnvironmentFiles = async (parsedFiles) => {
+  const valid = [];
+  const invalid = [];
+
+  for (const file of parsedFiles) {
+    try {
+      const format = detectEnvironmentFormat(file.content);
+      const result = format === 'postman'
+        ? await importPostmanEnvironment([file])
+        : await importBrunoEnvironment([file]);
+      valid.push(...result.valid);
+      invalid.push(...result.invalid);
+    } catch (err) {
+      invalid.push({ fileName: file.fileName || 'Unknown', error: 'Could not be read' });
+    }
+  }
+
+  return { valid, invalid };
+};
 
 export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCreated) => {
   const [step, setStep] = useState(IMPORT_STEPS.UPLOAD);
@@ -98,52 +125,19 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     if (isImporting) return;
     try {
       setIsImporting(true);
+
       const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
+      const { valid, invalid } = await parseEnvironmentFiles(parsedFiles);
 
-      const valid = [];
-      const invalid = [];
-
-      for (const file of parsedFiles) {
-        try {
-          const format = detectEnvironmentFormat(file.content);
-          const result = format === 'postman'
-            ? await importPostmanEnvironment([file])
-            : await importBrunoEnvironment([file]);
-          valid.push(...result.valid);
-          invalid.push(...result.invalid);
-        } catch (err) {
-          invalid.push({ fileName: file.fileName || 'Unknown', error: 'Could not be read' });
-        }
-      }
-
-      const validEnvironments = valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = valid
-        .filter((env) => !env.name || env.name === 'undefined')
-        .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
-
-      const allInvalid = [...invalidFiles, ...invalid, ...missingNameEnvs];
-
-      const existingNamesNormalized = new Set(existingNames.map(normalizeEnvName));
-
-      let itemIndex = 0;
-      const validItems = validEnvironments.map((env) => {
-        const isDuplicate = existingNamesNormalized.has(normalizeEnvName(env.name));
-        return { ...env, id: `env-${itemIndex++}`, status: isDuplicate ? ENV_STATUS.DUPLICATE : ENV_STATUS.NEW };
+      const reviewItems = buildReviewItems({
+        valid,
+        invalid: [...invalidFiles, ...invalid],
+        existingNames
       });
 
-      const invalidItems = allInvalid.map((env) => ({
-        ...env, id: `env-${itemIndex++}`, status: ENV_STATUS.INVALID
-      }));
-
-      setItems([...validItems, ...invalidItems]);
-      setSelected(new Set(validItems.map((item) => item.id)));
-
-      const initialResolutions = new Map();
-      validItems
-        .filter((item) => item.status === ENV_STATUS.DUPLICATE)
-        .forEach((item) => initialResolutions.set(item.id, RESOLUTION_TYPES.CREATE_NEW));
-      setResolutions(initialResolutions);
-
+      setItems(reviewItems);
+      setSelected(initialSelection(reviewItems));
+      setResolutions(initialResolutions(reviewItems));
       setStep(IMPORT_STEPS.REVIEW);
     } catch (err) {
       toastError(err, 'Import environment failed');
