@@ -8,7 +8,7 @@ import { EditorKbd, EditorSuperscript } from './EditorInlineHtmlMarks';
 import EditorListKeyboard from './EditorListKeyboard';
 import EditorParagraph from './EditorParagraph';
 import { createEditorImage, createEditorLink } from './EditorRelativeAssets';
-import EditorRawHtmlBlock from './EditorRawHtmlBlock';
+import EditorRawHtmlBlock, { EditorRawHtmlInline, EditorRawHtmlTextBlock } from './EditorRawHtmlBlock';
 import EditorTable from './EditorTable';
 import { EditorTableCell, EditorTableHeader } from './EditorTableAlignment';
 import EditorTableKeyboard from './EditorTableKeyboard';
@@ -28,10 +28,29 @@ import { lowlight } from 'lowlight';
 const EditorCodeBlockExtension = CodeBlockLowlight.extend({
   addNodeView() {
     return ReactNodeViewRenderer(EditorCodeBlock);
+  },
+  // Tiptap doesn't support Tab in codeblock. added a literal tab.
+  addKeyboardShortcuts() {
+    return {
+      ...this.parent?.(),
+      Tab: () => {
+        if (!this.editor.isActive('codeBlock')) {
+          return false;
+        }
+        const { state, view } = this.editor;
+        const { tr, selection } = state;
+        tr.insertText('\t', selection.from, selection.to);
+        view.dispatch(tr);
+        return true;
+      }
+    };
   }
-}).configure({ lowlight, enableTabIndentation: true, tabSize: 2 });
+}).configure({
+  lowlight
+});
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
+  EditorCodeBlockExtension,
   TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
@@ -55,7 +74,6 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   EditorListItem,
   EditorGapCursor,
-  EditorCodeBlockExtension,
   EditorTaskList,
   EditorTaskItem.configure({
     nested: true,
@@ -85,7 +103,7 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     }
   }),
   EditorTableKeyboard,
-  ...(allowHtml ? [EditorRawHtmlBlock] : []),
+  ...(allowHtml ? [EditorRawHtmlBlock, EditorRawHtmlInline, EditorRawHtmlTextBlock] : []),
   EditorKbd,
   EditorSuperscript,
   createEditorLink(collectionPath).configure({
@@ -100,14 +118,12 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   Markdown.configure({
     html: allowHtml,
-    breaks: true,
+    // We disable 'breaks' so soft breaks aren't promoted to hard breaks, preventing hand-wrapped lines from being rewritten with escapes.
+    breaks: false,
     linkify: true,
     transformPastedText: true,
     transformCopiedText: true,
-    // The parsed ProseMirror bulletList node has no memory of whether the
-    // source used `-`, `*`, or `+` — the marker carries no semantic meaning,
-    // so serialization always normalizes to one consistent marker rather than
-    // reading this option from an unset config (which read as accidental).
+    // ProseMirror bulletList nodes don't retain the original source marker, so serialization normalizes to a single consistent marker.
     bulletListMarker: '-'
   })
 ];

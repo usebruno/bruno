@@ -15,7 +15,12 @@ describe('SystemProxyResolver Integration', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     detector = new SystemProxyResolver();
-    originalEnv = { ...process.env };
+    // Swap the real env object for a plain copy: the OS-backed env is
+    // case-insensitive on Windows (setting HTTP_PROXY overwrites http_proxy),
+    // while a plain object keeps distinct-cased keys distinct on every host.
+    // afterEach restores the real object, untouched by the tests.
+    originalEnv = process.env;
+    process.env = { ...process.env };
 
     // Clear environment variables
     delete process.env.http_proxy;

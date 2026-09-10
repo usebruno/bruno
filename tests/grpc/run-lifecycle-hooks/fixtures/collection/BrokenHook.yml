@@ -1,0 +1,22 @@
+info:
+  name: BrokenHook
+  type: grpc
+  seq: 5
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "never sent"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: |-
+        bru.setVar('reached', 'yes');
+        throw new Error('beforeCallStart exploded');

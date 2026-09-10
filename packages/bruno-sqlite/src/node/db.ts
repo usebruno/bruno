@@ -4,6 +4,24 @@ import type { Migration } from '../shared/types';
 
 export type DatabaseOptions = DatabaseSyncOptions;
 
+const MIGRATION_ERROR = Symbol.for('@usebruno/sqlite:migration-error');
+
+export class DatabaseMigrationError extends Error {
+  readonly [MIGRATION_ERROR] = true;
+  readonly path: string;
+  readonly cause: unknown;
+
+  constructor(path: string, cause: unknown) {
+    super(`failed to migrate the database at "${path}": ${(cause as Error)?.message ?? cause}`);
+    this.name = 'DatabaseMigrationError';
+    this.path = path;
+    this.cause = cause;
+  }
+}
+
+export const isDatabaseMigrationError = (err: unknown): err is DatabaseMigrationError =>
+  typeof err === 'object' && err !== null && MIGRATION_ERROR in err;
+
 export class DB {
   _db: DatabaseSync | undefined = undefined;
   _migrations_table: string = `CREATE TABLE IF NOT EXISTS _migrations (
@@ -17,13 +35,19 @@ export class DB {
   )`;
 
   constructor(path: string, migrations: Migration[], options: DatabaseOptions = {}) {
-    this._db = new DatabaseSync(path, options);
+    try {
+      this._db = new DatabaseSync(path, options);
+    } catch (err) {
+      this._db = undefined;
+      throw err;
+    }
+
     try {
       this._runMigrations(migrations);
     } catch (err) {
       this._db.close();
       this._db = undefined;
-      throw err;
+      throw new DatabaseMigrationError(path, err);
     }
   }
 

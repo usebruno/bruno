@@ -30,6 +30,14 @@ const Wrapper = styled.div`
     }
   }
 
+  &.hide-on-reference-clipped[data-reference-hidden],
+  &.hide-on-reference-clipped[data-popper-reference-hidden] {
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
+    }
+  }
+
   .label-item {
     display: flex;
     align-items: center;

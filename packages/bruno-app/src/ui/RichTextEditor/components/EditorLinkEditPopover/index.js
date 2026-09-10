@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, externalCoords }) => {
+const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialText, initialUrl }, ref) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
-  const popoverRef = useRef(null);
   const urlInputRef = useRef(null);
-
-  // Parent provides fully-computed coords before opening — no state/effect needed.
-  const coords = externalCoords || { top: 0, left: 0 };
 
   // Re-seed on every open transition, not just when the link identity changes —
   // otherwise reopening on the same link shows a previously abandoned draft edit.
@@ -25,8 +21,8 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
   }
 
   // Focus the URL input without scrolling the page.
-  // We can't use autoFocus because the popover is position:absolute inside a
-  // scrollable container — autoFocus triggers native scroll-into-view.
+  // We can't use autoFocus because the popover is rendered via a Portal with
+  // position:fixed — autoFocus triggers native scroll-into-view regardless.
   useEffect(() => {
     if (isOpen && urlInputRef.current) {
       const timer = setTimeout(() => {
@@ -39,7 +35,7 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
   useEffect(() => {
     let timerId;
     const handleClickOutside = (e) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+      if (ref?.current && !ref.current.contains(e.target)) {
         onClose();
       }
     };
@@ -73,9 +69,8 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
 
   return (
     <StyledWrapper
-      ref={popoverRef}
+      ref={ref}
       data-editor-link-popover="true"
-      style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
       onKeyDown={handleKeyDown}
     >
       <div data-testid="editor-link-popover" className="editor-link-popover-content">
@@ -107,17 +102,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
           />
         </div>
         <div className="popover-actions">
-          {initialUrl && onUnlink && (
-            <Button
-              type="button"
-              color="secondary"
-              variant="ghost"
-              size="sm"
-              onClick={onUnlink}
-            >
-              Remove
-            </Button>
-          )}
           <Button
             type="button"
             color="secondary"
@@ -140,6 +124,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
       </div>
     </StyledWrapper>
   );
-};
+});
 
 export default EditorLinkEditPopover;

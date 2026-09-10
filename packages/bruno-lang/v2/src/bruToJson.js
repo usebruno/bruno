@@ -186,9 +186,13 @@ const grammar = ohm.grammar(`Bru {
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
 
-  script = scriptreq | scriptres
+  script = scriptreq | scriptres | scriptbeforecallstart | scriptbeforemessagesend | scriptaftermessagereceive | scriptaftercallend
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
+  scriptbeforecallstart = "script:grpc:before-call-start" st* "{" nl* textblock tagend
+  scriptbeforemessagesend = "script:grpc:before-message-send" st* "{" nl* textblock tagend
+  scriptaftermessagereceive = "script:grpc:after-message-receive" st* "{" nl* textblock tagend
+  scriptaftercallend = "script:grpc:after-call-end" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -561,11 +565,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       parsedSettings.forwardAuthorizationHeader = toBool(settings.forwardAuthorizationHeader);
     }
 
-    // Parse maxRedirects as number
-    if (settings.maxRedirects !== undefined) {
-      const maxRedirects = parseInt(settings.maxRedirects, 10);
-      if (!isNaN(maxRedirects)) {
-        parsedSettings.maxRedirects = maxRedirects;
+    // Number, not parseInt: parseInt stops at the exponent, so 1e+21 reads back as 1. The truthy
+    // check skips a blank, which Number reads as 0, meaning "no redirects" rather than "unset"; a
+    // real 0 survives as '0'. Mirrors toMaxRedirects in @usebruno/common (unimportable: bruno-lang
+    // is a leaf), but leaves the key unset instead of defaulting, since jsonToBru writes back only
+    // the keys it is given.
+    if (settings.maxRedirects) {
+      const maxRedirects = Number(settings.maxRedirects);
+      if (Number.isFinite(maxRedirects) && maxRedirects >= 0) {
+        parsedSettings.maxRedirects = Math.trunc(maxRedirects);
       }
     }
 
@@ -600,6 +608,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (keepAliveInterval) {
       _settings.keepAliveInterval = keepAliveInterval;
+    }
+
+    if (Array.isArray(settings.omitHeaders) && settings.omitHeaders.length) {
+      _settings.omitHeaders = settings.omitHeaders
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter((name) => name.length > 0);
     }
 
     return {
@@ -802,7 +816,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const username = usernameKey ? usernameKey.value : '';
     const password = passwordKey ? passwordKey.value : '';
-    const domain = passwordKey ? domainKey.value : '';
+    const domain = domainKey ? domainKey.value : '';
 
     return {
       auth: {
@@ -1193,6 +1207,34 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       script: {
         res: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptbeforecallstart(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        beforeCallStart: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptbeforemessagesend(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        beforeMessageSend: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptaftermessagereceive(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        afterMessageReceive: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptaftercallend(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        afterCallEnd: outdentString(textblock.sourceString)
       }
     };
   },

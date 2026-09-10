@@ -1,0 +1,47 @@
+meta {
+  name: graphql-request
+  type: graphql
+  seq: 2
+}
+
+post {
+  url: http://link-aware.test/graphql-url
+  body: graphql
+}
+
+body:graphql {
+  # http://link-aware.test/graphql-query
+  query {
+    ping
+  }
+}
+
+body:graphql:vars {
+  {
+    "link": "http://link-aware.test/graphql-variables"
+  }
+}
+
+vars:pre-request {
+  linkVar: http://link-aware.test/graphql-vars
+}
+
+script:pre-request {
+  // http://link-aware.test/graphql-script
+}
+
+script:post-response {
+  // http://link-aware.test/graphql-script
+}
+
+assert {
+  res.status: eq http://link-aware.test/graphql-assert
+}
+
+tests {
+  // http://link-aware.test/graphql-tests
+}
+
+docs {
+  See http://link-aware.test/graphql-docs for details.
+}

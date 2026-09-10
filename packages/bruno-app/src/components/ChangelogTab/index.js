@@ -7,8 +7,7 @@ import changelogContent from './CHANGELOG.md';
 import StyledWrapper from './StyledWrapper';
 
 const PREFERENCE_LINKS = {
-  '#preferences/ai': 'ai',
-  '#preferences/cache': 'cache'
+  // Preferences links mapping
 };
 
 const content = changelogContent;
@@ -37,7 +36,7 @@ const ChangelogTab = ({ collectionUid }) => {
   return (
     <StyledWrapper>
       <div className="changelog-body" onClick={handleClick}>
-        <Markdown content={content} onDoubleClick={() => {}} />
+        <Markdown content={content} hideLinkPopover={true} />
       </div>
     </StyledWrapper>
   );

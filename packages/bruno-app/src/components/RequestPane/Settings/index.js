@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
+import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
@@ -14,7 +15,7 @@ import Tags from './Tags/index';
 const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
-  maxRedirects: 5,
+  maxRedirects: utils.DEFAULT_MAX_REDIRECTS,
   timeout: 'inherit',
   forwardAuthorizationHeader: true
 };

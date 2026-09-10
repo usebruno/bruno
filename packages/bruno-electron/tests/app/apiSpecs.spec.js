@@ -91,6 +91,44 @@ describe('openApiSpec', () => {
     expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
   });
 
+  test('sends the referenced files inlined as resolvedJson for a multi-file spec', async () => {
+    writeSpecFile('endpoint.yaml', 'get:\n  summary: Hello endpoint\n  operationId: hello\n');
+    const specPath = writeSpecFile(
+      'openapi.yaml',
+      'openapi: 3.1.0\ninfo:\n  title: Test API\n  version: 1.0.0\npaths:\n  /hello:\n    $ref: "./endpoint.yaml"\n'
+    );
+    watcher.hasWatcher.mockReturnValue(true);
+
+    await openApiSpec(win, watcher, specPath);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:apispec-tree-updated',
+      'addFile',
+      expect.objectContaining({
+        json: expect.objectContaining({ paths: { '/hello': { $ref: './endpoint.yaml' } } }),
+        resolvedJson: expect.objectContaining({
+          paths: { '/hello': { get: { summary: 'Hello endpoint', operationId: 'hello' } } }
+        })
+      })
+    );
+  });
+
+  test('sends resolvedJson as null for a single-file spec', async () => {
+    const specPath = writeSpecFile(
+      'openapi.yaml',
+      'openapi: 3.1.0\ninfo:\n  title: Test API\n  version: 1.0.0\npaths:\n  /hello:\n    get:\n      responses:\n        "200":\n          description: ok\n'
+    );
+    watcher.hasWatcher.mockReturnValue(true);
+
+    await openApiSpec(win, watcher, specPath);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:apispec-tree-updated',
+      'addFile',
+      expect.objectContaining({ resolvedJson: null })
+    );
+  });
+
   test('opens a broken JSON file with a valid extension without throwing, resolving json to null', async () => {
     const specPath = writeSpecFile('broken.json', '{\n  "openapi": "3.0.0",\n  "info": {\n    "title": "Test"\n    "version": "1.0.0"\n  },\n  "paths": {\n');
     watcher.hasWatcher.mockReturnValue(true);

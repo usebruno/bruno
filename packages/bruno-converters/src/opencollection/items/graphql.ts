@@ -18,7 +18,7 @@ import {
   toOpenCollectionAssertions,
   resolveTimeoutSetting
 } from '../common';
-import { utils } from '@usebruno/common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   GraphQLRequest,
   GraphQLRequestInfo,
@@ -33,7 +33,7 @@ import type {
   BrunoHttpRequestParam
 } from '../types';
 
-const { toBool, toNumber } = utils;
+const { toBool, toMaxRedirects } = utils;
 
 const getGraphqlBody = (body: GraphQLBody | GraphQLBodyVariant[] | undefined): GraphQLBody | undefined => {
   if (!body) return undefined;
@@ -49,7 +49,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
   const graphql = item.graphql || {};
   const runtime = item.runtime || {};
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  const scripts = fromOpenCollectionScripts(runtime.scripts, HTTP_SCRIPT_KEYS);
   const graphqlBody = getGraphqlBody(graphql.body);
 
   // variables (pre-request from variables, post-response from actions)
@@ -85,7 +85,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
       encodeUrl: toBool(settings.encodeUrl, true),
       timeout: resolveTimeoutSetting(settings.timeout),
       followRedirects: toBool(settings.followRedirects, true),
-      maxRedirects: toNumber(settings.maxRedirects, 5),
+      maxRedirects: toMaxRedirects(settings.maxRedirects),
       forwardAuthorizationHeader: toBool(settings.forwardAuthorizationHeader, true)
     };
   }
@@ -145,7 +145,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     graphql
   };
 
-  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0], HTTP_SCRIPT_KEYS);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
@@ -179,7 +179,7 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     encodeUrl: toBool(brunoSettings.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings.timeout),
     followRedirects: toBool(brunoSettings.followRedirects, true),
-    maxRedirects: toNumber(brunoSettings.maxRedirects, 5),
+    maxRedirects: toMaxRedirects(brunoSettings.maxRedirects),
     forwardAuthorizationHeader: toBool(brunoSettings.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;

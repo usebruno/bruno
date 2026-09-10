@@ -1,0 +1,23 @@
+meta {
+  name: folder-2
+  seq: 1
+}
+
+headers {
+  folder-2-header-1: folder-2-header-value-1
+  folder-2-header-2: folder-2-header-value-2
+  folder-2-set-header-1: folder-2-set-header-definition-1
+  folder-2-interpolated-1: {{folder-2-token-1}}
+  folder-2-delete-header-1: folder-2-delete-header-value-1
+  folder-2-delete-headers-1: folder-2-delete-headers-value-1
+  folder-2-delete-headers-2: folder-2-delete-headers-value-2
+  shared-header-1: folder-2-shared-value-1
+}
+
+script:pre-request {
+  req.setHeader('folder-2-set-header-1', 'folder-2-set-header-script-1');
+  req.setHeader('folder-2-set-header-2', 'folder-2-set-header-script-2');
+  req.deleteHeader('folder-2-delete-header-1');
+  req.deleteHeaders(['folder-2-delete-headers-1', 'folder-2-delete-headers-2']);
+  bru.setVar('folder-2-token-1', 'folder-2-interpolated-script-1');
+}

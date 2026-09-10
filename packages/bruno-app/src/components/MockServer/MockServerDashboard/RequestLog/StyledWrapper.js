@@ -229,6 +229,13 @@ const Wrapper = styled.div`
   .match-trace-actual,
   .match-trace-fallback-note,
   .match-trace-operator,
+  .match-trace-error {
+    margin-top: 8px;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.danger};
+    word-break: break-word;
+  }
+
   .match-trace-empty {
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};

@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
+import { startMockServer, stopMockServer, refreshMockRoutes, loadMockResponses, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { validateName, validateNameError } from 'utils/common/regex';
 import RouteTable from './RouteTable';
 import RequestLog from './RequestLog';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
@@ -13,18 +12,22 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerPortRangeError,
+  getMockServerNameError,
   isMockServerNameTaken,
   resolveInstanceSpec,
   saveMockServerInstance,
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesList';
 import Tab from 'components/Tab';
 import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
-import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, countMockRoutes } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const MockServerLogCount = ({ mockServerUid }) => {
@@ -47,7 +50,6 @@ const MockServerDashboard = ({ instance, collection }) => {
   const [nameDraft, setNameDraft] = useState(null);
   const [delayDraft, setDelayDraft] = useState(null);
   const [portError, setPortError] = useState(null);
-  const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
@@ -55,30 +57,22 @@ const MockServerDashboard = ({ instance, collection }) => {
     findMockServerInstance(state, mockServerUid) || instance
   ));
   const workspaceInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
+  const mockResponses = useSelector((state) => state.mockServer.mockResponses[mockServerUid]) || [];
+  const routeCount = useMemo(() => countMockRoutes(mockResponses), [mockResponses]);
+  const exampleCount = mockResponses.length;
 
   const activeWorkspace = useMemo(() => (
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
   ), [workspaces, activeWorkspaceUid]);
 
-  const resolvedCollection = useMemo(() => (
-    resolveMockResponseCollection({
-      collection,
-      instance,
-      collections,
-      activeWorkspace
-    })
-  ), [collection, instance, collections, activeWorkspace]);
-
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {
     status: 'stopped',
     port: null,
     baseUrl: null,
-    routeCount: 0,
-    exampleCount: 0,
     globalDelay: instance.globalDelay || 0
   };
 
@@ -91,43 +85,42 @@ const MockServerDashboard = ({ instance, collection }) => {
   const nameValue = nameDraft ?? storedInstance.name;
   const delayValue = delayDraft ?? activeDelay;
 
-  useEffect(() => {
-    validatePort(activePort);
-  }, [activePort]);
-
-  const validatePort = async (value = activePort) => {
-    const trimmed = String(value).trim();
-
-    if (!trimmed) {
-      const error = 'Port is required';
-      setPortError(error);
-      return error;
-    }
-
-    const nextPort = Number(trimmed);
-    if (!Number.isInteger(nextPort) || nextPort < 1 || nextPort > 65535) {
-      const error = 'Port must be between 1 and 65535';
-      setPortError(error);
-      return error;
+  const resolvePortError = async (value) => {
+    const rangeError = getMockServerPortRangeError(value);
+    if (rangeError) {
+      return rangeError;
     }
 
     try {
-      const portCheck = await checkMockServerPortAvailable(nextPort, workspaceInstances, {
+      const portCheck = await checkMockServerPortAvailable(Number(value), workspaceInstances, {
         excludeUid: storedInstance.uid
       });
-      const error = getMockServerPortError(portCheck, nextPort);
-      setPortError(error);
-      return error;
+      return getMockServerPortError(portCheck, value);
     } catch (err) {
-      const error = err.message || 'Failed to validate port';
-      setPortError(error);
-      return error;
+      return err.message || 'Failed to validate port';
     }
   };
 
+  const conflictingPortsKey = workspaceInstances
+    .filter((i) => i.uid !== storedInstance.uid)
+    .map((i) => Number(i.port))
+    .join(',');
+
+  useEffect(() => {
+    let isCurrent = true;
+    resolvePortError(activePort).then((error) => {
+      if (isCurrent) {
+        setPortError(error);
+      }
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [activePort, conflictingPortsKey]);
+
   useEffect(() => {
     dispatch(syncMockServerState(location));
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   const resolveStartPayload = () => resolveMockServerStartPayload(storedInstance, {
     collection,
@@ -136,9 +129,10 @@ const MockServerDashboard = ({ instance, collection }) => {
   });
 
   const handleStart = async () => {
-    const validationError = await validatePort(activePort);
+    const validationError = await resolvePortError(activePort);
+    setPortError(validationError);
     if (validationError) {
-      toast.error(validationError || 'Fix the port before starting the mock server');
+      toast.error(validationError);
       return;
     }
 
@@ -165,8 +159,9 @@ const MockServerDashboard = ({ instance, collection }) => {
 
   const handleRefresh = async () => {
     try {
-      const result = await dispatch(refreshMockRoutes(location)).unwrap();
-      toast.success(`Routes refreshed: ${result.routeCount} routes, ${result.exampleCount} responses`);
+      await dispatch(refreshMockRoutes(location)).unwrap();
+      const { responses } = await dispatch(loadMockResponses(location)).unwrap();
+      toast.success(`Routes refreshed: ${countMockRoutes(responses)} routes, ${responses.length} responses`);
     } catch (err) {
       toast.error(err.message || 'Failed to refresh routes');
     }
@@ -193,8 +188,9 @@ const MockServerDashboard = ({ instance, collection }) => {
       return;
     }
 
-    if (!validateName(trimmedName)) {
-      toast.error(validateNameError(trimmedName));
+    const nameError = getMockServerNameError(trimmedName);
+    if (nameError) {
+      toast.error(nameError);
       setNameDraft(null);
       return;
     }
@@ -215,7 +211,7 @@ const MockServerDashboard = ({ instance, collection }) => {
   };
 
   const handleDelayChange = (event) => {
-    setDelayDraft(Number(event.target.value) || 0);
+    setDelayDraft(toMockServerDelayInputValue(event.target.value));
   };
 
   const handleDelayBlur = async () => {
@@ -227,10 +223,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     }
 
     try {
-      if (isRunning) {
-        await dispatch(updateMockDelay({ mockServerUid, delay: newDelay })).unwrap();
-      }
-
       await persistInstance({ globalDelay: newDelay });
     } catch (err) {
       toast.error(err.message || 'Failed to update delay');
@@ -354,8 +346,8 @@ const MockServerDashboard = ({ instance, collection }) => {
 
           {isRunning && (
             <div className="server-stats" data-testid="mock-server-stats">
-              <span>{serverState.routeCount} routes</span>
-              <span>{serverState.exampleCount} responses</span>
+              <span>{routeCount} routes</span>
+              <span>{exampleCount} responses</span>
             </div>
           )}
 
@@ -367,8 +359,9 @@ const MockServerDashboard = ({ instance, collection }) => {
                 type="number"
                 value={delayValue}
                 onChange={handleDelayChange}
+                onKeyDown={blockMockServerDelayKeys}
                 onBlur={handleDelayBlur}
-                disabled={isStarting}
+                disabled={isRunning || isStarting || isStopping}
                 min={0}
                 step={100}
                 data-testid="mock-server-delay-input"
@@ -430,7 +423,7 @@ const MockServerDashboard = ({ instance, collection }) => {
         <Tab
           name="routes"
           label="Routes"
-          count={serverState.routeCount}
+          count={routeCount}
           isActive={activeTab === 'routes'}
           onClick={setActiveTab}
           data-testid="mock-server-tab-routes"

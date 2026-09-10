@@ -405,6 +405,39 @@ describe('brunoToPostman null checks and fallbacks', () => {
   });
 });
 
+describe('brunoToPostman collection variables', () => {
+  it('should emit disabled: true for disabled collection variables and omit it for enabled ones', () => {
+    const collection = {
+      items: [],
+      root: {
+        request: {
+          vars: {
+            req: [
+              { name: 'enabledVar', value: 'value1', enabled: true },
+              { name: 'disabledVar', value: 'value2', enabled: false },
+              { name: 'defaultVar', value: 'value3' }
+            ],
+            res: [
+              { name: 'resEnabled', value: 'r1', enabled: true },
+              { name: 'resDisabled', value: 'r2', enabled: false }
+            ]
+          }
+        }
+      }
+    };
+
+    const result = brunoToPostman(collection);
+
+    expect(result.variable).toEqual([
+      { key: 'enabledVar', value: 'value1', type: 'default' },
+      { key: 'disabledVar', value: 'value2', type: 'default', disabled: true },
+      { key: 'defaultVar', value: 'value3', type: 'default' },
+      { key: 'resEnabled', value: 'r1', type: 'default' },
+      { key: 'resDisabled', value: 'r2', type: 'default', disabled: true }
+    ]);
+  });
+});
+
 describe('brunoToPostman auth export', () => {
   const makeRequestWithAuth = (auth) => ({
     items: [

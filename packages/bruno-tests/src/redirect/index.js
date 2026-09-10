@@ -64,6 +64,9 @@ router.post('/multipart-redirect-target', function (req, res) {
 router.get('/anything', function (req, res) {
   const { body, files } = parseMultipartFormData(req);
 
+  // End of the chain, so no redirects are left to follow. See the /:count route.
+  res.set('x-redirect-hop', '0');
+
   // Parse query parameters
   const args = req.query;
 
@@ -117,6 +120,9 @@ router.get('/:count', function (req, res) {
   if (isNaN(count)) {
     return res.status(404).json({ error: 'Invalid redirect count. Must be a number.' });
   }
+
+  // Redirects still to follow, so a client walking the chain sees a distinct value per hop.
+  res.set('x-redirect-hop', String(count));
 
   if (count > 1) {
     // Redirect to the next redirect in the chain

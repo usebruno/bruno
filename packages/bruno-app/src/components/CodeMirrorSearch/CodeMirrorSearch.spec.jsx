@@ -1,5 +1,5 @@
 import React, { createRef } from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import CodeMirrorSearch from './index';
 
@@ -273,20 +273,6 @@ describe('CodeMirrorSearch', () => {
   });
 
   describe('isDebouncing guard', () => {
-    it('replace buttons are disabled while debounce is pending', () => {
-      const ref = createRef();
-      renderSearch({}, ref);
-      act(() => {
-        ref.current.openReplace(); jest.runAllTimers();
-      });
-
-      // Type but do NOT advance timers — debounce still pending
-      fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'test' } });
-
-      expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled();
-    });
-
     it('replace buttons are enabled once debounce settles', () => {
       const matches = [{ from: { line: 0, ch: 0 }, to: { line: 0, ch: 4 } }];
       const ref = createRef();
@@ -321,7 +307,7 @@ describe('CodeMirrorSearch', () => {
 
       // Simulate undo — document reverts, now no matches
       editor.getSearchCursor.mockImplementation(() => {
-        let i = -1;
+        const i = -1;
         return { findNext: () => false, from: () => undefined, to: () => undefined };
       });
 

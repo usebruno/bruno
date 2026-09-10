@@ -1,0 +1,24 @@
+meta {
+  name: folder-fixture
+  seq: 1
+}
+
+vars:pre-request {
+  linkVar: http://link-aware.test/folder-vars
+}
+
+script:pre-request {
+  // http://link-aware.test/folder-script
+}
+
+script:post-response {
+  // http://link-aware.test/folder-script
+}
+
+tests {
+  // http://link-aware.test/folder-tests
+}
+
+docs {
+  See http://link-aware.test/folder-docs for details.
+}

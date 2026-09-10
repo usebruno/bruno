@@ -1,4 +1,10 @@
 import { test, expect, Page, Locator } from '../../../playwright';
+import {
+  openCollectionSettings,
+  openFolderSettings,
+  selectCollectionPaneTab,
+  selectfolderPaneTab
+} from '../page/actions';
 import { buildCommonLocators } from '../page/locators';
 
 export const buildRequestLocators = (page: Page) => ({
@@ -29,7 +35,23 @@ export const buildRequestLocators = (page: Page) => ({
     const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
     return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
   },
-  pane: () => page.getByTestId('request-pane')
+  pane: () => page.getByTestId('request-pane'),
+  headers: {
+    table: () => page.getByTestId('request-headers-table'),
+    inheritedSectionToggle: () => page.getByTestId('inherited-headers-section-toggle'),
+    requestSectionToggle: () => page.getByTestId('request-headers-section-toggle'),
+    inheritedSectionRow: () => page.getByTestId('inherited-headers-section-row'),
+    requestSectionRow: () => page.getByTestId('request-headers-section-row'),
+    defaultRow: (name: string) => page.getByTestId(`default-header-row-${name.toLowerCase()}`),
+    requestRow: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`),
+    inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
+    inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
+    addRow: () => page.getByTestId('request-header-add-row'),
+    toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
+    paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
+    defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
+    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
+  }
 });
 
 // Request-type radios in the New Request dialog. `from-curl` is the odd one out —
@@ -104,3 +126,85 @@ export const createRequestFromCurl = async (
 };
 
 export type { CreateRequestFromCurlOptions };
+
+/**
+ * Type a header name into an EditableTable Name cell (CodeMirror).
+ */
+export const fillRequestHeaderName = async (page: Page, row: Locator, name: string) => {
+  const nameEditor = row.getByTestId('column-name').locator('.CodeMirror');
+  await nameEditor.click();
+  await page.keyboard.type(name);
+};
+
+/**
+ * Type a header value into an EditableTable Value cell (CodeMirror).
+ */
+export const fillRequestHeaderValue = async (page: Page, row: Locator, value: string) => {
+  const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
+  await valueEditor.click();
+  await page.keyboard.type(value);
+};
+
+/**
+ * Reveal the Inherited Headers accordion (hidden by default) and return header locators.
+ */
+export const showInheritedHeaders = async (page: Page) => {
+  const { headers } = buildRequestLocators(page);
+  await headers.toggleInherited().click();
+  await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
+  return headers;
+};
+
+/**
+ * Read the visible response preview editor text.
+ */
+export const readResponsePreviewBody = async (page: Page) => {
+  const texts = await page.getByTestId('response-preview-container').locator('.CodeMirror-scroll').allInnerTexts();
+  return texts.join('\n');
+};
+
+type SettingsHeaderScope = 'collection' | 'folder';
+
+const setSettingsHeadersBulk = async (page: Page, headersText: string, scope: SettingsHeaderScope) => {
+  const content = page.getByTestId(
+    scope === 'collection' ? 'collection-settings-content' : 'folder-settings-content'
+  );
+  const savedMessage = scope === 'collection'
+    ? 'Collection Settings saved successfully'
+    : 'Folder Settings saved successfully';
+
+  await content.getByTestId('bulk-edit-toggle').click();
+  const editor = content.locator('.CodeMirror').first();
+  await expect(editor).toBeVisible();
+  await editor.evaluate((el, text) => {
+    const cm = (el as { CodeMirror?: { setValue: (value: string) => void } }).CodeMirror;
+    if (!cm) throw new Error('No CodeMirror in settings headers bulk editor');
+    cm.setValue(text);
+  }, headersText);
+  await content.getByTestId('key-value-edit-toggle').click();
+  await content.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText(savedMessage)).toBeVisible({ timeout: 5000 });
+};
+
+/**
+ * Write collection headers via Bulk Edit and save.
+ */
+export const seedCollectionHeaders = async (page: Page, collectionName: string, headersText: string) => {
+  await openCollectionSettings(page, collectionName);
+  await selectCollectionPaneTab(page, 'headers');
+  await setSettingsHeadersBulk(page, headersText, 'collection');
+};
+
+/**
+ * Write folder headers via Bulk Edit and save.
+ */
+export const seedFolderHeaders = async (
+  page: Page,
+  collectionName: string,
+  folderName: string,
+  headersText: string
+) => {
+  await openFolderSettings(page, collectionName, folderName);
+  await selectfolderPaneTab(page, 'headers');
+  await setSettingsHeadersBulk(page, headersText, 'folder');
+};

@@ -477,6 +477,13 @@ describe('extractMockRoutePath', () => {
   it('falls back to path when absolute URL has a templated host', () => {
     expect(extractMockRoutePath('https://{{host}}/v1/items')).toBe('/v1/items');
   });
+
+  it('keeps `{{var}}` intact when preserveTemplateVars is set', () => {
+    expect(extractMockRoutePath('{{baseUrl}}/users/{{userId}}', { preserveTemplateVars: true }))
+      .toBe('/users/{{userId}}');
+    expect(extractMockRoutePath('https://api.example.com/v1/{{resource}}', { preserveTemplateVars: true }))
+      .toBe('/v1/{{resource}}');
+  });
 });
 
 describe('getMockResponseRouteKey', () => {

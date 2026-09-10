@@ -1,0 +1,26 @@
+meta {
+  name: timeline-headers
+}
+
+auth {
+  mode: none
+}
+
+headers {
+  collection-header-1: collection-header-value-1
+  collection-header-2: collection-header-value-2
+  collection-set-header-1: collection-set-header-definition-1
+  collection-interpolated-1: {{collection-token-1}}
+  collection-delete-header-1: collection-delete-header-value-1
+  collection-delete-headers-1: collection-delete-headers-value-1
+  collection-delete-headers-2: collection-delete-headers-value-2
+  shared-header-1: collection-shared-value-1
+}
+
+script:pre-request {
+  req.setHeader('collection-set-header-1', 'collection-set-header-script-1');
+  req.setHeader('collection-set-header-2', 'collection-set-header-script-2');
+  req.deleteHeader('collection-delete-header-1');
+  req.deleteHeaders(['collection-delete-headers-1', 'collection-delete-headers-2']);
+  bru.setVar('collection-token-1', 'collection-interpolated-script-1');
+}
