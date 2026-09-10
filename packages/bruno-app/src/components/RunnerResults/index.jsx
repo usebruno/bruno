@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
-import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
@@ -85,8 +84,6 @@ export default function RunnerResults({ collection }) {
   const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
-
-  const clearStoredRunnerExchanges = useClearStoredRunnerExchanges(collection.uid);
 
   const collectionCopy = collection;
   const runnerInfo = get(collection, 'runnerResult.info', {});
@@ -187,21 +184,19 @@ export default function RunnerResults({ collection }) {
     }));
   };
 
-  const runCollection = async () => {
+  const runCollection = () => {
     const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
     dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
-    await clearStoredRunnerExchanges();
     dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
   };
 
-  const runAgain = async () => {
+  const runAgain = () => {
     ensureCollectionIsMounted();
     isReRunningRef.current = true;
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
-    await clearStoredRunnerExchanges();
     dispatch(
       runCollectionFolder(
         collection.uid,
@@ -216,7 +211,6 @@ export default function RunnerResults({ collection }) {
 
   const resetRunner = () => {
     isReRunningRef.current = false;
-    clearStoredRunnerExchanges();
     dispatch(
       resetCollectionRunner({
         collectionUid: collection.uid

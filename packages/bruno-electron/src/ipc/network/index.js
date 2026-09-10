@@ -40,7 +40,6 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
-const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -470,8 +469,6 @@ const registerNetworkIpc = (mainWindow) => {
       args
     });
   };
-
-  const { sendRunnerRequestSent, sendRunnerResponseReceived } = createRunnerExchangeEmitters(mainWindow);
 
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
@@ -1809,7 +1806,11 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            sendRunnerRequestSent({ requestUid, requestSent, eventData });
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'request-sent',
+              requestSent,
+              ...eventData
+            });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1898,8 +1899,8 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              sendRunnerResponseReceived({
-                requestUid,
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'response-received',
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
@@ -1912,7 +1913,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
-                eventData
+                ...eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
@@ -1947,11 +1948,11 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                sendRunnerResponseReceived({
-                  requestUid,
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'response-received',
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  eventData
+                  ...eventData
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
