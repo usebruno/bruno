@@ -1555,7 +1555,7 @@ await bru.sendRequest({
         });
       `);
     });
-    
+
     it('should rewrite a response member nested inside a call argument', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }, function (err, response) {
