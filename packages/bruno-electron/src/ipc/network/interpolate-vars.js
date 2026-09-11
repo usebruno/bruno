@@ -196,12 +196,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .map((path) => {
         // traditional path parameters
         if (path.startsWith(':')) {
-          const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!hasResolvablePathParamValue(existingPathParam)) {
-            return '/' + path;
+          const paramRegex = /[:]([a-zA-Z_]\w*)/g;
+          let match;
+          let result = path;
+          while ((match = paramRegex.exec(path))) {
+            const existingPathParam = request.pathParams.find((param) => param.name === match[1]);
+            if (hasResolvablePathParamValue(existingPathParam)) {
+              result = result.replace(':' + match[1], existingPathParam.value);
+            }
           }
-          return '/' + existingPathParam.value;
+          return '/' + result;
         }
 
         // for OData-style parameters (parameters inside parentheses)
