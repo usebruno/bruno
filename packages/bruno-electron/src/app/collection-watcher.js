@@ -820,7 +820,7 @@ class CollectionWatcher {
 
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
-    const defaultIgnores = ['node_modules', '.git'];
+    const defaultIgnores = ['node_modules', '.git', 'responses'];
 
     const watcher = chokidar.watch(watchPath, {
       ignoreInitial,
