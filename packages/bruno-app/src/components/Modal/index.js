@@ -7,8 +7,8 @@ import Button from 'ui/Button';
 const ESC_KEY_CODE = 27;
 const ENTER_KEY_CODE = 13;
 
-const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
-  <div className="bruno-modal-header">
+const ModalHeader = ({ title, handleCancel, customHeader, hideClose, className = '' }) => (
+  <div className={`bruno-modal-header ${className}`}>
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
     {handleCancel && !hideClose ? (
       <div
@@ -37,7 +37,8 @@ const ModalFooter = ({
   hideFooter,
   footerLeft,
   confirmButtonColor = 'primary',
-  dataTestId = 'modal'
+  dataTestId = 'modal',
+  className = ''
 }) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
@@ -47,7 +48,7 @@ const ModalFooter = ({
   }
 
   return (
-    <div className="flex justify-between items-center p-4 bruno-modal-footer">
+    <div className={`flex justify-between items-center p-4 bruno-modal-footer ${className}`}>
       <div>{footerLeft}</div>
       <div className="flex justify-end">
         <span className={hideCancel ? 'hidden' : 'mr-2'}>
@@ -98,7 +99,9 @@ const Modal = ({
   closeModalFadeTimeout = 500,
   dataTestId,
   confirmButtonColor = 'primary',
-  noPadding
+  noPadding,
+  headerClassName,
+  footerClassName
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -161,6 +164,7 @@ const Modal = ({
           hideClose={hideClose}
           handleCancel={() => closeModal({ type: 'icon' })}
           customHeader={customHeader}
+          className={headerClassName}
         />
         <ModalContent noPadding={noPadding}>{children}</ModalContent>
         <ModalFooter
@@ -174,6 +178,7 @@ const Modal = ({
           footerLeft={footerLeft}
           confirmButtonColor={confirmButtonColor}
           dataTestId={dataTestId}
+          className={footerClassName}
         />
       </div>
 

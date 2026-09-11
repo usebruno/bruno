@@ -8,8 +8,9 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { getSentHeaders } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { applyOmitHeaders } = require('@usebruno/common');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -172,32 +173,18 @@ function makeAxiosInstance({
 
     config.headers['request-start-time'] = Date.now();
 
-    /**
-      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
-      Using set(name, null) rather than delete(): the axios http adapter guards its
-      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
-      skips writing when the key already exists. delete() removes the key entirely,
-      so the guard misses and the adapter re-adds the default. null keeps the key
-      present (blocking the guard) while toJSON() omits null values from the wire.
-     */
-    const headersToDelete = config.__headersToDelete;
-
-    if (headersToDelete && Array.isArray(headersToDelete)) {
-      headersToDelete.forEach((headerName) => {
-        const lower = headerName.toLowerCase();
-        if (lower === 'host') return;
-        if (lower === 'connection') {
-          // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
-          return;
-        }
-        config.headers.set(headerName, null);
-      });
-      delete config.__headersToDelete;
-    }
+    // Omit listed defaults and script-deleted headers. set(null) so Axios
+    // does not put User-Agent / Accept-Encoding back.
+    const { omitConnection } = applyOmitHeaders(config.headers, {
+      omitHeaders: config.settings?.omitHeaders,
+      headersToDelete: config.__headersToDelete,
+      explicitHeaderNames: config.__explicitHeaderNames
+    });
+    delete config.__headersToDelete;
 
     const agentOptions = {
       ...httpsAgentRequestFields,
-      keepAlive: true
+      keepAlive: !omitConnection
     };
 
     try {
@@ -219,6 +206,11 @@ function makeAxiosInstance({
       });
     }
 
+    // Node keep-alive agents add Connection; strip it on the ClientRequest.
+    if (omitConnection) {
+      applyOmitConnectionToAxiosConfig(config);
+    }
+
     config.metadata.timeline = timeline;
     return config;
   });
@@ -229,7 +221,7 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config.metadata.startTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
@@ -306,7 +298,7 @@ function makeAxiosInstance({
       });
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
@@ -385,6 +377,8 @@ function makeAxiosInstance({
               ...error.config.headers
             }
           };
+
+          handleNtlmRedirect(requestConfig, error.config.url, redirectUrl, forwardAuthorizationHeader);
 
           if (!isSameOrigin(error.config.url, redirectUrl)) {
             /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin

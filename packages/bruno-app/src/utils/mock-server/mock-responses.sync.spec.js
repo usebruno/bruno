@@ -159,4 +159,12 @@ describe('countMatchedRouteHits', () => {
       'POST /users': 1
     });
   });
+  it('does not count a matched response that failed to send', () => {
+    expect(countMatchedRouteHits([
+      { matched: true, method: 'POST', path: '/orders' },
+      { matched: true, method: 'POST', path: '/orders', error: 'Header name must be a valid HTTP token' }
+    ])).toEqual({
+      'POST /orders': 1
+    });
+  });
 });

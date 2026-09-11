@@ -1,6 +1,6 @@
 import type {
   KeyValue,
-  Script,
+  HTTPScripts,
   Variables,
   Auth,
   MultipartForm,
@@ -44,7 +44,7 @@ export interface HttpRequest {
   params: HttpRequestParam[];
   auth?: Auth | null;
   body?: HttpRequestBody | null;
-  script?: Script | null;
+  script?: HTTPScripts | null;
   vars?: {
     req: Variables;
     res: Variables;

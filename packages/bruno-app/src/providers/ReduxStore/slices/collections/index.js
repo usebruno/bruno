@@ -1,6 +1,6 @@
-import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
+import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -24,8 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { getDataTypeFromValue } from '@usebruno/common/utils';
+import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
@@ -200,6 +199,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
+  selectedSidebarUids: [],
+  lastClickedSidebarUid: null,
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
@@ -399,6 +400,10 @@ export const collectionsSlice = createSlice({
         if (collection.environmentsDraft?.environmentUid === environment.uid) {
           collection.environmentsDraft = null;
         }
+
+        // TODO: if the deleted environment was the active one, clear activeEnvironmentUid here
+        // (set it to null). Right now it's left pointing at a uid no longer present
+        // in `environments`. _deleteGlobalEnvironment already does correctly for global environments.
       }
     },
     saveEnvironment: (state, action) => {
@@ -462,6 +467,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    saveEnvironmentExtends: (state, action) => {
+      const { environmentUid, collectionUid, extends: inheritedEnvironmentName } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if (environment) {
+          environment.extends = inheritedEnvironmentName;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -520,6 +537,23 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
+          const { inheritedVariables } = resolveEnvironmentInheritance({
+            environments: collection.environments,
+            targetEnvironment: activeEnvironment
+          });
+
+          const skipKeys = ['__name__'];
+
+          // add inherited variables names to `skipKeys` to avoid the `create new variable` path
+          // except the variables whose values have been updated.
+          // An inherited row holds the value as the file spells it — a string — while the script
+          // reports it parsed by its `dataType`, so the inherited value has to be parsed to compare.
+          Object.entries(envVariables).forEach(([key, value]) => {
+            if (inheritedVariables.find((iv) => (iv.name === key) && isEqual(parseValueByDataType(iv.value, iv.dataType), value))) {
+              skipKeys.push(key);
+            }
+          });
+
           const draft = collection.environmentsDraft;
           if (draft && draft.environmentUid === activeEnvironment.uid && draft.variables) {
             const baseline = {};
@@ -536,12 +570,12 @@ export const collectionsSlice = createSlice({
             activeEnvironment.variables,
             envVariables,
             collection._scriptEnvBaseline,
-            { skipKeys: ['__name__'] }
+            { skipKeys, inheritedVariables }
           );
 
           // Re-infer dataType only for vars the script actually modified — otherwise a no-op
           // script re-write would clobber a user's in-progress draft type change.
-          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys });
           activeEnvironment.variables.forEach((v) => {
             if (!modifiedKeys.has(v.name)) return;
             const inferred = getDataTypeFromValue(envVariables[v.name]);
@@ -826,6 +860,60 @@ export const collectionsSlice = createSlice({
         }
       });
     },
+    grpcScriptError: (state, action) => {
+      const { itemUid, collectionUid, scriptType, errorMessage, errorContext } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
+        item.beforeCallStartScriptErrorMessage = errorMessage;
+        item.beforeCallStartScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
+        item.afterCallEndScriptErrorMessage = errorMessage;
+        item.afterCallEndScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND) {
+        item.beforeMessageSendScriptErrorMessage = errorMessage;
+        item.beforeMessageSendScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        item.afterMessageReceiveScriptErrorMessage = errorMessage;
+        item.afterMessageReceiveScriptErrorContext = errorContext || null;
+      }
+    },
+    grpcTestResults: (state, action) => {
+      const { itemUid, collectionUid, scriptType, results, messageIndex } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_CALL_START) {
+        item.beforeCallStartTestResults = results;
+      }
+
+      if (scriptType === SCRIPT_TYPES.AFTER_CALL_END) {
+        item.afterCallEndTestResults = results;
+      }
+
+      if (scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND || scriptType === SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE) {
+        const isBeforeSend = scriptType === SCRIPT_TYPES.BEFORE_MESSAGE_SEND;
+        const resultsKey = isBeforeSend ? 'beforeMessageSendTestResults' : 'afterMessageReceiveTestResults';
+
+        if (!item[resultsKey]) {
+          item[resultsKey] = [];
+        }
+        item[resultsKey].push(...results.map((result) => ({ ...result, messageIndex })));
+      }
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -842,6 +930,10 @@ export const collectionsSlice = createSlice({
           item.preRequestTestResults = [];
           item.postResponseTestResults = [];
           item.testResults = [];
+          item.beforeCallStartTestResults = [];
+          item.afterCallEndTestResults = [];
+          item.beforeMessageSendTestResults = [];
+          item.afterMessageReceiveTestResults = [];
         }
       }
     },
@@ -1015,6 +1107,35 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = false;
+      }
+    },
+    collapseCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = true;
+      }
+    },
+    expandItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
+    collapseItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = true;
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -1951,6 +2072,27 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.script = item.draft.request.script || {};
           item.draft.request.script.res = action.payload.script;
+        }
+      }
+    },
+    updateGrpcScript: (state, action) => {
+      const { collectionUid, itemUid, hook, script } = action.payload;
+
+      if (!GRPC_SCRIPT_KEYS.includes(hook)) {
+        return;
+      }
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script[hook] = script;
         }
       }
     },
@@ -3018,9 +3160,24 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
-        for (const directoryName of subDirectories) {
+        subDirectories.forEach((directoryName, idx) => {
+          const isLeaf = idx === subDirectories.length - 1;
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
+
+          // On a rename (e.g. a case-only rename on a case-insensitive filesystem),
+          // the addDir event can arrive with a new-cased path while the existing
+          // node still carries the old filename. Reconcile the leaf folder by uid so
+          // the existing node is updated in place instead of creating a duplicate.
+          if (!childItem && isLeaf && dir?.meta?.uid) {
+            childItem = currentSubItems.find((f) => f.type === 'folder' && f.uid === dir.meta.uid);
+            if (childItem) {
+              childItem.name = dir?.meta?.name || directoryName;
+              childItem.filename = directoryName;
+              childItem.pathname = currentPath;
+            }
+          }
+
           if (!childItem) {
             childItem = {
               uid: dir?.meta?.uid || uuid(),
@@ -3039,7 +3196,7 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
-        }
+        });
         addDepth(collection.items);
       }
     },
@@ -3171,6 +3328,7 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
+          existingEnv.extends = environment.extends;
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -3236,6 +3394,18 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorContext = null;
       item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
+      item.beforeCallStartScriptErrorMessage = null;
+      item.afterCallEndScriptErrorMessage = null;
+      item.beforeMessageSendScriptErrorMessage = null;
+      item.afterMessageReceiveScriptErrorMessage = null;
+      item.beforeCallStartScriptErrorContext = null;
+      item.afterCallEndScriptErrorContext = null;
+      item.beforeMessageSendScriptErrorContext = null;
+      item.afterMessageReceiveScriptErrorContext = null;
+      item.beforeCallStartTestResults = [];
+      item.afterCallEndTestResults = [];
+      item.beforeMessageSendTestResults = [];
+      item.afterMessageReceiveTestResults = [];
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3380,6 +3550,7 @@ export const collectionsSlice = createSlice({
 
           collection.runnerResult.items.push({
             uid: request.uid,
+            requestUid: action.payload.requestUid,
             status: 'queued'
           });
         }
@@ -3952,6 +4123,26 @@ export const collectionsSlice = createSlice({
       }
     },
 
+    setSidebarSelection: (state, action) => {
+      state.selectedSidebarUids = action.payload;
+    },
+    toggleSidebarSelection: (state, action) => {
+      const uid = action.payload;
+      const index = state.selectedSidebarUids.indexOf(uid);
+      if (index > -1) {
+        state.selectedSidebarUids.splice(index, 1);
+      } else {
+        state.selectedSidebarUids.push(uid);
+      }
+    },
+    clearSidebarSelection: (state) => {
+      state.selectedSidebarUids = [];
+      state.lastClickedSidebarUid = null;
+    },
+    setLastClickedSidebarUid: (state, action) => {
+      state.lastClickedSidebarUid = action.payload;
+    },
+
     addTransientDirectory: (state, action) => {
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
@@ -4042,6 +4233,7 @@ export const {
   selectEnvironment,
   applyDefaultEnvironment,
   updateEnvironmentColor,
+  saveEnvironmentExtends,
   newItem,
   deleteItem,
   renameItem,
@@ -4055,6 +4247,8 @@ export const {
   responseReceived,
   runGrpcRequestEvent,
   grpcResponseReceived,
+  grpcScriptError,
+  grpcTestResults,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
@@ -4070,6 +4264,9 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  collapseCollection,
+  expandItem,
+  collapseItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
@@ -4107,6 +4304,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseScript,
+  updateGrpcScript,
   updateRequestTests,
   updateRequestMethod,
   updateRequestProtoPath,
@@ -4187,6 +4385,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  setSidebarSelection,
+  toggleSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
 
   /* Response Example Actions - Start */
   addResponseExample,

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import RichTextEditor from 'ui/RichTextEditor';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -19,6 +20,7 @@ const DocsEditor = ({
   onEdit,
   onSave,
   isEditing,
+  item,
   collection,
   collectionPath,
   emptyPreviewContent,
@@ -160,6 +162,7 @@ const DocsEditor = ({
         <div className="relative flex-1 min-h-0">
           <CodeEditor
             collection={collection}
+            item={item}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}
@@ -177,7 +180,7 @@ const DocsEditor = ({
         className={`flex flex-col flex-1 min-h-0 min-w-0 max-w-full w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
         onDoubleClick={handleDoubleClick}
       >
-        <RichTextEditor editor={editor} />
+        <RichTextEditor editor={editor} onLinkClick={resolveLinkClickHandler(item, collection)} />
       </section>
     </StyledWrapper>
   );
