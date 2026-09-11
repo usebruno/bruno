@@ -214,6 +214,13 @@ function makeAxiosInstance({
             explicitHeaderNames: requestConfig.__explicitHeaderNames
           });
 
+          // The hop that just answered is done with its throwaway agents; close their
+          // sockets before fresh agents are created for the redirect target.
+          if (disableCache) {
+            error.config?.httpAgent?.destroy?.();
+            error.config?.httpsAgent?.destroy?.();
+          }
+
           await setupProxyAgents({
             requestConfig,
             proxyMode,
