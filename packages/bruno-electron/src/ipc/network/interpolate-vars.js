@@ -38,6 +38,31 @@ const getRawQueryString = (url) => {
   return queryIndex !== -1 ? url.slice(queryIndex) : '';
 };
 
+// A `\:` in the URL lets a user write a literal colon that shouldn't be parsed as a
+// path param (e.g. `:bar\:publish` -> param `bar` followed by literal `:publish`). The
+// WHATWG URL parser normalizes any *other* backslash into an extra `/` for special
+// schemes, so `\:` is swapped for an alphanumeric placeholder token before the URL is
+// parsed, and swapped back to `:` in the final string once parsing/splitting is done.
+// The token is generated per call and verified absent from the input, so it can never
+// collide with real content.
+const makeEscapedColonToken = (str) => {
+  let token;
+  do {
+    token = `zzzBRUNOESCAPEDCOLON${Math.random().toString(36).slice(2)}zzz`;
+  } while (str.includes(token));
+  return token;
+};
+const protectEscapedColons = (str, token) => str.replace(/\\:/g, token);
+const restoreEscapedColons = (str, token) => str.split(token).join(':');
+
+const splitEscapedParamName = (path, token) => {
+  const escapeIdx = path.indexOf(token);
+  return {
+    name: escapeIdx === -1 ? path.slice(1) : path.slice(1, escapeIdx),
+    suffix: escapeIdx === -1 ? '' : path.slice(escapeIdx)
+  };
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}, promptVariables = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
@@ -177,12 +202,19 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     param.value = _interpolate(param.value);
   });
 
-  if (request?.pathParams?.length) {
+  // an escaped colon can appear even without any configured path params
+  const hasEscapedColon = typeof request.url === 'string' && request.url.includes('\\:');
+
+  if (request?.pathParams?.length || hasEscapedColon) {
+    const pathParams = request.pathParams || [];
     let url = request.url;
-    const urlSearchRaw = getRawQueryString(request.url);
+    let urlSearchRaw = getRawQueryString(request.url);
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
+    const token = makeEscapedColonToken(url);
+    url = protectEscapedColons(url, token);
+    urlSearchRaw = protectEscapedColons(urlSearchRaw, token);
 
     try {
       url = new URL(url);
@@ -196,12 +228,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .map((path) => {
         // traditional path parameters
         if (path.startsWith(':')) {
-          const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+          const { name: paramName, suffix } = splitEscapedParamName(path, token);
+          const existingPathParam = pathParams.find((param) => param.name === paramName);
           if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
-          return '/' + existingPathParam.value;
+          return '/' + existingPathParam.value + suffix;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -218,7 +250,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               let name = match[1].replace(/[')"`]+$/, '');
               name = name.replace(/^[('"`]+/, '');
               if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                const existingPathParam = pathParams.find((param) => param.name === name);
                 if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
@@ -232,7 +264,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw;
+    request.url = restoreEscapedColons(url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + urlSearchRaw, token);
   }
 
   if (request.proxy) {

@@ -216,6 +216,56 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
       });
+
+      it('supports an escaped colon after a resolved path param (issue #3810)', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/:foo/:bar\\:publish',
+          pathParams: [
+            { type: 'path', name: 'foo', value: 'a' },
+            { type: 'path', name: 'bar', value: 'b' }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/a/b:publish');
+      });
+
+      it('resolves an escaped colon literal even without any configured path params', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/foo/\\:literal',
+          pathParams: []
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/foo/:literal');
+      });
+
+      it('does not corrupt a path param value that looks like the internal escape placeholder', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/:foo/:bar\\:publish',
+          pathParams: [
+            { type: 'path', name: 'foo', value: 'zzzBRUNOESCAPEDCOLONabc123zzz' },
+            { type: 'path', name: 'bar', value: 'b' }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/zzzBRUNOESCAPEDCOLONabc123zzz/b:publish');
+      });
+
+      it('resolves an escaped colon in the query string', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/:foo?q=a\\:b',
+          pathParams: [{ type: 'path', name: 'foo', value: 'x' }]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/x?q=a:b');
+      });
     });
 
     describe('With process environment variables', () => {
