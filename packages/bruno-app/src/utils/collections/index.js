@@ -226,6 +226,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: param.type,
         name: param.name,
         value: param.value,
+        contentType: param.contentType,
         description: param.description,
         enabled: param.enabled
       };

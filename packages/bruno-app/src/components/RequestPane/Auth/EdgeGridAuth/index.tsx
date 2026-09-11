@@ -140,7 +140,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             item={item}
             isSecret={isSecret}
             isCompact
-            disableLinkAwareClick={true}
           />
           {showWarning && (
             <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />

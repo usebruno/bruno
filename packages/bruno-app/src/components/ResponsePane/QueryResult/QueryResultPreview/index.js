@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
@@ -52,7 +52,10 @@ const QueryResultPreview = ({
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   // Same type as the request this response belongs to (HTTP -> HTTP, GraphQL -> GraphQL).
-  const handleResponseLinkClick = resolveLinkClickHandler(item, collection);
+  const handleResponseLinkClick = useMemo(
+    () => resolveLinkClickHandler(item, collection),
+    [item, collection]
+  );
 
   if (selectedTab === 'editor') {
     return (
@@ -107,11 +110,11 @@ const QueryResultPreview = ({
     }
 
     case 'preview-text': {
-      return <TextPreview data={data} />;
+      return <TextPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} />;
+      return <XmlPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     default:
