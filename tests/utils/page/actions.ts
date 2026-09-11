@@ -2779,6 +2779,20 @@ const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
   await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
+/**
+ * Editable fields (Params, Vars, Headers, ...) only mark URLs and let Cmd/Ctrl+Click open them
+ * externally — a plain click just places the cursor, matching the URL bar's pre-existing
+ * behaviour. Click-to-open-as-a-request is reserved for response previews.
+ */
+const expectLinkDoesNotOpenRequest = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
+  await expect(link).toBeVisible({ timeout: 10000 });
+  await link.click();
+  await expect(cm).toContainClass('CodeMirror-focused');
+
+  await expectLinkOpensExternally(page, cm);
+};
+
 /** Plain click on a Rich Text docs link opens a transient request. */
 const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
   await expect(link).toBeVisible({ timeout: 10000 });
@@ -3730,6 +3744,7 @@ export {
   expectTransientRequestOpened,
   expectLinkOpensRequest,
   expectLinkOpensExternally,
+  expectLinkDoesNotOpenRequest,
   expectRichTextLinkOpensRequest,
   expectRichTextLinkOpensExternally,
   expectNoLink,
