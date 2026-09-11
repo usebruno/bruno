@@ -186,6 +186,8 @@ const QueryParams = ({ item, collection }) => {
           testId="query-params-table"
           columns={queryColumns}
           rows={queryParams || []}
+          showSelectAll
+          checkboxLabel="Toggle all query parameters"
           onChange={handleQueryParamsChange}
           defaultRow={defaultQueryRow}
           reorderable={true}
