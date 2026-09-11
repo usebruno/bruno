@@ -203,29 +203,36 @@ describe('ScriptError', () => {
       preRequestScriptErrorContext: mockErrorContext
     };
 
+    const stubClipboard = (writeText) => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      return writeText;
+    };
+
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
+    afterEach(() => {
+      delete navigator.clipboard;
+    });
+
     it('should copy the error details and show a success toast', async () => {
-      const writeText = jest.fn().mockResolvedValue();
-      Object.assign(navigator, { clipboard: { writeText } });
+      const writeText = stubClipboard(jest.fn().mockResolvedValue());
       renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
 
       fireEvent.click(screen.getByTestId('script-error-copy'));
 
       await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
       const copiedText = writeText.mock.calls[0][0];
-      expect(copiedText).toContain('ReferenceError: undefinedVar is not defined');
-      expect(copiedText).toContain('File: echo json.bru:4');
-      expect(copiedText).toContain(mockErrorContext.stack);
+      expect(copiedText).toBe(
+        `File: echo json.bru:4\n\nReferenceError: undefinedVar is not defined\n\nStack trace:\n${mockErrorContext.stack}`
+      );
       await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Script error details copied to clipboard'));
       expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('should show an error toast when the clipboard write fails', async () => {
-      const writeText = jest.fn().mockRejectedValue(new Error('denied'));
-      Object.assign(navigator, { clipboard: { writeText } });
+      stubClipboard(jest.fn().mockRejectedValue(new Error('denied')));
       renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
 
       fireEvent.click(screen.getByTestId('script-error-copy'));

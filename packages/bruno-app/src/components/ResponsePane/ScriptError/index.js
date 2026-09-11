@@ -85,13 +85,17 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
 };
 
 const formatErrorForClipboard = (errorContext, message, displayFilePath) => {
-  const lineSuffix = typeof errorContext.errorLine === 'number' ? `:${errorContext.errorLine}` : '';
-  const errorParts = [
-    `${errorContext.errorType || 'Error'}: ${message}`,
+  const { errorLine, errorType, stack } = errorContext;
+
+  const lineSuffix = typeof errorLine === 'number' ? `:${errorLine}` : '';
+
+  return [
     displayFilePath && `File: ${displayFilePath}${lineSuffix}`,
-    errorContext.stack
-  ].filter(Boolean);
-  return errorParts.join('\n\n');
+    `${errorType || 'Error'}: ${message}`,
+    stack && `Stack trace:\n${stack}`
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 };
 
 const ScriptErrorCard = ({ title, message, errorContext, item, collection, scriptPhase, onClose }) => {
@@ -186,8 +190,8 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
               className="icon-button flex-shrink-0 cursor-pointer"
               data-testid="script-error-copy"
               onClick={handleCopy}
-              aria-label="Copy error"
-              title={copied ? 'Copied' : 'Copy error'}
+              aria-label="Copy script error"
+              title={copied ? 'Copied' : 'Copy script error'}
             >
               {copied ? <IconCheck size={16} strokeWidth={1.5} /> : <IconCopy size={16} strokeWidth={1.5} />}
             </button>
@@ -196,14 +200,14 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
               data-testid="script-error-expand-toggle"
               onClick={() => setIsExpanded(!isExpanded)}
               aria-expanded={isExpanded}
-              aria-label={isExpanded ? 'Collapse error' : 'Expand error'}
+              aria-label={isExpanded ? 'Collapse script error' : 'Expand script error'}
               title={isExpanded ? 'Collapse' : 'Expand'}
             >
               {isExpanded ? <IconArrowsDiagonalMinimize2 size={16} strokeWidth={1.5} /> : <IconArrowsDiagonal size={16} strokeWidth={1.5} />}
             </button>
 
             {onClose && (
-              <button className="icon-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose} aria-label="Close error">
+              <button className="icon-button flex-shrink-0 cursor-pointer" data-testid="script-error-close" onClick={onClose} aria-label="Close script error">
                 <IconX size={16} strokeWidth={1.5} />
               </button>
             )}
