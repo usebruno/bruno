@@ -3,6 +3,7 @@ import lightMonochrome from './light/light-monochrome';
 import lightPastel from './light/light-pastel';
 import catppuccinLatte from './light/catppuccin-latte';
 import vscodeLight from './light/vscode';
+import cyberdreamLight from './light/cyberdream-light';
 import dark from './dark/dark';
 import darkMonochrome from './dark/dark-monochrome';
 import darkPastel from './dark/dark-pastel';
@@ -11,6 +12,7 @@ import catppuccinMacchiato from './dark/catppuccin-macchiato';
 import catppuccinMocha from './dark/catppuccin-mocha';
 import nord from './dark/nord';
 import vscodeDark from './dark/vscode';
+import cyberdreamDark from './dark/cyberdream-dark';
 
 const themes = {
   light,
@@ -25,7 +27,9 @@ const themes = {
   'catppuccin-mocha': catppuccinMocha,
   nord,
   'vscode-light': vscodeLight,
-  'vscode-dark': vscodeDark
+  'vscode-dark': vscodeDark,
+  'cyberdream-light': cyberdreamLight,
+  'cyberdream-dark': cyberdreamDark
 };
 
 // Theme metadata for UI display
@@ -93,6 +97,16 @@ export const themeRegistry = {
   'vscode-dark': {
     id: 'vscode-dark',
     name: 'VS Code Dark',
+    mode: 'dark'
+  },
+  'cyberdream-light': {
+    id: 'cyberdream-light',
+    name: 'Cyberdream Light',
+    mode: 'light'
+  },
+  'cyberdream-dark': {
+    id: 'cyberdream-dark',
+    name: 'Cyberdream Dark',
     mode: 'dark'
   }
 };
