@@ -99,6 +99,8 @@ const StyledWrapper = styled.div`
   }
 
   .seg-hint {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     cursor: help;

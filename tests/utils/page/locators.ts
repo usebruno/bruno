@@ -246,6 +246,8 @@ export const buildCommonLocators = (page: Page) => ({
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
     allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
     filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    tagsHint: () => page.locator('.bruno-modal .seg-hint'),
+    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
