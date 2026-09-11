@@ -2,10 +2,28 @@ import React, { useId, useState } from 'react';
 import { IconChevronRight, IconListCheck, IconGitBranch, IconInfoCircle } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch';
+import SegmentedControl from 'ui/SegmentedControl';
 import IncludeExcludeTags from './IncludeExcludeTags';
 import StyledWrapper from './StyledWrapper';
 
 const TAGS_HINT = 'Tags are labels on requests (e.g. smoke, WIP). Manage tags in Request › Settings';
+
+const REQUEST_MODE_ITEMS = [
+  { 'value': 'all', 'label': 'All requests', 'className': 'seg-option', 'data-testid': 'docs-requests-all' },
+  {
+    'value': 'tags',
+    'className': 'seg-option',
+    'label': (
+      <span className="seg-with-hint">
+        Filter by Tags
+        <span className="seg-hint" data-tooltip-id="docs-tags-hint" data-tooltip-content={TAGS_HINT}>
+          <IconInfoCircle size={16} aria-hidden="true" />
+        </span>
+      </span>
+    ),
+    'data-testid': 'docs-requests-filter'
+  }
+];
 
 const Advanced = ({
   filterByTags,
@@ -43,33 +61,14 @@ const Advanced = ({
               </div>
 
               <div className="seg-row">
-                <div className="segmented" role="group" aria-labelledby={requestsLabelId}>
-                  <button
-                    type="button"
-                    aria-pressed={!filterByTags}
-                    className={`seg ${!filterByTags ? 'active' : ''}`}
-                    onClick={() => onFilterModeChange(false)}
-                    data-testid="docs-requests-all"
-                  >
-                    All requests
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={filterByTags}
-                    className={`seg ${filterByTags ? 'active' : ''}`}
-                    onClick={() => onFilterModeChange(true)}
-                    data-testid="docs-requests-filter"
-                  >
-                    Filter by Tags
-                    <span
-                      className="seg-hint"
-                      data-tooltip-id="docs-tags-hint"
-                      data-tooltip-content={TAGS_HINT}
-                    >
-                      <IconInfoCircle size={16} aria-hidden="true" />
-                    </span>
-                  </button>
-                </div>
+                <SegmentedControl
+                  ariaLabelledBy={requestsLabelId}
+                  value={filterByTags ? 'tags' : 'all'}
+                  onChange={(value) => onFilterModeChange(value === 'tags')}
+                  items={REQUEST_MODE_ITEMS}
+                  variant="outlined"
+                  size="sm"
+                />
               </div>
 
               <Tooltip id="docs-tags-hint" className="adv-hint-tooltip" />
