@@ -1,15 +1,21 @@
+import path from 'path';
 import { test, expect } from '../../playwright';
 import { createRequest, sendRequest, getResponseBody } from '../utils/page/actions';
+import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
 import {
   buildMockServerLocators,
   openMockServerTab,
   syncResponsesFromExamples,
   startMockServer,
   stopMockServer,
-  createMockServerFromCollection
+  createMockServerFromCollection,
+  openCreateMockServerModal,
+  createMockServerFromSidebar
 } from '../utils/page/mock-server';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
+const SPEC_FIXTURE = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures', 'openapi-simple.json');
+const SPEC_TITLE = 'Simple Test API';
 const DEFAULT_MOCK_PORT = '4500';
 let currentMockPort = DEFAULT_MOCK_PORT;
 const getMockBase = () => `http://localhost:${currentMockPort}`;
@@ -401,5 +407,188 @@ test.describe.serial('Mock Server', () => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
     await expect(ms.statusText()).toContainText('Stopped');
+  });
+
+  test('TC-6360: Should show the matching source picker and block create until a source is selected', { tag: '@sanity' }, async ({
+    pageWithUserData: page,
+    reuseOrLaunchElectronApp
+  }, testInfo) => {
+    const ms = buildMockServerLocators(page);
+    const apiSpecPanel = buildApiSpecPanelLocators(page);
+    const app = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
+
+    await test.step('Open an API spec so the API Spec source is available', async () => {
+      await openApiSpecFromDialog(page, app, SPEC_FIXTURE);
+      await expect(apiSpecPanel.sidebarItem(SPEC_TITLE)).toBeVisible({ timeout: 2000 });
+    });
+
+    await openCreateMockServerModal(page);
+    await ms.nameInput().fill('Source Picker Validation');
+
+    await test.step('Collection shows the collection selector and hides the API spec selector', async () => {
+      await ms.sourceCollectionRadio().click();
+      await expect(ms.collectionSelect()).toBeVisible();
+      await expect(ms.specSelect()).toHaveCount(0);
+      await expect(ms.syncOnCreateCheckbox()).toBeVisible();
+      await expect(ms.syncOnCreateLabel()).toContainText('Sync mock responses with collection examples');
+    });
+
+    await test.step('API spec shows the spec selector and hides the collection selector', async () => {
+      await ms.sourceSpecRadio().click();
+      await expect(ms.specSelect()).toBeVisible();
+      await expect(ms.collectionSelect()).toHaveCount(0);
+      await expect(ms.syncOnCreateCheckbox()).toBeVisible();
+      await expect(ms.syncOnCreateLabel()).toContainText('Sync mock responses with API spec');
+    });
+
+    await test.step('Standalone hides both selectors and the sync checkbox', async () => {
+      await ms.sourceManualRadio().click();
+      await expect(ms.sourceManualRadio()).toBeChecked();
+      await expect(ms.collectionSelect()).toHaveCount(0);
+      await expect(ms.specSelect()).toHaveCount(0);
+      await expect(ms.syncOnCreateCheckbox()).toHaveCount(0);
+      await expect(ms.standaloneHelpText()).toBeVisible();
+    });
+
+    await test.step('Create is blocked when Collection is selected without a collection', async () => {
+      await ms.sourceCollectionRadio().click();
+      await ms.collectionSelect().selectOption('');
+      await ms.modalSubmit().click();
+      await expect(ms.fieldError('Collection is required')).toBeVisible();
+      await expect(ms.createModal()).toBeVisible();
+    });
+
+    await test.step('Create is blocked when API spec is selected without a spec', async () => {
+      await ms.sourceSpecRadio().click();
+      await ms.specSelect().selectOption('');
+      await ms.modalSubmit().click();
+      await expect(ms.fieldError('API spec is required')).toBeVisible();
+      await expect(ms.createModal()).toBeVisible();
+    });
+
+    await ms.modalCancel().click();
+    await expect(ms.createModal()).toHaveCount(0);
+  });
+
+  test('TC-6361-A: Should create a standalone mock server with no auto-synced responses', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+
+    await createMockServerFromSidebar(page, 'Standalone Mock Server', { sourceType: 'manual' });
+
+    await expect(ms.dashboard()).toBeVisible();
+    await expect(ms.emptyResponsesTitle()).toBeVisible();
+    await expect(ms.emptyResponsesDescription()).toBeVisible();
+    await expect(ms.responseItems()).toHaveCount(0);
+    await expect(ms.syncExamplesBtn()).toHaveCount(0);
+    await expect(ms.syncSpecBtn()).toHaveCount(0);
+  });
+
+  test('TC-6361-B: Should keep responses empty when sync on create is unchecked, then sync collection examples', { tag: '@sanity' }, async ({
+    pageWithUserData: page
+  }) => {
+    const ms = buildMockServerLocators(page);
+
+    await test.step('Select Collection, uncheck sync, enter a name, and click Create', async () => {
+      await openCreateMockServerModal(page);
+      await ms.sourceCollectionRadio().click();
+      await ms.collectionSelect().selectOption({ label: COLLECTION_NAME });
+      await ms.collectionLoading().waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+      await ms.syncOnCreateCheckbox().uncheck();
+      await ms.nameInput().fill('Collection Sync Off');
+      await expect(ms.modalSubmit()).toBeEnabled({ timeout: 2000 });
+      await ms.modalSubmit().click();
+      await ms.dashboard().waitFor({ state: 'visible', timeout: 2000 });
+    });
+
+    await test.step('Open Responses and Routes immediately after creation', async () => {
+      await ms.tabResponses().click();
+      await expect(ms.emptyResponsesTitle()).toBeVisible();
+      await expect(ms.responseItems()).toHaveCount(0);
+      await ms.tabRoutes().click();
+      await expect(ms.tabRoutesCount()).toHaveCount(0);
+    });
+
+    await test.step('Click Sync with examples and verify the route count', async () => {
+      await ms.tabResponses().click();
+      await ms.syncExamplesBtn().click();
+      await expect(ms.syncExamplesModal()).toBeVisible();
+      await ms.syncExamplesSubmit().click();
+      await expect(ms.syncSuccessToast()).toBeVisible();
+      await expect(ms.responseItems()).toHaveCount(4);
+      await ms.tabRoutes().click();
+      await expect(ms.tabRoutesCount()).toHaveText('3');
+    });
+  });
+
+  test('TC-6361-C: Should sync API spec responses on create when checked, and only after manual sync when unchecked', { tag: '@sanity' }, async ({
+    pageWithUserData: page,
+    reuseOrLaunchElectronApp
+  }, testInfo) => {
+    const ms = buildMockServerLocators(page);
+    const apiSpecPanel = buildApiSpecPanelLocators(page);
+    const app = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
+    let specResponseCount = 0;
+    let specRouteCount = '';
+
+    await test.step('Open an API spec so the API Spec source is available', async () => {
+      if (await apiSpecPanel.sidebarItem(SPEC_TITLE).count() === 0) {
+        await openApiSpecFromDialog(page, app, SPEC_FIXTURE);
+      }
+      await expect(apiSpecPanel.sidebarItem(SPEC_TITLE)).toBeVisible({ timeout: 2000 });
+    });
+
+    await test.step('Select API spec and keep sync checked', async () => {
+      await openCreateMockServerModal(page);
+      await ms.sourceSpecRadio().click();
+      await ms.specSelect().selectOption({ label: SPEC_TITLE });
+      await expect(ms.syncOnCreateCheckbox()).toBeChecked();
+      await expect(ms.syncOnCreateLabel()).toContainText('Sync mock responses with API spec');
+      await ms.nameInput().fill('Spec Sync On');
+      await expect(ms.modalSubmit()).toBeEnabled({ timeout: 2000 });
+      await ms.modalSubmit().click();
+      await ms.dashboard().waitFor({ state: 'visible', timeout: 2000 });
+    });
+
+    await test.step('Responses and routes are generated from the spec without a manual sync', async () => {
+      await expect(ms.responseItems().first()).toBeVisible({ timeout: 2000 });
+      specResponseCount = await ms.responseItems().count();
+      expect(specResponseCount).toBeGreaterThan(0);
+      await expect(ms.syncSpecBtn()).toBeVisible();
+      await ms.tabRoutes().click();
+      await expect(ms.tabRoutesCount()).toBeVisible();
+      specRouteCount = await ms.tabRoutesCount().innerText();
+      expect(Number(specRouteCount)).toBeGreaterThan(0);
+    });
+
+    await test.step('Select API spec, uncheck sync, enter a name, and click Create', async () => {
+      await openCreateMockServerModal(page);
+      await ms.sourceSpecRadio().click();
+      await ms.specSelect().selectOption({ label: SPEC_TITLE });
+      await ms.syncOnCreateCheckbox().uncheck();
+      await ms.nameInput().fill('Spec Sync Off');
+      await expect(ms.modalSubmit()).toBeEnabled({ timeout: 2000 });
+      await ms.modalSubmit().click();
+      await ms.dashboard().waitFor({ state: 'visible', timeout: 2000 });
+    });
+
+    await test.step('Open Responses and Routes immediately after creation', async () => {
+      await ms.tabResponses().click();
+      await expect(ms.emptyResponsesTitle()).toBeVisible();
+      await expect(ms.responseItems()).toHaveCount(0);
+      await ms.tabRoutes().click();
+      await expect(ms.tabRoutesCount()).toHaveCount(0);
+    });
+
+    await test.step('Click Generate from API Spec and verify the route count', async () => {
+      await ms.tabResponses().click();
+      await expect(ms.generateFromSpecBtn()).toBeVisible();
+      await ms.generateFromSpecBtn().click();
+      await expect(ms.generateFromSpecModal()).toBeVisible();
+      await ms.generateFromSpecSubmit().click();
+      await expect(ms.generateFromSpecSuccessToast()).toBeVisible();
+      await expect(ms.responseItems()).toHaveCount(specResponseCount);
+      await ms.tabRoutes().click();
+      await expect(ms.tabRoutesCount()).toHaveText(specRouteCount);
+    });
   });
 });

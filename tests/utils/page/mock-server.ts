@@ -1,4 +1,4 @@
-import { test, Page } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 
 // Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
@@ -31,14 +31,19 @@ export const buildMockServerLocators = (page: Page) => ({
   syncExamplesModal: () => page.getByTestId('sync-mock-examples-modal'),
   syncExamplesSubmit: () => page.getByTestId('sync-mock-examples-modal-submit-btn'),
   syncSuccessToast: () => page.getByText('Mock responses synced with collection examples'),
+  emptyResponsesTitle: () => page.getByTestId('mock-server-dashboard').getByText('No mock responses yet', { exact: true }),
+  emptyResponsesDescription: () =>
+    page.getByTestId('mock-server-dashboard').getByText(
+      'Create one to define the routes and responses this mock server serves.',
+      { exact: true }
+    ),
+  responseItems: () => page.locator('[data-testid^="mock-response-open-"]'),
+  responseItem: (name: string) =>
+    page.locator('[data-testid^="mock-response-open-"]').filter({ hasText: name }),
 
   createModal: () => page.locator('.bruno-modal-card'),
   nameInput: () => page.getByTestId('mock-server-name-input'),
-  nameRequiredError: () => page.getByText('Name is required'),
-  collectionRequiredError: () => page.getByText('Collection is required'),
-  collectionSelect: () => page.getByTestId('mock-server-collection-select'),
   modalSubmit: () => page.getByTestId('modal-submit-btn'),
-  modalCancel: () => page.locator('.bruno-modal-card').getByRole('button', { name: 'Cancel' }),
   sidebarCreateBtn: () => page.getByTestId('mock-servers-create-btn'),
   sourceCollectionRadio: () => page.getByTestId('mock-server-source-collection'),
   sourceSpecRadio: () => page.getByTestId('mock-server-source-spec'),
@@ -47,6 +52,22 @@ export const buildMockServerLocators = (page: Page) => ({
   specSelect: () => page.getByTestId('mock-server-spec-select'),
   specSelectedOption: () => page.getByTestId('mock-server-spec-select').locator('option:checked'),
   specOption: (name: string) => page.getByTestId('mock-server-spec-select').locator('option').filter({ hasText: name }),
+  collectionSelect: () => page.getByTestId('mock-server-collection-select'),
+  collectionLoading: () => page.getByTestId('mock-server-collection-loading'),
+  syncOnCreateLabel: () =>
+    page.locator('label').filter({ has: page.getByTestId('mock-server-sync-on-create-checkbox') }),
+  standaloneHelpText: () =>
+    page.getByText('A standalone mock server has no source. Add responses manually from the dashboard.'),
+  modalCancel: () => page.locator('.bruno-modal-card').getByRole('button', { name: 'Cancel' }),
+  fieldError: (message: string) => page.locator('.bruno-modal-card').getByText(message, { exact: true }),
+  syncSpecBtn: () => page.getByTestId('mock-response-sync-spec-btn'),
+  syncSpecModal: () => page.getByTestId('mock-response-sync-spec-modal'),
+  syncSpecSubmit: () => page.getByTestId('mock-response-sync-spec-modal-submit-btn'),
+  syncSpecSuccessToast: () => page.getByText('Mock responses synced with spec'),
+  generateFromSpecBtn: () => page.getByTestId('mock-response-generate-from-spec-btn'),
+  generateFromSpecModal: () => page.getByTestId('mock-response-generate-from-spec-modal'),
+  generateFromSpecSubmit: () => page.getByTestId('mock-response-generate-from-spec-modal-submit-btn'),
+  generateFromSpecSuccessToast: () => page.getByText(/Generated \d+ mock response\(s\) from API spec/),
   settingsBtn: () => page.getByTestId('mock-server-settings-btn'),
   sidebarItem: (name: string) => page.locator('.mock-server-item').filter({ hasText: name }),
   sidebarSection: () => page.locator('.sidebar-section').filter({ hasText: 'Mock Servers' }),
@@ -130,7 +151,12 @@ export const openCreateMockServerModal = async (page: Page) => {
 };
 
 // Open the create-mock-server flow from a collection's actions menu and submit a name.
-export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string) => {
+export const createMockServerFromCollection = async (
+  page: Page,
+  collectionName: string,
+  serverName: string,
+  options: { syncOnCreate?: boolean } = {}
+) => {
   await test.step(`Create mock server "${serverName}" for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
     const collection = ms.collectionRow(collectionName);
@@ -140,8 +166,52 @@ export const createMockServerFromCollection = async (page: Page, collectionName:
     await ms.createMockServerMenuItem().click();
     await ms.createModal().waitFor({ state: 'visible', timeout: 10000 });
     await ms.nameInput().fill(serverName);
+    if (typeof options.syncOnCreate === 'boolean') {
+      await ms.syncOnCreateCheckbox().setChecked(options.syncOnCreate);
+    }
     await ms.modalSubmit().click();
     await ms.dashboard().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+// Create a mock server from the Mock Servers sidebar plus button (source radios live here).
+export const createMockServerFromSidebar = async (
+  page: Page,
+  serverName: string,
+  options: {
+    sourceType?: 'collection' | 'spec' | 'manual';
+    collectionName?: string;
+    specName?: string;
+    syncOnCreate?: boolean;
+  } = {}
+) => {
+  await test.step(`Create mock server "${serverName}" from the sidebar`, async () => {
+    const ms = buildMockServerLocators(page);
+    await openCreateMockServerModal(page);
+    await ms.nameInput().fill(serverName);
+
+    if (options.sourceType === 'manual') {
+      await ms.sourceManualRadio().click();
+    } else if (options.sourceType === 'spec') {
+      await ms.sourceSpecRadio().click();
+      if (options.specName) {
+        await ms.specSelect().selectOption({ label: options.specName });
+      }
+    } else if (options.sourceType === 'collection') {
+      await ms.sourceCollectionRadio().click();
+      if (options.collectionName) {
+        await ms.collectionSelect().selectOption({ label: options.collectionName });
+      }
+      await ms.collectionLoading().waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+    }
+
+    if (typeof options.syncOnCreate === 'boolean' && options.sourceType !== 'manual') {
+      await ms.syncOnCreateCheckbox().setChecked(options.syncOnCreate);
+    }
+
+    await expect(ms.modalSubmit()).toBeEnabled({ timeout: 2000 });
+    await ms.modalSubmit().click();
+    await ms.dashboard().waitFor({ state: 'visible', timeout: 2000 });
   });
 };
 
