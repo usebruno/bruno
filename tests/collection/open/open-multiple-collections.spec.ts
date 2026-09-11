@@ -30,14 +30,13 @@ test.describe('Open Multiple Collections', () => {
     createTmpDir
   }) => {
     const locators = buildCommonLocators(page);
-    const collection1Name = 'Test Collection 1';
-    const collection2Name = 'Test Collection 2';
-    const collection1 = locators.sidebar.collection(collection1Name);
-    const collection2 = locators.sidebar.collection(collection2Name);
-
     // Create two test collections with proper bruno.json files
     const collection1Dir = await createTmpDir('collection-1');
     const collection2Dir = await createTmpDir('collection-2');
+    const collection1Name = path.basename(collection1Dir);
+    const collection2Name = path.basename(collection2Dir);
+    const collection1 = locators.sidebar.collection(collection1Name);
+    const collection2 = locators.sidebar.collection(collection2Name);
 
     await test.step('Navigate to the parent folder containing multiple collections', async () => {
       // Create bruno.json for first collection
