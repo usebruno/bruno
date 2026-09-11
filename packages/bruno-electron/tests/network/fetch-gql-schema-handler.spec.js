@@ -15,6 +15,9 @@ jest.mock('../../src/ipc/network/prepare-gql-introspection-request', () => {
   });
 });
 
+// The third argument is pinned by uid: the handler forwards the resolved
+// request, which carries the merged variables, and these tests only care about
+// which variable wins.
 describe('fetchGqlSchemaHandler - variable precedence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -71,7 +74,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'env-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
@@ -136,7 +139,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'folder-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
@@ -203,7 +206,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'request-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
@@ -255,7 +258,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'collection-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
@@ -307,7 +310,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'env-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
@@ -362,7 +365,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'runtime-value'
       }),
-      request,
+      expect.objectContaining({ uid: 'test-request' }),
       collection.root
     );
   });
