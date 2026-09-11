@@ -74,7 +74,7 @@ export const CollectionItemDragPreview = () => {
   if (!isDragging) return null;
   if (!item) return null;
 
-  const validTypes = ['collection', 'collection-item', 'disabled-drag'];
+  const validTypes = ['collection', 'collection-item'];
   if (!validTypes.includes(itemType)) return null;
 
   const { x, y } = clientOffset || {};
@@ -98,7 +98,7 @@ export const CollectionItemDragPreview = () => {
   return (
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className="p-2">
-        <div className="flex items-center gap-2 border border-gray-500/10 rounded-md px-2 py-1 drag-preview">
+        <div className="flex items-center gap-2 border rounded-md px-2 py-1 drag-preview">
           {Icon && <Icon size={16} />}
           {label}
         </div>
