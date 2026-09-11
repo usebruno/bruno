@@ -1,6 +1,6 @@
 import { forOwn } from 'lodash';
 import curlToJson from './curl-to-json';
-import { prettifyJsonString } from 'utils/common/index';
+import { prettifyJsonString, uuid } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
@@ -11,6 +11,14 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
     });
 
     return formData;
+  };
+
+  const parseMultipartForm = (parsedBody) => {
+    if (!Array.isArray(parsedBody)) {
+      return [];
+    }
+
+    return parsedBody.map((param) => ({ uid: uuid(), ...param }));
   };
 
   const parseGraphQL = (text) => {
@@ -82,7 +90,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (normalizedContentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';
-        body.multipartForm = parsedBody;
+        body.multipartForm = parseMultipartForm(parsedBody);
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
         body.text = parsedBody;
