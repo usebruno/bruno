@@ -13,6 +13,7 @@ import { uuid } from 'utils/common';
 
 const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 let posthogClient = null;
+let wslUsageCapturedThisSession = false;
 
 const isPlaywrightTestRunning = () => {
   return process.env.PLAYWRIGHT ? true : false;
@@ -42,12 +43,20 @@ const getAnonymousTrackingId = () => {
   return id;
 };
 
-const trackStart = (version) => {
+const canTrack = () => {
   if (isPlaywrightTestRunning()) {
-    return;
+    return false;
   }
 
   if (isDevEnv()) {
+    return false;
+  }
+
+  return Boolean(posthogApiKey && posthogApiKey.length);
+};
+
+const trackStart = (version) => {
+  if (!canTrack()) {
     return;
   }
 
@@ -63,6 +72,25 @@ const trackStart = (version) => {
   });
 };
 
+const markWSLCollectionOpened = () => {
+  if (wslUsageCapturedThisSession || !canTrack()) {
+    return;
+  }
+
+  wslUsageCapturedThisSession = true;
+
+  const trackingId = getAnonymousTrackingId();
+  const client = getPosthogClient();
+  client.capture({
+    distinctId: trackingId,
+    event: 'wsl_collection_opened',
+    properties: {
+      os: platformLib.os.family,
+      $set: { isWsl: true }
+    }
+  });
+};
+
 const useTelemetry = ({ version }) => {
   useEffect(() => {
     if (posthogApiKey && posthogApiKey.length) {
@@ -72,4 +100,5 @@ const useTelemetry = ({ version }) => {
   }, [posthogApiKey]);
 };
 
+export { markWSLCollectionOpened };
 export default useTelemetry;
