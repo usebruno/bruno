@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import MultiLineEditor from 'components/MultiLineEditor';
+import { normalizePath } from 'utils/common/path';
 
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -31,7 +32,7 @@ const FileBody = ({ item, collection }) => {
     const param = cloneDeep(_param);
     switch (type) {
       case 'filePath': {
-        param.filePath = e.target.filePath;
+        param.filePath = normalizePath(e.target.filePath);
         param.contentType = '';
         break;
       }
