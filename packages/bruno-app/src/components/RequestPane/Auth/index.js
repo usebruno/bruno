@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 
 import ApiKeyAuth from './ApiKeyAuth';
 import EdgeGridAuth from './EdgeGridAuth';
+import AuthMode from './AuthMode';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
@@ -73,20 +74,22 @@ const Auth = ({ item, collection }) => {
         return <EdgeGridAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} />;
       }
       case 'inherit': {
-        return (
-          <>
-            <div className="flex flex-row w-full gap-2">
-              <div>Auth inherited from {inheritedSource.name}: </div>
-              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-            </div>
-          </>
-        );
+        return null;
       }
     }
   };
 
   return (
     <StyledWrapper className="w-full overflow-auto">
+      <div className="flex items-center justify-between mb-4">
+        <AuthMode item={item} collection={collection} />
+        {authMode === 'inherit' && inheritedSource && (
+          <div className="flex flex-row items-center gap-2">
+            <div>Auth inherited from {inheritedSource.name}: </div>
+            <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
+          </div>
+        )}
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );
