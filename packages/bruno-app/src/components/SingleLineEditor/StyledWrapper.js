@@ -46,7 +46,7 @@ const StyledWrapper = styled.div`
     }
 
     pre {
-      font-family: Inter, sans-serif !important;
+      font-family: var(--app-font-stack) !important;
       font-weight: 400;
     }
 

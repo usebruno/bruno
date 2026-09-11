@@ -19,6 +19,11 @@ export const buildPreferencesLocators = (page: Page) => ({
     /** The "Request Timeout (in ms)" field on the General tab */
     requestTimeoutInput: () => page.locator('input[name="timeout"]')
   },
+  /** Locators on the Display panel */
+  display: {
+    /** The "App Font" field that drives the app-wide UI font */
+    appFontInput: () => page.getByTestId('app-font-input')
+  },
   /** The open Preferences tab in the tab bar */
   openTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
   /** Close control on the open Preferences tab */
@@ -100,6 +105,21 @@ export const setAutoSave = async (
     // The preferences form persists on a 500ms debounce.
     await page.waitForTimeout(800);
     await closePreferences(page);
+  });
+};
+
+/**
+ * Set the "App Font" preference (Display tab) that drives the app-wide UI font.
+ * Leaves the Preferences tab open so callers can assert on the form itself.
+ */
+export const setAppFont = async (page: Page, value: string) => {
+  await test.step(`Set app font to "${value}"`, async () => {
+    const preferences = buildPreferencesLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'Display');
+    await preferences.display.appFontInput().fill(value);
+    // The preferences form persists on a 500ms debounce.
+    await page.waitForTimeout(800);
   });
 };
 

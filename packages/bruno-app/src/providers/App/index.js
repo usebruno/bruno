@@ -9,6 +9,7 @@ import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
 import useOpenAPISyncPolling from './useOpenAPISyncPolling';
 import useChangelogOnUpdate from './useChangelogOnUpdate';
+import useAppFont from './useAppFont';
 import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
@@ -18,6 +19,7 @@ export const AppProvider = (props) => {
   useIpcEvents();
   useOpenAPISyncPolling();
   useChangelogOnUpdate();
+  useAppFont();
   const dispatch = useDispatch();
 
   useEffect(() => {
