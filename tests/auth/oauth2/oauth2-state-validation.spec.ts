@@ -1,11 +1,9 @@
-// use this command to start the keycloak server: and make sure that you update the path of the realm-export.json file
-// docker run -d --name bruno-keycloak \
-//   -p 8090:8080 \
-//   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-//   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-//   -v <paste path of the file here>:/opt/keycloak/data/import/realm-export.json:ro \
-//   quay.io/keycloak/keycloak:26.0 \
-//   start-dev --http-port=8080 --import-realm
+// These tests need a Keycloak with the fixture realm imported, listening on 127.0.0.1:8090.
+// CI provisions it via .github/actions/auth/oauth2/setup-keycloak. Locally, from the repo root:
+//   docker run -d --name bruno-keycloak -p 8090:8080 \
+//     -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+//     -v "$PWD/tests/auth/oauth2/fixtures/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
+//     quay.io/keycloak/keycloak:26.0 start-dev --http-port=8080 --import-realm
 
 import type { ElectronApplication } from 'playwright';
 import { test, expect, waitForReadyPage } from '../../../playwright';
@@ -120,7 +118,6 @@ const getIssuedState = async (app: ElectronApplication): Promise<string> => {
   expect(authUrl, 'authorization URL should have been opened').toBeTruthy();
   const state = stateFromAuthorizationUrl(authUrl as string);
   expect(state, 'issued state should be present on the authorization URL').toBeTruthy();
-  // expect((state as string).length).toBeGreaterThanOrEqual(STATE_NONCE_HEX_LENGTH);
   return state as string;
 };
 
