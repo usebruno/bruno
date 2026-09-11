@@ -499,8 +499,6 @@ export const buildScriptErrorLocators = (page: Page) => ({
   copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
   /** Scrollable body (source label, snippet, message, stack) within a card */
   body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
-  /** Response pane section that hosts the error cards and the response content */
-  responsePaneContent: () => page.getByTestId('response-pane-content'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */
