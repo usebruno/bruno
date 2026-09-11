@@ -1,0 +1,33 @@
+name: 'Collect Keycloak Logs'
+description: 'Stage and upload the Keycloak server logs from an OAuth2 e2e run (Linux, macOS, Windows)'
+
+inputs:
+  artifact-suffix:
+    description: 'Suffix for the uploaded log artifact name (linux, macos, windows)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    # Keycloak logs live in RUNNER_TEMP (outside the workspace), so stage them into the
+    # workspace where upload-artifact can pick them up. bash is available on all three runner
+    # OSes (Git Bash on Windows), so one script covers them all.
+    - name: Stage Keycloak logs
+      shell: bash
+      run: |
+        set -uo pipefail
+        mkdir -p keycloak-logs
+        shopt -s nullglob
+        logs=("$RUNNER_TEMP"/keycloak*.log)
+        if (( ${#logs[@]} )); then
+          cp "${logs[@]}" keycloak-logs/
+        else
+          echo "No Keycloak logs found in $RUNNER_TEMP."
+        fi
+
+    - name: Upload Keycloak logs
+      uses: actions/upload-artifact@v4
+      with:
+        name: keycloak-logs-oauth2-${{ inputs.artifact-suffix }}
+        path: keycloak-logs/
+        retention-days: 30
