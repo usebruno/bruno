@@ -20,7 +20,6 @@ const {
   parseEnvironment,
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
-const { dotenvToJson } = require('@usebruno/lang');
 const { utils } = require('@usebruno/common');
 const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
@@ -29,6 +28,7 @@ const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
+const { readCollectionForApiSpec } = require('../utils/collection-reader');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
@@ -59,11 +59,7 @@ const {
   moveCollectionDirectory,
   getPaths,
   generateUniqueName,
-  isDotEnvFile,
   isValidDotEnvFilename,
-  isBrunoConfigFile,
-  isBruEnvironmentConfig,
-  isCollectionRootBruFile,
   scanForBrunoFiles,
   withFileLock
 } = require('../utils/filesystem');
@@ -2569,114 +2565,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return runNpmInstall({ collectionPath: collectionPathname, packages });
   });
 
-  ipcMain.handle('renderer:get-collection-json', async (event, collectionPath) => {
-    let variables = {};
-    let name = '';
-    const getBruFilesRecursively = async (dir) => {
-      const getFilesInOrder = async (dir) => {
-        let bruJsons = [];
+  ipcMain.handle('renderer:get-collection-json', (event, collectionPath) => {
+    if (typeof collectionPath !== 'string' || !collectionPath) {
+      throw new Error('collectionPath is required');
+    }
+    if (!fs.existsSync(collectionPath) || !fs.statSync(collectionPath).isDirectory()) {
+      throw new Error(`Collection path does not exist: ${collectionPath}`);
+    }
 
-        const traverse = async (currentPath) => {
-          const filesInCurrentDir = fs.readdirSync(currentPath);
-
-          if (currentPath.includes('node_modules')) {
-            return;
-          }
-
-          for (const file of filesInCurrentDir) {
-            const filePath = path.join(currentPath, file);
-            const stats = fs.lstatSync(filePath);
-
-            if (stats.isDirectory() && !filePath.startsWith('.git') && !filePath.startsWith('node_modules')) {
-              await traverse(filePath);
-            }
-          }
-
-          const currentDirBruJsons = [];
-          for (const file of filesInCurrentDir) {
-            const filePath = path.join(currentPath, file);
-            const stats = fs.lstatSync(filePath);
-
-            if (isBrunoConfigFile(filePath, collectionPath)) {
-              try {
-                const content = fs.readFileSync(filePath, 'utf8');
-                const brunoConfig = JSON.parse(content);
-
-                name = brunoConfig?.name;
-              } catch (err) {
-                console.error(err);
-              }
-            }
-
-            if (isDotEnvFile(filePath, collectionPath)) {
-              try {
-                const content = fs.readFileSync(filePath, 'utf8');
-                const jsonData = dotenvToJson(content);
-                variables = {
-                  ...variables,
-                  processEnvVariables: {
-                    ...process.env,
-                    ...jsonData
-                  }
-                };
-                continue;
-              } catch (err) {
-                console.error(err);
-              }
-            }
-
-            if (isBruEnvironmentConfig(filePath, collectionPath)) {
-              try {
-                const bruContent = fs.readFileSync(filePath, 'utf8');
-                const environmentFilepathBasename = path.basename(filePath);
-                const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
-                const data = await parseEnvironment(bruContent);
-                variables = {
-                  ...variables,
-                  envVariables: {
-                    ...(variables?.envVariables || {}),
-                    [path.basename(filePath)]: data.variables
-                  }
-                };
-                continue;
-              } catch (err) {
-                console.error(err);
-              }
-            }
-
-            if (isCollectionRootBruFile(filePath, collectionPath)) {
-              try {
-                const bruContent = fs.readFileSync(filePath, 'utf8');
-                const data = await parseCollection(bruContent);
-                // TODO
-                continue;
-              } catch (err) {
-                console.error(err);
-              }
-            }
-            if (!stats.isDirectory() && path.extname(filePath) === '.bru' && file !== 'folder.bru') {
-              const bruContent = fs.readFileSync(filePath, 'utf8');
-              const bruJson = parseRequest(bruContent);
-
-              currentDirBruJsons.push({
-                ...bruJson
-              });
-            }
-          }
-
-          bruJsons = bruJsons.concat(currentDirBruJsons);
-        };
-
-        await traverse(dir);
-        return bruJsons;
-      };
-
-      const orderedFiles = await getFilesInOrder(dir);
-      return orderedFiles;
-    };
-
-    const files = await getBruFilesRecursively(collectionPath);
-    return { name, files, ...variables };
+    // Secret values are deliberately left as they sit on disk, which is empty: an
+    // exported spec is shared, so it must not carry decrypted credentials.
+    return readCollectionForApiSpec(collectionPath);
   });
 
   ipcMain.handle('renderer:export-collection-zip', async (event, collectionPath, collectionName) => {
