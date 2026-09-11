@@ -713,8 +713,8 @@ const generateCodeVerifier = () => {
 };
 
 // Build an OAuth2 state string to help prevent CSRF and forged auth codes.
-// If the user supplies a non-empty state, it is used as-is; otherwise a
-// cryptographically random value is generated.
+// A user-supplied state is trimmed and used if anything remains; a missing or
+// whitespace-only state falls back to a cryptographically random value.
 const generateState = ({ userState }) => {
   const trimmedUserState = userState?.trim();
   if (trimmedUserState && trimmedUserState.length > 0) {
