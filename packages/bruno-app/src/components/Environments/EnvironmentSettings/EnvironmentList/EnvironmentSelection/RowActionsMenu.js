@@ -34,22 +34,28 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete }) => {
   ]), [onExport, onRename, onDuplicate, onDelete]);
 
   return (
-    <MenuDropdown
-      items={menuItems}
-      placement="bottom-end"
-      appendTo={document.body}
-      data-testid="env-row-menu"
+    <div
+      style={{ display: 'contents' }}
+      onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.stopPropagation()}
     >
-      <button
-        type="button"
-        className="env-more-btn"
-        onClick={(e) => e.stopPropagation()}
-        aria-label="More actions"
-        data-testid="env-row-menu-btn"
+      <MenuDropdown
+        items={menuItems}
+        placement="bottom-end"
+        appendTo={document.body}
+        data-testid="env-row-menu"
       >
-        <IconDots size={16} strokeWidth={1.5} />
-      </button>
-    </MenuDropdown>
+        <button
+          type="button"
+          className="env-more-btn"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="More actions"
+          data-testid="env-row-menu-btn"
+        >
+          <IconDots size={16} strokeWidth={1.5} />
+        </button>
+      </MenuDropdown>
+    </div>
   );
 };
 

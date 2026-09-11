@@ -687,7 +687,6 @@ const EnvironmentList = ({
                         data-testid="collection-env-list-item"
                         role="option"
                         aria-selected={isEnvSelected}
-                        tabIndex={renamingEnvUid === env.uid ? -1 : 0}
                         className={classnames('environment-item', {
                           'active': activeView === 'environment' && selectedEnvironment?.uid === env.uid,
                           'renaming': renamingEnvUid === env.uid,

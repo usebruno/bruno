@@ -246,16 +246,12 @@ const StyledWrapper = styled.div`
     }
 
     &.is-selected {
-      background: ${(props) => rgba(props.theme.primary.text, 0.16)};
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+      border-left: 3px solid ${(props) => props.theme.primary.solid};
 
       &:hover {
-        background: ${(props) => rgba(props.theme.primary.text, 0.22)};
+        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
       }
-    }
-
-    &:focus-visible {
-      outline: 2px solid ${(props) => props.theme.primary.solid};
-      outline-offset: -2px;
     }
 
     &.renaming,

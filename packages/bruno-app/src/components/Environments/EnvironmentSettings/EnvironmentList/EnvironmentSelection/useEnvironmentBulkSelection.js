@@ -175,9 +175,6 @@ const useEnvironmentBulkSelection = ({
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const isWithinScope = scopeRef.current?.contains(document.activeElement);
-      if (!isWithinScope) return;
-
       if (e.key === 'Escape' && hasSelection) {
         clearSelection();
       }
