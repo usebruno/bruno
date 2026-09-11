@@ -9,6 +9,7 @@ const useEnvironmentBulkSelection = ({
   onRenameEnvironment
 }) => {
   const [selectedEnvUids, setSelectedEnvUids] = useState([]);
+  const [actionTargetUids, setActionTargetUids] = useState([]);
   const [lastClickedEnvUid, setLastClickedEnvUid] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -22,6 +23,7 @@ const useEnvironmentBulkSelection = ({
 
   useEffect(() => {
     setSelectedEnvUids([]);
+    setActionTargetUids([]);
     setLastClickedEnvUid(null);
     setMenuVisible(false);
   }, [collectionUid]);
@@ -38,6 +40,10 @@ const useEnvironmentBulkSelection = ({
   const selectedEnvironmentsList = useMemo(
     () => environments?.filter((env) => selectedEnvUids.includes(env.uid)) || [],
     [environments, selectedEnvUids]
+  );
+  const actionTargetEnvironmentsList = useMemo(
+    () => environments?.filter((env) => actionTargetUids.includes(env.uid)) || [],
+    [environments, actionTargetUids]
   );
 
   const openMenuAt = useCallback((e) => {
@@ -107,16 +113,15 @@ const useEnvironmentBulkSelection = ({
     e.stopPropagation();
 
     const isPartOfMultiSelection = selectedEnvUids.includes(env.uid) && selectedEnvUids.length > 1;
-    if (!isPartOfMultiSelection) {
-      setSelectedEnvUids([env.uid]);
-      setLastClickedEnvUid(env.uid);
-    }
+    setActionTargetUids(isPartOfMultiSelection ? selectedEnvUids : [env.uid]);
 
     openMenuAt(e);
   }, [selectedEnvUids, openMenuAt]);
 
   const handleDeleted = useCallback((failedUids) => {
-    setSelectedEnvUids(failedUids || []);
+    const stillPresent = new Set(failedUids || []);
+    setActionTargetUids(Array.from(stillPresent));
+    setSelectedEnvUids((prev) => prev.filter((uid) => stillPresent.has(uid)));
     if (!failedUids || !failedUids.length) {
       setLastClickedEnvUid(null);
     }
@@ -141,26 +146,26 @@ const useEnvironmentBulkSelection = ({
   }, []);
 
   const handleRenameSelected = useCallback(() => {
-    const target = selectedEnvironmentsList[0];
+    const target = actionTargetEnvironmentsList[0];
     closeMenu();
     clearSelection();
     if (target) {
       onRenameEnvironment?.(target);
     }
-  }, [selectedEnvironmentsList, closeMenu, clearSelection, onRenameEnvironment]);
+  }, [actionTargetEnvironmentsList, closeMenu, clearSelection, onRenameEnvironment]);
 
   const startExportForEnv = useCallback((env) => {
-    setSelectedEnvUids([env.uid]);
+    setActionTargetUids([env.uid]);
     setShowExportModal(true);
   }, []);
 
   const startCopyForEnv = useCallback((env) => {
-    setSelectedEnvUids([env.uid]);
+    setActionTargetUids([env.uid]);
     setShowCopyModal(true);
   }, []);
 
   const startDeleteForEnv = useCallback((env) => {
-    setSelectedEnvUids([env.uid]);
+    setActionTargetUids([env.uid]);
     setShowDeleteModal(true);
   }, []);
 
@@ -187,6 +192,8 @@ const useEnvironmentBulkSelection = ({
     hasSelection,
     selectedEnvUids,
     selectedEnvironmentsList,
+    actionTargetUids,
+    actionTargetEnvironmentsList,
     showDeleteModal,
     openDeleteModal: () => {
       setShowDeleteModal(true);

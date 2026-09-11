@@ -561,7 +561,7 @@ const EnvironmentList = ({
 
       {bulkSelection.showDeleteModal && (
         <DeleteEnvironments
-          environments={bulkSelection.selectedEnvironmentsList}
+          environments={bulkSelection.actionTargetEnvironmentsList}
           activeEnvironmentUid={activeEnvironmentUid}
           collection={collection}
           onClose={bulkSelection.closeDeleteModal}
@@ -571,16 +571,16 @@ const EnvironmentList = ({
 
       {bulkSelection.showExportModal && (
         <ExportEnvironmentModal
-          environments={bulkSelection.selectedEnvironmentsList}
+          environments={bulkSelection.actionTargetEnvironmentsList}
           environmentType="collection"
           onClose={bulkSelection.closeExportModal}
         />
       )}
 
-      {bulkSelection.showCopyModal && bulkSelection.selectedEnvironmentsList[0] && (
+      {bulkSelection.showCopyModal && bulkSelection.actionTargetEnvironmentsList[0] && (
         <CopyEnvironment
           collection={collection}
-          environment={bulkSelection.selectedEnvironmentsList[0]}
+          environment={bulkSelection.actionTargetEnvironmentsList[0]}
           onClose={bulkSelection.closeCopyModal}
         />
       )}
@@ -588,7 +588,7 @@ const EnvironmentList = ({
       <SelectionContextMenu
         visible={bulkSelection.menuVisible}
         position={bulkSelection.menuPosition}
-        selectedCount={bulkSelection.selectedEnvUids.length}
+        selectedCount={bulkSelection.actionTargetUids.length}
         onExport={bulkSelection.openExportModal}
         onRename={bulkSelection.handleRenameSelected}
         onDuplicate={bulkSelection.openCopyModal}
