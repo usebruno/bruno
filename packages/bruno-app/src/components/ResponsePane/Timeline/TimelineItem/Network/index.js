@@ -1,28 +1,7 @@
+import React from 'react';
+import { IconCopy } from '@tabler/icons';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-
-const Network = ({ logs }) => {
-  return (
-    <StyledWrapper>
-      <div className="network-logs-container">
-        <pre className="network-logs-pre">
-          {logs.map((currentLog, index) => {
-            if (index > 0 && currentLog?.type === 'separator') {
-              return <div className="network-logs-separator" key={index} />;
-            }
-            const nextLog = logs[index + 1];
-            const isSameLogType = nextLog?.type === currentLog?.type;
-            return (
-              <div key={index}>
-                <NetworkLogsEntry entry={currentLog} />
-                {!isSameLogType && <div className="network-logs-spacing" />}
-              </div>
-            );
-          })}
-        </pre>
-      </div>
-    </StyledWrapper>
-  );
-};
 
 const NetworkLogsEntry = ({ entry }) => {
   const { type, message } = entry;
@@ -56,6 +35,56 @@ const NetworkLogsEntry = ({ entry }) => {
     <div className={className} data-testid="network-log-entry" data-log-type={type}>
       <div>{message}</div>
     </div>
+  );
+};
+
+const Network = ({ logs, showCopy = false }) => {
+  const networkLogs = Array.isArray(logs) ? logs : [];
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(networkLogs
+        .map((entry) => (entry?.type === 'separator' ? '' : entry?.message ?? String(entry)))
+        .join('\n'));
+      toast.success('Network logs copied to clipboard');
+    } catch (error) {
+      toast.error('Failed to copy network logs');
+    }
+  };
+
+  return (
+    <StyledWrapper>
+      {showCopy && (
+        <div className="network-logs-header">
+          <h4>Network Logs</h4>
+          <button
+            className="copy-button"
+            type="button"
+            onClick={handleCopy}
+            disabled={networkLogs.length === 0}
+          >
+            <IconCopy size={16} strokeWidth={2} />
+            Copy
+          </button>
+        </div>
+      )}
+      <div className="network-logs-container">
+        <pre className="network-logs-pre">
+          {networkLogs.map((currentLog, index) => {
+            if (index > 0 && currentLog?.type === 'separator') {
+              return <div className="network-logs-separator" key={index} />;
+            }
+            const nextLog = networkLogs[index + 1];
+            const isSameLogType = nextLog?.type === currentLog?.type;
+            return (
+              <div key={index}>
+                <NetworkLogsEntry entry={currentLog} />
+                {!isSameLogType && <div className="network-logs-spacing" />}
+              </div>
+            );
+          })}
+        </pre>
+      </div>
+    </StyledWrapper>
   );
 };
 
