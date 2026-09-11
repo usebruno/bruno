@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../playwright';
+import { test, expect, Page, Locator } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
 import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest } from '../utils/page/actions';
 import { setSandboxMode, runCollection } from '../utils/page/runner';
@@ -411,6 +411,76 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(activeTab).toContainText('test-script-error');
         const testsTab = commonLocators.paneTabs.responsiveTab('tests');
         await expect(testsTab).toHaveClass(/active/);
+      });
+    });
+
+    test('18. Long error body scrolls when collapsed and fits the pane when expanded', async ({ pageWithUserData: page }) => {
+      const scrollMetrics = (locator: Locator) =>
+        locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
+
+      await test.step('Open long-script request and send', async () => {
+        await closeAllTabs(page);
+        await openRequest(page, 'script-errors-test', 'long-pre-request-error');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Show stack trace so the body overflows its collapsed height', async () => {
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.stackToggle(card).click();
+        await expect(scriptErrorLocators.stack(card)).toBeVisible();
+      });
+
+      await test.step('Collapsed body is scrollable', async () => {
+        const body = scriptErrorLocators.body(scriptErrorLocators.card());
+        await expect.poll(async () => {
+          const { scrollHeight, clientHeight } = await scrollMetrics(body);
+          return scrollHeight > clientHeight;
+        }).toBe(true);
+
+        await body.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+        await expect.poll(async () => (await scrollMetrics(body)).scrollTop).toBeGreaterThan(0);
+      });
+
+      let collapsedHeight = 0;
+
+      await test.step('Expand the card', async () => {
+        const card = scriptErrorLocators.card();
+        const body = scriptErrorLocators.body(card);
+        collapsedHeight = (await scrollMetrics(body)).clientHeight;
+
+        await scriptErrorLocators.expandToggle(card).click();
+        await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'true');
+
+        await expect.poll(async () => (await scrollMetrics(body)).clientHeight).toBeGreaterThan(collapsedHeight);
+      });
+
+      await test.step('Expanded body scrolls all the way to the stack trace at the bottom', async () => {
+        const card = scriptErrorLocators.card();
+        const body = scriptErrorLocators.body(card);
+        const stack = scriptErrorLocators.stack(card);
+
+        await stack.scrollIntoViewIfNeeded();
+        await expect(stack).toBeVisible();
+
+        await expect.poll(async () => {
+          const { scrollHeight, clientHeight, scrollTop } = await scrollMetrics(body);
+          return scrollHeight - (scrollTop + clientHeight);
+        }).toBeLessThanOrEqual(1);
+
+        const stackBox = await stack.boundingBox();
+        const bodyBox = await body.boundingBox();
+        expect(stackBox).not.toBeNull();
+        expect(bodyBox).not.toBeNull();
+        expect(stackBox!.y + stackBox!.height).toBeLessThanOrEqual(bodyBox!.y + bodyBox!.height + 1);
+      });
+
+      await test.step('Collapse restores the capped height', async () => {
+        const card = scriptErrorLocators.card();
+        const body = scriptErrorLocators.body(card);
+        await scriptErrorLocators.expandToggle(card).click();
+        await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'false');
+
+        await expect.poll(async () => (await scrollMetrics(body)).clientHeight).toBe(collapsedHeight);
       });
     });
   });

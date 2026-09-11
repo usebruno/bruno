@@ -1,10 +1,13 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import toast from 'react-hot-toast';
 import ScriptError from './index';
+
+jest.mock('react-hot-toast', () => ({ success: jest.fn(), error: jest.fn() }));
 
 const theme = {
   font: { size: { xs: '0.75rem' } },
@@ -168,10 +171,75 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
-    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
-    const closeButton = container.querySelector('.close-button');
-    fireEvent.click(closeButton);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
+    fireEvent.click(screen.getByTestId('script-error-close'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should toggle expanded state of the error card', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'error',
+      preRequestScriptErrorContext: mockErrorContext
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    const card = screen.getByTestId('script-error-card');
+    const toggle = screen.getByTestId('script-error-expand-toggle');
+
+    expect(card).not.toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+    expect(card).toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(toggle);
+    expect(card).not.toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  describe('copy error', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'undefinedVar is not defined',
+      preRequestScriptErrorContext: mockErrorContext
+    };
+
+    const stubClipboard = (writeText) => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      return writeText;
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+      delete navigator.clipboard;
+    });
+
+    it('should copy the error details and show a success toast', async () => {
+      const writeText = stubClipboard(jest.fn().mockResolvedValue());
+      renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+
+      fireEvent.click(screen.getByTestId('script-error-copy'));
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+      const copiedText = writeText.mock.calls[0][0];
+      expect(copiedText).toBe(
+        `File: echo json.bru:4\n\nReferenceError: undefinedVar is not defined\n\nStack trace:\n${mockErrorContext.stack}`
+      );
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Script error details copied to clipboard'));
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('should show an error toast when the clipboard write fails', async () => {
+      stubClipboard(jest.fn().mockRejectedValue(new Error('denied')));
+      renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+
+      fireEvent.click(screen.getByTestId('script-error-copy'));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to copy script error details'));
+      expect(toast.success).not.toHaveBeenCalled();
+    });
   });
 
   it('should fallback to "Error" when errorType is missing', () => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
+import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
@@ -297,8 +298,7 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
-        {isLoading ? <Overlay item={item} collection={collection} /> : null}
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>        {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
