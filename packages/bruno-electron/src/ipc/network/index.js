@@ -26,7 +26,7 @@ const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
-const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
+const { addCookieToJar, getDomainsWithCookies, attachCookieHeader } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
@@ -335,33 +335,7 @@ const configureRequest = async (
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
-    const cookieString = getCookieStringForUrl(request.url);
-    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      const existingCookieHeaderName = Object.keys(request.headers).find(
-        (name) => name.toLowerCase() === 'cookie'
-      );
-      const existingCookieString = existingCookieHeaderName ? request.headers[existingCookieHeaderName] : '';
-
-      // Helper function to parse cookies into an object
-      const parseCookies = (str) => str.split(';').reduce((cookies, cookie) => {
-        const [name, ...rest] = cookie.split('=');
-        if (name && name.trim()) {
-          cookies[name.trim()] = rest.join('=').trim();
-        }
-        return cookies;
-      }, {});
-
-      const mergedCookies = {
-        ...parseCookies(existingCookieString),
-        ...parseCookies(cookieString)
-      };
-
-      const combinedCookieString = Object.entries(mergedCookies)
-        .map(([name, value]) => `${name}=${value}`)
-        .join('; ');
-
-      request.headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
-    }
+    attachCookieHeader(request.url, request.headers);
   }
 
   // Add API key to the URL
