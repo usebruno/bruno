@@ -530,10 +530,10 @@ class AssertRuntime {
             expect(lhs).to.not.be.undefined;
             break;
           case 'isTruthy':
-            expect(lhs).to.be.true;
+            expect(lhs).to.be.ok;
             break;
           case 'isFalsy':
-            expect(lhs).to.be.false;
+            expect(lhs).to.not.be.ok;
             break;
           case 'isJson':
             expect(lhs).to.be.json;
