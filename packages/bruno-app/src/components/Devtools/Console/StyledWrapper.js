@@ -108,7 +108,8 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.console.contentBg};
     min-height: 0;
 
-    &.cmd-ctrl-pressed .log-link:hover {
+    &.cmd-ctrl-pressed .log-link:hover,
+    &.cmd-ctrl-pressed .log-link:focus-visible {
       cursor: pointer;
       color: ${(props) => props.theme.textLink};
       text-decoration: underline;
@@ -358,6 +359,12 @@ const StyledWrapper = styled.div`
 
       &:hover {
         text-decoration: underline;
+      }
+      
+      &:focus-visible {
+        outline: 1px solid ${(props) => props.theme.textLink};
+        outline-offset: 1px;
+        border-radius: 2px;
       }
     }
     
