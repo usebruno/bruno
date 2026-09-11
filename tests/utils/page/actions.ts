@@ -89,7 +89,7 @@ const closeAllCollections = async (page) => {
       await removeMenuItem.click();
 
       // Wait for modal to appear - could be either regular remove or drafts confirmation
-      const removeModal = page.locator('.bruno-modal').filter({ hasText: /Remove Collections?/ });
+      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
       await removeModal.waitFor({ state: 'visible', timeout: 5000 });
 
       // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
@@ -114,7 +114,6 @@ const closeAllCollections = async (page) => {
     await expect(page.getByTestId('collections').locator('.collection-name')).toHaveCount(0);
   });
 };
-
 /**
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
