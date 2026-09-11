@@ -1,8 +1,7 @@
-const CookieList = require('../src/cookie-list');
-const PropertyList = require('../src/property-list');
-const ReadOnlyPropertyList = require('../src/readonly-property-list');
+const { createPropertyList } = require('../../src/property-lists/create-property-list');
+const { PropertyList } = require('../../src/property-lists/property-list');
 
-describe('CookieList', () => {
+describe('bru.cookies property list', () => {
   const mockCookies = [
     { key: 'session', value: 'abc123' },
     { key: 'token', value: 'xyz789' },
@@ -10,7 +9,7 @@ describe('CookieList', () => {
   ];
 
   function createCookieList(overrides = {}) {
-    return new CookieList({
+    return createPropertyList('bru.cookies', {
       getUrl: overrides.getUrl || (() => 'https://example.com'),
       interpolate: overrides.interpolate || ((str) => str),
       createCookieJar: overrides.createCookieJar || (() => ({})),
@@ -18,20 +17,17 @@ describe('CookieList', () => {
     });
   }
 
-  // ── Inheritance ────────────────────────────────────────────────────────
-
-  test('extends PropertyList and ReadOnlyPropertyList', () => {
+  test('is a PropertyList', () => {
     const list = createCookieList();
-    expect(list).toBeInstanceOf(ReadOnlyPropertyList);
-    expect(list).toBeInstanceOf(PropertyList);
-    expect(list).toBeInstanceOf(CookieList);
+    expect(PropertyList.isPropertyList(list)).toBe(true);
   });
 
-  test('inherits read methods from ReadOnlyPropertyList', () => {
+  test('read methods reflect the jar snapshot', () => {
     const list = createCookieList();
     expect(list.get('session')).toBe('abc123');
     expect(list.all()).toHaveLength(3);
     expect(list.count()).toBe(3);
+    expect(list.idx(0)).toEqual({ key: 'session', value: 'abc123' });
   });
 
   test('normalizes tough-cookie objects to plain objects', () => {
@@ -249,6 +245,17 @@ describe('CookieList', () => {
       const result = list.delete(null);
       await expect(result).resolves.toBeUndefined();
     });
+  });
+
+  // ── Positional mutators ────────────────────────────────────────────────
+
+  test('positional mutators throw — the cookie jar has no ordering', () => {
+    const list = createCookieList();
+    for (const method of ['insert', 'insertAfter', 'prepend', 'append']) {
+      expect(() => list[method]({ key: 'x', value: '1' })).toThrow(
+        `${method}() is not available on bru.cookies — the cookie jar has no ordering`
+      );
+    }
   });
 
   // ── jar() ──────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-const GrpcMetadataList = require('./grpc-metadata-list');
+const { createPropertyList } = require('../property-lists/create-property-list');
 const GrpcMessageList = require('./grpc-message-list');
 const GrpcMessage = require('./grpc-message');
 
@@ -33,7 +33,10 @@ class BrunoGrpcRequest {
     this.authMode = request.authMode || 'none';
     this.protoPath = request.protoPath;
     this.name = request.name;
-    this.metadata = new GrpcMetadataList(() => this.#metadataEntries(), { writable: metadataWritable });
+    this.metadata = createPropertyList('bru.grpc.request.metadata', {
+      readMetadata: () => this.#metadataEntries(),
+      writable: metadataWritable
+    });
     // The list clones what it is given, so a hook editing a message cannot reach what the call sent.
     this.messages = new GrpcMessageList(sentMessages);
     if (message) {
