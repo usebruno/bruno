@@ -1,5 +1,16 @@
 const HeaderList = require('./header-list');
 
+// The authority of a raw, uninterpolated URL: the scheme (if any), userinfo,
+// path, query and fragment removed, and the case left alone.
+const getRawHost = (rawUrl) => {
+  if (typeof rawUrl !== 'string') {
+    return '';
+  }
+  const withoutScheme = rawUrl.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  const authority = withoutScheme.split(/[/?#]/, 1)[0];
+  return authority.slice(authority.lastIndexOf('@') + 1);
+};
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
@@ -47,6 +58,17 @@ class BrunoRequest {
   }
 
   getHost() {
+    // Pre-request scripts see the URL before variables are interpolated, and
+    // `new URL()` mangles a `{{var}}` in the authority: `{{baseUrl}}/users` has
+    // no scheme so it throws, and `https://{{HOST}}/users` parses with the host
+    // lowercased to `{{host}}`, which then no longer interpolates. Read such a
+    // host straight from the raw string so it round-trips through
+    // `bru.interpolate()`.
+    const rawHost = getRawHost(this.req.url);
+    if (rawHost.includes('{{')) {
+      return rawHost;
+    }
+
     try {
       const url = new URL(this.req.url);
       return url.host;
