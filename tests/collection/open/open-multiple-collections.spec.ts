@@ -1,7 +1,11 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  waitForCollectionMount
+} from '../../utils/page';
 
 test.describe('Open Multiple Collections', () => {
   let originalShowOpenDialog;
@@ -25,6 +29,12 @@ test.describe('Open Multiple Collections', () => {
     electronApp,
     createTmpDir
   }) => {
+    const locators = buildCommonLocators(page);
+    const collection1Name = 'Test Collection 1';
+    const collection2Name = 'Test Collection 2';
+    const collection1 = locators.sidebar.collection(collection1Name);
+    const collection2 = locators.sidebar.collection(collection2Name);
+
     // Create two test collections with proper bruno.json files
     const collection1Dir = await createTmpDir('collection-1');
     const collection2Dir = await createTmpDir('collection-2');
@@ -33,22 +43,31 @@ test.describe('Open Multiple Collections', () => {
       // Create bruno.json for first collection
       const collection1Config = {
         version: '1',
-        name: 'Test Collection 1',
+        name: collection1Name,
         type: 'collection'
       };
       // Create bruno.json for second collection
       const collection2Config = {
         version: '1',
-        name: 'Test Collection 2',
+        name: collection2Name,
         type: 'collection'
       };
 
       fs.writeFileSync(path.join(collection1Dir, 'bruno.json'), JSON.stringify(collection1Config, null, 2));
       fs.writeFileSync(path.join(collection2Dir, 'bruno.json'), JSON.stringify(collection2Config, null, 2));
+
+      expect(fs.existsSync(collection1Dir)).toBe(true);
+      expect(fs.existsSync(collection2Dir)).toBe(true);
+      expect(fs.existsSync(path.join(collection1Dir, 'bruno.json'))).toBe(true);
+      expect(fs.existsSync(path.join(collection2Dir, 'bruno.json'))).toBe(true);
     });
 
     await test.step('Select two different collections within the parent folder simultaneously', async () => {
-      // Mock the electron dialog to return multiple folder selections
+      const selectedPaths = [collection1Dir, collection2Dir];
+
+      expect(selectedPaths).toHaveLength(2);
+      expect(collection1Dir).not.toBe(collection2Dir);
+      expect(new Set(selectedPaths).size).toBe(2);
       await electronApp.evaluate(({ dialog }, { collection1Dir, collection2Dir }) => {
         dialog.showOpenDialog = async () => ({
           canceled: false,
@@ -58,32 +77,29 @@ test.describe('Open Multiple Collections', () => {
       { collection1Dir, collection2Dir });
     });
 
-    const collection1Element = page.locator('#sidebar-collection-name').getByText('Test Collection 1');
-    const collection2Element = page.locator('#sidebar-collection-name').getByText('Test Collection 2');
-
-    await test.step('Initiate the simultaneous opening command', async () => {
-      await expect(collection1Element).not.toBeVisible();
+    await test.step('Initiate the simultaneous opening command (e.g., multi-select and open or specific bulk open action)', async () => {
+      await expect(collection1).not.toBeVisible();
+      await expect(collection2).not.toBeVisible();
 
       // Click on plus icon button and then "Open collection" in the dropdown
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+      await locators.plusMenu.button().click();
+      await locators.plusMenu.openCollection().click();
+
+      await Promise.all([
+        collection1.waitFor({ state: 'visible' }),
+        collection2.waitFor({ state: 'visible' })
+      ]);
     });
 
     await test.step('Verify the launch status of both collections', async () => {
-      await expect(collection1Element).toBeVisible();
-      await expect(collection2Element).toBeVisible();
-    });
+      await waitForCollectionMount(page, collection1Name);
+      await waitForCollectionMount(page, collection2Name);
 
-    await test.step('Check the functionality and accessibility of each opened collection', async () => {
-      await collection1Element.click();
-      await collection2Element.click();
+      await expect(collection1).toBeVisible();
+      await expect(collection2).toBeVisible();
+      await expect(collection1).toHaveCount(1);
+      await expect(collection2).toHaveCount(1);
     });
-
-    await test.step('Confirm no performance degradation or system resource overload', async () => {
-      await expect(page.getByTestId('collections')).toBeVisible();
-      await expect(page.getByTestId('collections-header-add-menu')).toBeEnabled();
-    });
-
     // cleanup: close all collections
     await closeAllCollections(page);
   });
