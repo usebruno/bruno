@@ -44,8 +44,14 @@ export class DB {
       throw err;
     }
 
-    for (const [key, value] of Object.entries(pragmas)) {
-      this._db.exec(`PRAGMA ${key} = ${value};`);
+    try {
+      for (const [key, value] of Object.entries(pragmas)) {
+        this._db.exec(`PRAGMA ${key} = ${value};`);
+      }
+    } catch (err) {
+      this._db.close();
+      this._db = undefined;
+      throw err;
     }
 
     try {

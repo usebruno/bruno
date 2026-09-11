@@ -12,17 +12,22 @@ const {
   walk
 } = require('../../utils/mount');
 
-const statements = () => {
-  const ready = getStatements();
-  if (!ready) throw new Error('the file cache is unavailable: the sqlite database is not open');
-  return ready;
-};
-
-const applicationVersion = () => require('electron').app.getVersion();
-
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
 class FileIndex {
+  #statements;
+  #db;
+  #applicationVersion;
+
+  constructor() {
+    this.#statements = getStatements();
+    this.#db = getDatabase();
+    if (!this.#statements || !this.#db) {
+      throw new Error('the file cache is unavailable: the sqlite database is not open');
+    }
+    this.#applicationVersion = require('electron').app.getVersion();
+  }
+
   async status(collectionPath, options = {}) {
     const root = normalize(collectionPath);
     const stored = this.#loadStored(root);
@@ -41,6 +46,10 @@ class FileIndex {
       if (!prior) {
         const hash = await hashFileAsync(absolutePath);
         return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
+      }
+      if (prior.applicationVersion !== this.#applicationVersion) {
+        const hash = await hashFileAsync(absolutePath);
+        return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
       }
       if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
       const hash = await hashFileAsync(absolutePath);
@@ -70,11 +79,11 @@ class FileIndex {
   }
 
   clearCollection(collectionPath) {
-    statements().execute('file_index_clear_collection', { collection_path: normalize(collectionPath) });
+    this.#statements.execute('file_index_clear_collection', { collection_path: normalize(collectionPath) });
   }
 
   entries(collectionPath) {
-    const rows = statements().execute('file_index_entries_for_collection', {
+    const rows = this.#statements.execute('file_index_entries_for_collection', {
       collection_path: normalize(collectionPath)
     });
     const map = new Map();
@@ -86,15 +95,16 @@ class FileIndex {
 
   stage(collectionPath, entry) {
     const root = normalize(collectionPath);
-    const { op, relativePath } = entry;
+    const { op } = entry;
+    const relativePath = path.normalize(entry.relativePath);
 
     if (op === 'remove') {
-      statements().execute('file_index_delete_entry', { collection_path: root, relative_path: relativePath });
+      this.#statements.execute('file_index_delete_entry', { collection_path: root, relative_path: relativePath });
       return;
     }
 
     const { mtime, hash, data, raw } = entry;
-    statements().execute('file_index_upsert', {
+    this.#statements.execute('file_index_upsert', {
       collection_path: root,
       relative_path: relativePath,
       id: idForAbsolutePath(path.join(root, relativePath)),
@@ -102,18 +112,17 @@ class FileIndex {
       hash,
       data: JSON.stringify(data),
       raw: raw ?? null,
-      application_version: applicationVersion()
+      application_version: this.#applicationVersion
     });
   }
 
   stageParsed(collectionPath, absolutePath, data) {
-    const root = normalize(collectionPath);
-    const relativePath = path.relative(root, normalize(absolutePath));
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
+    const target = this.#resolveTarget(collectionPath, absolutePath);
+    if (!target) return;
     const stat = fs.statSync(absolutePath, { bigint: true });
-    this.stage(root, {
+    this.stage(target.root, {
       op: 'add',
-      relativePath,
+      relativePath: target.relativePath,
       mtime: stat.mtimeNs,
       hash: hashFile(absolutePath),
       raw: fs.readFileSync(absolutePath, 'utf8'),
@@ -122,20 +131,24 @@ class FileIndex {
   }
 
   unstagePath(collectionPath, absolutePath) {
+    const target = this.#resolveTarget(collectionPath, absolutePath);
+    if (!target) return;
+    this.stage(target.root, { op: 'remove', relativePath: target.relativePath });
+  }
+
+  #resolveTarget(collectionPath, absolutePath) {
     const root = normalize(collectionPath);
-    const relativePath = path.relative(root, normalize(absolutePath));
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
-    this.stage(root, { op: 'remove', relativePath });
+    const relativePath = path.normalize(path.relative(root, normalize(absolutePath)));
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return null;
+    return { root, relativePath };
   }
 
   transaction(callback) {
-    const db = getDatabase();
-    if (!db) throw new Error('the file cache is unavailable: the sqlite database is not open');
-    return db._transaction(callback);
+    return this.#db._transaction(callback);
   }
 
   #loadStored(collectionPath) {
-    const rows = statements().execute('file_index_stored', { collection_path: collectionPath });
+    const rows = this.#statements.execute('file_index_stored', { collection_path: collectionPath });
     const map = new Map();
     for (const row of rows) {
       map.set(row.relativePath, row);

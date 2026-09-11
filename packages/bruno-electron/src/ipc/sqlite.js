@@ -8,28 +8,9 @@ let ipc = null;
 const LEGACY_FILE_INDEX_DB = 'mount-snapshots.db';
 const LEGACY_FILE_INDEX_SUFFIXES = ['', '-journal', '-wal', '-shm'];
 
-const adoptLegacyFileIndex = (db) => {
+const removeLegacyFileIndex = () => {
   const legacyPath = path.join(app.getPath('userData'), LEGACY_FILE_INDEX_DB);
-  if (!db?._db || !fs.existsSync(legacyPath)) return;
-
-  try {
-    db._db.exec(`ATTACH DATABASE '${legacyPath.replace(/'/g, `''`)}' AS legacy`);
-    try {
-      db._db.exec(`
-        INSERT OR IGNORE INTO file_index_entries
-          (collection_path, relative_path, id, mtime, hash, data, raw, content_bytes, created_at, updated_at)
-        SELECT collection_path, relative_path, id, mtime, hash, data, raw,
-               LENGTH(data) + LENGTH(COALESCE(raw, '')),
-               COALESCE(created_at, unixepoch()), COALESCE(updated_at, unixepoch())
-        FROM legacy.file_index_entries
-      `);
-    } finally {
-      db._db.exec('DETACH DATABASE legacy');
-    }
-  } catch (err) {
-    console.warn('failed to carry over the previous file cache, leaving it in place: ', err);
-    return;
-  }
+  if (!fs.existsSync(legacyPath)) return;
 
   for (const suffix of LEGACY_FILE_INDEX_SUFFIXES) {
     try {
@@ -54,7 +35,7 @@ class SqliteEventModel {
     });
     this._db = db;
     this._statements = statements;
-    adoptLegacyFileIndex(db);
+    removeLegacyFileIndex();
     registerSQLiteIpc(ipcMain, statements);
   }
 
