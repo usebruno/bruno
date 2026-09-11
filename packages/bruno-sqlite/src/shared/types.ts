@@ -12,4 +12,5 @@ export type StatementDef = {
   type: StatementType;
   sql: string;
   tables: string[];
+  readBigInts?: boolean;
 };

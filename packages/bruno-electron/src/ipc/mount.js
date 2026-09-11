@@ -4,13 +4,6 @@ const { MountManager } = require('../services/mount');
 const manager = new MountManager();
 
 const registerMountIpc = () => {
-  ipcMain.handle('renderer:get-file-cache-size', () => manager.getCacheSize());
-
-  ipcMain.handle('renderer:clear-file-cache', () => {
-    manager.clearCache();
-    return manager.getCacheSize();
-  });
-
   ipcMain.handle(
     'renderer:mount-collection-v2',
     async (event, { collectionUid, collectionPathname, brunoConfig }) => {
