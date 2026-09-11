@@ -413,5 +413,35 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(testsTab).toHaveClass(/active/);
       });
     });
+
+    test('18. Long script error message can be scrolled to the end', async ({ pageWithUserData: page }) => {
+      await test.step('Open request and show long script error', async () => {
+        await openRequest(page, 'script-errors-test', 'long-error-message');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Scroll response content to the end of the error', async () => {
+        const scrollContainer = scriptErrorLocators.scrollContainer();
+        const card = scriptErrorLocators.card();
+
+        await expect(card).toBeVisible();
+        await expect(scriptErrorLocators.message(card)).toContainText('END OF LONG SCRIPT ERROR');
+        await expect(scrollContainer).toBeVisible();
+
+        await expect
+          .poll(() => scrollContainer.evaluate((element) => element.scrollHeight > element.clientHeight))
+          .toBe(true);
+
+        const scrollHeight = await scrollContainer.evaluate((element) => element.scrollHeight);
+        await scrollContainer.hover();
+        await page.mouse.wheel(0, scrollHeight);
+
+        await expect.poll(async () => {
+          return scrollContainer.evaluate((element) => {
+            return Math.ceil(element.scrollTop + element.clientHeight) >= element.scrollHeight;
+          });
+        }).toBe(true);
+      });
+    });
   });
 }
