@@ -21,8 +21,7 @@ runs:
     # step completes — so a server started in this step would be killed before the test step
     # runs. It is downloaded/prepared here and started in the shared step that runs the tests
     # (run-oauth2-e2e-tests). KC_HOME is exported for that step. bash is available on all three
-    # runner OSes (Git Bash on Windows). Keycloak ships a .tar.gz alongside the .zip, which every
-    # runner's tar can extract. The archive is addressed by a relative name from inside
+    # runner OSes (Git Bash on Windows). The tarball is addressed by a relative name from inside
     # RUNNER_TEMP because GNU tar (Linux, Git Bash) reads the colon in a Windows path such as
     # D:\a\_temp\keycloak.tar.gz as a remote host and fails with "Cannot connect to D".
     - name: Download and prepare Keycloak
