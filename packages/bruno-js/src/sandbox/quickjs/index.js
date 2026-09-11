@@ -5,7 +5,7 @@ const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
-const addLocalModuleLoaderShimToContext = require('./shims/local-module');
+const { addLocalModuleLoaderShimToContext } = require('./shims/local-module');
 const { getRequireCode } = require('./shims/require');
 const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
 
