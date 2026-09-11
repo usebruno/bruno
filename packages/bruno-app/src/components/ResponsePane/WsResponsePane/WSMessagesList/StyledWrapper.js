@@ -70,6 +70,10 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.yellow};
     }
   }
+
+  .ws-format-trigger {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
 `;
 
 export default StyledWrapper;
