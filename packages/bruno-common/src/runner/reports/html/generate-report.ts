@@ -1,5 +1,5 @@
 import { T_RunnerResults } from '../../types';
-import { isHtmlContentType, getContentType, redactImageData, encodeBase64 } from '../../utils';
+import { isHtmlContentType, getContentType, redactImageData } from '../../utils';
 import htmlTemplateString from './template';
 
 const generateHtmlReport = ({
@@ -37,12 +37,12 @@ const generateHtmlReport = ({
       summary
     };
   });
-  const htmlString = htmlTemplateString(encodeBase64(JSON.stringify({
+  const htmlString = htmlTemplateString(JSON.stringify({
     results: resultsWithSummaryAndCleanData,
     version,
     environment,
     runCompletionTime
-  })));
+  }));
   return htmlString;
 };
 
