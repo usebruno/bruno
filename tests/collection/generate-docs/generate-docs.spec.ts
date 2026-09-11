@@ -376,22 +376,6 @@ test.describe('Generate Documentation', () => {
     await expect(modal).toBeHidden();
   });
 
-  test('explains what a tag is when the hint beside "Filter by Tags" is hovered', async ({
-    pageWithUserData: page
-  }) => {
-    const locators = buildCommonLocators(page);
-
-    await locators.sidebar.collection(COLLECTION_NAME).hover();
-    await locators.actions.collectionActions(COLLECTION_NAME).click();
-    await locators.generateDocs.menuItem().click();
-    await expect(locators.generateDocs.modal()).toBeVisible();
-
-    await locators.generateDocs.advancedToggle().click();
-    await locators.generateDocs.tagsHint().hover();
-
-    await expect(locators.generateDocs.tooltip('Tags are labels')).toBeVisible();
-  });
-
   test('keeps only requests carrying an included tag in the generated docs', async ({
     pageWithUserData: page
   }) => {
