@@ -1,0 +1,45 @@
+name: 'Setup Keycloak'
+description: 'Provision Keycloak (download + realm import prep) for the OAuth2 e2e tests on Linux, macOS and Windows'
+
+inputs:
+  keycloak-version:
+    description: 'Keycloak release to download'
+    required: false
+    default: '26.3.3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java 21 (Temurin)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    # NOTE: Keycloak is intentionally NOT started here. On Windows, GitHub Actions runs each
+    # step inside a Job Object that terminates the step's entire child-process tree when the
+    # step completes — so a server started in this step would be killed before the test step
+    # runs. It is downloaded/prepared here and started in the shared step that runs the tests
+    # (run-oauth2-e2e-tests). KC_HOME is exported for that step. bash is available on all three
+    # runner OSes (Git Bash on Windows). The tarball is addressed by a relative name from inside
+    # RUNNER_TEMP because GNU tar (Linux, Git Bash) reads the colon in a Windows path such as
+    # D:\a\_temp\keycloak.tar.gz as a remote host and fails with "Cannot connect to D".
+    - name: Download and prepare Keycloak
+      shell: bash
+      env:
+        KEYCLOAK_VERSION: ${{ inputs.keycloak-version }}
+      run: |
+        set -euo pipefail
+
+        cd "${RUNNER_TEMP}"
+        curl -fsSL -o keycloak.tar.gz \
+          "https://github.com/keycloak/keycloak/releases/download/${KEYCLOAK_VERSION}/keycloak-${KEYCLOAK_VERSION}.tar.gz"
+        tar -xzf keycloak.tar.gz
+        KC_HOME="${RUNNER_TEMP}/keycloak-${KEYCLOAK_VERSION}"
+
+        mkdir -p "${KC_HOME}/data/import"
+        cp "${GITHUB_WORKSPACE}/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
+          "${KC_HOME}/data/import/realm-export.json"
+
+        echo "KC_HOME=${KC_HOME}" >> "${GITHUB_ENV}"
+        echo "Keycloak prepared at ${KC_HOME}"
