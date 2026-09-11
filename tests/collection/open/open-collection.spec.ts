@@ -17,17 +17,14 @@ test.describe('Open collection sanity testcases', () => {
     const collectionPath = path.join(collectionLocation, collectionName);
     const locators = buildCommonLocators(page);
     const collectionLocators = buildCollectionLocators(page);
+    await createCollection(page, collectionName, collectionLocation);
 
-    await test.step('create collection', async () => {
-      await createCollection(page, collectionName, collectionLocation);
-    });
-
-    await test.step('open collection actions menu and verify Remove option is shown', async () => {
+    await test.step('Open Bruno app and click on the collection menu (3 dots) on the right side of the collection', async () => {
       await openCollectionActionsMenu(page, collectionName);
       await expect(locators.dropdown.item('Remove')).toBeVisible();
     });
 
-    await test.step('click Remove and verify confirmation modal shows path and CTAs', async () => {
+    await test.step('click on the remove option', async () => {
       await clickRemoveInCollectionMenu(page);
       await expect(collectionLocators.removeModal()).toBeVisible();
       await expect(collectionLocators.removeButton()).toBeVisible();
@@ -35,7 +32,7 @@ test.describe('Open collection sanity testcases', () => {
       await expect(collectionLocators.removeModalPath()).toContainText(collectionPath);
     });
 
-    await test.step('confirm removal and verify success toast', async () => {
+    await test.step('Click on the remove CTA on the pop-up ', async () => {
       await confirmRemoveCollection(page);
       await expect(collectionLocators.removedFromWorkspaceToast()).toBeVisible();
       await expect(locators.sidebar.collection(collectionName)).not.toBeVisible();
