@@ -40,7 +40,6 @@ const parseUrl = (rawUrl) => {
     try {
       const url = new URL(rawUrl);
 
-      // 'localhost:3000/path' parses with 'localhost:' as the scheme and no host at all
       if (url.host) {
         return {
           host: url.host,
