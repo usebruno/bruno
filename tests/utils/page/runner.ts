@@ -7,10 +7,10 @@ import { buildCommonLocators, buildSandboxLocators } from './locators';
  * @returns Object with locators for runner elements
  */
 export const buildRunnerLocators = (page: Page) => ({
-  allButton: () => page.locator('button').filter({ hasText: /^All/ }),
-  passedButton: () => page.locator('button').filter({ hasText: /^Passed/ }),
-  failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
-  skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
+  allCount: () => page.getByTestId('runner-filter-all-count'),
+  passedCount: () => page.getByTestId('runner-filter-passed-count'),
+  failedCount: () => page.getByTestId('runner-filter-failed-count'),
+  skippedCount: () => page.getByTestId('runner-filter-skipped-count'),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
@@ -30,17 +30,17 @@ export const buildRunnerLocators = (page: Page) => ({
 });
 
 /**
- * Reads test result counts from the filter buttons in the runner results view
+ * Reads test result counts from the filter counts in the runner results view
  * @param page - The Playwright page object
  * @returns An object with totalRequests, passed, failed, and skipped counts
  */
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allButton().locator('span').innerText());
-  const passed = parseInt(await locators.passedButton().locator('span').innerText());
-  const failed = parseInt(await locators.failedButton().locator('span').innerText());
-  const skipped = parseInt(await locators.skippedButton().locator('span').innerText());
+  const totalRequests = parseInt(await locators.allCount().innerText());
+  const passed = parseInt(await locators.passedCount().innerText());
+  const failed = parseInt(await locators.failedCount().innerText());
+  const skipped = parseInt(await locators.skippedCount().innerText());
 
   return { totalRequests, passed, failed, skipped };
 };
