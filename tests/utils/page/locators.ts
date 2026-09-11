@@ -7,6 +7,7 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
+import { buildResponseExampleLocators } from './response-example';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
@@ -19,7 +20,6 @@ import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
-import { buildResponseExampleLocators } from './response-example';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 

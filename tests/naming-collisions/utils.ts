@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+export { findCollectionDir } from '../utils/collection-files';
+
 /** Collection/folder settings files that are not user-created request files. */
 export const SETTINGS_FILES = new Set([
   'collection.bru',
@@ -27,17 +29,6 @@ export const listRequestFiles = (dir: string, ext = '.bru'): string[] => {
     }
   }
   return out;
-};
-
-export const findCollectionDir = (testDir: string): string => {
-  const markers = ['bruno.json', 'opencollection.yml'];
-  for (const entry of fs.readdirSync(testDir, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      const candidate = path.join(testDir, entry.name);
-      if (markers.some((m) => fs.existsSync(path.join(candidate, m)))) return candidate;
-    }
-  }
-  throw new Error(`No collection (bruno.json / opencollection.yml) found under ${testDir}`);
 };
 
 export const minimalBru = (name: string) => `meta {\n  name: ${name}\n  type: http\n  seq: 1\n}\n`;
