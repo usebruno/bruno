@@ -119,21 +119,24 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       if (baseUrlOverride) {
         const reqVarsMap = {};
         requestVars.filter((v) => v.enabled).forEach((v) => { reqVarsMap[v.name] = v.value; });
-        const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
+        // A saved request keeps its enabled query params in the URL (e.g.
+        // "{{baseUrl}}/users?status=active"); the OpenAPI path must exclude the
+        // query string — query params are exported from the params array below.
+        const path = rawUrl.slice('{{baseUrl}}'.length).split('?')[0] || '/';
         return { url: interpolate(path, reqVarsMap), operationLevelServer: buildServerEntry(baseUrlOverride.value, reqVarsMap) };
       }
     }
 
     // URL uses {{baseUrl}} placeholder — strip it and resolve remaining path
     if (rawUrl.startsWith('{{baseUrl}}')) {
-      const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
+      const path = rawUrl.slice('{{baseUrl}}'.length).split('?')[0] || '/';
       return { url: interpolate(path, {}), operationLevelServer: null };
     }
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
     for (const source of baseUrlSources) {
       if (rawUrl.startsWith(source.baseUrl)) {
-        const rawPath = rawUrl.slice(source.baseUrl.length);
+        const rawPath = rawUrl.slice(source.baseUrl.length).split('?')[0];
         const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
         return { url: interpolate(path, {}), operationLevelServer: null };
       }
