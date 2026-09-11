@@ -163,7 +163,7 @@ const Wrapper = styled.div`
       background-color: ${(props) => props.theme.background.mantle};
 
       span {
-        font-family: Inter, sans-serif;
+        font-family: var(--app-font-stack);
         font-weight: 400;
         font-size: ${(props) => props.theme.font.size.sm};
         color: ${(props) => props.theme.colors.text.text};
@@ -190,7 +190,7 @@ const Wrapper = styled.div`
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     line-height: 100%;
     letter-spacing: 0%;
     cursor: pointer;
@@ -207,7 +207,7 @@ const Wrapper = styled.div`
       border-radius: 2px;
       border: 1px solid ${(props) => props.theme.border.border0};
       background-color: ${(props) => props.theme.background.surface0};
-      font-family: Inter, sans-serif;
+      font-family: var(--app-font-stack);
       font-size: ${(props) => props.theme.font.size.xs};
       font-weight: 500;
       line-height: 100%;

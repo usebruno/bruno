@@ -21,7 +21,7 @@ const StyledWrapper = styled.div`
     }
 
     .warning-text {
-      font-family: 'Inter', sans-serif;
+      font-family: var(--app-font-stack);
       font-style: normal;
       font-size: 14px;
       line-height: 17px;

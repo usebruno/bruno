@@ -29,6 +29,7 @@ const defaultPreferences = {
     }
   },
   font: {
+    appFont: 'default',
     codeFont: 'default',
     codeFontSize: 13
   },
@@ -137,6 +138,7 @@ const preferencesSchema = Yup.object().shape({
     }).optional()
   }),
   font: Yup.object().shape({
+    appFont: Yup.string().nullable(),
     codeFont: Yup.string().nullable(),
     codeFontSize: Yup.number().min(1).max(32).nullable()
   }),

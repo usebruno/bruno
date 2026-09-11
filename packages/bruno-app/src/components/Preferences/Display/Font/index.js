@@ -11,8 +11,13 @@ const Font = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const isInitialMount = useRef(true);
 
+  const [appFont, setAppFont] = useState(get(preferences, 'font.appFont', 'default'));
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
   const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '13'));
+
+  const handleAppFontChange = (event) => {
+    setAppFont(event.target.value);
+  };
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
@@ -24,11 +29,12 @@ const Font = () => {
     setCodeFontSize(clampedSize);
   };
 
-  const handleSave = useCallback((font, fontSize) => {
+  const handleSave = useCallback((uiFont, font, fontSize) => {
     dispatch(
       savePreferences({
         ...preferences,
         font: {
+          appFont: uiFont,
           codeFont: font,
           codeFontSize: fontSize
         }
@@ -42,8 +48,8 @@ const Font = () => {
   handleSaveRef.current = handleSave;
 
   const debouncedSave = useCallback(
-    debounce((font, fontSize) => {
-      handleSaveRef.current(font, fontSize);
+    debounce((uiFont, font, fontSize) => {
+      handleSaveRef.current(uiFont, font, fontSize);
     }, 500),
     []
   );
@@ -53,38 +59,56 @@ const Font = () => {
       isInitialMount.current = false;
       return;
     }
-    debouncedSave(codeFont, codeFontSize);
+    debouncedSave(appFont, codeFont, codeFontSize);
     return () => {
       debouncedSave.flush();
     };
-  }, [codeFont, codeFontSize, debouncedSave]);
+  }, [appFont, codeFont, codeFontSize, debouncedSave]);
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row gap-2 w-full">
+      <div className="settings-row">
+        <div className="settings-row-title">Code Editor</div>
+        <div className="flex flex-row gap-2 w-full">
+          <div className="w-4/5">
+            <input
+              type="text"
+              className="block textbox w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={handleCodeFontChange}
+              defaultValue={codeFont}
+            />
+          </div>
+          <div className="w-1/5">
+            <input
+              type="number"
+              className="block textbox w-full"
+              autoComplete="off"
+              autoCorrect="off"
+              inputMode="numeric"
+              title="Font size"
+              onChange={handleCodeFontSizeChange}
+              defaultValue={codeFontSize}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="settings-row">
+        <div className="settings-row-title">Interface</div>
         <div className="w-4/5">
-          <label className="block">Code Editor Font</label>
           <input
             type="text"
-            className="block textbox mt-2 w-full"
+            className="block textbox w-full"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
-            onChange={handleCodeFontChange}
-            defaultValue={codeFont}
-          />
-        </div>
-        <div className="w-1/5">
-          <label className="block">Font Size</label>
-          <input
-            type="number"
-            className="block textbox mt-2 w-full"
-            autoComplete="off"
-            autoCorrect="off"
-            inputMode="numeric"
-            onChange={handleCodeFontSizeChange}
-            defaultValue={codeFontSize}
+            data-testid="app-font-input"
+            onChange={handleAppFontChange}
+            defaultValue={appFont}
           />
         </div>
       </div>

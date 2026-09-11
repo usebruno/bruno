@@ -72,7 +72,7 @@ const StyledWrapper = styled.div`
     padding: 2px 6px;
     font-size: ${(props) => props.theme.font.size.base};
     height: 26px;
-    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-family: var(--app-font-stack) !important;
   }
 
   .bruno-search-bar input[type='text']:focus {
