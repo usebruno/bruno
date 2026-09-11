@@ -36,15 +36,18 @@ const parseUrl = (rawUrl) => {
     throw new Error('URL is empty');
   }
 
-  // Parse templated URLs manually to preserve the variable casing
   if (!rawUrl.includes('{{')) {
     try {
       const url = new URL(rawUrl);
-      return {
-        host: url.host,
-        pathname: url.pathname,
-        queryString: url.search.replace(/^\?/, '')
-      };
+
+      // 'localhost:3000/path' parses with 'localhost:' as the scheme and no host at all
+      if (url.host) {
+        return {
+          host: url.host,
+          pathname: url.pathname,
+          queryString: url.search.replace(/^\?/, '')
+        };
+      }
     } catch (e) {
       // not a url new URL() accepts
     }
