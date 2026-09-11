@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import { buildCommonLocators, closeAllCollections } from '../../utils/page';
 
 test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
@@ -11,11 +11,6 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
-
-  // Scope an assertion to a single collection — pageWithUserData reuses one app
-  // across the describe block, and multiple expanded collections would otherwise
-  // make `getByTestId('add-request-cta')` match more than one element.
-  const collectionScope = (page: Page, name: string) => page.locator(`#collection-${name}`);
 
   const expandCollection = async (name: string) => {
     const collection = locators.sidebar.collection(name);
@@ -31,7 +26,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is visible at collection root', async () => {
-      await expect(collectionScope(page, 'empty-bru').getByTestId('add-request-cta')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('empty-bru').getByTestId('add-request-cta')).toBeVisible();
     });
   });
 
@@ -41,7 +36,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is visible at collection root', async () => {
-      await expect(collectionScope(page, 'empty-yml').getByTestId('add-request-cta')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('empty-yml').getByTestId('add-request-cta')).toBeVisible();
     });
   });
 
@@ -53,7 +48,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is visible at collection root', async () => {
-      await expect(collectionScope(page, 'bru-with-js').getByTestId('add-request-cta')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('bru-with-js').getByTestId('add-request-cta')).toBeVisible();
     });
   });
 
@@ -63,7 +58,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is visible at collection root', async () => {
-      await expect(collectionScope(page, 'yml-with-js').getByTestId('add-request-cta')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('yml-with-js').getByTestId('add-request-cta')).toBeVisible();
     });
   });
 
@@ -76,7 +71,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is not rendered at collection root', async () => {
-      await expect(collectionScope(page, 'bru-with-request').getByTestId('add-request-cta')).toHaveCount(0);
+      await expect(locators.sidebar.collectionScope('bru-with-request').getByTestId('add-request-cta')).toHaveCount(0);
     });
   });
 
@@ -87,7 +82,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is not rendered at collection root', async () => {
-      await expect(collectionScope(page, 'yml-with-request').getByTestId('add-request-cta')).toHaveCount(0);
+      await expect(locators.sidebar.collectionScope('yml-with-request').getByTestId('add-request-cta')).toHaveCount(0);
     });
   });
 
@@ -98,7 +93,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is not rendered at collection root', async () => {
-      await expect(collectionScope(page, 'bru-folder-with-js').getByTestId('add-request-cta')).toHaveCount(0);
+      await expect(locators.sidebar.collectionScope('bru-folder-with-js').getByTestId('add-request-cta')).toHaveCount(0);
     });
   });
 
@@ -109,7 +104,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify CTA is not rendered at collection root', async () => {
-      await expect(collectionScope(page, 'yml-with-folder').getByTestId('add-request-cta')).toHaveCount(0);
+      await expect(locators.sidebar.collectionScope('yml-with-folder').getByTestId('add-request-cta')).toHaveCount(0);
     });
   });
 
@@ -124,7 +119,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify folder-level CTA is visible', async () => {
-      await expect(collectionScope(page, 'bru-folder-with-js').getByTestId('add-request-cta-folder')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('bru-folder-with-js').getByTestId('add-request-cta-folder')).toBeVisible();
     });
   });
 
@@ -137,7 +132,7 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
     });
 
     await test.step('Verify folder-level CTA is visible', async () => {
-      await expect(collectionScope(page, 'yml-with-folder').getByTestId('add-request-cta-folder')).toBeVisible();
+      await expect(locators.sidebar.collectionScope('yml-with-folder').getByTestId('add-request-cta-folder')).toBeVisible();
     });
   });
 });

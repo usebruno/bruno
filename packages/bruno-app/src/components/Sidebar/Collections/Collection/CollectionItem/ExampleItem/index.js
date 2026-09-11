@@ -13,7 +13,6 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
-import ActionIcon from 'ui/ActionIcon';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
@@ -21,7 +20,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
-const ExampleItem = ({ example, item, collection }) => {
+const ExampleItem = ({ example, item, collection, depth }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -33,8 +32,9 @@ const ExampleItem = ({ example, item, collection }) => {
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
-  // Calculate indentation: item depth + 1 for examples
-  const indents = range((item.depth || 0) + 1);
+  // Indentation comes from the flattener, which already emits example rows one level
+  // deeper than their parent request.
+  const indents = range(depth);
 
   const handleExampleClick = () => {
     const exampleIndex = item?.examples?.findIndex((ex) => ex.uid === example.uid);
@@ -63,16 +63,6 @@ const ExampleItem = ({ example, item, collection }) => {
   useEffect(() => {
     setEditName(example.name);
   }, [example.name]);
-
-  useEffect(() => {
-    if (isExampleActive && exampleRef.current) {
-      try {
-        exampleRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors
-      }
-    }
-  }, [isExampleActive]);
 
   const handleClone = async () => {
     // Calculate the index where the cloned example will be saved
