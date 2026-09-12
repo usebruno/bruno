@@ -96,6 +96,29 @@ Import Options:
 | --collection-name, -n     | Name for the imported collection                   |
 | --insecure                | Skip SSL certificate validation when fetching from URLs |
 
+## Exporting Collections
+
+You can export Bruno collections to other formats, such as Postman, using the export command:
+
+```bash
+bru export postman --collection ./my-collection --output ./collection.postman.json
+```
+
+You can also use the shorter form with aliases:
+
+```bash
+bru export postman -c ./my-collection -o ./collection.postman.json
+```
+
+This exports your Bruno collection (both `.bru` and OpenCollection `.yml` formats) to Postman v2.1.0 format.
+
+Export Options:
+
+| Option                    | Details                                            |
+| ------------------------- | -------------------------------------------------- |
+| --collection, -c          | Path to the Bruno collection directory (required)  |
+| --output, -o              | Path to the output file (required)                 |
+
 ## Command Line Options
 
 | Option                       | Details                                                                       |
