@@ -17,7 +17,7 @@ grpc:
 runtime:
   scripts:
     - type: grpc:before-call-start
-      code: bru.setVar('receivedCount', '');
+      code: bru.deleteVar('receivedCount');
     - type: grpc:before-message-send
       code: |-
         // A server stream sends exactly one message, so this hook runs once however many replies come back.
