@@ -53,7 +53,9 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
+    // Pre-request scripts run before the request is interpolated, so the URL helpers
+    // (getHost, getPath, getQueryString) resolve variables themselves
+    const req = new BrunoRequest(request, { interpolate: bru.interpolate });
 
     // extend bru with result getter methods
     const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
