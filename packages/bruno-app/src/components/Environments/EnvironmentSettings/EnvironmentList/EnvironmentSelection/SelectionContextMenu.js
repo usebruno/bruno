@@ -1,8 +1,26 @@
 import React, { useMemo } from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
-import { IconUpload, IconEdit, IconCopy, IconTrash } from '@tabler/icons';
+import { IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
+import { getPlatformModifierKey, isMacOS } from 'utils/common/platform';
 
-const SelectionContextMenu = ({ visible, position, selectedCount, onExport, onRename, onDuplicate, onDelete, onClose }) => {
+const modKey = getPlatformModifierKey();
+const selectShortcut = `${modKey}+Click`;
+const selectAllShortcut = isMacOS() ? `${modKey}A` : `${modKey}+A`;
+
+const SelectionContextMenu = ({
+  visible,
+  position,
+  selectedCount,
+  onExport,
+  onRename,
+  onDuplicate,
+  onDelete,
+  onSelect,
+  onSelectAll,
+  hasSelection,
+  isAllSelected,
+  onClose
+}) => {
   const anchorStyle = {
     position: 'fixed',
     left: `${position?.x || 0}px`,
@@ -43,16 +61,36 @@ const SelectionContextMenu = ({ visible, position, selectedCount, onExport, onRe
       );
     }
 
-    items.push({
-      id: 'delete',
-      label: selectedCount > 1 ? `Delete (${selectedCount})` : 'Delete',
-      leftSection: IconTrash,
-      className: 'delete-item',
-      onClick: onDelete
-    });
+    if (!hasSelection) {
+      items.push({
+        id: 'select',
+        label: 'Select',
+        leftSection: IconCheck,
+        rightSection: <span className="shortcut">{selectShortcut}</span>,
+        onClick: onSelect
+      });
+    }
+
+    items.push(
+      {
+        id: 'select-all',
+        label: isAllSelected ? 'Unselect all' : 'Select all',
+        leftSection: IconChecks,
+        rightSection: <span className="shortcut">{selectAllShortcut}</span>,
+        onClick: onSelectAll
+      },
+      { id: 'divider-3', type: 'divider' },
+      {
+        id: 'delete',
+        label: selectedCount > 1 ? `Delete (${selectedCount})` : 'Delete',
+        leftSection: IconTrash,
+        className: 'delete-item',
+        onClick: onDelete
+      }
+    );
 
     return items;
-  }, [isSingleSelection, selectedCount, onExport, onRename, onDuplicate, onDelete]);
+  }, [isSingleSelection, selectedCount, onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected]);
 
   return (
     <MenuDropdown

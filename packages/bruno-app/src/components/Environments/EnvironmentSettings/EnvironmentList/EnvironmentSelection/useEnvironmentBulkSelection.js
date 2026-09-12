@@ -46,6 +46,11 @@ const useEnvironmentBulkSelection = ({
     [environments, actionTargetUids]
   );
 
+  const isAllSelected = useMemo(
+    () => filteredEnvUids.length > 0 && filteredEnvUids.every((uid) => selectedEnvUids.includes(uid)),
+    [filteredEnvUids, selectedEnvUids]
+  );
+
   const openMenuAt = useCallback((e) => {
     setMenuPosition({ x: e.clientX, y: e.clientY });
     setMenuVisible(true);
@@ -70,6 +75,29 @@ const useEnvironmentBulkSelection = ({
     setLastClickedEnvUid(uid);
   }, []);
 
+  const selectEnvs = useCallback((uids) => {
+    if (!uids || !uids.length) return;
+    setSelectedEnvUids((prev) => {
+      const merged = new Set(prev);
+      uids.forEach((uid) => merged.add(uid));
+      return Array.from(merged);
+    });
+    setLastClickedEnvUid(uids[uids.length - 1]);
+  }, []);
+
+  // Toggles: selects every filtered environment, or — if they're all
+  // already selected — clears the selection instead. Shared by the
+  // "Select all"/"Unselect all" menu item and the Cmd/Ctrl+A shortcut, so
+  // both always agree on what happens next.
+  const selectAllEnvs = useCallback(() => {
+    if (isAllSelected) {
+      clearSelection();
+      return;
+    }
+    setSelectedEnvUids(filteredEnvUids);
+    setLastClickedEnvUid(filteredEnvUids.length ? filteredEnvUids[filteredEnvUids.length - 1] : null);
+  }, [isAllSelected, filteredEnvUids, clearSelection]);
+
   const selectEnvRange = useCallback((toUid) => {
     setSelectedEnvUids((prev) => {
       const fromIndex = lastClickedEnvUid ? filteredEnvUids.indexOf(lastClickedEnvUid) : -1;
@@ -84,9 +112,6 @@ const useEnvironmentBulkSelection = ({
     });
   }, [lastClickedEnvUid, filteredEnvUids]);
 
-  // Matches the Sidebar's own convention (see useSidebarSelectionClick):
-  // the multi-select toggle modifier is OS-appropriate — Cmd on macOS,
-  // Ctrl on Windows/Linux — and it only builds the selection, quietly.
   const handleRowInteraction = useCallback((e, env) => {
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
 
@@ -189,6 +214,25 @@ const useEnvironmentBulkSelection = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [hasSelection, clearSelection]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isSelectAllShortcut = (isMacOS() ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'a';
+      if (!isSelectAllShortcut) return;
+
+      const activeTag = document.activeElement?.tagName;
+      const isTextFieldFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+      if (isTextFieldFocused) return;
+
+      if (!scopeRef.current?.matches(':hover')) return;
+
+      e.preventDefault();
+      selectAllEnvs();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectAllEnvs]);
+
   return {
     scopeRef,
     hasSelection,
@@ -197,6 +241,9 @@ const useEnvironmentBulkSelection = ({
     actionTargetUids,
     actionTargetEnvironmentsList,
     selectOnlyEnv,
+    selectEnvs,
+    selectAllEnvs,
+    isAllSelected,
     showDeleteModal,
     openDeleteModal: () => {
       setShowDeleteModal(true);
