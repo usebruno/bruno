@@ -14,8 +14,9 @@ class BrunoRequest {
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
    */
-  constructor(req) {
+  constructor(req, { interpolate } = {}) {
     this.req = req;
+    this.__interpolate = interpolate;
     this.url = req.url;
     this.method = req.method;
     this.headers = req.headers;
@@ -48,7 +49,7 @@ class BrunoRequest {
 
   getHost() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.__getInterpolatedUrl());
       return url.host;
     } catch (e) {
       return '';
@@ -57,7 +58,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.__getInterpolatedUrl());
       let pathname = url.pathname;
 
       // If path params exist, interpolate them into the pathname
@@ -91,7 +92,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
+      const url = new URL(this.__getInterpolatedUrl());
       // Return query string without the leading '?'
       return url.search ? url.search.substring(1) : '';
     } catch (e) {
@@ -244,6 +245,10 @@ class BrunoRequest {
     } else if (callback) {
       throw new Error(`${callback} is not a function`);
     }
+  }
+
+  __getInterpolatedUrl() {
+    return this.__interpolate ? this.__interpolate(this.req.url) : this.req.url;
   }
 
   __safeParseJSON(str) {
