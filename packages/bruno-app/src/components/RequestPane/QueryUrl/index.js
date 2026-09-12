@@ -296,13 +296,21 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             );
           }
         } else if (bodyMode === 'formUrlEncoded' && request.body.formUrlEncoded) {
-          // For formUrlEncoded, we need to set each param individually
-          // This is a limitation - we'd need to clear existing params first
-          // For now, we'll set the body mode and the user can manually adjust
-          // TODO: Implement proper formUrlEncoded param setting
+          dispatch(
+            updateRequestBody({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              content: request.body.formUrlEncoded
+            })
+          );
         } else if (bodyMode === 'multipartForm' && request.body.multipartForm) {
-          // For multipartForm, similar limitation
-          // TODO: Implement proper multipartForm param setting
+          dispatch(
+            updateRequestBody({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              content: request.body.multipartForm
+            })
+          );
         }
       }
 
