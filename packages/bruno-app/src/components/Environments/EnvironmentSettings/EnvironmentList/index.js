@@ -682,7 +682,7 @@ const EnvironmentList = ({
 
                 <div className="environments-list">
                   {filteredEnvironments.map((env) => {
-                    const isEnvSelected = bulkSelection.selectedEnvUids.includes(env.uid);
+                    const isEnvSelected = bulkSelection.isEnvSelected(env.uid);
                     const isEnvMultiSelected = isEnvSelected && bulkSelection.selectedEnvUids.length > 1;
                     return (
                       <div

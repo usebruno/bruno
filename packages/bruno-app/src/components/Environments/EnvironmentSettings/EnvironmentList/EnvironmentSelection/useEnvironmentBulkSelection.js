@@ -21,6 +21,9 @@ const useEnvironmentBulkSelection = ({
   const envUids = useMemo(() => (environments ? environments.map((env) => env.uid) : []), [environments]);
   const filteredEnvUids = useMemo(() => filteredEnvironments.map((env) => env.uid), [filteredEnvironments]);
 
+  const selectedEnvUidSet = useMemo(() => new Set(selectedEnvUids), [selectedEnvUids]);
+  const actionTargetUidSet = useMemo(() => new Set(actionTargetUids), [actionTargetUids]);
+
   useEffect(() => {
     setSelectedEnvUids([]);
     setActionTargetUids([]);
@@ -38,17 +41,17 @@ const useEnvironmentBulkSelection = ({
 
   const hasSelection = selectedEnvUids.length > 0;
   const selectedEnvironmentsList = useMemo(
-    () => environments?.filter((env) => selectedEnvUids.includes(env.uid)) || [],
-    [environments, selectedEnvUids]
+    () => environments?.filter((env) => selectedEnvUidSet.has(env.uid)) || [],
+    [environments, selectedEnvUidSet]
   );
   const actionTargetEnvironmentsList = useMemo(
-    () => environments?.filter((env) => actionTargetUids.includes(env.uid)) || [],
-    [environments, actionTargetUids]
+    () => environments?.filter((env) => actionTargetUidSet.has(env.uid)) || [],
+    [environments, actionTargetUidSet]
   );
 
   const isAllSelected = useMemo(
-    () => filteredEnvUids.length > 0 && filteredEnvUids.every((uid) => selectedEnvUids.includes(uid)),
-    [filteredEnvUids, selectedEnvUids]
+    () => filteredEnvUids.length > 0 && filteredEnvUids.every((uid) => selectedEnvUidSet.has(uid)),
+    [filteredEnvUids, selectedEnvUidSet]
   );
 
   const openMenuAt = useCallback((e) => {
@@ -142,11 +145,11 @@ const useEnvironmentBulkSelection = ({
     e.preventDefault();
     e.stopPropagation();
 
-    const isPartOfMultiSelection = selectedEnvUids.includes(env.uid) && selectedEnvUids.length > 1;
+    const isPartOfMultiSelection = selectedEnvUidSet.has(env.uid) && selectedEnvUids.length > 1;
     setActionTargetUids(isPartOfMultiSelection ? selectedEnvUids : [env.uid]);
 
     openMenuAt(e);
-  }, [selectedEnvUids, openMenuAt]);
+  }, [selectedEnvUids, selectedEnvUidSet, openMenuAt]);
 
   const handleDeleted = useCallback((failedUids) => {
     const stillPresent = new Set(failedUids || []);
@@ -233,10 +236,13 @@ const useEnvironmentBulkSelection = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectAllEnvs]);
 
+  const isEnvSelected = useCallback((uid) => selectedEnvUidSet.has(uid), [selectedEnvUidSet]);
+
   return {
     scopeRef,
     hasSelection,
     selectedEnvUids,
+    isEnvSelected,
     selectedEnvironmentsList,
     actionTargetUids,
     actionTargetEnvironmentsList,
