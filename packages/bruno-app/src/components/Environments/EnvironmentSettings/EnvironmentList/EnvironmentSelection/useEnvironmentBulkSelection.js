@@ -65,6 +65,11 @@ const useEnvironmentBulkSelection = ({
     setSelectedEnvUids((prev) => (prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]));
   }, []);
 
+  const selectOnlyEnv = useCallback((uid) => {
+    setSelectedEnvUids([uid]);
+    setLastClickedEnvUid(uid);
+  }, []);
+
   const selectEnvRange = useCallback((toUid) => {
     setSelectedEnvUids((prev) => {
       const fromIndex = lastClickedEnvUid ? filteredEnvUids.indexOf(lastClickedEnvUid) : -1;
@@ -191,6 +196,7 @@ const useEnvironmentBulkSelection = ({
     selectedEnvironmentsList,
     actionTargetUids,
     actionTargetEnvironmentsList,
+    selectOnlyEnv,
     showDeleteModal,
     openDeleteModal: () => {
       setShowDeleteModal(true);

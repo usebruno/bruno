@@ -695,7 +695,7 @@ const EnvironmentList = ({
                         })}
                         onClick={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowInteraction(e, env)}
                         onContextMenu={(e) => renamingEnvUid !== env.uid && bulkSelection.handleRowContextMenu(e, env)}
-                        onDoubleClick={() => handleEnvironmentDoubleClick(env)}
+                        onDoubleClick={() => bulkSelection.selectOnlyEnv(env.uid)}
                       >
                         {renamingEnvUid === env.uid ? (
                           <div className="rename-container" ref={renameContainerRef}>
