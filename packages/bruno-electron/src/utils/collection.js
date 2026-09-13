@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { GRPC_SCRIPT_KEYS } = require('@usebruno/common');
+const { GRPC_SCRIPT_KEYS, getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -852,6 +852,9 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
   return credentialsVariables;
 };
 
+const getEffectiveTagsForItem = (collection, item) =>
+  getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item)));
+
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -986,6 +989,7 @@ module.exports = {
   mergeAuth,
   wrapAndJoinScripts,
   getTreePathFromCollectionToItem,
+  getEffectiveTagsForItem,
   flattenItems,
   findItem,
   findItemInCollection,
