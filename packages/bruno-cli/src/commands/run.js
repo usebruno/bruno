@@ -12,7 +12,7 @@ const { getOptions } = require('../utils/bru');
 const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const Table = require('cli-table3');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, getEffectiveTagsForItem, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
@@ -221,11 +221,11 @@ const builder = async (yargs) => {
     })
     .option('tags', {
       type: 'string',
-      description: 'Tags to include in the run'
+      description: 'Tags to include in the run, matched against a request\'s own tags and its folders\''
     })
     .option('exclude-tags', {
       type: 'string',
-      description: 'Tags to exclude from the run'
+      description: 'Tags to exclude from the run, matched against a request\'s own tags and its folders\''
     })
     .option('verbose', {
       type: 'boolean',
@@ -709,7 +709,7 @@ const handler = async function (argv) {
     }
 
     requestItems = requestItems.filter((item) => {
-      return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+      return isRequestTagsIncluded(getEffectiveTagsForItem(collection, item), includeTags, excludeTags);
     });
 
     const runtime = getJsSandboxRuntime(sandbox);

@@ -3,6 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
+const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
@@ -488,6 +489,9 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const getEffectiveTagsForItem = (collection, item) =>
+  getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item)));
+
 const mergeAuth = (collection, request, requestTreePath) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
   let collectionAuth = collectionRoot?.request?.auth || { mode: 'none' };
@@ -717,6 +721,7 @@ module.exports = {
   wrapAndJoinScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
+  getEffectiveTagsForItem,
   createCollectionFromBrunoObject,
   mergeAuth,
   getAllRequestsInFolder,
