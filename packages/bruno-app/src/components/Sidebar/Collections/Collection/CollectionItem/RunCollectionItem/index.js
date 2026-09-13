@@ -10,7 +10,7 @@ import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { areItemsLoading } from 'utils/collections';
 import RunnerTags from 'components/RunnerResults/RunnerTags/index';
-import { getRequestItemsForCollectionRun } from 'utils/collections/index';
+import { getEffectiveTagsForItem, getRequestItemsForCollectionRun } from 'utils/collections/index';
 import Button from 'ui/Button';
 
 const RunCollectionItem = ({ collectionUid, item, onClose }) => {
@@ -54,11 +54,13 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
 
   const isFolderLoading = areItemsLoading(item);
 
-  const requestItemsForRecursiveFolderRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: item ? item.items : collection.items });
+  const items = item ? item.items : collection.items;
+  const inheritedTags = item ? getEffectiveTagsForItem(collection, item) : [];
+  const requestItemsForRecursiveFolderRun = getRequestItemsForCollectionRun({ recursive: true, tags, items, inheritedTags });
   const totalRequestItemsCountForRecursiveFolderRun = requestItemsForRecursiveFolderRun.length;
   const shouldDisableRecursiveFolderRun = totalRequestItemsCountForRecursiveFolderRun <= 0;
 
-  const requestItemsForFolderRun = getRequestItemsForCollectionRun({ recursive: false, tags, items: item ? item.items : collection.items });
+  const requestItemsForFolderRun = getRequestItemsForCollectionRun({ recursive: false, tags, items, inheritedTags });
   const totalRequestItemsCountForFolderRun = requestItemsForFolderRun.length;
   const shouldDisableFolderRun = totalRequestItemsCountForFolderRun <= 0;
 

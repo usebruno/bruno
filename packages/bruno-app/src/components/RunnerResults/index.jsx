@@ -5,7 +5,7 @@ import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
 import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getEffectiveTagsByItemUid } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -97,6 +97,9 @@ export default function RunnerResults({ collection }) {
   // have tags been added for the collection run
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
 
+  // resolved for the whole tree in one walk, rather than once per result row
+  const effectiveTagsByUid = getEffectiveTagsByItemUid(collection.items);
+
   const items = get(collection, 'runnerResult.items', [])
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -110,7 +113,7 @@ export default function RunnerResults({ collection }) {
         filename: info.filename,
         pathname: info.pathname,
         displayName: getDisplayName(collection.pathname, info.pathname, info.name),
-        tags: [...(info.request?.tags || [])].sort()
+        tags: (effectiveTagsByUid[info.uid] || []).sort()
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped' && newItem.status !== 'running') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -431,7 +434,7 @@ export default function RunnerResults({ collection }) {
                         </span>
                       )}
                     </div>
-                    {areTagsAdded && item?.tags?.length > 0 && (
+                    {tags.include.length > 0 && item?.tags?.some((t) => tags.include.includes(t)) && (
                       <div className="pl-7 text-xs text-muted">
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
