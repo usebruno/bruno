@@ -362,11 +362,11 @@ test.describe('Generate Documentation', () => {
 
     await locators.generateDocs.advancedToggle().click();
 
-    await expect(locators.generateDocs.allRequestsButton()).toHaveAttribute('aria-pressed', 'true');
-    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'false');
+    await expect(locators.generateDocs.allRequestsButton()).toBeChecked();
+    await expect(locators.generateDocs.filterByTagsButton()).not.toBeChecked();
 
-    await locators.generateDocs.filterByTagsButton().click();
-    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'true');
+    await locators.generateDocs.filterByTagsButton().check();
+    await expect(locators.generateDocs.filterByTagsButton()).toBeChecked();
     await expect(locators.generateDocs.includeTagsInput()).toBeVisible();
     await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
 
@@ -383,7 +383,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().click();
+      await locators.generateDocs.filterByTagsButton().check();
       const include = locators.generateDocs.includeTagsInput();
       await include.fill('smoke');
       await include.press('Enter');
@@ -400,7 +400,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().click();
+      await locators.generateDocs.filterByTagsButton().check();
       const exclude = locators.generateDocs.excludeTagsInput();
       await exclude.fill('wip');
       await exclude.press('Enter');
