@@ -9,7 +9,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '', variableType = 'variables' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
 
   const environmentsDraft = collection?.environmentsDraft;
@@ -105,6 +105,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
     <EnvironmentVariablesTable
       key={environment?.uid}
       environment={environment}
+      inheritedEnvironmentVariables={inheritedEnvironmentVariables}
       collection={collection}
       onSave={handleSave}
       draft={hasDraftForThisEnv ? environmentsDraft : null}

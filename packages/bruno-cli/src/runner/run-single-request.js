@@ -234,6 +234,7 @@ const runSingleRequest = async function (
 
     // Build certsAndProxyConfig for bru.sendRequest
     const options = getOptions();
+    scriptingConfig.cacheModules = get(options, 'cacheModules', false) === true;
     const systemProxyConfig = options['cachedSystemProxy'];
     const sendRequestInterpolationOptions = {
       envVars: envVariables,

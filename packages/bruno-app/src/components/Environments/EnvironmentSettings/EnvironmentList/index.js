@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import useDebounce from 'hooks/useDebounce';
+import { EnvironmentSelectionProvider } from 'hooks/useEnvironmentSelection';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -506,18 +507,20 @@ const EnvironmentList = ({
 
     if (selectedEnvironment) {
       return (
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          setIsModified={setIsModified}
-          originalEnvironmentVariables={originalEnvironmentVariables}
-          collection={collection}
-          searchQuery={envSearchQuery}
-          setSearchQuery={setEnvSearchQuery}
-          isSearchExpanded={isEnvSearchExpanded}
-          setIsSearchExpanded={setIsEnvSearchExpanded}
-          debouncedSearchQuery={debouncedEnvSearchQuery}
-          searchInputRef={envSearchInputRef}
-        />
+        <EnvironmentSelectionProvider environments={environments} onSelect={handleEnvironmentClick}>
+          <EnvironmentDetails
+            environment={selectedEnvironment}
+            setIsModified={setIsModified}
+            originalEnvironmentVariables={originalEnvironmentVariables}
+            collection={collection}
+            searchQuery={envSearchQuery}
+            setSearchQuery={setEnvSearchQuery}
+            isSearchExpanded={isEnvSearchExpanded}
+            setIsSearchExpanded={setIsEnvSearchExpanded}
+            debouncedSearchQuery={debouncedEnvSearchQuery}
+            searchInputRef={envSearchInputRef}
+          />
+        </EnvironmentSelectionProvider>
       );
     }
 

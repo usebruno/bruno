@@ -2,7 +2,14 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
+import {
+  IconTrash,
+  IconAlertCircle,
+  IconChevronDown,
+  IconChevronRight,
+  IconGripVertical,
+  IconMinusVertical
+} from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -32,10 +39,13 @@ import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
+import InheritedVariableRow from './InheritedVariableRow';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
 const MIN_ROW_HEIGHT = 35;
+// The "Inherited <tab>" and "<tab>" headers, rendered only when something is inherited.
+const SECTION_HEADER_ROWS = 2;
 
 // Non-secret rows first, then secrets. The tabs save independently, so a stable
 // order keeps the "modified" comparison accurate regardless of which tab saved last.
@@ -46,9 +56,39 @@ const orderVarsBySecret = (vars) => {
   return [...nonSecret, ...secret];
 };
 
+const ROW_SECTION_HEADER = 'sectionHeader';
+const ROW_INHERITED_VARIABLE = 'inheritedVariable';
+
 const TableRow = React.memo(
   ({ children, item, style, context, ...rest }) => {
+    if (item?.type === ROW_SECTION_HEADER) {
+      return (
+        <tr
+          style={style}
+          {...rest}
+          className={`${rest.className || ''} section-header-row`.trim()}
+          data-testid={`env-var-section-${item.section}`}
+        >
+          {children}
+        </tr>
+      );
+    }
+
     const variable = item?.variable ?? item;
+
+    if (item?.type === ROW_INHERITED_VARIABLE) {
+      return (
+        <tr
+          style={style}
+          {...rest}
+          className={`${rest.className || ''} inherited-row`.trim()}
+          data-testid={`env-inherited-var-row-${variable?.name}`}
+        >
+          {children}
+        </tr>
+      );
+    }
+
     const canDrag = !!context?.dragEnabled && item?.index !== context?.lastFormikIndex;
     const isDragOver = canDrag && context?.dragOverKey === variable?.uid;
     const isBeingDragged = canDrag && context?.draggingKey === variable?.uid;
@@ -73,6 +113,7 @@ const TableRow = React.memo(
     const nextCtx = nextProps.context || {};
     return (
       prevUid === nextUid
+      && prevProps.item?.count === nextProps.item?.count
       && prevProps.children === nextProps.children
       && prevCtx.dragEnabled === nextCtx.dragEnabled
       && prevCtx.dragOverKey === nextCtx.dragOverKey
@@ -82,6 +123,12 @@ const TableRow = React.memo(
 );
 
 const columns = ['name', 'value', 'description'];
+
+const matchesSearchQuery = (variable, query) => {
+  const valueText = ['string', 'number', 'boolean'].includes(typeof variable.value) ? String(variable.value) : '';
+  const description = typeof variable.description === 'string' ? variable.description : '';
+  return `${variable.name ?? ''}\n${valueText}\n${description}`.toLowerCase().includes(query);
+};
 
 const EnvVarValueCell = ({
   variable,
@@ -133,7 +180,7 @@ const EnvVarValueCell = ({
             hideSecretEye={showAsSecret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
-              formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+              formik.setFieldValue(`${actualIndex}.value`, newValue, false);
               if (variable.ephemeral) {
                 formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
                 formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
@@ -176,6 +223,7 @@ const EnvVarValueCell = ({
 
 const EnvironmentVariablesTable = ({
   environment,
+  inheritedEnvironmentVariables = [],
   collection,
   onSave,
   draft,
@@ -200,8 +248,14 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const rowCount = (environment.variables?.length || 0) + 1;
-  const [tableHeight, setTableHeight] = useState(Math.max(rowCount * MIN_ROW_HEIGHT, MIN_H));
+  const [tableHeight, setTableHeight] = useState(() => {
+    const ownRows = (environment.variables || []).filter((variable) => !!variable.secret === isSecretTab).length + 1;
+    const inheritedRows = inheritedEnvironmentVariables.length
+      ? inheritedEnvironmentVariables.length + SECTION_HEADER_ROWS
+      : 0;
+    return Math.max((ownRows + inheritedRows) * MIN_ROW_HEIGHT, MIN_H);
+  });
+  const [hasMeasuredTableListHeight, setHasMeasuredTableListHeight] = useState(false);
 
   const [scroll, setScroll] = usePersistedState({
     key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
@@ -228,6 +282,9 @@ const EnvironmentVariablesTable = ({
   const [resizing, setResizing] = useState(null);
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
   const isSearchActive = !!searchQuery?.trim();
+
+  const [collapsedSections, setCollapsedSections] = useState({ inherited: false, own: false });
+  const toggleSection = (section) => setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
 
   const variablesSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::variables` });
   const secretsSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::secrets` });
@@ -290,6 +347,7 @@ const EnvironmentVariablesTable = ({
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(Math.max(h, MIN_H));
+    setHasMeasuredTableListHeight(true);
   }, []);
 
   const handleRowFocus = useCallback((uid) => {
@@ -321,6 +379,8 @@ const EnvironmentVariablesTable = ({
     const c = collection ? cloneDeep(collection) : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
     c.globalEnvSecrets = globalEnvSecrets;
+    c.globalEnvironments = globalEnvironments;
+    c.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
     // Preserve the actual active environment so variable existence and
     // interpolation environment can be resolved independently.
     c.realActiveEnvironmentUid = collection?.activeEnvironmentUid;
@@ -329,7 +389,15 @@ const EnvironmentVariablesTable = ({
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, globalEnvSecrets, workspaceProcessEnvVariables, environment.uid]);
+  }, [
+    collection,
+    globalEnvironmentVariables,
+    globalEnvSecrets,
+    globalEnvironments,
+    activeGlobalEnvironmentUid,
+    workspaceProcessEnvVariables,
+    environment.uid
+  ]);
 
   const resolvableVariables = useMemo(() => getAllVariables(_collection), [_collection]);
 
@@ -863,30 +931,15 @@ const EnvironmentVariablesTable = ({
         return isSecretTab ? !!variable.secret : !variable.secret;
       });
 
-    if (!searchQuery?.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) {
       return tabVariables;
     }
 
-    const query = searchQuery.toLowerCase().trim();
-
     const effectivePins = pinnedData.query === searchQuery ? pinnedData.uids : new Set();
-    return tabVariables.filter(({ variable }) => {
-      if (effectivePins.has(variable.uid)) return true;
-      const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
-      const valueText
-        = typeof variable.value === 'string'
-          ? variable.value
-          : typeof variable.value === 'number' || typeof variable.value === 'boolean'
-            ? String(variable.value)
-            : '';
-      const valueMatch = valueText.toLowerCase().includes(query);
-      const descriptionMatch
-        = variable.description && typeof variable.description === 'string'
-          ? variable.description.toLowerCase().includes(query)
-          : false;
-
-      return !!(nameMatch || valueMatch || descriptionMatch);
-    });
+    return tabVariables.filter(
+      ({ variable }) => effectivePins.has(variable.uid) || matchesSearchQuery(variable, query)
+    );
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
   const displayedVariables = (() => {
@@ -909,20 +962,52 @@ const EnvironmentVariablesTable = ({
     return hasTrailing ? [...sorted, trailing] : sorted;
   })();
 
+  const inheritedVariableRows = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const matching = query
+      ? inheritedEnvironmentVariables.filter((variable) => matchesSearchQuery(variable, query))
+      : inheritedEnvironmentVariables;
+    return matching.map((variable) => ({ type: ROW_INHERITED_VARIABLE, variable }));
+  }, [inheritedEnvironmentVariables, searchQuery]);
+
+  const tabLabel = isSecretTab ? 'Secrets' : 'Variables';
+  const variableRows = inheritedEnvironmentVariables.length
+    ? [
+        {
+          type: ROW_SECTION_HEADER,
+          section: 'inherited',
+          label: `Inherited ${tabLabel}`,
+          count: inheritedVariableRows.length
+        },
+        ...(collapsedSections.inherited ? [] : inheritedVariableRows),
+        {
+          type: ROW_SECTION_HEADER,
+          section: 'own',
+          label: tabLabel,
+          count: displayedVariables.filter(({ variable }) => variable.name && variable.name.trim() !== '').length
+        },
+        ...(collapsedSections.own ? [] : displayedVariables)
+      ]
+    : displayedVariables;
+
   return (
-    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
-      {isSearchActive && displayedVariables.length === 0 ? (
-        <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
+    <StyledWrapper
+      className={`${resizing ? 'is-resizing' : ''} ${hasMeasuredTableListHeight ? '' : 'is-measuring'} has-description-column`.trim()}
+    >
+      {isSearchActive && displayedVariables.length === 0 && inheritedVariableRows.length === 0 ? (
+        <div className="no-results" data-testid="env-vars-no-results">
+          No results found for &ldquo;{searchQuery.trim()}&rdquo;
+        </div>
       ) : (
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
           scrollerRef={setScrollerEl}
           initialTopMostItemIndex={initialTopMostItemIndex}
-          overscan={Math.min(30, displayedVariables.length)}
+          overscan={Math.min(30, variableRows.length)}
           components={{ TableRow }}
           context={dragContext}
-          data={displayedVariables}
+          data={variableRows}
           totalListHeightChanged={handleTotalHeightChanged}
           fixedHeaderContent={() => (
             <tr>
@@ -954,8 +1039,37 @@ const EnvironmentVariablesTable = ({
             </tr>
           )}
           defaultItemHeight={35}
-          computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
-          itemContent={(virtualIndex, { variable, index: actualIndex }) => {
+          computeItemKey={(virtualIndex, item) => {
+            if (item.type === ROW_SECTION_HEADER) return `section-${item.section}`;
+            if (item.type === ROW_INHERITED_VARIABLE) return `inherited-${item.variable.uid}`;
+            return item.variable.uid;
+          }}
+          itemContent={(virtualIndex, item) => {
+            if (item.type === ROW_SECTION_HEADER) {
+              const ChevronIcon = collapsedSections[item.section] ? IconChevronRight : IconChevronDown;
+              return (
+                <td colSpan={columns.length + 2}>
+                  <button
+                    type="button"
+                    className="section-toggle"
+                    onClick={() => toggleSection(item.section)}
+                    data-testid={`env-var-section-toggle-${item.section}`}
+                  >
+                    <ChevronIcon size={14} strokeWidth={1.5} />
+                    <span>{item.label}</span>
+                    <span className="section-count">({item.count})</span>
+                  </button>
+                </td>
+              );
+            }
+
+            if (item.type === ROW_INHERITED_VARIABLE) {
+              return (
+                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+              );
+            }
+
+            const { variable, index: actualIndex } = item;
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
@@ -1034,7 +1148,7 @@ const EnvironmentVariablesTable = ({
                     value={variable.description ?? ''}
                     placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
                     onChange={(newValue) => {
-                      formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                      formik.setFieldValue(`${actualIndex}.description`, newValue, false);
                       if (isLastRow) {
                         setTimeout(() => {
                           formik.setFieldValue(formik.values.length, {

@@ -1,25 +1,8 @@
 import React, { memo } from 'react';
 import { ResolutionButton } from '../ReviewStep/StyledWrapper';
-import { RESOLUTION_TYPES, RESOLUTION_LABELS, RESOLUTION_SHORT_LABELS } from '../utils';
-
-const RESOLUTION_OPTIONS = [
-  {
-    value: RESOLUTION_TYPES.COPY,
-    label: RESOLUTION_LABELS[RESOLUTION_TYPES.COPY],
-    shortLabel: RESOLUTION_SHORT_LABELS[RESOLUTION_TYPES.COPY],
-    testId: 'env-import-copy-btn'
-  },
-  {
-    value: RESOLUTION_TYPES.REPLACE,
-    label: RESOLUTION_LABELS[RESOLUTION_TYPES.REPLACE],
-    shortLabel: RESOLUTION_SHORT_LABELS[RESOLUTION_TYPES.REPLACE],
-    testId: 'env-import-replace-btn'
-  }
-];
+import { RESOLUTION_OPTIONS } from '../utils';
 
 const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setItemResolution, showResolutions }) => {
-  const sourceFile = env.filePath || env.fileName;
-
   return (
     <div className="env-item" data-testid="env-import-item">
       <label className="env-item-label">
@@ -31,12 +14,12 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
           data-testid="env-import-item-checkbox"
         />
         <div className="env-item-content">
-          <div className="env-name" title={sourceFile}>{env.name}</div>
+          <div className="env-name" title={env.name}>{env.name}</div>
         </div>
       </label>
       {showResolutions && (
         <div className="env-actions">
-          {RESOLUTION_OPTIONS.map(({ value, label, shortLabel, testId }) => {
+          {RESOLUTION_OPTIONS.map(({ value, label, title, testId }) => {
             const selected = resolution === value;
 
             return (
@@ -45,10 +28,10 @@ const EnvironmentRow = ({ env, isSelected, resolution, toggleItemSelection, setI
                 $selected={selected}
                 aria-pressed={selected}
                 onClick={() => setItemResolution(env.id, value)}
-                title={label}
+                title={title}
                 data-testid={testId}
               >
-                {shortLabel}
+                {label}
               </ResolutionButton>
             );
           })}

@@ -5,6 +5,8 @@ export const StyledWrapper = styled.div`
   .modal-content {
     display: flex;
     flex-direction: column;
+    width: 498px;
+    max-width: 100%;
     height: 450px;
     max-height: calc(100vh - 180px);
     overflow: hidden;
@@ -229,6 +231,9 @@ export const StyledWrapper = styled.div`
     font-weight: 400;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .env-error {
@@ -236,6 +241,9 @@ export const StyledWrapper = styled.div`
     font-weight: 400;
     color: ${(props) => props.theme.colors.text.danger};
     margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .env-actions {

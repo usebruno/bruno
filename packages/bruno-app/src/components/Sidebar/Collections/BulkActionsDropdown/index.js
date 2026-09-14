@@ -4,10 +4,12 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
-import { getSelectionInfo, isScratchCollection } from 'utils/collections/index';
+import { getSelectionInfo, isScratchCollection, isCollectionItemCollapsed } from 'utils/collections/index';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 
-const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : entry.item.collapsed);
+const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item));
+const isEntryCollapsible = (entry) =>
+  entry.type === 'collection' || entry.type === 'folder' || (entry.type === 'request' && entry.item.examples?.length > 0);
 
 const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollections, onRequestDeleteItems }) => {
   const dispatch = useDispatch();
@@ -21,14 +23,14 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     [collections, workspaces]
   );
 
-  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp } = useMemo(
+  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp, hasExample } = useMemo(
     () => getSelectionInfo({ collections: visibleCollections, selectedUids: selectedSidebarUids }),
     [visibleCollections, selectedSidebarUids]
   );
 
-  const isPureCollectionSelection = hasCollection && !hasFolder && !hasRequest && !hasApp;
-  const canDelete = !hasCollection && (hasFolder || hasRequest || hasApp);
-  const collapsibleEntries = effectiveSelection.filter((entry) => entry.type === 'collection' || entry.type === 'folder');
+  const isPureCollectionSelection = hasCollection && !hasFolder && !hasRequest && !hasApp && !hasExample;
+  const canDelete = !hasCollection && (hasFolder || hasRequest || hasApp || hasExample);
+  const collapsibleEntries = effectiveSelection.filter(isEntryCollapsible);
   const canCollapse = collapsibleEntries.length > 0;
   const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
 
