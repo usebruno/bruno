@@ -3,7 +3,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { sanitizeName } = require('./filesystem');
-const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
+const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
 const constants = require('../constants');
@@ -489,8 +489,26 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const getEffectiveTagsForItem = (collection, item) =>
-  getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item)));
+/** Effective tags (own + inherited) for every item in the collection, keyed by pathname. */
+const getEffectiveTagsByPathname = (collection) => {
+  const tagsByPathname = new Map();
+
+  const walk = (items, inheritedTags) => {
+    each(items, (item) => {
+      if (item.type === 'folder') {
+        const folderTags = getEffectiveTags(inheritedTags, getFolderTags(item));
+        tagsByPathname.set(item.pathname, folderTags);
+        walk(item.items, folderTags);
+        return;
+      }
+      tagsByPathname.set(item.pathname, getEffectiveTags(getOwnTags(item), inheritedTags));
+    });
+  };
+
+  walk(collection.items, []);
+
+  return tagsByPathname;
+};
 
 const mergeAuth = (collection, request, requestTreePath) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -721,7 +739,7 @@ module.exports = {
   wrapAndJoinScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
-  getEffectiveTagsForItem,
+  getEffectiveTagsByPathname,
   createCollectionFromBrunoObject,
   mergeAuth,
   getAllRequestsInFolder,
