@@ -1904,3 +1904,72 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     });
   });
 });
+
+// Only a run against the real targets proves the emitted command is one a shell
+// will accept: `curl --request post` transmits the literal token `post`, which
+// servers reject.
+describe('generateSnippet – a lowercase verb still renders a runnable command', () => {
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {},
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  const makeItem = (method) => ({
+    uid: 'lowercase-verb',
+    request: {
+      method,
+      url: 'https://api.example.com/users',
+      headers: [{ name: 'Content-Type', value: 'application/json', enabled: true }],
+      body: { mode: 'json', json: '{"name":"bruno"}' },
+      auth: { mode: 'none' },
+      params: []
+    }
+  });
+
+  let mockedHTTPSnippet;
+
+  beforeAll(() => {
+    mockedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterAll(() => {
+    require('httpsnippet').HTTPSnippet = mockedHTTPSnippet;
+  });
+
+  it('curl receives an uppercase verb', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('post'),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('--request POST');
+    expect(result).not.toContain('--request post');
+  });
+
+  it('wget receives an uppercase verb', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'wget' },
+      item: makeItem('delete'),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('--method DELETE');
+  });
+
+  it('the raw HTTP request line carries an uppercase verb', async () => {
+    const result = await generateSnippet({
+      language: { target: 'http', client: 'http1.1' },
+      item: makeItem('patch'),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result.startsWith('PATCH /users HTTP/1.1')).toBe(true);
+  });
+});
