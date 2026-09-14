@@ -2672,7 +2672,7 @@ const openFolderSettings = async (page: Page, collectionName: string, folderName
  */
 const addTag = async (page: Page, tagName: string) => {
   await test.step(`Add tag "${tagName}"`, async () => {
-    const input = page.getByTestId('tag-input').getByRole('textbox');
+    const input = buildCommonLocators(page).tags.input();
     await expect(input).toBeVisible();
     await input.fill(tagName);
     await input.press('Enter');
@@ -2688,7 +2688,7 @@ const addTag = async (page: Page, tagName: string) => {
  */
 const removeTag = async (page: Page, tagName: string) => {
   await test.step(`Remove tag "${tagName}"`, async () => {
-    const chip = page.locator('.tag-item:not(.inherited)', { hasText: tagName });
+    const chip = buildCommonLocators(page).tags.ownItem(tagName);
     await expect(chip).toBeVisible();
     await chip.locator('.tag-remove').click();
   });

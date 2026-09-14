@@ -120,10 +120,16 @@ export const revealFolderRow = async (
     const locators = buildSidebarLocators(page);
     const collectionContainer = locators.collectionScope(collectionName);
 
-    const rootFolder = collectionContainer.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
-    if (!(await rootFolder.isVisible().catch(() => false))) {
-      await locators.collection(collectionName).click();
+    const collectionChevron = locators.collectionChevron(collectionName);
+    await expect(collectionChevron).toBeVisible();
+    const isCollectionExpanded = await collectionChevron.evaluate((el: HTMLElement) =>
+      el.classList.contains('rotate-90')
+    );
+    if (!isCollectionExpanded) {
+      await collectionChevron.click();
     }
+
+    const rootFolder = collectionContainer.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
     await expect(rootFolder).toBeVisible();
 
     // Each CollectionItem renders as a wrapper div holding the row (.collection-item-name) and,

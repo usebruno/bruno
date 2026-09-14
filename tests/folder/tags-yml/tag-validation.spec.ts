@@ -20,8 +20,8 @@ test.describe('Folder Tags (YAML) — input validation', () => {
 
     await addTag(page, 'needs review');
 
-    await expect(locators.tags.error()).toBeHidden();
     await expect(locators.tags.ownItem('needs review')).toBeVisible();
+    await expect(locators.tags.error()).toBeHidden();
   });
 
   test('rejects a tag the folder already inherits, naming the folder it came from', async ({

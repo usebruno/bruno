@@ -50,6 +50,7 @@ test.describe('Folder Tags (YAML) — inheritance display', () => {
 
     await selectFolderSettingsTab(page, 'settings');
 
+    await expect(locators.tags.input()).toBeVisible();
     await expect(locators.tags.ownItems()).toHaveCount(0);
     await expect(locators.tags.inheritedToggle()).toBeHidden();
   });
@@ -126,6 +127,7 @@ test.describe('Folder Tags (YAML) — inheritance display', () => {
       await locators.sidebar.itemsIn(COLLECTION_NAME, 'untagged').click();
       await expect(locators.tabs.activeRequestTab()).toContainText('untagged');
       await selectRequestPaneTab(page, 'Settings');
+      await expect(locators.tags.input()).toBeVisible();
       await expect(locators.tags.ownItems()).toHaveCount(0);
       await expect(locators.tags.inheritedToggle()).toBeHidden();
     });
