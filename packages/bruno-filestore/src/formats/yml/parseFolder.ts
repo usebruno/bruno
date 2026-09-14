@@ -6,6 +6,7 @@ import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
+import { normalizeTags } from '@usebruno/common';
 import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
@@ -14,7 +15,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
     const info = ocFolder.info;
     const seq = info?.seq;
-    const tags = Array.isArray(info?.tags) ? info!.tags.filter((tag) => typeof tag === 'string' && tag.length > 0) : [];
+    const tags = normalizeTags(info?.tags);
 
     const folderRoot: FolderRoot = {
       meta: {
