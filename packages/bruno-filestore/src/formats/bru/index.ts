@@ -7,6 +7,7 @@ import {
   collectionBruToJson as _collectionBruToJson,
   jsonToCollectionBru as _jsonToCollectionBru
 } from '@usebruno/lang';
+import { normalizeTags } from '@usebruno/common';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
 export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
@@ -270,12 +271,6 @@ export const stringifyBruRequest = (json: any): string => {
   }
 };
 
-const getMetaTags = (meta: any): string[] | undefined => {
-  const { tags } = meta;
-  if (!Array.isArray(tags) || !tags.length) return undefined;
-  return tags.filter((tag: any) => typeof tag === 'string' && tag.length > 0);
-};
-
 export const parseBruCollection = (data: string | any, parsed: boolean = false): any => {
   try {
     const json = parsed ? data : _collectionBruToJson(data);
@@ -305,8 +300,8 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
       }
 
-      const tags = getMetaTags(json.meta);
-      if (tags?.length) {
+      const tags = normalizeTags(json.meta.tags);
+      if (tags.length) {
         transformedJson.meta.tags = tags;
       }
     }
@@ -358,8 +353,8 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       }
 
       if (isFolder) {
-        const tags = getMetaTags(json.meta);
-        if (tags?.length) {
+        const tags = normalizeTags(json.meta.tags);
+        if (tags.length) {
           collectionBruJson.meta.tags = tags;
         }
       }
