@@ -2663,6 +2663,109 @@ const openFolderSettings = async (page: Page, collectionName: string, folderName
   });
 };
 
+/**
+ * Types a tag into the tag editor and commits it with Enter. Shared by the request Settings tab
+ * and the folder Settings tab, which render the same TagList.
+ * @param page - The Playwright page object
+ * @param tagName - The tag to add
+ * @returns void
+ */
+const addTag = async (page: Page, tagName: string) => {
+  await test.step(`Add tag "${tagName}"`, async () => {
+    const input = page.getByTestId('tag-input').getByRole('textbox');
+    await expect(input).toBeVisible();
+    await input.fill(tagName);
+    await input.press('Enter');
+  });
+};
+
+/**
+ * Removes a tag the item owns. Inherited tags have no remove control, so this only ever
+ * targets the removable chips.
+ * @param page - The Playwright page object
+ * @param tagName - The tag to remove
+ * @returns void
+ */
+const removeTag = async (page: Page, tagName: string) => {
+  await test.step(`Remove tag "${tagName}"`, async () => {
+    const chip = page.locator('.tag-item:not(.inherited)', { hasText: tagName });
+    await expect(chip).toBeVisible();
+    await chip.locator('.tag-remove').click();
+  });
+};
+
+/**
+ * Saves the active folder settings tab and waits for the confirmation toast.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+const saveFolderSettings = async (page: Page) => {
+  await test.step('Save folder settings', async () => {
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await expect(page.getByText('Folder Settings saved successfully').last()).toBeVisible({ timeout: 5000 });
+  });
+};
+
+/**
+ * Opens folder settings for a folder nested at any depth, expanding each level on the way down.
+ * `openFolderSettings` only finds folders already visible in the sidebar; this walks a path such
+ * as ['api', 'v2'] so a child folder can be reached without its parent being expanded first.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderPath - Folder names from the collection root down to the target folder
+ * @returns void
+ */
+const openFolderSettingsByPath = async (page: Page, collectionName: string, folderPath: string[]) => {
+  await test.step(`Open folder settings for "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
+    await expect(collectionRow).toBeVisible();
+
+    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
+    const collectionContainer = page.locator(`#${collectionId}`);
+
+    // A collapsed collection renders its container but none of its items, so probe for the
+    // first folder on the path rather than the container itself.
+    const rootFolder = collectionContainer.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
+    if (!(await rootFolder.isVisible().catch(() => false))) {
+      await collectionRow.click();
+    }
+    await expect(rootFolder).toBeVisible();
+
+    // Expand every ancestor: a collapsed folder keeps its children out of the DOM entirely.
+    let scope = collectionContainer;
+    for (const folderName of folderPath.slice(0, -1)) {
+      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+      await expect(row).toBeVisible();
+
+      const chevron = row.getByTestId('folder-chevron');
+      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+      if (!isExpanded) {
+        await chevron.click();
+      }
+      scope = row.locator('..');
+    }
+
+    const targetName = folderPath[folderPath.length - 1];
+    const targetRow = scope.locator('.collection-item-name').filter({ hasText: targetName }).first();
+    await expect(targetRow).toBeVisible();
+    await targetRow.dblclick();
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: targetName })).toBeVisible();
+  });
+};
+
+/**
+ * Opens one tab of the folder settings pane (headers, script, test, vars, auth, docs, settings).
+ * @param page - The Playwright page object
+ * @param tabName - The settings tab to activate
+ * @returns void
+ */
+const selectFolderSettingsTab = async (page: Page, tabName: string) => {
+  await test.step(`Select folder settings tab "${tabName}"`, async () => {
+    await page.getByTestId(`folder-settings-tab-${tabName}`).click();
+  });
+};
+
 const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
   const descCell = rowLocator.getByTestId('column-description');
   await descCell.evaluate((el: any, val: string) => {
@@ -3756,7 +3859,12 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  addTag,
+  removeTag,
+  saveFolderSettings,
   openFolderSettings,
+  openFolderSettingsByPath,
+  selectFolderSettingsTab,
   setTableRowDescriptionValue,
   setAppCode,
   setAppEnabled,
