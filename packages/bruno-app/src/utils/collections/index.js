@@ -873,7 +873,7 @@ export const transformFolderRootToSave = (folder) => {
     }
   };
 
-  each(_folder?.request?.headers, (header) => {
+  each(_folder.request.headers, (header) => {
     folderRootToSave.request.headers.push({
       uid: header.uid,
       name: header.name,

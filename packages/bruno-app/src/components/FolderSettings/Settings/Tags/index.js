@@ -20,7 +20,7 @@ const Tags = ({ folder, collection }) => {
   const tagsHintList = getUniqueTagsFromItems(collection.items).filter((tag) => !assignedTags.includes(tag));
 
   const handleAddTag = useCallback((tag) => {
-    dispatch(addFolderTag({ tag, folderUid: folder.uid, collectionUid: collection.uid }));
+    dispatch(addFolderTag({ tag: tag.trim(), folderUid: folder.uid, collectionUid: collection.uid }));
   }, [dispatch, folder.uid, collection.uid]);
 
   const handleRemoveTag = useCallback((tag) => {
