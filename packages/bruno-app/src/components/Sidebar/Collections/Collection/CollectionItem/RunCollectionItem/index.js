@@ -68,12 +68,12 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
     <StyledWrapper>
       <Modal size="md" title="Collection Runner" hideFooter={true} handleCancel={onClose}>
         <div>
-          <div className="mb-1">
+          <div className="mb-1" data-testid="folder-run-count">
             <span className="font-medium">Run</span>
             <span className="ml-1 text-xs">({totalRequestItemsCountForFolderRun} requests)</span>
           </div>
           <div className="mb-3 description">This will only run the requests in this folder.</div>
-          <div className="mb-1">
+          <div className="mb-1" data-testid="folder-recursive-run-count">
             <span className="font-medium">Recursive Run</span>
             <span className="ml-1 text-xs">({totalRequestItemsCountForRecursiveFolderRun} requests)</span>
           </div>

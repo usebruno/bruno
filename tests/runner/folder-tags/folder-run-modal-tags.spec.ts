@@ -3,7 +3,7 @@ import {
   openFolderRunModal,
   folderRunButton,
   folderRunCount,
-  closeFolderRunModal,
+  dismissFolderRunModal,
   addRunnerTag,
   clearRunnerTags,
   buildRunnerLocators
@@ -13,26 +13,28 @@ import { buildCommonLocators } from '../../utils/page/locators';
 const COLLECTION_NAME = 'runner-folder-tags';
 
 test.describe('Folder run modal — folder tags', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await dismissFolderRunModal(page);
+  });
+
   test('counts only the requests a nested folder tag reaches', async ({ pageWithUserData: page }) => {
     const modal = await openFolderRunModal(page, COLLECTION_NAME, ['api']);
     await clearRunnerTags(page, modal);
 
     await test.step('Unfiltered, the folder offers its own two and four recursively', async () => {
-      await expect(folderRunCount(page, modal, 'Run')).toContainText('(2 requests)');
-      await expect(folderRunCount(page, modal, 'Recursive Run')).toContainText('(4 requests)');
+      await expect(folderRunCount(modal, 'Run')).toContainText('(2 requests)');
+      await expect(folderRunCount(modal, 'Recursive Run')).toContainText('(4 requests)');
     });
 
     await addRunnerTag(page, 'Include', 'v2', modal);
 
     await test.step('Filtering on the child folder\'s tag empties the non-recursive run', async () => {
-      await expect(folderRunCount(page, modal, 'Run')).toContainText('(0 requests)');
+      await expect(folderRunCount(modal, 'Run')).toContainText('(0 requests)');
       await expect(folderRunButton(modal, 'Run')).toBeDisabled();
 
-      await expect(folderRunCount(page, modal, 'Recursive Run')).toContainText('(2 requests)');
+      await expect(folderRunCount(modal, 'Recursive Run')).toContainText('(2 requests)');
       await expect(folderRunButton(modal, 'Recursive Run')).toBeEnabled();
     });
-
-    await closeFolderRunModal(modal);
   });
 
   test('keeps inheriting tags from folders above the one being run', async ({ pageWithUserData: page }) => {
@@ -45,8 +47,8 @@ test.describe('Folder run modal — folder tags', () => {
     await addRunnerTag(page, 'Include', 'api', modal);
 
     await test.step('"api" is inherited from the parent folder, not carried by v2 or its requests', async () => {
-      await expect(folderRunCount(page, modal, 'Run')).toContainText('(2 requests)');
-      await expect(folderRunCount(page, modal, 'Recursive Run')).toContainText('(2 requests)');
+      await expect(folderRunCount(modal, 'Run')).toContainText('(2 requests)');
+      await expect(folderRunCount(modal, 'Recursive Run')).toContainText('(2 requests)');
     });
 
     await test.step('Running the folder executes both of them', async () => {

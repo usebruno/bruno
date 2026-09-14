@@ -32,27 +32,29 @@ export const buildRunnerLocators = (page: Page) => ({
 
 /**
  * Builds locators for the include/exclude tag filters shared by the runner tab and the sidebar
- * "Run" modal. Both render two TagLists side by side, so each is addressed through the labelled
- * column that holds it rather than by position.
+ * "Run" modal. Both render the same pair of columns, so `root` picks which copy to address when
+ * the modal overlays the runner tab.
  * @param page - The Playwright page object
  * @param root - The container holding the filters (the page, or the modal when it is open)
  * @returns Object with locators for the tag filter elements
  */
 export const buildRunnerTagLocators = (page: Page, root?: Locator) => {
   const scope = root ?? page.locator('body');
-  // Pin to the column whose own heading is this label: matching on descendants would also
-  // select every ancestor that happens to contain it.
-  const column = (kind: RunnerTagKind) => scope.locator(`div:has(> span:text-is("${kind} tags"))`);
+  const column = (kind: RunnerTagKind) => scope.getByTestId(RUNNER_TAG_COLUMN_TEST_IDS[kind]);
 
   return {
     column,
     input: (kind: RunnerTagKind) => column(kind).getByTestId('tag-input').getByRole('textbox'),
-    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-item', { hasText: tagName }),
-    error: (kind: RunnerTagKind) => column(kind).getByTestId('tag-error')
+    chip: (kind: RunnerTagKind, tagName: string) => column(kind).locator('.tag-item', { hasText: tagName })
   };
 };
 
 export type RunnerTagKind = 'Include' | 'Exclude';
+
+const RUNNER_TAG_COLUMN_TEST_IDS: Record<RunnerTagKind, string> = {
+  Include: 'runner-include-tags',
+  Exclude: 'runner-exclude-tags'
+};
 
 /**
  * Adds a tag to the runner's include or exclude filter and waits for the chip to appear.
@@ -246,12 +248,11 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
  * Opens a folder's run modal without starting a run: walks the sidebar to the folder, expanding
  * the collection and any parent folders on the way, then picks "Run" from its context menu.
  * The modal reports how many requests each run mode would cover, so a spec can assert the effect
- * of the tag filters without executing anything. Close it with `closeFolderRunModal` if the spec
- * does not go on to run — it overlays the sidebar.
+ * of the tag filters without executing anything.
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection containing the folder
  * @param folderPath - Array of folder names forming the path (e.g. ['scripting', 'api', 'bru', 'cookies'])
- * @returns The modal locator, to pass to `folderRunButton` / `folderRunCount` / `closeFolderRunModal`
+ * @returns The modal locator, to pass to `folderRunButton` / `folderRunCount`
  */
 export const openFolderRunModal = async (page: Page, collectionName: string, folderPath: string[]): Promise<Locator> => {
   return await test.step(`Open the run modal for folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
@@ -286,24 +287,32 @@ export const folderRunButton = (modal: Locator, mode: FolderRunMode): Locator =>
  * Locates the label above a run button, which reports how many requests that button would run.
  * The count reflects the runner's tag filters, so it is the cheapest way to assert filtering
  * without starting a run.
- * @param page - The Playwright page object
  * @param modal - The run modal, as returned by `openFolderRunModal`
  * @param mode - Which of the two run modes to read the count for
  * @returns The label locator, whose text reads e.g. "Recursive Run(2 requests)"
  */
-export const folderRunCount = (page: Page, modal: Locator, mode: FolderRunMode): Locator =>
-  modal.locator('div.mb-1').filter({ has: page.getByText(mode, { exact: true }) });
+export const folderRunCount = (modal: Locator, mode: FolderRunMode): Locator =>
+  modal.getByTestId(FOLDER_RUN_COUNT_TEST_IDS[mode]);
 
 export type FolderRunMode = 'Run' | 'Recursive Run';
 
+const FOLDER_RUN_COUNT_TEST_IDS: Record<FolderRunMode, string> = {
+  'Run': 'folder-run-count',
+  'Recursive Run': 'folder-recursive-run-count'
+};
+
 /**
- * Dismisses the folder run modal without running. The modal overlays the sidebar, so a spec that
- * opens one and does not run must close it before driving the sidebar again.
- * @param modal - The run modal, as returned by `openFolderRunModal`
+ * Dismisses the folder run modal without running, and does nothing if none is open.
+ * @param page - The Playwright page object
  * @returns void
  */
-export const closeFolderRunModal = async (modal: Locator) => {
-  await test.step('Close the folder run modal', async () => {
+export const dismissFolderRunModal = async (page: Page) => {
+  const modal = page.locator('.bruno-modal').first();
+  if (!(await modal.isVisible())) {
+    return;
+  }
+
+  await test.step('Dismiss the folder run modal', async () => {
     await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(modal).toBeHidden();
   });
