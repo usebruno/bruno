@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
-import { EmptyStateRequestType } from './sidebar';
+import { EmptyStateRequestType, revealFolderRow } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -2738,38 +2738,10 @@ const saveFolderSettings = async (page: Page) => {
  */
 const openFolderSettingsByPath = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Open folder settings for "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
-    await expect(collectionRow).toBeVisible();
-
-    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
-    const collectionContainer = page.locator(`#${collectionId}`);
-
-    // A collapsed collection renders its container but none of its items, so probe for the
-    // first folder on the path rather than the container itself.
-    const rootFolder = collectionContainer.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
-    if (!(await rootFolder.isVisible().catch(() => false))) {
-      await collectionRow.click();
-    }
-    await expect(rootFolder).toBeVisible();
-
-    // Expand every ancestor: a collapsed folder keeps its children out of the DOM entirely.
-    let scope = collectionContainer;
-    for (const folderName of folderPath.slice(0, -1)) {
-      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
-      await expect(row).toBeVisible();
-
-      const chevron = row.getByTestId('folder-chevron');
-      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
-      if (!isExpanded) {
-        await chevron.click();
-      }
-      scope = row.locator('..');
-    }
+    const targetRow = await revealFolderRow(page, collectionName, folderPath);
+    await targetRow.dblclick();
 
     const targetName = folderPath[folderPath.length - 1];
-    const targetRow = scope.locator('.collection-item-name').filter({ hasText: targetName }).first();
-    await expect(targetRow).toBeVisible();
-    await targetRow.dblclick();
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: targetName })).toBeVisible();
   });
 };
