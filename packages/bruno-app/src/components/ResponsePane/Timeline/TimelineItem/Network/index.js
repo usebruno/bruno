@@ -44,13 +44,16 @@ const NetworkLogsEntry = ({ entry }) => {
     case 'info':
       className = 'network-logs-entry network-logs-entry--info';
       break;
+    case 'requestHeader':
+      className = 'network-logs-entry';
+      break;
     default:
       className = 'network-logs-entry';
       break;
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="network-log-entry" data-log-type={type}>
       <div>{message}</div>
     </div>
   );

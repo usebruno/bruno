@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "name": "Test API",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.example.com/test"
+  },
+  "examples": [
+    {
+      "name": "Swapped Status Example",
+      "description": "Example with swapped status and statusText from pre-fix Postman import",
+      "request": {
+        "url": "https://api.example.com/users/123",
+        "method": "get",
+        "body": {
+          "mode": "none"
+        }
+      },
+      "response": {
+        "status": "Accepted",
+        "statusText": "202",
+        "body": {
+          "type": "json",
+          "content": "{\n  \"id\": 123,\n  \"name\": \"John Doe\"\n}"
+        }
+      }
+    }
+  ]
+}

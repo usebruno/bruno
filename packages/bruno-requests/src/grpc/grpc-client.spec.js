@@ -2,8 +2,9 @@
  * @jest-environment node
  */
 
-// Store captured channel options for assertions
+// Store captured values for assertions
 let capturedChannelOptions = null;
+let capturedHost = null;
 
 // Mock GrpcReflection to capture options
 const mockListServices = jest.fn().mockResolvedValue(['test.Service']);
@@ -20,6 +21,7 @@ const mockListMethods = jest.fn().mockResolvedValue([
 jest.mock('grpc-js-reflection-client', () => ({
   GrpcReflection: jest.fn().mockImplementation((host, credentials, options) => {
     capturedChannelOptions = options;
+    capturedHost = host;
     return {
       listServices: mockListServices,
       listMethods: mockListMethods
@@ -67,6 +69,7 @@ jest.mock('@grpc/grpc-js', () => {
     makeGenericClientConstructor: jest.fn(() => {
       return jest.fn().mockImplementation((host, credentials, options) => {
         capturedChannelOptions = options;
+        capturedHost = host;
         const mockRpc = createMockRpc();
         return {
           close: jest.fn(),
@@ -105,6 +108,7 @@ describe('GrpcClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedChannelOptions = null;
+    capturedHost = null;
     mockEventCallback = jest.fn();
     grpcClient = new GrpcClient(mockEventCallback);
   });
@@ -503,6 +507,212 @@ describe('GrpcClient', () => {
         // Empty string is falsy, so grpc.primary_user_agent should not be set
         expect(capturedChannelOptions['grpc.primary_user_agent']).toBeUndefined();
       });
+    });
+  });
+
+  describe('Proxy support in startConnection', () => {
+    const baseRequest = {
+      url: 'grpc://myserver:50051',
+      uid: 'test-request-uid',
+      method: '/test.Service/TestMethod',
+      headers: {},
+      body: {
+        grpc: [{ content: '{}' }]
+      }
+    };
+
+    const baseCollection = {
+      uid: 'test-collection-uid',
+      pathname: '/test/path'
+    };
+
+    beforeEach(() => {
+      grpcClient.methods.set('/test.Service/TestMethod', {
+        path: '/test.Service/TestMethod',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (val) => Buffer.from(JSON.stringify(val)),
+        responseDeserialize: (val) => JSON.parse(val.toString())
+      });
+    });
+
+    test('should set proxy channel options when proxyConfig is provided', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: 'http://proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBe('dns:myserver:50051');
+      expect(capturedChannelOptions['grpc.default_authority']).toBe('myserver:50051');
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
+      expect(capturedChannelOptions['grpc.use_local_subchannel_pool']).toBe(1);
+      expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+
+    test('should set proxy auth credentials when proxy has username/password', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: 'http://user:p%40ss@proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_creds']).toBe('user:p@ss');
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBe('dns:myserver:50051');
+      expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+
+    test('should not set proxy credentials when proxy has no auth', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: 'http://proxy.example.com:3128' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_creds']).toBeUndefined();
+      expect(capturedHost).toBe('proxy.example.com:3128');
+    });
+
+    test('should disable env var proxy and use local pool when proxyUrl is null (Bruno proxy off)', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: null }
+      });
+
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
+      expect(capturedChannelOptions['grpc.use_local_subchannel_pool']).toBe(1);
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+      expect(capturedHost).toBe('myserver:50051');
+    });
+
+    test('should not set proxy options when proxyConfig is null (unmanaged)', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: null
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBeUndefined();
+      expect(capturedHost).toBe('myserver:50051');
+    });
+
+    test('should not set proxy options when proxyConfig is undefined (unmanaged)', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBeUndefined();
+      expect(capturedHost).toBe('myserver:50051');
+    });
+
+    test('should default proxy port to 80 when not specified', async () => {
+      await grpcClient.startConnection({
+        request: baseRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: 'http://proxy.example.com' }
+      });
+
+      expect(capturedHost).toBe('proxy.example.com:80');
+    });
+
+    test('should not proxy unix socket targets', async () => {
+      const unixRequest = {
+        ...baseRequest,
+        url: 'unix:/var/run/grpc.sock'
+      };
+
+      await grpcClient.startConnection({
+        request: unixRequest,
+        collection: baseCollection,
+        proxyConfig: { proxyUrl: 'http://proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+    });
+
+    test('should merge proxy options with user-agent and channelOptions', async () => {
+      const request = {
+        ...baseRequest,
+        headers: { 'User-Agent': 'Bruno/1.0' }
+      };
+
+      await grpcClient.startConnection({
+        request,
+        collection: baseCollection,
+        channelOptions: { 'grpc.max_receive_message_length': 1024 * 1024 },
+        proxyConfig: { proxyUrl: 'http://proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.primary_user_agent']).toBe('Bruno/1.0');
+      expect(capturedChannelOptions['grpc.max_receive_message_length']).toBe(1024 * 1024);
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBe('dns:myserver:50051');
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
+      expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+  });
+
+  describe('Proxy support in loadMethodsFromReflection', () => {
+    const baseRequest = {
+      url: 'grpc://myserver:50051',
+      uid: 'test-request-uid',
+      headers: {}
+    };
+
+    const baseParams = {
+      collectionUid: 'test-collection-uid',
+      sendEvent: jest.fn()
+    };
+
+    test('should set proxy channel options for reflection client', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        request: baseRequest,
+        ...baseParams,
+        proxyConfig: { proxyUrl: 'http://proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBe('dns:myserver:50051');
+      expect(capturedChannelOptions['grpc.default_authority']).toBe('myserver:50051');
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
+      expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+
+    test('should set proxy auth credentials for reflection client', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        request: baseRequest,
+        ...baseParams,
+        proxyConfig: { proxyUrl: 'http://admin:secret@proxy.example.com:8080' }
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_creds']).toBe('admin:secret');
+      expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+
+    test('should disable env var proxy for reflection when proxyUrl is null', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        request: baseRequest,
+        ...baseParams,
+        proxyConfig: { proxyUrl: null }
+      });
+
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+      expect(capturedHost).toBe('myserver:50051');
+    });
+
+    test('should not set proxy options for reflection when proxyConfig is null', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        request: baseRequest,
+        ...baseParams,
+        proxyConfig: null
+      });
+
+      expect(capturedChannelOptions['grpc.http_connect_target']).toBeUndefined();
+      expect(capturedChannelOptions['grpc.enable_http_proxy']).toBeUndefined();
+      expect(capturedHost).toBe('myserver:50051');
     });
   });
 });

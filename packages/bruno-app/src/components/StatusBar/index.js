@@ -49,7 +49,10 @@ const StatusBar = () => {
   };
 
   const openGlobalSearch = () => {
-    window.dispatchEvent(new CustomEvent('global-search-open'));
+    const bindings = getKeyBindingsForActionAllOS('globalSearch') || [];
+    bindings.forEach((binding) => {
+      Mousetrap.trigger(binding);
+    });
   };
 
   return (

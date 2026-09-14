@@ -1,0 +1,36 @@
+meta {
+  name: mutation
+  type: graphql
+  seq: 3
+}
+
+post {
+  url: {{localhost}}/api/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  mutation create($id: String!) {
+    create(payload: { id: $id }) {
+      success
+    }
+  }
+  
+}
+
+body:graphql:vars {
+  {
+    "id":"1"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.create.success: eq true
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -22,7 +22,7 @@ test.describe('Multiline Variables - Read Environment Test', () => {
     await expect(page.locator('.current-environment').filter({ hasText: /Test/ })).toBeVisible();
 
     // send request
-    const sendButton = page.locator('#send-request').getByRole('img').nth(2);
+    const sendButton = page.getByTestId('send-arrow-icon');
     await expect(sendButton).toBeVisible();
     await sendButton.click();
     await expect(page.locator('.response-status-code.text-ok')).toBeVisible();

@@ -6,7 +6,7 @@ import {
   IconArrowRight,
   IconArrowsDiff,
   IconInfoCircle,
-  IconRefresh
+  IconLoader2
 } from '@tabler/icons';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
@@ -15,7 +15,7 @@ import ExpandableEndpointRow from '../EndpointChangeSection/ExpandableEndpointRo
 import ConfirmSyncModal from '../ConfirmSyncModal';
 import SpecDiffModal from '../SpecDiffModal';
 import Help from 'components/Help';
-import { setReviewDecision, setReviewDecisions, selectTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { setReviewDecision, setReviewDecisions } from 'providers/ReduxStore/slices/openapi-sync';
 
 /**
  * Categorize remoteDrift endpoints using three-way merge.
@@ -28,8 +28,18 @@ import { setReviewDecision, setReviewDecisions, selectTabUiState } from 'provide
  *  - specRemovedEndpoints: removed from spec, still in collection
  */
 const categorizeEndpoints = (remoteDrift, specDrift, collectionDrift) => {
-  const specAddedEndpoints = remoteDrift.missing || [];
-  const specRemovedEndpoints = remoteDrift.localOnly || [];
+  // Only show endpoints as "New in Spec" if they were actually added to the spec
+  // (i.e., they appear in specDrift.added). Endpoints the user deleted locally that
+  // still exist in both stored and remote spec should not appear here — they belong
+  // in "Collection Changes" only.
+  const specAddedIds = new Set((specDrift?.added || []).map((ep) => ep.id));
+  const specAddedEndpoints = (remoteDrift.missing || []).filter((ep) => specAddedIds.has(ep.id));
+
+  // Only show endpoints as "Removed from Spec" if they were actually in the stored spec
+  // (i.e., they appear in specDrift.removed). Locally-added endpoints that were never in
+  // the spec should not appear here — they belong in "Collection Changes" only.
+  const specRemovedIds = new Set((specDrift?.removed || []).map((ep) => ep.id));
+  const specRemovedEndpoints = (remoteDrift.localOnly || []).filter((ep) => specRemovedIds.has(ep.id));
 
   // Build lookup sets to determine who changed each modified endpoint
   const specModifiedIds = new Set((specDrift?.modified || []).map((ep) => ep.id));
@@ -73,12 +83,25 @@ const SyncReviewPage = ({
   collectionUid,
   newSpec,
   isSyncing,
+  isLoading,
   onApplySync
 }) => {
   const dispatch = useDispatch();
-  const tabUiState = useSelector(selectTabUiState(collectionUid));
+  const tabUiState = useSelector((state) => state.openapiSync?.tabUiState?.[collectionUid] || {});
+  const [preserveValues, setPreserveValues] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSpecDiffModal, setShowSpecDiffModal] = useState(false);
+  const [isOpeningSpecDiff, setIsOpeningSpecDiff] = useState(false);
+
+  // setTimeout lets the button's spinner paint before the modal mounts —
+  // without it, React batches both state updates and the spinner never shows.
+  const handleOpenSpecDiff = () => {
+    setIsOpeningSpecDiff(true);
+    setTimeout(() => {
+      setShowSpecDiffModal(true);
+      setIsOpeningSpecDiff(false);
+    }, 0);
+  };
 
   const { specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints } = useMemo(() => {
     if (!remoteDrift) {
@@ -153,10 +176,7 @@ const SyncReviewPage = ({
 
     // Accepted — changes that will be applied
     addGroup('New endpoints to add', 'add', specAddedEndpoints.filter(isAccepted));
-    addGroup('Endpoints to update', 'update', [
-      ...specUpdatedEndpoints.filter(isAccepted),
-      ...localUpdatedEndpoints.filter(isAccepted)
-    ]);
+    addGroup('Endpoints to update', 'update', specUpdatedEndpoints.filter(isAccepted));
     addGroup('Endpoints to delete', 'remove', specRemovedEndpoints.filter(isAccepted));
 
     // Skipped — changes that will be preserved as-is
@@ -166,7 +186,7 @@ const SyncReviewPage = ({
     addGroup('Keeping current version (skipped updates)', 'keep', specUpdatedEndpoints.filter((ep) => !ep.conflict && isSkipped(ep)));
 
     return groups;
-  }, [specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints, decisions]);
+  }, [specAddedEndpoints, specUpdatedEndpoints, specRemovedEndpoints, decisions]);
 
   const handleConfirmApply = () => {
     setShowConfirmation(false);
@@ -186,13 +206,13 @@ const SyncReviewPage = ({
 
     onApplySync({
       endpointDecisions: decisions,
-      removedIds: [],
       localOnlyIds,
       // Pass filtered categorized endpoints for performSync to construct the right backend diff
       newToCollection: filteredAddedEndpoints,
       specUpdates: filteredSpecChanges,
       resolvedConflicts: specUpdatedEndpoints.filter((ep) => ep.conflict && decisions[ep.id] === 'accept-incoming'),
-      localChangesToReset: localUpdatedEndpoints.filter((ep) => decisions[ep.id] === 'accept-incoming')
+      localChangesToReset: localUpdatedEndpoints.filter((ep) => decisions[ep.id] === 'accept-incoming'),
+      preserveValues
     });
   };
 
@@ -220,9 +240,33 @@ const SyncReviewPage = ({
             </div>
             {(specDrift?.unifiedDiff || decidableEndpoints.length > 0) && (
               <div className="bulk-actions">
+                <div className="preserve-values-control">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-pressed={preserveValues}
+                    className={`preserve-toggle ${preserveValues ? 'active' : ''}`}
+                    onClick={() => setPreserveValues((v) => !v)}
+                  >
+                    <span className="preserve-toggle-knob" />
+                  </button>
+                  <span className="preserve-values-label">Preserve values</span>
+                  <Help icon="info" size={12} placement="top" width={260}>
+                    When enabled, your edited values are preserved during sync. When disabled, all values are updated to match the OpenAPI spec.
+                  </Help>
+                </div>
                 {specDrift?.unifiedDiff && (
-                  <button className="bulk-btn" onClick={() => setShowSpecDiffModal(true)}>
-                    <IconArrowsDiff size={12} /> View Spec Diff
+                  <button
+                    className="bulk-btn"
+                    onClick={handleOpenSpecDiff}
+                    disabled={isOpeningSpecDiff || showSpecDiffModal}
+                  >
+                    {isOpeningSpecDiff ? (
+                      <IconLoader2 size={12} className="animate-spin" />
+                    ) : (
+                      <IconArrowsDiff size={12} />
+                    )}{' '}
+                    View Spec Diff
                   </button>
                 )}
                 {decidableEndpoints.length > 0 && (
@@ -250,9 +294,19 @@ const SyncReviewPage = ({
       <div className="sync-review-body">
         {!hasRemoteUpdates ? (
           <div className="sync-review-empty-state">
-            <IconRefresh size={40} className="empty-state-icon" />
-            <h4>No updates from the spec</h4>
-            <p>The collection matches the latest spec. Nothing to sync.</p>
+            {isLoading ? (
+              <>
+                <IconLoader2 size={40} className="empty-state-icon animate-spin" />
+                <h4>Checking for updates</h4>
+                <p>Comparing your last synced spec with the latest spec...</p>
+              </>
+            ) : (
+              <>
+                <IconCheck size={40} className="empty-state-icon" />
+                <h4>No updates from the spec</h4>
+                <p>The spec endpoints have not been updated since the last sync.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="endpoints-review-sections">
@@ -264,7 +318,7 @@ const SyncReviewPage = ({
                   title="Updated in Spec"
                   type="spec-modified"
                   endpoints={specUpdatedEndpoints}
-                  defaultExpanded={hasConflicts}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="The spec has updates for these endpoints"
                   headerExtra={conflictCount > 0 ? (
@@ -292,6 +346,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Keep Current', accept: 'Update' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />
@@ -300,7 +355,7 @@ const SyncReviewPage = ({
                   title="New in Spec"
                   type="added"
                   endpoints={specAddedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="New endpoints from the spec"
                   collectionUid={collectionUid}
@@ -316,6 +371,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Skip', accept: 'Add' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />
@@ -324,7 +380,7 @@ const SyncReviewPage = ({
                   title="Removed from Spec"
                   type="removed"
                   endpoints={specRemovedEndpoints}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                   expandableLayout
                   subtitle="These endpoints are in your collection but not in the spec"
                   collectionUid={collectionUid}
@@ -340,6 +396,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Keep', accept: 'Delete' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />

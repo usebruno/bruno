@@ -113,7 +113,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
 
   return (
     <StyledSessionList>
-      {sessions.map((session) => {
+      {sessions.map((session, idx) => {
         const { name } = getSessionDisplayInfo(session);
         return (
           <ToolHint
@@ -125,6 +125,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
           >
             <div
               className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
+              data-testid={`session-list-${idx}`}
               onClick={() => onSelectSession(session.sessionId)}
             >
               <div className="session-name">
@@ -133,6 +134,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
               </div>
               <div
                 className="session-close-btn"
+                data-testid={`session-close-${idx}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onCloseSession(session.sessionId);

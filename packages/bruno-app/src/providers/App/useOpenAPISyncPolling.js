@@ -8,7 +8,6 @@ const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const useOpenAPISyncPolling = () => {
   const dispatch = useDispatch();
 
-  // Global toggle for pausing all OpenAPI sync polling (defaults to true, not yet wired to any UI)
   const pollingEnabled = useSelector((state) => state.openapiSync?.pollingEnabled ?? true);
   const collections = useSelector((state) => state.collections?.collections || []);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);

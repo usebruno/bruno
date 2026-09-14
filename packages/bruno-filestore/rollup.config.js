@@ -2,7 +2,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
 const json = require('@rollup/plugin-json');
-const { terser } = require('rollup-plugin-terser');
+const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 
 const packageJson = require('./package.json');
@@ -11,6 +11,8 @@ const externalDeps = [
   '@usebruno/lang',
   '@usebruno/schema-types',
   /@usebruno\/schema-types\/.*/,
+  '@usebruno/common',
+  /@usebruno\/common\/.*/,
   '@opencollection/types',
   /@opencollection\/types\/.*/,
   // Runtime dependencies

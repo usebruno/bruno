@@ -1,11 +1,11 @@
 import { test, expect } from '../../playwright';
-import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { buildCommonLocators } from '../utils/page/locators';
 
 const BRU_REQ_NAME = /^ws-test-request-with-query$/;
 
 test.describe.serial('query params', () => {
   test('query params are returned if passed', async ({ pageWithUserData: page }) => {
-    const locators = buildWebsocketCommonLocators(page);
+    const locators = buildCommonLocators(page);
 
     // Open the most recent collection
     await page.locator('#sidebar-collection-name').click();
@@ -15,6 +15,6 @@ test.describe.serial('query params', () => {
     await locators.runner().click();
 
     // Check if the message has the query params
-    await expect(locators.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(testParam)\"\:\s+\"testValue\"/);
+    await expect(locators.websocket.messages().nth(2).locator('.text-ellipsis')).toHaveText(/\"(testParam)\"\:\s+\"testValue\"/);
   });
 });

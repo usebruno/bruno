@@ -1,13 +1,12 @@
-import React, { Component } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { setupShortcuts } from 'utils/codemirror/shortcuts';
 
 const CodeMirror = require('codemirror');
 
@@ -22,11 +21,8 @@ class SingleLineEditor extends Component {
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
-    // Shortcuts cleanup function
-    this._shortcutsCleanup = null;
-
     this.state = {
-      maskInput: props.isSecret || false
+      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
 
@@ -63,8 +59,6 @@ class SingleLineEditor extends Component {
       readOnly: this.props.readOnly,
       extraKeys: {
         'Enter': runHandler,
-        // 'Ctrl-Enter': runHandler,
-        // 'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -73,9 +67,6 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        // 'Shift-Enter': runHandler,
-        'Cmd-S': saveHandler,
-        'Ctrl-S': saveHandler,
         'Cmd-F': noopHandler,
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
@@ -100,9 +91,17 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. Editable fields only mark URLs and let Cmd/Ctrl+Click open
+     * them externally - click-to-open-as-new-request is reserved for response previews.
+     */
+    setupLinkAware(this.editor, { onLinkClick: undefined });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -111,10 +110,12 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
-    // Setup keyboard shortcuts using the dedicated utility
-    this._shortcutsCleanup = setupShortcuts(this.editor, this);
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   /** Enable or disable masking the rendered content of the editor */
@@ -130,6 +131,12 @@ class SingleLineEditor extends Component {
         this.maskedEditor.destroy();
         this.maskedEditor = null;
       }
+    }
+  };
+
+  _onBlur = () => {
+    if (this.editor) {
+      this.editor.setCursor(this.editor.getCursor());
     }
   };
 
@@ -172,25 +179,23 @@ class SingleLineEditor extends Component {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
+
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = String(this.props.value ?? '');
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue && nextValue !== '') {
-        this.cachedValue = currentValue;
-      } else {
-        const cursor = this.editor.getCursor();
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-        this.editor.setCursor(cursor);
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
+      // Re-apply masking after setValue() since it destroys all CodeMirror marks
+      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+        this.maskedEditor.update();
+      }
 
-        // Update newline markers after value change
-        if (this.props.showNewlineArrow) {
-          this._updateNewlineMarkers();
-        }
+      // Update newline markers after value change
+      if (this.props.showNewlineArrow) {
+        this._updateNewlineMarkers();
       }
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
@@ -202,6 +207,9 @@ class SingleLineEditor extends Component {
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
+    if (this.props.mode !== prevProps.mode && this.editor) {
+      this.addOverlay(variables);
+    }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
     }
@@ -209,18 +217,13 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
-    // Cleanup shortcuts (keymap and store subscription)
-    if (this._shortcutsCleanup) {
-      this._shortcutsCleanup();
-      this._shortcutsCleanup = null;
-    }
-
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();
       }
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
+      this.editor.off('blur', this._onBlur);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
@@ -236,7 +239,8 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams, true);
+    const mode = this.props.mode || 'text/plain';
+    defineCodeMirrorBrunoVariablesMode(variables, mode, this.props.highlightPathParams, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 
@@ -309,7 +313,7 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

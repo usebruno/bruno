@@ -1,0 +1,13 @@
+headers {
+  X-Collection-Header: migration-test
+}
+
+script:pre-request {
+  // collection pre-request script
+  bru.setVar("collectionVar", "hello");
+}
+
+docs {
+  # Migration Test Collection
+  This collection is used to test bru to yml migration.
+}

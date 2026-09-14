@@ -3,6 +3,7 @@ const {
   parseRequest: _parseRequest,
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
+const { toVariablesMap } = require('@usebruno/common').utils;
 
 const collectionBruToJson = (bru) => {
   try {
@@ -71,12 +72,13 @@ const bruToJson = (bru) => {
     }
 
     const sequence = _.get(json, 'meta.seq');
+    const tags = _.get(json, 'meta.tags', []);
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
       seq: !_.isNaN(sequence) ? Number(sequence) : 1,
       settings: _.get(json, 'settings', {}),
-      tags: _.get(json, 'meta.tags', []),
+      tags: Array.isArray(tags) ? tags : [],
       examples: _.get(json, 'examples', []),
       request: {
         url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
@@ -127,21 +129,8 @@ const bruToJson = (bru) => {
   }
 };
 
-const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {};
-  }
-
-  const envVars = {};
-  _.each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
-  });
-
-  return envVars;
-};
+const getEnvVars = (environment = {}) =>
+  toVariablesMap([...(environment.inheritedVariables || []), ...(environment.variables || [])]);
 
 const options = {};
 const getOptions = () => {

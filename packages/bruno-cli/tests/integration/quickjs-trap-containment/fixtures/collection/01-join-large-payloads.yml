@@ -1,0 +1,25 @@
+info:
+  name: 01-join-large-payloads
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/first"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const chunks = [];
+        for (let i = 0; i < 60; i++) {
+          const r = await bru.sendRequest({ url: bru.getEnvVar('baseUrl') + '/chunk/' + i, method: 'GET' });
+          chunks.push(r.data.payload);
+        }
+        bru.setVar('joinedLength', chunks.join('').length);
+    - type: tests
+      code: |-
+        test('all payloads fetched and combined', function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(bru.getVar('joinedLength')).to.be.above(8000000);
+        });

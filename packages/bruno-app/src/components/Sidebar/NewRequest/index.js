@@ -210,7 +210,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
         const request = getRequestFromCurlCommand(values.curlCommand, curlRequestTypeDetected);
-        const settings = { encodeUrl: false };
+        const settings = { encodeUrl: false, forwardAuthorizationHeader: false };
 
         dispatch(
           newHttpRequest({
@@ -316,12 +316,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           <form
             className="bruno-form"
             onSubmit={formik.handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                formik.handleSubmit();
-              }
-            }}
           >
             <div>
               <label htmlFor="requestName" className="block font-medium">
@@ -433,7 +427,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 data-testid="request-name"
               />
               {formik.touched.requestName && formik.errors.requestName ? (
-                <div className="text-red-500">{formik.errors.requestName}</div>
+                <div className="text-red-500" data-testid="form-error">{formik.errors.requestName}</div>
               ) : null}
             </div>
             {showFilesystemName && (
@@ -462,6 +456,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       size={16}
                       strokeWidth={1.5}
                       onClick={() => toggleEditing(true)}
+                      data-testid="filename-edit-icon"
                     />
                   )}
                 </div>
@@ -491,7 +486,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
+                  <div className="text-red-500" data-testid="form-error">{formik.errors.filename}</div>
                 ) : null}
               </div>
             )}
@@ -517,6 +512,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       className="flex px-2 items-center flex-grow input-container h-full min-w-0"
                     >
                       <SingleLineEditor
+                        onRun={() => formik.handleSubmit()}
                         onPaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
@@ -599,7 +595,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="create-new-request-button">
                   Create
                 </Button>
               </div>

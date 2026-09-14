@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab } from 'providers/ReduxStore/slices/tabs';
+import { updateResponsePaneTab, updateResponseFormat, updateResponseViewTab, updateResponseFilter, updateResponseFilterExpanded } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -155,7 +155,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
           <QueryResult
@@ -168,6 +168,10 @@ const ResponsePane = ({ item, collection }) => {
             key={item.filename}
             selectedFormat={selectedFormat}
             selectedTab={selectedViewTab}
+            filter={focusedTab?.responseFilter}
+            filterExpanded={focusedTab?.responseFilterExpanded}
+            onFilterChange={(value) => dispatch(updateResponseFilter({ uid: activeTabUid, responseFilter: value }))}
+            onFilterExpandChange={(expanded) => dispatch(updateResponseFilterExpanded({ uid: activeTabUid, responseFilterExpanded: expanded }))}
           />
         );
       }
@@ -175,11 +179,12 @@ const ResponsePane = ({ item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       case 'tests': {
         return (
           <TestResults
+            item={item}
             results={item.testResults}
             assertionResults={item.assertionResults}
             preRequestTestResults={item.preRequestTestResults}
@@ -254,10 +259,10 @@ const ResponsePane = ({ item, collection }) => {
           </div>
         </>
       ) : null}
-      <div className="flex items-center response-pane-status">
+      <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
         {item.response?.stream?.running
-          ? <ResponseStopWatch startMillis={response.duration} />
+          ? <ResponseStopWatch startTimestamp={item.requestSent?.timestamp} />
           : <ResponseTime duration={response.duration} />}
         <ResponseSize size={responseSize} />
       </div>
@@ -292,26 +297,22 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section
-        className="flex flex-col min-h-0 relative px-4 auto overflow-auto mt-4"
-        style={{
-          flex: '1 1 0',
-          height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
-        }}
-      >
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
           />
         )}
-        <div className="flex-1 overflow-y-auto">
+        <div className="response-tab-content">
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline
                 collection={collection}
                 item={item}
+                activeTabUid={activeTabUid}
               />
             ) : null
           ) : (

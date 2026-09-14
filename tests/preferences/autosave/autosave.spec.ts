@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe('Autosave', () => {
   test.setTimeout(60000);
 
@@ -25,7 +27,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
@@ -131,7 +133,7 @@ test.describe('Autosave', () => {
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 2000 });
 
       // Save the request
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
       await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
     });
   });
@@ -150,7 +152,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });

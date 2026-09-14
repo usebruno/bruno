@@ -1,0 +1,7 @@
+openapi: 3.1.0
+info:
+  title: Multi File API
+  version: 1.0.0
+paths:
+  /hello:
+    $ref: './openapi-multifile-endpoint.yaml'

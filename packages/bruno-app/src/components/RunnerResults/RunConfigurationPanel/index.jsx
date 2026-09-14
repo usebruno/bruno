@@ -1,14 +1,32 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
-import { IconGripVertical, IconCheck, IconAdjustmentsAlt } from '@tabler/icons';
+import { IconGripVertical, IconCheck } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { isItemARequest } from 'utils/collections';
+import { isItemARequest, isItemAFolder } from 'utils/collections';
+import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
+import { isRequestTagsIncluded } from '@usebruno/common';
+
+const isRequestDisabled = (item, tags) => {
+  // WS and gRPC are not supported by the collection runner
+  if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
+
+  // Check tag filtering
+  const requestTags = item.draft?.tags || item.tags || [];
+  const includeTags = tags?.include || [];
+  const excludeTags = tags?.exclude || [];
+
+  if (includeTags.length > 0 || excludeTags.length > 0) {
+    return !isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+  }
+
+  return false;
+};
 
 const ItemTypes = {
   REQUEST_ITEM: 'request-item'
@@ -40,7 +58,7 @@ const getMethodInfo = (item) => {
   return { methodText, methodClass };
 };
 
-const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) => {
+const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDisabled }) => {
   const ref = useRef(null);
   const [dropType, setDropType] = useState(null);
 
@@ -58,6 +76,7 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
   const [{ isDragging }, drag, preview] = useDrag({
     type: ItemTypes.REQUEST_ITEM,
     item: { uid: item.uid, name: item.name, request: item.request, index },
+    canDrag: !isDisabled,
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
     options: {
       dropEffect: 'move'
@@ -117,28 +136,30 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
 
   drag(drop(ref));
 
+  const methodInfo = getMethodInfo(item);
   const itemClasses = [
     'request-item',
     isDragging ? 'is-dragging' : '',
     isSelected ? 'is-selected' : '',
+    isDisabled ? 'is-disabled' : '',
     isOver && canDrop && dropType === 'above' ? 'drop-target-above' : '',
     isOver && canDrop && dropType === 'below' ? 'drop-target-below' : ''
   ].filter(Boolean).join(' ');
 
   return (
-    <div ref={ref} className={itemClasses}>
+    <div ref={ref} className={itemClasses} data-testid="runner-request-item">
       <div className="drag-handle">
         <IconGripVertical size={16} strokeWidth={1.5} />
       </div>
 
-      <div className="checkbox-container" onClick={() => onSelect(item)}>
+      <div className="checkbox-container" onClick={() => !isDisabled && onSelect(item)}>
         <div className="checkbox">
-          {isSelected && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
+          {isSelected && !isDisabled && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
 
-      <div className={`method ${getMethodInfo(item).methodClass}`}>
-        {getMethodInfo(item).methodText}
+      <div className={`method ${methodInfo.methodClass}`}>
+        {methodInfo.methodText}
       </div>
 
       <div className="request-name">
@@ -151,11 +172,15 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop }) =>
   );
 };
 
-const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) => {
+const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, tags }) => {
   const dispatch = useDispatch();
   const [flattenedRequests, setFlattenedRequests] = useState([]);
   const [originalRequests, setOriginalRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  // On first mount, ignore any stale saved config and auto-select all items
+  const isInitialMountRef = useRef(true);
+  // Track items that were auto-deselected due to tag filters, so we can re-select them when tags change back
+  const pendingReselectRef = useRef(new Set());
 
   const flattenRequests = useCallback((collection) => {
     const result = [];
@@ -163,20 +188,25 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
     const processItems = (items) => {
       if (!items?.length) return;
 
-      items.forEach((item) => {
-        if (isItemARequest(item) && !item.partial && !item.isTransient) {
-          const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
-          const folderPath = relativePath !== '.' ? relativePath : '';
+      const folderItems = sortByNameThenSequence(items.filter((item) => isItemAFolder(item) && !item.isTransient));
+      const requestItems = items
+        .filter((item) => isItemARequest(item) && !item.partial && !item.isTransient)
+        .sort((a, b) => a.seq - b.seq);
 
-          result.push({
-            ...item,
-            folderPath: folderPath.replace(/\\/g, '/')
-          });
+      folderItems.forEach((folder) => {
+        if (folder.items?.length) {
+          processItems(folder.items);
         }
+      });
 
-        if (item.items?.length) {
-          processItems(item.items);
-        }
+      requestItems.forEach((item) => {
+        const relativePath = path.relative(collection.pathname, path.dirname(item.pathname));
+        const folderPath = relativePath !== '.' ? relativePath : '';
+
+        result.push({
+          ...item,
+          folderPath: folderPath.replace(/\\/g, '/')
+        });
       });
     };
 
@@ -192,6 +222,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
       const requests = flattenRequests(structureCopy);
 
       const savedConfiguration = get(collection, 'runnerConfiguration', null);
+      let finalRequests;
       if (savedConfiguration?.requestItemsOrder?.length > 0) {
         const orderedRequests = [];
         const requestMap = new Map(requests.map((req) => [req.uid, req]));
@@ -208,18 +239,65 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           orderedRequests.push(request);
         });
 
-        setFlattenedRequests(orderedRequests);
+        finalRequests = orderedRequests;
       } else {
-        setFlattenedRequests(requests);
+        finalRequests = requests;
       }
 
+      setFlattenedRequests(finalRequests);
       setOriginalRequests(cloneDeep(requests));
+
+      if (!savedConfiguration || isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+        const enabledUids = finalRequests
+          .filter((item) => !isRequestDisabled(item, tags))
+          .map((item) => item.uid);
+        setSelectedItems(enabledUids);
+      }
     } catch (error) {
       console.error('Error loading collection structure:', error);
     } finally {
       setIsLoading(false);
     }
   }, [collection, flattenRequests]);
+
+  // When tags change: disable newly-filtered items, re-select previously-filtered items that are now enabled again
+  useEffect(() => {
+    if (flattenedRequests.length === 0) return;
+
+    let newSelected = [...selectedItems];
+    let changed = false;
+
+    flattenedRequests.forEach((item) => {
+      const disabled = isRequestDisabled(item, tags);
+      const isCurrentlySelected = selectedItems.includes(item.uid);
+      const isPendingReselect = pendingReselectRef.current.has(item.uid);
+
+      if (disabled && isCurrentlySelected) {
+        pendingReselectRef.current.add(item.uid);
+        newSelected = newSelected.filter((uid) => uid !== item.uid);
+        changed = true;
+      } else if (!disabled && isPendingReselect) {
+        pendingReselectRef.current.delete(item.uid);
+        if (!newSelected.includes(item.uid)) {
+          newSelected.push(item.uid);
+          changed = true;
+        }
+      }
+    });
+
+    if (changed) {
+      const ordered = flattenedRequests
+        .filter((r) => newSelected.includes(r.uid))
+        .map((r) => r.uid);
+      setSelectedItems(ordered);
+      const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
+      dispatch(updateRunnerConfiguration(collection.uid, ordered, allRequestUidsOrder));
+    }
+  }, [tags, flattenedRequests]);
+
+  const enabledRequests = flattenedRequests.filter((item) => !isRequestDisabled(item, tags));
+  const enabledCount = enabledRequests.length;
 
   const moveItem = useCallback((draggedItemUid, hoverIndex) => {
     setFlattenedRequests((prevRequests) => {
@@ -255,6 +333,8 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
   }, [selectedItems, collection.uid, dispatch, setSelectedItems]);
 
   const handleRequestSelect = useCallback((item) => {
+    if (isRequestDisabled(item, tags)) return;
+
     try {
       if (selectedItems.includes(item.uid)) {
         const newSelectedUids = selectedItems.filter((uid) => uid !== item.uid);
@@ -277,51 +357,61 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
     } catch (error) {
       console.error('Error selecting item:', error);
     }
-  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid]);
+  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid, tags]);
 
   const handleSelectAll = useCallback(() => {
     try {
       const allRequestUidsOrder = flattenedRequests.map((item) => item.uid);
+      const enabledUids = enabledRequests.map((item) => item.uid);
 
-      if (selectedItems.length === flattenedRequests.length) {
+      if (selectedItems.length === enabledCount) {
+        pendingReselectRef.current.clear();
         setSelectedItems([]);
         dispatch(updateRunnerConfiguration(collection.uid, [], allRequestUidsOrder));
       } else {
-        setSelectedItems(allRequestUidsOrder);
-        dispatch(updateRunnerConfiguration(collection.uid, allRequestUidsOrder, allRequestUidsOrder));
+        setSelectedItems(enabledUids);
+        dispatch(updateRunnerConfiguration(collection.uid, enabledUids, allRequestUidsOrder));
       }
     } catch (error) {
       console.error('Error selecting/deselecting all items:', error);
     }
-  }, [flattenedRequests, selectedItems, setSelectedItems, dispatch, collection.uid]);
+  }, [flattenedRequests, enabledRequests, enabledCount, selectedItems, setSelectedItems, dispatch, collection.uid]);
 
   const handleReset = useCallback(() => {
     try {
-      setFlattenedRequests(cloneDeep(originalRequests));
-      setSelectedItems([]);
-      dispatch(updateRunnerConfiguration(collection.uid, [], []));
+      pendingReselectRef.current.clear();
+      const resetRequests = cloneDeep(originalRequests);
+      setFlattenedRequests(resetRequests);
+      const enabledUids = resetRequests
+        .filter((item) => !isRequestDisabled(item, tags))
+        .map((item) => item.uid);
+      setSelectedItems(enabledUids);
+      const allUidsOrder = resetRequests.map((item) => item.uid);
+      dispatch(updateRunnerConfiguration(collection.uid, enabledUids, allUidsOrder));
     } catch (error) {
       console.error('Error resetting configuration:', error);
     }
-  }, [originalRequests, setSelectedItems, collection.uid, dispatch]);
+  }, [originalRequests, setSelectedItems, collection.uid, dispatch, tags]);
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="runner-config-panel">
       <div className="header">
-        <div className="counter">
-          {selectedItems.length} of {flattenedRequests.length} selected
+        <div className="counter" data-testid="runner-config-counter">
+          {selectedItems.length} of {enabledCount} selected
         </div>
         <div className="actions">
           <Button
             variant="ghost"
             onClick={handleSelectAll}
+            data-testid="runner-select-all"
           >
-            {selectedItems.length === flattenedRequests.length ? 'Deselect All' : 'Select All'}
+            {selectedItems.length === enabledCount ? 'Deselect All' : 'Select All'}
           </Button>
           <Button
             variant="ghost"
             onClick={handleReset}
             title="Reset selection and order"
+            data-testid="runner-config-reset"
           >
             Reset
           </Button>
@@ -337,6 +427,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
           <div className="requests-container">
             {flattenedRequests.map((item, idx) => {
               const isSelected = selectedItems.includes(item.uid);
+              const disabled = isRequestDisabled(item, tags);
 
               return (
                 <RequestItem
@@ -344,6 +435,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems }) 
                   item={item}
                   index={idx}
                   isSelected={isSelected}
+                  isDisabled={disabled}
                   onSelect={() => handleRequestSelect(item)}
                   moveItem={moveItem}
                   onDrop={handleDrop}

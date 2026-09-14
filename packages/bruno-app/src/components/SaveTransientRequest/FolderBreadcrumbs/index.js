@@ -1,5 +1,6 @@
 import React from 'react';
-import { IconChevronRight } from '@tabler/icons';
+import { IconChevronRight, IconDots } from '@tabler/icons';
+import Dropdown from 'components/Dropdown';
 
 const FolderBreadcrumbs = ({
   collectionName,
@@ -8,30 +9,64 @@ const FolderBreadcrumbs = ({
   onNavigateToRoot,
   onNavigateToBreadcrumb
 }) => {
+  const collapsed = breadcrumbs.length > 1 ? breadcrumbs.slice(0, -1) : [];
+  const last = breadcrumbs.length > 0 ? breadcrumbs[breadcrumbs.length - 1] : null;
+
   return (
-    <>
+    <div className="breadcrumb-container">
       <span
-        className={!isAtRoot ? 'collection-name-breadcrumb' : ''}
+        className={`breadcrumb-collection-name ${!isAtRoot ? 'collection-name-breadcrumb' : ''}`}
         onClick={!isAtRoot ? onNavigateToRoot : undefined}
+        title={collectionName}
       >
         {collectionName}
       </span>
-      {breadcrumbs.map((breadcrumb, index) => (
-        <React.Fragment key={breadcrumb.uid}>
+
+      {collapsed.length > 0 && (
+        <>
+          <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
+          <Dropdown
+            placement="bottom-start"
+            icon={(
+              <span className="breadcrumb-ellipsis-btn">
+                <IconDots size={16} strokeWidth={2} />
+              </span>
+            )}
+          >
+            <div className="breadcrumb-collapsed-dropdown">
+              {collapsed.map((breadcrumb, i) => (
+                <div
+                  key={breadcrumb.uid}
+                  className="dropdown-item breadcrumb-collapsed-item"
+                  onClick={() => onNavigateToBreadcrumb(i)}
+                  title={breadcrumb.name}
+                >
+                  {breadcrumb.name}
+                </div>
+              ))}
+            </div>
+          </Dropdown>
+        </>
+      )}
+
+      {last && (
+        <>
           <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />
           <span
-            className="collection-name-breadcrumb"
+            className="collection-name-breadcrumb breadcrumb-last"
             onClick={(e) => {
               e.stopPropagation();
-              onNavigateToBreadcrumb(index);
+              onNavigateToBreadcrumb(breadcrumbs.length - 1);
             }}
+            title={last.name}
           >
-            {breadcrumb.name}
+            {last.name}
           </span>
-        </React.Fragment>
-      ))}
+        </>
+      )}
+
       {isAtRoot && <IconChevronRight size={16} strokeWidth={1.5} className="collection-name-chevron" />}
-    </>
+    </div>
   );
 };
 

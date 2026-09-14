@@ -1,0 +1,30 @@
+name: 'Run OAuth1 CLI Tests - macOS'
+description: 'Run OAuth1 CLI tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run BRU format CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+
+        # navigate to BRU test collection directory
+        cd tests/auth/oauth1/fixtures/collections/bru
+
+        echo "=== BRU Format Collection Run ==="
+        node $BRU_CLI run --env Local --output junit-bru.xml --format junit
+
+    - name: Run YML format CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        BRU_CLI="../../../../../../packages/bruno-cli/bin/bru.js"
+
+        # navigate to YML test collection directory
+        cd tests/auth/oauth1/fixtures/collections/yml
+
+        echo "=== YML Format Collection Run ==="
+        node $BRU_CLI run --env Local --output junit-yml.xml --format junit

@@ -7,7 +7,8 @@ const { getCachedSystemProxy, fetchSystemProxy } = require('../store/system-prox
 const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
-const { clearAgentCache } = require('@usebruno/requests');
+const WindowStateStore = require('../store/window-state');
+const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -66,8 +67,22 @@ const registerPreferencesIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.on('renderer:theme-change', (event, theme) => {
+  ipcMain.handle('renderer:refresh-pac-cache', async () => {
+    try {
+      clearPacCache();
+      clearAgentCache();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.on('renderer:theme-change', (event, theme, themeBg) => {
     nativeTheme.themeSource = theme;
+    const windowStateStore = new WindowStateStore();
+    windowStateStore.setThemeMode(theme);
+    if (themeBg) {
+      windowStateStore.setThemeBg(themeBg);
+    }
   });
 
   ipcMain.handle('renderer:get-system-proxy-variables', async () => {
@@ -75,7 +90,10 @@ const registerPreferencesIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:refresh-system-proxy', async () => {
-    return await fetchSystemProxy({ refresh: true });
+    const variables = await fetchSystemProxy({ refresh: true });
+    clearPacCache();
+    clearAgentCache();
+    return variables;
   });
 };
 

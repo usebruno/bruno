@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: https://spacex-production.up.railway.app/
+  url: {{localhost}}/api/graphql
   body: graphql
   auth: none
 }
@@ -21,4 +21,5 @@ body:graphql {
 
 assert {
   res.status: eq 200
+  res.body.data.company.ceo: eq Elon Musk
 }

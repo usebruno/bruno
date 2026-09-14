@@ -1,0 +1,16 @@
+meta {
+  name: draft-tests-test
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+tests {
+  const savedTest = "this works fine";
+  console.log(savedTest);
+}

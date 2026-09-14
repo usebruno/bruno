@@ -15,6 +15,11 @@ const Wrapper = styled.div`
     overflow-y: auto;
     border-radius: 8px;
     border: solid 1px ${(props) => props.theme.border.border0};
+    transition: height 75ms cubic-bezier(0,1.12,.84,.64);
+  }
+
+  &.is-measuring .table-container {
+    transition: none;
   }
 
   table {
@@ -31,11 +36,17 @@ const Wrapper = styled.div`
         width: 25px;
         border-right: none;
       }
+
       &:nth-child(4) {
         width: 80px;
       }
+      
       &:nth-child(5) {
-        width: 60px;
+        width: 10%;
+      }
+      
+      &:nth-child(6) {
+        width: 5%;
       }
     }
 
@@ -53,6 +64,10 @@ const Wrapper = styled.div`
 
         &:last-child {
           border-right: none;
+        }
+
+        &.sortable-header {
+          cursor: pointer;
         }
 
         .resize-handle {
@@ -73,6 +88,11 @@ const Wrapper = styled.div`
     }
 
     tbody {
+      tr.section-header-row td {
+        border-right: none;
+        padding: 0;
+      }
+
       tr {
         transition: background 0.1s ease;
 
@@ -92,6 +112,26 @@ const Wrapper = styled.div`
     }
   }
 
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+
+    .section-count {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-row {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .tooltip-mod {
     max-width: 200px !important;
   }
@@ -99,24 +139,6 @@ const Wrapper = styled.div`
   .name-cell-wrapper {
     position: relative;
     width: 100%;
-
-    .name-highlight-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      white-space: pre;
-      overflow: hidden;
-      font-size: inherit;
-      line-height: inherit;
-      color: ${(props) => props.theme.text};
-    }
-  }
-
-  .search-highlight {
-    background: ${(props) => props.theme.colors.accent}55;
-    color: inherit;
-    border-radius: 2px;
-    padding: 0 1px;
   }
 
   .no-results {
@@ -192,6 +214,36 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
+    }
+  }
+
+  .drag-handle {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon-grip,
+    .icon-minus {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  tbody tr:hover .drag-handle,
+  tbody tr.drag-over .drag-handle {
+    opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
+  .column-sort-header .action-icon {
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
     }
   }
 `;

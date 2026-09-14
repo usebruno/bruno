@@ -1,0 +1,16 @@
+meta {
+  name: draft-postres-test
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const savedData = res.body;
+  console.log(savedData);
+}

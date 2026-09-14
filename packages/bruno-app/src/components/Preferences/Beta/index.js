@@ -1,24 +1,80 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences, updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
-import { IconFlask } from '@tabler/icons';
 import get from 'lodash/get';
+// Commented out while there are no active beta features. Re-enable this import when
+// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
+import { IconArrowRight, IconExternalLink } from '@tabler/icons';
+import ToggleSwitch from 'components/ToggleSwitch';
+
+import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
+import { getDocsUrlWithVersion } from 'utils/url';
 
 /**
- * Add beta features here.
- * Example:
- * {
- *   id: 'nodevm',
- *   label: 'Node VM Runtime',
- *   description: 'Enable Node VM runtime for JavaScript execution in Developer Mode'
- * }
+ * UI metadata for the Beta Features section in Preferences — one entry per toggle.
+ * The whole tab is data-driven from this array: the form fields, validation schema,
+ * initial values and the rendered checkboxes are all generated from it.
+ *
+ * Each entry has the shape { id, label, description }:
+ *   - id          (required) the feature key. MUST be a value from BETA_FEATURES in
+ *                 utils/beta-features.js (imported here as BETA_FEATURE_IDS). It is
+ *                 used as the preference key (preferences.beta[id]), the form field
+ *                 name and the checkbox id, so it must be stable and unique.
+ *   - label       (required) short name shown next to the checkbox.
+ *   - description (required) one-line explanation shown under the label.
+ *   - docsUrl     (optional) URL to the documentation for the feature.
+ *   - action      (optional) object with { label, tab } to render a button that navigates to a specific preferences tab. The label is the button text, and the tab is the tab key (e.g. 'ai', 'cache').
+ *
+ * To add a beta feature:
+ *   1. Add its key to BETA_FEATURES in utils/beta-features.js (e.g. MY_FEATURE: 'my-feature').
+ *   2. Add an entry to the array below using BETA_FEATURE_IDS.MY_FEATURE.
+ *   3. Gate the feature in code with useBetaFeature(BETA_FEATURES.MY_FEATURE).
+ *
+ * When the array is empty, the Beta tab shows "No beta features are currently available",
+ * so a feature can be hidden by simply removing or commenting out its entry.
  */
-const BETA_FEATURES = [];
+const BETA_FEATURES = [
+  {
+    id: BETA_FEATURE_IDS.AI_ASSISTANT,
+    label: 'AI Assistant',
+    description:
+      'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key.',
+    action: { label: 'Go to AI settings', tab: 'ai' },
+    docsUrl: 'https://link.usebruno.com/docs/ai'
+  },
+  {
+    id: BETA_FEATURE_IDS.FILE_CACHE,
+    label: 'File cache',
+    description:
+      'Speeds up how quickly your collections open by keeping a local cache on disk. Turn it on or clear it anytime from the Cache settings.',
+    action: { label: 'Go to Cache settings', tab: 'cache' }
+  },
+  {
+    id: BETA_FEATURE_IDS.AKAMAI_EDGEGRID,
+    label: 'Akamai EdgeGrid',
+    description:
+      'Sign requests with the Akamai EdgeGrid authentication scheme. Select it from the Auth type dropdown on any request, folder, or collection.',
+    docsUrl: 'https://link.usebruno.com/docs/auth'
+  },
+  {
+    id: BETA_FEATURE_IDS.MOCK_SERVER,
+    label: 'Mock Server',
+    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
+    toggle: true,
+    docsUrl: 'https://link.usebruno.com/docs/mock-server'
+  },
+  {
+    id: BETA_FEATURE_IDS.GRPC_SCRIPTING,
+    label: 'gRPC Scripting',
+    description: 'Write scripts for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.',
+    docsUrl: 'https://link.usebruno.com/docs/grpc-scripting'
+  }
+];
 
 const Beta = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -42,9 +98,11 @@ const Beta = ({ close }) => {
     return initialValues;
   };
 
-  const betaSchema = generateValidationSchema();
+  // BETA_FEATURES is static, so the schema never actually changes across renders
+  const betaSchema = useMemo(() => generateValidationSchema(), []);
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: generateInitialValues(),
     validationSchema: betaSchema,
     onSubmit: async (values) => {
@@ -61,22 +119,28 @@ const Beta = ({ close }) => {
     dispatch(
       savePreferences({
         ...preferences,
-        beta: newBetaPreferences
+        beta: {
+          ...preferences.beta,
+          ...newBetaPreferences
+        }
       })
     )
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   const debouncedSave = useCallback(
     debounce((values) => {
       betaSchema.validate(values, { abortEarly: true })
         .then((validatedValues) => {
-          handleSave(validatedValues);
+          handleSaveRef.current(validatedValues);
         })
         .catch((error) => {
         });
     }, 500),
-    [handleSave, betaSchema]
+    [betaSchema]
   );
 
   // Auto-save when form values change
@@ -85,11 +149,15 @@ const Beta = ({ close }) => {
       debouncedSave(formik.values);
     }
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
+
+  const goToTab = useCallback((tab) => {
+    dispatch(updateActivePreferencesTab({ tab }));
+  }, [dispatch]);
 
   return (
     <StyledWrapper>
@@ -101,25 +169,52 @@ const Beta = ({ close }) => {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="beta-feature-list">
           {BETA_FEATURES.map((feature) => (
             <div key={feature.id} className="beta-feature-item">
-              <div className="flex items-center">
-                <input
-                  id={feature.id}
-                  type="checkbox"
-                  name={feature.id}
-                  checked={formik.values[feature.id]}
-                  onChange={formik.handleChange}
-                  className="mousetrap mr-0"
-                />
-                <label className="block ml-2 select-none font-medium" htmlFor={feature.id}>
+              <div className="beta-feature-header">
+                <span className="beta-feature-title select-none font-medium" id={`${feature.id}-label`}>
                   {feature.label}
-                </label>
+                </span>
               </div>
-              <div className="beta-feature-description ml-6 text-xs text-gray-500 dark:text-gray-400">
+              <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400 flex">
                 {feature.description}
+                {feature.toggle && (
+                  <div className="ml-auto">
+                    <ToggleSwitch
+                      size="xs"
+                      isOn={formik.values[feature.id]}
+                      handleToggle={() => formik.setFieldValue(feature.id, !formik.values[feature.id])}
+                      data-testid="mock-server-beta-toggle"
+                    />
+                  </div>
+                )}
               </div>
+              {(feature.action || feature.docsUrl) && (
+                <div className="beta-feature-links">
+                  {feature.action && (
+                    <button
+                      type="button"
+                      className="beta-feature-link"
+                      onClick={() => goToTab(feature.action.tab)}
+                    >
+                      <span>{feature.action.label}</span>
+                      <IconArrowRight size={14} strokeWidth={1.5} />
+                    </button>
+                  )}
+                  {feature.docsUrl && (
+                    <a
+                      className="beta-feature-link"
+                      href={getDocsUrlWithVersion(feature.docsUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <span>View docs</span>
+                      <IconExternalLink size={14} strokeWidth={1.5} />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

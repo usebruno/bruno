@@ -66,9 +66,14 @@ const getCertsAndProxyConfig = async ({
   };
 
   // client certificate config
-  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  const collectionCerts = get(brunoConfig, 'clientCertificates.certs', []);
+  const globalCerts = preferencesUtil.getGlobalClientCertificates();
+  const clientCertConfig = [...collectionCerts, ...globalCerts];
 
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     const type = clientCert?.type || 'cert';
     if (domain) {
@@ -121,6 +126,7 @@ const getCertsAndProxyConfig = async ({
    */
   let proxyMode = 'off';
   let proxyConfig = {};
+  let proxyModeReason = '';
 
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});
   const collectionProxyDisabled = get(collectionProxyConfig, 'disabled', false);
@@ -135,24 +141,32 @@ const getCertsAndProxyConfig = async ({
     // Inherit from global preferences
     const globalProxy = preferencesUtil.getGlobalProxyConfig();
     const globalDisabled = get(globalProxy, 'disabled', false);
-    const globalInherit = get(globalProxy, 'inherit', false);
-    const globalProxyConfigData = get(globalProxy, 'config', globalProxy);
+    const globalProxySource = get(globalProxy, 'source', 'manual');
+    const globalProxyConfigData = get(globalProxy, 'config', {});
 
-    if (!globalDisabled && !globalInherit) {
-      // Use global custom proxy
-      proxyConfig = globalProxyConfigData;
-      proxyMode = 'on';
-    } else if (!globalDisabled && globalInherit) {
-      // Use system proxy (cached at app startup)
-      proxyMode = 'system';
-      const systemProxyConfig = await getCachedSystemProxy();
-      proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, source: 'cache-miss' };
+    if (!globalDisabled) {
+      if (globalProxySource === 'pac') {
+        proxyMode = 'pac';
+        proxyConfig = {
+          pac: globalProxy.pac ?? {}
+        };
+      } else if (globalProxySource === 'inherit') {
+        proxyMode = 'system';
+        const systemProxyConfig = await getCachedSystemProxy();
+        proxyConfig = systemProxyConfig || { http_proxy: null, https_proxy: null, no_proxy: null, pac_url: null, source: 'cache-miss' };
+      } else {
+        // source === 'manual'
+        proxyConfig = globalProxyConfigData;
+        proxyMode = 'on';
+      }
+    } else {
+      proxyModeReason = 'App-level proxy is disabled';
     }
-    // else: global proxy is disabled, proxyMode stays 'off'
+  } else {
+    proxyModeReason = 'Collection-level proxy is disabled';
   }
-  // else: collection proxy is disabled, proxyMode stays 'off'
 
-  return { proxyMode, proxyConfig, httpsAgentRequestFields, interpolationOptions };
+  return { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions };
 };
 
 /**
@@ -198,11 +212,20 @@ const buildCertsAndProxyConfig = async ({
     cacheSslSession: preferencesUtil.isSslSessionCachingEnabled()
   };
 
-  // Get client certificates from bruno config and interpolate
+  // Get client certificates from bruno config and interpolate, skipping disabled certs
   const rawClientCertificates = get(brunoConfig, 'clientCertificates');
-  const clientCertificates = rawClientCertificates
-    ? interpolateObject(rawClientCertificates, interpolationOptions)
-    : undefined;
+  const clientCertificates = {
+    certs: []
+  };
+  if (rawClientCertificates?.certs?.length) {
+    const interpolatedCerts = interpolateObject(rawClientCertificates.certs, interpolationOptions);
+    clientCertificates.certs.push(...interpolatedCerts.filter((cert) => !cert?.disabled));
+  }
+  const globalCerts = preferencesUtil.getGlobalClientCertificates();
+  if (globalCerts.length) {
+    const interpolatedGlobalCerts = interpolateObject(globalCerts, interpolationOptions);
+    clientCertificates.certs.push(...interpolatedGlobalCerts.filter((cert) => !cert?.disabled));
+  }
 
   // Get proxy config from bruno config and interpolate
   const collectionProxyConfig = get(brunoConfig, 'proxy', {});

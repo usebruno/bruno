@@ -25,7 +25,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
         .test('unique-name', 'A workspace with this name already exists', function (value) {
           if (!value) return true;
           return !workspaces.some((w) =>
-            w.uid !== workspace.uid && w.name.toLowerCase() === value.toLowerCase()
+            w.uid !== workspace.uid && w.name && w.name.toLowerCase() === value.toLowerCase()
           );
         })
     }),

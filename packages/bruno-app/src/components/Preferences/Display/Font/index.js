@@ -38,11 +38,14 @@ const Font = () => {
     });
   }, [dispatch, preferences]);
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
   const debouncedSave = useCallback(
     debounce((font, fontSize) => {
-      handleSave(font, fontSize);
+      handleSaveRef.current(font, fontSize);
     }, 500),
-    [handleSave]
+    []
   );
 
   useEffect(() => {
@@ -52,7 +55,7 @@ const Font = () => {
     }
     debouncedSave(codeFont, codeFontSize);
     return () => {
-      debouncedSave.cancel();
+      debouncedSave.flush();
     };
   }, [codeFont, codeFontSize, debouncedSave]);
 

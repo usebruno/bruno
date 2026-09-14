@@ -1,0 +1,15 @@
+meta {
+  name: path-brackets
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/list[123]
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

@@ -6,16 +6,16 @@ const ErrorBanner = ({ errors, onClose, className = '' }) => {
   if (!errors || errors.length === 0) return null;
 
   return (
-    <StyledWrapper className={className}>
+    <StyledWrapper className={className} data-testid="error-banner">
       <div className="flex items-start gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
           {errors.map((error, index) => (
-            <div key={index}>
+            <div key={index} data-testid="error-banner-entry">
               {index > 0 && <div className="separator my-2"></div>}
-              <div className="error-title">
+              <div className="error-title" data-testid="error-banner-title">
                 {error.title}
               </div>
-              <div className="error-message">
+              <div className="error-message" data-testid="error-banner-message">
                 {error.message}
               </div>
             </div>

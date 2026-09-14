@@ -13,9 +13,10 @@ const Wrapper = styled.div`
     cursor: pointer;
     border-radius: 4px;
     transition: color 0.15s ease;
+    flex: 0 0 auto;
 
     &:hover {
-      color: ${(props) => props.theme.colors.text.link};
+      color: ${(props) => props.theme.text};
     }
   }
 
@@ -23,16 +24,9 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
   }
 
-  .file-value-cell {
-    padding: 4px 0;
-
-    .file-name {
-      font-size: 12px;
-      color: ${(props) => props.theme.text};
-    }
-  }
-
   .value-cell {
+    width: 100%;
+
     .flex-1 {
       min-width: 0;
     }

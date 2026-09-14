@@ -1,0 +1,25 @@
+meta {
+  name: set-typed-collection-vars
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://testbench-sanity.usebruno.com/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setCollectionVar("collNum", 7);
+  bru.setCollectionVar("collBool", false);
+  bru.setCollectionVar("collObj", { region: "eu", retries: 3 });
+}
+
+tests {
+  test("typed collection vars are readable as their original types", function() {
+    expect(bru.getCollectionVar("collNum")).to.equal(7);
+    expect(bru.getCollectionVar("collBool")).to.equal(false);
+    expect(bru.getCollectionVar("collObj")).to.deep.equal({ region: "eu", retries: 3 });
+  });
+}

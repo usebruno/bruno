@@ -59,7 +59,7 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
+const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => {
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -96,6 +96,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 
   return (
     <div
+      data-testid={isError ? 'ws-message-error' : 'ws-message'}
       className={classnames('ws-message flex flex-col p-2', {
         'ws-incoming': isIncoming,
         'ws-outgoing': isOutgoing,
@@ -116,7 +117,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
           <span className="message-type-icon">
             <TypeIcon type={message.type} />
           </span>
-          <span className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
+          <span data-testid="ws-message-content" className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
         </div>
         <div className="flex shrink-0 gap-2 items-center">
           {message.timestamp && (
@@ -166,6 +167,9 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               enableLineWrapping={showHex ? false : true}
               font={preferences.codeFont || 'default'}
               value={showHex ? contentHexdump : parsedContent.content}
+              item={item}
+              collection={collection}
+              readOnly
             />
           </div>
         </>
@@ -174,7 +178,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   );
 });
 
-const WSMessagesList = ({ messages = [] }) => {
+const WSMessagesList = ({ messages = [], item, collection }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -230,8 +234,8 @@ const WSMessagesList = ({ messages = [] }) => {
 
   const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
-  }, [openMessages, handleMessageToggle]);
+    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} item={item} collection={collection} />;
+  }, [openMessages, handleMessageToggle, item, collection]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;

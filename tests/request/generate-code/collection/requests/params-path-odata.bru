@@ -1,0 +1,21 @@
+meta {
+  name: params-path-odata
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/odata/Category(':CategoryID')/Item(:ItemId)/:xpath/Tags("tag test")
+  body: none
+  auth: none
+}
+
+params:path {
+  CategoryID: category123
+  ItemId: item456
+  xpath: foobar
+}
+
+settings {
+  encodeUrl: false
+}

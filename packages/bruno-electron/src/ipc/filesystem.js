@@ -1,8 +1,10 @@
-const { ipcMain } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const {
   browseDirectory,
+  browseDirectories,
   browseFiles,
   normalizeAndResolvePath,
   isFile,
@@ -19,12 +21,29 @@ const registerFilesystemIpc = (mainWindow) => {
     }
   });
 
+  ipcMain.handle('renderer:browse-directories', async () => {
+    try {
+      return await browseDirectories(mainWindow);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:browse-files', async (_, filters, properties) => {
     try {
       return await browseFiles(mainWindow, filters, properties);
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:browse-pac-file', async () => {
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'PAC Files', extensions: ['pac', 'js'] }]
+    });
+    if (!filePaths || filePaths.length === 0) return null;
+    return pathToFileURL(filePaths[0]).href;
   });
 
   ipcMain.handle('renderer:exists-sync', async (_, filePath) => {

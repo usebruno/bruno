@@ -1,0 +1,25 @@
+meta {
+  name: set-typed-env-vars
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://testbench-sanity.usebruno.com/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("envNum", 42);
+  bru.setEnvVar("envBool", true);
+  bru.setEnvVar("envObj", { port: 3000, ssl: true });
+}
+
+tests {
+  test("typed env vars are readable as their original types", function() {
+    expect(bru.getEnvVar("envNum")).to.equal(42);
+    expect(bru.getEnvVar("envBool")).to.equal(true);
+    expect(bru.getEnvVar("envObj")).to.deep.equal({ port: 3000, ssl: true });
+  });
+}

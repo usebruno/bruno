@@ -1,39 +1,169 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
+import classnames from 'classnames';
 import { uuid } from 'utils/common';
+import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import { useRevealFocusedTableRow } from 'hooks/useRevealFocusedTableRow';
+import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
+import ColumnSortHeader from './ColumnSortHeader';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
+const ROW_HEIGHT = 35;
 
-const EditableTable = ({
+const findScrollParent = (element) => {
+  let parent = element?.parentElement;
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent);
+    if (overflowY === 'auto' || overflowY === 'scroll') return parent;
+    parent = parent.parentElement;
+  }
+  return null;
+};
+
+const TableRow = React.memo(
+  ({ children, item, context, ...rest }) => {
+    const rowIndex = Number(rest['data-item-index']);
+    const {
+      reorderable,
+      reorderableRowCount,
+      isLastEmptyRow,
+      dragOverKey,
+      draggingKey,
+      keyColumn,
+      showCheckbox,
+      handleDragHandleMouseDown,
+      isRowEditable,
+      getRowClassName,
+      getRowTestId,
+      flashedRowUid
+    } = context;
+    const isEmpty = isLastEmptyRow(item, rowIndex);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(item) ?? true);
+    const isDragOver = canDrag && dragOverKey === item?.uid;
+    const isBeingDragged = canDrag && draggingKey === item?.uid;
+    const className = classnames(rest.className, {
+      'drag-over': isDragOver,
+      'dragging-source': isBeingDragged,
+      'row-focus-flash': !!item?.uid && flashedRowUid === item.uid
+    }, getRowClassName?.(item));
+    const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
+
+    return (
+      <tr
+        {...rest}
+        className={className}
+        data-testid={getRowTestId?.(item)}
+        data-row-name={rowName || undefined}
+        {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
+      >
+        {!showCheckbox && reorderable && (
+          <td className="text-center relative" style={{ width: '32px' }}>
+            {canDrag && (
+              <div
+                className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                onMouseDown={(e) => handleDragHandleMouseDown(e, item.uid, rowName)}
+              >
+                <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+              </div>
+            )}
+          </td>
+        )}
+        {children}
+      </tr>
+    );
+  }
+);
+
+const EditableTable = React.forwardRef(({
+  tableId, // Not being used kept to maintain uniqueness & pass similar in onColumnWidthsChange
   columns,
-  rows,
-  onChange,
+  rows: rowsProp,
+  onChange: onChangeProp,
   defaultRow,
   getRowError,
   showCheckbox = true,
   showDelete = true,
   disableCheckbox = false,
+  onCheckboxChange,
+  rowConfig = {},
   checkboxLabel = '',
   checkboxKey = 'enabled',
-  reorderable = false,
+  reorderable: reorderableProp = false,
   onReorder,
   showAddRow = true,
-  testId = 'editable-table'
-}) => {
-  const tableRef = useRef(null);
+  testId = 'editable-table',
+  columnWidths,
+  initialScroll = 0,
+  onColumnWidthsChange,
+  sortStorageKey,
+  isDraft,
+  focusRow,
+  onFocusRowHandled
+}, ref) => {
+  const {
+    isEditable: isRowEditable,
+    isCheckboxDisabled,
+    className: getRowClassName,
+    testId: getRowTestId,
+    renderFullWidth: renderFullWidthRow,
+    renderActionCell
+  } = rowConfig;
+
+  const wrapperRef = useRef(null);
+  const virtuosoRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToTop: () => virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start' })
+  }), []);
+
   const emptyRowUidRef = useRef(null);
-  const [hoveredRow, setHoveredRow] = useState(null);
+  const prevRowCountRef = useRef(0);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const initialWidths = {};
-    columns.forEach((col) => {
-      initialWidths[col.key] = col.width || 'auto';
-    });
-    return initialWidths;
+  const [scrollParent, setScrollParent] = useState(null);
+  const widths = columnWidths || {};
+
+  const sortColumn = useMemo(() => columns.find((col) => col.sortable), [columns]);
+  const sortable = !!sortColumn;
+  const getSortValue = useMemo(
+    () => (sortColumn ? (row) => row[sortColumn.key] : undefined),
+    [sortColumn]
+  );
+
+  const {
+    displayRows,
+    handleChange,
+    reorderable: sortAllowsReorder,
+    cycleSortMode,
+    SortIcon,
+    sortLabel
+  } = useSortableEditableTableRows({
+    storageKey: sortStorageKey,
+    rows: rowsProp,
+    onChange: onChangeProp,
+    isDraft,
+    getSortValue
   });
+
+  const rows = sortable ? displayRows : rowsProp;
+  const onChange = sortable ? handleChange : onChangeProp;
+  const reorderable = reorderableProp && sortAllowsReorder;
+
+  useLayoutEffect(() => {
+    setScrollParent(findScrollParent(wrapperRef.current));
+  }, []);
+
+  const handleTotalHeightChanged = useCallback((h) => {
+    setTableHeight(h);
+  }, []);
+
+  const handleColumnWidthsChange = useCallback((newWidths) => {
+    onColumnWidthsChange?.(newWidths);
+  }, [onColumnWidthsChange]);
 
   const handleResizeStart = useCallback((e, columnKey) => {
     e.preventDefault();
@@ -59,16 +189,18 @@ const EditableTable = ({
       const maxShrink = startWidth - MIN_COLUMN_WIDTH;
       const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
 
-      setColumnWidths((prev) => ({
-        ...prev,
+      const newWidths = {
+        ...widths,
         [columnKey]: `${startWidth + clampedDiff}px`,
         [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      }));
+      };
+
+      handleColumnWidthsChange(newWidths);
     };
 
     const handleMouseUp = () => {
       // Convert pixel widths to percentages for responsive scaling
-      const table = tableRef.current?.querySelector('table');
+      const table = wrapperRef.current?.querySelector('table');
       if (table) {
         const tableWidth = table.offsetWidth;
         const headerCells = table.querySelectorAll('thead td');
@@ -88,7 +220,7 @@ const EditableTable = ({
         });
 
         if (Object.keys(newWidths).length > 0) {
-          setColumnWidths((prev) => ({ ...prev, ...newWidths }));
+          handleColumnWidthsChange({ ...widths, ...newWidths });
         }
       }
       setResizing(null);
@@ -98,28 +230,11 @@ const EditableTable = ({
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [columns, showCheckbox]);
-
-  // Track table height for resize handles
-  useEffect(() => {
-    const table = tableRef.current?.querySelector('table');
-    if (!table) return;
-
-    const updateHeight = () => {
-      setTableHeight(table.offsetHeight);
-    };
-
-    updateHeight();
-
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(table);
-
-    return () => resizeObserver.disconnect();
-  }, [rows.length]);
+  }, [columns, showCheckbox, widths, handleColumnWidthsChange]);
 
   const getColumnWidth = useCallback((column) => {
-    return columnWidths[column.key] || column.width || 'auto';
-  }, [columnWidths]);
+    return widths[column.key] || column.width || 'auto';
+  }, [widths]);
 
   const createEmptyRow = useCallback(() => {
     const newUid = uuid();
@@ -131,6 +246,17 @@ const EditableTable = ({
     };
   }, [defaultRow, checkboxKey]);
 
+  const hasAnyValue = useCallback((row) => {
+    for (const col of columns) {
+      const val = col.getValue ? col.getValue(row) : row[col.key];
+      const defaultVal = defaultRow[col.key];
+      if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
+        return true;
+      }
+    }
+    return false;
+  }, [columns, defaultRow]);
+
   const rowsWithEmpty = useMemo(() => {
     if (!showAddRow) {
       return rows;
@@ -140,16 +266,10 @@ const EditableTable = ({
       return [createEmptyRow()];
     }
 
+    // Always keep one empty add-row under section/default rows.
     const lastRow = rows[rows.length - 1];
-    const keyColumn = columns.find((col) => col.isKeyField);
-
-    if (keyColumn) {
-      const lastRowKeyValue = keyColumn.getValue ? keyColumn.getValue(lastRow) : lastRow[keyColumn.key];
-      const isLastRowEmpty = !lastRowKeyValue || (typeof lastRowKeyValue === 'string' && lastRowKeyValue.trim() === '');
-
-      if (isLastRowEmpty) {
-        return rows;
-      }
+    if ((isRowEditable?.(lastRow) ?? true) && !hasAnyValue(lastRow)) {
+      return rows;
     }
 
     if (!emptyRowUidRef.current || rows.some((r) => r.uid === emptyRowUidRef.current)) {
@@ -161,110 +281,86 @@ const EditableTable = ({
       [checkboxKey]: true,
       ...defaultRow
     }];
-  }, [rows, columns, defaultRow, checkboxKey, createEmptyRow, showAddRow]);
+  }, [rows, defaultRow, checkboxKey, createEmptyRow, hasAnyValue, showAddRow, isRowEditable]);
 
-  const isEmptyRow = useCallback((row) => {
-    const keyColumn = columns.find((col) => col.isKeyField);
-    if (!keyColumn) return false;
-
-    const value = keyColumn.getValue ? keyColumn.getValue(row) : row[keyColumn.key];
-    return !value || (typeof value === 'string' && value.trim() === '');
-  }, [columns]);
+  // A row is empty when none of its columns hold a value — the single source of
+  // truth used everywhere (memo guard, persistence filter, last-row rendering).
+  const isEmptyRow = useCallback((row) => !hasAnyValue(row), [hasAnyValue]);
 
   const isLastEmptyRow = useCallback((row, index) => {
     if (!showAddRow) return false;
     return index === rowsWithEmpty.length - 1 && isEmptyRow(row);
   }, [rowsWithEmpty.length, isEmptyRow, showAddRow]);
 
+  useEffect(() => {
+    const previousCount = prevRowCountRef.current;
+    const nextCount = rowsWithEmpty.length;
+    prevRowCountRef.current = nextCount;
+
+    // Only follow a newly appended add-row, not inherited rows being prepended.
+    if (previousCount > 0 && nextCount === previousCount + 1) {
+      const lastIndex = nextCount - 1;
+      if (isLastEmptyRow(rowsWithEmpty[lastIndex], lastIndex)) {
+        virtuosoRef.current?.scrollToIndex({
+          index: lastIndex,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [isLastEmptyRow, rowsWithEmpty]);
+
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
     if (rowIndex === -1) return;
 
-    const currentRow = rowsWithEmpty[rowIndex];
-    const isLast = rowIndex === rowsWithEmpty.length - 1;
-    const wasEmpty = isEmptyRow(currentRow);
-
-    const keyColumn = columns.find((col) => col.isKeyField);
-    const isKeyFieldChange = keyColumn && keyColumn.key === key;
-
-    let updatedRows = rowsWithEmpty.map((row) => {
+    const updatedRows = rowsWithEmpty.map((row) => {
       if (row.uid === rowUid) {
         return { ...row, [key]: value };
       }
       return row;
     });
 
-    // Only add a new empty row when the key field is filled
-    if (showAddRow && isLast && wasEmpty && isKeyFieldChange && value && value.trim() !== '') {
-      emptyRowUidRef.current = uuid();
-      updatedRows.push({
-        uid: emptyRowUidRef.current,
-        [checkboxKey]: true,
-        ...defaultRow
-      });
-    }
-
-    const hasAnyValue = (row) => {
-      for (const col of columns) {
-        const val = col.getValue ? col.getValue(row) : row[col.key];
-        const defaultVal = defaultRow[col.key];
-        if (val && val !== defaultVal && (typeof val !== 'string' || val.trim() !== '')) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const result = updatedRows.filter((row, i) => {
-      if (showAddRow && i === updatedRows.length - 1) {
-        return hasAnyValue(row);
-      }
-      return true;
-    });
+    // Drop empty data rows; keep section/default rows. The add-row is rebuilt.
+    const result = showAddRow
+      ? updatedRows.filter((row) => !(isRowEditable?.(row) ?? true) || hasAnyValue(row))
+      : updatedRows;
 
     onChange(result);
-  }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, isEmptyRow, showAddRow]);
+  }, [rowsWithEmpty, hasAnyValue, isRowEditable, onChange, showAddRow]);
 
   const handleCheckboxChange = useCallback((rowUid, checked) => {
+    const row = rowsWithEmpty.find((candidate) => candidate.uid === rowUid);
+    if (row && onCheckboxChange) {
+      onCheckboxChange(row, checked);
+      return;
+    }
     handleValueChange(rowUid, checkboxKey, checked);
-  }, [handleValueChange, checkboxKey]);
+  }, [rowsWithEmpty, onCheckboxChange, handleValueChange, checkboxKey]);
 
   const handleRemoveRow = useCallback((rowUid) => {
     const filteredRows = rows.filter((row) => row.uid !== rowUid);
     onChange(filteredRows);
   }, [rows, onChange]);
 
-  const handleDragStart = useCallback((e, index) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index);
-  }, []);
+  const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
 
-  const handleDragOver = useCallback((e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setHoveredRow(index);
-  }, []);
+  const handleRowReorder = useCallback((fromUid, toUid) => {
+    if (!onReorder) return;
+    const reorderableRows = (showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty)
+      .filter((row) => isRowEditable?.(row) ?? true);
+    const fromIndex = reorderableRows.findIndex((row) => row.uid === fromUid);
+    const toIndex = reorderableRows.findIndex((row) => row.uid === toUid);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const updatedOrder = [...reorderableRows];
+    const [movedRow] = updatedOrder.splice(fromIndex, 1);
+    updatedOrder.splice(toIndex, 0, movedRow);
+    onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
+  }, [onReorder, rowsWithEmpty, showAddRow, isRowEditable]);
 
-  const handleDrop = useCallback((e, toIndex) => {
-    e.preventDefault();
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (fromIndex !== toIndex && onReorder) {
-      const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
-      const updatedOrder = [...reorderableRows];
-      const [movedRow] = updatedOrder.splice(fromIndex, 1);
-      if (!movedRow) {
-        setHoveredRow(null);
-        return;
-      }
-      updatedOrder.splice(toIndex, 0, movedRow);
-      onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
-    }
-    setHoveredRow(null);
-  }, [onReorder, rowsWithEmpty, showAddRow]);
-
-  const handleDragEnd = useCallback(() => {
-    setHoveredRow(null);
-  }, []);
+  const { draggingKey, dragOverKey, handleDragHandleMouseDown } = useMouseRowDrag({
+    enabled: reorderable,
+    onReorder: handleRowReorder
+  });
 
   const renderCell = useCallback((column, row, rowIndex) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
@@ -320,111 +416,186 @@ const EditableTable = ({
     );
   }, [isLastEmptyRow, getRowError, handleValueChange]);
 
-  const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
+  const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
+  const flashedRowUid = useRevealFocusedTableRow({
+    focusRow,
+    rows: rowsWithEmpty,
+    keyColumn,
+    scrollParent,
+    virtuosoRef,
+    onFocusRowHandled
+  });
+
+  const virtuosoContext = useMemo(() => ({
+    reorderable,
+    reorderableRowCount,
+    isLastEmptyRow,
+    dragOverKey,
+    draggingKey,
+    keyColumn,
+    showCheckbox,
+    handleDragHandleMouseDown,
+    isRowEditable,
+    getRowClassName,
+    getRowTestId,
+    flashedRowUid
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown, isRowEditable, getRowClassName, getRowTestId, flashedRowUid]);
+
+  const fixedHeaderContent = useCallback(() => (
+    <tr>
+      {!showCheckbox && reorderable && <td className="text-center" style={{ width: '32px' }}></td>}
+      {showCheckbox && (
+        <td className="text-center">{checkboxLabel}</td>
+      )}
+      {columns.map((column, colIndex) => {
+        const isSortColumn = column === sortColumn;
+        return (
+          <td
+            key={column.key}
+            style={{ width: getColumnWidth(column) }}
+            className={isSortColumn ? 'sortable-header' : ''}
+            onClick={isSortColumn ? cycleSortMode : undefined}
+          >
+            <span className="column-name">
+              {isSortColumn ? (
+                <ColumnSortHeader label={column.name} SortIcon={SortIcon} sortLabel={sortLabel} testId={`${testId}-sort-toggle`} />
+              ) : (
+                column.name
+              )}
+            </span>
+            {colIndex < columns.length - 1 && (
+              <div
+                className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
+                style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                onMouseDown={(e) => handleResizeStart(e, column.key)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </td>
+        );
+      })}
+      {showDelete && (
+        <td
+          id="delete-column-header"
+          style={{ width: '57px' }}
+        >
+        </td>
+      )}
+    </tr>
+  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId, reorderable]);
+
+  const itemContent = useCallback((rowIndex, row) => {
+    const isEmpty = isLastEmptyRow(row, rowIndex);
+    const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount && (isRowEditable?.(row) ?? true);
+    const fullWidthContent = renderFullWidthRow?.(row);
+
+    if (fullWidthContent) {
+      const columnCount = columns.length + (showCheckbox ? 1 : 0) + (showDelete ? 1 : 0) + (!showCheckbox && reorderable ? 1 : 0);
+      return (
+        <td className="full-width-row" colSpan={columnCount}>
+          {fullWidthContent}
+        </td>
+      );
+    }
+
+    return (
+      <>
+        {showCheckbox && (
+          <td className="text-center relative">
+            {reorderable && canDrag && (
+              <div
+                className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                onMouseDown={(e) => handleDragHandleMouseDown(e, row.uid, keyColumn ? row[keyColumn.key] : undefined)}
+              >
+                <IconGripVertical
+                  size={14}
+                  className="icon-grip hidden group-hover:block"
+                />
+                <IconMinusVertical
+                  size={14}
+                  className="icon-minus block group-hover:hidden"
+                />
+              </div>
+            )}
+            {!isEmpty && (
+              <input
+                type="checkbox"
+                className="mousetrap"
+                data-testid="column-checkbox"
+                checked={row[checkboxKey] ?? true}
+                disabled={disableCheckbox || isCheckboxDisabled?.(row)}
+                onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
+              />
+            )}
+          </td>
+        )}
+        {columns.map((column) => (
+          <td key={column.key} data-testid={`column-${column.key}`}>
+            {renderCell(column, row, rowIndex)}
+          </td>
+        ))}
+        {showDelete && (
+          <td ref={(node) => {
+            if (!node) return;
+            const width = node.scrollWidth;
+            const parent = node.parentElement.parentElement.parentElement.querySelector('#delete-column-header');
+            if (parent) {
+              const parentWidth = parseInt(parent.style.width);
+              const nextWidth = Math.max(parentWidth, width);
+              if (nextWidth !== parentWidth) {
+                parent.style.width = nextWidth + 'px';
+              }
+            }
+          }}
+          >
+            {(() => {
+              const customAction = renderActionCell?.(row);
+              if (customAction !== null && customAction !== undefined) {
+                return customAction;
+              }
+
+              return !isEmpty && (isRowEditable?.(row) ?? true) && (
+                <button
+                  data-testid="column-delete"
+                  onClick={() => handleRemoveRow(row.uid)}
+                >
+                  <IconTrash strokeWidth={1.5} size={18} />
+                </button>
+              );
+            })()}
+          </td>
+        )}
+      </>
+    );
+  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, isRowEditable, renderFullWidthRow, renderActionCell, columns, showDelete, keyColumn, handleDragHandleMouseDown, checkboxKey, disableCheckbox, isCheckboxDisabled, handleCheckboxChange, renderCell, handleRemoveRow]);
+
+  const initialTopMostItemIndex = useRef(
+    (focusRow?.uid || focusRow?.name) ? 0 : Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))
+  ).current;
 
   return (
-    <StyledWrapper className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}>
-      <div className="table-container" ref={tableRef} data-testid={testId}>
-        <table>
-          <thead>
-            <tr>
-              {showCheckbox && (
-                <td className="text-center">{checkboxLabel}</td>
-              )}
-              {columns.map((column, colIndex) => (
-                <td
-                  key={column.key}
-                  style={{ width: getColumnWidth(column) }}
-                >
-                  <span className="column-name">{column.name}</span>
-                  {colIndex < columns.length - 1 && (
-                    <div
-                      className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
-                      style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                      onMouseDown={(e) => handleResizeStart(e, column.key)}
-                    />
-                  )}
-                </td>
-              ))}
-              {showDelete && (
-                <td style={{ width: '60px' }}></td>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {rowsWithEmpty.map((row, rowIndex) => {
-              const isEmpty = isLastEmptyRow(row, rowIndex);
-              const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
-
-              return (
-                <tr
-                  key={row.uid}
-                  draggable={canDrag}
-                  onDragStart={canDrag ? (e) => handleDragStart(e, rowIndex) : undefined}
-                  onDragOver={canDrag ? (e) => handleDragOver(e, rowIndex) : undefined}
-                  onDrop={canDrag ? (e) => handleDrop(e, rowIndex) : undefined}
-                  onDragEnd={canDrag ? handleDragEnd : undefined}
-                  onMouseEnter={() => setHoveredRow(rowIndex)}
-                  onMouseLeave={() => setHoveredRow(null)}
-                >
-                  {showCheckbox && (
-                    <td className="text-center relative">
-                      {reorderable && canDrag && (
-                        <div
-                          draggable
-                          className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
-                        >
-                          {hoveredRow === rowIndex && (
-                            <>
-                              <IconGripVertical
-                                size={14}
-                                className="icon-grip hidden group-hover:block"
-                              />
-                              <IconMinusVertical
-                                size={14}
-                                className="icon-minus block group-hover:hidden"
-                              />
-                            </>
-                          )}
-                        </div>
-                      )}
-                      {!isEmpty && (
-                        <input
-                          type="checkbox"
-                          className="mousetrap"
-                          data-testid="column-checkbox"
-                          checked={row[checkboxKey] ?? true}
-                          disabled={disableCheckbox}
-                          onChange={(e) => handleCheckboxChange(row.uid, e.target.checked)}
-                        />
-                      )}
-                    </td>
-                  )}
-                  {columns.map((column) => (
-                    <td key={column.key} data-testid={`column-${column.key}`}>
-                      {renderCell(column, row, rowIndex)}
-                    </td>
-                  ))}
-                  {showDelete && (
-                    <td>
-                      {!isEmpty && (
-                        <button
-                          data-testid="column-delete"
-                          onClick={() => handleRemoveRow(row.uid)}
-                        >
-                          <IconTrash strokeWidth={1.5} size={18} />
-                        </button>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <StyledWrapper
+      ref={wrapperRef}
+      data-testid={testId}
+      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''} ${renderFullWidthRow ? 'has-section-rows' : ''}`}
+    >
+      {scrollParent && (
+        <TableVirtuoso
+          ref={virtuosoRef}
+          className="table-container"
+          customScrollParent={scrollParent}
+          data={rowsWithEmpty}
+          components={{ TableRow }}
+          context={virtuosoContext}
+          defaultItemHeight={ROW_HEIGHT}
+          initialTopMostItemIndex={initialTopMostItemIndex}
+          totalListHeightChanged={handleTotalHeightChanged}
+          computeItemKey={(_, item) => item.uid}
+          fixedHeaderContent={fixedHeaderContent}
+          itemContent={itemContent}
+        />
+      )}
     </StyledWrapper>
   );
-};
-
+});
 export default EditableTable;

@@ -1,0 +1,40 @@
+meta {
+  name: form-urlencoded
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  fu_str: {{fu_str}}
+  fu_num: {{fu_num}}
+  fu_bool: {{fu_bool}}
+  fu_obj: {{fu_obj}}
+}
+
+vars:pre-request {
+  fu_str: form_string
+  @number
+  fu_num: 42
+  @boolean
+  fu_bool: true
+  @object
+  fu_obj: '''
+    {"key":"value"}
+  '''
+}
+
+tests {
+  test("form-urlencoded values stringify typed vars on the wire", () => {
+    const raw = res.getBody();
+    expect(raw).to.contain("fu_str=form_string");
+    expect(raw).to.contain("fu_num=42");
+    expect(raw).to.contain("fu_bool=true");
+    expect(raw).to.contain("fu_obj=%7B%22key%22%3A%22value%22%7D");
+  });
+}

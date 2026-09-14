@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';

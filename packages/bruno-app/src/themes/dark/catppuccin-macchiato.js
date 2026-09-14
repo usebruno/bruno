@@ -53,6 +53,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: colors.OVERLAY0,
+  BORDER2: colors.SURFACE2,
+  BORDER1: colors.SURFACE1,
+  BORDER0: colors.SURFACE0
+};
+
 palette.intent = {
   INFO: colors.BLUE,
   SUCCESS: colors.GREEN,
@@ -73,6 +80,12 @@ const catppuccinMacchiatoTheme = {
     text: colors.MAUVE,
     strong: colors.MAUVE,
     subtle: colors.MAUVE
+  },
+
+  ws: {
+    activeMessage: {
+      label: colors.MAUVE
+    }
   },
 
   accents: {
@@ -142,9 +155,10 @@ const catppuccinMacchiatoTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.SURFACE2,
-    border1: colors.SURFACE1,
-    border0: colors.SURFACE0
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -271,15 +285,13 @@ const catppuccinMacchiatoTheme = {
   },
 
   notifications: {
-    bg: colors.SURFACE0,
+    bg: colors.BASE,
     list: {
-      bg: colors.SURFACE0,
-      borderRight: colors.SURFACE2,
+      bg: colors.BASE,
       borderBottom: colors.SURFACE1,
       hoverBg: colors.SURFACE1,
       active: {
-        border: colors.BLUE,
-        bg: colors.SURFACE2,
+        bg: colors.SURFACE0,
         hoverBg: colors.SURFACE2
       }
     }

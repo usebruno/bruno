@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .collection-item-name {
+  &.collection-item-name {
     height: 1.6rem;
     cursor: pointer;
     user-select: none;
@@ -43,6 +43,10 @@ const StyledWrapper = styled.div`
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
+    }
+
+    &.drag-disabled:active {
+      cursor: not-allowed !important;
     }
   }
 

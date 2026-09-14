@@ -25,7 +25,7 @@ import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import get from 'lodash/get';
 
-const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
+const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose, closeAfterSave = false }) => {
   const dispatch = useDispatch();
 
   const latestCollection = useSelector((state) =>
@@ -201,9 +201,30 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
       const sanitizedFilename = sanitizeName(trimmedName);
 
-      const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
+      const hasFileModeEdit = latestItem.draft?.raw != null && latestItem.draft.raw !== latestItem.raw;
+      let baseItem;
+      if (hasFileModeEdit) {
+        const rawSourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
+        try {
+          const parsed = await ipcRenderer.invoke(
+            'renderer:convert-to-json',
+            latestItem,
+            latestItem.draft.raw,
+            rawSourceFormat
+          );
+          baseItem = { ...latestItem, ...parsed, uid: latestItem.uid, pathname: latestItem.pathname };
+        } catch (err) {
+          toast.error(formatIpcError(err) || 'Invalid request content - fix it in file mode before saving');
+          return;
+        }
+      } else {
+        baseItem = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
+      }
+
+      const itemToSave = { ...baseItem };
       itemToSave.name = sanitizedFilename;
       delete itemToSave.draft;
+      delete itemToSave.raw;
 
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
@@ -213,7 +234,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
       const targetPathname = path.join(targetDirname, targetFilename);
 
-      await ipcRenderer.invoke('renderer:save-transient-request', {
+      const saveResult = await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
@@ -222,15 +243,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourceFormat
       });
 
-      dispatch(
-        insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollection.uid,
-          itemPathname: targetPathname,
-          preview: false
-        })
-      );
+      // use the path resolved by the handler.
+      const savedPathname = saveResult?.newPathname || targetPathname;
+
+      if (!closeAfterSave) {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollection.uid,
+            itemPathname: savedPathname,
+            preview: false
+          })
+        );
+      }
 
       dispatch(closeTabs({ tabUids: [item.uid] }));
 
@@ -336,7 +362,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       return;
     }
     try {
-      await dispatch(createCollection(trimmedName, sanitizeName(trimmedName), newCollection.location, { format: newCollection.format }));
+      await dispatch(createCollection(trimmedName, sanitizeName(trimmedName), newCollection.location, { format: newCollection.format, source: 'save-transient-request', entryPoint: 'save-transient-request' }));
       toast.success('Collection created!');
       handleCancelNewCollection();
     } catch (err) {
@@ -358,16 +384,19 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     return null;
   }
 
+  const showNewFolderFooterButton = !showNewFolderInput && !isSelectingCollection && (filteredFolders.length > 0 && !searchText.trim());
+
   return (
     <StyledWrapper>
       <Modal
-        size="md"
+        size="sm"
         title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
         confirmText="Save"
         cancelText="Cancel"
         hideFooter={true}
+        dataTestId="save-transient-request-modal"
       >
         <div className="save-request-form">
           <div className="form-section">
@@ -376,6 +405,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
             </label>
             <input
               id="request-name"
+              data-testid="save-transient-request-name"
               type="text"
               className="form-input textbox"
               autoComplete="off"
@@ -539,7 +569,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                             size="sm"
                             onClick={handleCreateNewCollection}
                           >
-                            Save
+                            Create
                           </Button>
                         </div>
                       </li>
@@ -547,8 +577,18 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                   </ul>
                 ) : (
                   <div className="collection-empty-state">
-                    <p>No collections Yet</p>
+                    <p>No Collections Yet</p>
                     <p className="collection-empty-state-subtitle">Collections help you organize your requests. Create your first one to save this request.</p>
+                    <Button
+                      type="button"
+                      color="primary"
+                      variant="outline"
+                      icon={<IconFolder size={16} strokeWidth={1.5} />}
+                      onClick={handleShowNewCollection}
+                      className="mt-4"
+                    >
+                      New collection
+                    </Button>
                   </div>
                 )}
               </div>
@@ -726,7 +766,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                     </ul>
                   ) : (
                     <div className="folder-empty-state">
-                      {searchText.trim() ? 'No folders found' : 'No folders available'}
+                      <div className="flex flex-col items-center">
+                        <span>
+                          {searchText.trim() ? 'No folders found' : 'No folders available' }
+                        </span>
+                        <Button
+                          type="button"
+                          color="primary"
+                          variant="ghost"
+                          icon={<IconFolder size={16} strokeWidth={1.5} />}
+                          onClick={handleShowNewFolder}
+                        >
+                          New Folder
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -737,7 +790,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
         <div className="custom-modal-footer">
           <div className="footer-left">
-            {!showNewFolderInput && !isSelectingCollection && (
+            {showNewFolderFooterButton && (
               <Button
                 type="button"
                 color="primary"
@@ -748,7 +801,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 New Folder
               </Button>
             )}
-            {isSelectingCollection && !newCollection.show && (
+            {isSelectingCollection && !newCollection.show && availableCollections.length > 0 && (
               <Button
                 type="button"
                 color="primary"
@@ -765,7 +818,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               Cancel
             </Button>
             {!isSelectingCollection && (
-              <Button type="button" color="primary" onClick={handleConfirm}>
+              <Button type="button" color="primary" onClick={handleConfirm} data-testid="save-transient-request-submit">
                 Save
               </Button>
             )}

@@ -1,0 +1,12 @@
+opencollection: "1.0.0"
+
+info:
+  name: client-certs-disabled-yml
+
+config:
+  clientCertificates:
+    - domain: localhost
+      type: pem
+      certificateFilePath: ../../server/certs/client-cert.pem
+      privateKeyFilePath: ../../server/certs/client-key.pem
+      disabled: true

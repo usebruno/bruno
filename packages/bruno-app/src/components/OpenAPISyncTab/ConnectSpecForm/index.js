@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
-import { isValidUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import { parseFileAsJsonOrYaml } from 'utils/importers/file-reader';
 
@@ -77,7 +77,11 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                   try {
                     const data = await parseFileAsJsonOrYaml(file);
                     if (!isOpenApiSpec(data)) {
-                      setError('The selected file is not a valid OpenAPI specification');
+                      setError('The selected file is not a valid OpenAPI 3.x specification');
+                      return;
+                    }
+                    if (data.swagger && String(data.swagger).startsWith('2')) {
+                      setError('Swagger 2.0 is not supported. Please convert your spec to OpenAPI 3.x.');
                       return;
                     }
                     const filePath = window.ipcRenderer.getFilePath(file);
@@ -92,7 +96,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                 className="url-input file-pick-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Choose file...'}
+                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Select File'}
               </button>
             </>
           )}
@@ -100,7 +104,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           <Button
             type="submit"
             size="sm"
-            disabled={mode === 'url' ? !isValidUrl(sourceUrl.trim()) : !sourceUrl.trim()}
+            disabled={mode === 'url' ? !isHttpUrl(sourceUrl.trim()) : !sourceUrl.trim()}
             loading={isLoading}
           >
             Connect

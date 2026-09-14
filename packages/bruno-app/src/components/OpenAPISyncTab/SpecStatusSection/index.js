@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   IconCheck,
-  IconRefresh
+  IconRefresh,
+  IconAlertTriangle,
+  IconClock
 } from '@tabler/icons';
-import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import ConfirmSyncModal from '../ConfirmSyncModal';
@@ -23,41 +24,37 @@ const SpecStatusSection = ({
 
   const {
     isSyncing, showConfirmModal, confirmGroups,
-    handleSyncNow, handleApplySync, cancelConfirmModal, handleConfirmModalSync
+    handleRestoreSpec, handleApplySync, cancelConfirmModal, handleConfirmModalSync
   } = useSyncFlow({
     collection, specDrift, remoteDrift, collectionDrift,
-    sourceUrl, setError, checkForUpdates: onCheck
+    setError, checkForUpdates: onCheck
   });
 
   const lastSyncedAt = openApiSyncConfig?.lastSyncDate;
+
+  const hasRemoteUpdates = remoteDrift && (
+    (remoteDrift.missing?.length || 0)
+    + (remoteDrift.modified?.length || 0)
+    + (remoteDrift.localOnly?.length || 0)
+  ) > 0;
 
   const bannerState = useMemo(() => {
     if (fileNotFound) {
       return { variant: 'danger', message: `Source file not found at ${sourceUrl}`, actions: ['open-settings'] };
     }
     if (error || specDrift?.isValid === false) {
-      return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: [] };
+      return { variant: 'danger', message: error || specDrift?.error || 'Invalid OpenAPI specification', actions: ['open-settings'] };
     }
     if (!specDrift) {
       return null;
-      // TODO: re-enable success banner
-      // if (!lastSyncedAt) return null;
-      // return {
-      //   variant: 'success', message: 'Spec is up to date', actions: [],
-      //   version: storedSpec?.info?.version,
-      //   lastChecked: moment(lastCheckedAt || lastSyncedAt).fromNow()
-      // };
     }
-    if (specDrift.storedSpecMissing) {
-      if (!lastSyncedAt) {
-        return { variant: 'warning', message: 'Initial sync required — your collection differs from the spec', actions: [] };
-      }
-      if (specDrift.hasRemoteChanges) {
-        return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
-      }
-      return { variant: 'warning', message: 'Last synced spec not found — Restore the latest spec from the source to track future changes.', actions: [] };
+    if (specDrift.storedSpecMissing && !hasRemoteUpdates) {
+      return null;
     }
-    if (specDrift.hasRemoteChanges) {
+    const hasEndpointUpdates = specDrift.storedSpecMissing
+      ? hasRemoteUpdates
+      : (specDrift.added?.length || 0) + (specDrift.modified?.length || 0) + (specDrift.removed?.length || 0) > 0;
+    if (hasEndpointUpdates) {
       const versionInfo = (specDrift.storedVersion && specDrift.newVersion && specDrift.storedVersion !== specDrift.newVersion)
         ? ` (v${specDrift.storedVersion} → v${specDrift.newVersion})`
         : '';
@@ -66,13 +63,8 @@ const SpecStatusSection = ({
         changes: { added: specDrift.added?.length || 0, modified: specDrift.modified?.length || 0, removed: specDrift.removed?.length || 0 }
       };
     }
-    // return {
-    //   variant: 'success', message: 'Spec is up to date', actions: [],
-    //   version: specDrift.newVersion || storedSpec?.info?.version || specDrift.storedVersion,
-    //   lastChecked: lastCheckedAt ? moment(lastCheckedAt).fromNow() : 'just now'
-    // };
     return null;
-  }, [isLoading, fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt]);
+  }, [fileNotFound, error, sourceUrl, specDrift, lastSyncedAt, storedSpec, lastCheckedAt, hasRemoteUpdates]);
   return (
     <>
       {bannerState && (
@@ -94,16 +86,13 @@ const SpecStatusSection = ({
               </span>
               {bannerState.changes && (
                 <span className="banner-details">
+                  {bannerState.changes.modified > 0 && <StatusBadge key="modified" status="warning" radius="full">{bannerState.changes.modified} {bannerState.changes.modified > 1 ? 'endpoints' : 'endpoint'} updated</StatusBadge>}
                   {bannerState.changes.added > 0 && <StatusBadge key="added" status="success" radius="full">{bannerState.changes.added} {bannerState.changes.added > 1 ? 'endpoints' : 'endpoint'} added</StatusBadge>}
-                  {bannerState.changes.modified > 0 && <StatusBadge key="modified" status="info" radius="full">{bannerState.changes.modified} {bannerState.changes.modified > 1 ? 'endpoints' : 'endpoint'} updated</StatusBadge>}
                   {bannerState.changes.removed > 0 && <StatusBadge key="removed" status="danger" radius="full">{bannerState.changes.removed} {bannerState.changes.removed > 1 ? 'endpoints' : 'endpoint'} removed</StatusBadge>}
                 </span>
               )}
             </div>
             <div className="banner-actions">
-              {bannerState.actions.includes('quick-sync') && (
-                <Button size="xs" onClick={handleSyncNow}>Restore Spec File</Button>
-              )}
               {bannerState.actions.includes('open-settings') && (
                 <Button variant="ghost" size="sm" onClick={onOpenSettings}>
                   Update connection settings
@@ -114,16 +103,22 @@ const SpecStatusSection = ({
         </div>
       )}
 
-      {specDrift?.storedSpecMissing && openApiSyncConfig?.lastSyncDate ? (
+      {(error || fileNotFound || specDrift?.isValid === false) ? (
         <div className="sync-review-empty-state mt-5">
-          <IconRefresh size={40} className="empty-state-icon" />
-          <h4>Last Synced Spec not found in storage</h4>
-          <p>The last synced spec is missing in the storage. Restore the latest spec from the source to track future changes.</p>
-          <Button className="mt-4" color="warning" onClick={handleSyncNow} loading={isSyncing}>
+          <IconAlertTriangle size={40} className="empty-state-icon" />
+          <h4>Unable to check for updates</h4>
+          <p>Fix the connection issue above and check again.</p>
+        </div>
+      ) : specDrift?.storedSpecMissing && openApiSyncConfig?.lastSyncDate && !hasRemoteUpdates ? (
+        <div className="sync-review-empty-state mt-5">
+          <IconCheck size={40} className="empty-state-icon" />
+          <h4>No updates from the spec</h4>
+          <p>The spec endpoints have not been updated since the last sync. You can restore the spec file to track local collection changes.</p>
+          <Button className="mt-4" color="warning" onClick={handleRestoreSpec} loading={isSyncing}>
             Restore Spec File
           </Button>
         </div>
-      ) : remoteDrift && (
+      ) : (
         <div className="mt-5">
           <SyncReviewPage
             specDrift={specDrift}
@@ -133,6 +128,7 @@ const SpecStatusSection = ({
             collectionUid={collection.uid}
             newSpec={specDrift?.newSpec}
             isSyncing={isSyncing}
+            isLoading={isLoading}
             onApplySync={handleApplySync}
           />
         </div>
