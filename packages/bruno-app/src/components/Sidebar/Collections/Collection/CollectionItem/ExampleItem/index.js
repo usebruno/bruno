@@ -16,7 +16,6 @@ import ExampleIcon from 'components/Icons/ExampleIcon';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import MenuDropdown from 'ui/MenuDropdown';
-import ActionIcon from 'ui/ActionIcon';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
 import GenerateCodeItem from '../GenerateCodeItem';
@@ -24,8 +23,10 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { determineExampleDrop, getReorderedExampleUids } from 'utils/collections/index';
+import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const ExampleItem = ({ example, item, collection }) => {
+const ExampleItem = ({ example, item, collection, searchText, openBulkMenu, isParentDragDisabled, parentMultiDragItems }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -37,34 +38,47 @@ const ExampleItem = ({ example, item, collection }) => {
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const isSelected = selectedSidebarUids.includes(example.uid);
+  const isMultiSelected = isSelected && selectedSidebarUids.length > 1;
+  const handleSelectionClick = useSidebarSelectionClick({ uid: example.uid, searchText });
+
+  const isRedirectedToRequestDrag = isMultiSelected && selectedSidebarUids.includes(item.uid) && !isParentDragDisabled;
+
   // Calculate indentation: item depth + 1 for examples
   const indents = range((item.depth || 0) + 1);
 
   const [dropType, setDropType] = useState(null); // 'above' or 'below'
 
-  // A dedicated drag type keeps example drags and request/folder drags from seeing each
-  // other's drop targets.
+  // One drag source with two roles. Selecting an example together with its request redirects
+  // the drag to that request, so the whole selection travels as a `collection-item`. On its
+  // own an example drags as `response-example` — a dedicated type that keeps example drags and
+  // request/folder drags from seeing each other's drop targets.
   //
   // `name` and `type` are read by CollectionItemDragPreview, the shared drag layer that
   // renders what follows the cursor: it bails on an item without a `type`, and the native
   // preview is suppressed below, so omitting them leaves the drag with no visual at all.
   const [, drag, dragPreview] = useDrag({
-    type: 'response-example',
-    item: {
-      uid: example.uid,
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      name: example.name,
-      type: 'response-example'
-    },
+    type: isRedirectedToRequestDrag ? 'collection-item' : 'response-example',
+    item: isRedirectedToRequestDrag
+      ? {
+          ...item,
+          sourceCollectionUid: collection.uid,
+          wasSelected: true,
+          ...(parentMultiDragItems ? { multiSelectedItems: parentMultiDragItems } : {})
+        }
+      : {
+          uid: example.uid,
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+          name: example.name,
+          type: 'response-example'
+        },
     options: {
       dropEffect: 'move'
     }
   });
-
-  useEffect(() => {
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, []);
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   const resolveDropFromMonitor = (monitor) =>
     determineExampleDrop({
@@ -135,6 +149,12 @@ const ExampleItem = ({ example, item, collection }) => {
       exampleName: example.name,
       exampleIndex: typeof exampleIndex === 'number' && exampleIndex >= 0 ? exampleIndex : undefined
     }));
+  };
+
+  const handleClick = (event) => {
+    if (handleSelectionClick(event)) return;
+    if (event && event.detail !== 1) return;
+    handleExampleClick();
   };
 
   const handleDoubleClick = () => {
@@ -262,6 +282,12 @@ const ExampleItem = ({ example, item, collection }) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (isMultiSelected) {
+      openBulkMenu(e);
+      return;
+    }
+
     menuDropdownRef.current?.show();
   };
 
@@ -269,7 +295,9 @@ const ExampleItem = ({ example, item, collection }) => {
     'item-focused-in-tab': isExampleActive,
     'item-hovered': isOver && canDrop,
     'drop-target-above': isOver && canDrop && dropType === 'above',
-    'drop-target-below': isOver && canDrop && dropType === 'below'
+    'drop-target-below': isOver && canDrop && dropType === 'below',
+    'collection-item-selected': isSelected,
+    'drag-disabled': !isRedirectedToRequestDrag
   });
 
   return (
@@ -279,8 +307,10 @@ const ExampleItem = ({ example, item, collection }) => {
         drag(drop(node));
       }}
       data-testid="sidebar-response-example-item"
+      data-selected={isSelected ? 'true' : undefined}
       className={itemRowClassName}
-      onClick={handleExampleClick}
+      onMouseDown={isMultiSelected && !isRedirectedToRequestDrag ? startBlockedDragTracking : undefined}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
     >
@@ -303,18 +333,20 @@ const ExampleItem = ({ example, item, collection }) => {
         <ExampleIcon size={16} color="currentColor" className="example-icon mr-1 flex-shrink-0" />
         <span className="item-name truncate">{example.name}</span>
       </div>
-      <div className="menu-icon pr-2">
-        <MenuDropdown
-          ref={menuDropdownRef}
-          items={buildMenuItems()}
-          placement="bottom-start"
-          appendTo={dropdownContainerRef?.current || document.body}
-          popperOptions={{ strategy: 'fixed' }}
-          data-testid="response-example-menu"
-        >
-          <IconDots size={22} data-testid="response-example-menu-icon" />
-        </MenuDropdown>
-      </div>
+      {!isMultiSelected && (
+        <div className="menu-icon pr-2">
+          <MenuDropdown
+            ref={menuDropdownRef}
+            items={buildMenuItems()}
+            placement="bottom-start"
+            appendTo={dropdownContainerRef?.current || document.body}
+            popperOptions={{ strategy: 'fixed' }}
+            data-testid="response-example-menu"
+          >
+            <IconDots size={22} data-testid="response-example-menu-icon" />
+          </MenuDropdown>
+        </div>
+      )}
 
       {showRenameModal && (
         <Modal

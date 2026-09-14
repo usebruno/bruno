@@ -216,6 +216,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     }
   };
 
+  // TODO: the four hook runners below repeat one run/catch/apply/emit skeleton; fold it into a helper.
   const runBeforeCallStart = async ({ request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig }) => {
     const hookScript = get(request, 'script.beforeCallStart');
     if (!hookScript?.trim().length) return;
