@@ -123,6 +123,29 @@ describe('Snippet Generator - Simple Tests', () => {
     expect(result).toBe('curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d \'{"message": "{{greeting}}", "count": {{number}}}\'');
   });
 
+  it('should uppercase a lowercase method so the snippet matches what is sent on the wire', async () => {
+    // Bru/yml files can store the method lowercase (e.g. `method: post`). The
+    // request executor uppercases before sending, so the snippet must too —
+    // otherwise the exported code sends a verbatim `post` that servers reject.
+    const lowercaseMethodRequest = {
+      ...testRequest,
+      request: {
+        ...testRequest.request,
+        method: 'post'
+      }
+    };
+
+    const result = await generateSnippet({
+      language: curlLanguage,
+      item: lowercaseMethodRequest,
+      collection: testCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('-X POST');
+    expect(result).not.toContain('-X post');
+  });
+
   it('should interpolate variables when enabled', async () => {
     const result = await generateSnippet({
       language: curlLanguage,
