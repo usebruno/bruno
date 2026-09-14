@@ -40,6 +40,121 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Effective tags', () => {
+    // prepareRequest resolves tags against the tree, and electron walks it by uid,
+    // so the item must be reachable in collection.items under the same uid
+    const httpRequest = (uid, tags) => ({
+      uid,
+      type: 'http-request',
+      name: uid,
+      pathname: `/collection/${uid}.bru`,
+      ...(tags !== undefined ? { tags } : {}),
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        script: {},
+        vars: {},
+        auth: { mode: 'none' },
+        body: { mode: 'none' }
+      }
+    });
+
+    const folder = (uid, tags, items) => ({
+      uid,
+      type: 'folder',
+      name: uid,
+      pathname: `/collection/${uid}`,
+      root: { meta: { name: uid, tags } },
+      items
+    });
+
+    const collectionWith = (items) => ({ pathname: '/collection', root: {}, items });
+
+    it('carries the request own tags when it sits at the collection root', async () => {
+      const item = httpRequest('req-login', ['smoke', 'fast']);
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual(['smoke', 'fast']);
+    });
+
+    it('is an empty list when neither request nor folders carry tags', async () => {
+      const item = httpRequest('req-login');
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual([]);
+    });
+
+    it('inherits the tags of the folder holding the request', async () => {
+      const item = httpRequest('req-login', ['smoke']);
+      const result = await prepareRequest(item, collectionWith([folder('folder-auth', ['auth'], [item])]));
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('accumulates tags from every folder above the request', async () => {
+      const item = httpRequest('req-users', ['smoke']);
+      const collection = collectionWith([
+        folder('folder-api', ['api'], [folder('folder-v2', ['v2'], [item])])
+      ]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'api', 'v2']);
+    });
+
+    it('does not pick up tags from a sibling folder', async () => {
+      const item = httpRequest('req-login');
+      const collection = collectionWith([
+        folder('folder-auth', ['auth'], [item]),
+        folder('folder-billing', ['billing'], [httpRequest('req-invoice')])
+      ]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['auth']);
+    });
+
+    it('prefers the request draft tags over its saved tags', async () => {
+      const item = httpRequest('req-login', ['saved']);
+      item.draft = { request: item.request, tags: ['drafted'] };
+      const collection = collectionWith([folder('folder-auth', ['auth'], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['drafted', 'auth']);
+    });
+
+    it('prefers the folder draft tags over its saved tags', async () => {
+      const item = httpRequest('req-login', ['smoke']);
+      const authFolder = folder('folder-auth', ['saved'], [item]);
+      authFolder.draft = { meta: { tags: ['drafted'] } };
+
+      const result = await prepareRequest(item, collectionWith([authFolder]));
+
+      expect(result.tags).toEqual(['smoke', 'drafted']);
+    });
+
+    it('de-duplicates a tag the request repeats from its folder', async () => {
+      const item = httpRequest('req-login', ['smoke']);
+      const collection = collectionWith([folder('folder-auth', ['auth', 'smoke'], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('normalizes malformed tags on the request and its folders', async () => {
+      const item = httpRequest('req-login', [' smoke ', 'smoke', 42, null]);
+      const collection = collectionWith([folder('folder-auth', ['  auth  ', '', undefined], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+  });
+
   describe('GraphQL request', () => {
     it('keeps variables as string for interpolation', async () => {
       const item = {
