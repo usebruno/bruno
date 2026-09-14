@@ -69,7 +69,10 @@ export const getInheritedTagsFromTreePath = (treePath: (TaggedTreeNode | null | 
   getInheritedTagSourcesFromTreePath(treePath).map(({ tag }) => tag);
 
 /** Own tags plus those cascaded from parent folders; a request cannot opt out of folder tags. */
-export const getEffectiveTags = (ownTags: unknown, inheritedTags: unknown = []): string[] => {
+export const getEffectiveTags = (
+  ownTags: string[] | null | undefined,
+  inheritedTags: string[] | null | undefined = []
+): string[] => {
   const effective = normalizeTags(ownTags);
   for (const tag of normalizeTags(inheritedTags)) {
     if (!effective.includes(tag)) {

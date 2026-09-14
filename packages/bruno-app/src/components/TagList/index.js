@@ -105,11 +105,11 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
           </button>
           {showInheritedTags && (
             <ul className="flex flex-wrap gap-1" data-testid="inherited-tag-list">
-              {inheritedTags.map(({ tag, folder }) => (
+              {inheritedTags.map(({ tag, folder }, index) => (
                 <li key={`inherited-${tag}`}>
                   <ToolHint
                     text={`Inherited from folder "${folder.name}"`}
-                    toolhintId={`inherited-tag-${folder.uid}-${tag}`}
+                    toolhintId={`inherited-tag-${folder.uid}-${index}`}
                     className="tag-item inherited"
                     dataTestId="inherited-tag"
                   >
