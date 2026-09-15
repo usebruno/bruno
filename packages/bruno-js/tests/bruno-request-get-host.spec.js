@@ -60,6 +60,18 @@ describe('BrunoRequest - getHost()', () => {
       expect(hostOf('example.com:8080/api')).toBe('example.com:8080');
     });
 
+    it('reads the host from a protocol-relative url', () => {
+      expect(hostOf('//example.com/api')).toBe('example.com');
+    });
+
+    it('preserves a variable in a protocol-relative url', () => {
+      expect(hostOf('//{{HOST}}/api')).toBe('{{HOST}}');
+    });
+
+    it('returns an empty string for a path-only url', () => {
+      expect(hostOf('/api/users')).toBe('');
+    });
+
     it('returns an empty string for an empty url', () => {
       expect(hostOf('')).toBe('');
     });

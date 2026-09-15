@@ -21,8 +21,12 @@ const extractRawAuthority = (url) => {
     return '';
   }
 
-  // Drop the scheme when the URL carries one of its own.
-  const withoutScheme = url.trim().replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\//, '');
+  // Drop the scheme when the URL carries one of its own, then any bare `//`
+  // left by a protocol-relative URL, so its authority is still readable.
+  const withoutScheme = url
+    .trim()
+    .replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\//, '')
+    .replace(/^\/\//, '');
 
   // The authority ends at the first path, query or fragment delimiter.
   const authority = withoutScheme.split(/[/?#]/)[0];
