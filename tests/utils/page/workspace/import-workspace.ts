@@ -2,6 +2,7 @@ import AdmZip from 'adm-zip';
 import * as path from 'path';
 import { clickImportWorkspace } from '../title-bar';
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage } from '../../../../playwright';
+import { buildWorkspaceYml } from '../../workspace';
 
 /**
  * Import Workspace modal locators.
@@ -31,20 +32,8 @@ export const buildImportWorkspaceModalLocators = (page: Page) => {
  * @returns absolute path to the created zip file
  */
 export const createWorkspaceZip = (zipDir: string, workspaceName: string): string => {
-  const workspaceYml = [
-    'opencollection: 1.0.0',
-    'info:',
-    `  name: "${workspaceName}"`,
-    '  type: workspace',
-    '',
-    'collections: []',
-    'specs: []',
-    'docs: \'\'',
-    ''
-  ].join('\n');
-
   const zip = new AdmZip();
-  zip.addFile('workspace.yml', Buffer.from(workspaceYml, 'utf8'));
+  zip.addFile('workspace.yml', Buffer.from(buildWorkspaceYml(workspaceName), 'utf8'));
 
   const zipPath = path.join(zipDir, `${workspaceName}.zip`);
   zip.writeZip(zipPath);
