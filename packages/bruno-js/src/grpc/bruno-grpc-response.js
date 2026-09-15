@@ -1,5 +1,5 @@
 const { toMetadataObject } = require('./grpc-metadata');
-const GrpcMetadataList = require('./grpc-metadata-list');
+const { createPropertyList } = require('../property-lists/create-property-list');
 const GrpcMessageList = require('./grpc-message-list');
 const GrpcMessage = require('./grpc-message');
 
@@ -26,8 +26,12 @@ class BrunoGrpcResponse {
     this.statusCode = response.statusCode;
     this.statusText = response.statusText;
     this.messages = new GrpcMessageList(response.messages);
-    this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
-    this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
+    this.metadata = createPropertyList('bru.grpc.response.metadata', {
+      readMetadata: () => toMetadataObject(this.#response.metadata)
+    });
+    this.trailers = createPropertyList('bru.grpc.response.trailers', {
+      readMetadata: () => toMetadataObject(this.#response.trailers)
+    });
     this.duration = response.duration;
 
     // Assigned conditionally, as on the request, so `afterCallEnd` has no such property at all.

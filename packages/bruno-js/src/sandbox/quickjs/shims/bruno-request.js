@@ -1,5 +1,6 @@
 const { marshallToVm } = require('../utils');
 const { createPropertyListBridge } = require('../utils/property-list-bridge');
+const { bridgeMethodSets } = require('../../../property-lists/manifest');
 
 const addBrunoRequestShimToContext = (vm, req) => {
   const reqObject = vm.newObject();
@@ -37,10 +38,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   const headerListObj = vm.newObject();
   const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
     globalPath: 'globalThis.req.headerList',
-    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
-    syncReadObjectMethods: ['one', 'all', 'toJSON'],
-    syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
-    withIterators: true
+    ...bridgeMethodSets('req.headerList')
   });
   vm.setProp(reqObject, 'headerList', headerListObj);
   headerListObj.dispose();
