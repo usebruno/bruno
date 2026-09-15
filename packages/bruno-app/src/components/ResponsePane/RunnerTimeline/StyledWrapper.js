@@ -103,7 +103,7 @@ const StyledWrapper = styled.div`
     white-space: pre-line;
     word-wrap: break-word;
     word-break: break-all;
-    font-family: ${(props) => props.theme.font || 'Inter, sans-serif'} !important;
+    font-family: var(--app-font-stack) !important;
 
     .arrow {
       opacity: 0.5;

@@ -87,10 +87,7 @@ const Zoom = () => {
 
   return (
     <StyledWrapper>
-      <div>
-        <label className="block">Interface Zoom</label>
-      </div>
-      <div className="flex flex-row gap-1 items-center mt-2">
+      <div className="flex flex-row gap-1 items-center">
         <div className="zoom-field" ref={dropdownRef}>
           <div className="custom-select" onClick={() => setIsOpen(!isOpen)}>
             <span className="selected-value">{selectedOption?.label}</span>

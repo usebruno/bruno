@@ -3,6 +3,12 @@
 @import 'tailwindcss/utilities';
 
 :root {
+  /* The app-wide UI font. --app-font-family holds the user's choice and is set at runtime from
+     the interface font preference; --app-font-stack adds the fallbacks every UI style uses. */
+  --app-font-family: Inter;
+  --app-font-stack: var(--app-font-family), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+
   --color-brand: #546de5;
   --color-text: rgb(52 52 52);
   --color-sidebar-collection-item-active-indent-border: #d0d0d0;
@@ -148,7 +154,7 @@ body {
   font-kerning: none;
   text-rendering: optimizeSpeed;
   letter-spacing: normal;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: var(--app-font-stack) !important;
   overflow-x: hidden;
 }
 
