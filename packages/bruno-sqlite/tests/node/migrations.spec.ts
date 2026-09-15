@@ -31,13 +31,16 @@ const appliedSequences = (db: any): number[] =>
 describe('DB migrations', () => {
   let dir: string;
   let dbPath: string;
+  let warn: jest.SpyInstance;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'bruno-sqlite-'));
     dbPath = join(dir, 'test.db');
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
+    warn.mockRestore();
     rmSync(dir, { recursive: true, force: true });
   });
 

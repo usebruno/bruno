@@ -1,6 +1,12 @@
 const path = require('path');
 const { app, ipcMain } = require('electron');
 const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
+const { encryptString, decryptStringSafe } = require('../utils/encryption');
+
+const codec = {
+  encrypt: encryptString,
+  decrypt: (value) => decryptStringSafe(value).value
+};
 
 let ipc = null;
 
@@ -11,6 +17,7 @@ class SqliteEventModel {
   constructor(window) {
     this._window = window;
     const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
+      codec,
       onMutation: (event) => {
         this._window?.webContents?.send(SQLITE_MUTATION_CHANNEL, event);
       }
@@ -48,4 +55,4 @@ const shutdown = () => {
 
 const getStatements = () => (ipc ? ipc.statements : null);
 
-module.exports = { registerSqliteIpc, shutdown, getStatements };
+module.exports = { registerSqliteIpc, shutdown, getStatements, codec };
