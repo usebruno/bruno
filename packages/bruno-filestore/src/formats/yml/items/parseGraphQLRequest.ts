@@ -8,7 +8,7 @@ import { toBrunoVariables } from '../common/variables';
 import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid, ensureString } from '../../../utils';
+import { uuid, ensureString, normalizeHttpMethod } from '../../../utils';
 import { utils } from '@usebruno/common';
 const { toBool, toMaxRedirects } = utils;
 
@@ -19,7 +19,7 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
 
   const brunoRequest: BrunoHttpRequest = {
     url: ensureString(graphql?.url),
-    method: ensureString(graphql?.method, 'POST'),
+    method: normalizeHttpMethod(graphql?.method, 'POST'),
     headers: toBrunoHttpHeaders(graphql?.headers) || [],
     params: toBrunoParams(graphql?.params) || [],
     auth: toBrunoAuth(graphql?.auth),
