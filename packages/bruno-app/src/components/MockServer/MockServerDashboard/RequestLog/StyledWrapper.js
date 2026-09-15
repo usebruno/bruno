@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .has-section-rows .table-container {
+  && .has-section-rows .table-container {
     overflow: clip;
   }
 
@@ -21,7 +21,7 @@ const Wrapper = styled.div`
 
   tbody tr.log-trace-row td.full-width-row > .match-trace-panel {
     height: auto;
-    max-height: 240px;
+    max-height: 190px;
     overflow: auto;
   }
 
@@ -131,7 +131,7 @@ const Wrapper = styled.div`
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: ${(props) => props.theme.colors.text.muted};
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
   .match-trace-list {
@@ -155,9 +155,7 @@ const Wrapper = styled.div`
 
   .match-trace-candidate {
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
-    // background: ${(props) => props.theme.background.surface0};
     padding: 8px 10px;
-    margin-bottom: 6px;
     min-width: 0;
 
     &:last-child {
@@ -169,9 +167,10 @@ const Wrapper = styled.div`
     }
 
     &.is-selected {
-      border-radius: ${(props) => props.theme.border.radius.base};
+      // border-top: 1px solid;
+      // border-radius: ${(props) => props.theme.border.radius.base};
       border-color: ${(props) => props.theme.status.success.border};
-      background: ${(props) => props.theme.status.success.background};
+      background: ${(props) => props.theme.background.surface0};
     }
   }
 
@@ -182,16 +181,11 @@ const Wrapper = styled.div`
     min-width: 0;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 600;
-    margin-bottom: 6px;
 
     .match-trace-candidate-name {
       flex: 1;
       min-width: 0;
       overflow-wrap: anywhere;
-    }
-
-    > span:not(.match-trace-candidate-name) {
-      flex-shrink: 0;
     }
   }
 
@@ -203,7 +197,7 @@ const Wrapper = styled.div`
 
     li {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
       margin-bottom: 4px;
       min-width: 0;
@@ -238,7 +232,7 @@ const Wrapper = styled.div`
   }
 
   .match-trace-operator {
-    margin-top: 6px;
+    margin-top: 8px;
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};
     overflow: hidden;

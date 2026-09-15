@@ -272,7 +272,11 @@ const RequestLog = ({ mockServerUid, location }) => {
       key: 'timestamp',
       name: 'Time',
       width: '13%',
-      render: ({ value }) => <span className="log-timestamp">{formatTimestamp(value)}</span>
+      render: ({ value }) => {
+        const label = formatTimestamp(value);
+
+        return <span className="log-timestamp truncate-cell" title={label}>{label}</span>;
+      }
     },
     {
       key: 'method',
@@ -301,7 +305,7 @@ const RequestLog = ({ mockServerUid, location }) => {
       name: 'Status',
       width: '8%',
       render: ({ value, row }) => (
-        <span className={`status-code ${getStatusClass(value, row.matched)}`}>{value}</span>
+        <span className={`status-code truncate-cell ${getStatusClass(value, row.matched)}`} title={String(value)}>{value}</span>
       )
     },
     {

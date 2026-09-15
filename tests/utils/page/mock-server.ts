@@ -64,8 +64,6 @@ export const buildMockServerLocators = (page: Page) => ({
   logPaths: () => page.getByTestId('mock-server-log-table').locator('.log-path'),
   logNoMatchLabels: () => page.getByTestId('mock-server-log-table').locator('.no-match-label'),
   logStatusCodes: () => page.getByTestId('mock-server-log-table').locator('.status-code'),
-  logTable: () => page.getByTestId('mock-server-log-table'),
-  matchTrace: () => page.getByTestId('mock-server-match-trace').first(),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
