@@ -326,6 +326,45 @@ test.describe.serial('Mock Server', () => {
     });
   });
 
+  test('should wrap match trace content without overflowing horizontally', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+    const longPath = '/no-such-route/' + 'A1B2C3D4E5'.repeat(30);
+    await mockFetch(longPath);
+
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
+
+    await test.step('Newest entry expands its match trace', async () => {
+      await expect(ms.matchTrace()).toBeVisible();
+    });
+
+    await test.step('No trace content escapes the panel horizontally', async () => {
+      const overshoot = await ms.matchTrace().evaluate((el) => {
+        const panelRight = el.getBoundingClientRect().right;
+        return Math.round(
+          Array.from(el.querySelectorAll('*'))
+            .map((child) => child.getBoundingClientRect())
+            .filter((rect) => rect.width > 0)
+            .reduce((worst, rect) => Math.max(worst, rect.right - panelRight), 0)
+        );
+      });
+      expect(overshoot).toBeLessThanOrEqual(1);
+    });
+
+    await test.step('Panel keeps its own capped, scrollable box', async () => {
+      const box = await ms.matchTrace().evaluate((el) => {
+        const styles = getComputedStyle(el);
+        return { maxHeight: styles.maxHeight, overflowY: styles.overflowY };
+      });
+      expect(box).toEqual({ maxHeight: '240px', overflowY: 'auto' });
+    });
+
+    await test.step('Log table does not overflow its pane', async () => {
+      const overflow = await ms.logTable().evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(1);
+    });
+  });
+
   test('should clear request log and show empty state', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
