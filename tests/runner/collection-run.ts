@@ -50,16 +50,11 @@ test.describe.parallel('Collection Run', () => {
     await runCollectionButton.click();
     await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
 
-    // Parse and validate test results from filter buttons
-    const allButton = page.locator('button').filter({ hasText: /^All/ });
-    const passedButton = page.locator('button').filter({ hasText: /^Passed/ });
-    const failedButton = page.locator('button').filter({ hasText: /^Failed/ });
-    const skippedButton = page.locator('button').filter({ hasText: /^Skipped/ });
-
-    const totalRequests = parseInt(await allButton.locator('span').innerText());
-    const passed = parseInt(await passedButton.locator('span').innerText());
-    const failed = parseInt(await failedButton.locator('span').innerText());
-    const skipped = parseInt(await skippedButton.locator('span').innerText());
+    // Parse and validate test results from the filter counts
+    const totalRequests = parseInt(await page.getByTestId('runner-filter-all-count').innerText());
+    const passed = parseInt(await page.getByTestId('runner-filter-passed-count').innerText());
+    const failed = parseInt(await page.getByTestId('runner-filter-failed-count').innerText());
+    const skipped = parseInt(await page.getByTestId('runner-filter-skipped-count').innerText());
 
     await expect(failed).toBe(0);
     await expect(passed).toBe(totalRequests - skipped - failed);
