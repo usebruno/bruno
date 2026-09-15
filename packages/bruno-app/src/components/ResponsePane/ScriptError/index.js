@@ -171,7 +171,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
   const handleCopy = () => {
     const errorText = formatErrorForClipboard(errorContext, message, displayFilePath);
-    copyToClipboard(errorText)
+    copyToClipboard(errorText);
   };
 
   if (!errorContext) {
@@ -179,7 +179,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className={classnames({ expanded: isExpanded })}>
       <div className={classnames('script-error-card', { expanded: isExpanded })} data-testid="script-error-card">
         <div className="script-error-header">
           <div className="error-title" data-testid="script-error-title">{title}</div>

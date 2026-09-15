@@ -11,7 +11,7 @@ const StyledWrapper = styled.div`
     border: solid 1px ${(props) => props.theme.border.border2};
     border-left: 4px solid ${(props) => props.theme.colors.text.danger};
     border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem 0rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -23,6 +23,7 @@ const StyledWrapper = styled.div`
     gap: 0.5rem;
     max-height: 8rem;
     overflow-y: auto;
+    padding-bottom: 0.75rem;
 
     /* .scrollbar-hover uses the theme scrollbar color; match the CodeMirror overlay scrollbar
        in the response pane since the two scrollbars sit side by side. */
@@ -32,9 +33,15 @@ const StyledWrapper = styled.div`
     }
   }
 
+
+  &.expanded,
+  .script-error-card.expanded {
+    flex: 1 1 auto;
+  }
+
   .script-error-card.expanded .script-error-body {
-    max-height: 50rem;
-    overflow-y: auto;
+    flex: 1 1 auto;
+    max-height: none;
   }
 
   .script-error-header-actions {
