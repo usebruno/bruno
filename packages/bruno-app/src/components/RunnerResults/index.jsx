@@ -6,12 +6,13 @@ import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconEraser } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
+import FilterDropdown from './FilterDropdown';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   const relativePath = path.relative(fullPath, pathname);
@@ -319,7 +320,14 @@ export default function RunnerResults({ collection }) {
           <div className="filter-label">
             <span>Filter by:</span>
           </div>
-          <div className="filter-buttons">
+          <div className="filter-buttons lg:hidden">
+            <FilterDropdown
+              filters={Object.entries(FILTERS).map(([key, { label }]) => ({ key, label, count: filterCounts[key] }))}
+              value={activeFilter}
+              onChange={setActiveFilter}
+            />
+          </div>
+          <div className="filter-buttons hidden lg:flex">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -353,8 +361,10 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="secondary"
+              icon={<IconRefresh />}
+              title="Run Again"
             >
-              Run Again
+              <span className="hidden lg:inline">Run Again</span>
             </Button>
             <Button
               type="button"
@@ -362,8 +372,10 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="secondary"
+              icon={<IconEraser />}
+              title="Reset"
             >
-              Reset
+              <span className="hidden lg:inline">Reset</span>
             </Button>
           </div>
         ) : null}

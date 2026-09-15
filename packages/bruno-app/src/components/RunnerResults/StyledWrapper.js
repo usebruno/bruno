@@ -171,7 +171,6 @@ const Wrapper = styled.div`
     }
 
     .filter-buttons {
-      display: flex;
       align-items: center;
       gap: 1.25rem;
       padding: 0.5rem 0.75rem 0 0.75rem;
