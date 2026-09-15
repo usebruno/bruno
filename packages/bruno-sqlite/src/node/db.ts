@@ -1,8 +1,11 @@
 import { DatabaseSync, DatabaseSyncOptions } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import type { Migration } from '../shared/types';
+import { Codec, ENCRYPT_FUNCTION, passthroughCodec, registerCodec } from './codec';
 
-export type DatabaseOptions = DatabaseSyncOptions;
+export type DatabaseOptions = DatabaseSyncOptions & {
+  codec?: Codec;
+};
 
 const MIGRATION_ERROR = Symbol.for('@usebruno/sqlite:migration-error');
 
@@ -35,9 +38,19 @@ export class DB {
   )`;
 
   constructor(path: string, migrations: Migration[], options: DatabaseOptions = {}) {
+    const { codec, ...sqliteOptions } = options;
+
     try {
-      this._db = new DatabaseSync(path, options);
+      this._db = new DatabaseSync(path, sqliteOptions);
     } catch (err) {
+      this._db = undefined;
+      throw err;
+    }
+
+    try {
+      this._registerCodec(path, codec);
+    } catch (err) {
+      this._db.close();
       this._db = undefined;
       throw err;
     }
@@ -49,6 +62,16 @@ export class DB {
       this._db = undefined;
       throw new DatabaseMigrationError(path, err);
     }
+  }
+
+  _registerCodec(path: string, codec: Codec | undefined): void {
+    if (this._db === undefined) return;
+    if (codec === undefined) {
+      console.warn(
+        `no codec was provided for the database at "${path}"; values written through ${ENCRYPT_FUNCTION} will be stored as plaintext.`
+      );
+    }
+    registerCodec(this._db, codec ?? passthroughCodec);
   }
 
   _runMigrations(migrations: Migration[]) {
