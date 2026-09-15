@@ -36,6 +36,16 @@ const Wrapper = styled.div`
 
       &.value {
         word-break: break-all;
+
+        a {
+          color: ${(props) => props.theme.colors.text.link};
+          text-decoration: none;
+          cursor: pointer;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
       }
     }
 
