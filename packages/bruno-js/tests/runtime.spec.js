@@ -195,6 +195,47 @@ describe('runtime', () => {
         expect(result.envVariables.environmentToken).toBe('after');
         expect(result.globalEnvironmentVariables.globalToken).toBe('after');
       });
+
+      describe.each(['nodevm', 'quickjs'])('URL helpers with variables (%s)', (runtimeName) => {
+        const onConsoleLog = () => {};
+
+        beforeAll(async () => {
+          if (runtimeName === 'quickjs') {
+            await quickJsLoader();
+          }
+        });
+
+        it('should resolve variables in req.getHost(), req.getPath() and req.getQueryString()', async () => {
+          const script = `
+            bru.setVar('resolvedHost', req.getHost());
+            bru.setVar('resolvedPath', req.getPath());
+            bru.setVar('resolvedQueryString', req.getQueryString());
+          `;
+          const request = { ...baseRequest, url: '{{HOST}}/test?page=1' };
+          const envVariables = { HOST: 'https://example.com' };
+          const runtime = new ScriptRuntime({ runtime: runtimeName });
+
+          const result = await runtime.runRequestScript(script, request, envVariables, {}, '.', onConsoleLog, process.env);
+
+          expect(result.runtimeVariables.resolvedHost).toBe('example.com');
+          expect(result.runtimeVariables.resolvedPath).toBe('/test');
+          expect(result.runtimeVariables.resolvedQueryString).toBe('page=1');
+          expect(request.url).toBe('{{HOST}}/test?page=1');
+        });
+
+        it('should resolve variables set earlier in the same script', async () => {
+          const script = `
+            bru.setVar('HOST', 'https://api.example.com');
+            bru.setVar('resolvedHost', req.getHost());
+          `;
+          const request = { ...baseRequest, url: '{{HOST}}/test' };
+          const runtime = new ScriptRuntime({ runtime: runtimeName });
+
+          const result = await runtime.runRequestScript(script, request, {}, {}, '.', onConsoleLog, process.env);
+
+          expect(result.runtimeVariables.resolvedHost).toBe('api.example.com');
+        });
+      });
     });
 
     describe('run-response-script', () => {
