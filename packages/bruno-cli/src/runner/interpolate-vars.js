@@ -118,6 +118,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           ...d,
           value: _interpolate(d?.value)
         }));
+      } else if (typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
       }
     } else if (contentType.startsWith('multipart/')) {
       if (request?.data && typeof request.data === 'string') {
