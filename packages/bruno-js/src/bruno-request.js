@@ -90,13 +90,34 @@ class BrunoRequest {
   }
 
   getQueryString() {
-    try {
-      const url = new URL(this.req.url);
-      // Return query string without the leading '?'
-      return url.search ? url.search.substring(1) : '';
-    } catch (e) {
+    /**
+     * Read the query straight off the URL text rather than through `new URL()`.
+     *
+     * The WHATWG parser re-encodes `search` with the query percent-encode set,
+     * which escapes a space but leaves `:` and `=` alone. That produced a form
+     * matching neither the URL bar nor the wire - `a:b%20=%20c` where the user
+     * typed `a:b = c` and Bruno sent `a%3Ab%20%3D%20c`. Documented behaviour is
+     * the raw query string, and at script time the URL is still the user's own
+     * text, `{{vars}}` included.
+     *
+     * The query still ends at a `#`, matching `URL.search`, so only the
+     * encoding changes here.
+     */
+    const url = this.req.url;
+
+    if (typeof url !== 'string') {
       return '';
     }
+
+    const queryStart = url.indexOf('?');
+    if (queryStart === -1) {
+      return '';
+    }
+
+    const query = url.slice(queryStart + 1);
+    const fragmentStart = query.indexOf('#');
+
+    return fragmentStart === -1 ? query : query.slice(0, fragmentStart);
   }
 
   getMethod() {
