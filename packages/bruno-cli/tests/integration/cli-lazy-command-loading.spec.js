@@ -23,6 +23,16 @@ const runWithModuleTrace = (args) => {
     maxBuffer: 256 * 1024 * 1024
   });
 
+  // Without this a command could print the expected output and still exit
+  // nonzero - or be killed on the timeout - while the assertions below passed.
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`bru ${args.join(' ')} exited with status ${result.status}`);
+  }
+
   return {
     stdout: result.stdout || '',
     moduleTrace: (result.stderr || '').replace(/\\+/g, '/')
