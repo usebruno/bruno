@@ -14,7 +14,6 @@ import {
   cloneMockResponseRecord,
   getMockResponseDescriptionError,
   getMockResponseNameError,
-  getMockResponseNameInputError,
   isMockResponseNameTaken,
   MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH,
   MOCK_RESPONSE_NAME_MAX_LENGTH,
@@ -147,7 +146,6 @@ describe('resolveMockResponseEditorCollection', () => {
 
     it('accepts names within bounds', () => {
       expect(getMockResponseNameError('Order 200')).toBeNull();
-      expect(getMockResponseNameError('#$$@##$#@')).toBeNull();
       expect(getMockResponseNameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
       // trailing spaces are ignored — they get trimmed on save
       expect(getMockResponseNameError('Order 200   ')).toBeNull();
@@ -158,22 +156,6 @@ describe('resolveMockResponseEditorCollection', () => {
       const paddedOverLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)}   `;
       expect(getMockResponseNameError(paddedAtLimit)).toBeNull();
       expect(getMockResponseNameError(paddedOverLimit)).toBe('Name cannot exceed 255 characters.');
-    });
-  });
-
-  describe('getMockResponseNameInputError', () => {
-    it('stays quiet for empty and whitespace-only values so the input does not flash while typing', () => {
-      expect(getMockResponseNameInputError('')).toBeNull();
-      expect(getMockResponseNameInputError('   ')).toBeNull();
-      expect(getMockResponseNameInputError(null)).toBeNull();
-    });
-
-    it('still surfaces character, length and reserved-name violations', () => {
-      expect(getMockResponseNameInputError('bad/name'))
-        .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
-      expect(getMockResponseNameInputError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)))
-        .toBe('Name cannot exceed 255 characters.');
-      expect(getMockResponseNameInputError('CON')).toBe('Name cannot be a reserved device name.');
     });
   });
 

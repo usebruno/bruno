@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
@@ -11,7 +11,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameValidationError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
@@ -215,7 +215,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     }
   }, [isVerticalLayout, screenWidth, leftSidebarWidth]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!item || !editor) {
       return;
     }
@@ -228,8 +228,12 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         editor.savedMockResponse
       );
 
-      const validationError = getMockResponseNameError(mockResponse.name)
-        || getMockResponseDescriptionError(mockResponse.description);
+      mockResponse.name = mockResponse.name.trim();
+
+      const validationError = getMockResponseNameValidationError(mockResponse.name, {
+        existingResponses: responses,
+        excludeUid: responseUid
+      }) || getMockResponseDescriptionError(mockResponse.description);
       if (validationError) {
         toast.error(validationError);
         return;
@@ -257,7 +261,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [item, editor, responseUid, responses, location, dispatch]);
 
   const handleCancel = () => {
     dispatch(cancelMockResponseEditorEdit({ responseUid }));
@@ -291,7 +295,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editMode, item, editor]);
+  }, [editMode, item, handleSave]);
 
   const handleStartServer = async () => {
     try {
@@ -430,6 +434,8 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         onCancel={handleCancel}
         onDelete={handleDelete}
         copiedFrom={editor.savedMockResponse?.copiedFrom}
+        existingResponses={responses}
+        responseUid={responseUid}
       />
 
       <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
