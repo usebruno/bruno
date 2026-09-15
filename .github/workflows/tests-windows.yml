@@ -101,11 +101,18 @@ jobs:
         with:
           shell: pwsh
 
+      - name: Configure Playwright Workers
+        shell: pwsh
+        run: |
+          $coreCount = [Environment]::ProcessorCount
+          $workerCount = [Math]::Max(1, [Math]::Floor($coreCount / 2))
+          Write-Host "Logical CPU cores: $coreCount"
+          Write-Host "Playwright workers: $workerCount"
+          "PLAYWRIGHT_WORKERS=$workerCount" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Run E2E Tests
-        uses: ./.github/actions/tests/run-e2e-tests
-        with:
-          os: windows
-          shell: pwsh
+        shell: pwsh
+        run: npm run test:e2e -- --workers=$env:PLAYWRIGHT_WORKERS
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v6
