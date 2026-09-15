@@ -168,10 +168,30 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
-    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
-    const closeButton = container.querySelector('.close-button');
-    fireEvent.click(closeButton);
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
+    fireEvent.click(screen.getByTestId('script-error-close'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should toggle expanded state of the error card', () => {
+    const item = {
+      preRequestScriptErrorMessage: 'error',
+      preRequestScriptErrorContext: mockErrorContext
+    };
+    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
+    const card = screen.getByTestId('script-error-card');
+    const toggle = screen.getByTestId('script-error-expand-toggle');
+
+    expect(card).not.toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+    expect(card).toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(toggle);
+    expect(card).not.toHaveClass('expanded');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('should fallback to "Error" when errorType is missing', () => {
