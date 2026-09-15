@@ -13,12 +13,12 @@ const createEnvModal = (page: Page) =>
   page.getByTestId('create-environment-modal').or(page.getByTestId('create-global-environment-modal'));
 
 // A variables row keyed by its name. The environment editor names its rows
-// `env-var-row-<name>`; the collection Vars tables use the shared editable-table
-// naming (`row-<name>`), so they're scoped to those tables to stay unambiguous.
+// `env-var-row-<name>`; collection Vars tables use EditableTable's
+// `data-row-name`, so they're scoped to those tables to stay unambiguous.
 const varRowByName = (page: Page, name: string) =>
   page
     .getByTestId(`env-var-row-${name}`)
-    .or(page.getByTestId(/^collection-vars-(req|res)$/).getByTestId(`row-${name}`));
+    .or(page.getByTestId(/^collection-vars-(req|res)$/).locator(`tr[data-row-name="${name}"]`));
 
 const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
 const exportModalRoot = (page: Page) => page.locator('.bruno-modal').filter({ hasText: 'Export Environments' });
