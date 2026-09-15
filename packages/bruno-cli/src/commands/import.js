@@ -7,8 +7,7 @@ const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
 const { exists, isDirectory, sanitizeName } = require('../utils/filesystem');
 const { createCollectionFromBrunoObject } = require('../utils/collection');
 
-const command = 'import <type>';
-const desc = 'Import a collection from other formats';
+const { command, desc } = require('./manifest').import;
 
 const COLLECTION_FORMATS = ['bru', 'opencollection'];
 

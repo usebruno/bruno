@@ -18,8 +18,7 @@ const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
 const { loadEnvironmentFromFile } = require('../utils/environment');
-const command = 'run [paths...]';
-const desc = 'Run one or more requests/folders';
+const { command, desc } = require('./manifest').run;
 
 const formatRequestsCellFromSummary = (summary) => {
   const total = summary.totalRequests || 0;
