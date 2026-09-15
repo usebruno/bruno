@@ -59,8 +59,7 @@ jest.mock('./state-persistence', () => {
 });
 
 jest.mock('utils/collections', () => ({
-  getAllVariables: jest.fn(() => ({})),
-  getRequestTypeFromCollectionPresets: jest.fn(() => undefined)
+  getAllVariables: jest.fn(() => ({}))
 }));
 
 jest.mock('utils/common/codemirror', () => ({
@@ -68,10 +67,6 @@ jest.mock('utils/common/codemirror', () => ({
 }));
 
 const mockDestroyLinkAware = jest.fn();
-const mockResolveLinkClickHandler = jest.fn((item, collection) => (collection?.uid ? jest.fn() : undefined));
-jest.mock('utils/codemirror/linkClickHandler', () => ({
-  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args)
-}));
 
 const mockSetupLinkAware = jest.fn((editor) => {
   editor._destroyLinkAware = mockDestroyLinkAware;
@@ -289,12 +284,26 @@ describe('CodeEditor', () => {
     expect(view.queryByTestId('editor-status-bar')).not.toBeInTheDocument();
   });
 
-  describe('link-aware reconfiguration', () => {
-    it('reconfigures the link-click handler when item/collection change', () => {
+  describe('link-aware setup', () => {
+    it('does not enable click-to-open-request without an explicit onLinkClick prop', () => {
+      renderEditor({ item: itemA, collection: collectionA });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
+    });
+
+    it('uses an explicitly provided onLinkClick prop', () => {
+      const onLinkClick = jest.fn();
+      renderEditor({ item: itemA, collection: collectionA, onLinkClick });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBe(onLinkClick);
+    });
+
+    it('does not reconfigure when item/collection change but onLinkClick stays the same', () => {
       const { rerender } = renderEditor({ item: itemA, collection: collectionA });
 
       expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeDefined();
 
       rerender(
         <ThemeProvider theme={darkTheme}>
@@ -302,19 +311,34 @@ describe('CodeEditor', () => {
         </ThemeProvider>
       );
 
-      expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
-      expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
-      expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeDefined();
-
-      mockSetupLinkAware.mock.calls[1][1].onLinkClick('http://example.test/foo');
-      expect(mockResolveLinkClickHandler).toHaveBeenLastCalledWith(itemB, collectionB);
+      expect(mockDestroyLinkAware).not.toHaveBeenCalled();
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
     });
 
-    it('reconfigures once collection becomes available after mount', () => {
-      const { rerender } = renderEditor({ item: itemA, collection: undefined });
+    it('reconfigures when the onLinkClick prop changes', () => {
+      const onLinkClickA = jest.fn();
+      const onLinkClickB = jest.fn();
+      const { rerender } = renderEditor({ item: itemA, collection: collectionA, onLinkClick: onLinkClickA });
 
       expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBe(onLinkClickA);
+
+      rerender(
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor value="http://example.test/foo" item={itemA} collection={collectionA} onLinkClick={onLinkClickB} />
+        </ThemeProvider>
+      );
+
+      expect(mockDestroyLinkAware).not.toHaveBeenCalled();
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+    });
+
+    it('tears down and reconfigures when onLinkClick is removed', () => {
+      const onLinkClick = jest.fn();
+      const { rerender } = renderEditor({ item: itemA, collection: collectionA, onLinkClick });
+
+      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBe(onLinkClick);
 
       rerender(
         <ThemeProvider theme={darkTheme}>
@@ -324,25 +348,7 @@ describe('CodeEditor', () => {
 
       expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
       expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
-      expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeDefined();
-
-      mockSetupLinkAware.mock.calls[1][1].onLinkClick('http://example.test/foo');
-      expect(mockResolveLinkClickHandler).toHaveBeenLastCalledWith(itemA, collectionA);
-    });
-
-    it('does not reconfigure when item/collection stay the same', () => {
-      const { rerender } = renderEditor({ item: itemA, collection: collectionA });
-
-      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-
-      rerender(
-        <ThemeProvider theme={darkTheme}>
-          <CodeEditor value="http://example.test/foo" item={itemA} collection={collectionA} readOnly={true} />
-        </ThemeProvider>
-      );
-
-      expect(mockDestroyLinkAware).not.toHaveBeenCalled();
-      expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+      expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBeUndefined();
     });
   });
 });
