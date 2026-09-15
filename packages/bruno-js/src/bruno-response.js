@@ -42,8 +42,17 @@ class BrunoResponse {
     return this.res ? this.res.headers : null;
   }
 
-  getBody() {
-    return this.res ? this.res.data : null;
+  getBody(options = {}) {
+    if (!this.res) {
+      return null;
+    }
+
+    if (options.raw) {
+      const { dataBuffer } = this.res;
+      return dataBuffer === null || dataBuffer === undefined ? null : dataBuffer.toString();
+    }
+
+    return this.res.data;
   }
 
   getResponseTime() {
