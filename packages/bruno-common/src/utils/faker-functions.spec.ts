@@ -18,10 +18,24 @@ describe('mockDataFunctions Regex Validation', () => {
     expect(mockDataFunctions.isoTimestamp()).toBe(expectedIsoTimestamp);
   });
 
+  test('randomUUID should encode the current time and remain lexicographically sortable', () => {
+    const firstTimestamp = Date.now();
+    const firstUuid = mockDataFunctions.randomUUID();
+
+    jest.advanceTimersByTime(1);
+
+    const secondUuid = mockDataFunctions.randomUUID();
+    const extractTimestamp = (uuid: string) => Number.parseInt(uuid.replace(/-/g, '').slice(0, 12), 16);
+
+    expect(extractTimestamp(firstUuid)).toBe(firstTimestamp);
+    expect(extractTimestamp(secondUuid)).toBe(firstTimestamp + 1);
+    expect(firstUuid < secondUuid).toBe(true);
+  });
+
   test('all values should match their expected patterns', () => {
     const patterns: Record<string, RegExp> = {
-      guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
-      randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
+      guid: /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
+      randomUUID: /^[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
       randomNanoId: /^[\w-]{21,}$/,
       randomAlphaNumeric: /^[\w]$/,
       randomBoolean: /^(true|false)$/,
