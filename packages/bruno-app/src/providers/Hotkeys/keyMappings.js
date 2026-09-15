@@ -20,7 +20,9 @@ export const KEY_BINDING_SECTIONS = [
       switchToTab5: { mac: 'command+bind+5', windows: 'ctrl+bind+5', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
       switchToTab6: { mac: 'command+bind+6', windows: 'ctrl+bind+6', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
       switchToTab7: { mac: 'command+bind+7', windows: 'ctrl+bind+7', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
-      switchToTab8: { mac: 'command+bind+8', windows: 'ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, hidden: true }
+      switchToTab8: { mac: 'command+bind+8', windows: 'ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, hidden: true },
+      switchToNextTabAlt: { mac: 'ctrl+bind+tab', windows: 'ctrl+bind+tab', name: 'Switch to Next Tab', readOnly: true, hidden: true },
+      switchToPreviousTabAlt: { mac: 'ctrl+bind+shift+bind+tab', windows: 'ctrl+bind+shift+bind+tab', name: 'Switch to Previous Tab', readOnly: true, hidden: true }
     }
   },
   {
