@@ -19,9 +19,14 @@ export interface ExtendableEnvironment {
   extends?: string | null;
 }
 
+export interface UnresolvedInheritance {
+  missingInheritedEnvironmentName?: string | null;
+  cyclicInheritancePath?: string[] | null;
+}
+
 export type ResolvedEnvironment<E extends ExtendableEnvironment, Merge extends boolean = false> = Merge extends true
-  ? E
-  : E & { inheritedVariables: E['variables'] };
+  ? E & UnresolvedInheritance
+  : E & { inheritedVariables: E['variables'] } & UnresolvedInheritance;
 
 export const validatedEnvironmentName = (reference: unknown): string | undefined => {
   if (typeof reference !== 'string') {
@@ -121,7 +126,10 @@ export const getInheritableEnvironments = <E extends ExtendableEnvironment>({
   });
 };
 
-export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, Merge extends boolean = false>({
+export const resolveEnvironmentInheritance = <
+  E extends ExtendableEnvironment,
+  Merge extends boolean = false
+>({
   environments,
   targetEnvironment,
   merge
@@ -140,7 +148,7 @@ export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, M
     ) as ResolvedEnvironment<E, Merge>;
   }
 
-  const { inheritedEnvironments } = getInheritedEnvironments({
+  const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = getInheritedEnvironments({
     environments: environments ?? [],
     environment: targetEnvironment
   });
@@ -181,8 +189,18 @@ export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, M
   const inheritedVariables = [...nonSecrets.values(), ...secrets.values()] as E['variables'];
 
   if (merge) {
-    return { ...targetEnvironment, variables: [...inheritedVariables, ...ownVariables] } as ResolvedEnvironment<E, Merge>;
+    return {
+      ...targetEnvironment,
+      variables: [...inheritedVariables, ...ownVariables],
+      missingInheritedEnvironmentName,
+      cyclicInheritancePath
+    } as ResolvedEnvironment<E, Merge>;
   }
 
-  return { ...targetEnvironment, inheritedVariables } as ResolvedEnvironment<E, Merge>;
+  return {
+    ...targetEnvironment,
+    inheritedVariables,
+    missingInheritedEnvironmentName,
+    cyclicInheritancePath
+  } as ResolvedEnvironment<E, Merge>;
 };
