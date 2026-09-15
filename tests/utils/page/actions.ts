@@ -140,7 +140,13 @@ const openCollection = async (page: Page, collectionName: string) => {
 const openCollectionFromDialog = async (page: Page, electronApp: ElectronApplication, collectionPath: string) => {
   await test.step(`Open collection from dialog at "${collectionPath}"`, async () => {
     await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+      // Restore on first call: `electronApp` is worker-scoped, so a permanent patch would hand
+      // this path to every later picker in the worker instead of its own mock or a real dialog.
+      const originalShowOpenDialog = dialog.showOpenDialog;
+      dialog.showOpenDialog = async () => {
+        dialog.showOpenDialog = originalShowOpenDialog;
+        return { canceled: false, filePaths: [dir] };
+      };
     }, collectionPath);
 
     const locators = buildCommonLocators(page);
@@ -2698,6 +2704,71 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   }
 };
 
+/**
+ * Expand a request's example list in the sidebar if it is collapsed. Collapsed examples are
+ * absent from the DOM, so callers must expand before locating or dragging them.
+ */
+const expandRequestExamples = async (page: Page, requestName: string) => {
+  const { sidebar } = buildCommonLocators(page);
+
+  if ((await sidebar.exampleRowsIn(requestName).count()) === 0) {
+    await sidebar.requestExamplesToggle(requestName).click();
+  }
+  await expect(sidebar.exampleRowsIn(requestName).first()).toBeVisible();
+};
+
+/** Example names under `requestName`, in sidebar order. */
+const getSidebarExampleNames = async (page: Page, requestName: string): Promise<string[]> => {
+  const { sidebar } = buildCommonLocators(page);
+  const names = await sidebar.exampleRowsIn(requestName).locator('.item-name').allTextContents();
+  return names.map((name) => name.trim());
+};
+
+/**
+ * Drag one response example onto another to reorder it.
+ *
+ * `position` selects which half of the target row to release over: the drop indicator and
+ * the resulting order follow the row midpoint, so 'above' aims near the top edge and
+ * 'below' near the bottom edge.
+ */
+const dragExample = async (page: Page, requestName: string, fromExample: string, toExample: string, position: 'above' | 'below') => {
+  await test.step(`Drag example "${fromExample}" ${position} "${toExample}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    const source = sidebar.exampleRowIn(requestName, fromExample);
+    const target = sidebar.exampleRowIn(requestName, toExample);
+
+    await expect(source).toBeVisible();
+    await expect(target).toBeVisible();
+
+    const targetBox = await target.boundingBox();
+    if (!targetBox) throw new Error(`Example row "${toExample}" has no bounding box`);
+
+    // Aim 20% in from the relevant edge: far enough from the midpoint that the drop type is
+    // unambiguous, far enough from the edge that it cannot land on the neighbouring row.
+    const y = position === 'above' ? targetBox.height * 0.2 : targetBox.height * 0.8;
+
+    await source.dragTo(target, { targetPosition: { x: 5, y }, force: true });
+  });
+};
+
+/**
+ * Drag a response example onto a row belonging to a different request. Examples only reorder
+ * within their own request, so this is expected to be rejected — the helper exists to exercise
+ * that rejection.
+ */
+const dragExampleOntoOtherRequestExample = async (page: Page, fromRequestName: string, fromExample: string, toRequestName: string, toExample: string) => {
+  await test.step(`Drag example "${fromExample}" onto "${toExample}" under request "${toRequestName}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    const source = sidebar.exampleRowIn(fromRequestName, fromExample);
+    const target = sidebar.exampleRowIn(toRequestName, toExample);
+
+    await expect(source).toBeVisible();
+    await expect(target).toBeVisible();
+
+    await source.dragTo(target, { targetPosition: { x: 5, y: 2 }, force: true });
+  });
+};
+
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
   const requestBranch = requestRow.locator('..');
@@ -2733,7 +2804,12 @@ const LINK_AWARE_METHOD_LABEL: Record<LinkAwareRequestType, string | null> = {
 };
 
 const setCodeMirrorValue = async (cm: Locator, value: string) => {
-  await cm.evaluate((el: any, v: string) => el.CodeMirror?.setValue(v), value);
+  await cm.evaluate((el: any, v: string) => {
+    // Silently skipping the write leaves the editor empty and fails a later, unrelated-looking
+    // assertion; naming the unattached instance points at the real setup problem.
+    if (!el.CodeMirror) throw new Error('CodeMirror instance is not attached to this element yet');
+    el.CodeMirror.setValue(v);
+  }, value);
 };
 
 const linkAwareUrlBarCm = (page: Page, type: LinkAwareRequestType): Locator =>
@@ -2816,11 +2892,17 @@ const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modi
  * cursor), never intercepted to open a transient request.
  */
 const expectNoLink = async (cm: Locator) => {
+  const page = cm.page();
+  const tabCountBefore = await page.locator('.request-tab').count();
+
   await cm.click();
   await expect(cm).toContainClass('CodeMirror-focused');
 
   await cm.click({ modifiers: [LINK_CLICK_MODIFIER] });
   await expect(cm).toContainClass('CodeMirror-focused');
+
+  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
+  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
 /**
@@ -3739,6 +3821,10 @@ export {
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
+  expandRequestExamples,
+  getSidebarExampleNames,
+  dragExample,
+  dragExampleOntoOtherRequestExample,
   openWorkspaceFromDialog,
   setCodeMirrorValue,
   expectTransientRequestOpened,
