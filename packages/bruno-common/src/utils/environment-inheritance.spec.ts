@@ -560,13 +560,14 @@ describe('getInheritedEnvironments', () => {
     const staging = environment({ name: 'staging', extends: 'base' });
     const dev = environment({ name: 'dev', extends: 'staging' });
 
-    const { inheritedEnvironments, missingInheritedEnvironmentName } = walk({
+    const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = walk({
       environments: [base, staging, dev],
       target: 'dev'
     });
 
     expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base', 'staging']);
     expect(missingInheritedEnvironmentName).toBeNull();
+    expect(cyclicInheritancePath).toBeNull();
   });
 
   it('reports the reference that resolves to nothing', () => {
@@ -591,11 +592,51 @@ describe('getInheritedEnvironments', () => {
     expect(missingInheritedEnvironmentName).toBe('base');
   });
 
-  it('reports no missing parent for a cyclic chain', () => {
+  it('reports a path that closes back onto the target when two environments extend each other', () => {
     const base = environment({ name: 'base', extends: 'dev' });
     const dev = environment({ name: 'dev', extends: 'base' });
 
-    expect(walk({ environments: [base, dev], target: 'dev' }).missingInheritedEnvironmentName).toBeNull();
+    const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = walk({
+      environments: [base, dev],
+      target: 'dev'
+    });
+
+    expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base']);
+    expect(missingInheritedEnvironmentName).toBeNull();
+    expect(cyclicInheritancePath).toEqual(['dev', 'base', 'dev']);
+  });
+
+  it('reports a two-name path when an environment extends itself', () => {
+    const dev = environment({ name: 'dev', extends: 'dev' });
+
+    const { inheritedEnvironments, cyclicInheritancePath } = walk({ environments: [dev], target: 'dev' });
+
+    expect(inheritedEnvironments).toEqual([]);
+    expect(cyclicInheritancePath).toEqual(['dev', 'dev']);
+  });
+
+  it('reports only the loop when the target points into one it is not part of', () => {
+    const staging = environment({ name: 'staging', extends: 'base' });
+    const base = environment({ name: 'base', extends: 'staging' });
+    const dev = environment({ name: 'dev', extends: 'staging' });
+
+    const { inheritedEnvironments, cyclicInheritancePath } = walk({
+      environments: [base, staging, dev],
+      target: 'dev'
+    });
+
+    expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base', 'staging']);
+    expect(cyclicInheritancePath).toEqual(['staging', 'base', 'staging']);
+  });
+
+  it('reports every name in the loop when it spans more than two environments', () => {
+    const base = environment({ name: 'base', extends: 'qa' });
+    const qa = environment({ name: 'qa', extends: 'staging' });
+    const staging = environment({ name: 'staging', extends: 'base' });
+
+    const { cyclicInheritancePath } = walk({ environments: [base, qa, staging], target: 'base' });
+
+    expect(cyclicInheritancePath).toEqual(['base', 'qa', 'staging', 'base']);
   });
 
   it('reports a missing parent for a differently-cased reference', () => {
