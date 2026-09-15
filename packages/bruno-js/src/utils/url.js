@@ -1,8 +1,8 @@
 /**
- * new URL() mangles {{var}} reference variables, so the url is split by hand. The comments
- * below show each step for 'https://user:pass@{{HOST}}/users/:id?role=admin#section'.
+ * Parses a url new URL() would reject or mangle, keeping it exactly as written.
+ * The steps below are shown for 'https://user:pass@{{HOST}}/users/:id?role=admin#section'.
  */
-const parseTemplatedUrl = (rawUrl) => {
+const customParseUrl = (rawUrl) => {
   // drop the protocol -> 'user:pass@{{HOST}}/users/:id?role=admin#section'
   let remainder = rawUrl.replace(/^[^/?#]*:\/\//, '');
 
@@ -52,7 +52,7 @@ const parseUrl = (rawUrl) => {
     }
   }
 
-  return parseTemplatedUrl(rawUrl);
+  return customParseUrl(rawUrl);
 };
 
 module.exports = {
