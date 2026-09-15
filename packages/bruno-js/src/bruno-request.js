@@ -1,5 +1,41 @@
 const HeaderList = require('./header-list');
 
+/**
+ * Matches a `{{var}}` placeholder anywhere in a string.
+ *
+ * Pre-request scripts run before interpolation, so `req.url` still holds the
+ * user's template text at that point.
+ */
+const TEMPLATE_VAR = /\{\{.+?\}\}/;
+
+/**
+ * Pulls the authority (`host[:port]`, minus any `user:pass@`) out of a URL
+ * using plain string work, so template placeholders survive untouched.
+ *
+ * `new URL()` cannot be used for this: for a special scheme the WHATWG host
+ * parser runs domain-to-ASCII, which lower-cases the host, and it rejects the
+ * URL outright when the placeholder also supplies the scheme.
+ */
+const extractRawAuthority = (url) => {
+  if (typeof url !== 'string') {
+    return '';
+  }
+
+  // Drop the scheme when the URL carries one of its own, then any bare `//`
+  // left by a protocol-relative URL, so its authority is still readable.
+  const withoutScheme = url
+    .trim()
+    .replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\//, '')
+    .replace(/^\/\//, '');
+
+  // The authority ends at the first path, query or fragment delimiter.
+  const authority = withoutScheme.split(/[/?#]/)[0];
+
+  // `URL.host` excludes userinfo; match that.
+  const userInfoEnd = authority.lastIndexOf('@');
+  return userInfoEnd === -1 ? authority : authority.slice(userInfoEnd + 1);
+};
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
@@ -47,11 +83,28 @@ class BrunoRequest {
   }
 
   getHost() {
+    const rawAuthority = extractRawAuthority(this.req.url);
+
+    /**
+     * A host that still holds an unresolved variable has to be returned exactly
+     * as written - `new URL()` would lower-case it, and `{{host}}` no longer
+     * resolves against a variable named `HOST`. Callers interpolate the result
+     * themselves.
+     */
+    if (TEMPLATE_VAR.test(rawAuthority)) {
+      return rawAuthority;
+    }
+
     try {
-      const url = new URL(this.req.url);
-      return url.host;
+      /**
+       * `host` is empty whenever the WHATWG parser did not read an authority -
+       * most often a schemeless `localhost:3000/api`, where `localhost:` is
+       * taken for a scheme and the rest for an opaque path. Bruno supports
+       * those URLs, so fall back to the text the user actually wrote.
+       */
+      return new URL(this.req.url).host || rawAuthority;
     } catch (e) {
-      return '';
+      return rawAuthority;
     }
   }
 
