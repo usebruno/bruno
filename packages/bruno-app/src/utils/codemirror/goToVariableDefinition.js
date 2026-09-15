@@ -122,7 +122,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
 
     case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
       const environmentTabUid = `${collection.uid}-environment-settings`;
-      const environmentUid = scopeInfo.data?.environment?.uid;
+      const environmentUid = scopeInfo.inheritedFrom?.uid || scopeInfo.data?.environment?.uid;
       dispatch(addTab({ uid: environmentTabUid, collectionUid: collection.uid, type: 'environment-settings' }));
 
       pinEnvironmentTabState(dispatch, environmentTabUid, environmentUid, scopeInfo);
@@ -141,7 +141,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
 
       const fallbackCollectionUid = collection.uid || activeTab?.collectionUid;
       const globalEnvironmentTabUid = existingGlobalTab?.uid || `${fallbackCollectionUid}-global-environment-settings`;
-      const environmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+      const environmentUid = scopeInfo.inheritedFrom?.uid || state.globalEnvironments?.activeGlobalEnvironmentUid;
 
       dispatch(addTab({
         uid: globalEnvironmentTabUid,
