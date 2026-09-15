@@ -1966,6 +1966,11 @@ export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText =
     requestItems.forEach((request) => {
       if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
       uids.push(request.uid);
+
+      const examplesVisible = request.type === 'http-request' && (hasSearchText || !isCollectionItemCollapsed(request));
+      if (examplesVisible && request.examples?.length) {
+        request.examples.forEach((example) => uids.push(example.uid));
+      }
     });
   };
 
@@ -2012,7 +2017,28 @@ const getSelectionEntryType = (item) => {
   return 'file';
 };
 
+// Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
+export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
+
+// Indexes every example by uid in a single pass over all collections, since examples are nested
+// within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
+// callers whose selection contains no examples never pay for it.
+const buildExampleOwnerIndex = (collections) => {
+  const index = new Map();
+  for (const collection of collections) {
+    for (const item of flattenItems(collection.items)) {
+      if (!item.examples) continue;
+      for (const example of item.examples) {
+        index.set(example.uid, { collection, item, example });
+      }
+    }
+  }
+  return index;
+};
+
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  let exampleOwnerIndex = null;
+
   const resolved = selectedUids
     .map((uid) => {
       const collection = findCollectionByUid(collections, uid);
@@ -2022,23 +2048,51 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       const owningCollection = findCollectionByItemUid(collections, uid);
       const item = owningCollection && findItemInCollection(owningCollection, uid);
-      if (!item) return null;
+      if (item) {
+        return {
+          uid,
+          type: getSelectionEntryType(item),
+          collectionUid: owningCollection.uid,
+          pathname: item.pathname,
+          item
+        };
+      }
 
-      return {
-        uid,
-        type: getSelectionEntryType(item),
-        collectionUid: owningCollection.uid,
-        pathname: item.pathname,
-        item
-      };
+      exampleOwnerIndex = exampleOwnerIndex || buildExampleOwnerIndex(collections);
+      const exampleOwner = exampleOwnerIndex.get(uid);
+      if (exampleOwner) {
+        return {
+          uid,
+          type: 'example',
+          collectionUid: exampleOwner.collection.uid,
+          pathname: null,
+          item: exampleOwner.item,
+          example: exampleOwner.example
+        };
+      }
+
+      return null;
     })
     .filter(Boolean);
 
   const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
   const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+  const selectedRequestPathnames = resolved.filter((r) => r.type === 'request').map((r) => r.pathname);
+
+  // Since examples lack pathnames, they are considered absorbed if their parent request is selected
+  // (either directly or via an ancestor folder/collection).
+  const isExampleAbsorbed = (entry) => {
+    const parentPathname = entry.item.pathname;
+    return (
+      selectedRequestPathnames.includes(parentPathname)
+      || selectedCollectionPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+      || selectedFolderPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+    );
+  };
 
   const effectiveSelection = resolved.filter((entry) => {
     if (entry.type === 'collection') return true;
+    if (entry.type === 'example') return !isExampleAbsorbed(entry);
     if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
     return !selectedFolderPathnames.some(
       (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
@@ -2050,7 +2104,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request'),
-    hasApp: effectiveSelection.some((e) => e.type === 'app')
+    hasApp: effectiveSelection.some((e) => e.type === 'app'),
+    hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
 };
 
