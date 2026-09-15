@@ -212,7 +212,14 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
-    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
+    ownItem: (tagName: string) => page.locator('.tag-item:not(.inherited)', { hasText: tagName }),
+    ownItems: () => page.locator('.tag-item:not(.inherited)'),
+    error: () => page.getByTestId('tag-error'),
+    inheritedToggle: () => page.getByTestId('inherited-tags-toggle'),
+    inheritedList: () => page.getByTestId('inherited-tag-list'),
+    inheritedItems: () => page.getByTestId('inherited-tag'),
+    inheritedItem: (tagName: string) => page.getByTestId('inherited-tag').filter({ hasText: tagName })
   },
   generateDocs: {
     menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),

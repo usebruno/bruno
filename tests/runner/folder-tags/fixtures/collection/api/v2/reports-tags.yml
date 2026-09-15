@@ -1,0 +1,10 @@
+info:
+  name: reports-tags
+  type: http
+  seq: 2
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: http://localhost:8081/ping

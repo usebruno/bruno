@@ -1,0 +1,10 @@
+info:
+  name: own-tagged
+  type: http
+  seq: 2
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: '{{host}}/ping'
