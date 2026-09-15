@@ -172,8 +172,6 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   const handleCopy = () => {
     const errorText = formatErrorForClipboard(errorContext, message, displayFilePath);
     copyToClipboard(errorText)
-      .then(() => toast.success('Script error details copied to clipboard'))
-      .catch(() => toast.error('Failed to copy script error details'));
   };
 
   if (!errorContext) {

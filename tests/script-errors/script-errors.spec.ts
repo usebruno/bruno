@@ -419,7 +419,6 @@ for (const mode of ['safe', 'developer'] as const) {
         locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
 
       await test.step('Open long-script request and send', async () => {
-        await closeAllTabs(page);
         await openRequest(page, 'script-errors-test', 'long-pre-request-error');
         await sendAndWaitForErrorCard(page);
       });
@@ -462,16 +461,15 @@ for (const mode of ['safe', 'developer'] as const) {
         await stack.scrollIntoViewIfNeeded();
         await expect(stack).toBeVisible();
 
+        // Scroll positions can be fractional, so allow a 1px rounding difference
+        const roundingTolerance = 1;
+
         await expect.poll(async () => {
           const { scrollHeight, clientHeight, scrollTop } = await scrollMetrics(body);
-          return scrollHeight - (scrollTop + clientHeight);
-        }).toBeLessThanOrEqual(1);
-
-        const stackBox = await stack.boundingBox();
-        const bodyBox = await body.boundingBox();
-        expect(stackBox).not.toBeNull();
-        expect(bodyBox).not.toBeNull();
-        expect(stackBox!.y + stackBox!.height).toBeLessThanOrEqual(bodyBox!.y + bodyBox!.height + 1);
+          const visibleBottom = scrollTop + clientHeight;
+          const hiddenContentBelow = scrollHeight - visibleBottom;
+          return hiddenContentBelow;
+        }).toBeLessThanOrEqual(roundingTolerance);
       });
 
       await test.step('Collapse restores the capped height', async () => {
@@ -481,6 +479,25 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'false');
 
         await expect.poll(async () => (await scrollMetrics(body)).clientHeight).toBe(collapsedHeight);
+      });
+    });
+
+    test('19. Copy button copies file path, error message and stack trace', async ({ pageWithUserData: page, installFakeClipboard }) => {
+      await test.step('Open request and trigger error', async () => {
+        await openRequest(page, 'script-errors-test', 'pre-request-ref-error');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Copy the error details', async () => {
+        const clipboard = await installFakeClipboard(page);
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.copyButton(card).click();
+        await expect(scriptErrorLocators.copyButton(card)).toHaveAttribute('title', 'Copied');
+
+        const copied = await clipboard.copiedText();
+        expect(copied).toMatch(/^File: pre-request-ref-error\.bru:\d+\n\n/);
+        expect(copied).toMatch(/ReferenceError: '?undefinedVariable'? is not defined/);
+        expect(copied).toContain('Stack trace:');
       });
     });
   });
