@@ -52,6 +52,7 @@ import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
+import { markWSLCollectionOpened } from './useTelemetry';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -144,6 +145,9 @@ const useIpcEvents = () => {
         await dispatch(openCollectionEvent(uid, pathname, brunoConfig, options));
       } finally {
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
+        if (options?.isWsl) {
+          markWSLCollectionOpened();
+        }
       }
     });
 
