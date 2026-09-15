@@ -45,6 +45,19 @@ describe('bruExampleToJson - http method casing', () => {
     expect(result.request.method).toBe('GET');
   });
 
+  it('inherits the parent gRPC method path when the example omits one', () => {
+    const { parseBruRequest } = require('../index');
+    const parsed = {
+      meta: { name: 'say-hello', type: 'grpc', seq: 1 },
+      grpc: { url: 'grpc://localhost:50051', method: '/helloworld.Greeter/SayHello' },
+      examples: [{ name: 'ok', request: { url: 'grpc://localhost:50051' }, response: { status: 200 } }]
+    };
+
+    const result = parseBruRequest(parsed, true);
+
+    expect(result.examples[0].request.method).toBe('/helloworld.Greeter/SayHello');
+  });
+
   it('leaves a gRPC method path untouched', () => {
     // gRPC stores a case-sensitive fully-qualified path in the same field.
     const result = bruExampleToJson(

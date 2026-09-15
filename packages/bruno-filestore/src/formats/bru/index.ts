@@ -83,7 +83,15 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         docs: _.get(json, 'docs', '')
       },
       examples: _.get(json, 'examples', []).map((e: any) => {
-        return bruExampleToJson(e, true, requestType, _.get(json, 'http.method'));
+        // gRPC keeps its method under `grpc.method`; passing `http.method` here
+        // left gRPC examples inheriting the 'GET' fallback instead of the
+        // parent's fully-qualified path.
+        return bruExampleToJson(
+          e,
+          true,
+          requestType,
+          requestType === 'grpc-request' ? _.get(json, 'grpc.method') : _.get(json, 'http.method')
+        );
       })
     } as any;
 
