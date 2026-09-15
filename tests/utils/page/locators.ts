@@ -306,9 +306,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+    createCollection: () => page.getByTestId('collections-header-add-menu-create'),
+    importCollection: () => page.getByTestId('collections-header-add-menu-import'),
+    openCollection: () => page.getByTestId('collections-header-add-menu-open')
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
