@@ -20,6 +20,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
@@ -385,9 +386,9 @@ class CodeEditor extends React.Component {
     }
 
     setupLinkAware(editor, {
-      onLinkClick: typeof this.props.onLinkClick === 'function' ? this.props.onLinkClick : undefined
+      onLinkClick: this._resolveOnLinkClick() ? this.handleLinkClick : undefined
     });
-    this._linkAwareHasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
+    this._linkAwareEnabled = !!this._resolveOnLinkClick();
   };
 
   _disableEnhancedFeatures = () => {
@@ -540,12 +541,12 @@ class CodeEditor extends React.Component {
         }
       }
 
-      const hasOnLinkClickProp = typeof this.props.onLinkClick === 'function';
-      if (hasOnLinkClickProp !== this._linkAwareHasOnLinkClickProp) {
-        this._linkAwareHasOnLinkClickProp = hasOnLinkClickProp;
+      const linkAwareEnabled = !!this._resolveOnLinkClick();
+      if (linkAwareEnabled !== this._linkAwareEnabled) {
+        this._linkAwareEnabled = linkAwareEnabled;
         this.editor._destroyLinkAware?.();
         setupLinkAware(this.editor, {
-          onLinkClick: hasOnLinkClickProp ? this.props.onLinkClick : undefined
+          onLinkClick: linkAwareEnabled ? this.handleLinkClick : undefined
         });
         this.editor.refresh();
       }
@@ -619,6 +620,20 @@ class CodeEditor extends React.Component {
       this.props.onSearchBarVisibilityChange?.(false);
     }
   }
+
+  _resolveOnLinkClick = () => {
+    if (typeof this.props.onLinkClick === 'function') {
+      return this.props.onLinkClick;
+    }
+    if (!this.props.readOnly) {
+      return undefined;
+    }
+    return resolveLinkClickHandler(this.props.item, this.props.collection);
+  };
+
+  handleLinkClick = (url) => {
+    this._resolveOnLinkClick()?.(url);
+  };
 
   render() {
     if (this.editor) {
