@@ -93,6 +93,11 @@ const Wrapper = styled.div`
       justify-content: center;
     }
 
+    .shortcut {
+      font-size: 11px;
+      color: ${(props) => props.theme.dropdown.mutedText};
+    }
+
     .dropdown-tab-count {
       margin-left: auto;
       font-size: 11px;

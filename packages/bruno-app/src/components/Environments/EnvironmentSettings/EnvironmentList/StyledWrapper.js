@@ -164,6 +164,7 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     border-radius: 6px;
     transition: background 0.15s ease;
+    user-select: none;
 
     .environment-name {
       flex: 1;
@@ -175,8 +176,29 @@ const StyledWrapper = styled.div`
     .environment-actions {
       display: flex;
       align-items: center;
+      gap: 2px;
       opacity: 0;
       transition: opacity 0.15s ease;
+
+      .env-more-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 3px;
+        color: ${(props) => props.theme.colors.text.muted};
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+          color: ${(props) => props.theme.text};
+        }
+      }
 
       .activate-btn {
         display: flex;
@@ -221,6 +243,15 @@ const StyledWrapper = styled.div`
     &.active {
       background: ${(props) => props.theme.background.surface0};
       color: ${(props) => props.theme.text};
+    }
+
+    &.is-selected {
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+      border-left: 3px solid ${(props) => props.theme.primary.solid};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+      }
     }
 
     &.renaming,
