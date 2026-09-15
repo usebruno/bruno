@@ -566,6 +566,36 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
 };
 
 /**
+ * Rename a request or folder from the sidebar, via its row's "..." menu -> Rename.
+ * Waits for the rename modal to close and the renamed row to appear.
+ * @param page - The page object
+ * @param currentName - The item's current name in the sidebar
+ * @param newName - The name to rename it to
+ * @param options - `type` selects the row and modal variant; defaults to 'request'
+ * @returns void
+ */
+const renameCollectionItem = async (
+  page: Page,
+  currentName: string,
+  newName: string,
+  { type = 'request' }: { type?: 'request' | 'folder' } = {}
+) => {
+  await test.step(`Rename ${type} "${currentName}" to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.item(currentName).hover();
+    await locators.actions.collectionItemActions(currentName).click();
+    await locators.dropdown.item('Rename').click();
+    const modal = locators.modal.byTitle(type === 'folder' ? 'Rename Folder' : 'Rename Request');
+    await modal.waitFor({ state: 'visible' });
+    await locators.modal.itemNameInput(modal).fill(newName);
+    await modal.getByTestId('rename-item-button').click();
+    await modal.waitFor({ state: 'hidden' });
+
+    await locators.sidebar.item(newName).waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+/**
  * Delete a collection permanently from disk via the workspace overview page
  * @param page - The page object
  * @param collectionName - The name of the collection to delete
@@ -801,6 +831,20 @@ const expandFolder = async (page: Page, folderName: string) => {
     await chevron.waitFor({ state: 'visible', timeout: 5000 });
     const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
     if (!isExpanded) await chevron.click();
+  });
+};
+
+/**
+ * Collapse a folder in the sidebar so its child requests/subfolders unmount.
+ * No-op if the folder is already collapsed.
+ */
+const collapseFolder = async (page: Page, folderName: string) => {
+  await test.step(`Collapse folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded) await chevron.click();
   });
 };
 
@@ -3647,6 +3691,7 @@ export {
   createRequestFromEmptyStateCta,
   fillRequestUrl,
   deleteRequest,
+  renameCollectionItem,
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
@@ -3729,6 +3774,7 @@ export {
   addFolderScript,
   addCollectionScript,
   expandFolder,
+  collapseFolder,
   expandCollection,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
