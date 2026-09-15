@@ -100,8 +100,8 @@ class BrunoRequest {
      * the raw query string, and at script time the URL is still the user's own
      * text, `{{vars}}` included.
      *
-     * The query still ends at a `#`, matching `URL.search`, so only the
-     * encoding changes here.
+     * The query is still bounded by `?` and `#` exactly as `URL.search` bounds
+     * it, so only the encoding changes here.
      */
     const url = this.req.url;
 
@@ -109,15 +109,15 @@ class BrunoRequest {
       return '';
     }
 
+    const fragmentStart = url.indexOf('#');
     const queryStart = url.indexOf('?');
-    if (queryStart === -1) {
+
+    // A `?` sitting inside the fragment is part of it, not a query delimiter.
+    if (queryStart === -1 || (fragmentStart !== -1 && fragmentStart < queryStart)) {
       return '';
     }
 
-    const query = url.slice(queryStart + 1);
-    const fragmentStart = query.indexOf('#');
-
-    return fragmentStart === -1 ? query : query.slice(0, fragmentStart);
+    return url.slice(queryStart + 1, fragmentStart === -1 ? url.length : fragmentStart);
   }
 
   getMethod() {

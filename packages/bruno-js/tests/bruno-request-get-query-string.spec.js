@@ -42,6 +42,14 @@ describe('BrunoRequest - getQueryString()', () => {
       expect(queryOf('https://example.com/api?a=1#section')).toBe('a=1');
     });
 
+    it('ignores a question mark inside the fragment', () => {
+      expect(queryOf('https://example.com/api#section?a=1')).toBe('');
+    });
+
+    it('ignores a fragment question mark even when a real query precedes it', () => {
+      expect(queryOf('https://example.com/api?a=1#section?b=2')).toBe('a=1');
+    });
+
     it('splits on the first question mark only', () => {
       expect(queryOf('https://example.com/api?a=1?2')).toBe('a=1?2');
     });
