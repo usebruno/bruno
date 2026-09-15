@@ -289,11 +289,6 @@ describe('CodeEditor', () => {
   });
 
   describe('link-aware setup', () => {
-    // CodeEditor backs both editable fields (request body, scripts, docs, etc.)
-    // and read-only fields (response previews, generated code, etc.). Only
-    // read-only fields get click-to-open-as-new-request by default - editable
-    // fields must never wire it up on their own. An explicit onLinkClick prop
-    // always overrides this default, either way.
     it('does not enable click-to-open-request on an editable field', () => {
       renderEditor({ item: itemA, collection: collectionA });
 
