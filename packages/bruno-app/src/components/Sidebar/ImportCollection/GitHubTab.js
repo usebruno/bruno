@@ -39,6 +39,7 @@ const GitHubTab = ({
         <Button
           type="submit"
           id="clone-git-button"
+          data-testid="clone-git-button"
           disabled={!urlInput.trim()}
           variant="filled"
           color="primary"

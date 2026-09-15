@@ -7,7 +7,7 @@ test.describe('Postman URL Import', () => {
     await closeAllCollections(page);
   });
 
-  test('Postman URL import', async ({ page, createTmpDir }) => {
+  test('TC811: Verify import collection through Valid Postman Collection from Direct URL', async ({ page, createTmpDir }) => {
     // Fetches a fixture over the network; the main-process axios timeout is 30s,
     // equal to the default test budget, so a slow fetch is killed before it can
     // fail or succeed. Give the test more room than the fetch it waits on.
