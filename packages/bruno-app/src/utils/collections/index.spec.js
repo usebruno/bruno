@@ -14,7 +14,9 @@ import {
   getSelectionInfo,
   getUniqueTagsFromItems,
   getCollectionVersion,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getAllVariablesWithScope,
+  getAllVariables
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -887,5 +889,65 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getAllVariablesWithScope', () => {
+  const buildCollection = () => ({
+    uid: 'col-1',
+    root: {
+      request: { vars: { req: [{ uid: 'cv1', name: 'collectionVar', value: 'collection-value', enabled: true }] } }
+    },
+    activeEnvironmentUid: 'env-1',
+    environments: [
+      { uid: 'env-1', name: 'Dev', variables: [{ uid: 'ev1', name: 'envVar', value: 'env-value', enabled: true, secret: false }] }
+    ],
+    globalEnvironmentVariables: { globalVar: 'global-value' },
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [
+      { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
+    ],
+    runtimeVariables: { runtimeVar: 'runtime-value' },
+    processEnvVariables: { API_KEY: 'secret-key' }
+  });
+
+  it('tags every variable across global/collection/environment/runtime with its scope', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName.globalVar).toBe('global');
+    expect(byName.collectionVar).toBe('collection');
+    expect(byName.envVar).toBe('environment');
+    expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes process.env variables prefixed as process.env.<name>', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: 'process.env.API_KEY', scope: 'process.env' });
+  });
+
+  it('includes every built-in dynamic/mock variable, each with no resolved value needed', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+    const dynamicEntries = all.filter((v) => v.scope === 'dynamic');
+
+    expect(dynamicEntries.length).toBeGreaterThan(0);
+    expect(dynamicEntries.every((v) => v.name.startsWith('$'))).toBe(true);
+  });
+
+  it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+    const names = all.map((v) => v.name);
+
+    expect(names).not.toContain('pathParams');
+    expect(names).not.toContain('maskedEnvVariables');
+    expect(names).not.toContain('process');
+  });
+
+  it('returns only the built-in dynamic variables when there is no collection', () => {
+    const all = getAllVariablesWithScope(null, null);
+
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((v) => v.scope === 'dynamic')).toBe(true);
   });
 });

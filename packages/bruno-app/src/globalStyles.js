@@ -332,6 +332,27 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
   }
 
+  .CodeMirror-hint-variable {
+    display: flex;
+    align-items: center;
+  }
+
+  .CodeMirror-hint-variable-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 0.375rem;
+    color: currentColor;
+    opacity: 0.7;
+  }
+
+  .CodeMirror-hint-variable-icon svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    display: block;
+  }
+
   .CodeMirror-brunoVarInfo :first-child {
     margin-top: 0;
   }

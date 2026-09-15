@@ -73,12 +73,54 @@ const BOX_ICON_SVG_TEXT = `
 </svg>
 `;
 
+// Runtime variable
+const BOLT_ICON_SVG_TEXT = `
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="13 3 4 14 12 14 11 21 20 10 12 10 13 3"></polyline>
+</svg>
+`;
+
+// process.env variable
+const TERMINAL_ICON_SVG_TEXT = `
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+  <path d="M8 9l3 3l-3 3"></path>
+  <line x1="13" y1="15" x2="16" y2="15"></line>
+</svg>
+`;
+
+// Dynamic / mock (built-in faker) variable
+const DICE_ICON_SVG_TEXT = `
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+  <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"></circle>
+  <circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"></circle>
+  <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"></circle>
+  <circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"></circle>
+  <circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"></circle>
+</svg>
+`;
+
 export const SCOPE_ICON = {
   [VARIABLE_ADD_SCOPES.REQUEST]: SEND_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.FOLDER]: FOLDER_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.COLLECTION]: BOX_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.ENVIRONMENT]: DATABASE_ICON_SVG_TEXT,
-  [VARIABLE_ADD_SCOPES.GLOBAL]: WORLD_ICON_SVG_TEXT
+  [VARIABLE_ADD_SCOPES.GLOBAL]: WORLD_ICON_SVG_TEXT,
+  'runtime': BOLT_ICON_SVG_TEXT,
+  'process.env': TERMINAL_ICON_SVG_TEXT,
+  'dynamic': DICE_ICON_SVG_TEXT
+};
+
+export const SCOPE_LABEL = {
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'Request',
+  [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Environment',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global',
+  'runtime': 'Runtime',
+  'process.env': 'Process Env',
+  'dynamic': 'Dynamic'
 };
 
 export const AUTH_MODES = {
