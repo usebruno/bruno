@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { IconEraser } from '@tabler/icons';
+import { useSqliteQuery, useSqliteMutation } from '@usebruno/sqlite/web';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
@@ -14,24 +15,15 @@ const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const { theme } = useTheme();
-  const { ipcRenderer } = window;
 
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
 
-  const [fileCacheSize, setFileCacheSize] = useState(null);
+  const { data: fileCacheSizeRow } = useSqliteQuery('file_index_size');
+  const fileCacheSize = fileCacheSizeRow?.bytes ?? null;
 
-  const refreshFileCacheSize = useCallback(() => {
-    if (!ipcRenderer) return;
-    ipcRenderer
-      .invoke('renderer:get-file-cache-size')
-      .then((size) => setFileCacheSize(size))
-      .catch(() => setFileCacheSize(null));
-  }, [ipcRenderer]);
-
-  useEffect(() => {
-    refreshFileCacheSize();
-  }, [refreshFileCacheSize, fileCacheEnabled]);
+  const clearFileCache = useSqliteMutation('file_index_clear');
+  const vacuumFileCache = useSqliteMutation('file_index_vacuum');
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -57,15 +49,14 @@ const Cache = () => {
     }
   };
 
-  const handleClearFileCache = () => {
-    if (!ipcRenderer) return;
-    ipcRenderer
-      .invoke('renderer:clear-file-cache')
-      .then((size) => {
-        setFileCacheSize(size);
-        toast.success('File cache cleared');
-      })
-      .catch(() => toast.error('Failed to clear file cache'));
+  const handleClearFileCache = async () => {
+    try {
+      await clearFileCache.mutateAsync({});
+      await vacuumFileCache.mutateAsync({});
+      toast.success('File cache cleared');
+    } catch (error) {
+      toast.error('Failed to clear file cache');
+    }
   };
 
   const handleClearSslSession = () => {
