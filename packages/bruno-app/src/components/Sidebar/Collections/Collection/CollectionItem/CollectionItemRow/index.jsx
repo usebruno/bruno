@@ -299,6 +299,10 @@ const CollectionItemRow = ({
     'rotate-90': !itemIsCollapsed
   });
 
+  const examplesIconClassName = classnames({
+    'rotate-90': examplesExpanded
+  });
+
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
@@ -790,7 +794,7 @@ const CollectionItemRow = ({
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
-                  className={iconClassName}
+                  className={examplesIconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleExamplesCollapse}
                   onDoubleClick={handleExamplesDoubleClick}
