@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getAllVariablesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
@@ -75,7 +75,7 @@ class SingleLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getAllVariablesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper

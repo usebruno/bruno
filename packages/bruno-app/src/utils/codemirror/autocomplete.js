@@ -1,5 +1,6 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
+import { SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
 
 const CodeMirror = require('codemirror');
 
@@ -250,6 +251,27 @@ const transformVariablesToHints = (allVariables = {}) => {
 };
 
 /**
+ * Transforms the scope-tagged variable list into a flat list with name to scope map
+ *
+ * @param {Array<{name: string, scope?: string}>} scopedVariables - Available variables
+ * @returns {{hints: string[], scopes: Object}} Hint names, and a name -> scope map
+ */
+const transformScopedVariablesToHints = (scopedVariables = []) => {
+  const hints = [];
+  const scopes = {};
+
+  scopedVariables.forEach(({ name, scope } = {}) => {
+    if (!name) return;
+    hints.push(name);
+    if (scope) {
+      scopes[name] = scope;
+    }
+  });
+
+  return { hints, scopes };
+};
+
+/**
  * Add API hints to categorized hints based on showHintsFor configuration
  * @param {Set} apiHints - Set to add API hints to
  * @param {string[]} showHintsFor - Array of hint groups to show
@@ -267,16 +289,23 @@ const addApiHintsToSet = (apiHints, showHintsFor) => {
 /**
  * Add variable hints to categorized hints
  * @param {Set} variableHints - Set to add variable hints to
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array} allVariables - All available variables: object (brunoVarInfo.js's inline variable-value editor) or array (the editor components where we need scope also)
+ * @param {Object} variableScopes - Map to populate with name -> scope, for icon rendering
  */
-const addVariableHintsToSet = (variableHints, allVariables) => {
-  // Add mock data hints
+const addVariableHintsToSet = (variableHints, allVariables, variableScopes = {}) => {
   MOCK_DATA_HINTS.forEach((hint) => {
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 
-  // Add variable hints with progressive hints
-  const variableHintsList = transformVariablesToHints(allVariables);
+  let variableHintsList;
+  if (Array.isArray(allVariables)) {
+    const scoped = transformScopedVariablesToHints(allVariables);
+    variableHintsList = scoped.hints;
+    Object.assign(variableScopes, scoped.scopes);
+  } else {
+    variableHintsList = transformVariablesToHints(allVariables);
+  }
+
   variableHintsList.forEach((hint) => {
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
@@ -297,10 +326,10 @@ const addCustomHintsToSet = (anywordHints, customHints) => {
 
 /**
  * Build categorized hints list from all sources
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array} allVariables - All available variables: object (brunoVarInfo.js's inline variable-value editor) or array (the editor components where we need scope also)
  * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
- * @returns {Object} Categorized hints object
+ * @returns {Object} Categorized hints object, including a variableScopes name -> scope map
  */
 const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints = [], options = {}) => {
   const categorizedHints = {
@@ -308,18 +337,20 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
     variables: new Set(),
     anyword: new Set()
   };
+  const variableScopes = {};
 
   const showHintsFor = options.showHintsFor || [];
 
   // Add different types of hints
   addApiHintsToSet(categorizedHints.api, showHintsFor);
-  addVariableHintsToSet(categorizedHints.variables, allVariables);
+  addVariableHintsToSet(categorizedHints.variables, allVariables, variableScopes);
   addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
 
   return {
     api: Array.from(categorizedHints.api).sort(),
     variables: Array.from(categorizedHints.variables).sort(),
-    anyword: Array.from(categorizedHints.anyword).sort()
+    anyword: Array.from(categorizedHints.anyword).sort(),
+    variableScopes
   };
 };
 
@@ -583,17 +614,47 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
 };
 
 /**
+ * @param {HTMLLIElement} li - The hint's list item element, provided by CodeMirror
+ * @param {Object} self - The show-hint widget instance (unused here)
+ * @param {Object} completion - The hint object being rendered (text/displayText/scope)
+ */
+const renderVariableHint = (li, self, completion) => {
+  const icon = document.createElement('span');
+  icon.className = 'CodeMirror-hint-variable-icon';
+  icon.innerHTML = SCOPE_ICON[completion.scope] || '';
+
+  const label = document.createElement('span');
+  label.className = 'CodeMirror-hint-variable-name';
+  label.textContent = completion.displayText;
+
+  li.innerHTML = '';
+  li.classList.add('CodeMirror-hint-variable');
+  li.appendChild(icon);
+  li.appendChild(label);
+  li.title = SCOPE_LABEL[completion.scope] || '';
+};
+
+/**
  * Create hint list for variables context
  * @param {string[]} filteredHints - Filtered hints
  * @param {Object} from - Start position
  * @param {Object} to - End position
+ * @param {Object} variableScopes - name to scope map
  * @returns {Object} Hint object with list and positions
  */
-const createVariableHintList = (filteredHints, from, to) => {
-  const hintList = filteredHints.map((hint) => ({
-    text: hint,
-    displayText: hint
-  }));
+const createVariableHintList = (filteredHints, from, to, variableScopes = {}) => {
+  const hintList = filteredHints.map((hint) => {
+    const scope = variableScopes[hint];
+    if (!scope || !SCOPE_ICON[scope]) {
+      return { text: hint, displayText: hint };
+    }
+    return {
+      text: hint,
+      displayText: hint,
+      scope,
+      render: renderVariableHint
+    };
+  });
 
   return {
     list: hintList,
@@ -679,7 +740,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
   }
 
   if (context === 'variables') {
-    return createVariableHintList(filteredHints, from, to);
+    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes);
   }
 
   return createStandardHintList(filteredHints, from, to);
