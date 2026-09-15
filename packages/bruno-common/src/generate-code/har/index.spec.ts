@@ -1729,3 +1729,41 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('https://myapp.com/callback%23access_token%3Dabc123%26token_type%3DBearer');
   });
 });
+
+// A lowercase verb reaches buildHar from `.bru` examples and hand-edited `.yml`.
+// HTTPSnippet copies it through, producing `curl --request post`, which servers
+// reject — so the HAR must carry the uppercase token
+describe('buildHar — method casing', () => {
+  it.each(['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'connect', 'trace'])(
+    'upper-cases the lowercase %s verb',
+    async (method) => {
+      const { har } = await buildHar({ request: baseRequest({ method }), shouldInterpolate: false });
+      expect(har.method).toBe(method.toUpperCase());
+    }
+  );
+
+  it('leaves an already-uppercase verb untouched', async () => {
+    const { har } = await buildHar({ request: baseRequest({ method: 'POST' }), shouldInterpolate: false });
+    expect(har.method).toBe('POST');
+  });
+
+  it('upper-cases custom verbs too', async () => {
+    const { har } = await buildHar({ request: baseRequest({ method: 'purge' }), shouldInterpolate: false });
+    expect(har.method).toBe('PURGE');
+  });
+
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+    ['an empty string', '']
+  ])('defaults to GET when the method is %s', async (_label, method) => {
+    const { har } = await buildHar({ request: baseRequest({ method }), shouldInterpolate: false });
+    expect(har.method).toBe('GET');
+  });
+
+  // The caller is plain JS, so `method?: string` is not enforced at runtime.
+  it('renders a non-string verb instead of throwing', async () => {
+    const { har } = await buildHar({ request: baseRequest({ method: 123 as any }), shouldInterpolate: false });
+    expect(har.method).toBe('123');
+  });
+});
