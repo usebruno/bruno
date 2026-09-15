@@ -11,7 +11,7 @@ import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { toBrunoApp } from '../common/app';
 import { normalizeOmitHeaders } from '../common/omit-headers';
-import { uuid, ensureString } from '../../../utils';
+import { uuid, ensureString, normalizeHttpMethod } from '../../../utils';
 import { utils } from '@usebruno/common';
 const { toBool, toMaxRedirects } = utils;
 
@@ -22,7 +22,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
   const brunoRequest: BrunoHttpRequest = {
     url: ensureString(http?.url),
-    method: ensureString(http?.method, 'GET'),
+    method: normalizeHttpMethod(http?.method, 'GET'),
     headers: toBrunoHttpHeaders(http?.headers) || [],
     params: toBrunoParams(http?.params) || [],
     auth: toBrunoAuth(http?.auth),
@@ -161,7 +161,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       if (example.request) {
         brunoExample.request = {
           url: ensureString(example.request.url),
-          method: ensureString(example.request.method, 'GET'),
+          method: normalizeHttpMethod(example.request.method, 'GET'),
           headers: toBrunoHttpHeaders(example.request.headers) || [],
           params: toBrunoParams(example.request.params) || [],
           body: toBrunoBody(example.request.body) || {

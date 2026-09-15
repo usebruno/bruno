@@ -8,6 +8,7 @@ import {
   jsonToCollectionBru as _jsonToCollectionBru
 } from '@usebruno/lang';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
+import { normalizeHttpMethod } from '../../utils';
 
 export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
   try {
@@ -392,6 +393,12 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
     const requestType = parentType || _.get(json, 'meta.type', 'http');
     const requestMethod = parentMethod || _.get(json, 'http.method', 'GET');
 
+    /**
+     * gRPC carries a fully-qualified method path (`/pkg.Service/Method`) in the
+     * same field, which is case-sensitive and must not be touched.
+     */
+    const isGrpc = requestType === 'grpc' || requestType === 'grpc-request';
+
     let transformedType = requestType;
     switch (requestType) {
       case 'http':
@@ -428,7 +435,11 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
       description: _.get(json, 'description', ''),
       // Examples don't have seq, settings, tags
       request: {
-        method: _.get(json, 'request.method') || requestMethod,
+        // The parent request is upper-cased on read; examples inherit from it and
+        // must be normalised the same way, or Generate Code emits a lower-case verb.
+        method: isGrpc
+          ? _.get(json, 'request.method') || requestMethod
+          : normalizeHttpMethod(_.get(json, 'request.method') || requestMethod),
         url: _.get(json, 'request.url'),
         headers: _.get(json, 'request.headers', []),
         body: _.get(json, 'request.body', {
