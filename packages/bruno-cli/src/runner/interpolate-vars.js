@@ -295,6 +295,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
 
+  // interpolate vars for digest auth
+  if (request.digestConfig) {
+    request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
+    request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
+  }
+
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';

@@ -1,3 +1,5 @@
+const { cloneDeep } = require('lodash');
+
 /**
  * GrpcMessageList — the `bru.grpc.request.messages` and `bru.grpc.response.messages` API in
  * hooks, and the only way a hook reads gRPC messages. Read-only: both lists report what the call
@@ -5,18 +7,20 @@
  * Keep quickjs shim up to date on any updates to this class
  */
 class GrpcMessageList {
-  #readMessages;
+  #messages;
 
   /**
-   * @param {Function} readMessages - Returns the backing array, read again on every access
+   * @param {object[]} [messages] - The backing messages, deep-cloned once here so a hook editing
+   *   a message cannot reach what the call actually sent or received. A list is built fresh for each
+   *   hook run, so this snapshot is never stale.
    */
-  constructor(readMessages) {
-    this.#readMessages = readMessages;
+  constructor(messages) {
+    this.#messages = cloneDeep(messages) ?? [];
   }
 
-  /** @returns {Array} */
+  /** @returns {Array} — a copy, so the snapshot cannot be edited through it */
   all() {
-    return [...this.#readMessages()];
+    return [...this.#messages];
   }
 
   /**
