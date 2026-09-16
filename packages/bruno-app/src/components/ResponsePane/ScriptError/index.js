@@ -1,16 +1,17 @@
-import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2, IconCheck, IconChevronDown, IconChevronRight, IconCopy, IconExternalLink, IconX } from '@tabler/icons';
-import { SCRIPT_TYPES } from '@usebruno/common';
-import classnames from 'classnames';
-import CodeSnippet from 'components/CodeSnippet';
-import useCopyToClipboard from 'hooks/useCopyToClipboard';
-import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
-import { addTab, setFocusErrorLine, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
+import { SCRIPT_TYPES } from '@usebruno/common';
 import ErrorBanner from 'ui/ErrorBanner';
+import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
+import classnames from 'classnames';
+import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2, IconCheck, IconCopy } from '@tabler/icons';
+import useCopyToClipboard from 'hooks/useCopyToClipboard';
 
 /**
  * Determines the source of a script error (request, folder, or collection)
