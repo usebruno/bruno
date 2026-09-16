@@ -3,7 +3,7 @@ const { postmanTranslation } = require('@usebruno/converters');
 
 parentPort.on('message', (workerData) => {
   try {
-    const { scripts } = workerData;
+    const { scripts, vaultTarget } = workerData;
     const modScripts = scripts.map(([uid, { events }]) => {
       const requestObject = {
         script: {}
@@ -14,7 +14,7 @@ parentPort.on('message', (workerData) => {
           if (event?.script && event.script.exec) {
             if (event.listen === 'prerequest') {
               if (event.script.exec && event.script.exec.length > 0) {
-                requestObject.script.req = postmanTranslation(event.script.exec);
+                requestObject.script.req = postmanTranslation(event.script.exec, { vaultTarget });
               } else {
                 requestObject.script.req = '';
               }
@@ -22,7 +22,7 @@ parentPort.on('message', (workerData) => {
 
             if (event.listen === 'test') {
               if (event.script.exec && event.script.exec.length > 0) {
-                requestObject.script.res = postmanTranslation(event.script.exec);
+                requestObject.script.res = postmanTranslation(event.script.exec, { vaultTarget });
               } else {
                 requestObject.script.res = '';
               }

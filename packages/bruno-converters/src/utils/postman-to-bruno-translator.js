@@ -161,6 +161,24 @@ const simpleTranslations = {
   'responseCode.name': 'res.statusText'
 };
 
+/* Postman vault secrets land in a Bruno environment chosen by the user at import time, so the
+ * target namespace is only known then. `pm.vault.get` is async in Postman while these are
+ * synchronous - a wrapping `await` is left in place, since awaiting a non-promise resolves to
+ * the value and only costs a microtask tick.
+ */
+const vaultTranslations = {
+  global: {
+    'pm.vault.get': 'bru.getGlobalEnvVar',
+    'pm.vault.set': 'bru.setGlobalEnvVar',
+    'pm.vault.unset': 'bru.deleteGlobalEnvVar'
+  },
+  collection: {
+    'pm.vault.get': 'bru.getEnvVar',
+    'pm.vault.set': 'bru.setEnvVar',
+    'pm.vault.unset': 'bru.deleteEnvVar'
+  }
+};
+
 /* Complex transformations that need custom handling
 * Note: Transform functions can return either a single node or an array of nodes.
 * When returning an array of nodes, each node in the array will be inserted
@@ -595,14 +613,15 @@ complexTransformations.forEach((transform) => {
   complexTransformationsMap[transform.pattern] = transform;
 });
 
-const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies', 'pm.vault']);
 
 /**
  * Process all transformations (both simple and complex) in the AST in a single pass
  * @param {Object} ast - jscodeshift AST
  * @param {Set} transformedNodes - Set of already transformed nodes
+ * @param {Object} translations - 1:1 translation map to apply
  */
-function processTransformations(ast, transformedNodes) {
+function processTransformations(ast, transformedNodes, translations) {
   ast.find(j.MemberExpression).forEach((path) => {
     if (transformedNodes.has(path.node)) return;
 
@@ -610,8 +629,8 @@ function processTransformations(ast, transformedNodes) {
     const memberExprStr = getMemberExpressionString(path.value);
 
     // First check for simple transformations (O(1))
-    if (simpleTranslations.hasOwnProperty(memberExprStr)) {
-      const replacement = simpleTranslations[memberExprStr];
+    if (translations.hasOwnProperty(memberExprStr)) {
+      const replacement = translations[memberExprStr];
       j(path).replaceWith(j.identifier(replacement));
       transformedNodes.add(path.node);
       return; // Skip complex transformation check if simple transformation applied
@@ -725,9 +744,11 @@ function injectLibraryRequires(ast) {
 /**
  * Translates Postman script code to Bruno script code
  * @param {string} code - The Postman script code to translate
+ * @param {Object} [options]
+ * @param {'global'|'collection'} [options.vaultTarget] - Environment scope holding imported vault secrets
  * @returns {string} The translated Bruno script code
  */
-function translateCode(code) {
+function translateCode(code, { vaultTarget = 'global' } = {}) {
   // Replace 'postman' with 'pm' using regex before creating the AST
   // This is more efficient than an AST traversal
   code = code.replace(/\bpostman\b/g, 'pm');
@@ -744,7 +765,10 @@ function translateCode(code) {
   processCookieJarVariables(ast);
 
   // Process all transformations in a single pass
-  processTransformations(ast, transformedNodes);
+  processTransformations(ast, transformedNodes, {
+    ...simpleTranslations,
+    ...(vaultTranslations[vaultTarget] ?? vaultTranslations.global)
+  });
 
   // Handle legacy Postman global APIs
   handleLegacyGlobalAPIs(ast, transformedNodes, code);

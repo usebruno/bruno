@@ -167,36 +167,57 @@ const replacements = {
   'pm\\.cookies\\.insertAfter\\(': 'bru.cookies.add('
 };
 
-const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
-  const newKey = key.replace(/^pm\\\./, 'postman\\.');
-  acc[key] = replacements[key];
-  acc[newKey] = replacements[key];
-  return acc;
-}, {});
+// Vault secrets land in whichever environment scope the user picked at import time.
+const vaultReplacements = {
+  global: {
+    'pm\\.vault\\.get\\(': 'bru.getGlobalEnvVar(',
+    'pm\\.vault\\.set\\(': 'bru.setGlobalEnvVar(',
+    'pm\\.vault\\.unset\\(': 'bru.deleteGlobalEnvVar('
+  },
+  collection: {
+    'pm\\.vault\\.get\\(': 'bru.getEnvVar(',
+    'pm\\.vault\\.set\\(': 'bru.setEnvVar(',
+    'pm\\.vault\\.unset\\(': 'bru.deleteEnvVar('
+  }
+};
 
-const compiledReplacements = Object.entries(extendedReplacements).map(([pattern, replacement]) => ({
-  regex: new RegExp(pattern, 'g'),
-  replacement
-}));
+const compileReplacements = (replacementMap) => {
+  const extendedReplacements = Object.keys(replacementMap).reduce((acc, key) => {
+    const newKey = key.replace(/^pm\\\./, 'postman\\.');
+    acc[key] = replacementMap[key];
+    acc[newKey] = replacementMap[key];
+    return acc;
+  }, {});
 
-const processRegexReplacement = (code) => {
-  for (const { regex, replacement } of compiledReplacements) {
+  return Object.entries(extendedReplacements).map(([pattern, replacement]) => ({
+    regex: new RegExp(pattern, 'g'),
+    replacement
+  }));
+};
+
+const compiledReplacements = {
+  global: compileReplacements({ ...replacements, ...vaultReplacements.global }),
+  collection: compileReplacements({ ...replacements, ...vaultReplacements.collection })
+};
+
+const processRegexReplacement = (code, vaultTarget) => {
+  for (const { regex, replacement } of compiledReplacements[vaultTarget] ?? compiledReplacements.global) {
     code = code.replace(regex, replacement);
   }
   return code;
 };
 
-const postmanTranslation = (script) => {
+const postmanTranslation = (script, { vaultTarget = 'global' } = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
   let translatedScript;
 
   try {
-    translatedScript = translateCode(modifiedScript);
+    translatedScript = translateCode(modifiedScript, { vaultTarget });
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
     try {
-      translatedScript = processRegexReplacement(modifiedScript);
+      translatedScript = processRegexReplacement(modifiedScript, vaultTarget);
     } catch (e) {
       console.warn('Error in postman translation:', e);
       translatedScript = modifiedScript;
