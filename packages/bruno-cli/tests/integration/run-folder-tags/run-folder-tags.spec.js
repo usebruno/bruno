@@ -178,6 +178,9 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
   it('exposes own plus inherited tags to scripts via req.getTags()', async () => {
     const { stdout } = await run([], [`api/v2/reports-tags.${ext}`]);
 
-    expect(JSON.parse(stdout.match(/REQ_TAGS (\[.*\])/)[1])).toEqual(['smoke', 'api', 'v2']);
+    const reqTags = stdout.match(/REQ_TAGS (\[.*\])/);
+
+    expect(reqTags).not.toBeNull();
+    expect(JSON.parse(reqTags[1])).toEqual(['smoke', 'api', 'v2']);
   }, RUN_TIMEOUT);
 });

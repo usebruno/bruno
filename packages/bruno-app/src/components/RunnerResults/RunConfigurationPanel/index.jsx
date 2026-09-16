@@ -21,7 +21,8 @@ const isRequestDisabled = (item, tags) => {
   const excludeTags = tags?.exclude || [];
 
   if (includeTags.length > 0 || excludeTags.length > 0) {
-    return !isRequestTagsIncluded(getEffectiveTags(getOwnTags(item), item.inheritedTags), includeTags, excludeTags);
+    const effectiveTags = getEffectiveTags(getOwnTags(item), item.inheritedTags);
+    return !isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
   }
 
   return false;

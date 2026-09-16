@@ -1709,9 +1709,10 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags, i
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ item, inheritedTags: inherited }) =>
-      isRequestTagsIncluded(getEffectiveTags(getOwnTags(item), inherited), includeTags, excludeTags)
-    );
+    requestItems = requestItems.filter(({ item, inheritedTags: inherited }) => {
+      const effectiveTags = getEffectiveTags(getOwnTags(item), inherited);
+      return isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
+    });
   }
 
   return requestItems.map(({ item }) => item);
