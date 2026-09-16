@@ -336,9 +336,6 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
   }
 
-  // CodeMirror's show-hint addon only highlights the keyboard-selected item
-  // (.CodeMirror-hint-active); it doesn't add any hover feedback on its own,
-  // so mousing over the list otherwise does nothing visually.
   .CodeMirror-hint:not(.CodeMirror-hint-active):hover {
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
