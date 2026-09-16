@@ -867,6 +867,7 @@ export const transformFolderRootToSave = (folder) => {
       seq: folder.seq
     },
     docs: _folder.docs,
+    tags: _folder.tags || [],
     request: {
       auth: _folder?.request?.auth,
       headers: [],
@@ -1657,6 +1658,10 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
         const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
+      if (isItemAFolder(item)) {
+        const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'root.tags', []);
+        tags.forEach((tag) => allTags.add(tag));
+      }
       if (item.items) {
         getTags(item.items);
       }
@@ -1666,7 +1671,38 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
   return Array.from(allTags).sort();
 };
 
-export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
+// Tags a request inherits from its ancestor folders, outermost first, deduplicated.
+// Each entry records the nearest folder the tag came from.
+export const getInheritedTagsWithSource = (collection, item) => {
+  const treePath = getTreePathFromCollectionToItem(collection, item);
+  const sourceByTag = new Map();
+
+  treePath.forEach((node) => {
+    if (node.uid === item?.uid || !isItemAFolder(node)) {
+      return;
+    }
+    const folderRoot = node.draft || node.root;
+    (folderRoot?.tags || []).forEach((tag) => sourceByTag.set(tag, node.name));
+  });
+
+  return Array.from(sourceByTag, ([tag, folderName]) => ({ tag, folderName }));
+};
+
+export const getInheritedTags = (collection, item) => getInheritedTagsWithSource(collection, item).map(({ tag }) => tag);
+
+// Nearest descendant folder that already carries the tag, or null
+export const findDescendantFolderWithTag = (items = [], tag) => {
+  const folders = flattenItems(items).filter(isItemAFolder);
+  return folders.find((folder) => ((folder.draft || folder.root)?.tags || []).includes(tag)) || null;
+};
+
+// A request's own tags plus the ones inherited from its ancestor folders
+export const getEffectiveTags = (collection, item) => {
+  const ownTags = item?.draft?.tags || item?.tags || [];
+  return Array.from(new Set([...ownTags, ...getInheritedTags(collection, item)]));
+};
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags, collection }) => {
   let requestItems = [];
 
   if (recursive) {
@@ -1685,8 +1721,8 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
+    requestItems = requestItems.filter((request) => {
+      const requestTags = collection ? getEffectiveTags(collection, request) : request.draft?.tags || request.tags || [];
       return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
     });
   }

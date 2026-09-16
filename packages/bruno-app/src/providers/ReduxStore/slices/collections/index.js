@@ -3933,6 +3933,37 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderUid) : null;
+
+      if (folder && isItemAFolder(folder)) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.tags = folder.draft.tags || [];
+        if (!folder.draft.tags.includes(tag.trim())) {
+          folder.draft.tags.push(tag.trim());
+        }
+
+        collection.allTags = getUniqueTagsFromItems(collection.items);
+      }
+    },
+    deleteFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const folder = collection ? findItemInCollection(collection, folderUid) : null;
+
+      if (folder && isItemAFolder(folder)) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.tags = (folder.draft.tags || []).filter((t) => t !== tag.trim());
+
+        collection.allTags = getUniqueTagsFromItems(collection.items);
+      }
+    },
     updateCollectionTagsList: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4350,6 +4381,8 @@ export const {
   updateFolderAuthMode,
   addRequestTag,
   deleteRequestTag,
+  addFolderTag,
+  deleteFolderTag,
   updateCollectionTagsList,
   updateActiveConnections,
   runWsRequestEvent,

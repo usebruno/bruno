@@ -298,6 +298,11 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
         const sequence = json.meta.seq;
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
       }
+
+      // folder tags live in meta on disk, top-level on the root in memory
+      if (Array.isArray(json.meta.tags)) {
+        transformedJson.tags = json.meta.tags;
+      }
     }
 
     // add oauth2 additional parameters if they exist
@@ -344,6 +349,11 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
         collectionBruJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
+
+      const tags = _.get(json, 'tags', []);
+      if (Array.isArray(tags) && tags.length) {
+        collectionBruJson.meta.tags = tags;
       }
     }
 

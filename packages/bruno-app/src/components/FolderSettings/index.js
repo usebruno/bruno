@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
+import Settings from './Settings';
 import StatusDot from 'components/StatusDot';
 import SettingsAiAssist from 'components/SettingsAiAssist';
 import DocsAction from 'components/Documentation/DocsAction';
@@ -71,6 +72,9 @@ const FolderSettings = ({ collection, folder }) => {
       case 'docs': {
         return <Documentation collection={collection} folder={folder} />;
       }
+      case 'settings': {
+        return <Settings collection={collection} folder={folder} />;
+      }
     }
   };
 
@@ -107,6 +111,9 @@ const FolderSettings = ({ collection, folder }) => {
             </div>
             <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
               Docs
+            </div>
+            <div className={getTabClassname('settings')} role="tab" data-testid="folder-settings-tab-settings" onClick={() => setTab('settings')}>
+              Settings
             </div>
           </div>
           {AI_TABS.includes(tab) && (
