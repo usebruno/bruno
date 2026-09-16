@@ -71,7 +71,7 @@ const walkSql = (dir: string): string[] => {
   });
 };
 
-// sqlc-style query annotation: `-- name: <Name> :one|:many|:exec`, with an optional
+// sqlc-style query annotation: `-- name: <Name> :one|:many|:exec`
 // `:bigints` for statements whose integer columns exceed what a JS number holds exactly
 const SQLC_NAME_ANNOTATION = /^--\s*name:\s*(\S+)\s+:(\w+)(\s+:bigints)?\s*$/;
 
@@ -94,13 +94,7 @@ const parseStatementFile = (relative: string, content: string): StatementDef[] =
     if (sql === '') {
       throw new Error(`Statement "${current.name}" in ${relative} has no SQL body.`);
     }
-    defs.push({
-      name: current.name,
-      type: current.type,
-      sql,
-      tables: extractTables(sql),
-      readBigInts: current.readBigInts
-    });
+    defs.push({ name: current.name, type: current.type, sql, tables: extractTables(sql), readBigInts: current.readBigInts });
   };
 
   content.split('\n').forEach((line) => {

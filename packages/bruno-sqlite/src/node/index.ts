@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { rmSync } from 'node:fs';
 import { DB, DatabaseOptions, DatabasePragmas, isDatabaseMigrationError } from './db';
 import { Statements, OnMutation } from './statements';
 import { migrations } from '../generated/node/migrations';
