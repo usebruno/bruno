@@ -2793,22 +2793,6 @@ const expectLinkDoesNotOpenRequest = async (page: Page, cm: Locator) => {
   await expectLinkOpensExternally(page, cm);
 };
 
-/** Plain click on a Rich Text docs link opens a transient request. */
-const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
-  await expect(link).toBeVisible({ timeout: 10000 });
-  await link.click();
-  await expectTransientRequestOpened(page, opts);
-};
-
-/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
-const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
-  await expect(link).toBeVisible({ timeout: 10000 });
-  const tabCountBefore = await page.locator('.request-tab').count();
-  await link.click({ modifiers });
-  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
-  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
-};
-
 /**
  * A URL-looking value must behave as plain text (e.g. `{{var}}`-interpolated, `ws://`, or a
  * field with link-awareness disabled): clicking it — with or without the open-externally
@@ -3745,8 +3729,6 @@ export {
   expectLinkOpensRequest,
   expectLinkOpensExternally,
   expectLinkDoesNotOpenRequest,
-  expectRichTextLinkOpensRequest,
-  expectRichTextLinkOpensExternally,
   expectNoLink,
   LINK_AWARE_COLLECTION_NAME,
   LINK_CLICK_MODIFIER,
