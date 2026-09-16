@@ -18,7 +18,7 @@ const ApiSpecItem = ({ apiSpec }) => {
   const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
 
-  const handleOpenApiSpec = (apiSpec) => (e) => {
+  const openApiSpec = () => {
     dispatch(_showApiSpecPage());
     dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
   };
@@ -27,7 +27,7 @@ const ApiSpecItem = ({ apiSpec }) => {
     if (e.target !== e.currentTarget) return;
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    handleOpenApiSpec(apiSpec)(e);
+    openApiSpec();
   };
 
   const menuItems = [
@@ -42,38 +42,42 @@ const ApiSpecItem = ({ apiSpec }) => {
   const isActive = showApiSpecPage && apiSpec?.uid === activeApiSpecUid;
 
   return (
-    <div
-      className={`flex flex-grow api-spec-item items-center h-full overflow-hidden w-full justify-between ${
-        isActive && !isKeyboardFocused ? 'active' : ''
-      } ${isKeyboardFocused ? 'api-spec-keyboard-focused' : ''}`}
-      tabIndex={0}
-      data-testid="sidebar-api-spec-row"
-      data-selected={isActive ? 'true' : undefined}
-      onFocus={() => setIsKeyboardFocused(true)}
-      onBlur={() => setIsKeyboardFocused(false)}
-      onKeyDown={handleRowKeyDown}
-    >
+    <>
       {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
       <div
-        className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
-        onClick={handleOpenApiSpec(apiSpec)}
+        className={`flex flex-grow api-spec-item items-center overflow-hidden w-full justify-between ${
+          isActive && !isKeyboardFocused ? 'active' : ''
+        } ${isKeyboardFocused ? 'api-spec-keyboard-focused' : ''}`}
+        tabIndex={0}
+        data-testid="sidebar-api-spec-row"
+        data-selected={isActive ? 'true' : undefined}
+        onFocus={() => setIsKeyboardFocused(true)}
+        onBlur={() => setIsKeyboardFocused(false)}
+        onKeyDown={handleRowKeyDown}
       >
-        <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">{apiSpec?.name}</span>
-      </div>
-      <div className="pr-2">
-        <MenuDropdown
-          items={menuItems}
-          placement="bottom-start"
-          appendTo={dropdownContainerRef?.current || document.body}
-          popperOptions={{ strategy: 'fixed' }}
-          data-testid="api-spec-actions"
+        <div
+          className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
+          onClick={openApiSpec}
         >
-          <ActionIcon className="apispec-row-actions">
-            <IconDots size={18} />
-          </ActionIcon>
-        </MenuDropdown>
+          <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">
+            {apiSpec?.name}
+          </span>
+        </div>
+        <div className="pr-2">
+          <MenuDropdown
+            items={menuItems}
+            placement="bottom-start"
+            appendTo={dropdownContainerRef?.current || document.body}
+            popperOptions={{ strategy: 'fixed' }}
+            data-testid="api-spec-actions"
+          >
+            <ActionIcon className="apispec-row-actions">
+              <IconDots size={18} />
+            </ActionIcon>
+          </MenuDropdown>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

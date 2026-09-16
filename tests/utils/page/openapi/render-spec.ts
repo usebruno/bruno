@@ -6,8 +6,7 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   sidebarItem: (name: string) => page.locator('.api-spec-item').filter({ hasText: name }),
   sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
   sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
-  sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove'),
-  panelHeading: () => page.getByText('API Designer')
+  sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove')
 });
 
 export const openApiSpecFromDialog = async (

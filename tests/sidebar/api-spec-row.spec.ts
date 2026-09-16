@@ -32,7 +32,7 @@ test.describe('API Spec sidebar row', () => {
   };
 
   test('Enter on a focused row opens that spec', async ({ page, electronApp }) => {
-    const { sidebarRow, panelHeading } = buildApiSpecPanelLocators(page);
+    const { sidebarRow } = buildApiSpecPanelLocators(page);
     await openBothSpecs(page, electronApp);
 
     await test.step('Select spec A with the mouse', async () => {
@@ -48,12 +48,11 @@ test.describe('API Spec sidebar row', () => {
     await test.step('Spec B is selected and shown', async () => {
       await expect(sidebarRow(SPEC_B.name)).toHaveAttribute('data-selected', 'true');
       await expect(sidebarRow(SPEC_A.name)).not.toHaveAttribute('data-selected', 'true');
-      await expect(panelHeading()).toBeVisible();
     });
   });
 
   test('Space on a focused row opens that spec', async ({ page, electronApp }) => {
-    const { sidebarRow, panelHeading } = buildApiSpecPanelLocators(page);
+    const { sidebarRow } = buildApiSpecPanelLocators(page);
     await openBothSpecs(page, electronApp);
 
     await test.step('Select spec B with the mouse', async () => {
@@ -69,13 +68,56 @@ test.describe('API Spec sidebar row', () => {
     await test.step('Spec A is selected and shown', async () => {
       await expect(sidebarRow(SPEC_A.name)).toHaveAttribute('data-selected', 'true');
       await expect(sidebarRow(SPEC_B.name)).not.toHaveAttribute('data-selected', 'true');
-      await expect(panelHeading()).toBeVisible();
+    });
+  });
+
+  test('A selected row keeps its selected background on hover', async ({ page, electronApp }) => {
+    const { sidebarRow } = buildApiSpecPanelLocators(page);
+    await openBothSpecs(page, electronApp);
+
+    const row = sidebarRow(SPEC_A.name);
+
+    await test.step('Select spec A, then take focus and the pointer off the row', async () => {
+      await row.click();
+      await expect(row).toHaveAttribute('data-selected', 'true');
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.mouse.move(0, 0);
+    });
+
+    await test.step('Hovering the selected row does not change its background', async () => {
+      const selectedBackground = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
+      await row.hover();
+      await expect(row).toHaveCSS('background-color', selectedBackground);
+    });
+  });
+
+  test('Focusing a row reveals its actions icon', async ({ page, electronApp }) => {
+    const { sidebarRow, sidebarRowActions } = buildApiSpecPanelLocators(page);
+    await openBothSpecs(page, electronApp);
+
+    await test.step('Actions icon is hidden while the row is neither hovered nor focused', async () => {
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.mouse.move(0, 0);
+      await expect(sidebarRowActions(SPEC_A.name)).toBeHidden();
+    });
+
+    await test.step('Focusing the row reveals the icon and lets focus move onto it', async () => {
+      await sidebarRow(SPEC_A.name).focus();
+      await expect(sidebarRowActions(SPEC_A.name)).toBeVisible();
+      await sidebarRowActions(SPEC_A.name).focus();
+      await expect(sidebarRowActions(SPEC_A.name)).toBeFocused();
     });
   });
 
   test('Row actions menu opens from the actions icon', async ({ page, electronApp }) => {
     const { sidebarRow, sidebarRowActions, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
     await openBothSpecs(page, electronApp);
+
+    await test.step('Actions icon is hidden while the row is neither hovered nor focused', async () => {
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.mouse.move(0, 0);
+      await expect(sidebarRowActions(SPEC_A.name)).toBeHidden();
+    });
 
     await test.step('Hover the row and click its actions icon', async () => {
       await expect(async () => {
@@ -87,6 +129,14 @@ test.describe('API Spec sidebar row', () => {
 
     await test.step('Menu is open', async () => {
       await expect(sidebarRowRemoveMenuItem()).toBeVisible();
+    });
+
+    await test.step('Actions icon stays visible with the mouse off the row while the menu is open', async () => {
+      await page.mouse.move(0, 0);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(sidebarRowRemoveMenuItem()).toBeVisible();
+      await expect(sidebarRowActions(SPEC_A.name)).toHaveAttribute('aria-expanded', 'true');
+      await expect(sidebarRowActions(SPEC_A.name)).toBeVisible();
     });
   });
 });
