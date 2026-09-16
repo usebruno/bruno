@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../utils/page/index';
+import { setSandboxMode, runCollection, validateRunnerResults, getRunnerResultCounts } from '../utils/page/index';
 
 test.describe.parallel('Collection Run', () => {
   test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {
@@ -51,10 +51,7 @@ test.describe.parallel('Collection Run', () => {
     await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
 
     // Parse and validate test results from the filter counts
-    const totalRequests = parseInt(await page.getByTestId('runner-filter-all-count').innerText());
-    const passed = parseInt(await page.getByTestId('runner-filter-passed-count').innerText());
-    const failed = parseInt(await page.getByTestId('runner-filter-failed-count').innerText());
-    const skipped = parseInt(await page.getByTestId('runner-filter-skipped-count').innerText());
+    const { totalRequests, passed, failed, skipped } = await getRunnerResultCounts(page);
 
     await expect(failed).toBe(0);
     await expect(passed).toBe(totalRequests - skipped - failed);

@@ -6,7 +6,7 @@ import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
-import { IconRefresh, IconPlayerStop, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconEraser } from '@tabler/icons';
+import { IconRefresh, IconPlayerStop, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconReload } from '@tabler/icons';
 import useContainerBreakpoint from 'hooks/useContainerBreakpoint';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -357,7 +357,7 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="secondary"
-              icon={<IconEraser />}
+              icon={<IconReload />}
               title="Reset"
               aria-label="Reset"
               data-testid="runner-reset-button"

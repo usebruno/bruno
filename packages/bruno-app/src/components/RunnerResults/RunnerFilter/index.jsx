@@ -53,11 +53,11 @@ const RunnerFilter = ({ filters, activeFilter, onFilterChange }) => {
         <button
           type="button"
           className="filter-select"
-          aria-label={`Filter by: ${active?.label}`}
+          aria-label={`Filter by: ${active.label}`}
           data-testid="runner-filter-select"
         >
-          <span>{active?.label}</span>
-          <span className="filter-count">{active?.count}</span>
+          <span>{active.label}</span>
+          <span className="filter-count">{active.count}</span>
           <IconChevronDown size={14} strokeWidth={2} />
         </button>
       </MenuDropdown>
