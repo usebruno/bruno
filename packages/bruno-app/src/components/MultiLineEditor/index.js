@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
+import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -13,7 +13,6 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -199,12 +198,9 @@ class MultiLineEditor extends Component {
       autoCompleteOptions
     );
 
-    setupLinkAware(this.editor, {
-      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
-    this._linkAwareItemType = this.props.item?.type;
-    this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    // Only marks URLs and lets Cmd/Ctrl+Click open them externally; click-to-open-as-new-request
+    // is reserved for response previews.
+    setupLinkAware(this.editor, { onLinkClick: undefined });
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -282,20 +278,6 @@ class MultiLineEditor extends Component {
       }
     }
 
-    // Re-wire link handler when item/collection context changes.
-    const itemType = this.props.item?.type;
-    const collectionUid = this.props.collection?.uid;
-    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
-      this._linkAwareItemType = itemType;
-      this._linkAwareCollectionUid = collectionUid;
-      this._linkAwarePresetType = presetType;
-      this.editor._destroyLinkAware?.();
-      setupLinkAware(this.editor, {
-        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-      });
-      this.editor.refresh();
-    }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
