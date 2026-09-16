@@ -32,11 +32,6 @@ jest.mock('utils/codemirror/resize', () => ({
   setupCodeMirrorResizeRefresh: jest.fn(() => jest.fn())
 }));
 
-const mockResolveLinkClickHandler = jest.fn((item, collection) => `handler:${item?.uid}:${collection?.uid}`);
-jest.mock('utils/codemirror/linkClickHandler', () => ({
-  resolveLinkClickHandler: (...args) => mockResolveLinkClickHandler(...args)
-}));
-
 const mockSetupLinkAware = jest.fn((editor) => {
   editor._destroyLinkAware = mockDestroyLinkAware;
 });
@@ -45,8 +40,7 @@ jest.mock('utils/codemirror/linkAware', () => ({
 }));
 
 jest.mock('utils/collections', () => ({
-  getAllVariables: jest.fn(() => ({})),
-  getRequestTypeFromCollectionPresets: jest.fn(() => undefined)
+  getAllVariables: jest.fn(() => ({}))
 }));
 
 const theme = {
@@ -76,53 +70,33 @@ const renderEditor = (props) =>
     </ThemeProvider>
   );
 
-describe('QueryEditor link-aware reconfiguration', () => {
+describe('QueryEditor link-aware setup', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('reconfigures the link-click handler when item/collection change', () => {
+  it('marks URLs without a click-to-open-request handler', () => {
+    renderEditor({ item: itemA, collection: collectionA });
+
+    expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+    expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
+  });
+
+  it('never wires a click handler, even without an item/collection', () => {
+    renderEditor({ item: undefined, collection: undefined });
+
+    expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
+    expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBeUndefined();
+  });
+
+  it('does not reconfigure link-aware when item/collection change', () => {
     const { rerender } = renderEditor({ item: itemA, collection: collectionA });
 
     expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-    expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBe('handler:item-a:collection-a');
 
     rerender(
       <ThemeProvider theme={theme}>
         <QueryEditor value="query { foo }" item={itemB} collection={collectionB} />
-      </ThemeProvider>
-    );
-
-    expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
-    expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
-    expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBe('handler:item-b:collection-b');
-  });
-
-  it('reconfigures once collection becomes available after mount', () => {
-    const { rerender } = renderEditor({ item: itemA, collection: undefined });
-
-    expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-    expect(mockSetupLinkAware.mock.calls[0][1].onLinkClick).toBe('handler:item-a:undefined');
-
-    rerender(
-      <ThemeProvider theme={theme}>
-        <QueryEditor value="query { foo }" item={itemA} collection={collectionA} />
-      </ThemeProvider>
-    );
-
-    expect(mockDestroyLinkAware).toHaveBeenCalledTimes(1);
-    expect(mockSetupLinkAware).toHaveBeenCalledTimes(2);
-    expect(mockSetupLinkAware.mock.calls[1][1].onLinkClick).toBe('handler:item-a:collection-a');
-  });
-
-  it('does not reconfigure when item/collection stay the same', () => {
-    const { rerender } = renderEditor({ item: itemA, collection: collectionA });
-
-    expect(mockSetupLinkAware).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <ThemeProvider theme={theme}>
-        <QueryEditor value="query { foo }" item={itemA} collection={collectionA} readOnly={true} />
       </ThemeProvider>
     );
 
