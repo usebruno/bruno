@@ -168,8 +168,9 @@ describe('ScriptError', () => {
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
-    renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
-    fireEvent.click(screen.getByTestId('script-error-close'));
+    const { container } = renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={onClose} />);
+    const closeButton = container.querySelector('.close-button');
+    fireEvent.click(closeButton);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
