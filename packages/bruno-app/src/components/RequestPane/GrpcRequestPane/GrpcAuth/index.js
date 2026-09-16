@@ -27,6 +27,7 @@ const GrpcAuth = ({ item, collection }) => {
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
     [authMode, item, collection]
   );
+  const isInheritedAuthSupported = inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode);
 
   const save = () => {
     return saveRequest(item.uid, collection.uid);
@@ -66,7 +67,7 @@ const GrpcAuth = ({ item, collection }) => {
         return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
-        if (inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode)) {
+        if (isInheritedAuthSupported) {
           return null;
         }
         return (
@@ -81,14 +82,12 @@ const GrpcAuth = ({ item, collection }) => {
     }
   };
 
-  const inheritedLabel = authMode === 'inherit'
-    && inheritedSource
-    && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode) ? (
-        <div className="flex flex-row items-center gap-2">
-          <div>Auth inherited from {inheritedSource.name}: </div>
-          <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-        </div>
-      ) : null;
+  const inheritedLabel = authMode === 'inherit' && isInheritedAuthSupported ? (
+    <div className="flex flex-row items-center gap-2">
+      <div>Auth inherited from {inheritedSource.name}: </div>
+      <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
+    </div>
+  ) : null;
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">

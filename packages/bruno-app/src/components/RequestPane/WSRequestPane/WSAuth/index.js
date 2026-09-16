@@ -99,7 +99,6 @@ const WSAuth = ({ item, collection }) => {
   const inheritedLabel = authMode === 'inherit'
     && inheritedSource
     && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
-    && inheritedSource.auth?.mode !== 'oauth1'
     && inheritedSource.auth?.mode !== 'oauth2' ? (
         <div className="flex flex-row items-center gap-2">
           <div>Auth inherited from {inheritedSource.name}: </div>
