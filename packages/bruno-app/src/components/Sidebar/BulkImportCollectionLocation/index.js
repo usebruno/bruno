@@ -17,10 +17,12 @@ import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import { wsdlToBruno } from '@usebruno/converters';
+import { wsdlToBruno, detectPostmanVaultKeys } from '@usebruno/converters';
 import StyledWrapper from './StyledWrapper';
+import VaultSecrets from 'components/Sidebar/VaultSecrets';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
+import { applyVaultSecrets, defaultVaultConfig } from 'utils/importers/vault-secrets';
 import get from 'lodash/get';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
@@ -70,7 +72,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, groupingType) => {
+const convertCollection = async (format, rawData, { groupingType, vaultTarget } = {}) => {
   let collection;
   let issues = [];
 
@@ -82,7 +84,7 @@ const convertCollection = async (format, rawData, groupingType) => {
       collection = await wsdlToBruno(rawData);
       break;
     case 'postman': {
-      const result = await postmanToBruno(rawData);
+      const result = await postmanToBruno(rawData, { vaultTarget });
       collection = result.collection;
       issues = result.issues || [];
       break;
@@ -154,6 +156,7 @@ export const BulkImportCollectionLocation = ({
   const [selectedError, setSelectedError] = useState(null);
   const [applyToGlobal, setApplyToGlobal] = useState(true);
   const [applyToCollection, setApplyToCollection] = useState(false);
+  const [vaultConfig, setVaultConfig] = useState(defaultVaultConfig);
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
@@ -166,7 +169,7 @@ export const BulkImportCollectionLocation = ({
   const isMultipleImport = importType === IMPORT_TYPE.MULTIPLE;
 
   // For bulk import (ZIP files)
-  const importedCollectionFromBulk = isBulkImport ? importData.collection : [];
+  const importedCollectionFromBulk = useMemo(() => (isBulkImport ? importData.collection : []), [isBulkImport, importData]);
   const importedEnvironmentFromBulk = isBulkImport ? (importData.environment || []) : [];
 
   // Extract per-collection issues from bulk import data
@@ -185,17 +188,21 @@ export const BulkImportCollectionLocation = ({
   }, [isBulkImport, importData]);
 
   // For multiple files import
-  const filesData = isMultipleImport ? importData.filesData : [];
+  const filesData = useMemo(() => (isMultipleImport ? importData.filesData : []), [isMultipleImport, importData]);
   const hasOpenApiSpec = filesData.some((f) => f.type === 'openapi');
 
   // Create unified collection structure for display
-  const importedCollection = isMultipleImport
-    ? filesData.map((fileData, index) => ({
-        uid: `file-${index}`,
-        name: getCollectionName(fileData.type, fileData.data),
-        _fileData: fileData
-      }))
-    : importedCollectionFromBulk;
+  const importedCollection = useMemo(
+    () =>
+      isMultipleImport
+        ? filesData.map((fileData, index) => ({
+            uid: `file-${index}`,
+            name: getCollectionName(fileData.type, fileData.data),
+            _fileData: fileData
+          }))
+        : importedCollectionFromBulk,
+    [isMultipleImport, filesData, importedCollectionFromBulk]
+  );
 
   const importedEnvironment = isBulkImport ? importedEnvironmentFromBulk : [];
 
@@ -205,6 +212,18 @@ export const BulkImportCollectionLocation = ({
   // Initialize selected items based on import type
   const [selectedCollections, setSelectedCollections] = useState(importedCollection.map((col) => col.uid));
   const [selectedEnvironments, setSelectedEnvironments] = useState(isBulkImport ? importedEnvironmentFromBulk.map((env) => env.uid) : []);
+
+  // One aggregated list across every selected Postman file - they all land in the same environment,
+  // so a prompt per collection would ask the same question repeatedly.
+  const vaultKeys = useMemo(() => {
+    const keysByName = new Map();
+
+    importedCollection
+      .filter((col) => selectedCollections.includes(col.uid) && col._fileData?.type === 'postman')
+      .forEach((col) => detectPostmanVaultKeys(col._fileData.data).forEach((entry) => keysByName.set(entry.name, entry)));
+
+    return [...keysByName.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [importedCollection, selectedCollections]);
 
   // Sort collections to show selected items first, then unselected items
   // This helps users see their selections at the top of the list
@@ -308,7 +327,7 @@ export const BulkImportCollectionLocation = ({
         const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
+            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, { groupingType, vaultTarget: vaultConfig.target });
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
@@ -470,6 +489,24 @@ export const BulkImportCollectionLocation = ({
               setEnvironmentStatus((prev) => ({ ...prev, [originalUid]: STATUS.ERROR }));
               setErrorMessages((prev) => ({ ...prev, [originalUid]: error.message || 'Failed to add environment' }));
             });
+        });
+      }
+
+      // Runs before the collections are handed off - the collection target writes its environment
+      // as part of the import itself.
+      const vaultIssues = await applyVaultSecrets({
+        vaultKeys,
+        config: vaultConfig,
+        collections: filteredCollections,
+        globalEnvironments,
+        dispatch
+      });
+
+      if (vaultIssues.length > 0) {
+        showImportIssuesToast(vaultIssues);
+        const timestamp = new Date().toISOString();
+        vaultIssues.forEach((issue) => {
+          dispatch(addLog({ type: 'warn', args: [`[${issue.path}] ${issue.message}`], timestamp }));
         });
       }
 
@@ -921,6 +958,10 @@ export const BulkImportCollectionLocation = ({
                       </div>
                     </div>
                   </div>
+                )}
+
+                {vaultKeys.length > 0 && (
+                  <VaultSecrets vaultKeys={vaultKeys} config={vaultConfig} onChange={setVaultConfig} />
                 )}
               </>
             )}
