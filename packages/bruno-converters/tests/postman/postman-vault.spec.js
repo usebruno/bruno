@@ -1,4 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
+import * as fs from 'fs';
+import * as path from 'path';
 import postmanToBruno from '../../src/postman/postman-to-bruno';
 import { detectPostmanVaultKeys, mangleVaultKey } from '../../src/postman/postman-vault';
 import { makeCollection } from '../common/postman-collection';
@@ -100,5 +102,81 @@ describe('postman vault secrets on import', () => {
 
     expect(brunoCollection.items[0].request.headers[0].value).toBe('{{vault_api-key}}');
     expect(brunoCollection.items[0].request.script.req).toBe('const t = pm.vault.get("api-key");');
+  });
+});
+
+describe('the shared vault fixture collection', () => {
+  // Also importable by hand for manual testing - see tests/import/postman/fixtures.
+  const readFixture = () =>
+    JSON.parse(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../../tests/import/postman/fixtures/postman-with-vault-secrets.json'),
+        'utf8'
+      )
+    );
+
+  it('should report every key once, with its mangled name', async () => {
+    const { issues, vaultKeys } = await postmanToBruno(readFixture());
+
+    expect(issues).toEqual([]);
+    expect(vaultKeys).toEqual([
+      { key: 'api-key', name: 'vault_api-key' },
+      { key: 'db password', name: 'vault_db_password' },
+      { key: 'service/token', name: 'vault_service_token' },
+      { key: 'tenant.id', name: 'vault_tenant.id' }
+    ]);
+  });
+
+  it('should rewrite references in auth, headers, query params and both body types', async () => {
+    const { collection } = await postmanToBruno(readFixture());
+    const [headerRequest, jsonRequest, formRequest, folder] = collection.items;
+
+    expect(collection.root.request.auth.bearer.token).toBe('{{vault_api-key}}');
+
+    const headers = Object.fromEntries(headerRequest.request.headers.map((h) => [h.name, h.value]));
+    expect(headers.Authorization).toBe('Bearer {{vault_api-key}}');
+    expect(headers['X-Tenant']).toBe('{{vault_tenant.id}}');
+    expect(headers['X-Plain']).toBe('{{plainVar}}');
+
+    expect(headerRequest.request.url).toContain('{{vault_tenant.id}}');
+    expect(headerRequest.request.params[0].value).toBe('{{vault_tenant.id}}');
+
+    expect(jsonRequest.request.body.json).toContain('{{vault_db_password}}');
+    expect(formRequest.request.body.formUrlEncoded[0].value).toBe('{{vault_service_token}}');
+    expect(folder.items[0].request.headers[0].value).toBe('{{vault_api-key}}');
+  });
+
+  it('should read the same mangled names from scripts that the references were rewritten to', async () => {
+    const { collection } = await postmanToBruno(readFixture());
+    const [headerRequest, aliasRequest, destructuredRequest, folder] = collection.items;
+
+    expect(collection.root.request.script.req).toContain('bru.getGlobalEnvVar("vault_api-key")');
+
+    // await survives, since awaiting a non-promise resolves to the value
+    expect(headerRequest.request.script.req).toContain('await bru.getGlobalEnvVar("vault_api-key")');
+    expect(headerRequest.request.script.req).toContain('await bru.getGlobalEnvVar("vault_tenant.id")');
+
+    expect(aliasRequest.request.script.req).toContain('bru.getGlobalEnvVar("vault_db_password")');
+    expect(destructuredRequest.request.script.req).toContain('bru.getGlobalEnvVar("vault_service_token")');
+    expect(destructuredRequest.request.script.req).toContain('bru.getGlobalEnvVar("vault_tenant.id")');
+
+    expect(folder.items[0].request.script.req).toContain('bru.setGlobalEnvVar("vault_api-key", \'rotated-value\')');
+    expect(folder.items[0].request.script.req).toContain('bru.deleteGlobalEnvVar("vault_service_token")');
+
+    const scripts = [
+      collection.root.request.script.req,
+      headerRequest.request.script.req,
+      aliasRequest.request.script.req,
+      destructuredRequest.request.script.req,
+      folder.items[0].request.script.req
+    ];
+    scripts.forEach((script) => expect(script).not.toContain('vault.get'));
+  });
+
+  it('should point scripts at the collection environment when that target is chosen', async () => {
+    const { collection } = await postmanToBruno(readFixture(), { vaultTarget: 'collection' });
+
+    expect(collection.items[0].request.script.req).toContain('await bru.getEnvVar("vault_api-key")');
+    expect(collection.items[3].items[0].request.script.req).toContain('bru.deleteEnvVar("vault_service_token")');
   });
 });
