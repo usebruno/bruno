@@ -908,7 +908,10 @@ describe('getAllVariablesWithScope', () => {
       { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
     ],
     runtimeVariables: { runtimeVar: 'runtime-value' },
-    processEnvVariables: { API_KEY: 'secret-key' }
+    processEnvVariables: { API_KEY: 'secret-key' },
+    oauth2Credentials: [
+      { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
+    ]
   });
 
   it('tags every variable across global/collection/environment/runtime with its scope', () => {
@@ -919,6 +922,12 @@ describe('getAllVariablesWithScope', () => {
     expect(byName.collectionVar).toBe('collection');
     expect(byName.envVar).toBe('environment');
     expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes oauth2 credential variables tagged with scope=oauth2', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: '$oauth2.cred1.access_token', scope: 'oauth2' });
   });
 
   it('includes process.env variables prefixed as process.env.<name>', () => {

@@ -1315,19 +1315,7 @@ export const getTotalRequestCountInCollection = (collection) => {
 
 const computeVariableScopeBuckets = (collection, item) => {
   if (!collection) {
-    return {
-      globalEnvironmentVariables: {},
-      collectionVariables: {},
-      envVariables: {},
-      folderVariables: {},
-      requestVariables: {},
-      oauth2CredentialVariables: {},
-      runtimeVariables: {},
-      promptVariables: {},
-      mergedProcessEnvVariables: {},
-      pathParams: {},
-      maskedEnvVariables: []
-    };
+    return {};
   }
 
   const envVariables = getEnvironmentVariables(collection);
@@ -1933,6 +1921,7 @@ export const getAllVariablesWithScope = (collection, item) => {
     folderVariables,
     requestVariables,
     runtimeVariables,
+    oauth2CredentialVariables,
     mergedProcessEnvVariables
   } = computeVariableScopeBuckets(collection, item);
 
@@ -1950,7 +1939,10 @@ export const getAllVariablesWithScope = (collection, item) => {
     });
   });
 
-  // Runtime overrides whatever static scope a same-named variable resolved to above.
+  Object.keys(oauth2CredentialVariables || {}).forEach((name) => {
+    scopeByName[name] = 'oauth2';
+  });
+
   Object.keys(runtimeVariables || {}).forEach((name) => {
     scopeByName[name] = 'runtime';
   });

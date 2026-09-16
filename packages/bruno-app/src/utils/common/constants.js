@@ -29,7 +29,7 @@ export const CHEVRON_ICON_SVG_TEXT = `
 `;
 
 // Collection Environment
-const DATABASE_ICON_SVG_TEXT = `
+export const DATABASE_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <ellipse cx="12" cy="6" rx="8" ry="3"></ellipse>
   <path d="M4 6v6a8 3 0 0 0 16 0v-6"></path>
@@ -38,7 +38,7 @@ const DATABASE_ICON_SVG_TEXT = `
 `;
 
 // Global Environment
-const WORLD_ICON_SVG_TEXT = `
+export const WORLD_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <circle cx="12" cy="12" r="9"></circle>
   <line x1="3.6" y1="9" x2="20.4" y2="9"></line>
@@ -49,7 +49,7 @@ const WORLD_ICON_SVG_TEXT = `
 `;
 
 // Request
-const SEND_ICON_SVG_TEXT = `
+export const SEND_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <line x1="10" y1="14" x2="21" y2="3"></line>
   <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"></path>
@@ -57,14 +57,14 @@ const SEND_ICON_SVG_TEXT = `
 `;
 
 // Parent Folder
-const FOLDER_ICON_SVG_TEXT = `
+export const FOLDER_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"></path>
 </svg>
 `;
 
 // Collection variable
-const BOX_ICON_SVG_TEXT = `
+export const BOX_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"></polyline>
   <line x1="12" y1="12" x2="20" y2="7.5"></line>
@@ -74,14 +74,14 @@ const BOX_ICON_SVG_TEXT = `
 `;
 
 // Runtime variable
-const BOLT_ICON_SVG_TEXT = `
+export const BOLT_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <polyline points="13 3 4 14 12 14 11 21 20 10 12 10 13 3"></polyline>
 </svg>
 `;
 
 // process.env variable
-const TERMINAL_ICON_SVG_TEXT = `
+export const TERMINAL_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="3" y="4" width="18" height="16" rx="2"></rect>
   <path d="M8 9l3 3l-3 3"></path>
@@ -90,7 +90,7 @@ const TERMINAL_ICON_SVG_TEXT = `
 `;
 
 // Dynamic / mock (built-in faker) variable
-const DICE_ICON_SVG_TEXT = `
+export const DICE_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="4" y="4" width="16" height="16" rx="2"></rect>
   <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"></circle>
@@ -101,40 +101,31 @@ const DICE_ICON_SVG_TEXT = `
 </svg>
 `;
 
+// OAuth2 credential variable (e.g. $oauth2.<credentialsId>.<key>)
+export const KEY_ICON_SVG_TEXT = `
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="7" cy="15" r="4"></circle>
+  <line x1="10.5" y1="11.5" x2="20" y2="2"></line>
+  <line x1="15" y1="7" x2="18" y2="10"></line>
+  <line x1="18" y1="4" x2="21" y2="7"></line>
+</svg>
+`;
+
+// these scopes are there just to show icons and label.
+export const READ_ONLY_SCOPE_ICON = {
+  'runtime': BOLT_ICON_SVG_TEXT,
+  'process.env': TERMINAL_ICON_SVG_TEXT,
+  'dynamic': DICE_ICON_SVG_TEXT,
+  'oauth2': KEY_ICON_SVG_TEXT
+};
+
 export const SCOPE_ICON = {
   [VARIABLE_ADD_SCOPES.REQUEST]: SEND_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.FOLDER]: FOLDER_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.COLLECTION]: BOX_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.ENVIRONMENT]: DATABASE_ICON_SVG_TEXT,
   [VARIABLE_ADD_SCOPES.GLOBAL]: WORLD_ICON_SVG_TEXT,
-  'runtime': BOLT_ICON_SVG_TEXT,
-  'process.env': TERMINAL_ICON_SVG_TEXT,
-  'dynamic': DICE_ICON_SVG_TEXT
-};
-
-export const SCOPE_LABEL = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'Request',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Environment',
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global',
-  'runtime': 'Runtime',
-  'process.env': 'Process Env',
-  'dynamic': 'Dynamic'
-};
-
-export const SCOPE_ICON_COLOR_CLASS = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'request',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'folder',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'collection',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'environment',
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'global',
-  // 'runtime', 'process.env' and 'dynamic' have no equivalent in the "Add to" scope
-  // selector (none of them are addable scopes), so unlike the 5 above they each get
-  // their own bespoke color rather than one borrowed from that selector.
-  'runtime': 'runtime',
-  'process.env': 'process-env',
-  'dynamic': 'dynamic'
+  ...READ_ONLY_SCOPE_ICON
 };
 
 export const AUTH_MODES = {

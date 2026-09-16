@@ -398,18 +398,23 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-hint-variable-icon-dynamic {
-    color: #964B76;
-    background: ${rgba('#964B76', 0.14)};
+    color: ${(props) => props.theme.request.gql};
+    background: ${(props) => rgba(props.theme.request.gql, 0.14)};
   }
 
   .CodeMirror-hint-variable-icon-runtime {
-    color: #259D93;
-    background: ${rgba('#259D93', 0.14)};
+    color: ${(props) => props.theme.request.methods.options};
+    background: ${(props) => rgba(props.theme.request.methods.options, 0.14)};
   }
 
   .CodeMirror-hint-variable-icon-process-env {
-    color: #5A5496;
-    background: ${rgba('#5A5496', 0.14)};
+    color: ${(props) => props.theme.request.grpc};
+    background: ${(props) => rgba(props.theme.request.grpc, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-oauth2 {
+    color: ${(props) => props.theme.request.ws};
+    background: ${(props) => rgba(props.theme.request.ws, 0.14)};
   }
 
   .CodeMirror-hint-variable-name {

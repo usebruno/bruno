@@ -1,6 +1,6 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
-import { SCOPE_ICON, SCOPE_LABEL, SCOPE_ICON_COLOR_CLASS } from 'utils/common/constants';
+import { SCOPE_ICON, SCOPE_LABEL, SCOPE_ICON_COLOR_CLASS } from 'utils/codemirror/autocompleteScopes';
 
 const CodeMirror = require('codemirror');
 
