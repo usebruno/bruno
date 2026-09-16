@@ -107,7 +107,7 @@ const RouteTable = ({ mockServerUid }) => {
     {
       key: 'responseCount',
       name: 'Responses',
-      width: '90px',
+      width: '100px',
       render: ({ row }) => <span>{row.responseCount}</span>
     },
     {

@@ -77,10 +77,6 @@ const Wrapper = styled.div`
     background: ${(props) => props.theme.background.surface0};
   }
 
-  .log-trace-row td {
-    // background: ${(props) => props.theme.background.crust};
-  }
-
   .match-trace-panel {
     padding: 12px 14px 4px;
     min-width: 0;
@@ -167,8 +163,6 @@ const Wrapper = styled.div`
     }
 
     &.is-selected {
-      // border-top: 1px solid;
-      // border-radius: ${(props) => props.theme.border.radius.base};
       border-color: ${(props) => props.theme.status.success.border};
       background: ${(props) => props.theme.background.surface0};
     }
