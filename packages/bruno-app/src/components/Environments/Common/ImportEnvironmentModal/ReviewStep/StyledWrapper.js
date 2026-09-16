@@ -227,7 +227,7 @@ export const StyledWrapper = styled.div`
 
   .env-name {
     color: ${(props) => props.theme.text};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;

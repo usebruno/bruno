@@ -55,6 +55,7 @@ const initialState = {
       }
     },
     font: {
+      appFont: 'default',
       codeFont: 'default'
     },
     general: {

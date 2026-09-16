@@ -486,7 +486,7 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-display {
     padding: 0.375rem 1.5rem 0.375rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.base};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     overflow-wrap: break-word;
     white-space: pre-wrap;
@@ -512,7 +512,7 @@ const GlobalStyle = createGlobalStyle`
     max-height: 11.125rem;
     box-sizing: border-box;
     font-size: ${(props) => props.theme.font.size.base};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     line-height: 1.25rem;
     border: none;
@@ -537,7 +537,7 @@ const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
     padding: 0.375rem 3rem 0.375rem 0.5rem;
     max-width: none;
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     line-height: 1.25rem;
     word-break: break-all;
@@ -547,7 +547,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror pre {
     font-size: ${(props) => props.theme.font.size.base};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     line-height: 1.25rem;
     word-break: break-all;
@@ -562,7 +562,7 @@ const GlobalStyle = createGlobalStyle`
     max-width: none;
     line-height: 1.25rem;
     font-size: ${(props) => props.theme.font.size.base};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
@@ -583,7 +583,7 @@ const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
     padding: 0.375rem 3rem 0.375rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.base};
-    font-family: Inter, sans-serif;
+    font-family: var(--app-font-stack);
     font-weight: 400;
     word-break: break-all;
     word-wrap: break-word;
