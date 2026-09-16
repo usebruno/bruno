@@ -163,7 +163,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         uid: 'default-headers-section',
         rowType: ROW_TYPE.SECTION,
         section: ROW_TYPE.DEFAULT,
-        label: 'Inherited Headers',
+        label: 'Runtime Headers',
         count: defaultHeaders.length,
         expanded: isDefaultHeadersExpanded
       },
@@ -455,8 +455,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                 : <IconEye size={16} strokeWidth={1.5} />}
               <span>
                 {showDefaultHeaders
-                  ? 'Hide Inherited Headers'
-                  : `Show Inherited Headers (${defaultHeaders.length})`}
+                  ? 'Hide Additional Headers'
+                  : `Show Additional Headers (${defaultHeaders.length})`}
               </span>
             </button>
           )}
