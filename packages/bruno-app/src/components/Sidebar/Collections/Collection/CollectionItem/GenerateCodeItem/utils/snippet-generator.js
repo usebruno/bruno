@@ -8,7 +8,7 @@ import { parse } from 'url';
 import { stringify } from 'query-string';
 
 // Folds any `cookie`/`Cookie` header into a single header.
-const mergeCookieHeaders = (headers, renameToAvoidDuplicateCookieBug) => {
+const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
   let cookieHeaderIndex = -1;
   const merged = [];
   for (const header of headers) {
@@ -18,7 +18,7 @@ const mergeCookieHeaders = (headers, renameToAvoidDuplicateCookieBug) => {
     }
     if (cookieHeaderIndex === -1) {
       cookieHeaderIndex = merged.length;
-      merged.push({ ...header, name: renameToAvoidDuplicateCookieBug ? 'Cookie' : header.name });
+      merged.push({ ...header, name: capitalizeCookieHeaderName ? 'Cookie' : header.name });
     } else {
       merged[cookieHeaderIndex].value += `; ${header.value}`;
     }
