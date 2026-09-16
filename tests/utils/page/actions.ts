@@ -3738,7 +3738,6 @@ export {
   expectLinkOpensRequest,
   expectLinkOpensExternally,
   expectLinkDoesNotOpenRequest,
-  expectRichTextLinkOpensExternally,
   expectNoLink,
   LINK_AWARE_COLLECTION_NAME,
   LINK_CLICK_MODIFIER,
