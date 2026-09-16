@@ -91,6 +91,18 @@ describe('filterRequestItemsByTags', () => {
     const result = filterRequestItemsByTags(items, ['prod'], [], ['prod']);
     expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
   });
+
+  it('ignores unsaved folder tags - docs describe the collection on disk', () => {
+    const withDraft = { ...folder('f', [req('a')], ['wip']), draft: { meta: { tags: ['prod'] } } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
+  });
+
+  it('ignores unsaved request tags', () => {
+    const withDraft = { ...req('a', ['wip']), draft: { tags: ['prod'] } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
+  });
 });
 
 describe('selectEnvironmentsByName', () => {

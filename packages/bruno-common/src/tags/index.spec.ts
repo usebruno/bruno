@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import isRequestTagsIncluded, {
   normalizeTags,
   getFolderTags,
+  getSavedFolderTags,
   getOwnTags,
   getInheritedTagsFromTreePath,
   getInheritedTagSourcesFromTreePath,
@@ -107,6 +108,18 @@ describe('getFolderTags', () => {
     expect(getFolderTags({ type: 'folder', root: { meta: { tags: [' prod ', 'prod', '', 7] } } } as any)).toEqual([
       'prod'
     ]);
+  });
+});
+
+describe('getSavedFolderTags', () => {
+  it('returns an empty list when there is no folder or no root file behind it', () => {
+    expect(getSavedFolderTags(undefined)).toEqual([]);
+    expect(getSavedFolderTags({ type: 'folder' })).toEqual([]);
+  });
+
+  it('reads root.meta.tags even when an unsaved draft says otherwise', () => {
+    const folder = { type: 'folder', root: { meta: { tags: [' prod ', 'prod'] } }, draft: { meta: { tags: ['wip'] } } };
+    expect(getSavedFolderTags(folder)).toEqual(['prod']);
   });
 });
 

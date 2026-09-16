@@ -36,6 +36,9 @@ export const getFolderTags = (folder?: TaggedTreeNode | null): string[] => {
   return normalizeTags(folder.draft ? folder.draft.meta?.tags : folder.root?.meta?.tags);
 };
 
+/** Tags a folder carries on disk, ignoring any unsaved draft. */
+export const getSavedFolderTags = (folder?: TaggedTreeNode | null): string[] => normalizeTags(folder?.root?.meta?.tags);
+
 /** Tags an item carries itself (no inheritance), draft-aware, for folders and requests alike. */
 export const getOwnTags = (item?: TaggedTreeNode | null): string[] => {
   if (!item) return [];

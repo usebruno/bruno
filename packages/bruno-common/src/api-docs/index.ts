@@ -1,4 +1,4 @@
-import isRequestTagsIncluded, { getEffectiveTags, getFolderTags } from '../tags';
+import isRequestTagsIncluded, { getEffectiveTags, getSavedFolderTags } from '../tags';
 
 export interface TaggedItem {
   type?: string;
@@ -74,7 +74,7 @@ export const filterRequestItemsByTags = <T extends TaggedItem>(
         (item.items ?? []) as T[],
         includeTags,
         excludeTags,
-        getEffectiveTags(getFolderTags(item), inheritedTags)
+        getEffectiveTags(getSavedFolderTags(item), inheritedTags)
       );
       if (keptChildren.length > 0) {
         filtered.push({ ...item, items: keptChildren });
