@@ -20,6 +20,12 @@ const Wrapper = styled.div`
     }
   }
 
+  /* Tab panels use @container queries to adapt to the width of this pane
+     rather than the window, so the sidebar and AI panel widths are accounted for. */
+  .tab-panel-container {
+    container-type: inline-size;
+  }
+
   .fw-600 {
     font-weight: 500;
   }

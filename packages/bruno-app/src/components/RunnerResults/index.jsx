@@ -9,6 +9,7 @@ import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconEraser } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import './styles.css';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
@@ -313,21 +314,21 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
+    <StyledWrapper className="runner-results px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
       <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
         <div className="filter-bar">
           <div className="filter-label">
             <span>Filter by:</span>
           </div>
-          <div className="filter-buttons lg:hidden">
+          <div className="filter-buttons filter-buttons-compact">
             <FilterDropdown
               filters={Object.entries(FILTERS).map(([key, { label }]) => ({ key, label, count: filterCounts[key] }))}
               value={activeFilter}
               onChange={setActiveFilter}
             />
           </div>
-          <div className="filter-buttons hidden lg:flex">
+          <div className="filter-buttons filter-buttons-wide">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -364,7 +365,7 @@ export default function RunnerResults({ collection }) {
               icon={<IconRefresh />}
               title="Run Again"
             >
-              <span className="hidden lg:inline">Run Again</span>
+              <span className="action-label">Run Again</span>
             </Button>
             <Button
               type="button"
@@ -375,7 +376,7 @@ export default function RunnerResults({ collection }) {
               icon={<IconEraser />}
               title="Reset"
             >
-              <span className="hidden lg:inline">Reset</span>
+              <span className="action-label">Reset</span>
             </Button>
           </div>
         ) : null}

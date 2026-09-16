@@ -1,0 +1,28 @@
+/*
+ * Swap between the compact and wide filter bar based on the width of
+ * .tab-panel-container (see pages/Bruno). This is a plain stylesheet rather
+ * than part of StyledWrapper because the stylis build inside
+ * styled-components v5 does not understand @container and emits invalid CSS.
+ */
+.runner-results .filter-bar .filter-buttons-compact {
+  display: flex;
+}
+
+.runner-results .filter-bar .filter-buttons-wide,
+.runner-results .action-label {
+  display: none;
+}
+
+@container (min-width: 768px) {
+  .runner-results .filter-bar .filter-buttons-compact {
+    display: none;
+  }
+
+  .runner-results .filter-bar .filter-buttons-wide {
+    display: flex;
+  }
+
+  .runner-results .action-label {
+    display: inline;
+  }
+}

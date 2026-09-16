@@ -130,7 +130,7 @@ export default function Main() {
             ) : (
               <>
                 <RequestTabs />
-                <div className="relative flex flex-col flex-grow overflow-hidden">
+                <div className="tab-panel-container relative flex flex-col flex-grow overflow-hidden">
                   <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
                     <RequestTabPanel key={activeTabUid} />
                   </TabPanelErrorBoundary>
