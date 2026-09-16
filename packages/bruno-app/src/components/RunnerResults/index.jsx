@@ -9,7 +9,6 @@ import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconEraser } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
-import './styles.css';
 import RunnerTags from './RunnerTags/index';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
@@ -321,14 +320,14 @@ export default function RunnerResults({ collection }) {
           <div className="filter-label">
             <span>Filter by:</span>
           </div>
-          <div className="filter-buttons filter-buttons-compact">
+          <div className="filter-buttons flex [@container(min-width:768px)]:hidden">
             <FilterDropdown
               filters={Object.entries(FILTERS).map(([key, { label }]) => ({ key, label, count: filterCounts[key] }))}
               value={activeFilter}
               onChange={setActiveFilter}
             />
           </div>
-          <div className="filter-buttons filter-buttons-wide">
+          <div className="filter-buttons hidden [@container(min-width:768px)]:flex">
             {Object.entries(FILTERS).map(([key, { label }]) => (
               <FilterButton
                 key={key}
@@ -365,7 +364,7 @@ export default function RunnerResults({ collection }) {
               icon={<IconRefresh />}
               title="Run Again"
             >
-              <span className="action-label">Run Again</span>
+              <span className="hidden [@container(min-width:768px)]:inline">Run Again</span>
             </Button>
             <Button
               type="button"
@@ -376,7 +375,7 @@ export default function RunnerResults({ collection }) {
               icon={<IconEraser />}
               title="Reset"
             >
-              <span className="action-label">Reset</span>
+              <span className="hidden [@container(min-width:768px)]:inline">Reset</span>
             </Button>
           </div>
         ) : null}
