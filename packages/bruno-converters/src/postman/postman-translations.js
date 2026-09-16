@@ -1,4 +1,5 @@
 import translateCode from '../utils/postman-to-bruno-translator';
+import { mangleVaultKey } from './postman-vault';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
@@ -167,18 +168,25 @@ const replacements = {
   'pm\\.cookies\\.insertAfter\\(': 'bru.cookies.add('
 };
 
-// Vault secrets land in whichever environment scope the user picked at import time.
+// Vault secrets land in whichever environment scope the user picked at import time. A quoted key
+// is mangled the same way the `{{vault:...}}` references were, so the lookup still resolves; the
+// bare rename that follows it catches computed keys, which cannot be mangled here.
+const vaultMethods = {
+  global: { get: 'bru.getGlobalEnvVar', set: 'bru.setGlobalEnvVar', unset: 'bru.deleteGlobalEnvVar' },
+  collection: { get: 'bru.getEnvVar', set: 'bru.setEnvVar', unset: 'bru.deleteEnvVar' }
+};
+
+const buildVaultReplacements = (methods) =>
+  Object.entries(methods).reduce((acc, [method, target]) => {
+    acc[`pm\\.vault\\.${method}\\((['"])([^'"]*)\\1`] = (_match, quote, key) =>
+      `${target}(${quote}${mangleVaultKey(key)}${quote}`;
+    acc[`pm\\.vault\\.${method}\\(`] = `${target}(`;
+    return acc;
+  }, {});
+
 const vaultReplacements = {
-  global: {
-    'pm\\.vault\\.get\\(': 'bru.getGlobalEnvVar(',
-    'pm\\.vault\\.set\\(': 'bru.setGlobalEnvVar(',
-    'pm\\.vault\\.unset\\(': 'bru.deleteGlobalEnvVar('
-  },
-  collection: {
-    'pm\\.vault\\.get\\(': 'bru.getEnvVar(',
-    'pm\\.vault\\.set\\(': 'bru.setEnvVar(',
-    'pm\\.vault\\.unset\\(': 'bru.deleteEnvVar('
-  }
+  global: buildVaultReplacements(vaultMethods.global),
+  collection: buildVaultReplacements(vaultMethods.collection)
 };
 
 const compileReplacements = (replacementMap) => {

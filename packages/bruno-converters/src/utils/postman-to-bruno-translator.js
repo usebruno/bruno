@@ -3,6 +3,7 @@ import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
 import { buildStatusAssertionEntries } from './postman-status-assertions';
+import { mangleVaultKey } from '../postman/postman-vault';
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
@@ -620,13 +621,33 @@ const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response',
  * @param {Object} ast - jscodeshift AST
  * @param {Set} transformedNodes - Set of already transformed nodes
  * @param {Object} translations - 1:1 translation map to apply
+ * @param {Object} vaultTranslationsForTarget - pm.vault map for the chosen environment scope
  */
-function processTransformations(ast, transformedNodes, translations) {
+function processTransformations(ast, transformedNodes, translations, vaultTranslationsForTarget) {
   ast.find(j.MemberExpression).forEach((path) => {
     if (transformedNodes.has(path.node)) return;
 
     // Get string representation using our utility function
     const memberExprStr = getMemberExpressionString(path.value);
+
+    // Vault reads rename the callee like a simple translation, but the key has to be mangled the
+    // same way the `{{vault:...}}` references were, or the lookup misses the imported variable.
+    if (vaultTranslationsForTarget.hasOwnProperty(memberExprStr)) {
+      const callExpression = path.parent.value;
+
+      if (callExpression.type === 'CallExpression') {
+        const [keyArgument] = callExpression.arguments;
+
+        // A computed key can't be mangled here; it is left alone rather than guessed at.
+        if (keyArgument?.type === 'Literal' && typeof keyArgument.value === 'string') {
+          callExpression.arguments[0] = j.literal(mangleVaultKey(keyArgument.value));
+        }
+      }
+
+      j(path).replaceWith(j.identifier(vaultTranslationsForTarget[memberExprStr]));
+      transformedNodes.add(path.node);
+      return;
+    }
 
     // First check for simple transformations (O(1))
     if (translations.hasOwnProperty(memberExprStr)) {
@@ -765,10 +786,12 @@ function translateCode(code, { vaultTarget = 'global' } = {}) {
   processCookieJarVariables(ast);
 
   // Process all transformations in a single pass
-  processTransformations(ast, transformedNodes, {
-    ...simpleTranslations,
-    ...(vaultTranslations[vaultTarget] ?? vaultTranslations.global)
-  });
+  processTransformations(
+    ast,
+    transformedNodes,
+    simpleTranslations,
+    vaultTranslations[vaultTarget] ?? vaultTranslations.global
+  );
 
   // Handle legacy Postman global APIs
   handleLegacyGlobalAPIs(ast, transformedNodes, code);

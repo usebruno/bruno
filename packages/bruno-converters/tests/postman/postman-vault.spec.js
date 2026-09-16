@@ -77,7 +77,7 @@ describe('postman vault secrets on import', () => {
 
     const { collection: brunoCollection } = await postmanToBruno(collection);
 
-    expect(brunoCollection.items[0].request.script.req).toBe('const t = bru.getGlobalEnvVar("api-key");');
+    expect(brunoCollection.items[0].request.script.req).toBe('const t = bru.getGlobalEnvVar("vault_api-key");');
   });
 
   it('should translate pm.vault reads against the collection environment when chosen', async () => {
@@ -85,7 +85,7 @@ describe('postman vault secrets on import', () => {
 
     const { collection: brunoCollection } = await postmanToBruno(collection, { vaultTarget: 'collection' });
 
-    expect(brunoCollection.items[0].request.script.req).toBe('const t = bru.getEnvVar("api-key");');
+    expect(brunoCollection.items[0].request.script.req).toBe('const t = bru.getEnvVar("vault_api-key");');
   });
 
   it('should still rewrite references when scripts are preserved', async () => {
