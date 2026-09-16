@@ -2793,15 +2793,6 @@ const expectLinkDoesNotOpenRequest = async (page: Page, cm: Locator) => {
   await expectLinkOpensExternally(page, cm);
 };
 
-/** A Rich Text (docs) link never opens as a transient request. plain or modifier+click both just fall back to "open externally", no new tab. */
-const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
-  await expect(link).toBeVisible({ timeout: 10000 });
-  const tabCountBefore = await page.locator('.request-tab').count();
-  await link.click({ modifiers });
-  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
-  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
-};
-
 /**
  * A URL-looking value must behave as plain text (e.g. `{{var}}`-interpolated, `ws://`, or a
  * field with link-awareness disabled): clicking it — with or without the open-externally
