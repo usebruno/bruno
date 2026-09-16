@@ -83,7 +83,8 @@ class SingleLineEditor extends Component {
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
-      showHintsOnClick: this.props.showHintsOnClick
+      showHintsOnClick: this.props.showHintsOnClick,
+      enableSingleBraceTrigger: !!this.props.enableSingleBraceTrigger
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(

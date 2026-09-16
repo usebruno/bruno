@@ -21,7 +21,9 @@ import {
   setupAutoComplete,
   showRootHints,
   extractNextSegmentSuggestions,
-  WORD_PATTERN
+  WORD_PATTERN,
+  calculateSingleBraceInsertText,
+  truncateHintLabel
 } from './autocomplete';
 
 describe('Bruno Autocomplete', () => {
@@ -149,6 +151,248 @@ describe('Bruno Autocomplete', () => {
             expect.objectContaining({ displayText: 'client_secret' })
           ])
         );
+      });
+    });
+    describe('Single-brace trigger (enableSingleBraceTrigger)', () => {
+      const scopedVariables = [
+        { name: 'envVar', scope: 'environment' },
+        { name: 'requestVar', scope: 'request' }
+      ];
+
+      it('does not trigger on a bare `{` when enableSingleBraceTrigger is off', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 4 });
+        mockedCodemirror.getLine.mockReturnValue('{env');
+        mockedCodemirror.getRange.mockReturnValue('{env');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables']
+        });
+
+        expect(result).toBeNull();
+      });
+
+      it('opens the full hint list immediately on a bare `{` with nothing typed after it yet', () => {
+        // This is the whole point of the trigger: the dropdown must appear the instant the
+        // user types `{`, before they've typed any part of a variable name. currentWord is ''
+        // in this case, which must NOT be treated the same as "no match" (regression test for
+        // a bug where filterHintsByContext's empty-word short-circuit swallowed this case,
+        // so the hint list never opened on a lone `{`).
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue('{');
+        mockedCodemirror.getRange.mockReturnValue('{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list.length).toBeGreaterThan(0);
+        expect(result.list).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ displayText: 'envVar', scope: 'environment' }),
+            expect.objectContaining({ displayText: 'requestVar', scope: 'request' })
+          ])
+        );
+      });
+
+      it('keeps the hint list open when the first `{` becomes `{{` (word still empty)', () => {
+        // Regression test: typing the first `{` opens the list via the isSingleBrace branch,
+        // but typing the second `{` re-matches the ORIGINAL double-brace VARIABLE_PATTERN
+        // instead - a different branch in getCurrentWordWithContext that returns
+        // isSingleBrace: false. Without threading enableSingleBraceTrigger into the empty-word
+        // bypass for that branch too, the list would collapse back to empty right as the user
+        // finished typing `{{`, even though nothing else changed.
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue('{{');
+        mockedCodemirror.getRange.mockReturnValue('{{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list.length).toBeGreaterThan(0);
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+        // SingleLineEditor/MultiLineEditor don't enable autoCloseBrackets, so nothing already
+        // follows the cursor here - the closing `}}` has to be added by the completion itself,
+        // same as the single-brace case, just without the extra leading `{` (both braces of
+        // `{{` are already on the line; only the close is missing).
+        expect(envHint.text).toBe('envVar}}');
+
+        const finalText = '{{'.slice(0, result.from.ch) + envHint.text + '{{'.slice(result.to.ch);
+        expect(finalText).toBe('{{envVar}}');
+      });
+
+      it('does not affect bare `{{` on surfaces that never enabled the single-`{` trigger', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue('{{');
+        mockedCodemirror.getRange.mockReturnValue('{{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables']
+        });
+
+        expect(result).toBeNull();
+      });
+
+      it('stops reopening once a third (or later) `{` is typed past a valid `{{`', () => {
+        // Regression test: VARIABLE_PATTERN always matches using the LAST two `{` of any run
+        // before the cursor, so "{{{", "{{{{", etc. would otherwise keep matching (word ===
+        // '' each time) and keep re-opening the full list on every extra `{` typed - not a
+        // valid `{{name}}` context, so it must stop triggering past exactly two braces.
+        ['{{{', '{{{{'].forEach((line) => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
+
+          const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+            showHintsFor: ['variables'],
+            enableSingleBraceTrigger: true
+          });
+
+          expect(result).toBeNull();
+        });
+      });
+
+      it('still filters normally when a real word follows stray extra braces (e.g. `{{{env`)', () => {
+        // A stray leading `{` before an otherwise-valid `{{env` isn't the "just mashing {"
+        // case above - the user is typing a real word, so filtering should work as usual
+        // against the LAST two braces, same as a plain `{{env` would.
+        const line = '{{{env';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+      });
+
+      it('does not duplicate closing braces already present (e.g. autoCloseBrackets-inserted `{{|}}`)', () => {
+        // Mirrors CodeEditor's autoCloseBrackets behavior, which SingleLineEditor/
+        // MultiLineEditor don't have - if a surface ever did have both closing braces already
+        // sitting right after the cursor, the completion must not add more on top of them.
+        const line = '{{}}';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue('{{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+
+        const finalText = line.slice(0, result.from.ch) + envHint.text + line.slice(result.to.ch);
+        expect(finalText).toBe('{{envVar}}');
+      });
+
+      it('triggers on a bare `{` and re-emits a clean `{{name}}` when applied', () => {
+        const line = '{';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+        expect(envHint.scope).toBe('environment');
+
+        // The existing `{` is left in place (from/to both collapse to the cursor, right after
+        // it), so combining the untouched prefix/suffix with the hint's insert text must
+        // reproduce a clean pair.
+        const finalText = line.slice(0, result.from.ch) + envHint.text + line.slice(result.to.ch);
+        expect(finalText).toBe('{{envVar}}');
+      });
+
+      it('does not re-match (and so does not reopen) once a regular character follows the `{`', () => {
+        // This is the trigger's core contract: it's a one-shot "browse everything" list, not
+        // a type-ahead filter. Typing `{` opens it; typing anything other than a second `{`
+        // after that must NOT re-open/re-filter it. Only a fresh `{{` (tested elsewhere) or a
+        // brand new standalone `{` should ever bring it back.
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue('{a');
+        mockedCodemirror.getRange.mockReturnValue('{a');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeNull();
+      });
+
+      it('does not duplicate an already-typed closing brace (cursor lands right after `{` with a `}` already following)', () => {
+        const line = '{}';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue('{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+
+        const finalText = line.slice(0, result.from.ch) + envHint.text + line.slice(result.to.ch);
+        expect(finalText).toBe('{{envVar}}');
+      });
+
+      it('does not affect existing double-brace `{{` completion behavior', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 5 });
+        mockedCodemirror.getLine.mockReturnValue('{{env}}');
+        mockedCodemirror.getRange.mockReturnValue('{{env');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const envHint = result.list.find((hint) => hint.displayText === 'envVar');
+        expect(envHint).toBeTruthy();
+        // Plain text, not brace-wrapped, since the user already typed the full `{{` pair.
+        expect(envHint.text).toBe('envVar');
+      });
+
+      it('falls back to plain, unwrapped insertion for an unscoped/intermediate dotted-path segment', () => {
+        // "process" isn't itself a resolvable variable name here - only "process.env.FOO" is -
+        // so it must appear plain, with no scope/icon and no brace-wrapping, exactly like the
+        // existing `{{}}` trigger's progressive dotted-path completion already does.
+        const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue('{');
+        mockedCodemirror.getRange.mockReturnValue('{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const processHint = result.list.find((hint) => hint.displayText === 'process');
+        expect(processHint).toBeTruthy();
+        expect(processHint.text).toBe('process');
+        expect(processHint.scope).toBeFalsy();
       });
     });
 
@@ -669,6 +913,59 @@ describe('Bruno Autocomplete', () => {
     });
   });
 
+  describe('calculateSingleBraceInsertText', () => {
+    it('adds both closing braces when nothing follows the cursor', () => {
+      // e.g. user typed a bare `{` at the end of the line, nothing after the cursor
+      const result = calculateSingleBraceInsertText('', 'envVar');
+
+      expect(result).toBe('{envVar}}');
+    });
+
+    it('adds both closing braces when unrelated text follows the cursor', () => {
+      const result = calculateSingleBraceInsertText('/api/users', 'envVar');
+
+      expect(result).toBe('{envVar}}');
+    });
+
+    it('adds only one closing brace when a single `}` already follows the cursor', () => {
+      // e.g. auto-closing brackets turned the typed `{` into `{|}` (cursor between them)
+      const result = calculateSingleBraceInsertText('}', 'envVar');
+
+      expect(result).toBe('{envVar}');
+    });
+
+    it('adds only one closing brace when a single `}` is followed by other text', () => {
+      const result = calculateSingleBraceInsertText('} rest of the value', 'envVar');
+
+      expect(result).toBe('{envVar}');
+    });
+
+    it('adds no closing braces when both already follow the cursor', () => {
+      // e.g. completing inside an already-typed `{{|}}` pair
+      const result = calculateSingleBraceInsertText('}}', 'envVar');
+
+      expect(result).toBe('{envVar');
+    });
+
+    it('adds no closing braces when more than two `}` already follow the cursor', () => {
+      // the 3rd+ `}` is the user's own unrelated content — left untouched, not our concern
+      const result = calculateSingleBraceInsertText('}}}', 'envVar');
+
+      expect(result).toBe('{envVar');
+    });
+
+    it('treats undefined textAfterCursor the same as empty (end of line)', () => {
+      const result = calculateSingleBraceInsertText(undefined, 'envVar');
+
+      expect(result).toBe('{envVar}}');
+    });
+
+    it('works with dynamic ($mock) and process.env-style names', () => {
+      expect(calculateSingleBraceInsertText('', '$guid')).toBe('{$guid}}');
+      expect(calculateSingleBraceInsertText('', 'process.env.FOO')).toBe('{process.env.FOO}}');
+    });
+  });
+
   describe('setupAutoComplete', () => {
     let mockGetAllVariables;
     let cleanupFn;
@@ -968,6 +1265,31 @@ describe('Bruno Autocomplete', () => {
       });
 
       expect(mockedCodemirror.commands.autocomplete).toBe(existingCommand);
+    });
+  });
+
+  describe('truncateHintLabel', () => {
+    it('leaves short names untouched', () => {
+      expect(truncateHintLabel('envVar')).toBe('envVar');
+    });
+
+    it('leaves a name exactly at the limit untouched', () => {
+      const exact = 'a'.repeat(46);
+      expect(truncateHintLabel(exact)).toBe(exact);
+    });
+
+    it('cuts a name past the limit down to 46 chars ending in a literal "..."', () => {
+      const long = 'thisIsAVeryLongEnvironmentVariableNameThatShouldOverflowTheDropdown';
+      const result = truncateHintLabel(long);
+
+      expect(result).toHaveLength(46);
+      expect(result.endsWith('...')).toBe(true);
+      expect(result.slice(0, -3)).toBe(long.slice(0, 43));
+    });
+
+    it('passes through falsy input unchanged', () => {
+      expect(truncateHintLabel('')).toBe('');
+      expect(truncateHintLabel(undefined)).toBe(undefined);
     });
   });
 });

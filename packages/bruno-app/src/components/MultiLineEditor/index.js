@@ -190,7 +190,8 @@ class MultiLineEditor extends Component {
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
       getAllVariables: getAllVariablesHandler,
-      getAnywordAutocompleteHints
+      getAnywordAutocompleteHints,
+      enableSingleBraceTrigger: !!this.props.enableSingleBraceTrigger
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(

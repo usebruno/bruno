@@ -1,6 +1,6 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
-import { SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
+import { SCOPE_ICON, SCOPE_LABEL, SCOPE_ICON_COLOR_CLASS } from 'utils/common/constants';
 
 const CodeMirror = require('codemirror');
 
@@ -198,6 +198,7 @@ const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 // would otherwise match `( ) % & ' * + ,`
 const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
+const SINGLE_BRACE_PATTERN = /\{$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
 /**
@@ -294,6 +295,7 @@ const addApiHintsToSet = (apiHints, showHintsFor) => {
  */
 const addVariableHintsToSet = (variableHints, allVariables, variableScopes = {}) => {
   MOCK_DATA_HINTS.forEach((hint) => {
+    variableScopes[hint] = 'dynamic';
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 
@@ -382,6 +384,28 @@ const calculateVariableReplacementPositions = (cursor, startPos, wordMatch) => {
 };
 
 /**
+ * @param {string} textAfterCursor - The line's content starting at the insertion point
+ * @returns {number} Number of closing `}` characters still needed (0, 1, or 2)
+ */
+const countMissingClosingBraces = (textAfterCursor) => {
+  const existingCloseBraces = (textAfterCursor || '').match(/^\}{0,2}/)[0].length;
+  return Math.max(0, 2 - existingCloseBraces);
+};
+
+/**
+ * Builds the variable insertion text, adding only the closing braces that are missing.
+ * @param {string} textAfterCursor - The line's content starting at the cursor, i.e.
+ *   whatever (if anything) already follows where the completion is being inserted
+ * @param {string} name - The variable name to insert
+ * @returns {string} Text to insert in place of the single `{` that triggered the completion
+ */
+const calculateSingleBraceInsertText = (textAfterCursor, name) => {
+  const closersToAdd = countMissingClosingBraces(textAfterCursor);
+
+  return `{${name}${'}'.repeat(closersToAdd)}`;
+};
+
+/**
  * Calculate replacement positions for regular word context
  * @param {Object} cursor - Current cursor position
  * @param {number} start - Start position of word
@@ -457,9 +481,12 @@ const extractWordFromLine = (currentLine, cursorPosition) => {
 /**
  * Get current word being typed at cursor position with context information
  * @param {Object} cm - CodeMirror instance
+ * @param {Object} options - Configuration options. options.enableSingleBraceTrigger gates
+ *   the single-`{` trigger check below (only on for the surfaces that pass
+ *   enableSingleBraceTrigger — URL bar, query/path params, headers, auth fields).
  * @returns {Object|null} Word information with context or null
  */
-const getCurrentWordWithContext = (cm) => {
+const getCurrentWordWithContext = (cm, options = {}) => {
   const cursor = cm.getCursor();
   const currentLine = cm.getLine(cursor.line);
   const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
@@ -468,6 +495,13 @@ const getCurrentWordWithContext = (cm) => {
   const variableMatch = currentString.match(VARIABLE_PATTERN);
   if (variableMatch) {
     const wordMatch = variableMatch[1];
+
+    // Ignore 3+ consecutive "{" characters to prevent reopening the dropdown
+    // with an empty match.
+    if (wordMatch === '' && currentString.match(/\{+$/)[0].length > 2) {
+      return null;
+    }
+
     const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{') + 2 };
     const { replaceFrom, replaceTo } = calculateVariableReplacementPositions(cursor, startPos, wordMatch);
 
@@ -477,6 +511,18 @@ const getCurrentWordWithContext = (cm) => {
       to: replaceTo,
       context: 'variables',
       requiresBraces: true
+    };
+  }
+
+  // Check for the single-`{` trigger
+  if (options.enableSingleBraceTrigger && SINGLE_BRACE_PATTERN.test(currentString)) {
+    return {
+      word: '',
+      from: cursor,
+      to: cursor,
+      context: 'variables',
+      requiresBraces: true,
+      isSingleBrace: true
     };
   }
 
@@ -594,38 +640,79 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
  * @param {string} currentWord - Current word being typed
  * @param {string} context - Current context
  * @param {string[]} showHintsFor - Allowed hint types
+ * @param {Object} [options] - Filtering options
+ * @param {boolean} [options.allowEmptyWord] - When true, single `{` can trigger the hints
  * @returns {string[]} Filtered hints
  */
-const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = []) => {
-  if (!currentWord) {
+const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = [], { allowEmptyWord = false } = {}) => {
+  if (!currentWord && !allowEmptyWord) {
     return [];
   }
 
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
 
-  const lowerWord = currentWord.toLowerCase();
+  const word = currentWord || '';
+  const lowerWord = word.toLowerCase();
   const filtered = allowedHints.filter((hint) => {
     return hint.toLowerCase().includes(lowerWord);
   });
 
-  const hintParts = getHintParts(filtered, currentWord);
+  const hintParts = getHintParts(filtered, word);
+
+  if (!word) {
+    // nothing is typed yet. show static variables first, then dynamic ones.
+    const variableScopes = categorizedHints.variableScopes || {};
+    const getScopeRank = (hint) => (variableScopes[hint] === 'dynamic' ? 1 : 0);
+
+    return [...hintParts]
+      // show non-dynamic variables before dynamic variables.
+      .sort((a, b) => {
+        const scopeDifference = getScopeRank(a) - getScopeRank(b);
+
+        if (scopeDifference !== 0) {
+          return scopeDifference;
+        }
+
+        // sort variables alphabetically within the same scope.
+        return a.localeCompare(b);
+      })
+      .slice(0, 50);
+  }
 
   return hintParts.slice(0, 50);
 };
 
+// truncate after this length
+const MAX_HINT_LABEL_CHARS = 46;
+
 /**
- * @param {HTMLLIElement} li - The hint's list item element, provided by CodeMirror
- * @param {Object} self - The show-hint widget instance (unused here)
- * @param {Object} completion - The hint object being rendered (text/displayText/scope)
+ * @param {string} text - The full hint label
+ * @returns {string} `text` unchanged if it already fits, otherwise cut down
+ *   and suffixed with a literal "..." so a truncated name is unambiguous.
+ */
+const truncateHintLabel = (text) => {
+  if (!text || text.length <= MAX_HINT_LABEL_CHARS) {
+    return text;
+  }
+  return `${text.slice(0, MAX_HINT_LABEL_CHARS - 3)}...`;
+};
+
+/**
+ * @param {HTMLLIElement} li - hint's list item element, provided by CodeMirror
+ * @param {Object} self - show-hint widget instance (unused here)
+ * @param {Object} completion - hint object being rendered (text/displayText/scope)
  */
 const renderVariableHint = (li, self, completion) => {
   const icon = document.createElement('span');
-  icon.className = 'CodeMirror-hint-variable-icon';
+  const colorClass = SCOPE_ICON_COLOR_CLASS[completion.scope] || 'muted';
+  icon.className = `CodeMirror-hint-variable-icon CodeMirror-hint-variable-icon-${colorClass}`;
   icon.innerHTML = SCOPE_ICON[completion.scope] || '';
 
+  const fullName = completion.displayText;
   const label = document.createElement('span');
   label.className = 'CodeMirror-hint-variable-name';
-  label.textContent = completion.displayText;
+  label.textContent = truncateHintLabel(fullName);
+  label.title = fullName;
 
   li.innerHTML = '';
   li.classList.add('CodeMirror-hint-variable');
@@ -640,16 +727,50 @@ const renderVariableHint = (li, self, completion) => {
  * @param {Object} from - Start position
  * @param {Object} to - End position
  * @param {Object} variableScopes - name to scope map
+ * @param {string} [textAfterCursor] - characters already exist on the line right after the cursor
  * @returns {Object} Hint object with list and positions
  */
-const createVariableHintList = (filteredHints, from, to, variableScopes = {}) => {
+const createVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '') => {
+  const closingSuffix = '}'.repeat(countMissingClosingBraces(textAfterCursor));
+
   const hintList = filteredHints.map((hint) => {
     const scope = variableScopes[hint];
     if (!scope || !SCOPE_ICON[scope]) {
       return { text: hint, displayText: hint };
     }
     return {
-      text: hint,
+      text: `${hint}${closingSuffix}`,
+      displayText: hint,
+      scope,
+      render: renderVariableHint
+    };
+  });
+
+  return {
+    list: hintList,
+    from,
+    to
+  };
+};
+
+/**
+ * Create hint list for the single-`{` trigger context.
+ *
+ * @param {string[]} filteredHints - Filtered hints
+ * @param {Object} from - Start position, the triggering `{` itself
+ * @param {Object} to - End position
+ * @param {Object} variableScopes - name to scope map
+ * @param {string} textAfterCursor - The line's content starting at the cursor
+ * @returns {Object} Hint object with list and positions
+ */
+const createSingleBraceVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '') => {
+  const hintList = filteredHints.map((hint) => {
+    const scope = variableScopes[hint];
+    if (!scope || !SCOPE_ICON[scope]) {
+      return { text: hint, displayText: hint };
+    }
+    return {
+      text: calculateSingleBraceInsertText(textAfterCursor, hint),
       displayText: hint,
       scope,
       render: renderVariableHint
@@ -719,12 +840,12 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
-  const wordInfo = getCurrentWordWithContext(cm);
+  const wordInfo = getCurrentWordWithContext(cm, options);
   if (!wordInfo) {
     return null;
   }
 
-  const { word, from, to, context, requiresBraces } = wordInfo;
+  const { word, from, to, context, requiresBraces, isSingleBrace } = wordInfo;
   const showHintsFor = options.showHintsFor || [];
 
   // Check if this context requires braces but we're not in a brace context
@@ -733,14 +854,23 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
   }
 
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
-  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor);
+
+  // Show all variables for fields that support the single-`{` trigger.
+  const allowEmptyWord = context === 'variables' && !!options.enableSingleBraceTrigger;
+  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor, { allowEmptyWord });
 
   if (filteredHints.length === 0) {
     return null;
   }
 
   if (context === 'variables') {
-    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes);
+    const cursor = cm.getCursor();
+    const textAfterCursor = cm.getLine(cursor.line).slice(cursor.ch);
+
+    if (isSingleBrace) {
+      return createSingleBraceVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor);
+    }
+    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor);
   }
 
   return createStandardHintList(filteredHints, from, to);
@@ -868,7 +998,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions, WORD_PATTERN };
+export { extractNextSegmentSuggestions, WORD_PATTERN, calculateSingleBraceInsertText, truncateHintLabel, renderVariableHint };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

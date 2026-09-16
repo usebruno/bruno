@@ -123,6 +123,20 @@ export const SCOPE_LABEL = {
   'dynamic': 'Dynamic'
 };
 
+export const SCOPE_ICON_COLOR_CLASS = {
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'request',
+  [VARIABLE_ADD_SCOPES.FOLDER]: 'folder',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'collection',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'environment',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'global',
+  // 'runtime', 'process.env' and 'dynamic' have no equivalent in the "Add to" scope
+  // selector (none of them are addable scopes), so unlike the 5 above they each get
+  // their own bespoke color rather than one borrowed from that selector.
+  'runtime': 'runtime',
+  'process.env': 'process-env',
+  'dynamic': 'dynamic'
+};
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',

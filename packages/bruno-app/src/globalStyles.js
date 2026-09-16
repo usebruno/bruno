@@ -323,6 +323,10 @@ const GlobalStyle = createGlobalStyle`
     font-family: inherit;
   }
 
+  .CodeMirror-hints:has(.CodeMirror-hint-variable) {
+    width: 300px;
+  }
+
   // Individual hint items
   .CodeMirror-hint {
     color: ${(props) => props.theme.dropdown.color};
@@ -332,9 +336,18 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
   }
 
+  // CodeMirror's show-hint addon only highlights the keyboard-selected item
+  // (.CodeMirror-hint-active); it doesn't add any hover feedback on its own,
+  // so mousing over the list otherwise does nothing visually.
+  .CodeMirror-hint:not(.CodeMirror-hint-active):hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
   .CodeMirror-hint-variable {
     display: flex;
     align-items: center;
+    font-size: 11px;
+    font-weight: 500;
   }
 
   .CodeMirror-hint-variable-icon {
@@ -342,15 +355,69 @@ const GlobalStyle = createGlobalStyle`
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-right: 0.375rem;
+    margin-right: 10px;
+    padding: 2px;
+    border-radius: 2px;
     color: currentColor;
-    opacity: 0.7;
   }
 
   .CodeMirror-hint-variable-icon svg {
     width: 0.75rem;
     height: 0.75rem;
     display: block;
+  }
+
+  .CodeMirror-hint-variable-icon-request {
+    color: ${(props) => props.theme.colors.text.purple};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-folder {
+    color: ${(props) => props.theme.colors.text.yellow};
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-collection {
+    color: ${(props) => props.theme.colors.text.subtext1};
+    background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-environment {
+    color: ${(props) => props.theme.colors.text.green};
+    background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-global {
+    color: ${(props) => props.theme.textLink};
+    background: ${(props) => rgba(props.theme.textLink, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-muted {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-dynamic {
+    color: #964B76;
+    background: ${rgba('#964B76', 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-runtime {
+    color: #259D93;
+    background: ${rgba('#259D93', 0.14)};
+  }
+
+  .CodeMirror-hint-variable-icon-process-env {
+    color: #5A5496;
+    background: ${rgba('#5A5496', 0.14)};
+  }
+
+  .CodeMirror-hint-variable-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
