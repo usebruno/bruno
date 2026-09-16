@@ -143,32 +143,6 @@ describe('getEffectiveTagsByPathname', () => {
     expect(getEffectiveTagsByPathname(collection).get('/collection/auth/login.bru')).toEqual(['smoke', 'auth']);
   });
 
-  it('reads folder tags hoisted to the item level', () => {
-    const collection = {
-      items: [
-        {
-          name: 'auth',
-          pathname: '/collection/auth',
-          type: 'folder',
-          tags: ['hoisted'],
-          root: { meta: { name: 'auth', tags: ['from-root'] } },
-          items: [
-            {
-              name: 'login',
-              pathname: '/collection/auth/login.bru',
-              type: 'http-request'
-            }
-          ]
-        }
-      ]
-    };
-
-    const tagsByPathname = getEffectiveTagsByPathname(collection);
-
-    expect(tagsByPathname.get('/collection/auth')).toEqual(['hoisted']);
-    expect(tagsByPathname.get('/collection/auth/login.bru')).toEqual(['hoisted']);
-  });
-
   it('normalizes malformed tags - trims, drops non-strings and de-duplicates', () => {
     const collection = {
       items: [

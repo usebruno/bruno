@@ -827,22 +827,6 @@ describe('getEffectiveTagsByUid', () => {
     expect(getEffectiveTagsByUid(collection).get('req-login')).toEqual(['smoke', 'auth']);
   });
 
-  test('reads folder tags hoisted to the item level over root.meta.tags', () => {
-    const collection = {
-      items: [
-        {
-          ...folder('folder-auth', ['from-root'], [request('req-login')]),
-          tags: ['hoisted']
-        }
-      ]
-    };
-
-    const tagsByUid = getEffectiveTagsByUid(collection);
-
-    expect(tagsByUid.get('folder-auth')).toEqual(['hoisted']);
-    expect(tagsByUid.get('req-login')).toEqual(['hoisted']);
-  });
-
   test('prefers a folder draft over its saved tags', () => {
     const collection = {
       items: [

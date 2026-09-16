@@ -5,6 +5,7 @@ import {
   getInheritedTagsForItem,
   getRequestItemsForCollectionRun,
   getUniqueTagsFromItems,
+  transformCollectionToSaveToExportAsFile,
   transformFolderRootToSave
 } from 'utils/collections/index';
 
@@ -24,7 +25,7 @@ const folder = ({ uid, name = uid, tags, draft, items = [], ...rest }) => ({
   name,
   type: 'folder',
   items,
-  ...(tags ? { tags } : {}),
+  ...(tags ? { root: { meta: { name, tags } } } : {}),
   ...(draft ? { draft } : {}),
   ...rest
 });
@@ -360,10 +361,31 @@ describe('transformFolderRootToSave — tags', () => {
   });
 
   it('saves a folder whose root carries no request block', () => {
-    const folderItem = folder({ uid: 'f1', name: 'my-folder', seq: 1, tags: ['saved'], root: { meta: {} } });
+    const folderItem = folder({ uid: 'f1', name: 'my-folder', seq: 1, root: { meta: { tags: ['saved'] } } });
 
     const saved = transformFolderRootToSave(folderItem);
     expect(saved.meta.tags).toEqual(['saved']);
     expect(saved.request.headers).toEqual([]);
+  });
+});
+
+describe('transformCollectionToSaveToExportAsFile — folder tags', () => {
+  const collectionOf = (folderRoot) => ({
+    name: 'collection',
+    items: [folder({ uid: 'f1', name: 'my-folder', seq: 1, root: folderRoot, items: [] })]
+  });
+
+  it('carries the folder tags through in the root meta, where an import reads them back', () => {
+    const exported = transformCollectionToSaveToExportAsFile(
+      collectionOf({ meta: { name: 'my-folder', seq: 1, tags: ['smoke'] } })
+    );
+
+    expect(exported.items[0].root.meta).toEqual({ name: 'my-folder', seq: 1, tags: ['smoke'] });
+  });
+
+  it('omits the tags key for an untagged folder', () => {
+    const exported = transformCollectionToSaveToExportAsFile(collectionOf({ meta: { name: 'my-folder', seq: 1 } }));
+
+    expect(exported.items[0].root.meta).not.toHaveProperty('tags');
   });
 });

@@ -69,10 +69,6 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
     brunoFolder.root = root;
   }
 
-  if (tags.length) {
-    brunoFolder.tags = tags;
-  }
-
   if (folder.items?.length) {
     brunoFolder.items = fromOpenCollectionItems(folder.items, fromOpenCollectionFolder as (f: unknown) => BrunoItem);
   }
@@ -90,7 +86,7 @@ export const toOpenCollectionFolder = (folder: BrunoItem): Folder => {
     info.seq = folder.seq;
   }
 
-  const tags = normalizeTags(folder.tags ?? folder.root?.meta?.tags);
+  const tags = normalizeTags(folder.root?.meta?.tags);
   if (tags.length) {
     info.tags = tags;
   }

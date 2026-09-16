@@ -1,7 +1,8 @@
 /**
- * Shape of any node that can carry tags. Requests store tags at the item level and mirror them into
- * `draft.tags`; a folder's draft clones its *root*, so unsaved folder tags live in `draft.meta.tags`
- * and saved ones are hoisted to the item level, with `root.meta.tags` as the fallback.
+ * Shape of any node that can carry tags. A request node *is* its file, so its tags sit at the item
+ * level and mirror into `draft.tags`. A folder node is a directory that may have no root file behind
+ * it at all, so its tags stay on `root.meta.tags` - the in-memory image of `folder.bru`/`folder.yml` -
+ * and a folder draft, being a clone of that root, carries them at `draft.meta.tags`.
  */
 export interface TaggedTreeNode {
   type?: string;
@@ -32,8 +33,7 @@ export const normalizeTags = (tags: unknown): string[] => {
 /** Tags a folder carries itself, draft-aware. */
 export const getFolderTags = (folder?: TaggedTreeNode | null): string[] => {
   if (!folder) return [];
-  if (folder.draft) return normalizeTags(folder.draft.meta?.tags);
-  return normalizeTags(folder.tags ?? folder.root?.meta?.tags);
+  return normalizeTags(folder.draft ? folder.draft.meta?.tags : folder.root?.meta?.tags);
 };
 
 /** Tags an item carries itself (no inheritance), draft-aware, for folders and requests alike. */

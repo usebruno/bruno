@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { describe, it, expect } = require('@jest/globals');
+const { getFolderTags } = require('@usebruno/common');
 const { buildTree } = require('../../src/services/mount/tree-builder');
 
 const COLLECTION_PATH = path.join(path.sep, 'collection');
@@ -14,31 +15,32 @@ const requestEntry = (relativePath, data = {}) => [
 const findFolder = (items, name) => items.find((item) => item.type === 'folder' && item.name === name);
 
 describe('buildTree: folder tags', () => {
-  it('carries the tags from a folder root onto the folder node', () => {
+  it('leaves the folder tags in the root, where the tag helpers read them', () => {
     const tree = buildTree(COLLECTION_PATH, [
       folderEntry('auth', { name: 'auth', tags: ['auth', 'smoke'] }),
       requestEntry(path.join('auth', 'login.bru'))
     ]);
 
-    expect(findFolder(tree.items, 'auth').tags).toEqual(['auth', 'smoke']);
+    const authFolder = findFolder(tree.items, 'auth');
+    expect(authFolder.root.meta.tags).toEqual(['auth', 'smoke']);
+    expect(getFolderTags(authFolder)).toEqual(['auth', 'smoke']);
   });
 
-  it('sets an empty list when the folder root carries no tags', () => {
+  it('leaves a folder untagged when its root carries no tags', () => {
     const tree = buildTree(COLLECTION_PATH, [
       folderEntry('auth', { name: 'auth' }),
       requestEntry(path.join('auth', 'login.bru'))
     ]);
 
-    expect(findFolder(tree.items, 'auth').tags).toEqual([]);
+    expect(getFolderTags(findFolder(tree.items, 'auth'))).toEqual([]);
   });
 
-  it('sets an empty list when tags are not an array', () => {
-    const tree = buildTree(COLLECTION_PATH, [
-      folderEntry('auth', { name: 'auth', tags: 'auth' }),
-      requestEntry(path.join('auth', 'login.bru'))
-    ]);
+  it('leaves a folder with no folder root file untagged', () => {
+    const tree = buildTree(COLLECTION_PATH, [requestEntry(path.join('auth', 'login.bru'))]);
 
-    expect(findFolder(tree.items, 'auth').tags).toEqual([]);
+    const authFolder = findFolder(tree.items, 'auth');
+    expect(authFolder.root).toBeUndefined();
+    expect(getFolderTags(authFolder)).toEqual([]);
   });
 
   it('keeps malformed entries as-is for the tag helpers to normalize', () => {
@@ -47,20 +49,16 @@ describe('buildTree: folder tags', () => {
       requestEntry(path.join('auth', 'login.bru'))
     ]);
 
-    expect(findFolder(tree.items, 'auth').tags).toEqual(['  auth  ', 42, null]);
-  });
-
-  it('leaves tags unset on a folder that has no folder root file', () => {
-    const tree = buildTree(COLLECTION_PATH, [requestEntry(path.join('auth', 'login.bru'))]);
-
-    expect(findFolder(tree.items, 'auth').tags).toBeUndefined();
+    const authFolder = findFolder(tree.items, 'auth');
+    expect(authFolder.root.meta.tags).toEqual(['  auth  ', 42, null]);
+    expect(getFolderTags(authFolder)).toEqual(['auth']);
   });
 
   it('tags a folder whose root file is the only entry in it', () => {
     const tree = buildTree(COLLECTION_PATH, [folderEntry('auth', { name: 'auth', tags: ['auth'] })]);
 
     const authFolder = findFolder(tree.items, 'auth');
-    expect(authFolder.tags).toEqual(['auth']);
+    expect(getFolderTags(authFolder)).toEqual(['auth']);
     expect(authFolder.items).toEqual([]);
   });
 });

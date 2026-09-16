@@ -1,4 +1,5 @@
 import path from 'path';
+import { getFolderTags } from '@usebruno/common';
 import reducer, {
   addFolderTag,
   deleteFolderTag,
@@ -142,7 +143,7 @@ describe('deleteFolderTag', () => {
 
   it('does nothing for an unknown collection, an unknown folder, or a request uid', () => {
     const state = makeState([
-      makeFolder({ tags: ['smoke'], root: { meta: { name: 'my-folder', tags: ['smoke'] } } }),
+      makeFolder({ root: { meta: { name: 'my-folder', tags: ['smoke'] } } }),
       { uid: 'req-1', name: 'a-request', type: 'http-request', request: {}, tags: ['smoke'] }
     ]);
 
@@ -159,10 +160,9 @@ describe('deleteFolderTag', () => {
 });
 
 describe('saveFolderDraft', () => {
-  it('hoists the saved tags to the folder item and clears the draft', () => {
+  it('promotes the drafted tags to the saved root and clears the draft', () => {
     const state = makeState([
       makeFolder({
-        tags: ['smoke'],
         root: { meta: { name: 'my-folder', tags: ['smoke'] } },
         draft: { meta: { name: 'my-folder', tags: ['smoke', 'api'] } }
       })
@@ -170,15 +170,14 @@ describe('saveFolderDraft', () => {
 
     const next = reducer(state, saveFolderDraft({ collectionUid: COLLECTION_UID, folderUid: FOLDER_UID }));
 
-    expect(folderIn(next).tags).toEqual(['smoke', 'api']);
     expect(folderIn(next).root.meta.tags).toEqual(['smoke', 'api']);
+    expect(getFolderTags(folderIn(next))).toEqual(['smoke', 'api']);
     expect(folderIn(next).draft).toBeNull();
   });
 
-  it('clears the item-level tags when the last one is removed', () => {
+  it('clears the saved tags when the last one is removed', () => {
     const state = makeState([
       makeFolder({
-        tags: ['smoke'],
         root: { meta: { name: 'my-folder', tags: ['smoke'] } },
         draft: { meta: { name: 'my-folder', tags: [] } }
       })
@@ -186,15 +185,15 @@ describe('saveFolderDraft', () => {
 
     const next = reducer(state, saveFolderDraft({ collectionUid: COLLECTION_UID, folderUid: FOLDER_UID }));
 
-    expect(folderIn(next).tags).toEqual([]);
+    expect(folderIn(next).root.meta.tags).toEqual([]);
   });
 
   it('leaves a folder with no draft untouched', () => {
-    const state = makeState([makeFolder({ tags: ['smoke'], root: { meta: { name: 'my-folder', tags: ['smoke'] } } })]);
+    const state = makeState([makeFolder({ root: { meta: { name: 'my-folder', tags: ['smoke'] } } })]);
 
     const next = reducer(state, saveFolderDraft({ collectionUid: COLLECTION_UID, folderUid: FOLDER_UID }));
 
-    expect(folderIn(next).tags).toEqual(['smoke']);
+    expect(folderIn(next).root.meta.tags).toEqual(['smoke']);
   });
 });
 
@@ -214,18 +213,18 @@ describe('folder root file events — tags from disk', () => {
     ['collectionAddFileEvent', collectionAddFileEvent],
     ['collectionChangeFileEvent', collectionChangeFileEvent]
   ])('%s', (_name, action) => {
-    it('mirrors the tags written on disk onto the folder item', () => {
+    it('takes the tags written on disk into the folder root', () => {
       const next = reducer(makeState([makeFolder()]), action(folderRootFile(['smoke', 'api'])));
 
-      expect(folderIn(next).tags).toEqual(['smoke', 'api']);
+      expect(getFolderTags(folderIn(next))).toEqual(['smoke', 'api']);
     });
 
-    it('clears the folder item tags when the file no longer declares any', () => {
-      const state = makeState([makeFolder({ tags: ['smoke'] })]);
+    it('drops the folder tags when the file no longer declares any', () => {
+      const state = makeState([makeFolder({ root: { meta: { name: 'my-folder', tags: ['smoke'] } } })]);
 
       const next = reducer(state, action(folderRootFile(undefined)));
 
-      expect(folderIn(next).tags).toEqual([]);
+      expect(getFolderTags(folderIn(next))).toEqual([]);
     });
   });
 });

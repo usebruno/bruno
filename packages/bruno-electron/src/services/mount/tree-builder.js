@@ -221,7 +221,6 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
     const meta = entry.data?.meta || {};
     if (meta.name) folder.name = meta.name;
     if (isSeqValid(meta.seq)) folder.seq = meta.seq;
-    folder.tags = Array.isArray(meta.tags) ? meta.tags : [];
     if (!entry.error) {
       hydrateRequestUuids(entry.data, folder.uid, folder.pathname);
       folder.root = entry.data;

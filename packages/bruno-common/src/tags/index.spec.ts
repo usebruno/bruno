@@ -82,37 +82,31 @@ describe('getFolderTags', () => {
     expect(getFolderTags(null)).toEqual([]);
   });
 
-  it('reads saved tags hoisted to the item level', () => {
-    expect(getFolderTags({ type: 'folder', tags: ['prod'] })).toEqual(['prod']);
-  });
-
-  it('falls back to root.meta.tags when the item carries none', () => {
+  it('reads saved tags off root.meta.tags', () => {
     expect(getFolderTags({ type: 'folder', root: { meta: { tags: ['prod'] } } })).toEqual(['prod']);
   });
 
-  it('prefers item-level tags over root.meta.tags', () => {
-    const folder = { type: 'folder', tags: ['hoisted'], root: { meta: { tags: ['stale'] } } };
-    expect(getFolderTags(folder)).toEqual(['hoisted']);
-  });
-
-  it('treats an empty item-level tags array as an explicit empty set, not a fallback', () => {
-    const folder = { type: 'folder', tags: [], root: { meta: { tags: ['stale'] } } };
-    expect(getFolderTags(folder)).toEqual([]);
+  it('returns nothing for a folder with no root file behind it', () => {
+    expect(getFolderTags({ type: 'folder' })).toEqual([]);
+    expect(getFolderTags({ type: 'folder', root: {} })).toEqual([]);
   });
 
   it('reads unsaved tags from draft.meta.tags when a draft exists', () => {
-    const folder = { type: 'folder', tags: ['saved'], draft: { meta: { tags: ['unsaved'] } } };
+    const folder = { type: 'folder', root: { meta: { tags: ['saved'] } }, draft: { meta: { tags: ['unsaved'] } } };
     expect(getFolderTags(folder)).toEqual(['unsaved']);
   });
 
   it('returns nothing when a draft cleared every tag', () => {
-    expect(getFolderTags({ type: 'folder', tags: ['saved'], draft: { meta: { tags: [] } } })).toEqual([]);
-    expect(getFolderTags({ type: 'folder', tags: ['saved'], draft: { meta: {} } })).toEqual([]);
-    expect(getFolderTags({ type: 'folder', tags: ['saved'], draft: {} })).toEqual([]);
+    const saved = { type: 'folder', root: { meta: { tags: ['saved'] } } };
+    expect(getFolderTags({ ...saved, draft: { meta: { tags: [] } } })).toEqual([]);
+    expect(getFolderTags({ ...saved, draft: { meta: {} } })).toEqual([]);
+    expect(getFolderTags({ ...saved, draft: {} })).toEqual([]);
   });
 
   it('normalizes whatever it reads', () => {
-    expect(getFolderTags({ type: 'folder', tags: [' prod ', 'prod', '', 7] as any })).toEqual(['prod']);
+    expect(getFolderTags({ type: 'folder', root: { meta: { tags: [' prod ', 'prod', '', 7] } } } as any)).toEqual([
+      'prod'
+    ]);
   });
 });
 
@@ -143,9 +137,9 @@ describe('getOwnTags', () => {
 
   it('resolves a folder through the folder rules', () => {
     expect(getOwnTags({ type: 'folder', root: { meta: { tags: ['prod'] } } })).toEqual(['prod']);
-    expect(getOwnTags({ type: 'folder', tags: ['saved'], draft: { meta: { tags: ['unsaved'] } } })).toEqual([
-      'unsaved'
-    ]);
+    expect(
+      getOwnTags({ type: 'folder', root: { meta: { tags: ['saved'] } }, draft: { meta: { tags: ['unsaved'] } } })
+    ).toEqual(['unsaved']);
   });
 
   it('never inherits - it only reports what the item itself carries', () => {
@@ -158,7 +152,11 @@ describe('getOwnTags', () => {
 });
 
 describe('getInheritedTagSourcesFromTreePath', () => {
-  const folderNode = (name: string, tags: string[]): TaggedTreeNode => ({ type: 'folder', name, tags });
+  const folderNode = (name: string, tags: string[]): TaggedTreeNode => ({
+    type: 'folder',
+    name,
+    root: { meta: { tags } }
+  });
 
   it('returns nothing for an empty or missing tree path', () => {
     expect(getInheritedTagSourcesFromTreePath()).toEqual([]);
@@ -201,7 +199,12 @@ describe('getInheritedTagSourcesFromTreePath', () => {
   });
 
   it('is draft-aware for the ancestor folders', () => {
-    const outer: TaggedTreeNode = { type: 'folder', name: 'outer', tags: ['saved'], draft: { meta: { tags: ['unsaved'] } } };
+    const outer: TaggedTreeNode = {
+      type: 'folder',
+      name: 'outer',
+      root: { meta: { tags: ['saved'] } },
+      draft: { meta: { tags: ['unsaved'] } }
+    };
 
     expect(getInheritedTagSourcesFromTreePath([outer, { type: 'http-request' }])).toEqual([
       { tag: 'unsaved', folder: outer }
@@ -209,7 +212,7 @@ describe('getInheritedTagSourcesFromTreePath', () => {
   });
 
   it('excludes the collection root, which carries no folder type', () => {
-    const collection = { name: 'collection', tags: ['collection-level'] };
+    const collection = { name: 'collection', root: { meta: { tags: ['collection-level'] } } };
     const folder = folderNode('folder', ['prod']);
 
     expect(getInheritedTagSourcesFromTreePath([collection, folder, { type: 'http-request' }])).toEqual([
@@ -226,8 +229,8 @@ describe('getInheritedTagsFromTreePath', () => {
 
   it('returns the ancestor tags, outermost first, de-duplicated', () => {
     const path = [
-      { type: 'folder', name: 'outer', tags: ['smoke', 'prod'] },
-      { type: 'folder', name: 'inner', tags: ['prod', 'v2'] },
+      { type: 'folder', name: 'outer', root: { meta: { tags: ['smoke', 'prod'] } } },
+      { type: 'folder', name: 'inner', root: { meta: { tags: ['prod', 'v2'] } } },
       { type: 'http-request', name: 'req', tags: ['own'] }
     ];
 

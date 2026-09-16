@@ -9,7 +9,12 @@ import {
 } from './index';
 
 const req = (name: string, tags?: string[]) => ({ name, type: 'http-request', tags });
-const folder = (name: string, items: any[], tags?: string[]) => ({ name, type: 'folder', items, tags });
+const folder = (name: string, items: any[], tags?: string[]) => ({
+  name,
+  type: 'folder',
+  items,
+  root: { meta: { tags } }
+});
 
 describe('filterRequestItemsByTags', () => {
   it('returns the items unchanged when no tags are given', () => {
@@ -48,12 +53,6 @@ describe('filterRequestItemsByTags', () => {
     const items = [folder('tagged', [req('a')], ['prod']), folder('untagged', [req('b')])];
     const result = filterRequestItemsByTags(items, ['prod'], []);
     expect(result.map((i) => i.name)).toEqual(['tagged']);
-    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
-  });
-
-  it('reads folder tags off root.meta.tags, the shape folders are read from disk with', () => {
-    const items = [{ name: 'f', type: 'folder', root: { meta: { tags: ['prod'] } }, items: [req('a')] }];
-    const result = filterRequestItemsByTags(items, ['prod'], []);
     expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
   });
 

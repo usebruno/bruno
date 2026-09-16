@@ -1,16 +1,16 @@
 import { describe, it, expect } from '@jest/globals';
+import { getFolderTags } from '@usebruno/common';
 import { fromOpenCollectionFolder, toOpenCollectionFolder } from '../../src/opencollection/folder';
 import { brunoToOpenCollection } from '../../src/opencollection/bruno-to-opencollection';
 import { openCollectionToBruno } from '../../src/opencollection/opencollection-to-bruno';
 
 describe('opencollection folder tags', () => {
   describe('fromOpenCollectionFolder', () => {
-    it('maps info.tags onto the item and onto root.meta', () => {
+    it('maps info.tags onto root.meta', () => {
       const folder = fromOpenCollectionFolder({
         info: { name: 'Users', type: 'folder', seq: 2, tags: ['smoke', 'api'] }
       });
 
-      expect(folder.tags).toEqual(['smoke', 'api']);
       expect(folder.root.meta).toEqual({ name: 'Users', seq: 2, tags: ['smoke', 'api'] });
     });
 
@@ -31,7 +31,6 @@ describe('opencollection folder tags', () => {
       });
 
       expect(folder.root).toBeUndefined();
-      expect(folder.tags).toBeUndefined();
     });
 
     it('trims, de-duplicates and drops non-string tags', () => {
@@ -39,7 +38,6 @@ describe('opencollection folder tags', () => {
         info: { name: 'Messy', type: 'folder', tags: ['  smoke  ', 'smoke', '', '   ', 42, null, undefined, 'api'] }
       });
 
-      expect(folder.tags).toEqual(['smoke', 'api']);
       expect(folder.root.meta.tags).toEqual(['smoke', 'api']);
     });
 
@@ -48,7 +46,6 @@ describe('opencollection folder tags', () => {
         info: { name: 'Blank Tags', type: 'folder', tags: ['', '   ', 7] }
       });
 
-      expect(folder.tags).toBeUndefined();
       expect(folder.root).toBeUndefined();
     });
 
@@ -71,7 +68,6 @@ describe('opencollection folder tags', () => {
         }
       });
 
-      expect(folder.tags).toEqual(['auth']);
       expect(folder.root.meta.tags).toEqual(['auth']);
       expect(folder.root.request.headers).toHaveLength(1);
     });
@@ -81,7 +77,6 @@ describe('opencollection folder tags', () => {
         info: { name: 'Bad Tags', type: 'folder', tags: 'smoke' }
       });
 
-      expect(folder.tags).toBeUndefined();
       expect(folder.root).toBeUndefined();
     });
 
@@ -96,57 +91,27 @@ describe('opencollection folder tags', () => {
         ]
       });
 
-      expect(folder.tags).toEqual(['parent-tag']);
+      expect(folder.root.meta.tags).toEqual(['parent-tag']);
       expect(folder.items[0].name).toBe('Child');
-      expect(folder.items[0].tags).toEqual(['child-tag']);
       expect(folder.items[0].root.meta.tags).toEqual(['child-tag']);
     });
   });
 
   describe('toOpenCollectionFolder', () => {
-    it('writes item level tags to info.tags', () => {
+    it('writes root.meta.tags to info.tags', () => {
       const ocFolder = toOpenCollectionFolder({
         uid: 'f1',
         type: 'folder',
         name: 'Users',
         seq: 3,
-        tags: ['smoke', 'api']
+        root: { meta: { name: 'Users', seq: 3, tags: ['smoke', 'api'] } }
       });
 
       expect(ocFolder.info.tags).toEqual(['smoke', 'api']);
     });
 
-    it('falls back to root.meta.tags when the item has no tags', () => {
-      const ocFolder = toOpenCollectionFolder({
-        uid: 'f2',
-        type: 'folder',
-        name: 'Users',
-        root: { meta: { name: 'Users', seq: 1, tags: ['from-root'] } }
-      });
-
-      expect(ocFolder.info.tags).toEqual(['from-root']);
-    });
-
-    it('prefers item level tags over root.meta.tags', () => {
-      const ocFolder = toOpenCollectionFolder({
-        uid: 'f3',
-        type: 'folder',
-        name: 'Users',
-        tags: ['from-item'],
-        root: { meta: { name: 'Users', seq: 1, tags: ['from-root'] } }
-      });
-
-      expect(ocFolder.info.tags).toEqual(['from-item']);
-    });
-
-    it('treats an empty item level tags array as cleared rather than falling back to root.meta', () => {
-      const ocFolder = toOpenCollectionFolder({
-        uid: 'f4',
-        type: 'folder',
-        name: 'Users',
-        tags: [],
-        root: { meta: { name: 'Users', seq: 1, tags: ['stale'] } }
-      });
+    it('omits info.tags for a folder with no root file behind it', () => {
+      const ocFolder = toOpenCollectionFolder({ uid: 'f4', type: 'folder', name: 'Users' });
 
       expect(ocFolder.info.tags).toBeUndefined();
     });
@@ -156,7 +121,7 @@ describe('opencollection folder tags', () => {
         uid: 'f5',
         type: 'folder',
         name: 'Messy',
-        tags: ['  smoke  ', 'smoke', '', 42, 'api']
+        root: { meta: { name: 'Messy', seq: 1, tags: ['  smoke  ', 'smoke', '', 42, 'api'] } }
       });
 
       expect(ocFolder.info.tags).toEqual(['smoke', 'api']);
@@ -178,7 +143,7 @@ describe('opencollection folder tags', () => {
         uid: 'f7',
         type: 'folder',
         name: 'Blank Tags',
-        tags: ['', '   ']
+        root: { meta: { name: 'Blank Tags', seq: 1, tags: ['', '   '] } }
       });
 
       expect('tags' in ocFolder.info).toBe(false);
@@ -197,7 +162,6 @@ describe('opencollection folder tags', () => {
             type: 'folder',
             name: 'Users',
             seq: 1,
-            tags: ['smoke'],
             root: { meta: { name: 'Users', seq: 1, tags: ['smoke'] } },
             items: [
               {
@@ -205,7 +169,6 @@ describe('opencollection folder tags', () => {
                 type: 'folder',
                 name: 'Admin',
                 seq: 1,
-                tags: ['admin', 'smoke'],
                 root: { meta: { name: 'Admin', seq: 1, tags: ['admin', 'smoke'] } },
                 items: []
               }
@@ -222,11 +185,9 @@ describe('opencollection folder tags', () => {
       const backToBruno = openCollectionToBruno(ocCollection);
 
       const users = backToBruno.items[0];
-      expect(users.tags).toEqual(['smoke']);
       expect(users.root.meta.tags).toEqual(['smoke']);
 
       const admin = users.items[0];
-      expect(admin.tags).toEqual(['admin', 'smoke']);
       expect(admin.root.meta.tags).toEqual(['admin', 'smoke']);
     });
 
@@ -251,7 +212,7 @@ describe('opencollection folder tags', () => {
       expect('tags' in ocCollection.items[0].info).toBe(false);
 
       const backToBruno = openCollectionToBruno(ocCollection);
-      expect(backToBruno.items[0].tags).toBeUndefined();
+      expect(getFolderTags(backToBruno.items[0])).toEqual([]);
     });
   });
 });
