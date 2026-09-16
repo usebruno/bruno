@@ -156,6 +156,21 @@ describe('readCollectionForApiSpec: robustness', () => {
     expect(result.processEnvVariables.API_TOKEN).toBe('secret123');
   });
 
+  it('hands back only the values from the collection\'s own .env, so nothing from the machine running Bruno can be written into a spec that gets shared', async () => {
+    const dir = mkCollection('dotenv-scope');
+    writeFile(dir, '.env', 'API_TOKEN=secret123\n');
+    process.env.BRUNO_SPEC_LEAK_CHECK = 'machine-secret';
+
+    try {
+      const result = await readCollectionForApiSpec(dir);
+
+      expect(result.processEnvVariables).toEqual({ API_TOKEN: 'secret123' });
+      expect(result.processEnvVariables.BRUNO_SPEC_LEAK_CHECK).toBeUndefined();
+    } finally {
+      delete process.env.BRUNO_SPEC_LEAK_CHECK;
+    }
+  });
+
   it.each(['bru', 'yml'])('%s: a secret variable comes back empty while the ordinary ones keep their values, so a password can never end up in the spec file', async (format) => {
     const ext = format === 'yml' ? 'yml' : 'bru';
     const dir = mkCollection(`secret-${format}`);

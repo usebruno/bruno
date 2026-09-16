@@ -62,7 +62,7 @@ const readCollectionForApiSpec = async (collectionPath) => {
 
     if (basename === '.env' && path.dirname(relativePath) === '.') {
       try {
-        processEnvVariables = { ...process.env, ...dotenvToJson(fs.readFileSync(absolutePath, 'utf8')) };
+        processEnvVariables = dotenvToJson(fs.readFileSync(absolutePath, 'utf8'));
       } catch (err) {
         console.error(err);
       }
