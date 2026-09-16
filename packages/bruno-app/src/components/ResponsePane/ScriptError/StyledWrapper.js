@@ -28,9 +28,7 @@ const StyledWrapper = styled.div`
     /* .scrollbar-hover uses the theme scrollbar color; match the CodeMirror overlay scrollbar
        in the response pane since the two scrollbars sit side by side. */
     &:hover::-webkit-scrollbar-thumb,
-    &::-webkit-scrollbar-thumb:hover {
-      background-color: ${(props) => (props.theme.mode === 'dark' ? '#444444' : '#D2D7DB')};
-    }
+
   }
 
 
