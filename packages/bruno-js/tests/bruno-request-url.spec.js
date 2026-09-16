@@ -17,6 +17,22 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
     expect(req.getQueryString()).toBe('a=1&b=2');
   });
 
+  // new URL() re-encodes a query - a space becomes %20 but ':' and '=' do not - which matches neither
+  // the url as written nor the one sent, so a resolved url's query is read as written like a templated one's
+  it('reports the query string as written rather than re-encoding it', () => {
+    const req = new BrunoRequest(makeRequest('https://api.example.com/path?test=a:b = c'));
+
+    expect(req.getHost()).toBe('api.example.com');
+    expect(req.getPath()).toBe('/path');
+    expect(req.getQueryString()).toBe('test=a:b = c');
+  });
+
+  it('leaves an already encoded query string as it is', () => {
+    const req = new BrunoRequest(makeRequest('https://api.example.com/path?test=a%3Ab%20%3D%20c'));
+
+    expect(req.getQueryString()).toBe('test=a%3Ab%20%3D%20c');
+  });
+
   // pre-request scripts run before the request is interpolated, so req.url is still a template
   it('reports a templated url as written rather than resolving it', () => {
     const req = new BrunoRequest(makeRequest('{{BASEURL}}/path?a={{A}}'));
@@ -58,6 +74,13 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
     expect(req.getHost()).toBe('api.example.com');
     expect(req.getPath()).toBe('/path');
     expect(req.getQueryString()).toBe('a=1');
+  });
+
+  it('does not read a question mark inside the fragment as the query string', () => {
+    const req = new BrunoRequest(makeRequest('https://api.example.com/path#section?a=1'));
+
+    expect(req.getPath()).toBe('/path');
+    expect(req.getQueryString()).toBe('');
   });
 
   it('reports an empty string when there is no url', () => {

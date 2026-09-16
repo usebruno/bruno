@@ -44,7 +44,10 @@ const parseUrl = (rawUrl) => {
         return {
           host: url.host,
           pathname: url.pathname,
-          queryString: url.search.replace(/^\?/, '')
+          // url.search re-encodes the query - a space becomes %20 but ':' and '=' stay put - so
+          // 'a:b = c' came back as 'a:b%20=%20c', matching neither the url as written nor the one
+          // sent. read it as written, the same as a templated url's query
+          queryString: customParseUrl(rawUrl).queryString
         };
       }
     } catch (e) {
