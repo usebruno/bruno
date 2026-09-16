@@ -1,3 +1,4 @@
+import path from 'path';
 import reducer, {
   addFolderTag,
   deleteFolderTag,
@@ -8,12 +9,15 @@ import reducer, {
 
 const COLLECTION_UID = 'col-1';
 const FOLDER_UID = 'folder-1';
+const COLLECTION_PATH = path.join(path.sep, 'coll');
+const FOLDER_PATH = path.join(COLLECTION_PATH, 'my-folder');
+const FOLDER_ROOT_PATH = path.join(FOLDER_PATH, 'folder.bru');
 
 const makeFolder = (overrides = {}) => ({
   uid: FOLDER_UID,
   name: 'my-folder',
   type: 'folder',
-  pathname: '/coll/my-folder',
+  pathname: FOLDER_PATH,
   root: { meta: { name: 'my-folder' }, request: {} },
   items: [],
   ...overrides
@@ -23,7 +27,7 @@ const makeState = (items) => ({
   collections: [
     {
       uid: COLLECTION_UID,
-      pathname: '/coll',
+      pathname: COLLECTION_PATH,
       items
     }
   ]
@@ -199,7 +203,7 @@ describe('folder root file events — tags from disk', () => {
     file: {
       meta: {
         collectionUid: COLLECTION_UID,
-        pathname: '/coll/my-folder/folder.bru',
+        pathname: FOLDER_ROOT_PATH,
         folderRoot: true
       },
       data: { meta: { name: 'my-folder', seq: 3, ...(tags === undefined ? {} : { tags }) } }

@@ -221,11 +221,11 @@ const builder = async (yargs) => {
     })
     .option('tags', {
       type: 'string',
-      description: 'Tags to include in the run, matched against a request\'s own tags and its folders\''
+      description: 'Tags to include in the run, matched against a request\'s own tags and its folders\' tags'
     })
     .option('exclude-tags', {
       type: 'string',
-      description: 'Tags to exclude from the run, matched against a request\'s own tags and its folders\''
+      description: 'Tags to exclude from the run, matched against a request\'s own tags and its folders\' tags'
     })
     .option('verbose', {
       type: 'boolean',

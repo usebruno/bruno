@@ -28,7 +28,7 @@ test.describe('Folder Tags (YAML) — inheritance display', () => {
     await openFolderSettingsByPath(page, COLLECTION_NAME, ['api']);
 
     await test.step('Settings tab is flagged as carrying tags', async () => {
-      await expect(page.getByTestId('folder-settings-tab-settings').getByTestId('status-dot')).toBeVisible();
+      await expect(locators.paneTabs.folderSettingsTab('settings').getByTestId('status-dot')).toBeVisible();
     });
 
     await selectFolderSettingsTab(page, 'settings');
@@ -45,8 +45,8 @@ test.describe('Folder Tags (YAML) — inheritance display', () => {
 
     await openFolderSettingsByPath(page, COLLECTION_NAME, ['misc']);
 
-    await expect(page.getByTestId('folder-settings-tab-settings')).toBeVisible();
-    await expect(page.getByTestId('folder-settings-tab-settings').getByTestId('status-dot')).toBeHidden();
+    await expect(locators.paneTabs.folderSettingsTab('settings')).toBeVisible();
+    await expect(locators.paneTabs.folderSettingsTab('settings').getByTestId('status-dot')).toBeHidden();
 
     await selectFolderSettingsTab(page, 'settings');
 

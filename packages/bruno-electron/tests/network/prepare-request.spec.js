@@ -1,3 +1,4 @@
+const path = require('path');
 const { describe, it, expect } = require('@jest/globals');
 
 const { prepareRequest } = require('../../src/ipc/network/prepare-request');
@@ -43,11 +44,13 @@ describe('prepare-request: prepareRequest', () => {
   describe('Effective tags', () => {
     // prepareRequest resolves tags against the tree, and electron walks it by uid,
     // so the item must be reachable in collection.items under the same uid
+    const COLLECTION_PATH = path.join(path.sep, 'collection');
+
     const httpRequest = (uid, tags) => ({
       uid,
       type: 'http-request',
       name: uid,
-      pathname: `/collection/${uid}.bru`,
+      pathname: path.join(COLLECTION_PATH, `${uid}.bru`),
       ...(tags !== undefined ? { tags } : {}),
       request: {
         method: 'GET',
@@ -65,12 +68,12 @@ describe('prepare-request: prepareRequest', () => {
       uid,
       type: 'folder',
       name: uid,
-      pathname: `/collection/${uid}`,
+      pathname: path.join(COLLECTION_PATH, uid),
       root: { meta: { name: uid, tags } },
       items
     });
 
-    const collectionWith = (items) => ({ pathname: '/collection', root: {}, items });
+    const collectionWith = (items) => ({ pathname: COLLECTION_PATH, root: {}, items });
 
     it('carries the request own tags when it sits at the collection root', async () => {
       const item = httpRequest('req-login', ['smoke', 'fast']);
