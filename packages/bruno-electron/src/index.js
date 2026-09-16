@@ -50,6 +50,7 @@ const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const registerContextMenu = require('./ipc/context-menu');
 const { registerSqliteIpc } = require('./ipc/sqlite');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -527,6 +528,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  registerContextMenu(mainWindow);
   registerSqliteIpc(mainWindow);
 
   // Internal delegator
