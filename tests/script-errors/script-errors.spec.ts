@@ -1,6 +1,6 @@
-import { test, expect, Page, Locator } from '../../playwright';
+import { test, expect, Page } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest } from '../utils/page/actions';
+import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest, getScrollMetrics } from '../utils/page/actions';
 import { setSandboxMode, runCollection } from '../utils/page/runner';
 
 for (const mode of ['safe', 'developer'] as const) {
@@ -415,8 +415,7 @@ for (const mode of ['safe', 'developer'] as const) {
     });
 
     test('18. Long error body scrolls when collapsed and fits the pane when expanded', async ({ pageWithUserData: page }) => {
-      const scrollMetrics = (locator: Locator) =>
-        locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
+      const scrollMetrics = () => getScrollMetrics(scriptErrorLocators.body(scriptErrorLocators.card()));
 
       await test.step('Open long-script request and send', async () => {
         await openRequest(page, 'script-errors-test', 'long-pre-request-error');
@@ -432,30 +431,28 @@ for (const mode of ['safe', 'developer'] as const) {
       await test.step('Collapsed body is scrollable', async () => {
         const body = scriptErrorLocators.body(scriptErrorLocators.card());
         await expect.poll(async () => {
-          const { scrollHeight, clientHeight } = await scrollMetrics(body);
+          const { scrollHeight, clientHeight } = await scrollMetrics();
           return scrollHeight > clientHeight;
         }).toBe(true);
 
         await body.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-        await expect.poll(async () => (await scrollMetrics(body)).scrollTop).toBeGreaterThan(0);
+        await expect.poll(async () => (await scrollMetrics()).scrollTop).toBeGreaterThan(0);
       });
 
       let collapsedHeight = 0;
 
       await test.step('Expand the card', async () => {
         const card = scriptErrorLocators.card();
-        const body = scriptErrorLocators.body(card);
-        collapsedHeight = (await scrollMetrics(body)).clientHeight;
+        collapsedHeight = (await scrollMetrics()).clientHeight;
 
         await scriptErrorLocators.expandToggle(card).click();
         await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'true');
 
-        await expect.poll(async () => (await scrollMetrics(body)).clientHeight).toBeGreaterThan(collapsedHeight);
+        await expect.poll(async () => (await scrollMetrics()).clientHeight).toBeGreaterThan(collapsedHeight);
       });
 
       await test.step('Expanded body scrolls all the way to the stack trace at the bottom', async () => {
         const card = scriptErrorLocators.card();
-        const body = scriptErrorLocators.body(card);
         const stack = scriptErrorLocators.stack(card);
 
         await stack.scrollIntoViewIfNeeded();
@@ -465,7 +462,7 @@ for (const mode of ['safe', 'developer'] as const) {
         const roundingTolerance = 1;
 
         await expect.poll(async () => {
-          const { scrollHeight, clientHeight, scrollTop } = await scrollMetrics(body);
+          const { scrollHeight, clientHeight, scrollTop } = await scrollMetrics();
           const visibleBottom = scrollTop + clientHeight;
           const hiddenContentBelow = scrollHeight - visibleBottom;
           return hiddenContentBelow;
@@ -474,11 +471,10 @@ for (const mode of ['safe', 'developer'] as const) {
 
       await test.step('Collapse restores the capped height', async () => {
         const card = scriptErrorLocators.card();
-        const body = scriptErrorLocators.body(card);
         await scriptErrorLocators.expandToggle(card).click();
         await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'false');
 
-        await expect.poll(async () => (await scrollMetrics(body)).clientHeight).toBe(collapsedHeight);
+        await expect.poll(async () => (await scrollMetrics()).clientHeight).toBe(collapsedHeight);
       });
     });
 

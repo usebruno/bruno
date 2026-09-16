@@ -180,7 +180,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 
   return (
     <StyledWrapper className={classnames({ expanded: isExpanded })}>
-      <div className={classnames('script-error-card', { expanded: isExpanded })} data-testid="script-error-card">
+      <div className="script-error-card" data-testid="script-error-card">
         <div className="script-error-header">
           <div className="error-title" data-testid="script-error-title">{title}</div>
           <div className="script-error-header-actions">

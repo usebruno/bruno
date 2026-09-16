@@ -24,20 +24,14 @@ const StyledWrapper = styled.div`
     max-height: 8rem;
     overflow-y: auto;
     padding-bottom: 0.75rem;
-
-    /* .scrollbar-hover uses the theme scrollbar color; match the CodeMirror overlay scrollbar
-       in the response pane since the two scrollbars sit side by side. */
-    &:hover::-webkit-scrollbar-thumb,
-
   }
 
-
   &.expanded,
-  .script-error-card.expanded {
+  &.expanded .script-error-card {
     flex: 1 1 auto;
   }
 
-  .script-error-card.expanded .script-error-body {
+  &.expanded .script-error-body {
     flex: 1 1 auto;
     max-height: none;
   }
