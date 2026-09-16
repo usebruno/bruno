@@ -855,7 +855,6 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
 
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
 
-  // Show all variables for fields that support the single-`{` trigger.
   const allowEmptyWord = context === 'variables' && !!options.enableSingleBraceTrigger;
   const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor, { allowEmptyWord });
 
@@ -942,6 +941,14 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
     return;
   }
 
+  const changeGeneration = cm.changeGeneration();
+  // Ctrl+Space shortcut fires our manual trigger on keydown, but releasing those two physical keys
+  // fires the keyup event. Skip for those.
+  if (changeGeneration === cm._brunoLastAutocompleteChangeGeneration) {
+    return;
+  }
+  cm._brunoLastAutocompleteChangeGeneration = changeGeneration;
+
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
@@ -958,6 +965,57 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
     hint: () => hints,
     completeSingle: false
   });
+};
+
+/**
+ * Manually (re)trigger autocomplete at the current caret position. invoked by the
+ * Ctrl+Space shortcut (HotkeysProvider).
+ *
+ * @param {Object} cm - CodeMirror editor instance
+ * @param {Object} options - The same options object passed to setupAutoComplete
+ */
+
+const TRIGGER_CLOSE_CHARACTERS = /[\s()\[\];:>,]/;
+
+const triggerAutocompleteAtCaret = (cm, options = {}) => {
+  const allVariables = options.getAllVariables?.() || {};
+  const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
+
+  // for shortcuts force enableSingleBraceTrigger.
+  const forcedOptions = { ...options, enableSingleBraceTrigger: true };
+
+  const existingHints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, forcedOptions);
+  if (existingHints) {
+    cm.showHint({
+      hint: () => existingHints,
+      completeSingle: false,
+      closeCharacters: TRIGGER_CLOSE_CHARACTERS
+    });
+
+    cm._brunoLastAutocompleteChangeGeneration = cm.changeGeneration();
+    return;
+  }
+
+  const showHintsFor = options.showHintsFor || [];
+  if (!showHintsFor.includes('variables')) {
+    return;
+  }
+
+  const cursor = cm.getCursor();
+  cm.replaceRange('{{', cursor, cursor);
+  // Explicit, rather than relying on CodeMirror's own post-insert cursor placement.
+  cm.setCursor({ line: cursor.line, ch: cursor.ch + 2 });
+
+  const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, forcedOptions);
+  if (hints) {
+    cm.showHint({
+      hint: () => hints,
+      completeSingle: false,
+      closeCharacters: TRIGGER_CLOSE_CHARACTERS
+    });
+
+    cm._brunoLastAutocompleteChangeGeneration = cm.changeGeneration();
+  }
 };
 
 /**
@@ -989,11 +1047,15 @@ export const setupAutoComplete = (editor, options = {}) => {
     editor.on('mousedown', clickHandler);
   }
 
+  // Manual trigger, invoked by the global Ctrl+Space shortcut (HotkeysProvider).
+  editor.brunoTriggerAutocomplete = () => triggerAutocompleteAtCaret(editor, options);
+
   return () => {
     editor.off('keyup', keyupHandler);
     if (options.showHintsOnClick) {
       editor.off('mousedown', clickHandler);
     }
+    delete editor.brunoTriggerAutocomplete;
   };
 };
 

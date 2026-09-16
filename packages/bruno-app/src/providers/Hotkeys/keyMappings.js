@@ -42,6 +42,12 @@ export const KEY_BINDING_SECTIONS = [
     }
   },
   {
+    heading: 'Editor',
+    bindings: {
+      triggerAutocomplete: { mac: 'ctrl+bind+space', windows: 'ctrl+bind+space', name: 'Trigger Autocomplete' }
+    }
+  },
+  {
     heading: 'Collections & Environment',
     bindings: {
       importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' }, // D
