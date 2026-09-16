@@ -7,21 +7,6 @@ import {
   READ_ONLY_SCOPE_ICON
 } from 'utils/common/constants';
 
-/**
- * Scope metadata (icon, label, color class) for the variable autocomplete dropdown.
- *
- * The icon markup (including READ_ONLY_SCOPE_ICON, the runtime/process.env/dynamic/oauth2
- * icon pairing) is imported from utils/common/constants — the single source of truth also
- * used by the variable tooltip and the "Add to" scope switcher — so all three stay visually
- * in sync automatically. AUTOCOMPLETE_SCOPES, SCOPE_LABEL and SCOPE_ICON_COLOR_CLASS below
- * stay autocomplete-only: nothing else in the app reads them.
- */
-
-// Scope keys used by the autocomplete dropdown. Deliberately not
-// utils/common/constants's VARIABLE_ADD_SCOPES: that enum only covers the 5 scopes the
-// "Add to" selector can create (request/folder/collection/environment/global). Autocomplete
-// also needs to represent scopes that were never addable there — runtime, process.env,
-// dynamic and oauth2 — so it keeps its own full list instead of extending someone else's.
 export const AUTOCOMPLETE_SCOPES = {
   REQUEST: 'request',
   FOLDER: 'folder',
