@@ -417,8 +417,8 @@ for (const mode of ['safe', 'developer'] as const) {
     test('18. Long error body scrolls when collapsed and fits the pane when expanded', async ({ pageWithUserData: page }) => {
       const scrollMetrics = () => getScrollMetrics(scriptErrorLocators.body(scriptErrorLocators.card()));
 
-      await test.step('Open long-script request and send', async () => {
-        await openRequest(page, 'script-errors-test', 'long-pre-request-error');
+      await test.step('Open large-error request and send', async () => {
+        await openRequest(page, 'script-errors-test', 'large-error-message');
         await sendAndWaitForErrorCard(page);
       });
 
@@ -455,7 +455,6 @@ for (const mode of ['safe', 'developer'] as const) {
         const card = scriptErrorLocators.card();
         const stack = scriptErrorLocators.stack(card);
 
-        await stack.scrollIntoViewIfNeeded();
         await expect(stack).toBeVisible();
 
         // Scroll positions can be fractional, so allow a 1px rounding difference
@@ -480,7 +479,7 @@ for (const mode of ['safe', 'developer'] as const) {
 
     test('19. Copy button copies file path, error message and stack trace', async ({ pageWithUserData: page, installFakeClipboard }) => {
       await test.step('Open request and trigger error', async () => {
-        await openRequest(page, 'script-errors-test', 'pre-request-ref-error');
+        await openRequest(page, 'script-errors-test', 'large-error-message');
         await sendAndWaitForErrorCard(page);
       });
 
@@ -491,8 +490,8 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(scriptErrorLocators.copyButton(card)).toHaveAttribute('title', 'Copied');
 
         const copied = await clipboard.copiedText();
-        expect(copied).toMatch(/^File: pre-request-ref-error\.bru:\d+\n\n/);
-        expect(copied).toMatch(/ReferenceError: '?undefinedVariable'? is not defined/);
+        expect(copied).toMatch(/^File: large-error-message\.bru:\d+\n\n/);
+        expect(copied).toContain(`Error: ${'X'.repeat(10 * 1024)}`);
         expect(copied).toContain('Stack trace:');
       });
     });
