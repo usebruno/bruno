@@ -496,7 +496,7 @@ const getEffectiveTagsByPathname = (collection) => {
   const walk = (items, inheritedTags) => {
     each(items, (item) => {
       if (item.type === 'folder') {
-        const folderTags = getEffectiveTags(inheritedTags, getFolderTags(item));
+        const folderTags = getEffectiveTags(getFolderTags(item), inheritedTags);
         tagsByPathname.set(item.pathname, folderTags);
         walk(item.items, folderTags);
         return;

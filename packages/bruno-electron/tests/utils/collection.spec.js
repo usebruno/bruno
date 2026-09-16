@@ -799,8 +799,8 @@ describe('getEffectiveTagsByUid', () => {
     const tagsByUid = getEffectiveTagsByUid(collection);
 
     expect(tagsByUid.get('folder-api')).toEqual(['api']);
-    expect(tagsByUid.get('folder-v2')).toEqual(['api', 'v2']);
-    expect(tagsByUid.get('req-users')).toEqual(['smoke', 'api', 'v2']);
+    expect(tagsByUid.get('folder-v2')).toEqual(['v2', 'api']);
+    expect(tagsByUid.get('req-users')).toEqual(['smoke', 'v2', 'api']);
   });
 
   test('does not leak tags across sibling folders', () => {

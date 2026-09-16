@@ -82,8 +82,8 @@ describe('getEffectiveTagsByPathname', () => {
     const tagsByPathname = getEffectiveTagsByPathname(collection);
 
     expect(tagsByPathname.get('/collection/api')).toEqual(['api']);
-    expect(tagsByPathname.get('/collection/api/v2')).toEqual(['api', 'v2']);
-    expect(tagsByPathname.get('/collection/api/v2/users.bru')).toEqual(['smoke', 'api', 'v2']);
+    expect(tagsByPathname.get('/collection/api/v2')).toEqual(['v2', 'api']);
+    expect(tagsByPathname.get('/collection/api/v2/users.bru')).toEqual(['smoke', 'v2', 'api']);
   });
 
   it('does not leak tags across sibling folders', () => {

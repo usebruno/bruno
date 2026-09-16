@@ -863,7 +863,7 @@ const getEffectiveTagsByUid = (collection) => {
   const walk = (items, inheritedTags) => {
     each(items, (item) => {
       if (item.type === 'folder') {
-        const folderTags = getEffectiveTags(inheritedTags, getFolderTags(item));
+        const folderTags = getEffectiveTags(getFolderTags(item), inheritedTags);
         tagsByUid.set(item.uid, folderTags);
         walk(item.items, folderTags);
         return;
