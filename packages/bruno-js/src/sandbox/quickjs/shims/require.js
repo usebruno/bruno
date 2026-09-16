@@ -1,50 +1,51 @@
 /**
  * Returns JavaScript code that sets up the require() function in the QuickJS VM.
- * This module loader looks up modules from globalThis.requireObject and optionally
- * supports loading local modules if the necessary context (bru.cwd, __brunoLoadLocalModule) is available.
+ * Modules are looked up in globalThis.requireObject; paths are loaded through the host
+ * loader that addLocalModuleLoaderShimToContext places at __brunoLoadLocalModule. The
+ * code captures that loader and deletes the global, so user scripts cannot reach it.
  *
- * @param {Object} options
- * @param {boolean} options.enableLocalModules - Whether to enable local module loading (requires bru context)
  * @returns {string} JavaScript code to eval in the VM
  */
 function getRequireCode() {
   return `
-    globalThis.require = (mod) => {
-      let lib = globalThis.requireObject[mod];
-      let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
-      if (lib) {
-        return lib;
-      }
-      else if (isModuleAPath(mod)) {
-        // fetch local module
-        let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
+    (() => {
+      const loadLocalModule = globalThis.__brunoLoadLocalModule;
+      delete globalThis.__brunoLoadLocalModule;
 
-        // compile local module as iife
-        (function (){
-          const initModuleExportsCode = "const module = { exports: {} };"
-          const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
-          const patchedRequire = ${`
-            "\\n;" +
-            "let require = (subModule) => isModuleAPath(subModule) ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule)) : globalThis.require(subModule)" +
-            "\\n;"
-          `}
-          eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
-        })();
+      globalThis.require = (mod) => {
+        let lib = globalThis.requireObject[mod];
+        let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
+        if (lib) {
+          return lib;
+        }
+        else if (isModuleAPath(mod)) {
+          // fetch local module
+          let localModuleCode = loadLocalModule(mod);
 
-        // resolve module
-        return globalThis.requireObject[mod];
+          // compile local module. Function compiles it in global scope, so it cannot
+          // reach this closure or loadLocalModule.
+          const module = { exports: {} };
+          let require = (subModule) => isModuleAPath(subModule)
+            ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))
+            : globalThis.require(subModule);
+          new Function('module', 'exports', 'require', localModuleCode)(module, module.exports, require);
+          globalThis.requireObject[mod] = module.exports;
+
+          // resolve module
+          return globalThis.requireObject[mod];
+        }
+        else {
+          throw new Error("Cannot find module " + mod);
+        }
       }
-      else {
-        throw new Error("Cannot find module " + mod);
-      }
-    }
+    })()
   `;
 }
 
 /**
- * Adds the require() function to a QuickJS VM context
+ * Adds the require() function to a QuickJS VM context. Call it after
+ * addLocalModuleLoaderShimToContext when local modules are needed.
  * @param {Object} vm - QuickJS VM context
- * @param {Object} options - Options passed to getRequireCode
  */
 function addRequireShimToContext(vm) {
   vm.evalCode(getRequireCode());

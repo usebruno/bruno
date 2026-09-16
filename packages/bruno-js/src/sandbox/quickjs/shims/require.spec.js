@@ -75,7 +75,7 @@ describe('require shim tests', () => {
     });
 
     it('should support destructuring from required modules', () => {
-      addRequireShimToContext(vm, { enableLocalModules: false });
+      addRequireShimToContext(vm);
 
       vm.evalCode(`
         globalThis.requireObject['my-lib'] = {
@@ -144,11 +144,12 @@ describe('require shim tests', () => {
     });
   });
 
-  describe('enableLocalModules option', () => {
-    it('should include local module loading code when enabled', () => {
+  describe('local module loading', () => {
+    it('captures the host loader and removes it from the global', () => {
       const code = getRequireCode();
       expect(code).toContain('isModuleAPath');
-      expect(code).toContain('__brunoLoadLocalModule');
+      expect(code).toContain('const loadLocalModule = globalThis.__brunoLoadLocalModule');
+      expect(code).toContain('delete globalThis.__brunoLoadLocalModule');
     });
   });
 });
