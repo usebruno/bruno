@@ -187,7 +187,12 @@ describe('resolveEnvironmentInheritance', () => {
 
       const result = resolve({ environments: [dev], target: 'dev' })!;
 
-      expect(result).toEqual({ ...dev, inheritedVariables: [] });
+      expect(result).toEqual({
+        ...dev,
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: 'base',
+        cyclicInheritancePath: null
+      });
     });
 
     it('inherits nothing from an environment that extends itself', () => {
@@ -197,7 +202,12 @@ describe('resolveEnvironmentInheritance', () => {
         extends: 'base'
       });
 
-      expect(resolve({ environments: [base], target: 'base' })).toEqual({ ...base, inheritedVariables: [] });
+      expect(resolve({ environments: [base], target: 'base' })).toEqual({
+        ...base,
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: null,
+        cyclicInheritancePath: ['base', 'base']
+      });
     });
 
     it('ignores a list-shaped reference, since a single parent is the only supported shape', () => {
@@ -206,21 +216,36 @@ describe('resolveEnvironmentInheritance', () => {
 
       const result = resolve({ environments: [base, dev], target: 'dev' })!;
 
-      expect(result).toEqual({ ...dev, inheritedVariables: [] });
+      expect(result).toEqual({
+        ...dev,
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: null,
+        cyclicInheritancePath: null
+      });
     });
 
     it('inherits nothing from a reference containing a path separator', () => {
       const base = environment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
       const dev = environment({ name: 'dev', extends: '../base' });
 
-      expect(resolve({ environments: [base, dev], target: 'dev' })).toEqual({ ...dev, inheritedVariables: [] });
+      expect(resolve({ environments: [base, dev], target: 'dev' })).toEqual({
+        ...dev,
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: '../base',
+        cyclicInheritancePath: null
+      });
     });
 
     it('inherits nothing from a reference carrying a line break', () => {
       const base = environment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
       const dev = environment({ name: 'dev', extends: 'base\nvars {\n  injected: pwned\n}' });
 
-      expect(resolve({ environments: [base, dev], target: 'dev' })).toEqual({ ...dev, inheritedVariables: [] });
+      expect(resolve({ environments: [base, dev], target: 'dev' })).toEqual({
+        ...dev,
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: 'base\nvars {\n  injected: pwned\n}',
+        cyclicInheritancePath: null
+      });
     });
   });
 
@@ -234,7 +259,9 @@ describe('resolveEnvironmentInheritance', () => {
 
       expect(resolve({ environments: [differentCase, child], target: 'child' })).toEqual({
         ...child,
-        inheritedVariables: []
+        inheritedVariables: [],
+        missingInheritedEnvironmentName: 'prod',
+        cyclicInheritancePath: null
       });
     });
 
@@ -546,6 +573,60 @@ describe('resolveEnvironmentInheritance', () => {
       ]);
     });
   });
+
+  describe('the unresolved chain it reports', () => {
+    it('reports nothing unresolved for a chain that resolves end to end', () => {
+      const base = environment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
+      const dev = environment({ name: 'dev', extends: 'base' });
+
+      const result = resolve({ environments: [base, dev], target: 'dev' })!;
+
+      expect(result.missingInheritedEnvironmentName).toBeNull();
+      expect(result.cyclicInheritancePath).toBeNull();
+    });
+
+    it('reports nothing at all for an environment that inherits from nothing', () => {
+      const base = environment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
+
+      const result = resolve({ environments: [base], target: 'base' })!;
+
+      expect(result.missingInheritedEnvironmentName).toBeUndefined();
+      expect(result.cyclicInheritancePath).toBeUndefined();
+    });
+
+    it('reports the reference no environment declares', () => {
+      const dev = environment({ name: 'dev', extends: 'base' });
+
+      const result = resolve({ environments: [dev], target: 'dev' })!;
+
+      expect(result.missingInheritedEnvironmentName).toBe('base');
+      expect(result.cyclicInheritancePath).toBeNull();
+    });
+
+    it('reports the loop the chain closed', () => {
+      const base = environment({ name: 'base', extends: 'dev' });
+      const dev = environment({ name: 'dev', extends: 'base' });
+
+      const result = resolve({ environments: [base, dev], target: 'dev' })!;
+
+      expect(result.cyclicInheritancePath).toEqual(['dev', 'base', 'dev']);
+      expect(result.missingInheritedEnvironmentName).toBeNull();
+    });
+
+    it('reports the loop alongside the variables the chain did resolve', () => {
+      const base = environment({
+        name: 'base',
+        variables: [variable({ name: 'scheme', value: 'https' })],
+        extends: 'dev'
+      });
+      const dev = environment({ name: 'dev', extends: 'base' });
+
+      const result = resolve({ environments: [base, dev], target: 'dev', merge: true })!;
+
+      expect(result.variables.map((row: VariableProps) => row.name)).toEqual(['scheme']);
+      expect(result.cyclicInheritancePath).toEqual(['dev', 'base', 'dev']);
+    });
+  });
 });
 
 describe('getInheritedEnvironments', () => {
@@ -560,13 +641,14 @@ describe('getInheritedEnvironments', () => {
     const staging = environment({ name: 'staging', extends: 'base' });
     const dev = environment({ name: 'dev', extends: 'staging' });
 
-    const { inheritedEnvironments, missingInheritedEnvironmentName } = walk({
+    const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = walk({
       environments: [base, staging, dev],
       target: 'dev'
     });
 
     expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base', 'staging']);
     expect(missingInheritedEnvironmentName).toBeNull();
+    expect(cyclicInheritancePath).toBeNull();
   });
 
   it('reports the reference that resolves to nothing', () => {
@@ -591,11 +673,51 @@ describe('getInheritedEnvironments', () => {
     expect(missingInheritedEnvironmentName).toBe('base');
   });
 
-  it('reports no missing parent for a cyclic chain', () => {
+  it('reports a path that closes back onto the target when two environments extend each other', () => {
     const base = environment({ name: 'base', extends: 'dev' });
     const dev = environment({ name: 'dev', extends: 'base' });
 
-    expect(walk({ environments: [base, dev], target: 'dev' }).missingInheritedEnvironmentName).toBeNull();
+    const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = walk({
+      environments: [base, dev],
+      target: 'dev'
+    });
+
+    expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base']);
+    expect(missingInheritedEnvironmentName).toBeNull();
+    expect(cyclicInheritancePath).toEqual(['dev', 'base', 'dev']);
+  });
+
+  it('reports a two-name path when an environment extends itself', () => {
+    const dev = environment({ name: 'dev', extends: 'dev' });
+
+    const { inheritedEnvironments, cyclicInheritancePath } = walk({ environments: [dev], target: 'dev' });
+
+    expect(inheritedEnvironments).toEqual([]);
+    expect(cyclicInheritancePath).toEqual(['dev', 'dev']);
+  });
+
+  it('reports only the loop when the target points into one it is not part of', () => {
+    const staging = environment({ name: 'staging', extends: 'base' });
+    const base = environment({ name: 'base', extends: 'staging' });
+    const dev = environment({ name: 'dev', extends: 'staging' });
+
+    const { inheritedEnvironments, cyclicInheritancePath } = walk({
+      environments: [base, staging, dev],
+      target: 'dev'
+    });
+
+    expect(inheritedEnvironments.map((env) => env.name)).toEqual(['base', 'staging']);
+    expect(cyclicInheritancePath).toEqual(['staging', 'base', 'staging']);
+  });
+
+  it('reports every name in the loop when it spans more than two environments', () => {
+    const base = environment({ name: 'base', extends: 'qa' });
+    const qa = environment({ name: 'qa', extends: 'staging' });
+    const staging = environment({ name: 'staging', extends: 'base' });
+
+    const { cyclicInheritancePath } = walk({ environments: [base, qa, staging], target: 'base' });
+
+    expect(cyclicInheritancePath).toEqual(['base', 'qa', 'staging', 'base']);
   });
 
   it('reports a missing parent for a differently-cased reference', () => {
