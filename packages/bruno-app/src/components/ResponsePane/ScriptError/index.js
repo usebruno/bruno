@@ -7,7 +7,6 @@ import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'pro
 import { addTab, setFocusErrorLine, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import toast from 'react-hot-toast';
 import ErrorBanner from 'ui/ErrorBanner';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';

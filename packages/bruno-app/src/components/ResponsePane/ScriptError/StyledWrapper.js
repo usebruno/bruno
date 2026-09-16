@@ -3,10 +3,8 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 0;
 
   .script-error-card {
-    min-height: 0;
     background-color: ${(props) => props.theme.background.base};
     border: solid 1px ${(props) => props.theme.border.border2};
     border-left: 4px solid ${(props) => props.theme.colors.text.danger};
@@ -29,6 +27,7 @@ const StyledWrapper = styled.div`
   &.expanded,
   &.expanded .script-error-card {
     flex: 1 1 auto;
+    min-height: 0;
   }
 
   &.expanded .script-error-body {
