@@ -1,5 +1,6 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { makeAxiosInstance } from '../network';
+import { getSentHeaders } from '../network/sent-headers';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
 
@@ -22,6 +23,7 @@ type SendRequestEntry = {
     dataBuffer: string;
     size: number;
     duration: number;
+    timeline: any[] | null;
   } | null;
   error: any | null;
   startedAt: number;
@@ -43,6 +45,7 @@ type ScriptedEntryResponseInput = {
   dataBuffer?: string;
   size?: number;
   duration?: number;
+  timeline?: any[];
 } | null | undefined;
 
 type BuildScriptedEntryArgs = {
@@ -100,7 +103,10 @@ const buildScriptedEntry = ({
         : (dataBuffer ? Buffer.from(dataBuffer, 'base64').length : 0),
       duration: typeof response.duration === 'number'
         ? response.duration
-        : (completedAt - startedAt)
+        : (completedAt - startedAt),
+      /** bru.runRequest already has one, bru.sendRequest builds its own below. Null when the
+       *  request never reached a response. */
+      timeline: response.timeline ?? null
     };
   }
   return {
@@ -132,6 +138,28 @@ type SendRequestOptions = {
 const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOptions) => {
   const onComplete = options?.onComplete;
 
+  /** bru.runRequest gets its timeline from the pipeline it runs through. bru.sendRequest has no
+   *  pipeline, so build the same entries here or its Timeline has no Network tab and no headers. */
+  const buildTimeline = (config: AxiosRequestConfig, response: AxiosResponse | null) => {
+    const timeline: Array<{ timestamp: Date; type: string; message: string }> = [];
+    const add = (type: string, message: string) => timeline.push({ timestamp: new Date(), type, message });
+
+    add('request', `${(config.method || 'get').toString().toUpperCase()} ${config.url}`);
+    for (const [name, value] of Object.entries(getSentHeaders((response as any)?.request))) {
+      add('requestHeader', `${name}: ${value}`);
+    }
+
+    if (response) {
+      const httpVersion = (response as any)?.request?.res?.httpVersion || '1.1';
+      add('response', `HTTP/${httpVersion} ${response.status} ${response.statusText}`);
+      for (const [name, value] of Object.entries(toPlainHeaders(response.headers))) {
+        add('responseHeader', `${name}: ${value}`);
+      }
+    }
+
+    return timeline;
+  };
+
   const recordEntry = (
     normalizedConfig: AxiosRequestConfig,
     response: AxiosResponse | null,
@@ -150,7 +178,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
           headers: normalizedConfig.headers,
           data: normalizedConfig.data
         },
-        response: resp,
+        response: resp ? { ...resp, timeline: buildTimeline(normalizedConfig, resp) } : resp,
         error,
         startedAt,
         completedAt

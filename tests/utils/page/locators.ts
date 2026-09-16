@@ -8,7 +8,6 @@ import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
-import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
@@ -19,6 +18,10 @@ import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
+import { buildTitleBarLocators } from './title-bar';
+import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
+import { buildResponseExampleLocators } from './response-example';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -27,6 +30,7 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
@@ -42,12 +46,14 @@ export const buildCommonLocators = (page: Page) => ({
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
+  responseExample: buildResponseExampleLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
-  deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  manageWorkspace: buildManageWorkspaceLocators(page),
+  cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
   variablesTab: buildVariablesTabLocators(page),
@@ -74,11 +80,17 @@ export const buildCommonLocators = (page: Page) => ({
     activeRequestTab: () => page.locator('.request-tab.active'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
+    closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
+    closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
+    // request and response may have more tabs, pass the pane to isolate further.
+    overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
+    // menu is rendered via portal, hence it rooted to page.
+    overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
@@ -165,6 +177,7 @@ export const buildCommonLocators = (page: Page) => ({
     // The "Add to" switcher, shown in place of an editable value for undefined variables.
     addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
     addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToList: (popup: Locator) => popup.getByTestId('var-info-add-to-list'),
     addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
     addToActiveOption: (popup: Locator, scopeType?: string) => {
       const activeRow = popup.locator('.var-add-to-option-active');
@@ -237,10 +250,11 @@ export const buildCommonLocators = (page: Page) => ({
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
     allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
     filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
-    gitLinkLabel: () => page.locator('.bruno-modal').getByText('Include git repo URL')
+    gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
@@ -268,8 +282,10 @@ export const buildCommonLocators = (page: Page) => ({
     // every still-collapsed node regardless of depth.
     xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
     previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
-    // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
-    testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
+    tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
+    tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
+    testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+      page.getByTestId(`test-summary-${section}`),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
     // label spans, so each failure counts once, not twice.
     testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),
@@ -406,6 +422,8 @@ const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
+type GrpcTestSectionKey = 'beforeCallStart' | 'beforeMessageSend' | 'afterMessageReceive' | 'afterCallEnd';
+
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   method: {
@@ -436,7 +454,30 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('grpc-responses-list'),
     responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
-    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count')
+    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count'),
+    tests: {
+      passedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-passed-count'),
+      failedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-failed-count'),
+      section: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`),
+      summary: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).locator('.test-summary'),
+      rows: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).getByTestId('test-result-item'),
+      passedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-fail') }),
+      /** The "Message N" label a message hook's results are grouped under, 0-based */
+      messageGroup: (hook: GrpcTestSectionKey, messageIndex: number) =>
+        page.getByTestId(`grpc-test-section-${hook}`).getByTestId(`grpc-test-message-group-${messageIndex}`),
+      /** Every "Message N" label in a section, so a per-message hook's run count can be asserted */
+      messageGroups: (hook: GrpcTestSectionKey) =>
+        page.getByTestId(`grpc-test-section-${hook}`).locator('[data-testid^="grpc-test-message-group-"]')
+    }
   }
 });
 

@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import cloneDeep from 'lodash/cloneDeep';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { sendNetworkRequest } from 'utils/network/index';
 import {
   findEnvironmentInCollection,
@@ -192,7 +193,11 @@ const CollectionApp = ({ item, collection }) => {
   const { url: src, error: appDocumentError } = useAppDocumentUrl(`collection-app:${item.uid}`, COLLECTION_CTX_BOOTSTRAP, savedCode);
 
   const environment = useMemo(
-    () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
     [collection]
   );
   const variables = useMemo(() => buildVariables(collection), [collection]);

@@ -4,6 +4,7 @@ import { JSONPath } from 'jsonpath-plus';
 import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
+import { hasLongLine } from './long-lines';
 import prettierFormat from 'prettier/standalone';
 import parserBabel from 'prettier/parser-babel';
 
@@ -398,10 +399,16 @@ export const prettifyJsonString = (jsonDataString) => {
 
   try {
     const { hashed, restore } = patternHasher(jsonDataString);
+
+    // jsonc-parser format is accurate for Bruno variables but can hang on
+    // pathological single-line payloads; fast-json-format stays responsive.
+    if (hasLongLine(jsonDataString)) {
+      return restore(fastJsonFormat(hashed));
+    }
+
     const edits = format(hashed, undefined, { tabSize: 2, insertSpaces: true });
     const formattedJsonDataStringHashed = applyEdits(hashed, edits);
-    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
-    return formattedJsonDataString;
+    return restore(formattedJsonDataStringHashed);
   } catch (error) {
     console.log('error formatting json data!');
     console.error(error);

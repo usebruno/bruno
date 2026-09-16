@@ -22,6 +22,7 @@ const {
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
 const { utils } = require('@usebruno/common');
+const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -87,6 +88,7 @@ const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = requir
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
+const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
 const {
   validateWorkspacePath,
@@ -743,7 +745,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color, inheritedEnvironmentName) => {
     try {
       validatePathIsInsideCollection(collectionPathname);
 
@@ -771,6 +773,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         variables: variables || [],
         color
       };
+
+      if (inheritedEnvironmentName) {
+        environment.extends = inheritedEnvironmentName;
+      }
 
       if (envHasSecrets(environment)) {
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
@@ -837,7 +843,25 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       moveRequestUid(envFilePath, newEnvFilePath);
       fs.renameSync(envFilePath, newEnvFilePath);
 
+      // only the yml format persists the name; bru derives it from the filename
+      if (format === 'yml') {
+        await withFileLock(newEnvFilePath, async () => {
+          const environment = parseEnvironment(fs.readFileSync(newEnvFilePath, 'utf8'), { format });
+          if (environment.name === newName) return;
+
+          environment.name = newName;
+          await writeFile(newEnvFilePath, stringifyEnvironment(environment, { format }));
+        });
+      }
+
       environmentSecretsStore.renameEnvironment(collectionPathname, environmentName, newName);
+
+      await renameEnvironmentExtendsReferences({
+        environmentsDirPath: path.join(collectionPathname, 'environments'),
+        format,
+        oldName: environmentName,
+        newName
+      });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -946,6 +970,34 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // save the environment this environment inherits its variables from
+  ipcMain.handle('renderer:save-environment-extends', async (event, collectionPathname, environmentName, inheritedEnvironmentName) => {
+    try {
+      const format = getCollectionFormat(collectionPathname);
+      const envFilePath = resolveEnvironmentFilePath(collectionPathname, environmentName, format);
+
+      if (!fs.existsSync(envFilePath)) {
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      await withFileLock(envFilePath, async () => {
+        const fileContent = fs.readFileSync(envFilePath, 'utf8');
+        const environment = parseEnvironment(fileContent, { format });
+
+        if (inheritedEnvironmentName) {
+          environment.extends = inheritedEnvironmentName;
+        } else {
+          delete environment.extends;
+        }
+
+        const updatedContent = stringifyEnvironment(environment, { format });
+        await writeFile(envFilePath, updatedContent);
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // update environment color
   ipcMain.handle('renderer:update-environment-color', async (event, collectionPathname, environmentName, color) => {
     try {
@@ -989,6 +1041,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         name: environment.name,
         variables: environment.variables,
         color: environment.color ?? undefined,
+        extends: environment.extends ?? undefined,
         info: {
           type: 'bruno-environment',
           exportedAt: new Date().toISOString(),
@@ -1634,6 +1687,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         validatePathIsInsideCollection(item.pathname);
 
         if (item?.type === 'folder') {
+          if (!fs.existsSync(item.pathname)) {
+            continue;
+          }
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
             meta: {
@@ -1725,13 +1781,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // is reflected in every nested path.
         const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourcePathname, targetPathname));
 
-        await copyPathTo(sourcePathname, targetPathname);
-        await removePath(sourcePathname);
-
         // move the request uids of the previous file/folders to the new file/folder items
         pathnamesAfter?.forEach((_, index) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
+
+        try {
+          await copyPathTo(sourcePathname, targetPathname);
+          await removePath(sourcePathname);
+        } catch (error) {
+          pathnamesAfter?.forEach((_, index) => {
+            moveRequestUid(pathnamesAfter[index], pathnamesBefore[index]);
+          });
+          throw error;
+        }
 
         return { newPathname: targetPathname };
       } catch (error) {
@@ -1763,10 +1826,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
 
         // Resolve collisions silently with a numeric suffix instead of erroring.
-        const { pathname: targetPathname } = await writeFileUnique(targetDirname, filenameWithoutExt, targetExt, finalContent);
-        await removePath(sourcePathname);
+        const desiredTargetPathname = path.join(targetDirname, `${filenameWithoutExt}.${targetExt}`);
+        const targetPathname = getUniqueRenamePath(sourcePathname, desiredTargetPathname);
 
         moveRequestUid(sourcePathname, targetPathname);
+
+        try {
+          await fs.promises.writeFile(targetPathname, finalContent, { flag: 'wx' });
+          await removePath(sourcePathname);
+        } catch (error) {
+          moveRequestUid(targetPathname, sourcePathname);
+          throw error;
+        }
 
         return { newPathname: targetPathname };
       } catch (error) {
@@ -1983,7 +2054,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (request.oauth2) {
         const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const environment = resolveEnvironmentInheritance({
+          environments,
+          targetEnvironment: _.find(environments, (e) => e.uid === activeEnvironmentUid)
+        });
         const envVars = getEnvVars(environment);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };
@@ -2114,7 +2188,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (request.oauth2) {
         const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
-        const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+        const environment = resolveEnvironmentInheritance({
+          environments,
+          targetEnvironment: _.find(environments, (e) => e.uid === activeEnvironmentUid)
+        });
         const envVars = getEnvVars(environment);
         const processEnvVars = getProcessEnvVars(collectionUid);
         const partialItem = { uid: itemUid };

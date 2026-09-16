@@ -348,7 +348,7 @@ test.describe('Generate Documentation', () => {
     expect(generatedEnvironmentNames(content).sort()).toEqual([...EXPECTED_ENVIRONMENTS].sort());
   });
 
-  test('reveals request filtering and the git-link control under Advanced', async ({
+  test('reveals request filtering under Advanced, and hides the git-link control when the collection has no git remote', async ({
     pageWithUserData: page
   }) => {
     const locators = buildCommonLocators(page);
@@ -362,15 +362,15 @@ test.describe('Generate Documentation', () => {
 
     await locators.generateDocs.advancedToggle().click();
 
-    await expect(locators.generateDocs.allRequestsButton()).toHaveAttribute('aria-pressed', 'true');
-    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'false');
+    await expect(locators.generateDocs.allRequestsButton()).toBeChecked();
+    await expect(locators.generateDocs.filterByTagsButton()).not.toBeChecked();
 
-    await locators.generateDocs.filterByTagsButton().click();
-    await expect(locators.generateDocs.filterByTagsButton()).toHaveAttribute('aria-pressed', 'true');
+    await locators.generateDocs.filterByTagsButton().check();
+    await expect(locators.generateDocs.filterByTagsButton()).toBeChecked();
     await expect(locators.generateDocs.includeTagsInput()).toBeVisible();
     await expect(locators.generateDocs.excludeTagsInput()).toBeVisible();
 
-    await expect(locators.generateDocs.gitLinkLabel()).toBeVisible();
+    await expect(locators.generateDocs.gitLinkLabel()).toBeHidden();
 
     await locators.generateDocs.cancelButton().click();
     await expect(modal).toBeHidden();
@@ -383,7 +383,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().click();
+      await locators.generateDocs.filterByTagsButton().check();
       const include = locators.generateDocs.includeTagsInput();
       await include.fill('smoke');
       await include.press('Enter');
@@ -400,7 +400,7 @@ test.describe('Generate Documentation', () => {
 
     const { content } = await generateCollectionDocs(page, COLLECTION_NAME, async () => {
       await locators.generateDocs.advancedToggle().click();
-      await locators.generateDocs.filterByTagsButton().click();
+      await locators.generateDocs.filterByTagsButton().check();
       const exclude = locators.generateDocs.excludeTagsInput();
       await exclude.fill('wip');
       await exclude.press('Enter');

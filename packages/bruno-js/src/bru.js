@@ -7,6 +7,15 @@ const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
+const assertValidVariableName = (key) => {
+  if (variableNameRegex.test(key) === false) {
+    throw new Error(
+      `Variable name: "${key}" contains invalid characters!`
+      + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+    );
+  }
+};
+
 class Bru {
   /**
    * @param {object} options - Single options object (destructured)
@@ -200,11 +209,7 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters! Names must only contain alpha-numeric characters, "-", "_", "."`
-      );
-    }
+    assertValidVariableName(key);
 
     // Deep-equal compare so object/array writes that mutate in place
     // (e.g. `const c = bru.getEnvVar('cfg'); c.port = 4000; bru.setEnvVar('cfg', c);`)
@@ -253,6 +258,8 @@ class Bru {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
+
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
       this.globalEnvironmentVariables[key] = value;
@@ -311,12 +318,7 @@ class Bru {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.runtimeVariables, key) || !isEqual(this.runtimeVariables[key], value)) {
       this.runtimeVariables[key] = value;
@@ -325,12 +327,7 @@ class Bru {
   }
 
   getVar(key) {
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
     return this.interpolate(this.runtimeVariables[key]);
   }
@@ -364,12 +361,7 @@ class Bru {
       throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if (variableNameRegex.test(key) === false) {
-      throw new Error(
-        `Variable name: "${key}" contains invalid characters!`
-        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
-      );
-    }
+    assertValidVariableName(key);
 
     if (!Object.hasOwn(this.collectionVariables, key) || !isEqual(this.collectionVariables[key], value)) {
       this.collectionVariables[key] = value;

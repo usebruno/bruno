@@ -22,6 +22,8 @@ export const buildRunnerLocators = (page: Page) => ({
   requestItems: () => page.getByTestId('runner-request-item'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
+  passedTestRows: () => page.getByTestId('runner-test-row-passed'),
+  failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
   requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
   resultTimelineEntries: () => page.getByTestId('timeline-entry')

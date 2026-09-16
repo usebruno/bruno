@@ -10,8 +10,11 @@ import {
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
   getEnvironmentVariables,
+  getVisibleSidebarUidsInOrder,
+  getSelectionInfo,
   getUniqueTagsFromItems,
-  getCollectionVersion
+  getCollectionVersion,
+  isCollectionItemCollapsed
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -175,32 +178,147 @@ describe('getCollectionVersion', () => {
 });
 
 describe('getVariableScope — global environment secrets', () => {
-  it('flags a global-scoped variable as secret when its name is in globalEnvSecrets', () => {
-    const collection = {
-      globalEnvironmentVariables: { apiToken: 'super-secret' },
-      globalEnvSecrets: ['apiToken']
-    };
+  const buildCollection = (variables) => ({
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [{ uid: 'genv-1', name: 'Workspace', variables }]
+  });
 
-    const scopeInfo = getVariableScope('apiToken', collection, null);
+  it('flags a global-scoped variable as secret when its row is marked secret', () => {
+    const variable = { uid: 'v1', name: 'apiToken', value: 'super-secret', enabled: true, secret: true };
+
+    const scopeInfo = getVariableScope('apiToken', buildCollection([variable]), null);
 
     expect(scopeInfo).toEqual({
       type: 'global',
       value: 'super-secret',
-      data: { variableName: 'apiToken', value: 'super-secret', variable: { name: 'apiToken', secret: true } }
+      data: { variableName: 'apiToken', value: 'super-secret', variable }
     });
     expect(isVariableSecret(scopeInfo)).toBe(true);
   });
 
-  it('does not flag a global-scoped variable as secret when its name is not in globalEnvSecrets', () => {
+  it('does not flag a global-scoped variable as secret when its row is not marked secret', () => {
+    const variable = { uid: 'v1', name: 'baseUrl', value: 'https://api.example.com', enabled: true, secret: false };
+
+    const scopeInfo = getVariableScope('baseUrl', buildCollection([variable]), null);
+
+    expect(scopeInfo.data.variable).toEqual(variable);
+    expect(isVariableSecret(scopeInfo)).toBe(false);
+  });
+});
+
+describe('getVariableScope — global environment inheritance', () => {
+  const buildCollection = () => ({
+    activeGlobalEnvironmentUid: 'genv-dev',
+    globalEnvironments: [
+      {
+        uid: 'genv-base',
+        name: 'workspace_base',
+        variables: [{ uid: 'v1', name: 'host', value: 'http://base.example.com', enabled: true, secret: false }]
+      },
+      {
+        uid: 'genv-dev',
+        name: 'workspace_dev',
+        extends: 'workspace_base',
+        variables: [{ uid: 'v2', name: 'token', value: 'dev-token', enabled: true, secret: false }]
+      }
+    ]
+  });
+
+  it('names the ancestor a variable is inherited from', () => {
+    const scopeInfo = getVariableScope('host', buildCollection(), null);
+
+    expect(scopeInfo.type).toBe('global');
+    expect(scopeInfo.value).toBe('http://base.example.com');
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'genv-base', name: 'workspace_base' });
+  });
+
+  it('leaves a variable the active global environment owns unmarked', () => {
+    const scopeInfo = getVariableScope('token', buildCollection(), null);
+
+    expect(scopeInfo.type).toBe('global');
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('leaves a variable unmarked when the environment redeclares the name it inherits', () => {
+    const collection = buildCollection();
+    collection.globalEnvironments[1].variables.push({
+      uid: 'v3',
+      name: 'host',
+      value: 'http://dev.example.com',
+      enabled: true,
+      secret: false
+    });
+
+    const scopeInfo = getVariableScope('host', collection, null);
+
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+});
+
+describe('getVariableScope — secrets win over plain variables across inheritance', () => {
+  const buildCollection = ({ inheritedSecret, ownSecret }) => ({
+    activeEnvironmentUid: 'env-dev',
+    environments: [
+      {
+        uid: 'env-base',
+        name: 'base',
+        variables: [{ uid: 'v1', name: 'apiToken', value: 'base-token', enabled: true, secret: inheritedSecret }]
+      },
+      {
+        uid: 'env-dev',
+        name: 'dev',
+        extends: 'base',
+        variables: [{ uid: 'v2', name: 'apiToken', value: 'dev-token', enabled: true, secret: ownSecret }]
+      }
+    ]
+  });
+
+  it('resolves to the inherited secret when the active environment declares the name as a plain variable', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: true, ownSecret: false }), null);
+
+    expect(scopeInfo.value).toBe('base-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'env-base', name: 'base' });
+  });
+
+  it('resolves to the active environment\'s secret when the inherited declaration is plain', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: false, ownSecret: true }), null);
+
+    expect(scopeInfo.value).toBe('dev-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('resolves to the active environment when both declarations are equally secret', () => {
+    const scopeInfo = getVariableScope('apiToken', buildCollection({ inheritedSecret: true, ownSecret: true }), null);
+
+    expect(scopeInfo.value).toBe('dev-token');
+    expect(scopeInfo.inheritedFrom).toBeUndefined();
+  });
+
+  it('resolves a global-scoped name to the inherited secret over the active plain declaration', () => {
     const collection = {
-      globalEnvironmentVariables: { baseUrl: 'https://api.example.com' },
-      globalEnvSecrets: ['apiToken']
+      activeGlobalEnvironmentUid: 'genv-dev',
+      globalEnvironments: [
+        {
+          uid: 'genv-base',
+          name: 'workspace_base',
+          variables: [{ uid: 'v1', name: 'apiToken', value: 'base-token', enabled: true, secret: true }]
+        },
+        {
+          uid: 'genv-dev',
+          name: 'workspace_dev',
+          extends: 'workspace_base',
+          variables: [{ uid: 'v2', name: 'apiToken', value: 'dev-token', enabled: true, secret: false }]
+        }
+      ]
     };
 
-    const scopeInfo = getVariableScope('baseUrl', collection, null);
+    const scopeInfo = getVariableScope('apiToken', collection, null);
 
-    expect(scopeInfo.data.variable).toEqual({ name: 'baseUrl', secret: false });
-    expect(isVariableSecret(scopeInfo)).toBe(false);
+    expect(scopeInfo.value).toBe('base-token');
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+    expect(scopeInfo.inheritedFrom).toEqual({ uid: 'genv-base', name: 'workspace_base' });
   });
 });
 
@@ -378,6 +496,30 @@ describe('getEnvironmentVariablesMasked', () => {
   it('returns an empty array when there is no active environment', () => {
     expect(getEnvironmentVariablesMasked({ activeEnvironmentUid: null, environments: [] })).toEqual([]);
   });
+
+  it('masks secrets inherited from a parent environment', () => {
+    const names = getEnvironmentVariablesMasked({
+      activeEnvironmentUid: 'env-child',
+      environments: [
+        {
+          uid: 'env-parent',
+          name: 'Base',
+          variables: [
+            { name: 'PARENT_SECRET', value: 'parent-secret', enabled: true, secret: true },
+            { name: 'PARENT_PLAIN', value: 'parent-plain', enabled: true, secret: false }
+          ]
+        },
+        {
+          uid: 'env-child',
+          name: 'Staging',
+          extends: 'Base',
+          variables: [{ name: 'CHILD_SECRET', value: 'child-secret', enabled: true, secret: true }]
+        }
+      ]
+    });
+
+    expect(names.sort()).toEqual(['CHILD_SECRET', 'PARENT_SECRET']);
+  });
 });
 
 describe('resolveEnabledVariable — precedence matches getEnvironmentVariables interpolation', () => {
@@ -417,5 +559,333 @@ describe('resolveEnabledVariable — precedence matches getEnvironmentVariables 
     const variables = [{ uid: 'u1', name: 'x', value: 'off', enabled: false }];
 
     expect(resolveEnabledVariable(variables, 'x')).toBeUndefined();
+  });
+});
+
+const buildFolderA = (overrides = {}) => ({
+  uid: 'folderA',
+  type: 'folder',
+  name: 'folderA',
+  pathname: '/colA/folderA',
+  collapsed: false,
+  items: [
+    { uid: 'reqA1', type: 'http-request', request: {}, name: 'Alpha', seq: 1, pathname: '/colA/folderA/Alpha.bru' }
+  ],
+  ...overrides
+});
+
+const buildCollectionA = (overrides = {}) => ({
+  uid: 'colA',
+  pathname: '/colA',
+  collapsed: false,
+  items: [
+    buildFolderA(overrides.folderA),
+    { uid: 'reqRoot', type: 'http-request', request: {}, name: 'Root', seq: 2, pathname: '/colA/Root.bru' }
+  ],
+  ...overrides.collection
+});
+
+const buildCollectionB = () => ({
+  uid: 'colB',
+  pathname: '/colB',
+  collapsed: true,
+  items: [
+    { uid: 'reqB1', type: 'http-request', request: {}, name: 'Bravo', seq: 1, pathname: '/colB/Bravo.bru' }
+  ]
+});
+
+describe('getVisibleSidebarUidsInOrder', () => {
+  it('lists loaded collections and their expanded items in render order, skipping ghost entries and collapsed subtrees', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA() },
+      { kind: 'ghost', entry: { name: 'Missing', path: '/ghost' } },
+      { kind: 'loaded', collection: buildCollectionB() }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'colB']);
+  });
+
+  it('hides a collapsed folder\'s children even though the collection itself is expanded', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA({ folderA: { collapsed: true } }) }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqRoot']);
+  });
+
+  it('while searching, only includes matching requests and force-expands folders that contain a match', () => {
+    const sidebarEntries = [
+      { kind: 'loaded', collection: buildCollectionA({ folderA: { collapsed: true } }) },
+      { kind: 'loaded', collection: buildCollectionB() }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'alpha' }))
+      .toEqual(['colA', 'folderA', 'reqA1']);
+  });
+
+  const buildRequestWithExample = (overrides = {}) => ({
+    uid: 'reqRoot',
+    type: 'http-request',
+    request: {},
+    name: 'Root',
+    seq: 2,
+    pathname: '/colA/Root.bru',
+    examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }],
+    ...overrides
+  });
+
+  it('includes a request\'s examples once its examples are expanded', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample({ collapsed: false })] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'ex1']);
+  });
+
+  it('excludes a request\'s examples while its examples are collapsed (the default)', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot']);
+  });
+
+  it('includes examples while searching even though examples are otherwise collapsed', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'root' }))
+      .toEqual(['colA', 'reqRoot', 'ex1']);
+  });
+});
+
+describe('getSelectionInfo', () => {
+  const collections = [buildCollectionA(), buildCollectionB()];
+
+  it('collapses a collection and anything selected inside it down to just the collection (parent wins)', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['colA', 'folderA', 'reqA1'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
+    expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+
+  it('collapses a folder and its own descendant request down to just the folder', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['folderA', 'reqA1'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['folderA']);
+    expect(info).toMatchObject({ hasCollection: false, hasFolder: true, hasRequest: false });
+  });
+
+  it('keeps a folder and an unrelated sibling request both selected', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['folderA', 'reqRoot'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['folderA', 'reqRoot']);
+    expect(info).toMatchObject({ hasCollection: false, hasFolder: true, hasRequest: true });
+  });
+
+  it('keeps two independently-selected collections both selected', () => {
+    const info = getSelectionInfo({ collections, selectedUids: ['colA', 'colB'] });
+
+    expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+    expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+
+  describe('examples', () => {
+    const collectionsWithExample = [
+      buildCollectionA({
+        collection: {
+          items: [
+            buildFolderA({
+              items: [
+                { uid: 'reqA1', type: 'http-request', request: {}, name: 'Alpha', seq: 1, pathname: '/colA/folderA/Alpha.bru', examples: [{ uid: 'exNested', itemUid: 'reqA1', name: 'Nested Example', type: 'http-request' }] }
+              ]
+            }),
+            {
+              uid: 'reqRoot',
+              type: 'http-request',
+              request: {},
+              name: 'Root',
+              seq: 2,
+              pathname: '/colA/Root.bru',
+              examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }]
+            }
+          ]
+        }
+      }),
+      buildCollectionB()
+    ];
+
+    it('resolves a selected example to its parent request, with no pathname of its own', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['ex1', 'reqB1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['ex1', 'reqB1']);
+      expect(info).toMatchObject({ hasExample: true, hasRequest: true });
+
+      const exampleEntry = info.effectiveSelection.find((e) => e.uid === 'ex1');
+      expect(exampleEntry).toMatchObject({ type: 'example', collectionUid: 'colA', pathname: null });
+      expect(exampleEntry.item.uid).toBe('reqRoot');
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside an unrelated collection', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colB', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colB', 'ex1']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: true });
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside a different, unrelated request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['exNested', 'reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: true });
+    });
+
+    it('applies parent-wins when selected together with its own parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor folder of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['folderA', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['folderA']);
+      expect(info).toMatchObject({ hasFolder: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor collection of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colA', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: false });
+    });
+  });
+});
+
+describe('isCollectionItemCollapsed', () => {
+  it('treats a folder as expanded by default (item.collapsed unset)', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder' })).toBe(false);
+  });
+
+  it('treats a folder as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder', collapsed: true })).toBe(true);
+  });
+
+  it('treats a request as collapsed by default (item.collapsed unset), unlike a folder', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {} })).toBe(true);
+  });
+
+  it('treats a request as expanded once item.collapsed is explicitly false', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: false })).toBe(false);
+  });
+
+  it('treats a request as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: true })).toBe(true);
+  });
+});
+
+describe('getEnvironmentVariables', () => {
+  const collection = {
+    activeEnvironmentUid: 'env-dev',
+    environments: [
+      {
+        uid: 'env-base',
+        name: 'base',
+        variables: [
+          { name: 'host', value: 'http://localhost:8081', enabled: true, secret: false },
+          { name: 'api_url', value: 'https://base.example.com', enabled: true, secret: false },
+          { name: 'base_only', value: 'base_only_value', enabled: true, secret: false },
+          { name: 'api_key', value: 'plain_api_key', enabled: true, secret: false },
+          { name: 'shadowed_by_disabled', value: 'from_base', enabled: true, secret: false },
+          { name: 'overridden_plain', value: 'plain_from_base', enabled: true, secret: false },
+          { name: 'disabled_in_base', value: 'should_not_resolve', enabled: false, secret: false },
+          { name: 'base_token', value: 'token-from-base', enabled: true, secret: true },
+          { name: 'overridden_secret', value: 'secret-from-base', enabled: true, secret: true }
+        ]
+      },
+      {
+        uid: 'env-dev',
+        name: 'dev',
+        extends: 'base',
+        variables: [
+          { name: 'api_url', value: 'https://dev.example.com', enabled: true, secret: false },
+          { name: 'dev_only', value: 'dev_only_value', enabled: true, secret: false },
+          { name: 'shadowed_by_disabled', value: 'never_applied', enabled: false, secret: false },
+          { name: 'overridden_secret', value: 'plain_wins_in_dev', enabled: true, secret: false },
+          { name: 'overridden_plain', value: '', enabled: true, secret: true }
+        ]
+      },
+      {
+        uid: 'env-staging',
+        name: 'staging',
+        extends: 'base',
+        variables: [{ name: 'api_key', value: 'api-key-from-staging', enabled: true, secret: true }]
+      },
+      {
+        uid: 'env-qa',
+        name: 'qa',
+        extends: 'staging',
+        variables: [{ name: 'api_url', value: 'https://qa.example.com', enabled: true, secret: false }]
+      }
+    ]
+  };
+
+  const variablesFor = (environmentUid) =>
+    getEnvironmentVariables({ ...collection, activeEnvironmentUid: environmentUid });
+
+  it('resolves inherited variables alongside the own rows that override them', () => {
+    const variables = variablesFor('env-dev');
+
+    expect(variables.host).toBe('http://localhost:8081');
+    expect(variables.base_only).toBe('base_only_value');
+    expect(variables.dev_only).toBe('dev_only_value');
+    expect(variables.api_url).toBe('https://dev.example.com');
+  });
+
+  it('ignores a disabled row on either side of the merge', () => {
+    const variables = variablesFor('env-dev');
+
+    expect(variables).not.toHaveProperty('disabled_in_base');
+    // `dev` declares this name too, but disabled, so the inherited row still applies.
+    expect(variables.shadowed_by_disabled).toBe('from_base');
+  });
+
+  it('resolves a secret inherited from either ancestor of a three-level chain', () => {
+    const variables = variablesFor('env-qa');
+
+    expect(variables.base_token).toBe('token-from-base');
+    // `base` declares `api_key` plain and `staging` redeclares it secret, so both are
+    // inherited by `qa` — the secret is the one that must reach the request.
+    expect(variables.api_key).toBe('api-key-from-staging');
+  });
+
+  it('resolves a name declared on both sides of the secret split to the secret', () => {
+    const variables = variablesFor('env-dev');
+
+    // `dev` redeclares the secret `overridden_secret` it inherits as a non-secret, and the
+    // non-secret `overridden_plain` as a secret. Both ancestor rows survive the redeclaration,
+    // and in each pair the secret is the one that wins.
+    expect(variables.overridden_secret).toBe('secret-from-base');
+    expect(variables.overridden_plain).toBe('');
+  });
+
+  it('returns no variables without a collection or an active environment', () => {
+    expect(getEnvironmentVariables(null)).toEqual({});
+    expect(variablesFor(null)).toEqual({});
   });
 });
