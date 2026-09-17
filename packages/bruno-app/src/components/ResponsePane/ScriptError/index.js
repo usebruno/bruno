@@ -179,7 +179,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   }
 
   return (
-    <StyledWrapper className={classnames({ expanded: isExpanded })}>
+    <div className={classnames('script-error', { expanded: isExpanded })}>
       <div className="script-error-card" data-testid="script-error-card">
         <div className="script-error-header">
           <div className="error-title" data-testid="script-error-title">{title}</div>
@@ -254,7 +254,7 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
           )}
         </div>
       </div>
-    </StyledWrapper>
+    </div>
   );
 };
 
@@ -284,7 +284,7 @@ const ScriptError = ({ item, collection, onClose }) => {
   }
 
   return (
-    <div className="mb-2 flex flex-col gap-2 min-h-0">
+    <StyledWrapper>
       {errors.map(({ phase, title, message, errorContext }) => (
         <ScriptErrorCard
           key={phase}
@@ -297,7 +297,7 @@ const ScriptError = ({ item, collection, onClose }) => {
           onClose={onClose}
         />
       ))}
-    </div>
+    </StyledWrapper>
   );
 };
 

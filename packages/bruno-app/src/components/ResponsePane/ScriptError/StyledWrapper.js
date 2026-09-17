@@ -1,8 +1,21 @@
 import styled from 'styled-components';
 
+/* Grid rather than flex: grid sizes the list from its rows' content so the response below stays
+   visible when the cards don't need the pane, and when it does shrink the list, grid hands the free
+   space to the rows equally, capping each at its own content so a short error never grows past
+   what it has to show and the remainder flows to the longer cards. */
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-auto-rows: minmax(auto, max-content);
+  gap: 0.5rem;
+  min-height: 0;
+  margin-bottom: 0.5rem;
+
+  .script-error {
+    display: flex;
+    flex-direction: column;
+    min-height: 10rem;
+  }
 
   .script-error-card {
     background-color: ${(props) => props.theme.background.base};
@@ -24,13 +37,16 @@ const StyledWrapper = styled.div`
     padding-bottom: 0.75rem;
   }
 
-  &.expanded,
-  &.expanded .script-error-card {
+  .script-error.expanded {
+    min-height: 0;
+  }
+
+  .script-error.expanded .script-error-card {
     flex: 1 1 auto;
     min-height: 0;
   }
 
-  &.expanded .script-error-body {
+  .script-error.expanded .script-error-body {
     flex: 1 1 auto;
     max-height: none;
   }
