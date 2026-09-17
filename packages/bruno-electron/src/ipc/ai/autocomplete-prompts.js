@@ -21,7 +21,7 @@ const API_BLOCKS = {
 
 const API_BLOCKS_BY_SCRIPT_TYPE = {
   'pre-request': ['bru', 'req'],
-  'post-response': ['bru', 'req', 'res'],
+  'post-response': ['bru', 'res'],
   'tests': ['bru', 'req', 'res', 'test']
 };
 
@@ -35,7 +35,7 @@ ${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
   'pre-request': `Pre-request scripts run BEFORE the HTTP request is sent — the response does not exist yet. Globals: bru, req only. Do NOT emit res.status / res.headers / res.body / res(...) or any other res.* member — the res global is not defined here and referencing it throws. Don't use test() / expect() either — those belong in the Tests tab.`,
-  'post-response': `Post-response scripts run AFTER the response is received, before tests. Globals: bru, req, res. Don't use test() / expect() — those belong in the Tests tab.`
+  'post-response': `Post-response scripts run AFTER the response is received, before tests. Globals: bru, res only. Do NOT emit req.url / req.headers / req.body or any other req.* member — the request has already been sent, so req is not offered here. Don't use test() / expect() either — those belong in the Tests tab.`
 };
 
 const SCRIPT_TYPE_LABELS = {
@@ -208,9 +208,18 @@ const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.
 // or arrow param) — in which case a suggestion referencing it is legitimate.
 const buildApiBindingRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
+// Match a declarator for `<name>` whose initializer the cursor is still inside — the
+// statement runs to the cursor without crossing `;`, a brace, or a newline. Until it
+// closes, `<name>` is in its temporal dead zone, so a `<name>` on the right-hand side
+// is still the global and must not be exempted by the declaration being typed.
+// The comma alternative anchors `<name>` to a declarator position, so a statement that
+// merely reads it (`const body = res`) keeps its exemption.
+const buildPendingDeclRe = (name) =>
+  new RegExp(`\\b(?:const|let|var)\\s(?:[^;{}\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
 
-const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res') };
-const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm') };
+const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res'), pendingDecl: buildPendingDeclRe('res') };
+const REQ = { usage: buildApiUsageRe('req'), binding: buildApiBindingRe('req'), pendingDecl: buildPendingDeclRe('req') };
+const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm'), pendingDecl: buildPendingDeclRe('pm') };
 
 const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
 const TRAILING_WORD_RE = /[\w$]+$/;
@@ -220,8 +229,8 @@ const LEADING_WORD_RE = /^[\w$]+/;
 const PREFIX_TAIL_LIMIT = 512;
 const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
 
-const suggestionUsesBareName = (suggestion, prefix, { usage, binding }) => {
-  if (binding.test(prefix)) return false;
+const suggestionUsesBareName = (suggestion, prefix, { usage, binding, pendingDecl }) => {
+  if (binding.test(prefix) && !pendingDecl.test(prefixTail(prefix))) return false;
   const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
   return usage.test(suggestion) || usage.test(trailingExpr + suggestion);
 };
@@ -231,6 +240,9 @@ const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
   if (suggestionUsesBareName(suggestion, prefix, PM)) return '';
   // `res.*` is only unavailable in pre-request scripts (response not yet received).
   if (scriptType === 'pre-request' && suggestionUsesBareName(suggestion, prefix, RES)) return '';
+  // `req` is bound post-response, but the request has already been sent by then — so it is
+  // not offered there. Tests keep it.
+  if (scriptType === 'post-response' && suggestionUsesBareName(suggestion, prefix, REQ)) return '';
   return suggestion;
 };
 

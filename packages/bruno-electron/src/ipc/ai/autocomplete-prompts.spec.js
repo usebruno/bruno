@@ -56,16 +56,17 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('req:');
   });
 
-  it('includes the res API block for post-response', () => {
+  it('includes the res API block but omits req for post-response', () => {
     const prompt = buildSystemPrompt('post-response');
     expect(prompt).toContain('res:');
     expect(prompt).toContain('bru:');
-    expect(prompt).toContain('req:');
+    expect(prompt).not.toContain('req:');
   });
 
-  it('includes res and test/expect for tests', () => {
+  it('includes res, req and test/expect for tests', () => {
     const prompt = buildSystemPrompt('tests');
     expect(prompt).toContain('res:');
+    expect(prompt).toContain('req:');
     expect(prompt).toContain('test/expect:');
   });
 
@@ -80,6 +81,11 @@ describe('buildSystemPrompt', () => {
   it('tells the model res is off-limits in pre-request', () => {
     const prompt = buildSystemPrompt('pre-request');
     expect(prompt).toContain('Do NOT emit res.status');
+  });
+
+  it('tells the model req is off-limits in post-response', () => {
+    const prompt = buildSystemPrompt('post-response');
+    expect(prompt).toContain('Do NOT emit req.url');
   });
 });
 
@@ -153,7 +159,26 @@ describe('stripDisallowedApis', () => {
   });
 
   it('keeps pm when the user has declared it themselves', () => {
-    expect(stripDisallowedApis('.doThing();', 'tests', 'const pm = require("./pm")')).toBe('.doThing();');
+    expect(stripDisallowedApis('.doThing();', 'tests', 'const pm = require("./pm");\npm')).toBe('.doThing();');
+  });
+
+  it('drops res while the cursor is still inside the declaration initialising res', () => {
+    expect(stripDisallowedApis('getBody();', 'pre-request', 'const res = res.')).toBe('');
+    expect(stripDisallowedApis('getStatus();', 'pre-request', 'let res = res.')).toBe('');
+  });
+
+  it('drops pm while the cursor is still inside the declaration initialising pm', () => {
+    expect(stripDisallowedApis('environment.get("x");', 'pre-request', 'const pm = pm.')).toBe('');
+  });
+
+  it('drops req suggestions in post-response', () => {
+    expect(stripDisallowedApis('req.getUrl();', 'post-response')).toBe('');
+    expect(stripDisallowedApis('req.getBody();', 'post-response')).toBe('');
+  });
+
+  it('keeps req suggestions in pre-request and tests', () => {
+    expect(stripDisallowedApis('req.getUrl();', 'pre-request')).toBe('req.getUrl();');
+    expect(stripDisallowedApis('req.getUrl();', 'tests')).toBe('req.getUrl();');
   });
 });
 
@@ -288,6 +313,53 @@ describe('sanitizeSuggestion', () => {
   it('allows res member access when res is a callback parameter in a pre-request script', () => {
     const prefix = 'bru.sendRequest(cfg).then((res) => {\n  res';
     expect(sanitizeSuggestion({ text: '.data', prefix, scriptType: 'pre-request' })).toBe('.data');
+  });
+
+  it('drops res suggested inside the declaration that is still initialising res', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops res inside its own declaration before the accessor dot is typed', () => {
+    expect(sanitizeSuggestion({ text: '.getBody();', prefix: 'const res = res', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops res declared later in a multi-declarator statement', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const a = 1, res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('allows res once its declaration statement has ended', () => {
+    expect(sanitizeSuggestion({ text: 'toString();', prefix: 'var res = 1;\nres.', scriptType: 'pre-request' }))
+      .toBe('toString();');
+  });
+
+  it('allows a later statement that only reads the declared res', () => {
+    const prefix = 'const res = await bru.sendRequest(cfg);\nconst body = res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix, scriptType: 'pre-request' })).toBe('.data;');
+  });
+
+  it('drops req member access in post-response', () => {
+    expect(sanitizeSuggestion({ text: 'getUrl();', prefix: 'const u = req.', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('allows a user-declared req in post-response', () => {
+    const prefix = 'const req = { id: 1 };\nreq';
+    expect(sanitizeSuggestion({ text: '.id;', prefix, scriptType: 'post-response' })).toBe('.id;');
+  });
+
+  it('drops req inside the declaration that is still initialising req in post-response', () => {
+    expect(sanitizeSuggestion({ text: 'getUrl();', prefix: 'const req = req.', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('keeps req in pre-request and tests', () => {
+    expect(sanitizeSuggestion({ text: 'getUrl();', prefix: 'const u = req.', scriptType: 'pre-request' }))
+      .toBe('getUrl();');
+    expect(sanitizeSuggestion({ text: 'getUrl();', prefix: 'const u = req.', scriptType: 'tests' }))
+      .toBe('getUrl();');
   });
 
   it('keeps res in post-response while still trimming the typed overlap', () => {

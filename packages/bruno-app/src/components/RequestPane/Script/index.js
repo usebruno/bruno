@@ -153,7 +153,7 @@ const Script = ({ item, collection }) => {
               mode="javascript"
               onRun={onRun}
               onSave={onSave}
-              showHintsFor={['req', 'res', 'bru']}
+              showHintsFor={['res', 'bru']}
               scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
