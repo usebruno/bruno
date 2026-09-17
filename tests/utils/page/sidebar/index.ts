@@ -1,4 +1,5 @@
 import { Locator, Page } from '../../../../playwright';
+import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -12,7 +13,7 @@ export const buildSidebarLocators = (page: Page) => {
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
   const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
 
-  const collectionScope = (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`);
+  const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
@@ -21,11 +22,7 @@ export const buildSidebarLocators = (page: Page) => {
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+      return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
@@ -59,6 +56,8 @@ export const buildSidebarLocators = (page: Page) => {
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
+    collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
+    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
