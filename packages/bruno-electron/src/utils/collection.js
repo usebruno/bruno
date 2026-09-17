@@ -7,6 +7,16 @@ const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+const { GRPC_SCRIPT_KEYS } = require('@usebruno/common');
+
+/**
+ * Returns the variable's runtime value with datatype-driven coercion applied.
+ * The shared `parseValueByDataType` from `@usebruno/common/utils` honors
+ * draft dataType changes — e.g. a user picking `@number` on a "42" string
+ * via the UI takes effect at request-execution time without requiring a save.
+ */
+const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
@@ -75,8 +85,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
+      const typed = resolveTypedValue(_var);
+      reqVars.set(_var.name, typed);
+      collectionVariables[_var.name] = typed;
     }
   });
   let folderVariables = {};
@@ -87,16 +98,18 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          folderVariables[_var.name] = typed;
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
+          const typed = resolveTypedValue(_var);
+          reqVars.set(_var.name, typed);
+          requestVariables[_var.name] = typed;
         }
       });
     }
@@ -119,7 +132,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
+      resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
   for (let i of requestTreePath) {
@@ -128,14 +141,14 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       let vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
+          resVars.set(_var.name, resolveTypedValue(_var));
         }
       });
     }
@@ -151,12 +164,9 @@ const mergeVars = (collection, request, requestTreePath = []) => {
   }
 };
 
-/**
- * Wraps a script in an IIFE closure to isolate its scope
- * @param {string} script - The script code to wrap
- * @returns {string} The wrapped script
- */
-const wrapScriptInClosure = (script) => {
+// __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
+// counts (and stack-trace mapping) are unaffected.
+const wrapScriptInClosure = (script, scopeInfo = null, sourcePaths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -164,9 +174,14 @@ const wrapScriptInClosure = (script) => {
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const scopeSetter = scopeInfo
+    ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
+    : '';
+  const dirnameParam = sourcePaths?.dirname != null ? JSON.stringify(sourcePaths.dirname) : 'undefined';
+  const filenameParam = sourcePaths?.filename != null ? JSON.stringify(sourcePaths.filename) : 'undefined';
+  return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
-})();`;
+})(${dirnameParam}, ${filenameParam});`;
 };
 
 /**
@@ -175,45 +190,71 @@ ${script}
  *
  * @param {string[]} scripts - Script segments in order (e.g. collection, folders, request).
  * @param {number} requestIndex - Index in scripts of the request-level segment.
- * @param {Array|null} segmentSources - Source file info for each segment (null for request segment).
- * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
+ * @param {object} [opts]
+ * @param {Array|null} [opts.segmentSources] - Source file info per non-request segment.
+ * @param {object|null} [opts.requestSegmentSource] - Source file info for the request segment.
+ * @param {string|null} [opts.collectionPath] - Collection dir; used as the __dirname fallback.
+ * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number, segments?: object[] } | null }}
  *
  * @example
  * ** Input **
  * const scripts = ['let col = 1;', 'let fold = 2;', 'let req = 3;'];
  * const requestIndex = 2;
- * const segmentSources = [
- *   { source: 'collection', fileName: 'collection.bru' },
- *   { source: 'folder', fileName: 'folder.bru' },
- *   null // request segment — no source needed
- * ];
+ * const opts = {
+ *   segmentSources: [
+ *     { type: 'collection', displayPath: 'collection.bru', filePath: '/c/collection.bru' },
+ *     { type: 'folder',     displayPath: 'f/folder.bru',   filePath: '/c/f/folder.bru' },
+ *     null // request segment: sourced via requestSegmentSource
+ *   ],
+ *   requestSegmentSource: { type: 'request', displayPath: 'f/get.bru', filePath: '/c/f/get.bru' },
+ *   collectionPath: '/c'
+ * };
  *
  * ** Output **
  * {
  *   code:
- *       'await (async () => {\n'   // line 1
- *      + 'let col = 1;\n'           // line 2
- *      + '})();\n'                  // line 3
- *      + '\n'                       // line 4 (blank separator)
- *      + 'await (async () => {\n'   // line 5
- *      + 'let fold = 2;\n'          // line 6
- *      + '})();\n'                  // line 7
- *      + '\n'                       // line 8 (blank separator)
- *      + 'await (async () => {\n'   // line 9
- *      + 'let req = 3;\n'           // line 10
- *      + '})();',                   // line 11
+ *       'await (async (__dirname, __filename) => { __bruSetScope({...collection});\n' // line 1
+ *      + 'let col = 1;\n'                                                              // line 2
+ *      + '})("/c","/c/collection.bru");\n'                                             // line 3
+ *      + '\n'                                                                          // line 4 (blank separator)
+ *      + 'await (async (__dirname, __filename) => { __bruSetScope({...folder});\n'     // line 5
+ *      + 'let fold = 2;\n'                                                             // line 6
+ *      + '})("/c/f","/c/f/folder.bru");\n'                                             // line 7
+ *      + '\n'                                                                          // line 8 (blank separator)
+ *      + 'await (async (__dirname, __filename) => { __bruSetScope({...request});\n'    // line 9
+ *      + 'let req = 3;\n'                                                              // line 10
+ *      + '})("/c/f","/c/f/get.bru");',                                                 // line 11
  *   metadata: {
  *      requestStartLine: 9,
  *      requestEndLine: 11,
  *     segments: [
- *       { startLine: 1, endLine: 3, source: 'collection', fileName: 'collection.bru' },
- *       { startLine: 5, endLine: 7, source: 'folder', fileName: 'folder.bru' }
+ *       { startLine: 1, endLine: 3, type: 'collection', displayPath: 'collection.bru', filePath: '/c/collection.bru' },
+ *       { startLine: 5, endLine: 7, type: 'folder',     displayPath: 'f/folder.bru',   filePath: '/c/f/folder.bru' }
  *     ]
  *   }
  * }
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, { segmentSources = null, requestSegmentSource = null, collectionPath = null } = {}) => {
+  const buildScopeInfo = (i) => {
+    if (i === requestIndex && requestSegmentSource?.displayPath) {
+      return { type: 'request', sourceFile: requestSegmentSource.displayPath };
+    }
+    const seg = segmentSources?.[i];
+    if (!seg?.type || !seg?.displayPath) return null;
+    return { type: seg.type, sourceFile: seg.displayPath };
+  };
+
+  const buildSourcePaths = (i) => {
+    const filePath = i === requestIndex
+      ? requestSegmentSource?.filePath
+      : segmentSources?.[i]?.filePath;
+    if (filePath) return { dirname: path.dirname(filePath), filename: filePath };
+    // No source file, anchor __dirname to the collection dir; no honest __filename to name.
+    if (collectionPath) return { dirname: collectionPath, filename: null };
+    return null;
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildSourcePaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -260,9 +301,21 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const format = collection.format || 'bru';
   const config = FORMAT_CONFIG[format];
   const collectionSource = {
+    type: 'collection',
     filePath: path.join(collection.pathname, config.collectionFile),
     displayPath: config.collectionFile
   };
+
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname
+    ? {
+        filePath: requestPathname,
+        ...(collection?.pathname
+          ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+          : {})
+      }
+    : null;
 
   const withContent = (source, script) =>
     script?.trim() ? { ...source, scriptContent: script } : source;
@@ -278,6 +331,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
+        type: 'folder',
         filePath: path.join(i.pathname, config.folderFile),
         displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
@@ -310,7 +364,11 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   // Wrap scripts, join them, and annotate metadata with the original request script content.
   // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
-    const result = wrapAndJoinScripts(scripts, requestIndex, sources);
+    const result = wrapAndJoinScripts(scripts, requestIndex, {
+      segmentSources: sources,
+      requestSegmentSource,
+      collectionPath: collection?.pathname ?? null
+    });
     if (result.metadata) {
       result.metadata.requestScriptContent = originalScript;
     }
@@ -355,6 +413,19 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
+  }
+
+  // TODO: Provide Collection/Folder scripts to 'buildCombinedScript' once available
+  // Including now to provide stack trace on error
+  for (const hook of GRPC_SCRIPT_KEYS) {
+    const hookScript = get(request, `script.${hook}`, '');
+    if (!hookScript || hookScript.trim() === '') {
+      continue;
+    }
+
+    const combined = buildCombinedScript([hookScript], 0, [null], hookScript);
+    request.script[hook] = combined.code;
+    request.script[`${hook}Metadata`] = combined.metadata;
   }
 
   // Handle tests based on scriptFlow
@@ -579,6 +650,8 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
   file.forEach((param) => (param.uid = uuid()));
+  const wsMessages = get(request, 'request.body.ws', []);
+  wsMessages.forEach((msg) => (msg.uid = uuid()));
   examples.forEach((example, eIndex) => {
     example.uid = getExampleUid(pathname, eIndex);
     example.itemUid = request.uid;
@@ -747,18 +820,18 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
 };
 
 const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
+  const variables = [...(environment?.inheritedVariables || []), ...(environment?.variables || [])];
+  if (!variables.length) {
     return {
       __name__: environment.name
     };
   }
 
   const envVars = {};
-  each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
+  // Apply secrets last so a secret wins over a plain variable of the same name.
+  const enabledVars = variables.filter((variable) => variable.enabled);
+  [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+    envVars[variable.name] = resolveTypedValue(variable);
   });
 
   return {
@@ -792,7 +865,7 @@ const mergeAuth = (collection, request, requestTreePath) => {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
       // Only consider folders that have a valid auth mode
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         lastFolderWithAuth = i;
       }
@@ -893,7 +966,20 @@ const sortByNameThenSequence = (items) => {
   return sortedItems.flat();
 };
 
+// Resolves the JS sandbox a collection's scripts run in.
+// Duplicated as getJsSandboxRuntime in ipc/network/index.js; keep the two in sync.
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+
+  if (securityConfig.jsSandboxMode === 'developer') {
+    return 'nodevm';
+  }
+
+  return 'quickjs';
+};
+
 module.exports = {
+  getJsSandboxRuntime,
   mergeHeaders,
   mergeVars,
   mergeScripts,

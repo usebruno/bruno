@@ -37,7 +37,7 @@ const StyledWrapper = styled.div`
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Important for proper flex behavior */
+    min-height: 0;
   }
 
   .network-empty {
@@ -68,66 +68,126 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    min-height: 0; /* Important for proper flex behavior */
+    min-height: 0;
+    position: relative;
+
+    &.is-resizing {
+      cursor: col-resize;
+      user-select: none;
+    }
   }
 
   .requests-header {
     display: grid;
-    grid-template-columns: 80px 80px 150px 1fr 100px 80px 80px;
-    gap: 12px;
-    padding: 4px 16px;
+    flex-shrink: 0;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: 10px;
     color: ${(props) => props.theme.console.titleColor};
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    flex-shrink: 0;
+
+    & > * {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .header-cell {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      user-select: none;
+
+      &:first-child { padding-left: 16px; }
+      &:last-child  { padding-right: 16px; }
+
+      &:hover {
+        color: ${(props) => props.theme.console.messageColor};
+      }
+
+      span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      svg { flex-shrink: 0; }
+    }
   }
 
   .requests-list {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    min-height: 0; /* Important for proper scrolling */
+    min-height: 0;
   }
 
   .request-row {
     display: grid;
-    grid-template-columns: 80px 80px 150px 1fr 100px 80px 80px;
-    gap: 12px;
-    padding: 2px 16px;
     cursor: pointer;
     transition: background-color 0.1s ease;
     font-size: ${(props) => props.theme.font.size.sm};
     align-items: center;
 
-    &:hover {
-      background: ${(props) => props.theme.console.logHoverBg};
+    & > * {
+      min-width: 0;
+      overflow: hidden;
     }
 
+    &:hover  { background: ${(props) => props.theme.console.logHoverBg}; }
+
     &.selected {
-      padding-left: 13px;
       background: ${(props) => props.theme.console.logHoverBg};
-      border-left: 3px solid ${(props) => props.theme.console.checkboxColor};
+      box-shadow: inset 3px 0 0 ${(props) => props.theme.console.checkboxColor};
     }
   }
+
+  .col-separator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    transform: translateX(-2px);
+    cursor: col-resize;
+    z-index: 3;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 100%;
+      background: ${(props) => props.theme.sidebar.dragbar.border};
+    }
+
+    &:hover::after,
+    &.resizing::after {
+      background: ${(props) => props.theme.sidebar.dragbar.activeBorder};
+    }
+  }
+
+  .request-method   { padding: 2px 8px 2px 16px; }
+  .request-status   { padding: 2px 8px; }
 
   .method-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: start;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    min-width: 45px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .status-badge {
-    font-size: ${(props) => props.theme.font.size.sm};
-  }
+  .status-badge { font-size: ${(props) => props.theme.font.size.sm}; }
 
   .request-domain {
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.messageColor};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -135,6 +195,7 @@ const StyledWrapper = styled.div`
   }
 
   .request-path {
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.messageColor};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -143,23 +204,37 @@ const StyledWrapper = styled.div`
   }
 
   .request-time {
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.timestampColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: ${(props) => props.theme.font.size.xs};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .request-duration {
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.messageColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: ${(props) => props.theme.font.size.xs};
     text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
+  .text-right { text-align: right; }
+
   .request-size {
+    padding: 2px 8px;
     color: ${(props) => props.theme.console.messageColor};
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: ${(props) => props.theme.font.size.xs};
     text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 `;
 

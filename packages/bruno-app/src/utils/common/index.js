@@ -4,6 +4,7 @@ import { JSONPath } from 'jsonpath-plus';
 import fastJsonFormat from 'fast-json-format';
 import { format, applyEdits } from 'jsonc-parser';
 import { patternHasher } from '@usebruno/common/utils';
+import { hasLongLine } from './long-lines';
 import prettierFormat from 'prettier/standalone';
 import parserBabel from 'prettier/parser-babel';
 
@@ -221,46 +222,7 @@ export const formatSize = (bytes) => {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
 };
 
-export const sortByNameThenSequence = (items) => {
-  const isSeqValid = (seq) => Number.isFinite(seq) && Number.isInteger(seq) && seq > 0;
-
-  // Sort folders alphabetically by name
-  const alphabeticallySorted = [...items].sort((a, b) => a.name && b.name && a.name.localeCompare(b.name));
-
-  // Extract folders without 'seq'
-  const withoutSeq = alphabeticallySorted.filter((f) => !isSeqValid(f['seq']));
-
-  // Extract folders with 'seq' and sort them by 'seq'
-  const withSeq = alphabeticallySorted.filter((f) => isSeqValid(f['seq'])).sort((a, b) => a.seq - b.seq);
-
-  const sortedItems = withoutSeq;
-
-  // Insert folders with 'seq' at their specified positions
-  withSeq.forEach((item) => {
-    const position = item.seq - 1;
-    const existingItem = withoutSeq[position];
-
-    // Check if there's already an item with the same sequence number
-    const hasItemWithSameSeq = Array.isArray(existingItem)
-      ? existingItem?.[0]?.seq === item.seq
-      : existingItem?.seq === item.seq;
-
-    if (hasItemWithSameSeq) {
-      // If there's a conflict, group items with same sequence together
-      const newGroup = Array.isArray(existingItem)
-        ? [...existingItem, item]
-        : [existingItem, item];
-
-      withoutSeq.splice(position, 1, newGroup);
-    } else {
-      // Insert item at the specified position
-      withoutSeq.splice(position, 0, item);
-    }
-  });
-
-  // return flattened sortedItems
-  return sortedItems.flat();
-};
+export { sortByNameThenSequence } from '@usebruno/common';
 
 // Memory threshold to prevent crashes when decoding large buffers
 const LARGE_BUFFER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
@@ -296,7 +258,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       if (filter) {
         return safeStringifyJSON(applyJSONPathFilter(data, filter), true);
       }
-    } catch (error) {}
+    } catch (error) { }
 
     if (isVeryLargeResponse) {
       return safeStringifyJSON(data, false);
@@ -304,7 +266,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
 
     try {
       return fastJsonFormat(rawData);
-    } catch (error) {}
+    } catch (error) { }
 
     if (typeof data === 'string') {
       return data;
@@ -437,10 +399,16 @@ export const prettifyJsonString = (jsonDataString) => {
 
   try {
     const { hashed, restore } = patternHasher(jsonDataString);
+
+    // jsonc-parser format is accurate for Bruno variables but can hang on
+    // pathological single-line payloads; fast-json-format stays responsive.
+    if (hasLongLine(jsonDataString)) {
+      return restore(fastJsonFormat(hashed));
+    }
+
     const edits = format(hashed, undefined, { tabSize: 2, insertSpaces: true });
     const formattedJsonDataStringHashed = applyEdits(hashed, edits);
-    const formattedJsonDataString = restore(formattedJsonDataStringHashed);
-    return formattedJsonDataString;
+    return restore(formattedJsonDataStringHashed);
   } catch (error) {
     console.log('error formatting json data!');
     console.error(error);
@@ -554,3 +522,17 @@ export function isHexFormat(str) {
 
   return false;
 }
+
+export const formatProxyTimestamp = (timestamp) => {
+  return new Date(timestamp)
+    .toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    .replace(/[\u00A0\u202F]/g, ' ')
+    .replace(/\b(a|p)m\b/gi, (match) => match.toUpperCase());
+};

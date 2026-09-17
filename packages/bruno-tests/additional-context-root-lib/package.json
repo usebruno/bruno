@@ -1,0 +1,9 @@
+{
+  "name": "@usebruno/test-additional-context-root-lib",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@faker-js/faker": "^8.4.0"
+  }
+}

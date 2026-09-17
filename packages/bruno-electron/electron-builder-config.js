@@ -39,6 +39,7 @@ const config = {
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     notarize: false,
+    requirements: 'resources/app-requirements.txt',
     protocols: [
       {
         name: 'Bruno',
@@ -110,6 +111,10 @@ const config = {
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 

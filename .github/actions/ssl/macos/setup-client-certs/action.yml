@@ -1,0 +1,26 @@
+name: 'Setup Client Certificates - macOS'
+description: 'Generate client (mTLS) certificates and start the client-cert test server on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup client certificates
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd tests/ssl/client-certs/server
+
+        echo "running certificate setup"
+        node scripts/generate-certs.js
+
+    - name: Start test server
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        cd tests/ssl/client-certs/server
+
+        echo "starting server in background"
+        node index.js &
+
+        echo "server started with PID: $!"

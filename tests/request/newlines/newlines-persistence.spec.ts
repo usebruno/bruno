@@ -3,6 +3,10 @@ import { createCollection, openCollection, selectRequestPaneTab, waitForReadyPag
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
+  // Two full app launches plus a restart; waitForReadyPage alone allows 45s each,
+  // so the 30s default budget is too small on a slow or loaded CI runner.
+  test.setTimeout(120_000);
+
   const userDataPath = await createTmpDir('newlines-persistence-userdata');
   const collectionPath = await createTmpDir('newlines-persistence-collection');
 

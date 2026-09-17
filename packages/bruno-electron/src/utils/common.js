@@ -76,7 +76,7 @@ const generateUidBasedOnHash = (str) => {
 };
 
 const flattenDataForDotNotation = (data) => {
-  var result = {};
+  let result = {};
   function recurse(current, prop) {
     if (Object(current) !== current) {
       result[prop] = current;
@@ -88,8 +88,8 @@ const flattenDataForDotNotation = (data) => {
         result[prop] = [];
       }
     } else {
-      var isEmpty = true;
-      for (var p in current) {
+      let isEmpty = true;
+      for (let p in current) {
         isEmpty = false;
         recurse(current[p], prop ? prop + '.' + p : p);
       }
@@ -150,6 +150,15 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
+// Read a param from the query string, falling back to the URL hash fragment
+// (implicit flow returns values in the hash rather than query params).
+const getParamFromUrl = (urlObj, param) => {
+  return (
+    urlObj.searchParams.get(param)
+    || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get(param) : null)
+  );
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -160,5 +169,6 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest
+  parseDataFromRequest,
+  getParamFromUrl
 };

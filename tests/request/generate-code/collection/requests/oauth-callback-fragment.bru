@@ -1,0 +1,15 @@
+meta {
+  name: oauth-callback-fragment
+  type: http
+  seq: 32
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/callback#access_token=abc123&token_type=Bearer
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

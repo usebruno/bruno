@@ -1,0 +1,23 @@
+info:
+  name: other-host-blocked
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{process.env.NTLM_BASE_URL}}/redirect?to={{process.env.NTLM_REDIRECT_URL}}/api"
+  auth:
+    type: ntlm
+    username: ntlmtest
+    password: Br!unoNtlm
+    domain: ""
+settings:
+  forwardAuthorizationHeader: false
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("another host is left unauthenticated", function() {
+          expect(res.status).to.equal(401);
+        });

@@ -11,7 +11,7 @@ const template = [
       {
         label: 'Open Collection',
         click() {
-          ipcMain.emit('main:open-collection');
+          ipcMain.emit('menu:open-collection');
         }
       },
       {

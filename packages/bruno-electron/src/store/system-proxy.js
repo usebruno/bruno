@@ -1,10 +1,47 @@
-const { getSystemProxy } = require('@usebruno/requests');
+const { getSystemProxy, fetchShellEnv } = require('@usebruno/requests');
+
+const PROXY_ENV_KEYS = ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY', 'all_proxy', 'ALL_PROXY'];
+const TIMEOUT_MS = 60_000;
 
 let cachedSystemProxy;
 let systemProxyPromise;
 
-const loadSystemProxy = async () => {
+// Re-syncs proxy-related process.env values from the user's shell config, without restarting the app.
+// ponytail: proxy vars are cleared before spawning the shell (not after fetching) because the child
+// process inherits process.env — a removed .zshrc export would otherwise still be echoed back as "current".
+const refreshShellEnvProxyVars = async () => {
+  if (process.platform === 'win32') return {};
+
+  const snapshot = {};
+  for (const key of PROXY_ENV_KEYS) {
+    snapshot[key] = process.env[key];
+    delete process.env[key];
+  }
+
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+  });
+  const result = await Promise.race([fetchShellEnv(), timeout]).finally(() => clearTimeout(timer));
+
+  if (result === null) {
+    for (const key of PROXY_ENV_KEYS) {
+      if (snapshot[key] !== undefined) process.env[key] = snapshot[key];
+    }
+    return {};
+  }
+
+  for (const key of PROXY_ENV_KEYS) {
+    if (result[key]) process.env[key] = result[key];
+  }
+  return result;
+};
+
+const loadSystemProxy = async ({ refreshShellEnv = false } = {}) => {
   try {
+    if (refreshShellEnv) {
+      await refreshShellEnvProxyVars();
+    }
     cachedSystemProxy = await getSystemProxy();
   } catch (error) {
     console.error('Failed to initialize system proxy:', error);
@@ -21,7 +58,7 @@ const loadSystemProxy = async () => {
 
 const fetchSystemProxy = ({ refresh = false } = {}) => {
   if (refresh || !systemProxyPromise) {
-    systemProxyPromise = loadSystemProxy();
+    systemProxyPromise = loadSystemProxy({ refreshShellEnv: refresh });
   }
   return systemProxyPromise;
 };

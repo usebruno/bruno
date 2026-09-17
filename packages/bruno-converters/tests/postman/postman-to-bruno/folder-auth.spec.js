@@ -59,7 +59,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -123,7 +124,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -187,7 +189,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -243,7 +246,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -304,7 +308,8 @@ describe('Folder Authentication', () => {
       apikey: { key: 'apikey', value: 'apikey', placement: 'header' },
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -370,7 +375,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: { username: 'digest user', password: 'digest pass' }
+      digest: { username: 'digest user', password: 'digest pass' },
+      ntlm: null
     });
   });
 
@@ -423,7 +429,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 });

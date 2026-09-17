@@ -1,0 +1,21 @@
+meta {
+  name: api-setCollectionVar-typed
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Typed values persist with their dataType annotation in collection.bru's
+  // vars:pre-request block.
+  bru.setCollectionVar("coll_num", 42);
+  bru.setCollectionVar("coll_bool", true);
+  bru.setCollectionVar("coll_obj", { k: 1 });
+  // Plain string — no dataType materialized.
+  bru.setCollectionVar("coll_str", "hello");
+}

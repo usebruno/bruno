@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
+const { valueToString } = require('@usebruno/common/utils');
 const { encryptStringSafe } = require('../utils/encryption');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
@@ -36,7 +37,7 @@ class EnvironmentSecretsStore {
       if (v.secret) {
         envVars.push({
           name: v.name,
-          value: encryptStringSafe(v.value).value
+          value: encryptStringSafe(valueToString(v.value)).value
         });
       }
     });

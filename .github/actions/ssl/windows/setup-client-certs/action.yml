@@ -1,0 +1,25 @@
+name: 'Setup Client Certificates - Windows'
+description: 'Generate client (mTLS) certificates and start the client-cert test server on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup client certificates
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+
+        Set-Location tests\ssl\client-certs\server
+
+        Write-Host "running certificate setup"
+        node scripts/generate-certs.js
+
+    - name: Start test server
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+
+        Set-Location tests\ssl\client-certs\server
+
+        Write-Host "starting server in background"
+        Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden

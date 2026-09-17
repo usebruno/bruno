@@ -1,5 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
-import { buildSandboxLocators } from './locators';
+import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -7,33 +7,40 @@ import { buildSandboxLocators } from './locators';
  * @returns Object with locators for runner elements
  */
 export const buildRunnerLocators = (page: Page) => ({
-  allButton: () => page.locator('button').filter({ hasText: /^All/ }),
-  passedButton: () => page.locator('button').filter({ hasText: /^Passed/ }),
-  failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
-  skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
+  allCount: () => page.getByTestId('runner-filter-all-count'),
+  passedCount: () => page.getByTestId('runner-filter-passed-count'),
+  failedCount: () => page.getByTestId('runner-filter-failed-count'),
+  skippedCount: () => page.getByTestId('runner-filter-skipped-count'),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  cancelExecutionButton: () => page.getByTestId('runner-cancel-button'),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
-  delayInput: () => page.getByTestId('runner-delay-input')
+  delayInput: () => page.getByTestId('runner-delay-input'),
+  resultItems: () => page.getByTestId('runner-result-item'),
+  passedTestRows: () => page.getByTestId('runner-test-row-passed'),
+  failedTestRows: () => page.getByTestId('runner-test-row-failed'),
+  requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
+  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
+  resultTimelineEntries: () => page.getByTestId('timeline-entry')
 });
 
 /**
- * Reads test result counts from the filter buttons in the runner results view
+ * Reads test result counts from the filter counts in the runner results view
  * @param page - The Playwright page object
  * @returns An object with totalRequests, passed, failed, and skipped counts
  */
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allButton().locator('span').innerText());
-  const passed = parseInt(await locators.passedButton().locator('span').innerText());
-  const failed = parseInt(await locators.failedButton().locator('span').innerText());
-  const skipped = parseInt(await locators.skippedButton().locator('span').innerText());
+  const totalRequests = parseInt(await locators.allCount().innerText());
+  const passed = parseInt(await locators.passedCount().innerText());
+  const failed = parseInt(await locators.failedCount().innerText());
+  const skipped = parseInt(await locators.skippedCount().innerText());
 
   return { totalRequests, passed, failed, skipped };
 };
@@ -49,9 +56,13 @@ export const openRunnerTab = async (page: Page, collectionName: string) => {
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     await collectionContainer.waitFor({ state: 'visible' });
 
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -81,9 +92,13 @@ export const runCollection = async (page: Page, collectionName: string) => {
     await collectionContainer.waitFor({ state: 'visible' });
 
     // Open collection actions menu - hover first to reveal the hidden actions button
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await collectionContainer.hover();
-    await actionsContainer.waitFor({ state: 'visible' });
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -111,6 +126,23 @@ export const runCollection = async (page: Page, collectionName: string) => {
 
     // Wait for the run to complete
     await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
+
+export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
+    const locators = buildRunnerLocators(page);
+    const result = locators.resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+
+    const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
+    await timelineTab.click();
+
+    const { timeline } = buildCommonLocators(page);
+    const entry = locators.resultTimelineEntries().first();
+    await entry.waitFor({ state: 'visible', timeout: 10000 });
+    await timeline.itemHeader(entry).click();
   });
 };
 

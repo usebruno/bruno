@@ -1,26 +1,62 @@
-import { Page, Locator } from '../../../playwright';
+import { Locator, Page } from '../../../playwright';
+import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildMockServerLocators } from './mock-server';
+import { buildFileModeLocators } from './file-mode';
+import { buildPreferencesLocators } from './preferences';
+import { buildAiPreferencesLocators } from './ai';
+import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildRequestSettingsLocators } from './request-settings';
+import { buildSidebarLocators } from './sidebar';
+import { buildDocsLocators } from './docs';
+import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
+import { buildWebsocketCommonLocators } from './websocket';
+import { buildToastLocators } from './toast';
+import { buildRequestLocators } from '../request';
+import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildEnvironmentLocators } from './environments';
+import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildDevToolsLocators } from './devtools-console';
+import { buildVariablesTabLocators } from './variables-tab';
+import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
+import { buildTitleBarLocators } from './title-bar';
+import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
+import { buildResponseExampleLocators } from './response-example';
+
+export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
+  popup.getByTestId('var-info-add-to-no-env-note')
+    .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  titleBar: buildTitleBarLocators(page),
+  collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
-  saveButton: () => page
-    .locator('.infotip')
-    .filter({ hasText: /^Save/ }),
-  openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
-  sidebar: {
-    collectionsContainer: () => page.getByTestId('collections'),
-    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
-    },
-    closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
-    collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name })
+  fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
+  devtools: buildDevToolsLocators(page),
+  codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
+  openApi: {
+    render: buildApiSpecPanelLocators(page)
   },
+  preferences: buildPreferencesLocators(page),
+  ai: buildAiPreferencesLocators(page),
+  requestSettings: buildRequestSettingsLocators(page),
+  websocket: buildWebsocketCommonLocators(page),
+  toast: buildToastLocators(page),
+  request: buildRequestLocators(page),
+  responseExample: buildResponseExampleLocators(page),
+  saveButton: () => page.getByTestId('save-request-button'),
+  settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
+  openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
+  sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
+  manageWorkspace: buildManageWorkspaceLocators(page),
+  cloneGitRepository: buildCloneGitRepositoryLocators(page),
+  migrateToYml: buildMigrateToYmlLocators(page),
+  environment: buildEnvironmentLocators(page),
+  variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -36,22 +72,47 @@ export const buildCommonLocators = (page: Page) => ({
     tippyItem: (text: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: text })
   },
   tabs: {
+    allRequestTabs: () => page.locator('.request-tab'),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
+    collectionSettingsTab: () =>
+      page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
-    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
+    closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
+    closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
+    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
+    // request and response may have more tabs, pass the pane to isolate further.
+    overflowTrigger: (root?: Locator) => (root ?? page).locator('.tabs .more-tabs'),
+    // menu is rendered via portal, hence it rooted to page.
+    overflowItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     collectionSettingsTab: (key: string) => page.getByTestId(`collection-settings-tab-${key}`),
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
-    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+    folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
+    tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
+    collectionSettingsContent: () => page.locator('.collection-settings-content'),
+    folderSettingsContent: () => page.locator('.folder-settings-content')
+  },
+  docs: buildDocsLocators(page),
+  aiAssist: {
+    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+    requestPaneTabBarTrigger: (scriptType: string) =>
+      page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+    settingsTabBarTrigger: (scriptType: string) =>
+      page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
   modal: {
+    any: () => page.locator('.bruno-modal'),
+    formError: (text: string | RegExp) =>
+      page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
@@ -59,53 +120,154 @@ export const buildCommonLocators = (page: Page) => ({
     card: () => page.locator('.bruno-modal-card'),
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
-    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
+    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+    backdrop: () => page.locator('.bruno-modal-backdrop')
   },
-  environment: {
-    selector: () => page.getByTestId('environment-selector-trigger'),
-    collectionTab: () => page.getByTestId('env-tab-collection'),
-    globalTab: () => page.getByTestId('env-tab-global'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
-    currentEnvironment: () => page.locator('.current-environment'),
-    addVariableButton: () => page.locator('button[data-testid="add-variable"]'),
-    variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
-    variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
-    variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
-    createEnvButton: () => page.locator('button[id="create-env"]'),
-    envNameInput: () => page.locator('input[name="name"]')
+  openCollectionPicker: {
+    list: () => page.getByTestId('selection-list'),
+    titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
+    descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
+    itemCheckbox: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
+    count: () => page.getByTestId('selection-count'),
+    selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+    searchInput: () => page.getByTestId('selection-search-input')
   },
   codeMirror: {
-    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
+    byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first(),
+    within: (scope: Locator) => scope.locator('.CodeMirror').first(),
+    /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
+    valueCellAt: (scope: Locator, rowIndex: number = 0) =>
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
   },
-  request: {
-    urlInput: () => page.locator('#request-url .CodeMirror'),
-    urlLine: () => page.locator('#request-url .CodeMirror-line'),
-    sendButton: () => page.getByTestId('send-arrow-icon'),
-    methodDropdown: () => page.getByTestId('request-method-selector'),
-    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
-    requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.locator('#request-actions .infotip').first(),
-    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyEditor: () => page.getByTestId('request-body-editor'),
-    pane: () => page.getByTestId('request-pane')
+  // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
+  // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
+  dataTypeSelector: {
+    trigger: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
+    typeLabel: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
+    // Yellow warning icon shown when a value can't be coerced to its dataType.
+    mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
+    menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
+  },
+  filePicker: {
+    warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
+  },
+  // The variable-info popup shown when hovering a `{{var}}` token in an editor.
+  varInfoPopup: {
+    all: () => page.getByTestId('var-info-popup'),
+    byName: (name: string) =>
+      page.getByTestId('var-info-popup').filter({ has: page.getByTestId('var-info-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
+    name: (popup: Locator) => popup.getByTestId('var-info-name'),
+    scopeBadge: (popup: Locator) => popup.getByTestId('var-info-scope-badge'),
+    valueDisplay: (popup: Locator) => popup.getByTestId(/^var-info-value-(editable|display)$/).first(),
+    editableValue: (popup: Locator) => popup.getByTestId('var-info-value-editable').first(),
+    secretToggle: (popup: Locator) => popup.getByTestId('var-info-secret-toggle'),
+    copyButton: (popup: Locator) => popup.getByTestId('var-info-copy-button'),
+    readonlyNote: (popup: Locator) => popup.getByTestId('var-info-readonly-note'),
+    warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
+    // The editor container itself (hidden until the value display is clicked).
+    editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror'),
+    // The "Add to" switcher, shown in place of an editable value for undefined variables.
+    addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
+    addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToList: (popup: Locator) => popup.getByTestId('var-info-add-to-list'),
+    addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
+    addToActiveOption: (popup: Locator, scopeType?: string) => {
+      const activeRow = popup.locator('.var-add-to-option-active');
+      return scopeType ? activeRow.getByTestId(`var-info-add-to-option-${scopeType}`) : activeRow;
+    },
+    addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
+    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
+    addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
+      addToNoEnvNoteLocator(popup, scopeType).getByTestId('var-info-add-to-create-env-button'),
+    addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
+    addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
+    addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
   auth: {
     apiKey: {
       placementSelector: () => page.getByTestId('auth-placement-selector'),
       placementLabel: () => page.getByTestId('auth-placement-label')
-    }
+    },
+    oauth2: {
+      grantTypeDropdown: () => page.getByTestId('grant-type-dropdown'),
+      tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
+      tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key')
+    },
+    modeSelector: () => page.getByTestId('auth-mode-selector'),
+    modeLabel: () => page.getByTestId('auth-mode-label'),
+    inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
+  },
+  presets: {
+    requestType: (type: PresetRequestType) =>
+      page.getByTestId(`presets-request-type-${type}`),
+    requestUrl: () => page.getByTestId('presets-request-url'),
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
     item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+  },
+  generateDocs: {
+    menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
+    modal: () => page.locator('.bruno-modal').filter({
+      has: page.locator('.bruno-modal-header-title').filter({ hasText: 'Generate Documentation' })
+    }),
+    heading: () => page.locator('.bruno-modal').getByText('Interactive API Documentation'),
+    generateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Generate', exact: true }),
+    cancelButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Cancel', exact: true }),
+    // Collection name + version (read-only) display
+    versionInfo: () => page.locator('.bruno-modal').getByTestId('version-info'),
+    collectionName: () => page.locator('.bruno-modal').getByTestId('collection-name'),
+    versionValue: () => page.locator('.bruno-modal').getByTestId('version-value'),
+    versionCounts: () => page.locator('.bruno-modal').getByTestId('version-summary'),
+    // Environment selection list
+    environmentsTitle: () => page.locator('.bruno-modal').getByTestId('env-section-title'),
+    // Header controls: tri-state "select all" checkbox + "X/Y selected" count
+    selectAllCheckbox: () => page.locator('.bruno-modal').getByTestId('env-select-all'),
+    selectAllLabel: () => page.locator('.bruno-modal').getByTestId('env-select-all-label'),
+    selectedCount: () => page.locator('.bruno-modal').getByTestId('env-selected-count'),
+    environmentRows: () => page.locator('.bruno-modal').getByTestId('env-row'),
+    environmentRow: (name: string) =>
+      page.locator('.bruno-modal').getByTestId('env-row').filter({ has: page.getByText(name, { exact: true }) }),
+    // A row has exactly one checkbox; its data-testid is uid-keyed, so select it by role within the named row.
+    environmentCheckbox: (name: string) =>
+      page
+        .locator('.bruno-modal')
+        .getByTestId('env-row')
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .getByRole('checkbox'),
+    advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
+    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
+    gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
   runnerResults: {
     itemPath: (name: string) => page.getByTestId('runner-result-item').filter({ hasText: name })
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    status: () => page.getByTestId('response-pane-status'),
+    elapsedTime: () => page.getByTestId('response-elapsed-time'),
+    // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
+    // absence doubles as the "response is cleared" signal.
+    clearButton: () => page.getByTestId('response-clear-btn'),
     pane: () => page.locator('.response-pane'),
+    errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
     body: () => page.locator('.response-pane'),
     editorContainer: () => page.locator('.response-pane .editor-container'),
@@ -114,10 +276,41 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainer: () => page.getByTestId('response-preview-container'),
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
-    jsonTreeLine: () => page.locator('.response-pane .object-content')
+    jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    xmlTree: () => page.getByTestId('xml-tree'),
+    // Only the XML tree's expand/collapse buttons carry aria-expanded, so this matches
+    // every still-collapsed node regardless of depth.
+    xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
+    previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
+    tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
+    tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
+    testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+      page.getByTestId(`test-summary-${section}`),
+    // Match the fail icon (one per row) rather than a class shared by both the icon and
+    // label spans, so each failure counts once, not twice.
+    testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),
+    assertionResults: {
+      rows: () => page.getByTestId('test-result-item'),
+      passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
+    }
+  },
+  timeline: {
+    items: () => page.getByTestId('timeline-item'),
+    lastItem: () => page.getByTestId('timeline-item').last(),
+    itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+    networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
+    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+    headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+    headerValue: (item: Locator, name: string) =>
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
+    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
@@ -126,6 +319,12 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
+    bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
+    bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
+    bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
@@ -143,6 +342,15 @@ export const buildCommonLocators = (page: Page) => ({
       };
     })()
   },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+  },
   /**
    * Build generic table locators for any table with a testId
    * @param testId - The testId of the table
@@ -158,19 +366,36 @@ export const buildCommonLocators = (page: Page) => ({
     return {
       container,
       row: (index?: number) => getBodyRow(index),
+      // EditableTable rows carry data-row-name derived from the key column.
+      rowByName: (name: string) => container().locator(`tbody tr[data-row-name="${name}"]`),
       rowCell: (columnKey: string, rowIndex?: number) => {
         const row = getBodyRow(rowIndex);
         return row.getByTestId(`column-${columnKey}`);
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowCheckboxByName: (name: string) =>
+        container().locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
-      allRows: () => container().locator('tbody tr')
+      allRows: () => container().locator('tbody tr'),
+      rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
+      rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
     };
   },
   /**
    * Assertions table locators (extends generic table with assertion-specific helpers)
    * @returns Assertions table locators object
    */
+  /**
+   * @param scope - Which panel to target
+   * @returns Panel locators object
+   */
+  varsPanel: (scope: 'folder' | 'collection') => {
+    const container = () => page.getByTestId(`${scope}-vars-panel`);
+    return {
+      container,
+      saveButton: () => container().getByRole('button', { name: 'Save', exact: true })
+    };
+  },
   assertionsTable: () => {
     const baseTable = buildCommonLocators(page).table('assertions-table');
     return {
@@ -190,41 +415,32 @@ export const buildCommonLocators = (page: Page) => ({
   }
 });
 
-export const buildWebsocketCommonLocators = (page: Page) => ({
-  ...buildCommonLocators(page),
-  connectionControls: {
-    connect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Connect$/ }),
-    disconnect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
-  },
-  messages: () => page.locator('.ws-message'),
-  toolbar: {
-    latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
-    latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByTestId('response-clear-btn')
-  }
-});
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
+  });
 
-export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
+export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
+
+type GrpcTestSectionKey = 'beforeCallStart' | 'beforeMessageSend' | 'afterMessageReceive' | 'afterCallEnd';
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   method: {
     dropdownTrigger: () => page.getByTestId('grpc-method-dropdown-trigger'),
-    indicator: () => page.getByTestId('grpc-method-indicator')
+    indicator: () => page.getByTestId('grpc-method-indicator'),
+    dropdown: () => page.getByTestId('grpc-methods-dropdown'),
+    item: (methodName: string) =>
+      page.getByTestId('grpc-methods-dropdown').getByTestId('grpc-method-item').filter({ hasText: methodName }),
+    selectedName: () => page.getByTestId('selected-grpc-method-name')
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    messages: () => page.getByTestId('grpc-messages-container').locator('.message-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
+    regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
     endConnectionButton: () => page.getByTestId('grpc-end-connection-button'),
     cancelConnectionButton: () => page.getByTestId('grpc-cancel-connection-button')
@@ -238,7 +454,30 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('grpc-responses-list'),
     responseItem: (index: number) => page.getByTestId(`grpc-response-item-${index}`),
     responseItems: () => page.locator('[data-testid^="grpc-response-item-"]'),
-    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count')
+    tabCount: () => page.getByRole('tab', { name: 'Response' }).getByTestId('grpc-tab-response-count'),
+    tests: {
+      passedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-passed-count'),
+      failedCount: () => page.getByTestId('responsive-tab-tests').getByTestId('grpc-tests-failed-count'),
+      section: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`),
+      summary: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).locator('.test-summary'),
+      rows: (hook: GrpcTestSectionKey) => page.getByTestId(`grpc-test-section-${hook}`).getByTestId('test-result-item'),
+      passedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failedRows: (hook: GrpcTestSectionKey) =>
+        page
+          .getByTestId(`grpc-test-section-${hook}`)
+          .getByTestId('test-result-item')
+          .filter({ has: page.getByTestId('test-result-icon-fail') }),
+      /** The "Message N" label a message hook's results are grouped under, 0-based */
+      messageGroup: (hook: GrpcTestSectionKey, messageIndex: number) =>
+        page.getByTestId(`grpc-test-section-${hook}`).getByTestId(`grpc-test-message-group-${messageIndex}`),
+      /** Every "Message N" label in a section, so a per-message hook's run count can be asserted */
+      messageGroups: (hook: GrpcTestSectionKey) =>
+        page.getByTestId(`grpc-test-section-${hook}`).locator('[data-testid^="grpc-test-message-group-"]')
+    }
   }
 });
 
@@ -259,6 +498,9 @@ export const buildScriptErrorLocators = (page: Page) => ({
   title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
   /** Close button within a card */
   closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
+  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
+  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */

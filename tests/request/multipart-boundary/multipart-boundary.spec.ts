@@ -148,7 +148,7 @@ value1\r
 
       // The multipart form has an editable table - find and fill the first row
       // The name column has placeholder "Key" (defined in MultipartFormParams columns)
-      const nameInput = page.locator('[data-testid="editable-table"] input[placeholder="Key"]').first();
+      const nameInput = page.locator('[data-testid="multipart-form-table"] input[placeholder="Key"]').first();
       await nameInput.waitFor({ state: 'visible', timeout: 5000 });
       await nameInput.click();
       await nameInput.fill('testField');

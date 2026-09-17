@@ -1,6 +1,18 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .editor-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
+  }
+
+  &.search-bar-visible {
+    min-height: 90px;
+  }
+
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
@@ -76,10 +88,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger} !important;
     background: ${(props) => props.theme.status.danger.background} !important;
     text-decoration: unset;
-  }
-
-  .CodeMirror-search-hint {
-    display: inline;
   }
 `;
 

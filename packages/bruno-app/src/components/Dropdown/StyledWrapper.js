@@ -18,7 +18,7 @@ const Wrapper = styled.div`
   max-height: 90vh;
   overflow-y: auto;
   max-width: unset !important;
-  padding: 0.25rem;
+  padding: ${(props) => (props.noPadding ? '0' : '0.25rem')};
 
   [role="menu"] {
     outline: none;
@@ -27,6 +27,14 @@ const Wrapper = styled.div`
     }
     &:focus-visible {
       outline: none;
+    }
+  }
+
+  &.hide-on-reference-clipped[data-reference-hidden],
+  &.hide-on-reference-clipped[data-popper-reference-hidden] {
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
     }
   }
 
@@ -159,11 +167,17 @@ const Wrapper = styled.div`
       background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
       .dropdown-icon {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+        opacity: 1;
       }
 
       &:hover {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
         background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
+      }
+
+      &.disabled {
+        opacity: 1;
+        cursor: not-allowed;
       }
     }
 

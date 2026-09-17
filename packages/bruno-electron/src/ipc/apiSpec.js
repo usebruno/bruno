@@ -1,6 +1,6 @@
 const { ipcMain } = require('electron');
-const { openApiSpecDialog, openApiSpec } = require('../app/apiSpecs');
-const { writeFile } = require('../utils/filesystem');
+const { openApiSpecDialog, openApiSpec, validateApiSpec } = require('../app/apiSpecs');
+const { writeFile, isDirectory } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
 const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -25,7 +25,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
   ipcMain.handle('renderer:save-api-spec', async (event, pathname, content) => {
     try {
       await writeFile(pathname, content);
-      Promise.resolve();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -33,6 +32,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
 
   ipcMain.handle('renderer:create-api-spec', async (event, apiSpecName, apiSpecLocation, content = '', workspacePath = null) => {
     try {
+      if (typeof apiSpecName !== 'string' || apiSpecName !== path.basename(apiSpecName)) {
+        throw new Error(`api spec: ${apiSpecName} is not a valid filename`);
+      }
+      validateApiSpec(apiSpecName);
+
+      if (typeof apiSpecLocation !== 'string' || !isDirectory(apiSpecLocation)) {
+        throw new Error(`path: ${apiSpecLocation} is not an existing directory`);
+      }
+
       let pathname = path.join(apiSpecLocation, apiSpecName);
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);

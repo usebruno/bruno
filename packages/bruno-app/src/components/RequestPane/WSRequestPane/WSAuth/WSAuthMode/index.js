@@ -54,14 +54,14 @@ const WSAuthMode = ({ item, collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer auth-mode-selector">
+      <div className="inline-flex items-center cursor-pointer auth-mode-selector" data-testid="auth-mode-selector">
         <MenuDropdown
           items={menuItems}
           placement="bottom-end"
           selectedItemId={authMode}
           showTickMark={true}
         >
-          <div className="flex items-center justify-center auth-mode-label select-none">
+          <div className="flex items-center justify-center auth-mode-label select-none" data-testid="auth-mode-label">
             {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
           </div>
         </MenuDropdown>

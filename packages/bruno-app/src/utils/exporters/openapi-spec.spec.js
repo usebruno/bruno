@@ -881,3 +881,124 @@ describe('exportApiSpec - OAuth2 scope handling (BRU-3297)', () => {
     });
   });
 });
+
+describe('exportApiSpec - non-HTTP request type filtering', () => {
+  it('should keep only http-request and graphql-request items and not crash on others', () => {
+    const items = [
+      {
+        name: 'HTTP Request',
+        type: 'http-request',
+        pathname: 'folder/http',
+        depth: 2,
+        request: {
+          url: 'https://api.example.com/http',
+          method: 'GET',
+          params: [],
+          headers: [],
+          body: {},
+          auth: {}
+        },
+        examples: []
+      },
+      {
+        name: 'GraphQL Request',
+        type: 'graphql-request',
+        pathname: 'folder/graphql',
+        depth: 2,
+        request: {
+          url: 'https://api.example.com/graphql',
+          method: 'POST',
+          params: [],
+          headers: [],
+          body: {},
+          auth: {}
+        },
+        examples: []
+      },
+      {
+        name: 'gRPC Request',
+        type: 'grpc-request',
+        request: { url: 'grpc://example.com/service' }
+      },
+      {
+        name: 'WebSocket Request',
+        type: 'ws-request',
+        request: { url: 'wss://example.com/socket' }
+      },
+      {
+        name: 'Folder',
+        type: 'folder',
+        items: []
+      },
+      {
+        name: 'script.js',
+        type: 'js'
+      },
+      {
+        name: 'Transient',
+        type: 'http-request',
+        isTransient: true,
+        pathname: 'folder/transient',
+        depth: 2,
+        request: {
+          url: 'https://api.example.com/transient',
+          method: 'GET',
+          params: [],
+          headers: [],
+          body: {},
+          auth: {}
+        },
+        examples: []
+      }
+    ];
+
+    let result;
+    expect(() => {
+      result = exportApiSpec({ variables: {}, items, name: 'Test API' });
+    }).not.toThrow();
+
+    const spec = require('js-yaml').load(result.content);
+    const pathKeys = Object.keys(spec.paths);
+
+    expect(pathKeys).toHaveLength(2);
+    expect(spec.paths['/http']).toBeDefined();
+    expect(spec.paths['/http'].get).toBeDefined();
+    expect(spec.paths['/graphql']).toBeDefined();
+    expect(spec.paths['/graphql'].post).toBeDefined();
+    expect(spec.paths['/transient']).toBeUndefined();
+  });
+});
+
+describe('exportApiSpec - descriptions', () => {
+  it('includes header and query param descriptions in the OpenAPI output', () => {
+    const items = [
+      {
+        name: 'Described Request',
+        type: 'http-request',
+        request: {
+          url: 'https://example.com/users',
+          method: 'GET',
+          params: [
+            { name: 'q', value: 'search', enabled: true, type: 'query', description: 'Search query' }
+          ],
+          headers: [
+            { name: 'X-Version', value: '2', enabled: true, description: 'API version header' }
+          ],
+          body: {},
+          auth: {}
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({ variables: {}, items, name: 'Described API' });
+    const spec = require('js-yaml').load(content);
+    const operation = spec.paths['/users'].get;
+
+    expect(operation.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'q', in: 'query', description: 'Search query' }),
+        expect.objectContaining({ name: 'X-Version', in: 'header', description: 'API version header' })
+      ])
+    );
+  });
+});

@@ -101,6 +101,7 @@ const General = () => {
       savePreferences({
         ...preferences,
         request: {
+          ...preferences.request,
           sslVerification: newPreferences.sslVerification,
           customCaCertificate: {
             enabled: newPreferences.customCaCertificate.enabled,

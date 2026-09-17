@@ -1,0 +1,15 @@
+info:
+  name: EchoReceivedCount
+  type: grpc
+  seq: 14
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "received-{{receivedCount}}"
+        }
