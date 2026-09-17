@@ -1,16 +1,29 @@
 import React from 'react';
 import { ThemeProvider as SCThemeProvider, createGlobalStyle } from 'styled-components';
-import themes from 'themes/index';
+import themes, { themeRegistry } from 'themes/index';
+import { ThemeContext } from 'providers/Theme';
+// App global styles — Tailwind (utility classes like `flex`, `px-4`, `mr-2` used
+// throughout components) plus the `--color-*` CSS variables. Without this, any
+// component that mixes Tailwind utilities with styled-components renders unstyled.
+import '../src/styles/globals.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 
 const GlobalStyle = createGlobalStyle`
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
   * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   }
 `;
+
+// One toolbar entry per registered Bruno theme (light group first, then dark).
+const themeItems = Object.values(themeRegistry).map((t) => ({ value: t.id, title: t.name }));
 
 /** @type { import('@storybook/react').Preview } */
 const preview = {
@@ -21,24 +34,20 @@ const preview = {
         date: /Date$/i
       }
     },
-    backgrounds: {
-      default: 'light',
-      values: [
-        { name: 'light', value: '#ffffff' },
-        { name: 'dark', value: '#1e1e1e' }
-      ]
+    docs: {
+      // Adds a "Code" tab to the Canvas addon panel showing the story's source.
+      codePanel: true,
+      // Show each story's usage code by default in Docs (the "Show code" panel expanded).
+      canvas: { sourceState: 'shown' }
     }
   },
   globalTypes: {
     theme: {
-      description: 'Global theme for components',
+      description: 'Bruno theme',
       toolbar: {
         title: 'Theme',
         icon: 'paintbrush',
-        items: [
-          { value: 'light', title: 'Light' },
-          { value: 'dark', title: 'Dark' }
-        ],
+        items: themeItems,
         dynamicTitle: true
       }
     }
@@ -49,22 +58,41 @@ const preview = {
   decorators: [
     (Story, context) => {
       const themeName = context.globals.theme || 'light';
-      const theme = themes[themeName];
+      const theme = themes[themeName] || themes.light;
+      const meta = themeRegistry[themeName] || themeRegistry.light;
 
-      // Update background and text color based on theme
-      const isDark = themeName === 'dark';
-      const backgroundColor = isDark ? '#1e1e1e' : '#ffffff';
-      const textColor = isDark ? '#d4d4d4' : '#333333';
+      const backgroundColor = theme.bg || (meta.mode === 'dark' ? '#1e1e1e' : '#ffffff');
+      const textColor = theme.text || (meta.mode === 'dark' ? '#d4d4d4' : '#333333');
+
+      // Apply the light/dark class — globals.css scopes some CSS variables to it.
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(meta.mode);
       document.body.style.backgroundColor = backgroundColor;
       document.body.style.color = textColor;
 
+      // Provide the app ThemeContext too, so components that call useTheme()
+      // render and still respond to the toolbar theme selection.
+      const themeContextValue = {
+        theme,
+        storedTheme: themeName,
+        displayedTheme: meta.mode,
+        setStoredTheme: () => {},
+        themeVariantLight: 'light',
+        setThemeVariantLight: () => {},
+        themeVariantDark: 'dark',
+        setThemeVariantDark: () => {}
+      };
+
       return (
-        <SCThemeProvider theme={theme}>
-          <GlobalStyle />
-          <div style={{ padding: '1rem', color: textColor }}>
-            <Story />
-          </div>
-        </SCThemeProvider>
+        <ThemeContext.Provider value={themeContextValue}>
+          <SCThemeProvider theme={theme}>
+            <GlobalStyle />
+            <div style={{ padding: '1rem', backgroundColor, color: textColor }}>
+              <Story />
+            </div>
+          </SCThemeProvider>
+        </ThemeContext.Provider>
       );
     }
   ]

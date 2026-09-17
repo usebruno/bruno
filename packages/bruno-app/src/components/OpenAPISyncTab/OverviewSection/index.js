@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { selectStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { countEndpoints } from '../utils';
 import moment from 'moment';
@@ -43,7 +42,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
 
   const reduxError = useSelector((state) => state.openapiSync?.collectionUpdates?.[collection.uid]?.error);
-  const specMeta = useSelector(selectStoredSpecMeta(collection.uid));
+  const specMeta = useSelector((state) => state.openapiSync?.storedSpecMeta?.[collection.uid] || null);
   const activeError = error || reduxError;
 
   const version = specMeta?.version;

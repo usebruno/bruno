@@ -1,0 +1,19 @@
+meta {
+  name: path-param-colon
+  type: http
+  seq: 22
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/users/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 2026-01-15T10:30:00
+}
+
+settings {
+  encodeUrl: false
+}

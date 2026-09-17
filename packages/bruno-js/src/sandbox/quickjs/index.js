@@ -2,23 +2,85 @@ const addBruShimToContext = require('./shims/bru');
 const addBrunoRequestShimToContext = require('./shims/bruno-request');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
+const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { getRequireCode } = require('./shims/require');
-const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
+const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
+
+// The engine prints its dispose-abort assertion to stderr on its own. Swallow
+// that line on the CLI, where stderr is the user's screen and a handled trap
+// would read as a crash; keep it in the app, whose console is not user facing.
+const isElectronHost = Boolean(process.versions.electron);
+const isContainedAbortLine = (line) =>
+  String(line).includes('list_empty(&rt->gc_obj_list)') && String(line).includes('JS_FreeRuntime');
+const quietEngineVariant = newVariant(RELEASE_SYNC, {
+  emscriptenModule: {
+    printErr: (line) => {
+      if (isElectronHost || !isContainedAbortLine(line)) {
+        console.error(line);
+      }
+    }
+  }
+});
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
-const { marshallToVm } = require('./utils');
+const { marshallToVm, createManagedQuickJsContext } = require('./utils');
 const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
-let QuickJSSyncContext;
-const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
-const getContext = (opts) => loader().then((mod) => (QuickJSSyncContext = mod.newContext(opts)));
-getContext();
+let QuickJSModule;
+let quickJSModulePromise;
+let quickJSModuleLoading = false;
+let quickJSModuleRecycleCount = 0;
+
+// Memoized WASM module for sync + async. reload swaps with no gap; failed
+// reload restores the old memo, failed initial load clears it.
+const loader = ({ reload = false } = {}) => {
+  if (!quickJSModulePromise || (reload && !quickJSModuleLoading)) {
+    const previousPromise = quickJSModulePromise;
+    quickJSModuleLoading = true;
+    quickJSModulePromise = newQuickJSWASMModuleFromVariant(quietEngineVariant)
+      .then((mod) => {
+        QuickJSModule = mod;
+        return mod;
+      })
+      .catch((loadError) => {
+        console.error(reload ? 'QuickJS module reload failed' : 'QuickJS module load failed', loadError);
+        quickJSModulePromise = reload ? previousPromise : null;
+        if (quickJSModulePromise) {
+          return quickJSModulePromise;
+        }
+        throw loadError;
+      })
+      .finally(() => {
+        quickJSModuleLoading = false;
+      });
+  }
+  return quickJSModulePromise;
+};
+loader().catch(() => {});
+
+// On dispose WASM trap, recycle the module (old one keeps serving until ready).
+const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
+  if (!(teardownError instanceof WebAssembly.RuntimeError)) {
+    return false;
+  }
+  // Skip if this module was already replaced.
+  if (!ownerModule || ownerModule === QuickJSModule) {
+    quickJSModuleRecycleCount += 1;
+    console.warn(
+      quickJSModuleRecycleCount === 1
+        ? 'QuickJS engine crashed during cleanup and was replaced; the run was not affected'
+        : `QuickJS engine replaced again (${quickJSModuleRecycleCount} this session)`
+    );
+    loader({ reload: true }).catch(() => {});
+  }
+  return true;
+};
 
 const toNumber = (value) => {
   const num = Number(value);
@@ -57,10 +119,11 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 
     externalScript = removeQuotes(externalScript);
   }
-
-  const vm = QuickJSSyncContext;
-
+  let managedQuickJsContext;
+  const quickJsModule = QuickJSModule;
   try {
+    managedQuickJsContext = createManagedQuickJsContext(quickJsModule);
+    const vm = managedQuickJsContext.vm;
     const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
@@ -76,7 +139,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 
     let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
 
-    const result = vm.evalCode(scriptText);
+    const result = vm.evalCodeRetained(scriptText);
     if (result.error) {
       let e = vm.dump(result.error);
       result.error.dispose();
@@ -88,6 +151,14 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     }
   } catch (error) {
     console.error('Error executing the script!', error);
+  } finally {
+    try {
+      managedQuickJsContext?.dispose();
+    } catch (teardownError) {
+      if (!recycleQuickJSModuleOnAbort(teardownError, quickJsModule)) {
+        console.error('Error disposing QuickJS context', teardownError);
+      }
+    }
   }
 };
 
@@ -97,9 +168,13 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   }
   externalScript = externalScript?.trim();
 
+  let managedQuickJsContext;
+  let scriptError;
+  let quickJsModule;
   try {
-    const module = await newQuickJSWASMModule();
-    const vm = module.newContext();
+    quickJsModule = await loader();
+    managedQuickJsContext = createManagedQuickJsContext(quickJsModule);
+    const vm = managedQuickJsContext.vm;
 
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
@@ -117,6 +192,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
+    bru?.grpc && addBrunoGrpcShimToContext(vm, bru.grpc);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
@@ -128,21 +204,43 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
-    const result = vm.evalCode(script, scriptPath);
+    const result = vm.evalCodeRetained(script, scriptPath);
     const promiseHandle = vm.unwrapResult(result);
     const resolvedResult = await vm.resolvePromise(promiseHandle);
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
-    // vm.dispose();
-    return;
   } catch (error) {
     error.__isQuickJS = true;
-    throw error;
+    scriptError = error;
+  }
+
+  // The run waits for every pending deferred before returning: un-awaited
+  // async work is the user's choice, and the run is not done until it is.
+  // The wait is unbounded by design; cancelling the request is the way out.
+  if (managedQuickJsContext) {
+    // No try/catch: every awaited settle promise is pre-caught at creation
+    // (trackPendingDeferreds), so this await cannot reject and skip dispose.
+    await managedQuickJsContext.waitForPendingDeferreds();
+    try {
+      managedQuickJsContext.dispose();
+    } catch (teardownError) {
+      const recycled = recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
+      if (!scriptError && !recycled) {
+        scriptError = teardownError;
+      } else if (!recycled) {
+        console.error('Error disposing QuickJS context', teardownError);
+      }
+    }
+  }
+
+  if (scriptError) {
+    throw scriptError;
   }
 };
 
 module.exports = {
   executeQuickJsVm,
-  executeQuickJsVmAsync
+  executeQuickJsVmAsync,
+  loader
 };

@@ -1,32 +1,70 @@
 import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Collection from './Collection';
+import GitRemoteCollectionRow from './GitRemoteCollectionRow';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
-import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections } = useSelector((state) => state.collections);
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const dispatch = useDispatch();
+
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
-  const workspaceCollections = useMemo(() => {
-    if (!activeWorkspace) return [];
+  // Build the sidebar list in workspace.yml order. Each entry is either a fully
+  // loaded collection (rendered via <Collection />) or, for non-default workspaces,
+  // a "ghost" git-backed entry whose local folder is missing (rendered via
+  // <GitRemoteCollectionRow /> so the user can click to clone it).
+  const sidebarEntries = useMemo(
+    () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
+    [activeWorkspace, collections, workspaces, collectionSortOrder]
+  );
 
-    return collections.filter((c) => {
-      if (isScratchCollection(c, workspaces)) {
-        return false;
-      }
-      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
-    });
-  }, [activeWorkspace, collections, workspaces]);
+  const selectionInfo = useMemo(
+    () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
+    [collections, selectedSidebarUids]
+  );
 
-  if (!workspaceCollections || !workspaceCollections.length) {
+  // A collection can't be dragged together with folders/requests/apps from inside it.
+  const hasMixedCollectionSelection = Boolean(
+    selectionInfo?.hasCollection
+    && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp)
+  );
+
+  // Whether a selected collection row can be dragged as part of the multi-selection.
+  const isCollectionMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || hasMixedCollectionSelection);
+
+  // Whether a selected folder/request/app row can be dragged as part of the multi-selection.
+  const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
+
+  const multiDragCollections = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
+  }, [selectionInfo]);
+
+  const multiDragItems = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasCollection || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [selectionInfo]);
+
+  const handleContainerClick = (e) => {
+    if (e.currentTarget === e.target) {
+      dispatch(clearSidebarSelection());
+    }
+  };
+
+  if (!sidebarEntries.length) {
     return (
       <StyledWrapper>
         {isCreatingCollection && (
@@ -47,7 +85,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className="collections-list">
+      <div
+        className="collections-list flex flex-col flex-1 overflow-hidden hover:overflow-y-auto"
+        onClick={handleContainerClick}
+      >
         {isCreatingCollection && (
           <InlineCollectionCreator
             onComplete={onDismissCreate}
@@ -55,14 +96,26 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             onOpenAdvanced={onOpenAdvancedCreate}
           />
         )}
-        {workspaceCollections && workspaceCollections.length
-          ? workspaceCollections.map((c) => {
-              return (
-                <Collection searchText={searchText} collection={c} key={c.uid} />
-              );
-            })
-          : null}
+        {sidebarEntries.map((entry) => {
+          if (entry.kind === 'loaded') {
+            return (
+              <Collection
+                searchText={searchText}
+                collection={entry.collection}
+                key={entry.key}
+                openBulkMenu={openBulkMenu}
+                isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
+                isItemMultiDragDisabled={isItemMultiDragDisabled}
+                multiDragCollections={multiDragCollections}
+                multiDragItems={multiDragItems}
+              />
+            );
+          }
+          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
+        })}
       </div>
+      <CollectionItemDragPreview />
+      <BulkActionsMenu menuProps={menuProps} />
     </StyledWrapper>
   );
 };

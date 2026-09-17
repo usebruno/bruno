@@ -4,7 +4,8 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createRequest,
-  openRequest
+  openRequest,
+  waitForReadyPage
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -33,8 +34,7 @@ test.describe('Close tab stays in workspace', () => {
     let app;
     try {
       app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await test.step('Create ColA/ReqA in default workspace and open ReqA', async () => {
         await createCollection(page, 'ColA', colAPath);

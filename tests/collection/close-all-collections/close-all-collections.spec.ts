@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
 import path from 'path';
+import { waitForReadyPage } from '../../utils/page';
 import { openCollection } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -10,8 +11,7 @@ import { buildCommonLocators } from '../../utils/page/locators';
  */
 const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>): Promise<{ app: ElectronApplication; page: Page; locators: ReturnType<typeof buildCommonLocators> }> => {
   const app = await restartApp();
-  const page = await app.firstWindow();
-  await page.locator('[data-app-state="loaded"]').waitFor();
+  const page = await waitForReadyPage(app);
   const locators = buildCommonLocators(page);
   return { app, page, locators };
 };

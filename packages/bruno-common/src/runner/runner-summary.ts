@@ -7,6 +7,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
   let failedRequests = 0;
   let errorRequests = 0;
   let skippedRequests = 0;
+  let skippedByBail = 0;
   let totalAssertions = 0;
   let passedAssertions = 0;
   let failedAssertions = 0;
@@ -30,6 +31,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
 
     if (status === 'skipped') {
       skippedRequests += 1;
+      if (result.skipReason === 'bail') skippedByBail += 1;
       continue;
     }
 
@@ -94,6 +96,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
     failedRequests,
     errorRequests,
     skippedRequests,
+    skippedByBail,
     totalAssertions,
     passedAssertions,
     failedAssertions,

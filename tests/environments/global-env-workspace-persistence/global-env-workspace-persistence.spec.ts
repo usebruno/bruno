@@ -5,7 +5,8 @@ import {
   switchWorkspace,
   createCollection,
   createEnvironment,
-  openCollection
+  openCollection,
+  waitForReadyPage
 } from '../../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -22,8 +23,7 @@ test.describe('Global Environment Per-Workspace Persistence', () => {
       userDataPath,
       templateVars: { wsLocation }
     });
-    const page1 = await app1.firstWindow();
-    await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page1 = await waitForReadyPage(app1);
 
     // Create a collection so the environment selector is visible
     await createCollection(page1, 'Test Collection', collectionDir);
@@ -36,8 +36,7 @@ test.describe('Global Environment Per-Workspace Persistence', () => {
 
     // Second launch - same userDataPath to preserve electron store
     const app2 = await launchElectronApp({ userDataPath });
-    const page2 = await app2.firstWindow();
-    await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page2 = await waitForReadyPage(app2);
 
     // Open the collection so the env selector is visible
     await openCollection(page2, 'Test Collection');
@@ -59,8 +58,7 @@ test.describe('Global Environment Per-Workspace Persistence', () => {
       userDataPath,
       templateVars: { wsLocation }
     });
-    const page = await app.firstWindow();
-    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page = await waitForReadyPage(app);
 
     // On the default workspace, create a collection and a global env
     await createCollection(page, 'WS1 Collection', collectionDir1);
@@ -89,8 +87,7 @@ test.describe('Global Environment Per-Workspace Persistence', () => {
 
     // Restart app and verify persistence across restart
     const app2 = await launchElectronApp({ userDataPath });
-    const page2 = await app2.firstWindow();
-    await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+    const page2 = await waitForReadyPage(app2);
 
     // App opens to last active workspace - verify its env is still selected
     const currentWorkspace = await page2.getByTestId('workspace-name').textContent();

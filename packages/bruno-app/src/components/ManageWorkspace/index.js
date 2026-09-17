@@ -16,6 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown/index';
 import Button from 'ui/Button';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 
 const ManageWorkspace = () => {
   const dispatch = useDispatch();
@@ -97,12 +98,17 @@ const ManageWorkspace = () => {
 
       <div className="manage-workspace-header">
         <div className="header-left">
-          <div className="back-button" onClick={handleBack}>
+          <div className="back-button" onClick={handleBack} data-testid="manage-workspace-back-btn">
             <IconArrowLeft size={18} strokeWidth={1.5} />
           </div>
-          <span className="header-title">Manage Workspace</span>
+          <span className="header-title" data-testid="manage-workspace-title">Manage Workspace</span>
         </div>
-        <Button size="sm" onClick={handleCreateWorkspace} icon={<IconPlus size={14} strokeWidth={2} />}>
+        <Button
+          size="sm"
+          onClick={handleCreateWorkspace}
+          icon={<IconPlus size={14} strokeWidth={2} />}
+          data-testid="manage-workspace-create"
+        >
           Create Workspace
         </Button>
       </div>
@@ -118,7 +124,7 @@ const ManageWorkspace = () => {
             const isActive = workspace.uid === activeWorkspaceUid;
 
             return (
-              <div key={workspace.uid} className="workspace-item">
+              <div key={workspace.uid} className="workspace-item" data-testid={`workspace-item-${workspace.name}`}>
                 <div className="workspace-info">
                   <div className="workspace-name-row">
                     <span className={`workspace-icon ${isDefault ? 'default' : 'regular'}`}>
@@ -128,11 +134,11 @@ const ManageWorkspace = () => {
                         <IconCategory size={14} strokeWidth={1.5} />
                       )}
                     </span>
-                    <span className="workspace-name">{workspace.name}</span>
-                    {isDefault && <span className="default-badge">Default</span>}
+                    <span className="workspace-name" data-testid="workspace-row-name">{workspace.name}</span>
+                    {isDefault && <span className="default-badge" data-testid="workspace-default-badge">Default</span>}
                   </div>
                   {workspace.pathname && (
-                    <div className="workspace-path">{workspace.pathname}</div>
+                    <div className="workspace-path" data-testid="workspace-path">{workspace.pathname}</div>
                   )}
                 </div>
 
@@ -157,11 +163,12 @@ const ManageWorkspace = () => {
                     <MenuDropdown
                       placement="bottom-end"
                       items={[
+                        { id: 'open-in-terminal', label: 'Open in Terminal', onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, workspace.pathname) },
                         { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
                         { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
                       ]}
                     >
-                      <button className="more-actions-btn">
+                      <button className="more-actions-btn" data-testid="workspace-actions-trigger">
                         <IconDots size={14} strokeWidth={1.5} />
                       </button>
                     </MenuDropdown>

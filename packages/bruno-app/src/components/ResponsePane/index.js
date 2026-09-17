@@ -155,7 +155,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
           <QueryResult
@@ -184,6 +184,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'tests': {
         return (
           <TestResults
+            item={item}
             results={item.testResults}
             assertionResults={item.assertionResults}
             preRequestTestResults={item.preRequestTestResults}
@@ -258,10 +259,10 @@ const ResponsePane = ({ item, collection }) => {
           </div>
         </>
       ) : null}
-      <div className="flex items-center response-pane-status">
+      <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
         {item.response?.stream?.running
-          ? <ResponseStopWatch startMillis={response.duration} />
+          ? <ResponseStopWatch startTimestamp={item.requestSent?.timestamp} />
           : <ResponseTime duration={response.duration} />}
         <ResponseSize size={responseSize} />
       </div>
@@ -296,13 +297,7 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section
-        className="flex flex-col min-h-0 relative px-4 auto overflow-auto mt-4"
-        style={{
-          flex: '1 1 0',
-          height: hasScriptError && showScriptErrorCard ? 'auto' : '100%'
-        }}
-      >
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
@@ -311,7 +306,7 @@ const ResponsePane = ({ item, collection }) => {
             collection={collection}
           />
         )}
-        <div className="flex-1 overflow-y-auto">
+        <div className="response-tab-content">
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline

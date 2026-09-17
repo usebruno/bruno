@@ -9,7 +9,10 @@ import {
   getExampleFromSchema,
   createBrunoExample,
   groupRequestsByTags,
-  groupRequestsByPath
+  groupRequestsByPath,
+  normalizeItemName,
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -161,16 +164,12 @@ const getParameterEntries = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
+  operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // Sanitize operation name to prevent Bruno parsing issues
-  if (operationName) {
-    // Replace line breaks and normalize whitespace
-    operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
-  }
   if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
     // Try adding method info first
@@ -194,9 +193,12 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    settings: {
+      forwardAuthorizationHeader: false
+    },
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
-      docs: _operationObject.description,
+      docs: toSpecString(_operationObject.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -814,9 +816,27 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     let servers = collectionData.servers || [];
 
-    // Create environments based on the servers
+    // Create environments based on the servers. A server's name or description is free text
+    // that becomes the environment's filename, so it needs the same normalization as an
+    // operation name. It also needs a uniqueness guard: unlike requests, environments have
+    // no deduplication, so two servers described alike resolve to one file and the later
+    // one overwrites the earlier.
+    const usedEnvironmentNames = new Set();
     servers.forEach((server, index) => {
-      let environmentName = server.name || server.description || `Environment ${index + 1}`;
+      const serverLabel = server.name || server.description;
+      let environmentName = serverLabel ? normalizeItemName(serverLabel) : '';
+      if (!environmentName) {
+        environmentName = `Environment ${index + 1}`;
+      }
+      if (usedEnvironmentNames.has(environmentName)) {
+        let counter = 2;
+        while (usedEnvironmentNames.has(`${environmentName} (${counter})`)) {
+          counter++;
+        }
+        environmentName = `${environmentName} (${counter})`;
+      }
+      usedEnvironmentNames.add(environmentName);
+
       const serverVars = extractServerVars(server);
       const variables = serverVars.map((sv) => ({
         uid: uuid(),
@@ -855,21 +875,30 @@ export const parseOpenApiCollection = (data, options = {}) => {
               method.toLowerCase()
             );
           })
-          .map(([method, operationObject]) => {
-            const mergedParams = mergeParams(pathItemParams, operationObject.parameters || []);
+          .reduce((requests, [method, operationObject]) => {
+            const variants = Array.isArray(operationObject['x-bruno-variants']) ? operationObject['x-bruno-variants'] : [];
+            const operations = [operationObject, ...variants.filter((variant) => variant && typeof variant === 'object')];
 
-            return {
-              method: method,
-              path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
-              originalPath: path, // Keep original path for grouping
-              operationObject: { ...operationObject, parameters: mergedParams },
-              global: {
-                server: '{{baseUrl}}',
-                security: securityConfig
-              },
-              servers: operationObject.servers || pathItemObject.servers || null
-            };
-          });
+            operations.forEach((operation) => {
+              const operationObjectCleaned = { ...operation };
+              delete operationObjectCleaned['x-bruno-variants'];
+              const mergedParams = mergeParams(pathItemParams, operationObjectCleaned.parameters || []);
+
+              requests.push({
+                method: method,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
+                originalPath: path, // Keep original path for grouping
+                operationObject: { ...operationObjectCleaned, parameters: mergedParams },
+                global: {
+                  server: '{{baseUrl}}',
+                  security: securityConfig
+                },
+                servers: operationObjectCleaned.servers || pathItemObject.servers || null
+              });
+            });
+
+            return requests;
+          }, []);
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
 
@@ -881,8 +910,9 @@ export const parseOpenApiCollection = (data, options = {}) => {
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const tagDescriptions = getTagDescriptions(collectionData.tags, options);
       let brunoFolders = groups.map((group) => {
-        return {
+        const folder = {
           uid: uuid(),
           name: group.name,
           type: 'folder',
@@ -903,6 +933,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
           },
           items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
+        const docs = tagDescriptions[group.name];
+        if (docs) {
+          folder.root.docs = docs;
+        }
+        return folder;
       });
 
       let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
@@ -1003,7 +1038,8 @@ export const parseOpenApiCollection = (data, options = {}) => {
       },
       meta: {
         name: brunoCollection.name
-      }
+      },
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;

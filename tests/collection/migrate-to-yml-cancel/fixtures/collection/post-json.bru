@@ -1,0 +1,25 @@
+meta {
+  name: post-json
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "message": "hello from migration test"
+  }
+}
+
+assert {
+  res.status: eq 200
+}

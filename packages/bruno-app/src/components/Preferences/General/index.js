@@ -101,6 +101,7 @@ const General = () => {
       savePreferences({
         ...preferences,
         request: {
+          ...preferences.request,
           sslVerification: newPreferences.sslVerification,
           customCaCertificate: {
             enabled: newPreferences.customCaCertificate.enabled,
@@ -233,7 +234,7 @@ const General = () => {
               disabled={formik.values.customCaCertificate.enabled ? false : true}
               onClick={() => inputFileCaCertificateRef.current.click()}
             >
-              select file
+              Select File
               <input
                 id="caCertFilePath"
                 type="file"

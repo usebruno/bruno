@@ -22,18 +22,21 @@ const prepareRequest = async (item = {}, collection = {}) => {
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
   }
 
+  const disabledHeaders = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled) {
+    if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
+    } else if (!h.enabled && h.name?.length > 0) {
+      disabledHeaders.push({ name: h.name, value: h.value });
     }
   });
 
@@ -41,6 +44,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     method: request.method,
     url: request.url,
     headers: headers,
+    disabledHeaders,
     name: item.name,
     pathname: item.pathname,
     tags: item.tags || [],
@@ -67,6 +71,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (collectionAuth.mode === 'apikey') {
       if (collectionAuth.apikey?.placement === 'header') {
         axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = collectionAuth.apikey?.key;
       }
 
       if (collectionAuth.apikey?.placement === 'queryparams') {
@@ -86,6 +91,19 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.digestConfig = {
         username: get(collectionAuth, 'digest.username'),
         password: get(collectionAuth, 'digest.password')
+      };
+    }
+
+    if (collectionAuth.mode === 'akamai-edgegrid') {
+      axiosRequest.edgeGridConfig = {
+        accessToken: get(collectionAuth, 'akamaiEdgegrid.accessToken'),
+        clientToken: get(collectionAuth, 'akamaiEdgegrid.clientToken'),
+        clientSecret: get(collectionAuth, 'akamaiEdgegrid.clientSecret'),
+        nonce: get(collectionAuth, 'akamaiEdgegrid.nonce'),
+        timestamp: get(collectionAuth, 'akamaiEdgegrid.timestamp'),
+        baseURL: get(collectionAuth, 'akamaiEdgegrid.baseURL'),
+        headersToSign: get(collectionAuth, 'akamaiEdgegrid.headersToSign'),
+        maxBodySize: get(collectionAuth, 'akamaiEdgegrid.maxBodySize')
       };
     }
 
@@ -309,6 +327,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     if (request.auth.mode === 'apikey') {
       if (request.auth.apikey?.placement === 'header') {
         axiosRequest.headers[request.auth.apikey?.key] = request.auth.apikey?.value;
+        axiosRequest.apiKeyHeaderName = request.auth.apikey?.key;
       }
 
       if (request.auth.apikey?.placement === 'queryparams') {
@@ -322,6 +341,19 @@ const prepareRequest = async (item = {}, collection = {}) => {
           }
         }
       }
+    }
+
+    if (request.auth.mode === 'akamai-edgegrid') {
+      axiosRequest.edgeGridConfig = {
+        accessToken: get(request, 'auth.akamaiEdgegrid.accessToken'),
+        clientToken: get(request, 'auth.akamaiEdgegrid.clientToken'),
+        clientSecret: get(request, 'auth.akamaiEdgegrid.clientSecret'),
+        nonce: get(request, 'auth.akamaiEdgegrid.nonce'),
+        timestamp: get(request, 'auth.akamaiEdgegrid.timestamp'),
+        baseURL: get(request, 'auth.akamaiEdgegrid.baseURL'),
+        headersToSign: get(request, 'auth.akamaiEdgegrid.headersToSign'),
+        maxBodySize: get(request, 'auth.akamaiEdgegrid.maxBodySize')
+      };
     }
   }
 
@@ -445,6 +477,10 @@ const prepareRequest = async (item = {}, collection = {}) => {
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.oauth2CredentialVariables = getFormattedOauth2Credentials();
+  axiosRequest.__explicitHeaderNames = Object.keys(axiosRequest.headers || {}).filter((name) => {
+    const value = axiosRequest.headers[name];
+    return value !== undefined && value !== null && value !== false;
+  });
 
   return axiosRequest;
 };

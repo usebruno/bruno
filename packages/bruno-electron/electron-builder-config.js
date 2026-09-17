@@ -39,6 +39,7 @@ const config = {
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     notarize: false,
+    requirements: 'resources/app-requirements.txt',
     protocols: [
       {
         name: 'Bruno',
@@ -104,11 +105,16 @@ const config = {
     publisherName: 'Bruno Software Inc'
   },
   nsis: {
+    include: 'resources/installer.nsh',
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 

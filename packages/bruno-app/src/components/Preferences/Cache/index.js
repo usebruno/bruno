@@ -1,120 +1,147 @@
-import React, { useEffect, useCallback, useRef } from 'react';
-import { useFormik } from 'formik';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {
-  savePreferences,
-  clearHttpHttpsAgentCache
-} from 'providers/ReduxStore/slices/app';
+import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import StyledWrapper from './StyledWrapper';
-import * as Yup from 'yup';
-import debounce from 'lodash/debounce';
 import get from 'lodash/get';
-
-const cacheSchema = Yup.object().shape({
-  sslSession: Yup.object({
-    enabled: Yup.boolean()
-  })
-});
+import { IconEraser } from '@tabler/icons';
+import { useTheme } from 'providers/Theme';
+import ToggleSwitch from 'components/ToggleSwitch';
+import ActionIcon from 'ui/ActionIcon';
+import StyledWrapper from './StyledWrapper';
+import { formatSize } from 'utils/common';
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const { ipcRenderer } = window;
 
-  const handleSave = useCallback(
-    (newCachePreferences) => {
-      dispatch(
-        savePreferences({
-          ...preferences,
-          cache: newCachePreferences
-        })
-      ).catch(() => toast.error('Failed to update cache preferences'));
-    },
-    [dispatch, preferences]
-  );
+  const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
+  const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
 
-  const handleSaveRef = useRef(handleSave);
-  handleSaveRef.current = handleSave;
+  const [fileCacheSize, setFileCacheSize] = useState(null);
 
-  const formik = useFormik({
-    initialValues: {
-      sslSession: {
-        enabled: get(preferences, 'cache.sslSession.enabled', false)
-      }
-    },
-    validationSchema: cacheSchema,
-    onSubmit: async (values) => {
-      try {
-        const newPreferences = await cacheSchema.validate(values, { abortEarly: true });
-        handleSave(newPreferences);
-      } catch (error) {
-        console.error('Cache preferences validation error:', error.message);
-      }
-    }
-  });
-
-  const debouncedSave = useCallback(
-    debounce((values) => {
-      cacheSchema
-        .validate(values, { abortEarly: true })
-        .then((validatedValues) => handleSaveRef.current(validatedValues))
-        .catch(() => {});
-    }, 500),
-    []
-  );
+  const refreshFileCacheSize = useCallback(() => {
+    if (!ipcRenderer) return;
+    ipcRenderer
+      .invoke('renderer:get-file-cache-size')
+      .then((size) => setFileCacheSize(size))
+      .catch(() => setFileCacheSize(null));
+  }, [ipcRenderer]);
 
   useEffect(() => {
-    if (formik.dirty && formik.isValid) {
-      debouncedSave(formik.values);
-    }
-    return () => {
-      debouncedSave.flush();
-    };
-  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
+    refreshFileCacheSize();
+  }, [refreshFileCacheSize, fileCacheEnabled]);
 
-  const handleAgentCachingChange = (e) => {
-    formik.handleChange(e);
-    // Immediately evict all cached agents when caching is disabled
-    if (!e.target.checked) {
+  const persist = (next) => {
+    dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
+      toast.error('Failed to update cache preferences');
+    });
+  };
+
+  const handleToggleFileCache = () => {
+    persist({
+      ...preferences.cache,
+      file: { enabled: !fileCacheEnabled }
+    });
+  };
+
+  const handleToggleSslSession = () => {
+    const next = !sslSessionEnabled;
+    persist({
+      ...preferences.cache,
+      sslSession: { enabled: next }
+    });
+    if (!next) {
       dispatch(clearHttpHttpsAgentCache()).catch(() => {});
     }
   };
 
-  const handleResetCache = () => {
+  const handleClearFileCache = () => {
+    if (!ipcRenderer) return;
+    ipcRenderer
+      .invoke('renderer:clear-file-cache')
+      .then((size) => {
+        setFileCacheSize(size);
+        toast.success('File cache cleared');
+      })
+      .catch(() => toast.error('Failed to clear file cache'));
+  };
+
+  const handleClearSslSession = () => {
     dispatch(clearHttpHttpsAgentCache())
-      .then(() => toast.success('ssl session cache cleared'))
-      .catch(() => toast.error('Failed to clear ssl session cache'));
+      .then(() => toast.success('SSL session cache cleared'))
+      .catch(() => toast.error('Failed to clear SSL session cache'));
   };
 
   return (
     <StyledWrapper className="w-full">
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="section-title mt-6 mb-3">Cache SSL Session</div>
+      <div className="cache-section-title">Cache</div>
 
-        <div className="flex items-center my-2">
-          <input
-            id="sslSession.enabled"
-            type="checkbox"
-            name="sslSession.enabled"
-            checked={formik.values.sslSession.enabled}
-            onChange={handleAgentCachingChange}
-            className="mousetrap mr-0"
+      <div className="cache-item">
+        <div className="cache-item-header">
+          <div className="cache-item-title-group">
+            <span className="cache-item-title">File cache</span>
+            <span className="beta-badge">Beta</span>
+          </div>
+          <ToggleSwitch
+            data-testid="cache.file.enabled"
+            isOn={fileCacheEnabled}
+            handleToggle={handleToggleFileCache}
+            size="2xs"
+            activeColor={theme.primary.solid}
           />
-          <label className="block ml-2 select-none" htmlFor="sslSession.enabled">
-            Enable SSL session caching
-          </label>
         </div>
-        <div className="text-xs mt-1 ml-6 opacity-70">
-          Reuses TLS sessions and connections across requests for faster handshakes. Disable to create a fresh connection for every
-          request.
+        <div className="cache-item-body">
+          <div className="cache-item-body-text">
+            <p className="cache-item-description">
+              Loads your workspace faster by caching opened collections. Bruno refreshes the cache when your collection
+              changes. Clearing it won't affect your original files.
+            </p>
+            <p className="cache-item-size">
+              Cache size <strong>{fileCacheSize == null ? '—' : formatSize(fileCacheSize)}</strong>
+            </p>
+          </div>
+          <ActionIcon
+            label="Clear cache"
+            onClick={handleClearFileCache}
+            disabled={!fileCacheSize}
+            colorOnHover={theme.colors.text.danger}
+          >
+            <IconEraser size={16} strokeWidth={1.5} />
+          </ActionIcon>
         </div>
+      </div>
 
-        <div className="mt-6">
-          <button type="button" className="text-link cursor-pointer hover:underline" onClick={handleResetCache}>
-            Clear
-          </button>
+      <div className="cache-item">
+        <div className="cache-item-header">
+          <div className="cache-item-title-group">
+            <span className="cache-item-title">SSL session cache</span>
+          </div>
+          <ToggleSwitch
+            data-testid="sslSession.enabled"
+            isOn={sslSessionEnabled}
+            handleToggle={handleToggleSslSession}
+            size="2xs"
+            activeColor={theme.primary.solid}
+          />
         </div>
-      </form>
+        <div className="cache-item-body">
+          <div className="cache-item-body-text">
+            <p className="cache-item-description">
+              Reuses TLS sessions and connections across requests for faster handshakes. Disable to create a fresh
+              connection for every request.
+            </p>
+          </div>
+          <ActionIcon
+            label="Clear cache"
+            onClick={handleClearSslSession}
+            colorOnHover={theme.colors.text.danger}
+          >
+            <IconEraser size={16} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
+      </div>
     </StyledWrapper>
   );
 };

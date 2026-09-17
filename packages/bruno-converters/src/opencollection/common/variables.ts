@@ -4,6 +4,13 @@ import type {
   BrunoVariable,
   BrunoVariables
 } from '../types';
+import {
+  isTypedValue,
+  hasTypedMetadata,
+  toOpenCollectionTypedValue,
+  fromOpenCollectionTypedValue,
+  serializeVariableValue
+} from './datatype';
 
 interface BrunoVars {
   req: BrunoVariables;
@@ -18,23 +25,24 @@ export const fromOpenCollectionVariables = (variables: Variable[] | undefined): 
   const reqVars: BrunoVariable[] = [];
 
   variables.forEach((v: Variable) => {
-    let value = '';
-    if (typeof v.value === 'string') {
-      value = v.value;
-    } else if (v.value && typeof v.value === 'object' && 'data' in v.value) {
-      value = (v.value as { data: string }).data || '';
-    }
-
     const variable: BrunoVariable = {
       uid: uuid(),
       name: v.name || '',
-      value,
+      value: '',
       enabled: v.disabled !== true,
       local: false
     };
 
+    if (isTypedValue(v.value)) {
+      Object.assign(variable, fromOpenCollectionTypedValue(v.value));
+    } else if (typeof v.value === 'string') {
+      variable.value = v.value;
+    }
+
     if (v.description) {
-      variable.description = typeof v.description === 'string' ? v.description : (v.description as { content?: string })?.content || '';
+      variable.description = typeof v.description === 'string'
+        ? v.description
+        : (v.description as { content?: string })?.content || '';
     }
 
     reqVars.push(variable);
@@ -55,9 +63,10 @@ export const toOpenCollectionVariables = (vars: BrunoVars | { req?: BrunoVariabl
   }
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
+    const valueStr = serializeVariableValue(v.value);
     const variable: Variable = {
       name: v.name || '',
-      value: v.value || ''
+      value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr
     };
 
     if (v.description && typeof v.description === 'string' && v.description.trim().length) {

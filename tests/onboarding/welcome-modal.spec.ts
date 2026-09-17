@@ -1,6 +1,7 @@
 import path from 'path';
 import { ElectronApplication } from '@playwright/test';
 import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
@@ -10,10 +11,7 @@ test.describe('Welcome Modal', () => {
 
     try {
       app = await launchElectronApp({ initUserDataPath });
-      const page = await app.firstWindow();
-
-      // Wait for the app to fully initialize before interacting
-      await page.locator('[data-app-state="loaded"]').waitFor();
+      const page = await waitForReadyPage(app);
 
       // Welcome modal should be visible for new users
       const welcomeModal = page.getByTestId('welcome-modal');
@@ -43,8 +41,7 @@ test.describe('Welcome Modal', () => {
     try {
       // Launch app for a new user - welcome modal should appear
       app = await launchElectronApp({ userDataPath, initUserDataPath });
-      let page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor();
+      let page = await waitForReadyPage(app);
 
       // Welcome modal should be visible for new users
       const welcomeModal = page.getByTestId('welcome-modal');
@@ -60,8 +57,7 @@ test.describe('Welcome Modal', () => {
 
       // Restart the app with the same userDataPath
       app = await launchElectronApp({ userDataPath });
-      page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor();
+      page = await waitForReadyPage(app);
 
       // Welcome modal should NOT appear after restart (hasSeenWelcomeModal persisted)
       await expect(page.getByTestId('welcome-modal')).not.toBeVisible();
@@ -77,10 +73,7 @@ test.describe('Welcome Modal', () => {
 
     try {
       app = await launchElectronApp({ initUserDataPath });
-      const page = await app.firstWindow();
-
-      // Wait for the app to fully initialize before interacting
-      await page.locator('[data-app-state="loaded"]').waitFor();
+      const page = await waitForReadyPage(app);
 
       const welcomeModal = page.getByTestId('welcome-modal');
 
@@ -110,10 +103,7 @@ test.describe('Welcome Modal', () => {
 
     try {
       app = await launchElectronApp({ initUserDataPath });
-      const page = await app.firstWindow();
-
-      // Wait for the app to fully initialize before interacting
-      await page.locator('[data-app-state="loaded"]').waitFor();
+      const page = await waitForReadyPage(app);
 
       const welcomeModal = page.getByTestId('welcome-modal');
 

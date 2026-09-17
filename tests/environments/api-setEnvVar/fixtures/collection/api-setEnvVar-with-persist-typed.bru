@@ -1,0 +1,23 @@
+meta {
+  name: api-setEnvVar-with-persist-typed
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Typed values persist with their dataType annotation.
+  bru.setEnvVar("typed_num", 42, { persist: true });
+  bru.setEnvVar("typed_bool", true, { persist: true });
+  bru.setEnvVar("typed_obj", { k: 1 }, { persist: true });
+  // Plain string — no dataType materialized.
+  bru.setEnvVar("typed_str", "hello", { persist: true });
+  // Secret overwrite: value is stringified for encryption; the number dataType is
+  // inferred and persisted (@number), same as any non-secret setEnvVar.
+  bru.setEnvVar("existing_secret", 99, { persist: true });
+}

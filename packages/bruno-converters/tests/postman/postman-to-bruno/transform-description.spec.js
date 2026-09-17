@@ -12,7 +12,7 @@ describe('transformDescription function', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.root.docs).toBe('');
   });
 
@@ -26,7 +26,7 @@ describe('transformDescription function', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.root.docs).toBe('This is a string description');
   });
 
@@ -43,7 +43,7 @@ describe('transformDescription function', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.root.docs).toBe('This is the content from the new Postman format');
   });
 
@@ -59,7 +59,7 @@ describe('transformDescription function', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.root.docs).toBe('');
   });
 
@@ -84,7 +84,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.docs).toBe('This is a request description in new format');
   });
 
@@ -106,7 +106,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].root.docs).toBe('This is a folder description in new format');
   });
 
@@ -137,7 +137,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.headers[0].description).toBe('Authorization header description');
   });
 
@@ -172,7 +172,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.params[0].description).toBe('Query parameter description');
   });
 
@@ -207,7 +207,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.params[0].description).toBe('User ID path variable');
   });
 
@@ -241,7 +241,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.body.multipartForm[0].description).toBe('Form field description');
   });
 
@@ -275,7 +275,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.items[0].request.body.formUrlEncoded[0].description).toBe('URL encoded field description');
   });
 
@@ -317,7 +317,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
 
     // Collection description (string)
     expect(brunoCollection.root.docs).toBe('Collection with string description');
@@ -357,7 +357,7 @@ describe('transformDescription function', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collection);
+    const { collection: brunoCollection } = await postmanToBruno(collection);
     expect(brunoCollection.root.docs).toBe('');
     expect(brunoCollection.items[0].request.docs).toBe('Description with special chars: !@#$%^&*()');
   });

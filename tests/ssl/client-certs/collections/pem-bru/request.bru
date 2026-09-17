@@ -1,0 +1,17 @@
+meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://localhost:9443/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.clientCertPresented: eq true
+  res.body.subjectCN: eq bruno-client
+}

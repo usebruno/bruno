@@ -1,9 +1,13 @@
+const HeaderList = require('./header-list');
+const { parseUrl } = require('./utils/url');
+
 class BrunoRequest {
   /**
    * The following properties are available as shorthand:
    * - req.url
    * - req.method
-   * - req.headers
+   * - req.headers (raw headers object)
+   * - req.headerList (PropertyList API for headers)
    * - req.timeout
    * - req.body
    *
@@ -20,6 +24,7 @@ class BrunoRequest {
     this.name = req.name;
     this.pathParams = req.pathParams;
     this.tags = req.tags || [];
+    this.headerList = new HeaderList(this.req);
     /**
      * We automatically parse the JSON body if the content type is JSON
      * This is to make it easier for the user to access the body directly
@@ -44,8 +49,7 @@ class BrunoRequest {
 
   getHost() {
     try {
-      const url = new URL(this.req.url);
-      return url.host;
+      return parseUrl(this.req.url).host;
     } catch (e) {
       return '';
     }
@@ -53,8 +57,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
-      let pathname = url.pathname;
+      let { pathname } = parseUrl(this.req.url);
 
       // If path params exist, interpolate them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
@@ -64,7 +67,13 @@ class BrunoRequest {
             if (segment.startsWith(':')) {
               const paramName = segment.slice(1);
               const pathParam = this.req.pathParams.find((param) => param.name === paramName);
-              if (pathParam && pathParam.value) {
+              if (
+                pathParam
+                && pathParam.enabled !== false
+                && pathParam.value !== null
+                && pathParam.value !== undefined
+                && (typeof pathParam.value !== 'string' || pathParam.value.trim() !== '')
+              ) {
                 return pathParam.value;
               }
             }
@@ -81,9 +90,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
-      // Return query string without the leading '?'
-      return url.search ? url.search.substring(1) : '';
+      return parseUrl(this.req.url).queryString;
     } catch (e) {
       return '';
     }
@@ -94,19 +101,24 @@ class BrunoRequest {
   }
 
   getAuthMode() {
+    const headers = this.req.headers;
     if (this.req?.oauth2) {
       return 'oauth2';
     } else if (this.req?.oauth1config) {
       return 'oauth1';
-    } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
+    } else if (headers?.['Authorization']?.startsWith('Bearer')) {
       return 'bearer';
-    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+    } else if (headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
       return 'basic';
+    } else if (this.req?.apiKeyAuthValueForQueryParams) {
+      return 'apikey';
+    } else if (this.req?.apiKeyHeaderName && this.headers?.[this.req.apiKeyHeaderName] !== undefined) {
+      return 'apikey';
     } else if (this.req?.awsv4) {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
+    } else if (headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
@@ -122,8 +134,11 @@ class BrunoRequest {
     return this.req.headers;
   }
 
+  /**
+   * Replaces the whole header set, dropping headers set at collection/folder level.
+   * TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
+   */
   setHeaders(headers) {
-    this.headers = headers;
     this.req.headers = headers;
   }
 
@@ -136,12 +151,10 @@ class BrunoRequest {
   }
 
   setHeader(name, value) {
-    this.headers[name] = value;
     this.req.headers[name] = value;
   }
 
   deleteHeader(name) {
-    delete this.headers[name];
     delete this.req.headers[name];
 
     /**

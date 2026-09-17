@@ -11,6 +11,8 @@ const externalDeps = [
   '@usebruno/lang',
   '@usebruno/schema-types',
   /@usebruno\/schema-types\/.*/,
+  '@usebruno/common',
+  /@usebruno\/common\/.*/,
   '@opencollection/types',
   /@opencollection\/types\/.*/,
   // Runtime dependencies

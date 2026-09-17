@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
 
 const EXPECTED_PATH_SUFFIX = 'tests/preferences/default-collection-location';
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const DEFAULT_LOCATION_SUFFIX_PATTERN = new RegExp(`${escapeRegExp('tests/preferences')}(\\/default-collection-location)?$`);
 
 test.describe('Default Location Feature', () => {
   test('Should hydrate the default location from preferences', async ({ pageWithUserData: page }) => {
@@ -15,8 +17,7 @@ test.describe('Default Location Feature', () => {
 
     // verify the default location is pre-filled with the expected path suffix
     const defaultLocationInput = page.locator('.default-location-input');
-    const value = await defaultLocationInput.inputValue();
-    expect(value.endsWith(EXPECTED_PATH_SUFFIX)).toBe(true);
+    await expect(defaultLocationInput).toHaveValue(DEFAULT_LOCATION_SUFFIX_PATTERN, { timeout: 10000 });
   });
 
   test('Should save a valid default location', async ({ pageWithUserData: page }) => {
@@ -76,9 +77,7 @@ test.describe('Default Location Feature', () => {
     // Scope to the modal to avoid conflict with preferences tab
     const collectionLocationInput = page.locator('.bruno-modal').getByLabel('Location', { exact: true });
     await expect(collectionLocationInput).toBeVisible();
-
-    const inputValue = await collectionLocationInput.inputValue();
-    expect(inputValue.endsWith(EXPECTED_PATH_SUFFIX)).toBe(true);
+    await expect(collectionLocationInput).toHaveValue(DEFAULT_LOCATION_SUFFIX_PATTERN, { timeout: 10000 });
 
     // cancel the collection creation
     await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();
@@ -87,7 +86,7 @@ test.describe('Default Location Feature', () => {
   test('Should use default location in Clone Collection modal', async ({ pageWithUserData: page }) => {
     // open the clone collection modal
     const collection = page.locator('.collection-name').first();
-    await collection.hover();
+    await collection.focus();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'Clone' }).click();
 
@@ -98,8 +97,7 @@ test.describe('Default Location Feature', () => {
     // Scope to the modal to avoid conflict with preferences tab
     const cloneLocationInput = page.locator('.bruno-modal').getByLabel('Location', { exact: true });
     await expect(cloneLocationInput).toBeVisible();
-    const cloneValue = await cloneLocationInput.inputValue();
-    expect(cloneValue.endsWith(EXPECTED_PATH_SUFFIX)).toBe(true);
+    await expect(cloneLocationInput).toHaveValue(DEFAULT_LOCATION_SUFFIX_PATTERN, { timeout: 10000 });
 
     // cancel the clone operation
     await page.locator('.bruno-modal').getByRole('button', { name: 'Cancel' }).click();

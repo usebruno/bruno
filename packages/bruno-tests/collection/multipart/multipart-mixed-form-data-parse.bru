@@ -1,0 +1,23 @@
+meta {
+  name: multipart-mixed-form-data-parse
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Content-Type: multipart/mixed
+}
+
+body:multipart-form {
+  sample: sample
+}
+
+assert {
+  res.body: matches ^[-]+[a-z0-9]+
+}

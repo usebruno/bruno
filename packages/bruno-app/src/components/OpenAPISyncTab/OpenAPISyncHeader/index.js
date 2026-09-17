@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { selectStoredSpecMeta } from 'providers/ReduxStore/slices/openapi-sync';
 import {
   IconCopy,
   IconDotsVertical,
@@ -37,7 +36,7 @@ const OpenAPISyncHeader = ({
     }
   }, [sourceUrl, sourceIsLocal, collection.pathname]);
 
-  const specMeta = useSelector(selectStoredSpecMeta(collection.uid));
+  const specMeta = useSelector((state) => state.openapiSync?.storedSpecMeta?.[collection.uid] || null);
   const title = specMeta?.title || spec?.info?.title || 'Unknown API';
 
   const copyUrl = async () => {

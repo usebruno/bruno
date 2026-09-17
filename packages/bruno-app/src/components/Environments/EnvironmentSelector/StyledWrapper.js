@@ -128,6 +128,17 @@ const Wrapper = styled.div`
     padding-bottom: 2.625rem;
   }
 
+  .env-list-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    display: flex;
+    align-items: center;
+    padding: 0 4px 6px 4px;
+    margin: 0;
+  }
+
   .dropdown-item-list {
     max-height: 75vh;
     overflow-y: scroll;

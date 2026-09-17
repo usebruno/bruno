@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { dialog, ipcMain } = require('electron');
+const { ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
@@ -19,8 +19,13 @@ const registerScratchCollectionPath = (scratchPath) => {
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  // For BRU format collections
-  version: Yup.string().oneOf(['1']).notRequired(),
+  version: Yup.string().notRequired(),
+  // Collection-level presets (defaults shared with the collection)
+  presets: Yup.object({
+    requestType: Yup.string().notRequired(),
+    requestUrl: Yup.string().notRequired(),
+    defaultEnvironment: Yup.string().notRequired()
+  }).notRequired(),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired(),
   // OpenAPI sync configuration (array, one entry per synced spec)
@@ -81,41 +86,6 @@ const getCollectionConfigFile = async (pathname) => {
   return config;
 };
 
-const openCollectionDialog = async (win, watcher) => {
-  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory', 'multiSelections']
-  });
-
-  if (!canceled && filePaths?.length > 0) {
-    // Using Set to remove duplicates
-    const { openCollectionPromises, invalidPaths } = [...new Set(filePaths)].reduce((acc, filePath) => {
-      const resolvedPath = path.resolve(filePath);
-
-      if (isDirectory(resolvedPath)) {
-        // Open each valid collection in parallel
-        acc.openCollectionPromises.push(openCollection(win, watcher, resolvedPath).catch((err) => {
-          console.error(`[ERROR] Failed to open collection at "${resolvedPath}":`, err.message);
-          return { error: err, path: resolvedPath };
-        }));
-      } else {
-        acc.invalidPaths.push(resolvedPath);
-        console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
-      }
-
-      return acc;
-    },
-    { openCollectionPromises: [], invalidPaths: [] });
-
-    // Wait for all valid collections to be opened
-    await Promise.all(openCollectionPromises);
-
-    // Notify about any invalid paths
-    if (invalidPaths.length > 0) {
-      win.webContents.send('main:display-error', `Some selected folders could not be opened: ${invalidPaths.join(', ')}`);
-    }
-  }
-};
-
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
   // If watcher already exists, collection is already loaded in the app
   // Just send the collection info so frontend can add to workspace if needed
@@ -127,15 +97,25 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
+      return {
+        path: collectionPath,
+        opened: true,
+        alreadyOpen: true,
+        uid
+      };
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
           message: err.message || 'An error occurred while opening the local collection'
         });
       }
+      return {
+        path: collectionPath,
+        opened: false,
+        error: err.message || 'An error occurred while opening the local collection'
+      };
     }
-    return;
   }
 
   try {
@@ -153,19 +133,35 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.size = size;
     brunoConfig.filesCount = filesCount;
 
-    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    return {
+      path: collectionPath,
+      opened: true,
+      alreadyOpen: false,
+      uid
+    };
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
         message: err.message || 'An error occurred while opening the local collection'
       });
     }
+    return {
+      path: collectionPath,
+      opened: false,
+      error: err.message || 'An error occurred while opening the local collection'
+    };
   }
 };
 
 const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
   const seenPaths = new Set();
+  const result = {
+    opened: [],
+    failed: [],
+    invalid: []
+  };
 
   for (const collectionPath of collectionPaths) {
     const resolvedPath = path.isAbsolute(collectionPath)
@@ -179,16 +175,27 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
     seenPaths.add(normalizedPath);
 
     if (isDirectory(resolvedPath)) {
-      await openCollection(win, watcher, resolvedPath, options);
+      const openResult = await openCollection(win, watcher, resolvedPath, options);
+      if (openResult?.opened) {
+        result.opened.push(openResult.path);
+      } else {
+        result.failed.push({
+          path: resolvedPath,
+          error: openResult?.error || 'Failed to open collection'
+        });
+      }
     } else {
       console.error(`Cannot open unknown folder: "${resolvedPath}"`);
+      result.invalid.push(resolvedPath);
     }
   }
+
+  return result;
 };
 
 module.exports = {
+  getCollectionConfigFile,
   openCollection,
-  openCollectionDialog,
   openCollectionsByPathname,
   registerScratchCollectionPath
 };

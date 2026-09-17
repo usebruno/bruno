@@ -96,7 +96,7 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
                 className="url-input file-pick-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Choose file...'}
+                {sourceUrl ? sourceUrl.split(/[\\/]/).pop() : 'Select File'}
               </button>
             </>
           )}
@@ -128,17 +128,6 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
           </div>
         ))}
       </div>
-
-      <p className="beta-feedback-inline">
-        OpenAPI Sync is in Beta — we'd love to hear your feedback and suggestions.{' '}
-        <button
-          type="button"
-          className="beta-feedback-link"
-          onClick={() => window?.ipcRenderer?.openExternal('https://github.com/usebruno/bruno/discussions/7401')}
-        >
-          Share feedback
-        </button>
-      </p>
     </div>
   );
 };

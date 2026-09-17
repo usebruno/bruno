@@ -81,6 +81,7 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     globalPath,
     syncReadMethods = [],
     syncReadObjectMethods = [],
+    syncWriteMethods = [],
     asyncWriteMethods = [],
     withIterators = false
   } = options;
@@ -99,6 +100,16 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
     const fn = vm.newFunction(methodName, (...vmArgs) => {
       const args = vmArgs.map((a) => vm.dump(a));
       return marshallToVm(cleanCircularJson(nativeList[methodName](...args)), vm);
+    });
+    fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
+  }
+
+  // Sync write methods — void return, just call and discard
+  for (const methodName of syncWriteMethods) {
+    const fn = vm.newFunction(methodName, (...vmArgs) => {
+      const args = vmArgs.map((a) => vm.dump(a));
+      nativeList[methodName](...args);
+      return vm.undefined;
     });
     fn.consume((handle) => vm.setProp(targetObj, methodName, handle));
   }
@@ -149,11 +160,25 @@ const createPropertyListBridge = (vm, nativeList, targetObj, options) => {
   // operation inside the VM where the callback lives. Requires `all` in `syncReadObjectMethods`.
   if (withIterators) {
     evalCode += `const _allNative = ${globalPath}.all;
-    ${globalPath}.each = (fn) => { _allNative().forEach(fn); };
-    ${globalPath}.filter = (fn) => _allNative().filter(fn);
-    ${globalPath}.find = (fn) => _allNative().find(fn);
-    ${globalPath}.map = (fn) => _allNative().map(fn);
-    ${globalPath}.reduce = (fn, ...rest) => rest.length ? _allNative().reduce(fn, rest[0]) : _allNative().reduce(fn);\n`;
+    ${globalPath}.each = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; _allNative().forEach(b); };
+    ${globalPath}.filter = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().filter(b); };
+    ${globalPath}.find = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().find(b); };
+    ${globalPath}.map = (fn, ctx) => { const b = ctx !== undefined ? fn.bind(ctx) : fn; return _allNative().map(b); };
+    ${globalPath}.reduce = (fn, ...rest) => { const ctx = rest.length > 1 ? rest[1] : undefined; const b = ctx !== undefined ? fn.bind(ctx) : fn; return rest.length > 0 ? _allNative().reduce(b, rest[0]) : _allNative().reduce(b); };\n`;
+  }
+
+  // Override `remove` when it's a syncWriteMethod so function predicates work in-VM.
+  // The native bridge can't serialize function handles (vm.dump fails on functions).
+  // Instead: pull items via all(), run the predicate in-VM, call native remove(key) per match.
+  if (withIterators && syncWriteMethods.includes('remove')) {
+    evalCode += `const _removeNative = ${globalPath}.remove;
+    ${globalPath}.remove = (predicate) => {
+      if (typeof predicate === 'function') {
+        _allNative().filter(predicate).forEach(item => _removeNative(item.key));
+      } else {
+        _removeNative(predicate);
+      }
+    };\n`;
   }
 
   return { evalCode };

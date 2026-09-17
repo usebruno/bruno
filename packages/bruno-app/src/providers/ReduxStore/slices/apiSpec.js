@@ -12,7 +12,7 @@ export const apiSpecSlice = createSlice({
   initialState,
   reducers: {
     apiSpecAddFileEvent: (state, action) => {
-      const { name, raw, uid, filename, pathname, json } = action?.payload?.data || {};
+      const { name, raw, uid, filename, pathname, json, resolvedJson } = action?.payload?.data || {};
       if (!uid) {
         toast.error('Error adding API spec');
       }
@@ -23,6 +23,7 @@ export const apiSpecSlice = createSlice({
         apiSpec.filename = filename;
         apiSpec.pathname = pathname;
         apiSpec.json = json;
+        apiSpec.resolvedJson = resolvedJson;
       } else {
         const newApiSpec = {
           name,
@@ -30,14 +31,15 @@ export const apiSpecSlice = createSlice({
           uid,
           filename,
           pathname,
-          json
+          json,
+          resolvedJson
         };
         state.apiSpecs.push(newApiSpec);
       }
       state.activeApiSpecUid = uid;
     },
     apiSpecChangeFileEvent: (state, action) => {
-      const { name, raw, uid, filename, pathname, json } = action?.payload?.data || {};
+      const { name, raw, uid, filename, pathname, json, resolvedJson } = action?.payload?.data || {};
       if (!uid) return;
 
       const apiSpec = findApiSpecByUid(state.apiSpecs, uid);
@@ -47,6 +49,7 @@ export const apiSpecSlice = createSlice({
         apiSpec.filename = filename;
         apiSpec.pathname = pathname;
         apiSpec.json = json;
+        apiSpec.resolvedJson = resolvedJson;
       }
     },
     saveApiSpec: (state, action) => {
@@ -59,6 +62,13 @@ export const apiSpecSlice = createSlice({
     setActiveApiSpecUid: (state, action) => {
       state.activeApiSpecUid = action.payload.uid;
     },
+    updateApiSpecPanelLeftPaneWidth: (state, action) => {
+      const { uid, leftPaneWidth } = action.payload;
+      const apiSpec = findApiSpecByUid(state.apiSpecs, uid);
+      if (apiSpec) {
+        apiSpec.leftPaneWidth = leftPaneWidth;
+      }
+    },
     removeApiSpec: (state, action) => {
       const { uid } = action.payload;
       let apiSpecIndex = state.apiSpecs.findIndex((c) => c.uid == uid);
@@ -70,7 +80,7 @@ export const apiSpecSlice = createSlice({
   }
 });
 
-export const { apiSpecAddFileEvent, apiSpecChangeFileEvent, saveApiSpec, removeApiSpec, setActiveApiSpecUid } = apiSpecSlice.actions;
+export const { apiSpecAddFileEvent, apiSpecChangeFileEvent, saveApiSpec, removeApiSpec, setActiveApiSpecUid, updateApiSpecPanelLeftPaneWidth } = apiSpecSlice.actions;
 
 export default apiSpecSlice.reducer;
 

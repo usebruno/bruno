@@ -1,0 +1,16 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}/mock-server-test-collection",
+    "{{collectionPath}}/mock-server-other-collection"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "beta": {
+      "mock-server": true
+    }
+  }
+}

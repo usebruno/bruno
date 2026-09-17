@@ -83,6 +83,71 @@ Current WinHTTP proxy settings:
     });
   });
 
+  describe('AutoConfigURL (PAC) Detection', () => {
+    it('should return pac_url when only AutoConfigURL is set', async () => {
+      const regOutput = `
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings
+    ProxyEnable    REG_DWORD    0x0
+    AutoConfigURL    REG_SZ    http://wpad.usebruno.com/proxy.pac
+`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: regOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: null,
+        https_proxy: null,
+        no_proxy: null,
+        pac_url: 'http://wpad.usebruno.com/proxy.pac',
+        source: 'windows-system'
+      });
+    });
+
+    it('should return both manual proxy and pac_url when both are configured', async () => {
+      const regOutput = `
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings
+    ProxyEnable    REG_DWORD    0x1
+    ProxyServer    REG_SZ    proxy.usebruno.com:8080
+    ProxyOverride    REG_SZ    localhost;127.0.0.1
+    AutoConfigURL    REG_SZ    http://wpad.usebruno.com/proxy.pac
+`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: regOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: 'http://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
+        no_proxy: 'localhost,127.0.0.1',
+        pac_url: 'http://wpad.usebruno.com/proxy.pac',
+        source: 'windows-system'
+      });
+    });
+
+    it('should return pac_url with null proxies when ProxyEnable=0 but AutoConfigURL is set', async () => {
+      const regOutput = `
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings
+    ProxyEnable    REG_DWORD    0x0
+    ProxyServer    REG_SZ    proxy.usebruno.com:8080
+    AutoConfigURL    REG_SZ    http://wpad.usebruno.com/proxy.pac
+`;
+
+      mockExecFile.mockResolvedValueOnce({ stdout: regOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: null,
+        https_proxy: null,
+        no_proxy: null,
+        pac_url: 'http://wpad.usebruno.com/proxy.pac',
+        source: 'windows-system'
+      });
+    });
+  });
+
   describe('WinHTTP Detection', () => {
     it('should handle direct access configuration', async () => {
       mockExecFile

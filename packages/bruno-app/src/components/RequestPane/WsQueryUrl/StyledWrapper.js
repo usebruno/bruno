@@ -34,6 +34,11 @@ const StyledWrapper = styled.div`
     left: 0;
     right: 0;
     height: 2px;
+
+    &.disconnecting {
+      animation: blink 0.8s ease-in-out infinite;
+      background-color: ${(props) => props.theme.colors.text.yellow};
+    }
   }
 
   @keyframes pulse {
@@ -48,56 +53,20 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .infotip {
-    position: relative;
-    display: inline-block;
-    cursor: pointer;
-  }
-
-  .infotip:hover .infotip-text {
-    visibility: visible;
-    opacity: 1;
-  }
-
-  .infotip-text {
-    visibility: hidden;
-    width: auto;
-    background-color: ${(props) => props.theme.background.surface2};
-    color: ${(props) => props.theme.text};
-    text-align: center;
-    border-radius: 4px;
-    padding: 4px 8px;
-    position: absolute;
-    z-index: 1;
-    bottom: 34px;
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    white-space: nowrap;
-  }
-
-  .infotip-text::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -4px;
-    border-width: 4px;
-    border-style: solid;
-    border-color: ${(props) => props.theme.background.surface2} transparent transparent transparent;
-  }
-
-  .shortcut {
-    font-size: 0.625rem;
-  }
-
-  .connection-controls {
-    .infotip {
-      &:hover {
-        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 6%, transparent);
-      }
+  @keyframes blink {
+    0% {
+      opacity: 0.2;
     }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.2;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 0.8s ease-in-out infinite;
   }
 
 `;

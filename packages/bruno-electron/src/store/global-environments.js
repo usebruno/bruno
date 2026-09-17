@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
+const { parseValueByDataType, valueToString } = require('@usebruno/common/utils');
 const { encryptStringSafe, decryptStringSafe } = require('../utils/encryption');
 const { environmentSchema } = require('@usebruno/schema');
 const { posixifyPath } = require('../utils/filesystem');
@@ -38,7 +39,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map((env) => {
       const variables = env.variables?.map((v) => ({
         ...v,
-        value: v?.secret ? encryptStringSafe(v.value).value : v?.value
+        value: v?.secret ? encryptStringSafe(valueToString(v.value)).value : v?.value
       })) || [];
 
       return {
@@ -52,7 +53,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map((env) => {
       const variables = env.variables?.map((v) => ({
         ...v,
-        value: v?.secret ? decryptStringSafe(v.value).value : v?.value
+        value: v?.secret ? parseValueByDataType(decryptStringSafe(v.value).value, v.dataType) : v?.value
       })) || [];
 
       return {
@@ -72,6 +73,9 @@ class GlobalEnvironmentsStore {
       env?.variables?.forEach((v) => {
         if (!v.type) {
           v.type = 'text';
+        }
+        if (v.dataType && v.dataType !== 'string' && !v.secret) {
+          v.value = parseValueByDataType(v.value, v.dataType);
         }
       });
     });
@@ -124,7 +128,7 @@ class GlobalEnvironmentsStore {
     return this.store.set('environments', globalEnvironments);
   }
 
-  addGlobalEnvironment({ uid, name, variables = [], color }) {
+  addGlobalEnvironment({ uid, name, variables = [], color, extends: inheritedGlobalEnvironmentName }) {
     let globalEnvironments = this.getGlobalEnvironments();
     const existingEnvironment = globalEnvironments.find((env) => env?.name == name);
     if (existingEnvironment) {
@@ -134,12 +138,13 @@ class GlobalEnvironmentsStore {
       uid,
       name,
       variables,
-      color
+      color,
+      extends: inheritedGlobalEnvironmentName
     });
     this.setGlobalEnvironments(globalEnvironments);
   }
 
-  saveGlobalEnvironment({ environmentUid: globalEnvironmentUid, variables, color }) {
+  saveGlobalEnvironment({ environmentUid: globalEnvironmentUid, variables, color, extends: inheritedGlobalEnvironmentName }) {
     let globalEnvironments = this.getGlobalEnvironments();
     const environment = globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
     globalEnvironments = globalEnvironments.filter((env) => env?.uid !== globalEnvironmentUid);
@@ -147,6 +152,9 @@ class GlobalEnvironmentsStore {
       environment.variables = variables;
       if (color !== undefined) {
         environment.color = color;
+      }
+      if (inheritedGlobalEnvironmentName !== undefined) {
+        environment.extends = inheritedGlobalEnvironmentName;
       }
     }
     globalEnvironments.push(environment);
@@ -158,7 +166,13 @@ class GlobalEnvironmentsStore {
     const environment = globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
     globalEnvironments = globalEnvironments.filter((env) => env?.uid !== globalEnvironmentUid);
     if (environment) {
+      const oldName = environment.name;
       environment.name = name;
+      globalEnvironments.forEach((env) => {
+        if (env?.extends === oldName) {
+          env.extends = name;
+        }
+      });
     }
     globalEnvironments.push(environment);
     this.setGlobalEnvironments(globalEnvironments);
@@ -190,6 +204,19 @@ class GlobalEnvironmentsStore {
     globalEnvironments = globalEnvironments.filter((env) => env?.uid !== environmentUid);
     if (environmentUid == activeGlobalEnvironmentUid) {
       this.setActiveGlobalEnvironmentUid(null);
+    }
+    this.setGlobalEnvironments(globalEnvironments);
+  }
+
+  saveGlobalEnvironmentExtends({ environmentUid, extends: inheritedGlobalEnvironmentName }) {
+    let globalEnvironments = this.getGlobalEnvironments();
+    const environment = globalEnvironments.find((env) => env?.uid == environmentUid);
+    if (environment) {
+      if (inheritedGlobalEnvironmentName) {
+        environment.extends = inheritedGlobalEnvironmentName;
+      } else {
+        delete environment.extends;
+      }
     }
     this.setGlobalEnvironments(globalEnvironments);
   }

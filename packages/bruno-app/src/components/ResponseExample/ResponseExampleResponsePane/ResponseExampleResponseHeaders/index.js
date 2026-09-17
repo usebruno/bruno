@@ -48,10 +48,11 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
 
     if (contentTypeHeader && oldContentTypeHeader && contentTypeHeader.value !== oldContentTypeHeader.value) {
       const newContentType = contentTypeHeader.value?.toLowerCase() || '';
-      const newBodyType = getBodyType(newContentType);
       const currentBodyType = response.body?.type || 'text';
 
-      // Only update if the body type has changed
+      const derivedBodyType = getBodyType(newContentType);
+      const newBodyType = currentBodyType === 'binary' || derivedBodyType === 'binary' ? currentBodyType : derivedBodyType;
+
       if (newBodyType !== currentBodyType) {
         dispatch(updateResponseExampleResponse({
           itemUid: item.uid,
@@ -96,17 +97,12 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
     if (!editMode) {
       return;
     }
-    const cleanedHeaders = newHeaders.map((header) => ({
-      uid: header.uid,
-      name: header.name,
-      value: header.value
-    }));
 
     dispatch(setResponseExampleHeaders({
       itemUid: item.uid,
       collectionUid: collection.uid,
       exampleUid: exampleUid,
-      headers: cleanedHeaders
+      headers: newHeaders
     }));
   };
 
@@ -182,6 +178,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
     <StyledWrapper className="w-full px-4">
       <EditableTable
         tableId="example-response-headers"
+        testId="response-example-response-headers-table"
         columnWidths={responseHeadersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-response-headers', widths)}
         columns={columns}

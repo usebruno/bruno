@@ -1,12 +1,27 @@
 import React, { useMemo } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import {
-  IconNetwork
+  IconNetwork,
+  IconArrowUp,
+  IconArrowDown
 } from '@tabler/icons';
 import {
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { useResizableColumns } from 'hooks/useResizableColumns';
 import StyledWrapper from './StyledWrapper';
+import { sortRequests } from './utils';
+
+const COLUMNS = [
+  { key: 'method', label: 'Method', width: 80, align: 'left' },
+  { key: 'status', label: 'Status', width: 70, align: 'left' },
+  { key: 'domain', label: 'Domain', width: 180, align: 'left' },
+  { key: 'path', label: 'Path', width: 300, align: 'left' },
+  { key: 'time', label: 'Time', width: 110, align: 'left' },
+  { key: 'duration', label: 'Duration', width: 100, align: 'right' },
+  { key: 'size', label: 'Size', width: 80, align: 'right' }
+];
 
 const MethodBadge = ({ method }) => {
   const methodLower = method?.toLowerCase() || 'get';
@@ -28,7 +43,7 @@ const StatusBadge = ({ status, statusCode }) => {
   );
 };
 
-const RequestRow = ({ request, isSelected, onClick }) => {
+const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
   const { data } = request;
   const { request: req, response: res, timestamp } = data;
 
@@ -82,6 +97,9 @@ const RequestRow = ({ request, isSelected, onClick }) => {
     <div
       className={`request-row ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
+      style={{ gridTemplateColumns }}
+      data-testid="network-request-row"
+
     >
       <div className="request-method">
         <MethodBadge method={req?.method} />
@@ -116,12 +134,27 @@ const RequestRow = ({ request, isSelected, onClick }) => {
 
 const NetworkTab = () => {
   const dispatch = useDispatch();
+  const [sortConfig, setSortConfig] = usePersistedState({ key: 'devtools-network-sort', default: { key: null, direction: null } });
+  const [savedColWidths, setSavedColWidths] = usePersistedState({ key: 'devtools-network-col-widths', default: null });
+
+  const {
+    containerRef,
+    gridTemplateColumns,
+    separatorPositions,
+    resizingIdx,
+    handleResizeStart
+  } = useResizableColumns({
+    defaultWidths: COLUMNS.map((c) => c.width),
+    initialWidths: savedColWidths,
+    minColWidth: 60,
+    onResizeEnd: setSavedColWidths
+  });
+
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
 
   const allRequests = useMemo(() => {
     const requests = [];
-
     collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
@@ -135,7 +168,6 @@ const NetworkTab = () => {
           });
       }
     });
-
     return requests.sort((a, b) => a.timestamp - b.timestamp);
   }, [collections]);
 
@@ -146,9 +178,20 @@ const NetworkTab = () => {
     });
   }, [allRequests, networkFilters]);
 
-  const handleRequestClick = (request) => {
-    dispatch(setSelectedRequest(request));
+  const handleRequestClick = (request) => dispatch(setSelectedRequest(request));
+
+  const handleHeaderClick = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: null, direction: null };
+    });
   };
+
+  const sortedRequests = useMemo(
+    () => sortRequests(filteredRequests, sortConfig.key, sortConfig.direction),
+    [filteredRequests, sortConfig]
+  );
 
   return (
     <StyledWrapper>
@@ -160,27 +203,49 @@ const NetworkTab = () => {
             <span>Requests will appear here as you make API calls</span>
           </div>
         ) : (
-          <div className="requests-container">
-            <div className="requests-header">
-              <div>Method</div>
-              <div>Status</div>
-              <div>Domain</div>
-              <div>Path</div>
-              <div>Time</div>
-              <div className="text-right">Duration</div>
-              <div className="text-right">Size</div>
+          <div className={`requests-container${resizingIdx !== null ? ' is-resizing' : ''}`}>
+            <div className="requests-header" style={{ gridTemplateColumns }}>
+              {COLUMNS.map((col) => (
+                <div
+                  key={col.key}
+                  className={`header-cell${col.align === 'right' ? ' text-right' : ''}`}
+                  onClick={() => handleHeaderClick(col.key)}
+                  data-testid={`network-header-${col.key}`}
+                >
+                  <span title={col.label}>{col.label}</span>
+                  {sortConfig.key === col.key && (
+                    sortConfig.direction === 'asc'
+                      ? <IconArrowUp size={14} strokeWidth={2} data-testid="sort-icon-asc" />
+                      : <IconArrowDown size={14} strokeWidth={2} data-testid="sort-icon-desc" />
+                  )}
+                </div>
+              ))}
             </div>
 
-            <div className="requests-list">
-              {filteredRequests.map((request, index) => (
+            <div ref={containerRef} className="requests-list">
+              {sortedRequests.map((request, index) => (
                 <RequestRow
                   key={`${request.collectionUid}-${request.itemUid}-${request.timestamp}-${index}`}
                   request={request}
-                  isSelected={selectedRequest?.timestamp === request.timestamp && selectedRequest?.itemUid === request.itemUid}
+                  isSelected={
+                    selectedRequest?.timestamp === request.timestamp
+                    && selectedRequest?.itemUid === request.itemUid
+                  }
                   onClick={() => handleRequestClick(request)}
+                  gridTemplateColumns={gridTemplateColumns}
                 />
               ))}
             </div>
+
+            {separatorPositions.map((left, i) => (
+              <div
+                key={i}
+                className={`col-separator${resizingIdx === i ? ' resizing' : ''}`}
+                style={{ left }}
+                onMouseDown={(e) => handleResizeStart(e, i)}
+                data-testid={`network-col-separator-${i}`}
+              />
+            ))}
           </div>
         )}
       </div>

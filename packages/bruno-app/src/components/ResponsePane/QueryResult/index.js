@@ -102,7 +102,8 @@ const QueryResult = ({
   filter,
   filterExpanded,
   onFilterChange,
-  onFilterExpandChange
+  onFilterExpandChange,
+  docKey
 }) => {
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
@@ -215,6 +216,7 @@ const QueryResult = ({
                 collection={collection}
                 disableRunEventListener={disableRunEventListener}
                 displayedTheme={displayedTheme}
+                docKey={docKey}
               />
             </div>
             {queryFilterEnabled && (
