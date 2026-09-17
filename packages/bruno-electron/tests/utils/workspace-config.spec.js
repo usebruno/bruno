@@ -83,22 +83,19 @@ describe('reorderWorkspaceCollections', () => {
 describe('Git remote on workspace collections', () => {
   let workspacePath;
 
+  // Serialized with yaml.dump: hand-built double-quoted scalars break on
+  // Windows tmp paths, whose backslashes read as YAML escapes.
   const writeYml = (collections) => {
-    const lines = [
-      'opencollection: 1.0.0',
-      'info:',
-      '  name: Test',
-      '  type: workspace',
-      'collections:'
-    ];
-    for (const c of collections) {
-      lines.push(`  - name: "${c.name}"`);
-      lines.push(`    path: "${c.path}"`);
-      if (c.remote) lines.push(`    remote: "${c.remote}"`);
-    }
-    lines.push('specs: []');
-    lines.push('docs: \'\'');
-    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), lines.join('\n'));
+    const config = {
+      opencollection: '1.0.0',
+      info: { name: 'Test', type: 'workspace' },
+      collections: collections.map(({ name, path: collectionPath, remote }) =>
+        remote ? { name, path: collectionPath, remote } : { name, path: collectionPath }
+      ),
+      specs: [],
+      docs: ''
+    };
+    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), yaml.dump(config));
   };
 
   const readCollectionsFromYml = () => {

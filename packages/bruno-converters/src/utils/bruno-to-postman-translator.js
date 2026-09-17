@@ -178,8 +178,9 @@ const simpleTranslations = {
  * - req.getTags() - Postman doesn't have tags
  * - req.setMaxRedirects() - Postman doesn't expose redirect settings
  * - req.getTimeout() / req.setTimeout() - Postman doesn't expose timeout settings
- * - req.getExecutionMode() / req.getExecutionPlatform() - Bruno-specific
+ * - req.getExecutionMode() - Bruno-specific
  * - req.onFail() - Postman doesn't support error handlers
+ * - req.disableParsingResponseJson() - Bruno-specific
  *
  * Response APIs:
  * - res.setBody() - Postman response is read-only
@@ -190,7 +191,6 @@ const simpleTranslations = {
  * - bru.getProcessEnv() - Postman doesn't expose process env vars
  * - bru.getOauth2CredentialVar() - Bruno-specific
  * - bru.getCollectionName() - pm.info doesn't expose collection name
- * - bru.disableParsingResponseJson() - Bruno-specific
  * - bru.cwd() - Bruno-specific
  * - bru.getAssertionResults() / bru.getTestResults() - Bruno-specific
  */

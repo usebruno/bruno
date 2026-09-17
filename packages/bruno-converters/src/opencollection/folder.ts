@@ -21,6 +21,7 @@ import type {
   BrunoFolderRoot,
   BrunoKeyValue
 } from './types';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
   const info = folder.info || {};
@@ -36,7 +37,8 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
     const root: BrunoFolderRoot = {};
 
     if (folder.request) {
-      const scripts = fromOpenCollectionScripts(folder.request.scripts);
+      // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+      const scripts = fromOpenCollectionScripts(folder.request.scripts, HTTP_SCRIPT_KEYS);
       root.request = {
         headers: fromOpenCollectionHeaders(folder.request.headers),
         auth: fromOpenCollectionAuth(folder.request.auth as Auth),
@@ -99,7 +101,8 @@ export const toOpenCollectionFolder = (folder: BrunoItem): Folder => {
 
     const headers = toOpenCollectionHeaders(folderRequest.headers as BrunoKeyValue[]);
     const auth = toOpenCollectionAuth(folderRequest.auth);
-    const scripts = toOpenCollectionScripts(folderRequest as { script?: { req: string | null; res: string | null } | null; tests?: string | null });
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = toOpenCollectionScripts(folderRequest as { script?: { req: string | null; res: string | null } | null; tests?: string | null }, HTTP_SCRIPT_KEYS);
     const variables = toOpenCollectionVariables(folderRequest.vars);
     const actions = toOpenCollectionActions(folderRequest.vars?.res);
 

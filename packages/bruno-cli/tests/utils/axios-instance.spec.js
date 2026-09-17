@@ -35,6 +35,86 @@ describe('makeAxiosInstance', () => {
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
   });
 
+  it('omits default headers listed in settings.omitHeaders', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      settings: {
+        omitHeaders: ['User-Agent', 'Accept', 'request-start-time']
+      },
+      __explicitHeaderNames: []
+    });
+
+    const headers = stubAdapter.getConfig().headers;
+    expect(headers['User-Agent']).toBeNull();
+    expect(headers['Accept']).toBeNull();
+    expect(headers['request-start-time']).toBeNull();
+  });
+
+  it('omits Connection on the wire when listed in settings.omitHeaders', async () => {
+    const http = require('http');
+    let seenHeaders;
+    const server = http.createServer((req, res) => {
+      seenHeaders = req.headers;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}/`;
+
+    try {
+      const { setupProxyAgents } = require('../../src/utils/proxy-util');
+      const request = {
+        url,
+        method: 'get',
+        headers: {},
+        settings: { omitHeaders: ['Connection', 'Accept'] },
+        __explicitHeaderNames: []
+      };
+      await setupProxyAgents({
+        requestConfig: request,
+        proxyMode: 'off',
+        proxyConfig: {},
+        systemProxyConfig: {},
+        httpsAgentRequestFields: { keepAlive: false },
+        interpolationOptions: {},
+        disableCache: true
+      });
+
+      const instance = makeAxiosInstance({ proxyMode: 'off', disableCache: true });
+      await instance(request);
+
+      expect(seenHeaders.connection).toBeUndefined();
+      expect(seenHeaders.accept).toBeUndefined();
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  it('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      headers: {
+        'User-Agent': 'my-client/1.0'
+      },
+      settings: {
+        omitHeaders: ['User-Agent']
+      },
+      __explicitHeaderNames: ['User-Agent']
+    });
+
+    expect(stubAdapter.getConfig().headers['User-Agent']).toBe('my-client/1.0');
+  });
+
   describe('cross-origin redirects authorization stripping', () => {
     function createRedirectingStubAdapter(redirectUrl, redirectStatus = 302) {
       const calls = [];

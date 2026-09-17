@@ -42,7 +42,7 @@ test.describe('Global Environment Import Tests', () => {
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
 
-    // Wait for import to complete and global environment settings modal to open
+    await page.getByTestId('import-global-environment-modal-submit-btn').click();
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });

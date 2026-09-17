@@ -550,6 +550,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
   axiosRequest.oauth2Credentials = request.oauth2Credentials;
+  axiosRequest.__explicitHeaderNames = Object.keys(axiosRequest.headers || {}).filter((name) => {
+    const value = axiosRequest.headers[name];
+    return value !== undefined && value !== null && value !== false;
+  });
 
   return axiosRequest;
 };

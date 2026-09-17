@@ -32,7 +32,7 @@ const Segment = forwardRef(({ value, label, icon, disabled = false, className = 
         {...rest}
         ref={ref}
         type="radio"
-        className="segment-input"
+        className="segment-input mousetrap"
         name={name}
         value={value}
         checked={checked}

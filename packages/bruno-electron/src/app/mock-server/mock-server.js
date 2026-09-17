@@ -277,6 +277,7 @@ const logRequest = (collection, mockServerUid, data) => {
     matchedResponseUid: data.matchedResponseUid || null,
     matchTrace: data.matchTrace || null,
     statusCode: data.statusCode,
+    error: data.error || null,
     delay: data.delay || 0,
     duration: data.duration || 0
   };
@@ -361,32 +362,7 @@ const handleRequest = (mockServerUid, req, res) => {
 
   const sendResponse = () => {
     const statusCode = selected.response.status || 200;
-
-    for (const header of selected.response.headers) {
-      if (!header.name || !header.value) continue;
-
-      const name = header.name.toLowerCase();
-      if (
-        name === 'transfer-encoding'
-        || name === 'content-length'
-        || name === 'content-encoding'
-        || name === 'connection'
-      ) continue;
-
-      res.setHeader(header.name, header.value);
-    }
-
-    if (!res.getHeader('content-type')) {
-      const contentTypeMap = {
-        json: 'application/json',
-        xml: 'application/xml',
-        text: 'text/plain',
-        html: 'text/html'
-      };
-      res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
-    }
-
-    logRequest(collection, mockServerUid, {
+    const logEntry = {
       method: req.method,
       path: reqPath,
       matched: true,
@@ -394,26 +370,72 @@ const handleRequest = (mockServerUid, req, res) => {
       matchedSourceFile: selected.sourceFile,
       matchedResponseUid: selected.responseUid || null,
       matchTrace,
+      delay
+    };
+
+    try {
+      for (const header of selected.response.headers) {
+        if (!header.name || !header.value) continue;
+
+        const name = header.name.toLowerCase();
+        if (
+          name === 'transfer-encoding'
+          || name === 'content-length'
+          || name === 'content-encoding'
+          || name === 'connection'
+        ) continue;
+
+        res.setHeader(header.name, header.value);
+      }
+
+      if (!res.getHeader('content-type')) {
+        const contentTypeMap = {
+          json: 'application/json',
+          xml: 'application/xml',
+          text: 'text/plain',
+          html: 'text/html'
+        };
+        res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
+      }
+
+      if (statusCode === 204) {
+        res.status(204).end();
+      } else {
+        res.status(statusCode).send(selected.response.body.content || '');
+      }
+    } catch (err) {
+      const message = err.message || 'Mock response failed';
+
+      logRequest(collection, mockServerUid, {
+        ...logEntry,
+        statusCode: 500,
+        error: message,
+        duration: Date.now() - startTime
+      });
+
+      if (!res.headersSent) {
+        res.status(500).json({ error: message });
+      }
+
+      return;
+    }
+
+    logRequest(collection, mockServerUid, {
+      ...logEntry,
       statusCode,
-      delay,
       duration: Date.now() - startTime
     });
-
-    if (statusCode === 204) {
-      res.status(204).end();
-    } else {
-      res.status(statusCode).send(selected.response.body.content || '');
-    }
   };
 
-  // adding a try-catch block to handle any errors that may occur during the response
   if (delay > 0) {
     setTimeout(() => {
       try {
         sendResponse();
       } catch (err) {
-        if (!res.headersSent) {
+        if (!res.headersSent && !res.writableEnded && !res.destroyed) {
           res.status(500).json({ error: err.message || 'Mock response failed' });
+        } else if (!res.writableEnded && !res.destroyed) {
+          res.destroy();
         }
       }
     }, delay);

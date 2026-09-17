@@ -1,5 +1,5 @@
 import { expect, test } from '../../playwright';
-import { openRequest, closeAllCollections } from '../utils/page/actions';
+import { openRequest, closeAllOpenTabs } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
@@ -8,7 +8,7 @@ const TWO_MSG_REQ = 'ws-two-long-msgs';
 
 test.describe('websocket message editor scroll behaviour', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
+    await closeAllOpenTabs(page);
   });
 
   test('reopening a message restores the scroll position where we left it', async ({ pageWithUserData: page }) => {

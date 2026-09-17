@@ -43,6 +43,7 @@ test.describe.serial('Environment Color Import Tests', () => {
       await page.getByTestId('import-global-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(envWithColorFile);
+      await page.getByTestId('import-global-environment-modal-submit-btn').click();
 
       // Wait for the environment tab to appear
       const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });

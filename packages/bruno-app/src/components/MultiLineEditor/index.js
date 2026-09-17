@@ -127,7 +127,7 @@ class MultiLineEditor extends Component {
      * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
      * would re-introduce the newline in collection/folder-level editors.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
     const enableFolding = !!this.props.enableFolding;
 
     this.editor = CodeMirror(this.editorRef.current, {
@@ -165,8 +165,8 @@ class MultiLineEditor extends Component {
           }
         : undefined,
       extraKeys: {
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Cmd-F': () => { },
+        'Ctrl-F': () => { },
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work
@@ -198,7 +198,9 @@ class MultiLineEditor extends Component {
       autoCompleteOptions
     );
 
-    setupLinkAware(this.editor);
+    // Only marks URLs and lets Cmd/Ctrl+Click open them externally; click-to-open-as-new-request
+    // is reserved for response previews.
+    setupLinkAware(this.editor, { onLinkClick: undefined });
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -275,6 +277,7 @@ class MultiLineEditor extends Component {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
+
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }

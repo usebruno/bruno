@@ -9,12 +9,105 @@ const Wrapper = styled.div`
     }
   }
 
+  .toggle-inherited-headers {
+    color: ${(props) => props.theme.text};
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+    }
+  }
+
   .bulk-edit-bar {
     position: sticky;
     bottom: 0;
     background: ${(props) => props.theme.bg};
     padding-top: 8px;
     padding-bottom: 4px;
+  }
+
+  button.headers-section-toggle {
+    width: 100%;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 0 10px;
+    color: ${(props) => props.theme.text};
+    background: ${(props) => props.theme.sidebar.bg};
+    border: 0;
+    border-bottom: solid 1px ${(props) => props.theme.border.border0};
+    border-radius: 0;
+    box-sizing: border-box;
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+      background: ${(props) => props.theme.sidebar.bg};
+    }
+  }
+
+  .default-header-row,
+  .inherited-header-row {
+    .default-header-value {
+      font-style: italic;
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    input[type='checkbox']:disabled {
+      opacity: 0.55;
+    }
+  }
+
+  .inherited-header-row {
+    .CodeMirror-line {
+      font-style: italic;
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-header-source {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
+    }
+  }
+
+  .header-name-cell {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+
+    > :first-child {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .default-header-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: help;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
   }
 
   input[type='text'] {
