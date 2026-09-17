@@ -968,6 +968,12 @@ export const collectionsSlice = createSlice({
           if (item.draft.app) {
             item.app = item.draft.app;
           }
+          // The file watcher will report the rewritten file eventually, but the draft is gone
+          // as of this reducer. Anything reading examples in between — the sidebar, and a
+          // second reorder resolving its drop — would otherwise see the pre-save order.
+          if (item.draft.examples) {
+            item.examples = item.draft.examples;
+          }
           item.draft = null;
         }
       }
@@ -4168,6 +4174,7 @@ export const collectionsSlice = createSlice({
     cloneResponseExample: exampleReducers.cloneResponseExample,
     updateResponseExample: exampleReducers.updateResponseExample,
     deleteResponseExample: exampleReducers.deleteResponseExample,
+    moveResponseExample: exampleReducers.moveResponseExample,
     cancelResponseExampleEdit: exampleReducers.cancelResponseExampleEdit,
     addResponseExampleHeader: exampleReducers.addResponseExampleHeader,
     updateResponseExampleHeader: exampleReducers.updateResponseExampleHeader,
@@ -4395,6 +4402,7 @@ export const {
   cloneResponseExample,
   updateResponseExample,
   deleteResponseExample,
+  moveResponseExample,
   cancelResponseExampleEdit,
   addResponseExampleHeader,
   updateResponseExampleHeader,
