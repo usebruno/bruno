@@ -129,7 +129,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     // URL uses {{baseUrl}} placeholder — strip it and resolve remaining path
     if (rawUrl.startsWith('{{baseUrl}}')) {
       const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
-      return { url: interpolate(path, {}), operationLevelServer: null };
+      return { url: interpolate(path, variables), operationLevelServer: null };
     }
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
@@ -137,7 +137,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       if (rawUrl.startsWith(source.baseUrl)) {
         const rawPath = rawUrl.slice(source.baseUrl.length);
         const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-        return { url: interpolate(path, {}), operationLevelServer: null };
+        return { url: interpolate(path, source.vars || variables), operationLevelServer: null };
       }
     }
 

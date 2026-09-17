@@ -1090,3 +1090,49 @@ describe('exportApiSpec - a variable that could not be resolved', () => {
     expect(pathsIn(content)).toEqual(['/api/v1/a%20b']);
   });
 });
+
+describe('exportApiSpec - a secret that has a value', () => {
+  const itemWithUrl = (url) => ({
+    name: 'Request',
+    type: 'http-request',
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const pathsIn = (content) =>
+    String(content)
+      .split('\n')
+      .filter((line) => /^ {2}\//.test(line))
+      .map((line) => line.trim().replace(/:$/, ''));
+
+  const variables = { 'baseUrl': 'https://api.test', 'secret-var': 'secret-value' };
+
+  it('writes the value into the path when the url starts with the base url', () => {
+    const { content } = exportApiSpec({
+      variables,
+      items: [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/some-value/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/secret-value/some-value/github']);
+  });
+
+  it('writes the value into the path when the url names the host outright', () => {
+    const { content } = exportApiSpec({
+      variables,
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/some-value/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/secret-value/some-value/github']);
+  });
+
+  it('resolves an ordinary variable in the path too, which used to be left as written', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test', userId: '42' },
+      items: [itemWithUrl('{{baseUrl}}/users/{{userId}}')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/users/42']);
+  });
+});
