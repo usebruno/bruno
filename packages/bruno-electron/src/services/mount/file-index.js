@@ -30,7 +30,7 @@ class FileIndex {
 
   async status(collectionPath, options = {}) {
     const root = normalize(collectionPath);
-    const stored = this.#loadStored(root);
+    const metadata = this.#loadMetadata(root);
     const denylist = resolveDenylist(options.denylist);
     const added = [];
     const updated = [];
@@ -41,7 +41,7 @@ class FileIndex {
     const results = await Promise.all(files.map(async ({ relativePath, absolutePath }) => {
       const stat = await fs.promises.stat(absolutePath, { bigint: true });
       const mtime = stat.mtimeNs;
-      const prior = stored.get(relativePath);
+      const prior = metadata.get(relativePath);
 
       if (!prior) {
         const hash = await hashFileAsync(absolutePath);
@@ -69,7 +69,7 @@ class FileIndex {
       }
     }
 
-    for (const [relativePath, row] of stored) {
+    for (const [relativePath, row] of metadata) {
       if (seen.has(relativePath)) continue;
       if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
@@ -83,7 +83,7 @@ class FileIndex {
   }
 
   entries(collectionPath) {
-    const rows = this.#statements.execute('file_index_entries_for_collection', {
+    const rows = this.#statements.execute('file_index_content_for_collection', {
       collection_path: normalize(collectionPath)
     });
     const map = new Map();
@@ -139,7 +139,8 @@ class FileIndex {
   #resolveTarget(collectionPath, absolutePath) {
     const root = normalize(collectionPath);
     const relativePath = path.normalize(path.relative(root, normalize(absolutePath)));
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return null;
+    const escapesRoot = relativePath === '..' || relativePath.startsWith(`..${path.sep}`);
+    if (escapesRoot || path.isAbsolute(relativePath)) return null;
     return { root, relativePath };
   }
 
@@ -147,8 +148,10 @@ class FileIndex {
     return this.#db._transaction(callback);
   }
 
-  #loadStored(collectionPath) {
-    const rows = this.#statements.execute('file_index_stored', { collection_path: collectionPath });
+  #loadMetadata(collectionPath) {
+    const rows = this.#statements.execute('file_index_metadata_for_collection', {
+      collection_path: collectionPath
+    });
     const map = new Map();
     for (const row of rows) {
       map.set(row.relativePath, row);
