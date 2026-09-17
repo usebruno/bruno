@@ -14,7 +14,7 @@ import CopyEnvironment from '../../CopyEnvironment';
 import DeleteEnvironment from '../../DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import InheritsFrom from 'components/Environments/Common/InheritsFrom';
-import MissingInheritedEnvironmentWarning from 'components/Environments/Common/MissingInheritedEnvironmentWarning';
+import EnvironmentInheritanceWarning from 'components/Environments/Common/EnvironmentInheritanceWarning';
 import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
@@ -275,7 +275,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
       </div>
 
-      <MissingInheritedEnvironmentWarning environment={environment} environments={globalEnvs || []} />
+      <EnvironmentInheritanceWarning environment={environment} environments={globalEnvs || []} />
 
       <div className="tabs-container">
         <ResponsiveTabs
