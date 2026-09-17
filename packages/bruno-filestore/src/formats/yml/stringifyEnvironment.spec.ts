@@ -88,4 +88,62 @@ describe('stringifyEnvironment', () => {
     const reparsed = parseEnvironment(stringifyEnvironment(env));
     expect(reparsed.color).toBe('#ff0000');
   });
+
+  describe('extends', () => {
+    it('round-trips the parent environment name', () => {
+      const env = {
+        uid: 'env-uid',
+        name: 'prod',
+        extends: 'base',
+        variables: [{ uid: 'u1', name: 'host', value: 'prod.example.com', type: 'text', enabled: true, secret: false }]
+      } as any;
+
+      const reparsed = parseEnvironment(stringifyEnvironment(env));
+
+      expect(reparsed.extends).toBe('base');
+      expect(reparsed.variables[0]).toMatchObject({ name: 'host', value: 'prod.example.com' });
+    });
+
+    it('omits extends when no parent is set', () => {
+      const env = { uid: 'env-uid', name: 'prod', variables: [] } as any;
+
+      expect(stringifyEnvironment(env)).not.toContain('extends');
+    });
+
+    it('omits extends when the parent names nothing', () => {
+      const env = { uid: 'env-uid', name: 'prod', extends: '  ', variables: [] } as any;
+
+      expect(stringifyEnvironment(env)).not.toContain('extends');
+    });
+
+    it('round-trips a list of parents', () => {
+      const env = { uid: 'env-uid', name: 'prod', extends: ['base', 'shared'], variables: [] } as any;
+
+      const reparsed = parseEnvironment(stringifyEnvironment(env));
+
+      expect(reparsed.extends).toEqual(['base', 'shared']);
+    });
+
+    it('omits extends when the list of parents is empty', () => {
+      const env = { uid: 'env-uid', name: 'prod', extends: [], variables: [] } as any;
+
+      expect(stringifyEnvironment(env)).not.toContain('extends');
+    });
+
+    it('never writes the inheritedFrom provenance of a resolved variable', () => {
+      const env = {
+        uid: 'env-uid',
+        name: 'prod',
+        extends: 'base',
+        variables: [
+          { uid: 'u1', name: 'host', value: 'base.example.com', type: 'text', enabled: true, secret: false, inheritedFrom: 'base' }
+        ]
+      } as any;
+
+      const yml = stringifyEnvironment(env);
+
+      expect(yml).not.toContain('inheritedFrom');
+      expect(parseEnvironment(yml).variables[0]).not.toHaveProperty('inheritedFrom');
+    });
+  });
 });

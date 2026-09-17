@@ -6,6 +6,7 @@ import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
 import { fromOpenCollectionEnvironments } from "./environment";
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
@@ -113,7 +114,8 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
   const root: BrunoCollectionRoot = {};
 
   if (oc.request) {
-    const scripts = fromOpenCollectionScripts(oc.request.scripts);
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = fromOpenCollectionScripts(oc.request.scripts, HTTP_SCRIPT_KEYS);
     root.request = {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),

@@ -61,6 +61,7 @@ const saveCookies = (url, headers) => {
   }
 };
 
+// Duplicated as getJsSandboxRuntime in utils/collection.js; keep the two in sync.
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
@@ -829,7 +830,8 @@ const registerNetworkIpc = (mainWindow) => {
                     data: res.data,
                     dataBuffer: res.dataBuffer,
                     size: res.size,
-                    duration: res.duration
+                    duration: res.duration,
+                    timeline: res.timeline
                   }
                 : null,
               error: err || (res?.error ? { message: res.error } : null),
@@ -895,6 +897,7 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    scriptingConfig.cacheModules = false;
 
     try {
       request.signal = abortController.signal;
@@ -1426,6 +1429,7 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid, collection);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      scriptingConfig.cacheModules = false;
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
@@ -1524,7 +1528,8 @@ const registerNetworkIpc = (mainWindow) => {
                       data: res.data,
                       dataBuffer: res.dataBuffer,
                       size: res.size,
-                      duration: res.duration
+                      duration: res.duration,
+                      timeline: res.timeline
                     }
                   : null,
                 error: err || (res?.error ? { message: res.error } : null),

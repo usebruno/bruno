@@ -104,7 +104,7 @@ const buildCollectionSelectOptions = (workspaceCollections, collections, editing
   return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
-const SourceRadio = ({ value, label, checked, disabled, onChange, dataTestId }) => (
+const SourceRadio = ({ value, label, checked, disabled, onChange, onBlur, dataTestId }) => (
   <div className="flex items-center gap-2">
     <input
       id={dataTestId}
@@ -113,6 +113,7 @@ const SourceRadio = ({ value, label, checked, disabled, onChange, dataTestId }) 
       value={value}
       checked={checked}
       onChange={onChange}
+      onBlur={onBlur}
       disabled={disabled}
       data-testid={dataTestId}
     />
@@ -544,8 +545,9 @@ const CreateMockServerModal = ({
               autoCapitalize="off"
               spellCheck="false"
               value={formik.values.name}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
+              onChange={(event) => {
+                formik.setFieldValue('name', event.target.value, Boolean(formik.errors.name));
+              }}
               data-testid="mock-server-name-input"
             />
             {formik.touched.name && formik.errors.name ? (
@@ -563,6 +565,7 @@ const CreateMockServerModal = ({
                 disabled={!hasCollectionOptions}
                 onChange={formik.handleChange}
                 dataTestId="mock-server-source-collection"
+                onBlur={formik.handleBlur}
               />
               <SourceRadio
                 value="spec"
@@ -571,6 +574,7 @@ const CreateMockServerModal = ({
                 disabled={!hasSpecOptions}
                 onChange={formik.handleChange}
                 dataTestId="mock-server-source-spec"
+                onBlur={formik.handleBlur}
               />
               <SourceRadio
                 value="manual"
@@ -578,6 +582,7 @@ const CreateMockServerModal = ({
                 checked={formik.values.sourceType === 'manual'}
                 onChange={formik.handleChange}
                 dataTestId="mock-server-source-manual"
+                onBlur={formik.handleBlur}
               />
             </div>
           </div>
@@ -593,8 +598,9 @@ const CreateMockServerModal = ({
                   name="collectionUid"
                   className="textbox w-full mt-2"
                   value={formik.values.collectionUid}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
+                  onChange={(event) => {
+                    formik.setFieldValue('collectionUid', event.target.value, Boolean(formik.errors.collectionUid));
+                  }}
                   data-testid="mock-server-collection-select"
                 >
                   <option value="">Select a collection</option>
@@ -627,8 +633,9 @@ const CreateMockServerModal = ({
                   name="specUid"
                   className="textbox w-full mt-2"
                   value={formik.values.specUid}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
+                  onChange={(event) => {
+                    formik.setFieldValue('specUid', event.target.value, Boolean(formik.errors.specUid));
+                  }}
                   data-testid="mock-server-spec-select"
                 >
                   <option value="">Select an API spec</option>

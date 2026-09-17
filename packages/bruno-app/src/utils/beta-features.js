@@ -10,7 +10,8 @@ export const BETA_FEATURES = Object.freeze({
   AI_ASSISTANT: 'ai-assistant',
   FILE_CACHE: 'file-cache',
   AKAMAI_EDGEGRID: 'akamai-edgegrid',
-  MOCK_SERVER: 'mock-server'
+  MOCK_SERVER: 'mock-server',
+  GRPC_SCRIPTING: 'grpc-scripting'
 });
 
 /**

@@ -7,6 +7,25 @@ import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from '
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
+// Folds any `cookie`/`Cookie` header into a single header.
+const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
+  let cookieHeaderIndex = -1;
+  const merged = [];
+  for (const header of headers) {
+    if (header.name.toLowerCase() !== 'cookie') {
+      merged.push(header);
+      continue;
+    }
+    if (cookieHeaderIndex === -1) {
+      cookieHeaderIndex = merged.length;
+      merged.push({ ...header, name: capitalizeCookieHeaderName ? 'Cookie' : header.name });
+    } else {
+      merged[cookieHeaderIndex].value += `; ${header.value}`;
+    }
+  }
+  return merged;
+};
+
 // curl --digest / --ntlm are surface-level snippet adjustments, not part of
 // the HAR contract — keep them at this layer.
 const addCurlAuthFlags = (curlCommand, auth) => {
@@ -78,12 +97,15 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
       collectionUid: collection?.uid
     });
 
+    const isCurl = language.target === 'shell' && language.client === 'curl';
+    const isLibcurl = language.target === 'c' && language.client === 'libcurl';
+
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet(har);
+    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
-    if (language.target === 'shell' && language.client === 'curl') {
+    if (isCurl) {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
     /**

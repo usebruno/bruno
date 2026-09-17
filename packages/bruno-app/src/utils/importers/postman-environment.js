@@ -1,6 +1,6 @@
 import { BrunoError } from 'utils/common/error';
 import { postmanToBrunoEnvironment } from '@usebruno/converters';
-import { dedupeImportedSecrets } from 'utils/environments';
+import { coerceEnvName, dedupeImportedSecrets } from 'utils/environments';
 
 const importEnvironment = async (parsedFiles) => {
   try {
@@ -10,7 +10,11 @@ const importEnvironment = async (parsedFiles) => {
     for (const parsedFile of parsedFiles) {
       try {
         const environment = postmanToBrunoEnvironment(parsedFile.content);
-        valid.push({ ...environment, variables: dedupeImportedSecrets(environment.variables), filePath: parsedFile.filePath, fileName: parsedFile.fileName });
+        const name = coerceEnvName(environment.name);
+        if (name === null) {
+          throw new BrunoError('Invalid environment: missing or invalid name');
+        }
+        valid.push({ ...environment, name, variables: dedupeImportedSecrets(environment.variables), filePath: parsedFile.filePath, fileName: parsedFile.fileName });
       } catch (err) {
         console.error(`Error processing file: ${parsedFile.fileName}`, err);
         invalid.push({ fileName: parsedFile.fileName, error: err.message });

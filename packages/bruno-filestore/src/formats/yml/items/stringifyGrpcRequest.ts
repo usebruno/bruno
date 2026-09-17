@@ -12,6 +12,7 @@ import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
+import { GRPC_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyGrpcRequest = (item: BrunoItem): string => {
   try {
@@ -103,7 +104,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, GRPC_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;

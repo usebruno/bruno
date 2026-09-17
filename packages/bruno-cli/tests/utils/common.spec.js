@@ -1,5 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 const { hasExecutableTestInScript } = require('../../src/utils/request');
+const { parseListOption, pluralizeWord, stripRequestItems } = require('../../src/utils/common');
 
 describe('hasExecutableTestInScript', () => {
   describe('should return true for valid test() calls', () => {
@@ -305,5 +306,78 @@ describe('hasExecutableTestInScript', () => {
       // because there's a space between the dot and test
       expect(hasExecutableTestInScript(script)).toBe(true);
     });
+  });
+});
+
+describe('parseListOption', () => {
+  it('returns an empty array for empty or missing input', () => {
+    expect(parseListOption(undefined)).toEqual([]);
+    expect(parseListOption(null)).toEqual([]);
+    expect(parseListOption('')).toEqual([]);
+  });
+
+  it('splits a comma separated string into a list', () => {
+    expect(parseListOption('smoke,regression,wip')).toEqual(['smoke', 'regression', 'wip']);
+  });
+
+  it('trims the spaces around each value', () => {
+    expect(parseListOption(' smoke , regression ,wip ')).toEqual(['smoke', 'regression', 'wip']);
+  });
+
+  it('drops empty entries left by extra or trailing commas', () => {
+    expect(parseListOption('smoke,,regression,')).toEqual(['smoke', 'regression']);
+  });
+
+  it('accepts an array of values (repeated flags) and flattens them', () => {
+    expect(parseListOption(['prod', 'staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+    expect(parseListOption([])).toEqual([]);
+  });
+
+  it('splits commas within array elements too (mixed repeat and comma)', () => {
+    expect(parseListOption(['prod,staging', 'local'])).toEqual(['prod', 'staging', 'local']);
+  });
+
+  it('preserves spaces inside a name, trimming only the ends', () => {
+    expect(parseListOption(['Prod Env'])).toEqual(['Prod Env']);
+    expect(parseListOption('Prod Env, Staging Env')).toEqual(['Prod Env', 'Staging Env']);
+    expect(parseListOption([' Prod Env '])).toEqual(['Prod Env']);
+  });
+});
+
+describe('pluralizeWord', () => {
+  it('uses the singular form for a count of one', () => {
+    expect(pluralizeWord(1, 'Environment')).toBe('Environment');
+    expect(pluralizeWord(1, 'Tag')).toBe('Tag');
+  });
+
+  it('uses the plural form for zero or many', () => {
+    expect(pluralizeWord(0, 'Environment')).toBe('Environments');
+    expect(pluralizeWord(2, 'Tag')).toBe('Tags');
+  });
+});
+
+describe('stripRequestItems', () => {
+  it('drops the empty items array yml parsing puts on a request', () => {
+    const result = stripRequestItems([{ name: 'a', type: 'http-request', tags: ['smoke'], items: [] }]);
+    expect(result[0]).toEqual({ name: 'a', type: 'http-request', tags: ['smoke'] });
+    expect('items' in result[0]).toBe(false);
+  });
+
+  it('leaves a request without an items array untouched (bru requests)', () => {
+    const req = { name: 'a', type: 'http-request', tags: ['smoke'] };
+    expect(stripRequestItems([req])).toEqual([req]);
+  });
+
+  it('keeps a folder\'s items array and strips the requests nested inside it', () => {
+    const result = stripRequestItems([
+      { name: 'f', type: 'folder', items: [{ name: 'a', type: 'http-request', items: [] }] }
+    ]);
+    expect(Array.isArray(result[0].items)).toBe(true);
+    expect('items' in result[0].items[0]).toBe(false);
+  });
+
+  it('keeps an empty folder as a folder so tag filtering still prunes it', () => {
+    const result = stripRequestItems([{ name: 'f', type: 'folder', items: [] }]);
+    expect(result[0].items).toEqual([]);
   });
 });

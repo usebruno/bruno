@@ -23,6 +23,7 @@ const DocsTagList = ({
   const [highlighted, setHighlighted] = useState(-1);
   const [menuStyle, setMenuStyle] = useState(null);
   const fieldRef = useRef(null);
+  const inputRef = useRef(null);
 
   const suggestions = tagsHintList.filter((tag) => tag.toLowerCase().includes(text.trim().toLowerCase()));
 
@@ -70,13 +71,14 @@ const DocsTagList = ({
     setError('');
     setIsOpen(false);
     setHighlighted(-1);
+    inputRef.current?.blur();
   };
 
   const handleInputChange = (e) => {
     setText(e.target.value);
     setError('');
     setIsOpen(true);
-    setHighlighted(-1);
+    setHighlighted(e.target.value.trim() ? 0 : -1);
   };
 
   const showMenu = isOpen && suggestions.length > 0 && menuStyle;
@@ -115,6 +117,7 @@ const DocsTagList = ({
     <StyledWrapper>
       <div className="docs-tag-field" ref={fieldRef}>
         <input
+          ref={inputRef}
           type="text"
           className="docs-tag-input"
           value={text}
@@ -176,13 +179,12 @@ const DocsTagList = ({
           {tags.map((tag) => (
             <li key={tag} className="docs-tag-item">
               <IconTag size={16} className="docs-tag-icon" aria-hidden="true" strokeWidth={1.33} />
-              <span className="docs-tag-text" title={tag}>
+              <span className="docs-tag-text">
                 {tag}
               </span>
               <button
                 type="button"
                 className="docs-tag-remove"
-                title="Remove tag"
                 aria-label={`Remove ${tag}`}
                 onClick={() => handleRemoveTag(tag)}
               >

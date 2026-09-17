@@ -6,7 +6,7 @@ export { transformExampleStatusInCollection } from './example-status';
 export { sortByNameThenSequence, resolveCollectionVersion } from './collection';
 export { normalizeOpenApiSyncConfigs } from './openapi-sync';
 
-export { generateApiDocsHtml, getApiDocsFileName } from './api-docs';
+export { generateApiDocsHtml, getApiDocsFileName, filterRequestItemsByTags } from './api-docs';
 export type {
   GenerateApiDocsOptions,
   ApiDocsDependencies,
@@ -17,6 +17,7 @@ export type {
   TaggedItem,
   NamedEnvironment
 } from './api-docs';
+export { HTTP_SCRIPT_KEYS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from './scripts';
 
 export { buildHar } from './generate-code/har';
 export type {

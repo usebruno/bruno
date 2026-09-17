@@ -1,4 +1,5 @@
 import get from 'lodash/get';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { callIpc } from 'utils/common/ipc';
 import {
   findEnvironmentInCollection,
@@ -173,8 +174,13 @@ export const buildAiVariablesPayload = (collection, item, redactVariablesOverrid
     claim(name, 'global', globalSecrets.has(name));
   }
 
-  // Active environment - explicit `secret` flag per variable.
-  const env = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  // Active environment - explicit `secret` flag per variable. Inherited variables are
+  // merged in so a secret defined on a parent environment is redacted too.
+  const env = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    merge: true
+  });
   if (env && Array.isArray(env.variables)) {
     for (const v of env.variables) {
       if (v?.name && v.enabled) claim(v.name, 'env', Boolean(v.secret));

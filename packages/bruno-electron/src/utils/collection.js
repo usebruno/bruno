@@ -8,6 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
+const { GRPC_SCRIPT_KEYS } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -414,6 +415,19 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     request.script.resMetadata = postRes.metadata;
   }
 
+  // TODO: Provide Collection/Folder scripts to 'buildCombinedScript' once available
+  // Including now to provide stack trace on error
+  for (const hook of GRPC_SCRIPT_KEYS) {
+    const hookScript = get(request, `script.${hook}`, '');
+    if (!hookScript || hookScript.trim() === '') {
+      continue;
+    }
+
+    const combined = buildCombinedScript([hookScript], 0, [null], hookScript);
+    request.script[hook] = combined.code;
+    request.script[`${hook}Metadata`] = combined.metadata;
+  }
+
   // Handle tests based on scriptFlow
   const collectionTestsSource = withContent(collectionSource, collectionTests);
   if (scriptFlow === 'sequential') {
@@ -806,8 +820,8 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
 };
 
 const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
+  const variables = [...(environment?.inheritedVariables || []), ...(environment?.variables || [])];
+  if (!variables.length) {
     return {
       __name__: environment.name
     };
@@ -952,7 +966,20 @@ const sortByNameThenSequence = (items) => {
   return sortedItems.flat();
 };
 
+// Resolves the JS sandbox a collection's scripts run in.
+// Duplicated as getJsSandboxRuntime in ipc/network/index.js; keep the two in sync.
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+
+  if (securityConfig.jsSandboxMode === 'developer') {
+    return 'nodevm';
+  }
+
+  return 'quickjs';
+};
+
 module.exports = {
+  getJsSandboxRuntime,
   mergeHeaders,
   mergeVars,
   mergeScripts,
