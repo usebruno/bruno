@@ -204,6 +204,7 @@ export const buildCommonLocators = (page: Page) => ({
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {

@@ -8,7 +8,7 @@ import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import OAuth2 from '../../Auth/OAuth2/index';
 import WsseAuth from '../../Auth/WsseAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import InheritedAuth from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -27,7 +27,6 @@ const GrpcAuth = ({ item, collection }) => {
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
     [authMode, item, collection]
   );
-  const isInheritedAuthSupported = inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode);
 
   const save = () => {
     return saveRequest(item.uid, collection.uid);
@@ -67,13 +66,14 @@ const GrpcAuth = ({ item, collection }) => {
         return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
       }
       case 'inherit': {
-        if (isInheritedAuthSupported) {
-          return null;
-        }
         return (
-          <div className="flex flex-row w-full gap-2">
-            <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
-          </div>
+          <InheritedAuth
+            collection={collection}
+            item={item}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+            unsupportedMessage="Inherited auth not supported by gRPC. Using no auth instead."
+          />
         );
       }
       default: {
@@ -82,18 +82,10 @@ const GrpcAuth = ({ item, collection }) => {
     }
   };
 
-  const inheritedLabel = authMode === 'inherit' && isInheritedAuthSupported ? (
-    <div className="flex flex-row items-center gap-2">
-      <div>Auth inherited from {inheritedSource.name}: </div>
-      <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-    </div>
-  ) : null;
-
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
       <div className="flex items-center justify-between mb-4">
         <GrpcAuthMode item={item} collection={collection} />
-        {inheritedLabel}
       </div>
       {getAuthView()}
     </StyledWrapper>

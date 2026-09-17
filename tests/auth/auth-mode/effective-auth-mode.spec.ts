@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, selectAuthMode } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, createRequest, openRequest, readField, selectAuthMode, selectRequestPaneTab, typeIntoField } from '../../utils/page';
 import { AUTH_MODE_LABELS } from '../../utils/constants';
 
 test.describe('Effective auth mode resolution', () => {
@@ -42,6 +42,13 @@ test.describe('Effective auth mode resolution', () => {
     await test.step('Verify folder-3 should inherit auth from folder-2', async () => {
       await expect(page.getByText('Auth inherited from folder-2:')).toBeVisible();
       await expect(locators.auth.inheritedMode()).toHaveText(AUTH_MODE_LABELS.BASIC);
+      await expect(locators.auth.inheritedFields()).toBeVisible();
+    });
+
+    await test.step('Clicking the inherited auth type opens folder-2 Auth', async () => {
+      await locators.auth.inheritedMode().click();
+      await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.BASIC);
+      await expect(locators.auth.inheritedFields()).toHaveCount(0);
     });
   });
 
@@ -108,6 +115,37 @@ test.describe('Effective auth mode resolution', () => {
       await expect(noAuthItem).toBeVisible();
       await expect(noAuthItem).toHaveClass(/dropdown-item-active/);
       await expect(noAuthItem).toContainText(AUTH_MODE_LABELS.NONE);
+    });
+  });
+
+  test('Request inherit shows disabled source fields and clicking the auth type opens collection Auth', async ({ page, createTmpDir }) => {
+    const collectionName = 'inherit-auth-fields-collection';
+    const locators = buildCommonLocators(page);
+
+    await test.step('Create a collection with Bearer Token auth', async () => {
+      await createCollection(page, collectionName, await createTmpDir());
+      await locators.paneTabs.collectionSettingsTab('auth').click();
+      await selectAuthMode(page, AUTH_MODE_LABELS.BEARER);
+      await typeIntoField(page, 'Token', 'collection-bearer-token');
+      await page.getByRole('button', { name: 'Save' }).click();
+    });
+
+    await test.step('Create a request that inherits auth and verify the token is shown read-only', async () => {
+      await createRequest(page, 'request-1', collectionName, { url: 'https://example.com/api' });
+      await openRequest(page, collectionName, 'request-1');
+      await selectRequestPaneTab(page, 'Auth');
+      await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
+      await expect(page.getByText('Auth inherited from Collection:')).toBeVisible();
+      await expect(locators.auth.inheritedMode()).toHaveText(AUTH_MODE_LABELS.BEARER);
+      await expect(locators.auth.inheritedFields()).toHaveCSS('pointer-events', 'none');
+    });
+
+    await test.step('Clicking Bearer Token opens collection Auth with the same token', async () => {
+      await locators.auth.inheritedMode().click();
+      await expect(locators.paneTabs.collectionSettingsTab('auth')).toBeVisible();
+      await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.BEARER);
+      await expect(locators.auth.inheritedFields()).toHaveCount(0);
+      await expect.poll(() => readField(page, 'Token')).toBe('collection-bearer-token');
     });
   });
 });

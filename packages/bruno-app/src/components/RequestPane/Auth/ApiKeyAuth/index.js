@@ -9,7 +9,7 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
 
-const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
@@ -47,7 +47,8 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   useEffect(() => {
-    !apikeyAuth?.placement
+    !disabled
+    && !apikeyAuth?.placement
     && dispatch(
       updateAuth({
         mode: 'apikey',
@@ -58,7 +59,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
         }
       })
     );
-  }, [apikeyAuth]);
+  }, [apikeyAuth, disabled]);
 
   return (
     <StyledWrapper className="w-full">

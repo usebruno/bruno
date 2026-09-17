@@ -6,7 +6,7 @@ import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import InheritedAuth from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -67,7 +67,6 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        // Check if inherited auth is OAuth1/OAuth2 - not supported for WebSockets
         if (inheritedSource?.auth?.mode === 'oauth1' || inheritedSource?.auth?.mode === 'oauth2') {
           return (
             <>
@@ -78,17 +77,15 @@ const WSAuth = ({ item, collection }) => {
           );
         }
 
-        if (inheritedSource && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)) {
-          return null;
-        } else {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by WebSockets. Using no auth instead.</div>
-              </div>
-            </>
-          );
-        }
+        return (
+          <InheritedAuth
+            collection={collection}
+            item={item}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_WS}
+            unsupportedMessage="Inherited auth not supported by WebSockets. Using no auth instead."
+          />
+        );
       }
       default: {
         return null;
@@ -96,21 +93,10 @@ const WSAuth = ({ item, collection }) => {
     }
   };
 
-  const inheritedLabel = authMode === 'inherit'
-    && inheritedSource
-    && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
-    && inheritedSource.auth?.mode !== 'oauth2' ? (
-        <div className="flex flex-row items-center gap-2">
-          <div>Auth inherited from {inheritedSource.name}: </div>
-          <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-        </div>
-      ) : null;
-
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
       <div className="flex items-center justify-between mb-4">
         <WSAuthMode item={item} collection={collection} />
-        {inheritedLabel}
       </div>
       {getAuthView()}
     </StyledWrapper>

@@ -55,6 +55,7 @@ export const getEffectiveAuthSource = (collection, item) => {
   let effectiveSource = {
     type: 'collection',
     name: 'Collection',
+    uid: collection?.uid,
     auth: collectionAuth
   };
 
@@ -69,6 +70,7 @@ export const getEffectiveAuthSource = (collection, item) => {
     effectiveSource = {
       type: 'folder',
       name: i.name,
+      uid: i.uid,
       auth: folderAuth
     };
     break;

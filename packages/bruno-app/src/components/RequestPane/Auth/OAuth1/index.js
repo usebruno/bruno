@@ -318,7 +318,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
 
       {/* Advanced Section (collapsible) */}
       <div
-        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none"
+        className="flex items-center gap-2.5 mt-2 cursor-pointer select-none auth-advanced-toggle"
         onClick={() => setAdvancedOpen(!advancedOpen)}
       >
         <div className="flex items-center px-2.5 py-1.5 oauth1-icon-container rounded-md">

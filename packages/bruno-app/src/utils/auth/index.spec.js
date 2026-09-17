@@ -111,6 +111,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Folder',
+      uid: 'f1',
       auth: { mode: 'basic', basic: { username: 'user', password: 'pass' } }
     });
   });
@@ -125,6 +126,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -158,6 +160,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Parent',
+      uid: 'parent',
       auth: { mode: 'basic', basic: { username: 'p', password: 'p' } }
     });
   });
@@ -172,6 +175,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Folder',
+      uid: 'f1',
       auth: { mode: 'basic', basic: { username: 'user', password: 'pass' } }
     });
   });
@@ -205,6 +209,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Parent',
+      uid: 'parent',
       auth: { mode: 'basic', basic: { username: 'p', password: 'p' } }
     });
   });
@@ -230,6 +235,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -257,6 +263,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -289,6 +296,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
