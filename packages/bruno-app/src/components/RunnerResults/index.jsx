@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
@@ -92,7 +92,7 @@ export default function RunnerResults({ collection }) {
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
 
   // resolved for the whole tree in one walk, rather than once per result row
-  const effectiveTagsByUid = getEffectiveTagsByItemUid(collection.items);
+  const effectiveTagsByUid = useMemo(() => getEffectiveTagsByItemUid(collection.items), [collection.items]);
 
   const items = get(collection, 'runnerResult.items', [])
     .map((item) => {
