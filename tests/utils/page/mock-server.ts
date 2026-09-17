@@ -60,10 +60,10 @@ export const buildMockServerLocators = (page: Page) => ({
   logCount: () => page.getByTestId('mock-server-log-count'),
   logClear: () => page.getByTestId('mock-server-log-clear'),
   logEmptyState: () => page.getByText('No requests logged yet'),
-  logMethodBadges: () => page.locator('.log-table-container .method-badge'),
-  logPaths: () => page.locator('.log-table-container .log-path'),
-  logNoMatchLabels: () => page.locator('.log-table-container .no-match-label'),
-  logStatusCodes: () => page.locator('.log-table-container .status-code'),
+  logMethodBadges: () => page.getByTestId('mock-server-log-table').locator('.method-badge'),
+  logPaths: () => page.getByTestId('mock-server-log-table').locator('.log-path'),
+  logNoMatchLabels: () => page.getByTestId('mock-server-log-table').locator('.no-match-label'),
+  logStatusCodes: () => page.getByTestId('mock-server-log-table').locator('.status-code'),
 
   filterOption: (label: string) => page.getByRole('option', { name: label, exact: true }),
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
