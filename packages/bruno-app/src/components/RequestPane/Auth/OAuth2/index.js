@@ -10,7 +10,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 
-const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAuthFn, save: saveFn }) => {
+const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAuthFn, save: saveFn, disabled }) => {
   const dispatch = useDispatch();
 
   const save = () => {
@@ -28,13 +28,13 @@ const GrantTypeComponentMap = ({ item, collection, request, updateAuth: updateAu
 
   switch (grantType) {
     case 'password':
-      return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} />;
+      return <OAuth2PasswordCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
     case 'authorization_code':
-      return <OAuth2AuthorizationCode item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} />;
+      return <OAuth2AuthorizationCode item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
     case 'implicit':
-      return <OAuth2Implicit item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} />;
+      return <OAuth2Implicit item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
     case 'client_credentials':
-      return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} />;
+      return <OAuth2ClientCredentials item={item} save={save} request={request} handleRun={handleRun} updateAuth={updateAuthFn} collection={collection} disabled={disabled} />;
     default:
       return <div>TBD</div>;
   }
@@ -53,6 +53,7 @@ const OAuth2 = ({ item, collection, request: requestProp, updateAuth: updateAuth
         request={request}
         updateAuth={updateAuthFn}
         save={save}
+        disabled={disabled}
       />
     </StyledWrapper>
   );

@@ -72,6 +72,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -86,6 +87,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           onRun={handleRun}
           collection={collection}
           isCompact
+          readOnly={disabled}
         />
       </div>
 

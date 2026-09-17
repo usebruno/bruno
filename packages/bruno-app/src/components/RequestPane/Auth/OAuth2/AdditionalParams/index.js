@@ -9,7 +9,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 
-const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave }) => {
+const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSave, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -33,6 +33,10 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   const updateAdditionalParameters = ({ updatedAdditionalParameters }) => {
+    if (disabled) {
+      return;
+    }
+
     const filteredParams = cloneDeep(updatedAdditionalParameters);
 
     Object.keys(filteredParams).forEach((paramType) => {
@@ -101,8 +105,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   const handleAddNewAdditionalParam = () => {
-    // Prevent adding multiple empty rows
-    if (hasEmptyRow()) {
+    if (disabled || hasEmptyRow()) {
       return;
     }
 
@@ -139,7 +142,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   // Add a class to the Add Parameter button if it's disabled
-  const addButtonDisabled = hasEmptyRow();
+  const addButtonDisabled = disabled || hasEmptyRow();
 
   // Define available tabs for each grant type
   const getAvailableTabs = (grantType) => {
@@ -203,6 +206,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   })}
                   collection={collection}
                   onSave={handleSave}
+                  readOnly={disabled}
                   isCompact
                 />
               </td>
@@ -218,6 +222,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   })}
                   collection={collection}
                   onSave={handleSave}
+                  readOnly={disabled}
                 />
               </td>
               <td>
@@ -233,6 +238,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                       });
                     }}
                     className="mousetrap bg-transparent"
+                    disabled={disabled}
                   >
                     {sendInOptionsMap[grantType || 'authorization_code'][activeTab].map((optionValue) => (
                       <option key={optionValue} value={optionValue}>
@@ -249,6 +255,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     checked={param?.enabled ?? true}
                     tabIndex="-1"
                     className="mr-3 mousetrap"
+                    disabled={disabled}
                     onChange={(e) => {
                       handleUpdateAdditionalParam({
                         paramType: activeTab,
@@ -260,6 +267,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                   />
                   <button
                     tabIndex="-1"
+                    disabled={disabled}
                     onClick={() => {
                       handleDeleteAdditionalParam({
                         paramType: activeTab,

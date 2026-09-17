@@ -9,7 +9,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
+const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -24,6 +24,9 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleUsernameChange = (username) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'basic',
@@ -38,6 +41,9 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handlePasswordChange = (password) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'basic',
@@ -63,6 +69,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -78,6 +85,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
