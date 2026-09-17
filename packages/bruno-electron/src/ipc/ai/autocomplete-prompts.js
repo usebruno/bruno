@@ -209,13 +209,14 @@ const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.
 const buildApiBindingRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
 // Match a declarator for `<name>` whose initializer the cursor is still inside — the
-// statement runs to the cursor without crossing `;`, a brace, or a newline. Until it
-// closes, `<name>` is in its temporal dead zone, so a `<name>` on the right-hand side
-// is still the global and must not be exempted by the declaration being typed.
-// The comma alternative anchors `<name>` to a declarator position, so a statement that
-// merely reads it (`const body = res`) keeps its exemption.
+// statement runs to the cursor without crossing `;`, a brace, or a newline. The binding
+// is not usable yet, so a `<name>` on the right-hand side is still the global and must
+// not be exempted by the declaration being typed.
+// The comma alternative anchors `<name>` to a declarator position; excluding brackets
+// from that run keeps a comma inside a call or array literal (`const y = foo(a, res`)
+// from passing as one, so a statement that merely reads `<name>` keeps its exemption.
 const buildPendingDeclRe = (name) =>
-  new RegExp(`\\b(?:const|let|var)\\s(?:[^;{}\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
+  new RegExp(`\\b(?:const|let|var)\\s+(?:[^;{}()\\[\\]\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
 
 const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res'), pendingDecl: buildPendingDeclRe('res') };
 const REQ = { usage: buildApiUsageRe('req'), binding: buildApiBindingRe('req'), pendingDecl: buildPendingDeclRe('req') };
@@ -240,8 +241,6 @@ const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
   if (suggestionUsesBareName(suggestion, prefix, PM)) return '';
   // `res.*` is only unavailable in pre-request scripts (response not yet received).
   if (scriptType === 'pre-request' && suggestionUsesBareName(suggestion, prefix, RES)) return '';
-  // `req` is bound post-response, but the request has already been sent by then — so it is
-  // not offered there. Tests keep it.
   if (scriptType === 'post-response' && suggestionUsesBareName(suggestion, prefix, REQ)) return '';
   return suggestion;
 };

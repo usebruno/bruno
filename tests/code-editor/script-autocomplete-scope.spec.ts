@@ -7,6 +7,7 @@ import {
   dismissCodeEditorHints,
   focusScriptEditor,
   readCodeEditorHints,
+  readScriptEditorContent,
   showRootScriptHints,
   typeInScriptEditor
 } from '../utils/page';
@@ -14,18 +15,15 @@ import {
 const COLLECTION = 'script-autocomplete-scope';
 const REQUEST = 'ScopedHints';
 
-/**
- * Autocomplete must offer only the globals the script phase actually binds:
- * pre-request has `bru` + `req` (no response exists yet), post-response has `bru` + `res`.
- *
- * Serial because both script editors share one request tab, and the hint popup is a single
- * page-level element — a popup left open by one test would be visible to the next.
- */
 test.describe.serial('Script autocomplete scope', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
     const tmpDir = await createTmpDir('script-autocomplete-scope');
     await createCollection(page, COLLECTION, tmpDir);
     await createRequest(page, REQUEST, COLLECTION);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await dismissCodeEditorHints(page);
   });
 
   test.afterAll(async ({ page }) => {
@@ -40,8 +38,6 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('Only the pre-request globals are listed', async () => {
       expect(await readCodeEditorHints(page)).toEqual(['bru', 'req']);
     });
-
-    await dismissCodeEditorHints(page);
   });
 
   test('post-response offers bru and res as roots, never req', async ({ page }) => {
@@ -52,8 +48,6 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('req is absent now the request has already been sent', async () => {
       expect(await readCodeEditorHints(page)).toEqual(['bru', 'res']);
     });
-
-    await dismissCodeEditorHints(page);
   });
 
   test('pre-request suggests no members for res', async ({ page }) => {
@@ -62,6 +56,10 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('Type a res member access in the pre-request editor', async () => {
       await focusScriptEditor(page, 'pre-request');
       await typeInScriptEditor(page, 'pre-request', 'res.');
+    });
+
+    await test.step('The keystrokes landed in the editor', async () => {
+      expect(await readScriptEditorContent(page, 'pre-request')).toBe('res.');
     });
 
     await test.step('No hint popup opens', async () => {
@@ -78,8 +76,6 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('Request members are offered', async () => {
       expect(await readCodeEditorHints(page)).toContain('getUrl()');
     });
-
-    await dismissCodeEditorHints(page);
   });
 
   test('post-response suggests no members for req', async ({ page }) => {
@@ -88,6 +84,10 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('Type a req member access in the post-response editor', async () => {
       await focusScriptEditor(page, 'post-response');
       await typeInScriptEditor(page, 'post-response', 'req.');
+    });
+
+    await test.step('The keystrokes landed in the editor', async () => {
+      expect(await readScriptEditorContent(page, 'post-response')).toBe('req.');
     });
 
     await test.step('No hint popup opens', async () => {
@@ -104,8 +104,6 @@ test.describe.serial('Script autocomplete scope', () => {
     await test.step('Response members are offered', async () => {
       expect(await readCodeEditorHints(page)).toContain('getBody()');
     });
-
-    await dismissCodeEditorHints(page);
   });
 
   test('bru stays available in both script phases', async ({ page }) => {
@@ -120,7 +118,6 @@ test.describe.serial('Script autocomplete scope', () => {
       await focusScriptEditor(page, 'post-response');
       await typeInScriptEditor(page, 'post-response', 'bru.');
       expect(await readCodeEditorHints(page)).toContain('setEnvVar(key, value)');
-      await dismissCodeEditorHints(page);
     });
   });
 });

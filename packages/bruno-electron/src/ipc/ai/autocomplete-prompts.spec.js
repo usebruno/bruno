@@ -330,6 +330,21 @@ describe('sanitizeSuggestion', () => {
       .toBe('');
   });
 
+  it('drops res inside its own declaration however the keyword is spaced', () => {
+    expect(sanitizeSuggestion({ text: 'getBody();', prefix: 'const  res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'getStatus();', prefix: 'let   res = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('allows a declared res passed as a call argument or array element', () => {
+    const call = 'const res = await bru.sendRequest(cfg);\nconst y = foo(a, res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix: call, scriptType: 'pre-request' })).toBe('.data;');
+
+    const array = 'const res = await bru.sendRequest(cfg);\nconst arr = [1, res';
+    expect(sanitizeSuggestion({ text: '.data;', prefix: array, scriptType: 'pre-request' })).toBe('.data;');
+  });
+
   it('allows res once its declaration statement has ended', () => {
     expect(sanitizeSuggestion({ text: 'toString();', prefix: 'var res = 1;\nres.', scriptType: 'pre-request' }))
       .toBe('toString();');
