@@ -30,12 +30,6 @@ export const BRUNO_DEFAULT_HEADERS: BrunoDefaultHeader[] = [
     source: 'axios'
   },
   {
-    name: 'request-start-time',
-    previewValue: 'set at runtime',
-    omittable: true,
-    source: 'bruno'
-  },
-  {
     name: 'Connection',
     previewValue: 'keep-alive',
     omittable: true,
@@ -43,7 +37,7 @@ export const BRUNO_DEFAULT_HEADERS: BrunoDefaultHeader[] = [
   },
   {
     name: 'Host',
-    previewValue: 'derived from URL',
+    previewValue: '<derived from request URL>',
     omittable: false,
     source: 'node'
   }
