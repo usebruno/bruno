@@ -23,7 +23,7 @@ export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => cr
 export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => createSelector([
   (state) => state.tabs?.activeTabUid,
   (state) => state.tabs.tabs,
-  (state) => state.app?.showApiSpecPage && state.apiSpec?.activeApiSpecUid
+  (state) => Boolean(state.app?.showApiSpecPage && state.apiSpec?.activeApiSpecUid)
 ], (activeTabUid, tabs, isApiSpecPanelShown) => {
   if (!activeTabUid || isApiSpecPanelShown) {
     return false;
