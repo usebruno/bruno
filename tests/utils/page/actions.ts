@@ -16,6 +16,12 @@ type WaitForAppReadyOptions = {
 };
 
 /**
+ * Read an element's scroll dimensions for asserting scroll/overflow behavior.
+ */
+export const getScrollMetrics = (locator: Locator) =>
+  locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
+
+/**
  * Wait for the Electron app to have a ready, loaded window.
  * Handles cases where the first window is slow to appear.
  */
