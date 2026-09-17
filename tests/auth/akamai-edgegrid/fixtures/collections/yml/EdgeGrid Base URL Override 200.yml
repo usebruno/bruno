@@ -1,0 +1,29 @@
+info:
+  name: EdgeGrid Base URL Override 200
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/edgegrid/resource"
+  auth:
+    type: akamai-edgegrid
+    accessToken: akab-access-token-bruno-test
+    clientToken: akab-client-token-bruno-test
+    clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+    baseURL: http://localhost:8081
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.authenticated
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

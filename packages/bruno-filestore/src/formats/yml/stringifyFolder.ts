@@ -12,6 +12,7 @@ import { toOpenCollectionVariables } from './common/variables';
 import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import { stringifyYml } from './utils';
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const hasRequestDefaults = (folderRoot: FolderRoot): boolean => {
   const requestDefaults = folderRoot?.request;
@@ -40,9 +41,14 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     // info block
     const info: FolderInfo = {
       name: folderRoot.meta?.name || 'Untitled Folder',
-      type: 'folder',
-      seq: folderRoot.meta?.seq || 1
+      type: 'folder'
     };
+    // Only write seq when the folder actually has a numeric one. Defaulting to 1 would
+    // force every seq-less folder into position 1 on disk and break alphabetical fallback.
+    const seq = folderRoot.meta?.seq;
+    if (typeof seq === 'number' && Number.isFinite(seq)) {
+      info.seq = seq;
+    }
     ocFolder.info = info;
 
     // request defaults
@@ -83,7 +89,8 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
 
       // scripts
       if (hasRequestScripts(folderRoot)) {
-        const ocScripts: Scripts | undefined = toOpenCollectionScripts(folderRoot?.request);
+        // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+        const ocScripts: Scripts | undefined = toOpenCollectionScripts(folderRoot?.request, HTTP_SCRIPT_KEYS);
         if (ocScripts) {
           ocFolder.request.scripts = ocScripts;
         }

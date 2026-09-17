@@ -17,17 +17,21 @@ import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
+import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
+import Settings from 'components/RequestPane/Settings';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
+import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
-import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import AuthMode from '../Auth/AuthMode/index';
+import TabBarAiAssist from '../TabBarAiAssist';
+import StatusDot from 'components/StatusDot';
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -69,7 +73,14 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const pathname = item.draft ? get(item, 'draft.pathname', '') : get(item, 'pathname', '');
   const uid = item.draft ? get(item, 'draft.uid', '') : get(item, 'uid', '');
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const environment = useMemo(
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
+    [collection.environments, collection.activeEnvironmentUid]
+  );
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
   const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment, request, collection);
@@ -172,7 +183,20 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     [dispatch, item.uid]
   );
 
-  const allTabs = useMemo(() => TAB_CONFIG.map(({ key, label }) => ({ key, label })), []);
+  const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
+  const hasAuth = useMemo(
+    () => hasEffectiveAuth(collection, item),
+    [item, itemAuthMode, collection]
+  );
+
+  const allTabs = useMemo(
+    () => TAB_CONFIG.map(({ key, label }) => ({
+      key,
+      label,
+      indicator: key === 'auth' && hasAuth ? <StatusDot dataTestId="auth" /> : null
+    })),
+    [hasAuth]
+  );
 
   const handlePrettify = useCallback(() => {
     if (queryEditorRef.current?.beautifyRequestBody) {
@@ -198,6 +222,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
             <div className="flex-1 min-h-0">
               <QueryEditor
                 ref={queryEditorRef}
+                item={item}
                 collection={collection}
                 theme={displayedTheme}
                 schema={schema}
@@ -293,31 +318,47 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
-      <AuthMode item={item} collection={collection} />
-    </div>
-  ) : requestPaneTab === 'query' ? (
-    <div ref={schemaActionsRef} className="flex items-center gap-2">
-      <ActionIcon
-        label="Prettify"
-        onClick={handlePrettify}
-      >
-        <IconWand size={14} strokeWidth={1.5} />
-      </ActionIcon>
-      <ActionIcon
-        label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
-        onClick={toggleQueryBuilder}
-      >
-        <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
-      </ActionIcon>
-      <MenuDropdown items={queryMenuItems} placement="bottom-end">
-        <ActionIcon label="More actions">
-          <IconDots size={16} strokeWidth={1.5} />
-        </ActionIcon>
-      </MenuDropdown>
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'query':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
+          <ActionIcon label="Prettify" onClick={handlePrettify}>
+            <IconWand size={14} strokeWidth={1.5} />
+          </ActionIcon>
+          <ActionIcon
+            label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
+            onClick={toggleQueryBuilder}
+          >
+            <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
+          </ActionIcon>
+          <MenuDropdown items={queryMenuItems} placement="bottom-end">
+            <ActionIcon label="More actions">
+              <IconDots size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </MenuDropdown>
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
+          <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    case 'script':
+    case 'tests':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

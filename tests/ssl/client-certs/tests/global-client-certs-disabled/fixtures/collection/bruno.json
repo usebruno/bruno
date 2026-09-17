@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "global-client-certs-disabled",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"],
+  "protobuf": {
+    "protoFiles": [{ "path": "../../../../server/hello.proto", "type": "file" }]
+  }
+}

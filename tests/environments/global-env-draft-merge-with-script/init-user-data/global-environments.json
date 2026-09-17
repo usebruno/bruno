@@ -1,0 +1,27 @@
+{
+  "environments": [
+    {
+      "uid": "RrPsTcwRnHMv3yljQO3ex",
+      "name": "global",
+      "variables": [
+        {
+          "uid": "VXKOZdkYw0DyI4mlhn6Wr",
+          "name": "baseUrl",
+          "value": "https://testbench-sanity.usebruno.com",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        },
+        {
+          "uid": "NTwrSscXsaeh4uee6ocJN",
+          "name": "existingVar",
+          "value": "original-value",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "RrPsTcwRnHMv3yljQO3ex"
+}

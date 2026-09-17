@@ -29,7 +29,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -40,7 +40,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -86,7 +87,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -100,7 +101,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -141,7 +143,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
     // console.log('result', JSON.stringify(result, null, 2));
 
     expect(result.root.request.auth).toEqual({
@@ -154,7 +156,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -200,7 +203,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'apikey',
@@ -214,7 +217,8 @@ describe('Collection Authentication', () => {
       },
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -265,7 +269,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'digest',
@@ -278,7 +282,8 @@ describe('Collection Authentication', () => {
       digest: {
         username: 'digest auth',
         password: 'digest auth'
-      }
+      },
+      ntlm: null
     });
   });
   it('should handle missing auth values when auth.type exists', async () => {
@@ -312,7 +317,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'basic',
@@ -325,7 +330,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -360,7 +366,7 @@ describe('Collection Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.root.request.auth).toEqual({
       mode: 'bearer',
@@ -372,7 +378,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 });

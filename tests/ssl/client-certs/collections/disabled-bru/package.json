@@ -1,0 +1,5 @@
+{
+  "name": "client-certs-disabled",
+  "version": "1.0.0",
+  "description": "Bruno test collection for client-certificate (mTLS) HTTPS server testing — cert disabled (withheld)"
+}

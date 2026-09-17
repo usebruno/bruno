@@ -1,0 +1,35 @@
+meta {
+  name: sse finite stream
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}/api/sse/finite
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const body = res.getBody();
+  bru.setVar("sseBody", typeof body === "string" ? body : JSON.stringify(body));
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("content-type is text/event-stream", function() {
+    expect(res.headers["content-type"]).to.include("text/event-stream");
+  });
+
+  test("res.getBody() contains all 3 SSE events in order", function() {
+    const body = res.getBody();
+    expect(body).to.include("data: Hello");
+    expect(body).to.include("data: from");
+    expect(body).to.include("data: SSE");
+    expect(body.indexOf("data: Hello")).to.be.lessThan(body.indexOf("data: from"));
+    expect(body.indexOf("data: from")).to.be.lessThan(body.indexOf("data: SSE"));
+  });
+}

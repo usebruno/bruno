@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "api-setEnvVar-secret-bru",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,32 @@
+opencollection: "1.0.0"
+info:
+  name: timeline-headers
+
+request:
+  auth:
+    mode: none
+  headers:
+    - name: collection-header-1
+      value: collection-header-value-1
+    - name: collection-header-2
+      value: collection-header-value-2
+    - name: collection-set-header-1
+      value: collection-set-header-definition-1
+    - name: collection-interpolated-1
+      value: "{{collection-token-1}}"
+    - name: collection-delete-header-1
+      value: collection-delete-header-value-1
+    - name: collection-delete-headers-1
+      value: collection-delete-headers-value-1
+    - name: collection-delete-headers-2
+      value: collection-delete-headers-value-2
+    - name: shared-header-1
+      value: collection-shared-value-1
+  scripts:
+    - type: before-request
+      code: |-
+        req.setHeader('collection-set-header-1', 'collection-set-header-script-1');
+        req.setHeader('collection-set-header-2', 'collection-set-header-script-2');
+        req.deleteHeader('collection-delete-header-1');
+        req.deleteHeaders(['collection-delete-headers-1', 'collection-delete-headers-2']);
+        bru.setVar('collection-token-1', 'collection-interpolated-script-1');

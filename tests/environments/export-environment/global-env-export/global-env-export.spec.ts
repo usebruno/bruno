@@ -2,6 +2,10 @@ import { test, expect } from '../../../../playwright';
 import path from 'path';
 import fs from 'fs';
 
+import { findEnvironmentByName, readExportedJson } from '../../../utils/helpers';
+import { openCollection, openEnvironmentConfigTab } from '../../../utils/page';
+import { buildCommonLocators } from '../../../utils/page/locators';
+
 // Helper function to load expected fixtures
 function loadExpectedFixture(fixturePath: string) {
   const fullPath = path.join(__dirname, '..', '../fixtures', 'environment-exports', fixturePath);
@@ -19,6 +23,11 @@ function normalizeExportedContent(content: any) {
   if (content.name && content.variables && content.info) {
     content.info.exportedAt = '2024-01-01T00:00:00.000Z';
     content.info.exportedUsing = 'Bruno/v1.0.0';
+  }
+  // Global environments are read back with fs.readdirSync, whose order differs per filesystem,
+  // so compare against the name-sorted fixture.
+  if (Array.isArray(content.environments)) {
+    content.environments.sort((a, b) => a.name.localeCompare(b.name));
   }
   return content;
 }
@@ -75,7 +84,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const exportedContent = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments/local.json');
 
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
@@ -136,7 +145,7 @@ test.describe.serial('Global Environment Export Tests', () => {
           expect(fs.existsSync(filePath)).toBe(true);
 
           // Verify file content matches expected fixture
-          const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          const content = await readExportedJson(filePath);
           const expectedContent = loadExpectedFixture(`bruno-global-environments/${fileName}`);
           expect(normalizeExportedContent(content)).toEqual(expectedContent);
         }
@@ -182,7 +191,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and close modal', async () => {
         // Export should succeed with unique names
-        await page.getByRole('button', { name: 'Export 2 Environment' }).click();
+        await page.getByRole('button', { name: 'Export 3 Environments' }).click();
       });
 
       await test.step('Verify unique naming and file content', async () => {
@@ -200,7 +209,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(newExportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(newExportedFile, 'utf8'));
+        const exportedContent = await readExportedJson(newExportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments/local.json');
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
       });
@@ -259,7 +268,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const content = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const content = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('local.json');
         expect(normalizeExportedContent(content)).toEqual(expectedContent);
       });
@@ -296,7 +305,7 @@ test.describe.serial('Global Environment Export Tests', () => {
 
       await test.step('Execute export and verify success', async () => {
         // Export the environments
-        await page.getByRole('button', { name: 'Export 2 Environments' }).click();
+        await page.getByRole('button', { name: 'Export 3 Environments' }).click();
         await page.waitForTimeout(200);
         // Verify success message
         await expect(page.getByText('Environment(s) exported successfully', { exact: false }).first()).toBeVisible();
@@ -308,7 +317,7 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(exportedFile)).toBe(true);
 
         // Verify file content matches expected fixture
-        const content = JSON.parse(fs.readFileSync(exportedFile, 'utf8'));
+        const content = await readExportedJson(exportedFile);
         const expectedContent = loadExpectedFixture('bruno-global-environments.json');
         expect(normalizeExportedContent(content)).toEqual(expectedContent);
       });
@@ -372,10 +381,53 @@ test.describe.serial('Global Environment Export Tests', () => {
         expect(fs.existsSync(uniqueExportPath)).toBe(true);
 
         // Verify file content matches expected fixture
-        const exportedContent = JSON.parse(fs.readFileSync(uniqueExportPath, 'utf8'));
+        const exportedContent = await readExportedJson(uniqueExportPath);
         const expectedContent = loadExpectedFixture('local.json');
         expect(normalizeExportedContent(exportedContent)).toEqual(expectedContent);
       });
+    });
+  });
+
+  test('should warn about a left-out parent environment and export the chain once it is selected', async ({
+    pageWithUserData: page,
+    createTmpDir
+  }) => {
+    const exportDir = await createTmpDir('global-env-export-extends');
+    const { environment } = buildCommonLocators(page);
+
+    await test.step('Open collection and navigate to global environment settings', async () => {
+      await openCollection(page, 'Environment Export Test Collection');
+      await openEnvironmentConfigTab(page, 'global');
+    });
+
+    await test.step('Selecting only the inheriting environment warns about its parent', async () => {
+      await environment.exportAction().click();
+      await expect(environment.exportModal.root()).toBeVisible();
+
+      await environment.exportModal.deselectAll().click();
+      await environment.exportModal.environmentCheckbox('derived').check();
+
+      await expect(environment.exportModal.inheritanceWarning()).toHaveText('inherits local');
+    });
+
+    await test.step('Selecting the parent clears the warning', async () => {
+      await environment.exportModal.environmentCheckbox('local').check();
+
+      await expect(environment.exportModal.inheritanceWarning()).toHaveCount(0);
+    });
+
+    await test.step('The exported environment names the one it extends', async () => {
+      await environment.exportModal.location().fill(exportDir);
+      await environment.exportModal.submit().click();
+      await expect(environment.exportModal.root()).toBeHidden();
+
+      const exported = await readExportedJson(path.join(exportDir, 'bruno-global-environments.json'));
+      const expected = loadExpectedFixture('bruno-global-environments.json');
+
+      expect(findEnvironmentByName(exported.environments, 'derived')).toEqual(
+        findEnvironmentByName(expected.environments, 'derived')
+      );
+      expect(findEnvironmentByName(exported.environments, 'local').extends).toBeUndefined();
     });
   });
 

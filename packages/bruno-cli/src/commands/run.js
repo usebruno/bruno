@@ -1,108 +1,84 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
-const { getEnvVars } = require('../utils/bru');
-const { parseEnvironmentJson } = require('../utils/environment');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
-const { rpad } = require('../utils/common');
 const { getOptions } = require('../utils/bru');
-const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
+const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
+const Table = require('cli-table3');
 const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { loadEnvironmentFromFile } = require('../utils/environment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
-const formatTestSummary = (label, maxLength, passed, failed, total, errorCount = 0, skippedCount = 0) => {
-  const parts = [
-    `${rpad(label, maxLength)} ${chalk.green(`${passed} passed`)}`
-  ];
+const formatRequestsCellFromSummary = (summary) => {
+  const total = summary.totalRequests || 0;
+  const passed = summary.passedRequests || 0;
+  const failedOrErrored = (summary.failedRequests || 0) + (summary.errorRequests || 0);
+  const totalSkipped = summary.skippedRequests || 0;
+  const skippedByBail = summary.skippedByBail || 0;
+  const skippedByUser = Math.max(totalSkipped - skippedByBail, 0);
 
-  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
-  if (errorCount > 0) parts.push(chalk.red(`${errorCount} error`));
-  if (skippedCount > 0) parts.push(chalk.magenta(`${skippedCount} skipped`));
+  const parts = [];
+  if (passed > 0) parts.push(chalk.green(`${passed} Passed`));
+  if (failedOrErrored > 0) parts.push(chalk.red(`${failedOrErrored} Failed`));
+  if (skippedByUser > 0) parts.push(chalk.magenta(`${skippedByUser} Skipped`));
+  if (skippedByBail > 0) parts.push(chalk.hex(constants.COLORS.ORANGE)(`${skippedByBail} Skipped (Bail)`));
 
-  parts.push(`${total} total`);
+  return parts.length ? `${total} (${parts.join(', ')})` : `${total}`;
+};
 
-  return parts.join(', ');
+const printGenericTable = (headers, rows, title) => {
+  const colAligns = headers.map((_, idx) => (idx === 0 ? 'left' : 'center'));
+  const table = new Table({ head: headers, style: { head: [], border: [] }, colAligns });
+  rows.forEach((row) => table.push(row));
+  console.log('\n' + chalk.bold(title));
+  console.log(table.toString());
 };
 
 const printRunSummary = (results) => {
-  const {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  } = getRunnerSummary(results);
+  const summary = getRunnerSummary(results);
 
-  const maxLength = 12;
+  const duration = Math.round(
+    results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
+  );
 
-  const requestSummary = formatTestSummary('Requests:', maxLength, passedRequests, failedRequests, totalRequests, errorRequests, skippedRequests);
-  const testSummary = formatTestSummary('Tests:', maxLength, passedTests, failedTests, totalTests);
-  const assertSummary = formatTestSummary('Assertions:', maxLength, passedAssertions, failedAssertions, totalAssertions);
+  const hasFailures
+    = summary.failedRequests > 0
+      || summary.failedAssertions > 0
+      || summary.failedTests > 0
+      || (summary.errorRequests || 0) > 0;
 
-  let preRequestTestSummary = '';
-  if (totalPreRequestTests > 0) {
-    preRequestTestSummary = formatTestSummary('Pre-Request Tests:', maxLength, passedPreRequestTests, failedPreRequestTests, totalPreRequestTests);
-  }
+  const status = hasFailures
+    ? chalk.red.bold('✗ FAIL')
+    : chalk.green.bold('✓ PASS');
 
-  let postResponseTestSummary = '';
-  if (totalPostResponseTests > 0) {
-    postResponseTestSummary = formatTestSummary('Post-Response Tests:', maxLength, passedPostResponseTests, failedPostResponseTests, totalPostResponseTests);
-  }
+  const requests = formatRequestsCellFromSummary(summary);
+  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
-  console.log('\n' + chalk.bold(requestSummary));
-  if (preRequestTestSummary) {
-    console.log(chalk.bold(preRequestTestSummary));
-  }
-  if (postResponseTestSummary) {
-    console.log(chalk.bold(postResponseTestSummary));
-  }
-  console.log(chalk.bold(testSummary));
-  console.log(chalk.bold(assertSummary));
+  const headers = [chalk.bold('Metric'), chalk.bold('Result')];
+  const rows = [
+    ['Status', status],
+    ['Requests', requests],
+    ['Tests', tests],
+    ['Assertions', assertions],
+    ['Duration (ms)', duration]
+  ];
 
-  return {
-    totalRequests,
-    passedRequests,
-    failedRequests,
-    skippedRequests,
-    errorRequests,
-    totalAssertions,
-    passedAssertions,
-    failedAssertions,
-    totalTests,
-    passedTests,
-    failedTests,
-    totalPreRequestTests,
-    passedPreRequestTests,
-    failedPreRequestTests,
-    totalPostResponseTests,
-    passedPostResponseTests,
-    failedPostResponseTests
-  };
+  printGenericTable(headers, rows, '📊 Execution Summary');
+
+  return summary;
 };
 
 const getJsSandboxRuntime = (sandbox) => {
@@ -151,10 +127,19 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('global-env-var', {
+      describe: 'Overwrite a single global environment variable, multiple usages possible',
+      type: 'string'
+    })
     .option('sandbox', {
       describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
       default: 'safe',
       type: 'string'
+    })
+    .option('experimental-cache-modules', {
+      type: 'boolean',
+      default: false,
+      describe: 'Share npm modules across script runs in the developer sandbox (experimental)'
     })
     .option('output', {
       alias: 'o',
@@ -303,6 +288,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
       'Run a request with a global environment from the specified workspace'
+    )
+    .example(
+      '$0 run request.bru --global-env production --global-env-var TOKEN=xxx',
+      'Run a request, overriding a global environment variable for this run only'
     );
 };
 
@@ -318,6 +307,7 @@ const handler = async function (argv) {
       globalEnv,
       workspacePath,
       envVar,
+      globalEnvVar,
       insecure,
       r: recursive,
       output: outputPath,
@@ -326,6 +316,7 @@ const handler = async function (argv) {
       reporterJunit,
       reporterHtml,
       sandbox,
+      experimentalCacheModules,
       testsOnly,
       bail,
       reporterSkipAllHeaders,
@@ -343,7 +334,7 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
-    let collection = createCollectionJsonFromPathname(collectionPath);
+    const collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
@@ -382,33 +373,27 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let globalEnvVars = {};
+    let envFileDescriptor = null;
+    let globalEnvFileDescriptor = null;
+    // Enabled entries of an `--env-file`, handed to a `--env` passed alongside it: both files'
+    // variables reach the same runtime map, but only the `--env` file is written back, and a name
+    // belongs to the file that declares it.
+    let envFileVariables = [];
+    // --env-var overrides as Map<name, injected value>. The persistence layer compares the
+    // script's resulting value against the injected value to tell a leaked override (same
+    // value passed through unchanged) apart from a deliberate same-named script write that
+    // must reach disk. Typical use: CI injects a secret the CLI can't decrypt at rest.
+    const envVarOverrides = new Map();
+    // --global-env-var overrides as Map<name, injected value>. Same leak-guard contract as
+    // envVarOverrides above, but scoped to the global environment .yml file.
+    const globalEnvVarOverrides = new Map();
 
-    // Helper to load environment variables from a file
-    const loadEnvFromFile = (filePath, nameOverride) => {
-      const fileExt = path.extname(filePath).toLowerCase();
-      let result = {};
-
-      if (fileExt === '.json') {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(content);
-        const normalizedEnv = parseEnvironmentJson(parsed);
-        result = getEnvVars(normalizedEnv);
-        const rawName = normalizedEnv?.name;
-        const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
-        result.__name__ = trimmedName || path.basename(filePath, '.json');
-      } else if (fileExt === '.yml' || fileExt === '.yaml') {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const envJson = parseEnvironment(content, { format: 'yml' });
-        result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, fileExt);
-      } else {
-        const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
-        const envJson = parseEnvironment(content, { format: 'bru' });
-        result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, '.bru');
-      }
-
-      return result;
+    const resolveEnvFileFormat = (filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.json') return 'json';
+      if (ext === '.yml') return 'yml';
+      return 'bru';
     };
 
     // Load --env-file if provided
@@ -419,10 +404,59 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        envVars = loadEnvFromFile(envFilePath);
+        // An `--env-file` is loaded exactly as the file reads: its `extends` chain is left
+        // unresolved, even when the path points at one of the collection's own environments.
+        const { variables: environmentVariables, ownVariables } = loadEnvironmentFromFile({
+          filePath: envFilePath,
+          resolveInheritance: false
+        });
+        envVars = environmentVariables;
+        envFileVariables = ownVariables;
+        envFileDescriptor = {
+          path: envFilePath,
+          format: resolveEnvFileFormat(envFilePath)
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    // Fall back to the collection's configured default environment
+    // (bruno.json presets.defaultEnvironment) when no environment was
+    // specified via --env or --env-file.
+    const defaultEnvironment = brunoConfig?.presets?.defaultEnvironment;
+    if (!env && !envFile && defaultEnvironment) {
+      // The default environment name comes from shared collection config, so it is
+      // untrusted. Only accept a bare file name so a crafted value (path separators or
+      // traversal) can't load a file outside environments/.
+      if (!isSafeFileName(defaultEnvironment)) {
+        console.warn(
+          chalk.yellow(`Ignoring invalid default environment name: `) + chalk.dim(defaultEnvironment)
+        );
+      } else {
+        const envExt = FORMAT_CONFIG[collection.format].ext;
+        const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
+        if (await exists(defaultEnvFilePath)) {
+          try {
+            const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: defaultEnvFilePath, name: defaultEnvironment });
+            envVars = { ...envVars, ...environmentVariables };
+            envFileDescriptor = {
+              path: defaultEnvFilePath,
+              format: collection.format,
+              inheritedEnvironmentVariables
+            };
+            console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
+          } catch (err) {
+            console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
+            process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+          }
+        } else {
+          console.warn(
+            chalk.yellow(`Configured default environment not found: `)
+            + chalk.dim(`environments/${defaultEnvironment}${envExt}`)
+          );
+        }
       }
     }
 
@@ -435,15 +469,20 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
-        const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
-        envVars = { ...envVars, ...collectionEnvVars };
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: collectionEnvFilePath, name: env });
+        envVars = { ...envVars, ...environmentVariables };
+        envFileDescriptor = {
+          path: collectionEnvFilePath,
+          format: collection.format,
+          inheritedEnvironmentVariables,
+          envFileVariables
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
     }
 
-    let globalEnvVars = {};
     if (globalEnv) {
       const findWorkspacePath = (startPath) => {
         let currentPath = startPath;
@@ -488,10 +527,13 @@ const handler = async function (argv) {
       }
 
       try {
-        const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
-        const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
-        globalEnvVars = getEnvVars(globalEnvJson);
-        globalEnvVars.__name__ = globalEnv;
+        const { variables: environmentVariables, inheritedVariables: inheritedEnvironmentVariables } = loadEnvironmentFromFile({ filePath: globalEnvFilePath, name: globalEnv });
+        globalEnvVars = environmentVariables;
+        globalEnvFileDescriptor = {
+          path: globalEnvFilePath,
+          format: 'yml',
+          inheritedEnvironmentVariables
+        };
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -520,6 +562,34 @@ const handler = async function (argv) {
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
+          envVarOverrides.set(match[1], match[2]);
+        }
+      }
+    }
+
+    if (globalEnvVar) {
+      let processVars;
+      if (typeof globalEnvVar === 'string') {
+        processVars = [globalEnvVar];
+      } else if (typeof globalEnvVar === 'object' && Array.isArray(globalEnvVar)) {
+        processVars = globalEnvVar;
+      } else {
+        console.error(chalk.red(`overridable global environment variables not parsable: use name=value`));
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+      }
+      if (processVars && Array.isArray(processVars)) {
+        for (const value of processVars.values()) {
+          // split the string at the first equals sign
+          const match = value.match(/^([^=]+)=(.*)$/);
+          if (!match) {
+            console.error(
+              chalk.red(`Overridable global environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
+            );
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
+          }
+          globalEnvVars[match[1]] = match[2];
+          globalEnvVarOverrides.set(match[1], match[2]);
         }
       }
     }
@@ -543,6 +613,10 @@ const handler = async function (argv) {
     if (verbose) {
       options['verbose'] = true;
     }
+    if (experimentalCacheModules && sandbox !== 'developer') {
+      console.warn(chalk.yellow('--experimental-cache-modules requires --sandbox developer; ignoring flag'));
+    }
+    options['cacheModules'] = sandbox === 'developer' && experimentalCacheModules === true;
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
@@ -565,7 +639,7 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
-    let formats = {};
+    const formats = {};
 
     // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
@@ -600,7 +674,7 @@ const handler = async function (argv) {
     }
 
     let requestItems = [];
-    let results = [];
+    const results = [];
 
     if (!paths || !paths.length) {
       paths = ['./'];
@@ -640,6 +714,16 @@ const handler = async function (argv) {
 
     const runtime = getJsSandboxRuntime(sandbox);
 
+    const collectionRootFile = collection.format === 'yml' ? 'opencollection.yml' : 'collection.bru';
+    const collectionRootPath = path.join(collectionPath, collectionRootFile);
+    const persistPaths = {
+      envFile: envFileDescriptor,
+      globalEnvFile: globalEnvFileDescriptor,
+      collectionRootPath,
+      envVarOverrides,
+      globalEnvVarOverrides
+    };
+
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)
     if (!noproxy) {
       try {
@@ -669,7 +753,8 @@ const handler = async function (argv) {
             runtime,
             collection,
             runSingleRequestByPathname,
-            globalEnvVars
+            globalEnvVars,
+            persistPaths
           );
           resolve(res?.response);
         }
@@ -679,6 +764,7 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let bailInfo = null; // populated only if --bail triggers
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -695,7 +781,8 @@ const handler = async function (argv) {
         runtime,
         collection,
         runSingleRequestByPathname,
-        globalEnvVars
+        globalEnvVars,
+        persistPaths
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
@@ -712,7 +799,7 @@ const handler = async function (argv) {
       results.push({
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
-        suitename: pathname.replace('.bru', ''),
+        suitename: stripExtension(pathname),
         name,
         path: result.test?.filename || path.relative(collectionPath, pathname)
       });
@@ -732,6 +819,64 @@ const handler = async function (argv) {
         const preRequestTestFailure = result?.preRequestTestResults?.find((iter) => iter.status === 'fail');
         const postResponseTestFailure = result?.postResponseTestResults?.find((iter) => iter.status === 'fail');
         if (requestFailure || testFailure || assertionFailure || preRequestTestFailure || postResponseTestFailure) {
+          // Pick the most specific reason for the user-facing message
+          let bailReason;
+          if (requestFailure) bailReason = 'request failure';
+          else if (assertionFailure) bailReason = 'assertion failure';
+          else if (preRequestTestFailure) bailReason = 'pre-request test failure';
+          else if (postResponseTestFailure) bailReason = 'post-response test failure';
+          else bailReason = 'test failure';
+
+          const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+          // Synthesize "Skipped (Bail)" placeholder results for the requests that never
+          // ran due to bail. These let getRunnerSummary count them as skipped, and the
+          // summary table can distinguish them from user-initiated skips via skipReason.
+          for (const ri of remainingItems) {
+            const relativePath = path.relative(collectionPath, ri.pathname);
+            results.push({
+              test: {
+                filename: relativePath
+              },
+              request: {
+                method: ri.request?.method || null,
+                url: ri.request?.url || null,
+                headers: null,
+                data: null
+              },
+              response: {
+                status: 'skipped',
+                statusText: null,
+                data: null,
+                responseTime: 0
+              },
+              status: 'skipped',
+              skipped: true,
+              skipReason: 'bail',
+              testResults: [],
+              assertionResults: [],
+              preRequestTestResults: [],
+              postResponseTestResults: [],
+              runDuration: 0,
+              suitename: stripExtension(ri.pathname),
+              name: ri.name,
+              path: relativePath
+            });
+          }
+
+          bailInfo = {
+            bailed: true,
+            bailReason,
+            bailedAt: name,
+            skippedByBail: remainingItems.length
+          };
+
+          console.log(
+            '\n' + chalk.hex(constants.COLORS.ORANGE)(
+              `Bail: Stopping run, ${bailReason} in "${name}". Remaining ${remainingItems.length} request(s) skipped.`
+            )
+          );
+
           break;
         }
       }

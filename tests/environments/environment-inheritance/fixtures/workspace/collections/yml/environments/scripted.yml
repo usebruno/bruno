@@ -1,0 +1,5 @@
+name: scripted
+extends: base
+variables:
+  - name: scripted_only
+    value: scripted_only_value

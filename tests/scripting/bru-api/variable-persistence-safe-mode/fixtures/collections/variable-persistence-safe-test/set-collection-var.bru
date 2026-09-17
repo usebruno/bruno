@@ -1,0 +1,22 @@
+meta {
+  name: set-collection-var
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setCollectionVar("persistedCollectionToken", "collection-value-456");
+}
+
+tests {
+  test("should set collection var", function() {
+    const val = bru.getCollectionVar("persistedCollectionToken");
+    expect(val).to.equal("collection-value-456");
+  });
+}

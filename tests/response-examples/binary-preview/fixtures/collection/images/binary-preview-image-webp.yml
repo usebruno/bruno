@@ -1,0 +1,18 @@
+info:
+  name: binary-preview-image-webp
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "image/webp",
+        "contentBase64": "UklGRiIDAABXRUJQVlA4IBYDAACQEQCdASp4AHgAPm0kj0eyMSEhP33yQA2Jam7gMGeFoHw30p5KfVj+52oF8b/QDSAP4B/HaMB/lNlo+APL/9WlRYVTgbxT8Ofxf+Q7gHkN6Kdl/3L/vWfpDAJP/T9KItIFld8rCVR7K90k2n+oBoKnw325mpQVb3DVGYH/FhJU+14z5zz7scCN1y5NMqJ2mRXWwRJWAAD++El/Bj/7nz1WkfEyyXweaJli2oAsPlUqQrfxJ/s6K3khr8NMlzEdvAY2t/Nia4WRFTfaK8Gs4PyHhn8TtRNM56syco1CWBHiQTNbtsIvGTbFNgE1TKukbCSkLWXLtAUfgYP3hdzSwKo24tB1I8Pdkr3X0HhfruXcJmTSb6t/XrkAC32GVChdKSCExmWr3IAAV/9yVodRa7IGZ/IdTvFZcN8BmZwP+JJeuQ0SFsPF43SNbMAMT3vMTHraWo5Nuk6TfEu6uKcK8JK+CAW1WHObwBqAZ2SFZg3IQCrQ3GJqxj4ZzhnYh42uKwr1j3FQewjSAB35bv/9PB3NYhPUh3wZm8FfiqfxxBs0L3tMZvG/Ua9RY039QOFPw9Yc2Ix/3oxrC+2GPHwNir/itkdaeAp1ybYYQ4wssjyTEp9f2OhuHR9ScTJfn7mxCiag3phZepF5ySwS3wx0EVMpw17LzwVLwWMPkSW3N7xEfiRnYiM8qP9uNjPOnTh9WxPVouz2NyS4t8QHS4gPI+zywaYfTZV7j3SgyaEj93D4LPdgXH+RQ3Jemk4a3/fGnXqN+9P2zcZthICJFhFnxlSW5Z2fRgRdXwiR6M7rKcshQ8j/lCYbxHszwyr9qRP/3/nnrVq56593F7dWQORjA9EO9oL65FzSqRcAiDHqYRNzR/E0Cij3jE9/S+wd7c9Kewle/2P8E8RHEdd7F6FJCq/7bCYjXzqPKUX17YdX+rETNPeM2nA65h9RTOD8Qn/1m22d0FOs9Cnmf36CElSPVTw7Bq/QJr9t6gwa91LT7l7IkAK3rXh1XTftjA/863tcPTQjAroqaWfHhJpdr8nyiFklNtO2FoAA"
+      }

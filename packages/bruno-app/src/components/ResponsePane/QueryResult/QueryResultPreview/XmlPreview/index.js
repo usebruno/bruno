@@ -1,30 +1,45 @@
+import React, { useMemo, useState } from 'react';
 import ErrorBanner from 'ui/ErrorBanner';
-import React, { useState, useMemo } from 'react';
+import { useChunkedReveal } from 'hooks/useChunkedReveal';
+import { isHttpUrl } from 'utils/url';
 import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
-export default function XmlPreview({ data, defaultExpanded = true }) {
-  // Parse XML string
-  const parsedData = useMemo(() => {
+export default function XmlPreview({ data, defaultExpanded = true, onLinkClick }) {
+  const parsedResult = useMemo(() => {
     if (typeof data !== 'string') {
-      return { error: 'Invalid input. Expected an XML string.' };
+      return {
+        error: 'Invalid input. Expected an XML string.',
+        data: null
+      };
     }
 
     const parsed = parseXMLString(data);
+
     if (parsed === null) {
-      return { error: 'Failed to parse XML string. Invalid XML format.' };
+      return {
+        error: 'Failed to parse XML string. Invalid XML format.',
+        data: null
+      };
     }
-    return parsed;
+
+    return {
+      error: null,
+      data: parsed
+    };
   }, [data]);
 
-  // Check for parsing error
-  if (parsedData && typeof parsedData === 'object' && parsedData.error) {
+  if (parsedResult.error) {
     return (
       <div className="px-2">
-        <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: parsedData.error }]} />
+        <ErrorBanner
+          errors={[{ title: 'Cannot preview as XML', message: parsedResult.error }]}
+        />
       </div>
     );
   }
+
+  const parsedData = parsedResult.data;
 
   // Validate that data can be rendered as a tree
   const isValidTreeData = (data) => {
@@ -62,14 +77,15 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
   }
 
   return (
-    <StyledWrapper>
-      <div className="xml-container">
+    <StyledWrapper data-testid="xml-preview-container">
+      <div className="xml-container" data-testid="xml-tree">
         <XmlNode
           node={rootNode}
           nodeName={rootNodeName}
           isRoot={true}
           isLast={true}
           defaultExpanded={defaultExpanded}
+          onLinkClick={onLinkClick}
         />
       </div>
     </StyledWrapper>
@@ -77,8 +93,9 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
 }
 
 // Component for rendering array entries with expand/collapse functionality
-const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
+const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true, onLinkClick }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [visibleCount, sentinelRef] = useChunkedReveal(items.length);
 
   const toggle = (e) => {
     e.stopPropagation();
@@ -101,7 +118,7 @@ const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
       </div>
       {expanded && (
         <div className="array-content">
-          {items.map((item, itemIdx) => (
+          {items.slice(0, visibleCount).map((item, itemIdx) => (
             <XmlNode
               key={`${arrayKey}-${itemIdx}`}
               node={item}
@@ -109,8 +126,10 @@ const XmlArrayNode = ({ arrayKey, items, depth, defaultExpanded = true }) => {
               isLast={itemIdx === items.length - 1}
               defaultExpanded={false}
               depth={depth + 2}
+              onLinkClick={onLinkClick}
             />
           ))}
+          {visibleCount < items.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       )}
     </div>
@@ -123,9 +142,13 @@ const XmlNode = ({
   isRoot = false,
   isLast = true,
   defaultExpanded = true,
-  depth = 0
+  depth = 0,
+  onLinkClick
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const childEntries = getChildrenEntries(node);
+  const childCount = getChildCount(node);
+  const [visibleCount, sentinelRef] = useChunkedReveal(childCount);
 
   let displayNodeName = nodeName;
 
@@ -133,7 +156,7 @@ const XmlNode = ({
     // For repeated XML elements with same name (e.g. <item>...</item><item>...</item>)
     return (
       <>
-        {node.map((item, idx) => (
+        {node.slice(0, visibleCount).map((item, idx) => (
           <XmlNode
             key={idx}
             node={item}
@@ -142,19 +165,25 @@ const XmlNode = ({
             isLast={idx === node.length - 1}
             defaultExpanded={false}
             depth={depth}
+            onLinkClick={onLinkClick}
           />
         ))}
+        {visibleCount < node.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
       </>
     );
   }
 
-  const childEntries = getChildrenEntries(node);
-  const childCount = getChildCount(node);
   const isLeaf = isTextNode(node) || (typeof node === 'object' && childCount === 0);
 
   const toggle = (e) => {
     e.stopPropagation();
     setExpanded((v) => !v);
+  };
+
+  const handleValueClick = (value) => {
+    if (typeof onLinkClick === 'function' && isHttpUrl(value)) {
+      onLinkClick(value);
+    }
   };
 
   // For leaf nodes with text content or attributes with empty values
@@ -169,7 +198,7 @@ const XmlNode = ({
             <span className="xml-separator">:</span>
           </>
         )}
-        <span className="xml-value">{value}</span>
+        <span className="xml-value" onClick={() => handleValueClick(value)}>{value}</span>
       </div>
     );
   }
@@ -201,7 +230,7 @@ const XmlNode = ({
     if (childEntries.length > 0) {
       return (
         <div>
-          {childEntries.map(([key, value], idx) => (
+          {childEntries.slice(0, visibleCount).map(([key, value], idx) => (
             <XmlNode
               key={key + idx}
               node={value}
@@ -209,8 +238,10 @@ const XmlNode = ({
               isLast={idx === childEntries.length - 1}
               defaultExpanded={defaultExpanded}
               depth={0}
+              onLinkClick={onLinkClick}
             />
           ))}
+          {visibleCount < childEntries.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       );
     }
@@ -221,10 +252,6 @@ const XmlNode = ({
   if (!displayNodeName) {
     displayNodeName = '(unnamed)';
   }
-
-  // Determine if this node's value is an array
-  const hasArrayValue = Array.isArray(node);
-  const arrayLength = hasArrayValue ? node.length : 0;
 
   return (
     <div style={{ paddingLeft: `${depth * 20}px` }}>
@@ -251,7 +278,7 @@ const XmlNode = ({
 
       {expanded && childEntries.length > 0 && (
         <div>
-          {childEntries.map(([key, value], idx) => {
+          {childEntries.slice(0, visibleCount).map(([key, value], idx) => {
             // Check if this is an attribute (starts with _)
             const isAttribute = key.startsWith('_');
 
@@ -263,7 +290,12 @@ const XmlNode = ({
                 <div key={key + idx} className="flex items-start mb-1" style={{ paddingLeft: `${(depth + 1) * 20}px` }}>
                   <span className="xml-node-name">{key}</span>
                   <span className="xml-separator">:</span>
-                  <span className={value === '' ? 'xml-empty-value' : 'xml-value'}>{displayValue}</span>
+                  <span
+                    className={value === '' ? 'xml-empty-value' : 'xml-value'}
+                    onClick={() => handleValueClick(displayValue)}
+                  >
+                    {displayValue}
+                  </span>
                 </div>
               );
             }
@@ -279,6 +311,7 @@ const XmlNode = ({
                   items={value}
                   depth={depth}
                   defaultExpanded={true}
+                  onLinkClick={onLinkClick}
                 />
               );
             }
@@ -291,9 +324,11 @@ const XmlNode = ({
                 isLast={idx === childEntries.length - 1}
                 defaultExpanded={false}
                 depth={depth + 1}
+                onLinkClick={onLinkClick}
               />
             );
           })}
+          {visibleCount < childEntries.length && <div ref={sentinelRef} data-testid="xml-reveal-sentinel" />}
         </div>
       )}
     </div>

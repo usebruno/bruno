@@ -1,0 +1,25 @@
+meta {
+  name: cross-origin-redirect-awsv4-strip
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://127.0.0.1:8081/api/redirect/cross-origin
+  body: none
+  auth: awsv4
+}
+
+auth:awsv4 {
+  accessKeyId: DUMMY_KEY
+  secretAccessKey: DUMMY_SECRET
+  region: us-east-1
+  service: execute-api
+}
+
+settings {
+  followRedirects: true
+  forwardAuthorizationHeader: false
+  maxRedirects: 5
+  timeout: 0
+}

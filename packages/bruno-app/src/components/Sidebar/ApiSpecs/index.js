@@ -5,6 +5,7 @@ import { useTheme } from 'providers/Theme';
 import { openApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import ApiSpecItem from './ApiSpecItem';
 import StyledWrapper from './StyledWrapper';
+import { matchLoadedApiSpecs } from './matchLoadedApiSpecs';
 import toast from 'react-hot-toast';
 
 const LinkStyle = styled.span`
@@ -22,13 +23,11 @@ const ApiSpecs = () => {
   const apiSpecs = React.useMemo(() => {
     if (!activeWorkspace) return [];
 
-    const workspaceApiSpecs = activeWorkspace.apiSpecs || [];
+    const workspaceApiSpecs = Array.isArray(activeWorkspace.apiSpecs) ? activeWorkspace.apiSpecs : [];
 
-    // Map workspace API specs to loaded API specs from Redux store
-    return workspaceApiSpecs.map((ws) => {
-      const loadedApiSpec = allApiSpecs.find((apiSpec) => apiSpec.pathname === ws.path);
-      return loadedApiSpec;
-    }).filter(Boolean);
+    // Pair workspace API specs to loaded specs in redux, matching by normalized
+    // path so Windows (backslash) and stored (forward-slash) paths line up.
+    return matchLoadedApiSpecs(workspaceApiSpecs, allApiSpecs);
   }, [allApiSpecs, activeWorkspace, activeWorkspace?.apiSpecs]);
 
   const handleOpenApiSpec = () => {

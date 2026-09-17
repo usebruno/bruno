@@ -26,7 +26,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'basic',
@@ -39,7 +39,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       oauth1: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -69,7 +70,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -79,7 +80,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -110,7 +112,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
@@ -120,7 +122,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -156,17 +159,17 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check folder first
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
     // Then check request
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -199,7 +202,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'none', // <<<< KEY CHECK
@@ -209,7 +212,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -250,24 +254,24 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -311,26 +315,26 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'bearer',
       basic: null,
       bearer: { token: 'folder1Token' }, // Explicitly set
-      awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -366,7 +370,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth).toEqual({
       mode: 'oauth1',
@@ -376,6 +380,7 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
+      ntlm: null,
       oauth1: {
         consumerKey: 'consumer_key',
         consumerSecret: 'consumer_secret',
@@ -428,7 +433,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.placement).toBe('header');
@@ -471,7 +476,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].request.auth.mode).toBe('oauth1');
     expect(result.items[0].request.auth.oauth1.signatureMethod).toBe('RSA-SHA1');
@@ -508,7 +513,7 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Collection root should have oauth1
     expect(result.root.request.auth.mode).toBe('oauth1');
@@ -560,24 +565,24 @@ describe('Request Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'none', // Explicitly "No Auth"
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -606,7 +611,7 @@ describe('Request Authentication', () => {
         { key: 'in', value: 'query' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.mode).toBe('apikey');
       expect(result.items[0].request.auth.apikey).toEqual({
@@ -623,7 +628,7 @@ describe('Request Authentication', () => {
         { key: 'in', value: 'header' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.apikey).toEqual({
         key: 'X-API-Key',
@@ -638,7 +643,7 @@ describe('Request Authentication', () => {
         { key: 'value', value: 'secret-token' }
       ]);
 
-      const result = await postmanToBruno(postmanCollection);
+      const { collection: result } = await postmanToBruno(postmanCollection);
 
       expect(result.items[0].request.auth.apikey.placement).toBe('header');
     });

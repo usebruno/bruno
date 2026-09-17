@@ -39,6 +39,9 @@ module.exports = [
       typescript({ tsconfig: './tsconfig.json' }),
       terser()
     ],
-    external: (id) => isBuiltin(id) || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id)
+    external: (id) =>
+      isBuiltin(id)
+      || id.startsWith('@usebruno/')
+      || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id)
   }
 ];

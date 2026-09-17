@@ -101,12 +101,16 @@ async function onboardUser(mainWindow, lastOpenedCollections) {
       pendingSampleCollection = { mainWindow, ...collectionInfo };
     }
 
-    // Mark as launched and explicitly enable the welcome modal for new users
+    // Mark as launched and explicitly enable the welcome modal for new users.
+    // lastSeenVersion is set here (not in the renderer) so it lands in the same
+    // write as hasSeenWelcomeModal, avoids a race with the welcome-modal
+    // dismissal save. New users only see future changelogs, not the current one.
     const preferences = getPreferences();
     preferences.onboarding = {
       ...preferences.onboarding,
       hasLaunchedBefore: true,
-      hasSeenWelcomeModal: false
+      hasSeenWelcomeModal: false,
+      lastSeenVersion: app.getVersion()
     };
     await savePreferences(preferences);
   } catch (error) {

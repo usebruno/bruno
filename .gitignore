@@ -3,6 +3,10 @@
 # dependencies
 bun.lockb
 node_modules
+# Fake npm packages under test fixtures aren't installed by a package manager,
+# so they must be tracked in git for the e2e tests to work when cloned fresh.
+!tests/scripting/additional-context-roots/fixtures/**/node_modules
+!tests/scripting/additional-context-roots/fixtures/**/node_modules/**
 yarn.lock
 pnpm-lock.yaml
 .pnp
@@ -49,7 +53,6 @@ bruno.iml
 .idea
 .vscode
 .cursor
-.claude
 .codex
 .agents
 .agent
@@ -63,7 +66,7 @@ tests/benchmarks/results/
 /benchmark-report/
 
 # Development plan files
-CLAUDE.md
+CLAUDE.local.md
 AGENTS.md
 *.plan.md
 

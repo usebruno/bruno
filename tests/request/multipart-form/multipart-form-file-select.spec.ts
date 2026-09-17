@@ -57,11 +57,11 @@ test.describe.serial('Multipart Form - File Select Without Key', () => {
   });
 
   test('file select should work on empty row without a key', async ({ page }) => {
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
 
     await test.step('Click upload on empty last row (no key entered)', async () => {
       const lastRow = table.allRows().last();
-      const uploadBtn = lastRow.locator('.upload-btn');
+      const uploadBtn = lastRow.getByTestId('multipart-file-upload');
       await expect(uploadBtn).toBeVisible();
       await uploadBtn.click();
     });

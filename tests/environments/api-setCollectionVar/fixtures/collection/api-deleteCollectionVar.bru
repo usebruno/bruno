@@ -1,0 +1,16 @@
+meta {
+  name: api-deleteCollectionVar
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Removes a pre-existing collection var declared in collection.bru.
+  bru.deleteCollectionVar("existingCollVar");
+}

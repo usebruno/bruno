@@ -42,7 +42,7 @@ test.describe('Global Environment Import Tests', () => {
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(globalEnvFile);
 
-    // Wait for import to complete and global environment settings modal to open
+    await page.getByTestId('import-global-environment-modal-submit-btn').click();
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
     const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
@@ -63,8 +63,10 @@ test.describe('Global Environment Import Tests', () => {
 
     await expect(variablesTable.locator('input[name$=".name"][value="postTitle"]')).toBeVisible();
     await expect(variablesTable.locator('input[name$=".name"][value="postBody"]')).toBeVisible();
-    await expect(variablesTable.locator('input[name$=".name"][value="secretApiToken"]')).toBeVisible();
-    await expect(variablesTable.locator('input[name="5.secret"]')).toBeChecked();
+    await expect(variablesTable.locator('input[name$=".name"][value="secretApiToken"]')).toHaveCount(0);
+    await page.getByTestId('responsive-tab-secrets').click();
+    await expect(page.getByTestId('env-var-row-secretApiToken')).toBeVisible();
+
     await envTab.hover();
     await envTab.getByTestId('request-tab-close-icon').click({ force: true });
 

@@ -229,7 +229,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       </div>
 
       {tokenPlacement == 'header' ? (
-        <div className="flex items-center gap-4 w-full" key="input-token-header-prefix">
+        <div className="flex items-center gap-4 w-full" key="input-token-header-prefix" data-testid="token-header-prefix">
           <label className="block min-w-[140px]">Header Prefix</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
@@ -245,7 +245,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4 w-full" key="input-token-query-key">
+        <div className="flex items-center gap-4 w-full" key="input-token-query-key" data-testid="token-query-param-key">
           <label className="block min-w-[140px]">URL Query Key</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor

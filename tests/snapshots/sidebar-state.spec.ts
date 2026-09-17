@@ -91,7 +91,6 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
       await openRequest(page, 'TestCol', 'ReqAlpha', { persist: true });
 
       await createExampleFromSidebar(page, 'ReqAlpha', 'Example One');
-      await expect(page.getByTestId('response-example-title')).toHaveText('ReqAlpha / Example One');
 
       await openRequest(page, 'TestCol', 'ReqAlpha', { persist: true });
 
@@ -135,7 +134,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
 
       await createExampleFromSidebar(page, 'ReqAlpha', 'Example One');
       await openExampleFromSidebar(page, 'ReqAlpha', 'Example One');
-      await expect(page.getByTestId('response-example-title')).toHaveText('ReqAlpha / Example One');
+      await expect(page.getByTestId('response-example-name-input')).toHaveValue('Example One');
     });
 
     await test.step('Close and restart app', async () => {
@@ -170,7 +169,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
       await createExampleFromSidebar(page, 'ReqAlpha', 'DupExample', 'first-desc');
       await createExampleFromSidebar(page, 'ReqAlpha', 'DupExample', 'second-desc');
       await openExampleFromSidebar(page, 'ReqAlpha', 'DupExample', 1);
-      await expect(page.getByTestId('response-example-description')).toHaveText('second-desc');
+      await expect(page.getByTestId('response-example-description-input')).toHaveValue('second-desc');
     });
 
     await test.step('Close and restart app', async () => {

@@ -1,0 +1,15 @@
+meta {
+  name: path-issues-fragment
+  type: http
+  seq: 30
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/issues#1234
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: false
+}

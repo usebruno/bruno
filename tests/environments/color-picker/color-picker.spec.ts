@@ -20,7 +20,7 @@ const hexToRgb = (hex: string): string => {
   return `rgb(${r}, ${g}, ${b})`;
 };
 
-test.describe('Color Picker Tests', () => {
+test.describe.serial('Color Picker Tests', () => {
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });

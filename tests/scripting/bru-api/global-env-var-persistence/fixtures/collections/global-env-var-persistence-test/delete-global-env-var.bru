@@ -1,0 +1,22 @@
+meta {
+  name: delete-global-env-var
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.deleteGlobalEnvVar("toBeDeleted");
+}
+
+tests {
+  test("should have deleted global env var", function() {
+    const val = bru.getGlobalEnvVar("toBeDeleted");
+    expect(val).to.be.undefined;
+  });
+}

@@ -11,6 +11,9 @@ import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
 import openapiSyncReducer from './slices/openapi-sync';
+import mockServerReducer from './slices/mock-server/index';
+import chatReducer from './slices/chat';
+import collectionMigrationReducer from './slices/collection-migration';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
@@ -35,7 +38,10 @@ export const store = configureStore({
     performance: performanceReducer,
     workspaces: workspacesReducer,
     apiSpec: apiSpecReducer,
-    openapiSync: openapiSyncReducer
+    openapiSync: openapiSyncReducer,
+    mockServer: mockServerReducer,
+    chat: chatReducer,
+    collectionMigration: collectionMigrationReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

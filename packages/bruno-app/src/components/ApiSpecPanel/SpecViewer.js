@@ -1,11 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import get from 'lodash/get';
+import jsyaml from 'js-yaml';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
-import { IconDeviceFloppy, IconLoader2 } from '@tabler/icons';
+import { IconAlertCircle, IconDeviceFloppy, IconLoader2 } from '@tabler/icons';
+import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import CodeEditor from './FileEditor/CodeEditor/index';
 import Swagger from './Renderers/Swagger';
 import { useDragResize } from 'hooks/useDragResize';
+import { SPEC_PREVIEW_ERRORS } from './constants';
+
+const PREVIEW_TIMEOUT_MS = 15000;
+
+const getPreviewParseError = (content) => {
+  if (!content || typeof content !== 'string') return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    try {
+      parsed = jsyaml.load(content);
+    } catch {
+      return SPEC_PREVIEW_ERRORS.INVALID_YAML_JSON;
+    }
+  }
+  if (!isOpenApiSpec(parsed)) {
+    return SPEC_PREVIEW_ERRORS.INVALID_OPENAPI;
+  }
+  return null;
+};
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 450;
@@ -15,12 +38,15 @@ const MIN_RIGHT_PANE_WIDTH = 450;
  *
  * Props:
  *  - content               (string)  The spec content (YAML/JSON string)
+ *  - resolvedSpec          (object|null) The same spec with the files it references inlined, for
+ *                          multi-file specs. The preview renders this when present, since it cannot
+ *                          resolve `./sibling.yaml` itself; the editor always shows `content`.
  *  - readOnly              (boolean) If true, editor is not editable and save icon is hidden
  *  - onSave                (fn)      Called with current editor content on save (editable mode only)
  *  - leftPaneWidth         (number|null) Persisted left pane width in px; null = use 50/50 default
  *  - onLeftPaneWidthChange (fn)      Persist the new width (called on mouseup / double-click / resize-clamp)
  */
-const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthChange }) => {
+const SpecViewer = ({ content, resolvedSpec, readOnly, onSave, leftPaneWidth, onLeftPaneWidthChange }) => {
   const { displayedTheme, theme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
@@ -51,16 +77,40 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
     : { flex: '1 1 50%', minWidth: 0 };
 
   const [swaggerReady, setSwaggerReady] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const previewTimeoutRef = useRef(null);
 
   useEffect(() => {
     setSwaggerReady(false);
+    clearTimeout(previewTimeoutRef.current);
+
+    if (!content || !content.trim()) {
+      setPreviewError(SPEC_PREVIEW_ERRORS.EMPTY);
+      return;
+    }
+
+    const parseErr = getPreviewParseError(content);
+    if (parseErr) {
+      setPreviewError(parseErr);
+      return;
+    }
+    setPreviewError(null);
+
+    previewTimeoutRef.current = setTimeout(() => {
+      setPreviewError(SPEC_PREVIEW_ERRORS.TIMEOUT);
+    }, PREVIEW_TIMEOUT_MS);
+
+    return () => clearTimeout(previewTimeoutRef.current);
   }, [content]);
 
   const handleSwaggerComplete = useCallback(() => {
     // Double rAF: wait for one full paint cycle so Swagger is actually on screen
     // before hiding the loader — avoids a flash of unrendered content.
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => setSwaggerReady(true));
+      requestAnimationFrame(() => {
+        clearTimeout(previewTimeoutRef.current);
+        setSwaggerReady(true);
+      });
     });
   }, []);
 
@@ -101,19 +151,33 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
         className="api-spec-right-pane relative"
         style={{ flex: '1 1 50%', minWidth: 0 }}
       >
-        <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
-          <Swagger spec={content} onComplete={handleSwaggerComplete} />
-        </div>
-        {!swaggerReady && (
+        {previewError ? (
           <div
-            className="absolute inset-0 flex items-center justify-center gap-2"
+            className="absolute inset-0 flex items-center justify-center p-8"
             style={{ background: theme.bg }}
           >
-            <div className="flex items-center justify-center gap-2 opacity-70">
-              <IconLoader2 size={20} className="animate-spin" />
-              <span>Generating preview…</span>
+            <div className="flex flex-col items-center gap-3 text-center opacity-70">
+              <IconAlertCircle size={28} strokeWidth={1.5} />
+              <span className="text-sm">{previewError}</span>
             </div>
           </div>
+        ) : (
+          <>
+            <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
+              <Swagger spec={resolvedSpec || content} onComplete={handleSwaggerComplete} />
+            </div>
+            {!swaggerReady && (
+              <div
+                className="absolute inset-0 flex items-center justify-center gap-2"
+                style={{ background: theme.bg }}
+              >
+                <div className="flex items-center justify-center gap-2 opacity-70">
+                  <IconLoader2 size={20} className="animate-spin" />
+                  <span>Generating preview…</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

@@ -61,6 +61,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: colors.GRAY_6,
+  BORDER2: colors.GRAY_5,
+  BORDER1: colors.GRAY_4,
+  BORDER0: colors.GRAY_3
+};
+
 palette.intent = {
   INFO: colors.BLUE,
   SUCCESS: colors.GREEN,
@@ -81,6 +88,12 @@ const darkPastelTheme = {
     text: colors.BRAND,
     strong: colors.BRAND,
     subtle: colors.BRAND
+  },
+
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
   },
 
   accents: {
@@ -150,9 +163,10 @@ const darkPastelTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_5,
-    border1: colors.GRAY_4,
-    border0: colors.GRAY_3
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -274,16 +288,14 @@ const darkPastelTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.BG,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: colors.GRAY_4,
+      bg: colors.BG,
       borderBottom: colors.GRAY_4,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
-        bg: colors.GRAY_4,
-        hoverBg: colors.GRAY_4
+        bg: colors.GRAY_3,
+        hoverBg: colors.GRAY_5
       }
     }
   },

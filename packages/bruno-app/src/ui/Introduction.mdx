@@ -1,0 +1,39 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# Bruno UI
+
+The design-system primitives for `bruno-app`, under `src/ui`. Build in isolation
+here, see every state at once, and check appearance across all Bruno themes via the
+**Theme** picker in the toolbar.
+
+## Using a component
+
+Import from the `ui` barrel:
+
+```jsx
+import { Button, RadioGroup, SegmentedControl } from 'ui';
+
+<SegmentedControl
+  value={value}
+  onChange={setValue}
+  ariaLabel="Request type"
+  items={[{ value: 'http', label: 'HTTP' }, { value: 'graphql', label: 'GraphQL' }]}
+/>
+```
+
+Prefer the barrel over deep paths, and don't reach into a component's internals.
+
+## Conventions
+
+- **Controlled** components take `value` + `onChange(value, event)`.
+- Components **forward `ref`** and pass through extra props (`...rest`, `data-*`).
+- Every interactive primitive accepts a `dataTestId`.
+- Group primitives (`RadioGroup`, `SegmentedControl`) always need an accessible name
+  (`label` / `ariaLabel` / `ariaLabelledBy`) — they warn in development otherwise.
+- Colors/spacing come from the **theme** (styled-components `props.theme`), not hardcoded values.
+
+See **Foundations → Tokens** for the theme's colors, typography, radii, and shadows,
+and each component's **Docs** tab for its full API. More detail lives in
+`packages/bruno-app/storybook/README.md`.
