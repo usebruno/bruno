@@ -203,21 +203,21 @@ describe('GenerateDocumentation', () => {
     it('counts only the requests that carry an included tag, and only the folders that still hold one', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
+      addTag('Include Tags', 'smoke');
       expectSummary('1 Folder', '2 requests');
     });
 
     it('leaves out the requests that carry an excluded tag and any folder that ends up empty', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Exclude tags', 'wip');
+      addTag('Exclude Tags', 'wip');
       expectSummary('1 Folder', '3 requests');
     });
 
     it('goes back to the full counts when the user switches to All requests', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
+      addTag('Include Tags', 'smoke');
       expectSummary('1 Folder', '2 requests');
 
       fireEvent.click(screen.getByTestId('docs-requests-all'));
@@ -227,8 +227,8 @@ describe('GenerateDocumentation', () => {
     it('generates the docs with the same tags the counts were based on', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
-      addTag('Exclude tags', 'wip');
+      addTag('Include Tags', 'smoke');
+      addTag('Exclude Tags', 'wip');
       expectSummary('1 Folder', '2 requests');
 
       fireEvent.click(screen.getByTestId('generate-btn'));
