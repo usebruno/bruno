@@ -733,6 +733,26 @@ const handler = async function (argv) {
       }
     }
 
+    const createSkippedResult = (requestItem, skipReason) => {
+      const relativePath = path.relative(collectionPath, requestItem.pathname);
+      return {
+        test: { filename: relativePath },
+        request: { method: requestItem.request?.method || null, url: requestItem.request?.url || null, headers: null, data: null },
+        response: { status: 'skipped', statusText: null, data: null, responseTime: 0 },
+        status: 'skipped',
+        skipped: true,
+        skipReason,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        runDuration: 0,
+        suitename: stripExtension(requestItem.pathname),
+        name: requestItem.name,
+        path: relativePath
+      };
+    };
+
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -764,7 +784,6 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
-    let bailInfo = null; // populated only if --bail triggers
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -832,44 +851,9 @@ const handler = async function (argv) {
           // Synthesize "Skipped (Bail)" placeholder results for the requests that never
           // ran due to bail. These let getRunnerSummary count them as skipped, and the
           // summary table can distinguish them from user-initiated skips via skipReason.
-          for (const ri of remainingItems) {
-            const relativePath = path.relative(collectionPath, ri.pathname);
-            results.push({
-              test: {
-                filename: relativePath
-              },
-              request: {
-                method: ri.request?.method || null,
-                url: ri.request?.url || null,
-                headers: null,
-                data: null
-              },
-              response: {
-                status: 'skipped',
-                statusText: null,
-                data: null,
-                responseTime: 0
-              },
-              status: 'skipped',
-              skipped: true,
-              skipReason: 'bail',
-              testResults: [],
-              assertionResults: [],
-              preRequestTestResults: [],
-              postResponseTestResults: [],
-              runDuration: 0,
-              suitename: stripExtension(ri.pathname),
-              name: ri.name,
-              path: relativePath
-            });
+          for (const request of remainingItems) {
+            results.push(createSkippedResult(request, 'bail'));
           }
-
-          bailInfo = {
-            bailed: true,
-            bailReason,
-            bailedAt: name,
-            skippedByBail: remainingItems.length
-          };
 
           console.log(
             '\n' + chalk.hex(constants.COLORS.ORANGE)(
