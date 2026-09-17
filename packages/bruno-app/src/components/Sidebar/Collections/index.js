@@ -20,6 +20,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
+  const lastScrolledTabUidRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -87,9 +88,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   useEffect(() => {
     if (activeRowIndex === null) return;
+    if (lastScrolledTabUidRef.current === activeTabUid) return;
     virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabUid]);
+    lastScrolledTabUidRef.current = activeTabUid;
+  }, [activeTabUid, activeRowIndex]);
 
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.

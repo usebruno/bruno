@@ -60,6 +60,7 @@ const renderRow = (props) => {
       );
     }
     case 'empty-cta': {
+      if (!resolved) return null;
       return <EmptyCtaRow collection={resolved} itemUid={row.itemUid} depth={row.depth} />;
     }
     case 'ghost': {

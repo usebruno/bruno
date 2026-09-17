@@ -66,6 +66,12 @@ describe('flattenSidebarTree', () => {
       expect(k).not.toContain('app');
       expect(k).not.toContain('empty-cta');
     });
+    it('reveals a matching request\'s examples during search, even when collapsed', () => {
+      const c = collection('C', [request('login', { collapsed: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
+      const rows = flatten([loaded(c)], { searchText: 'login' });
+      expect(kinds(rows)).toContain('example');
+      expect(names(rows.filter((r) => r.kind === 'example'))).toEqual(['ok']);
+    });
   });
 
   describe('empty-cta', () => {

@@ -147,7 +147,7 @@ const walkChildren = (
     const hasExamples
       = request.type === 'http-request' && Array.isArray(request.examples);
 
-    if (!hasSearch && hasExamples && !isCollectionItemCollapsed(request)) {
+    if (hasExamples && (hasSearch || !isCollectionItemCollapsed(request))) {
       request.examples.forEach((example, index) => {
         appendRow({
           id: `${collectionUid}:${request.uid}:ex:${example.uid || index}`,
@@ -225,7 +225,7 @@ const flattenCollection = ({
     parentName: null
   });
 
-  // append emtry row cta.
+  // Append the collection-root empty-state CTA row.
   if (
     !hasSearch
     && visibleChildCount === 0
