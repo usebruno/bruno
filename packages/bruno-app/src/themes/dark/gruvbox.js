@@ -46,9 +46,10 @@ const sharedPalette = {
     OVERLAY0: '#504945' // bg3
   },
   border: {
-    BORDER2: '#504945', // bg3
-    BORDER1: '#3c3836', // bg2
-    BORDER0: '#32302f' // bg1
+    BORDER3: '#665c54', // bg3
+    BORDER2: '#504945', // bg2
+    BORDER1: '#3c3836', // bg1
+    BORDER0: '#32302f' // bg0_s
   },
   utility: {
     WHITE: '#fbf1c7', // fg0
@@ -71,16 +72,16 @@ const backgroundsByVariant = {
   },
   medium: {
     BASE: '#282828', // bg0
-    MANTLE: '#1d2021', // bg0_h
-    CRUST: '#1d2021',
+    MANTLE: '#282828',
+    CRUST: '#282828',
     SURFACE0: '#32302f', // bg0_s
     SURFACE1: '#3c3836', // bg1
     SURFACE2: '#504945' // bg2
   },
   soft: {
     BASE: '#32302f', // bg0_s
-    MANTLE: '#1d2021', // bg0_h
-    CRUST: '#1d2021',
+    MANTLE: '#32302f',
+    CRUST: '#32302f',
     SURFACE0: '#3c3836', // bg1
     SURFACE1: '#504945', // bg2
     SURFACE2: '#665c54' // bg3
@@ -211,6 +212,7 @@ const createGruvboxDarkTheme = (variant) => {
         lg: '10px',
         xl: '12px'
       },
+      border3: palette.border.BORDER3,
       border2: palette.border.BORDER2,
       border1: palette.border.BORDER1,
       border0: palette.border.BORDER0
@@ -294,6 +296,12 @@ const createGruvboxDarkTheme = (variant) => {
       }
     },
 
+    ws: {
+      activeMessage: {
+        label: palette.primary.TEXT
+      }
+    },
+
     request: {
       methods: {
         get: palette.hues.GREEN_BRIGHT,
@@ -343,11 +351,9 @@ const createGruvboxDarkTheme = (variant) => {
       bg: palette.background.SURFACE1,
       list: {
         bg: palette.background.SURFACE0,
-        borderRight: palette.border.BORDER2,
         borderBottom: palette.border.BORDER2,
         hoverBg: palette.background.SURFACE1,
         active: {
-          border: palette.hues.BLUE_BRIGHT,
           bg: palette.background.SURFACE2,
           hoverBg: palette.background.SURFACE2
         }

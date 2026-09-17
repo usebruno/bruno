@@ -46,6 +46,7 @@ const sharedPalette = {
     OVERLAY0: '#7c6f64' // fg3
   },
   border: {
+    BORDER3: '#a89984', // bg4
     BORDER2: '#bdae93', // bg3
     BORDER1: '#d5c4a1', // bg2
     BORDER0: '#ebdbb2' // bg1
@@ -211,6 +212,7 @@ const createGruvboxLightTheme = (variant) => {
         lg: '10px',
         xl: '12px'
       },
+      border3: palette.border.BORDER3,
       border2: palette.border.BORDER2,
       border1: palette.border.BORDER1,
       border0: palette.border.BORDER0
@@ -294,6 +296,12 @@ const createGruvboxLightTheme = (variant) => {
       }
     },
 
+    ws: {
+      activeMessage: {
+        label: palette.primary.TEXT
+      }
+    },
+
     request: {
       methods: {
         get: palette.hues.GREEN_BRIGHT,
@@ -343,11 +351,9 @@ const createGruvboxLightTheme = (variant) => {
       bg: palette.background.SURFACE1,
       list: {
         bg: palette.background.SURFACE0,
-        borderRight: palette.border.BORDER2,
         borderBottom: palette.border.BORDER2,
         hoverBg: palette.background.SURFACE1,
         active: {
-          border: palette.hues.BLUE_BRIGHT,
           bg: palette.background.SURFACE2,
           hoverBg: palette.background.SURFACE2
         }
