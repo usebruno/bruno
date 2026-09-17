@@ -75,7 +75,8 @@ const CreateApiSpec = ({ onClose }) => {
             collectionVariables,
             envVariables,
             environment: values?.environment,
-            processEnvVariables
+            processEnvVariables,
+            workspaceProcessEnvVariables: activeWorkspace?.processEnvVariables
           });
           const environmentsList = Object.entries(envVariables || {}).map(([name, variables]) => ({
             name,

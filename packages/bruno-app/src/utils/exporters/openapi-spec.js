@@ -109,6 +109,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     return componentId;
   };
 
+  const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
+
   // Resolve a raw request URL to a path and optional operation-level server override.
   // Checks for request-level baseUrl overrides (vars.req), then {{baseUrl}} placeholder,
   // then known baseUrl sources. Falls back to full resolution for unknown URLs.
@@ -143,7 +145,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     const resolvedUrl = interpolate(rawUrl, variables);
     if (isValidUrl(resolvedUrl)) {
       const urlDetails = new URL(resolvedUrl);
-      return { url: urlDetails.pathname, operationLevelServer: buildServerEntry(urlDetails.origin, variables) };
+      return {
+        url: restoreUnresolvedPlaceholders(urlDetails.pathname),
+        operationLevelServer: buildServerEntry(urlDetails.origin, variables)
+      };
     }
 
     return { url: rawUrl, operationLevelServer: null };

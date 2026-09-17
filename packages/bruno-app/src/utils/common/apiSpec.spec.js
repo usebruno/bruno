@@ -71,6 +71,31 @@ describe('buildSpecVariables', () => {
     expect(variables.API_TOKEN).toBeUndefined();
   });
 
+  it('finds a value that only the workspace .env defines', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: {},
+      envVariables,
+      environment: 'Local',
+      processEnvVariables: { API_TOKEN: 'from-collection-dotenv' },
+      workspaceProcessEnvVariables: { API_HOST: 'from-workspace-dotenv' }
+    });
+
+    expect(variables.process.env.API_HOST).toBe('from-workspace-dotenv');
+    expect(variables.process.env.API_TOKEN).toBe('from-collection-dotenv');
+  });
+
+  it('lets the collection .env win over the workspace .env, the order the app resolves them in', () => {
+    const variables = buildSpecVariables({
+      collectionVariables: {},
+      envVariables,
+      environment: 'Local',
+      processEnvVariables: { API_HOST: 'from-collection-dotenv' },
+      workspaceProcessEnvVariables: { API_HOST: 'from-workspace-dotenv' }
+    });
+
+    expect(variables.process.env.API_HOST).toBe('from-collection-dotenv');
+  });
+
   it('copes with a collection that has nothing in it', () => {
     expect(buildSpecVariables({})).toEqual({ process: { env: {} } });
   });

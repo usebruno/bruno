@@ -14,10 +14,21 @@ export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   return variables;
 };
 
-export const buildSpecVariables = ({ collectionVariables, envVariables, environment, processEnvVariables }) => ({
+export const buildSpecVariables = ({
+  collectionVariables,
+  envVariables,
+  environment,
+  processEnvVariables,
+  workspaceProcessEnvVariables
+}) => ({
   ...(collectionVariables || {}),
   ...(environment ? getEnvironmentVariablesKeyValuePairs(envVariables?.[environment] || {}) : {}),
-  process: { env: { ...(processEnvVariables || {}) } }
+  process: {
+    env: {
+      ...(workspaceProcessEnvVariables || {}),
+      ...(processEnvVariables || {})
+    }
+  }
 });
 
 export const buildSkippedFilesMessage = (skipped) => {

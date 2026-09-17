@@ -3,6 +3,28 @@ const path = require('node:path');
 const { walk, defaultClassify, resolveDenylist } = require('./mount');
 const { parseRequest, parseEnvironment, parseCollection } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+const EnvironmentSecretsStore = require('../store/env-secrets');
+const { decryptStringSafe } = require('./encryption');
+
+const environmentSecretsStore = new EnvironmentSecretsStore();
+
+const envHasSecrets = (environment = {}) => (environment.variables || []).some((variable) => variable.secret);
+
+const hydrateEnvironmentSecrets = (collectionPath, environment) => {
+  if (!envHasSecrets(environment)) {
+    return;
+  }
+
+  const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, environment);
+  envSecrets.forEach((secret) => {
+    const variable = environment.variables.find((v) => v.name === secret.name && v.secret);
+    if (variable && secret.value) {
+      const decryptionResult = decryptStringSafe(secret.value);
+      variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
+    }
+  });
+};
 
 const resolveConfigFile = (collectionPath) => {
   if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'opencollection.yml';
@@ -85,6 +107,8 @@ const readCollectionForApiSpec = async (collectionPath) => {
         await collect('environment', relativePath, async () => {
           const environment = await parseEnvironment(fs.readFileSync(absolutePath, 'utf8'), { format });
           const environmentName = basename.replace(/\.(bru|ya?ml)$/i, '');
+          environment.name = environmentName;
+          hydrateEnvironmentSecrets(collectionPath, environment);
           envVariables[environmentName] = environment.variables;
         });
         break;

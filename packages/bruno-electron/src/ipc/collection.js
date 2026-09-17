@@ -2514,8 +2514,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error(`Collection path does not exist: ${collectionPath}`);
     }
 
-    // Secret values are deliberately left as they sit on disk, which is empty: an
-    // exported spec is shared, so it must not carry decrypted credentials.
     return readCollectionForApiSpec(collectionPath);
   });
 

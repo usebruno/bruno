@@ -1040,3 +1040,53 @@ describe('exportApiSpec - collections that do not have any requests in them', ()
     expect(() => exportApiSpec({ name: 'NoList', variables: {}, environments: [] })).toThrow();
   });
 });
+
+describe('exportApiSpec - a variable that could not be resolved', () => {
+  const itemWithUrl = (url) => ({
+    name: 'Request',
+    type: 'http-request',
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const pathsIn = (content) =>
+    String(content)
+      .split('\n')
+      .filter((line) => /^ {2}\//.test(line))
+      .map((line) => line.trim().replace(/:$/, ''));
+
+  it('leaves the placeholder readable in the path instead of percent encoding its braces', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/{{secret-var}}/github']);
+    expect(content).not.toContain('%7B');
+  });
+
+  it('writes the placeholder the same way whether or not the url starts with the base url', () => {
+    const viaBaseUrl = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+    const viaLiteralHost = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(viaLiteralHost.content)).toEqual(pathsIn(viaBaseUrl.content));
+  });
+
+  it('keeps a character the user genuinely encoded, which still means what it meant', () => {
+    const { content } = exportApiSpec({
+      variables: { baseUrl: 'https://api.test' },
+      items: [itemWithUrl('https://other.test/api/v1/a%20b')],
+      name: 'Test API'
+    });
+
+    expect(pathsIn(content)).toEqual(['/api/v1/a%20b']);
+  });
+});

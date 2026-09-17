@@ -2,6 +2,17 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { stringifyRequest, stringifyEnvironment, stringifyCollection } = require('@usebruno/filestore');
+
+const mockGetEnvSecrets = jest.fn(() => []);
+
+jest.mock('../store/env-secrets', () =>
+  jest.fn().mockImplementation(() => ({ getEnvSecrets: (...args) => mockGetEnvSecrets(...args) }))
+);
+
+jest.mock('./encryption', () => ({
+  decryptStringSafe: (value) => ({ value: String(value).replace(/^encrypted:/, '') })
+}));
+
 const { readCollectionForApiSpec } = require('./collection-reader');
 
 const httpItem = (name, url) => ({
@@ -40,6 +51,11 @@ const mkCollection = (tag) => {
 
 afterAll(() => {
   tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }));
+});
+
+beforeEach(() => {
+  mockGetEnvSecrets.mockReset();
+  mockGetEnvSecrets.mockReturnValue([]);
 });
 
 describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (format) => {
@@ -171,7 +187,7 @@ describe('readCollectionForApiSpec: robustness', () => {
     }
   });
 
-  it.each(['bru', 'yml'])('%s: a secret variable comes back empty while the ordinary ones keep their values, so a password can never end up in the spec file', async (format) => {
+  it.each(['bru', 'yml'])('%s: a secret with nothing stored for it comes back empty, since the environment file never holds the value itself', async (format) => {
     const ext = format === 'yml' ? 'yml' : 'bru';
     const dir = mkCollection(`secret-${format}`);
     writeFile(
@@ -191,6 +207,61 @@ describe('readCollectionForApiSpec: robustness', () => {
 
     expect(byName.token).toBe('');
     expect(byName.baseUrl).toBe('https://local.test');
+  });
+
+  it.each(['bru', 'yml'])('%s: fills a secret in from the store, so a spec built here resolves the same value as one shared from an open collection', async (format) => {
+    const ext = format === 'yml' ? 'yml' : 'bru';
+    const dir = mkCollection(`secret-stored-${format}`);
+    mockGetEnvSecrets.mockReturnValue([{ name: 'token', value: 'encrypted:s3cr3t' }]);
+    writeFile(
+      dir,
+      path.join('environments', `Local.${ext}`),
+      stringifyEnvironment(
+        envObj('Local', [
+          { name: 'token', value: '', enabled: true, secret: true, type: 'text' },
+          { name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }
+        ]),
+        { format }
+      )
+    );
+
+    const result = await readCollectionForApiSpec(dir);
+    const byName = Object.fromEntries(result.envVariables.Local.map((v) => [v.name, v.value]));
+
+    expect(byName.token).toBe('s3cr3t');
+    expect(byName.baseUrl).toBe('https://local.test');
+  });
+
+  it('looks the secrets up by the collection path and the environment name the file is saved under', async () => {
+    const dir = mkCollection('secret-lookup');
+    writeFile(
+      dir,
+      path.join('environments', 'Staging.bru'),
+      stringifyEnvironment(
+        envObj('Staging', [{ name: 'token', value: '', enabled: true, secret: true, type: 'text' }]),
+        { format: 'bru' }
+      )
+    );
+
+    await readCollectionForApiSpec(dir);
+
+    expect(mockGetEnvSecrets).toHaveBeenCalledWith(dir, expect.objectContaining({ name: 'Staging' }));
+  });
+
+  it('leaves the environment alone when it holds no secrets, so the store is never consulted', async () => {
+    const dir = mkCollection('secret-none');
+    writeFile(
+      dir,
+      path.join('environments', 'Local.bru'),
+      stringifyEnvironment(
+        envObj('Local', [{ name: 'baseUrl', value: 'https://local.test', enabled: true, secret: false, type: 'text' }]),
+        { format: 'bru' }
+      )
+    );
+
+    await readCollectionForApiSpec(dir);
+
+    expect(mockGetEnvSecrets).not.toHaveBeenCalled();
   });
 
   it.each(['bru', 'yml'])('%s: marks which variables are secret, so the caller can tell a secret environment apart', async (format) => {
