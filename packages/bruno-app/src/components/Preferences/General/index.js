@@ -183,8 +183,15 @@ const General = () => {
   const keepDefaultCaCertificatesDisabled = !(customCaCertificateEnabled && customCaCertificatePath);
   const autoSaveEnabled = formik.values.autoSave.enabled;
 
+  // gate field level errors on touched so the errors are not flashed on type
+  const autoSaveIntervalTouched = get(formik.touched, 'autoSave.interval', false);
   const autoSaveError
-    = typeof formik.errors.autoSave === 'string' ? formik.errors.autoSave : formik.errors.autoSave?.interval;
+    = typeof formik.errors.autoSave === 'string'
+      ? formik.errors.autoSave
+      : autoSaveIntervalTouched
+        ? formik.errors.autoSave?.interval
+        : undefined;
+  const timeoutError = formik.touched.timeout ? formik.errors.timeout : undefined;
 
   return (
     <StyledWrapper className="w-full">
@@ -211,7 +218,6 @@ const General = () => {
                   {path.basename(customCaCertificatePath)}
                   <button
                     type="button"
-                    tabIndex="-1"
                     className="ca-certificate-remove"
                     aria-label="Remove custom CA certificate"
                     disabled={!customCaCertificateEnabled}
@@ -221,17 +227,16 @@ const General = () => {
                   </button>
                 </span>
               ) : (
-                <button
-                  type="button"
-                  tabIndex="-1"
-                  className="ca-certificate-select"
-                  disabled={!customCaCertificateEnabled}
-                  onClick={() => inputFileCaCertificateRef.current?.click()}
-                >
-                  {/* decorative: the label already says what the button does,
-                      so keep it out of the button's accessible name */}
-                  <IconUpload strokeWidth={1.5} size={14} aria-hidden="true" />
-                  Select File
+                <>
+                  <button
+                    type="button"
+                    className="ca-certificate-select"
+                    disabled={!customCaCertificateEnabled}
+                    onClick={() => inputFileCaCertificateRef.current?.click()}
+                  >
+                    <IconUpload strokeWidth={1.5} size={14} aria-hidden="true" />
+                    Select File
+                  </button>
                   <input
                     id="caCertFilePath"
                     type="file"
@@ -241,7 +246,7 @@ const General = () => {
                     disabled={!customCaCertificateEnabled}
                     onChange={addCaCertificate}
                   />
-                </button>
+                </>
               )}
             </div>
             <CheckboxSetting
@@ -311,7 +316,7 @@ const General = () => {
         </SettingsGroup>
 
         <SettingsGroup title="Requests">
-          <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={formik.errors.timeout}>
+          <SettingsField label="Request Timeout (ms)" htmlFor="timeout" error={timeoutError}>
             <input
               id="timeout"
               type="text"
