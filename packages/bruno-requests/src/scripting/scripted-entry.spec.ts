@@ -102,7 +102,6 @@ describe('buildScriptedEntry', () => {
         headers: {},
         data: undefined,
         bodyRef: 'body-abc',
-        bodyStorage: 'file',
         size: 999,
         duration: 123
       },
@@ -113,7 +112,6 @@ describe('buildScriptedEntry', () => {
 
     expect(entry.response?.dataBuffer).toBeUndefined();
     expect(entry.response?.bodyRef).toBe('body-abc');
-    expect(entry.response?.bodyStorage).toBe('file');
     expect(entry.response?.size).toBe(999);
     expect(entry.response?.duration).toBe(123);
   });

@@ -1,6 +1,5 @@
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
-const { STORAGE_FILE } = require('./constants');
 const { BodyNotFoundError } = require('./errors');
 
 const defaultIdGen = () => randomUUID();
@@ -60,7 +59,6 @@ const createResponseBodyStore = ({
 
   const finalizeEntry = (bodyRef, { buffer, filePath, size, contentType, headers }) => {
     entries.set(bodyRef, {
-      storage: STORAGE_FILE,
       filePath,
       buffer,
       size,
@@ -71,7 +69,6 @@ const createResponseBodyStore = ({
     return {
       bodyRef,
       size,
-      storage: STORAGE_FILE,
       contentType
     };
   };
@@ -147,7 +144,6 @@ const createResponseBodyStore = ({
     const entry = getEntry(bodyRef);
     return {
       size: entry.size,
-      storage: entry.storage,
       contentType: entry.contentType
     };
   };

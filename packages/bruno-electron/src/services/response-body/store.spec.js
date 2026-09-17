@@ -1,7 +1,6 @@
 const { Readable } = require('node:stream');
 const { createResponseBodyStore } = require('./store');
 const { createMemoryFileSystem } = require('./memory-fs');
-const { STORAGE_FILE } = require('./constants');
 const { BodyNotFoundError } = require('./errors');
 
 describe('ResponseBodyStore', () => {
@@ -28,8 +27,7 @@ describe('ResponseBodyStore', () => {
 
     expect(result).toMatchObject({
       bodyRef: 'body-1',
-      size: 11,
-      storage: STORAGE_FILE
+      size: 11
     });
     expect(fs.existsSync('/spill/body-1')).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from('hello world'));
@@ -41,7 +39,6 @@ describe('ResponseBodyStore', () => {
     const payload = 'x'.repeat(150);
     const result = await store.ingestStream(streamFrom(payload));
 
-    expect(result.storage).toBe(STORAGE_FILE);
     expect(result.size).toBe(150);
     expect(fs.existsSync('/spill/body-1')).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from(payload));
@@ -51,7 +48,7 @@ describe('ResponseBodyStore', () => {
 
   test('putBuffer always writes file and keeps buffer', async () => {
     const result = await store.putBuffer(Buffer.from('y'.repeat(120)));
-    expect(result.storage).toBe(STORAGE_FILE);
+    expect(result.bodyRef).toBe('body-1');
     expect(fs.existsSync('/spill/body-1')).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from('y'.repeat(120)));
     expect(await store.readRange(result.bodyRef)).toEqual(Buffer.from('y'.repeat(120)));

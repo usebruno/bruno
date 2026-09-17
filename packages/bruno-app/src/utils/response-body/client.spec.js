@@ -12,7 +12,6 @@ describe('response-body client ring', () => {
     const mapped = mapNetworkResponseToRedux({
       status: 200,
       bodyRef: 'r1',
-      bodyStorage: 'memory',
       data: { ok: true },
       dataBuffer: 'aaaa',
       size: 12

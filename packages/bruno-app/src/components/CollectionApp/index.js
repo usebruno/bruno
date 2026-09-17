@@ -267,7 +267,6 @@ const CollectionApp = ({ item, collection }) => {
             headers: result.headers,
             data: result.data,
             bodyRef: result.bodyRef || null,
-            bodyStorage: result.bodyStorage || null,
             size: result.size,
             duration: result.duration,
             timeline: serializeTimeline(result.timeline)

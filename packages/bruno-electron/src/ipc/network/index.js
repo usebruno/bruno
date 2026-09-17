@@ -74,7 +74,6 @@ const ingestAxiosResponseBody = async (response, { disableParsingResponseJson } 
   });
 
   response.bodyRef = ingested.bodyRef;
-  response.bodyStorage = ingested.storage;
   response.size = ingested.size;
 
   const buffer = bodyService.store.getBufferForScripts(ingested.bodyRef);
@@ -896,7 +895,6 @@ const registerNetworkIpc = (mainWindow) => {
                     headers: res.headers,
                     data: res.data,
                     bodyRef: res.bodyRef || null,
-                    bodyStorage: res.bodyStorage || null,
                     size: res.size,
                     duration: res.duration,
                     timeline: res.timeline
@@ -1359,7 +1357,6 @@ const registerNetworkIpc = (mainWindow) => {
         sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         bodyRef: response.bodyRef || null,
-        bodyStorage: response.bodyStorage || null,
         size: typeof response.size === 'number'
           ? response.size
           : (response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0),
@@ -1605,7 +1602,6 @@ const registerNetworkIpc = (mainWindow) => {
                       headers: res.headers,
                       data: res.data,
                       bodyRef: res.bodyRef || null,
-                      bodyStorage: res.bodyStorage || null,
                       size: res.size,
                       duration: res.duration,
                       timeline: res.timeline
@@ -1984,7 +1980,6 @@ const registerNetworkIpc = (mainWindow) => {
                   headers: response.headers,
                   duration: timeEnd - timeStart,
                   bodyRef: response.bodyRef || null,
-                  bodyStorage: response.bodyStorage || null,
                   size: response.size || 0,
                   data: getDataForIpc(response),
                   responseTime: response.responseTime,
@@ -2016,7 +2011,6 @@ const registerNetworkIpc = (mainWindow) => {
                   headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   bodyRef: error.response.bodyRef || null,
-                  bodyStorage: error.response.bodyStorage || null,
                   size: error.response.size || 0,
                   data: getDataForIpc(error.response),
                   responseTime: error.response.responseTime,

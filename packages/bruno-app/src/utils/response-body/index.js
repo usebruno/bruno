@@ -21,7 +21,6 @@ export const mapNetworkResponseToRedux = (response = {}) => {
   return {
     ...rest,
     bodyRef: response.bodyRef || null,
-    bodyStorage: response.bodyStorage || null,
     size: typeof response.size === 'number' ? response.size : 0
   };
 };

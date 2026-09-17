@@ -21,7 +21,6 @@ type SendRequestEntry = {
     headers: Record<string, any>;
     data: any;
     bodyRef: string | null;
-    bodyStorage: string | null;
     size: number;
     duration: number;
     timeline: any[] | null;
@@ -44,7 +43,6 @@ type ScriptedEntryResponseInput = {
   headers?: any;
   data?: any;
   bodyRef?: string | null;
-  bodyStorage?: string | null;
   size?: number;
   duration?: number;
   timeline?: any[];
@@ -94,14 +92,12 @@ const buildScriptedEntry = ({
   let respPayload: SendRequestEntry['response'] = null;
   if (response) {
     const bodyRef = response.bodyRef || null;
-    const bodyStorage = response.bodyStorage || null;
     respPayload = {
       statusCode: typeof response.status === 'number' ? response.status : 0,
       statusText: response.statusText ?? '',
       headers: toPlainHeaders(response.headers),
       data: response.data,
       bodyRef,
-      bodyStorage,
       size: typeof response.size === 'number'
         ? response.size
         : deriveSizeFromData(response.data),
