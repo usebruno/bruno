@@ -1,4 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
@@ -7,10 +8,10 @@ import { buildCommonLocators, buildSandboxLocators } from './locators';
  * @returns Object with locators for runner elements
  */
 export const buildRunnerLocators = (page: Page) => ({
-  allButton: () => page.locator('button').filter({ hasText: /^All/ }),
-  passedButton: () => page.locator('button').filter({ hasText: /^Passed/ }),
-  failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
-  skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
+  allCount: () => page.getByTestId('runner-filter-all-count'),
+  passedCount: () => page.getByTestId('runner-filter-passed-count'),
+  failedCount: () => page.getByTestId('runner-filter-failed-count'),
+  skippedCount: () => page.getByTestId('runner-filter-skipped-count'),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
@@ -30,17 +31,17 @@ export const buildRunnerLocators = (page: Page) => ({
 });
 
 /**
- * Reads test result counts from the filter buttons in the runner results view
+ * Reads test result counts from the filter counts in the runner results view
  * @param page - The Playwright page object
  * @returns An object with totalRequests, passed, failed, and skipped counts
  */
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allButton().locator('span').innerText());
-  const passed = parseInt(await locators.passedButton().locator('span').innerText());
-  const failed = parseInt(await locators.failedButton().locator('span').innerText());
-  const skipped = parseInt(await locators.skippedButton().locator('span').innerText());
+  const totalRequests = parseInt(await locators.allCount().innerText());
+  const passed = parseInt(await locators.passedCount().innerText());
+  const failed = parseInt(await locators.failedCount().innerText());
+  const skipped = parseInt(await locators.skippedCount().innerText());
 
   return { totalRequests, passed, failed, skipped };
 };
@@ -155,17 +156,12 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
  */
 export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
-    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
-    const collectionContainer = page.locator(`#${collectionId}`);
-    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
+    // Flat, virtualized sidebar: scope by `data-collection-id` / `data-parent-name` rather than DOM nesting.
+    const collectionScope = page.locator(`[data-collection-id="${collectionSlug(collectionName)}"]`);
+    await collectionScope.first().waitFor({ state: 'visible', timeout: 5000 });
 
-    // Walk down the folder path, scoping each step to the previous folder's container.
-    // Each CollectionItem renders as a StyledWrapper div containing:
-    //   - div.collection-item-name (the row with chevron, name, menu)
-    //   - div (children container when expanded)
-    // We scope to the parent wrapper so the next folder lookup is unambiguous.
-    let scope = collectionContainer;
+    let scope = collectionScope;
+    let targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
     for (const folderName of folderPath) {
       const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
       await row.waitFor({ state: 'visible', timeout: 5000 });
@@ -177,12 +173,11 @@ export const runFolder = async (page: Page, collectionName: string, folderPath: 
         await chevron.click();
       }
 
-      // Scope to this folder's wrapper (parent of the row) for the next iteration
-      scope = row.locator('..');
+      targetRow = row;
+      scope = page.locator(`[data-parent-name="${folderName}"]`);
     }
 
-    // The target folder row is the last one we found — hover to reveal menu
-    const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+    // The deepest folder row we found — hover to reveal its menu.
     await targetRow.hover();
 
     // Click the menu icon
