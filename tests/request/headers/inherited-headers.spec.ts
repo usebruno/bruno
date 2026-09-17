@@ -37,7 +37,7 @@ test('keeps inherited headers hidden until shown', async ({ page, createTmpDir }
   const { headers } = buildCommonLocators(page).request;
 
   await test.step('Start with inherited headers hidden', async () => {
-    await expect(headers.toggleInherited()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADER_COUNT + 1})`);
+    await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADER_COUNT + 1})`);
     await expect(headers.inheritedRow('X-Collection')).not.toBeVisible();
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.table()).toBeVisible();
@@ -198,7 +198,7 @@ test('keeps the pre-rename localStorage keys for the inherited accordion', async
 
   await test.step('Write the old show-defaults key when the accordion is shown', async () => {
     await headers.toggleInherited().click();
-    await expect(headers.toggleInherited()).toHaveText('Hide Inherited Headers');
+    await expect(headers.toggleInherited()).toHaveText('Hide Additional Headers');
 
     const stored = await page.evaluate(() => {
       const showKeys = Object.keys(localStorage).filter((key) => key.includes('request-show-default-headers-'));
