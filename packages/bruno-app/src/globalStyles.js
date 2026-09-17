@@ -186,6 +186,10 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  body.dnd-blocked-cursor,
+  body.dnd-blocked-cursor * {
+    cursor: not-allowed !important;
+  }
 
   .collection-header-dropdown-label {
     max-width: 124px;

@@ -1,0 +1,4 @@
+name: local
+variables:
+  - name: digestPw
+    value: passwd
