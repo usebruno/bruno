@@ -297,7 +297,10 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
+      <section
+        className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}
+        data-testid="response-pane-content"
+      >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
           <ScriptError

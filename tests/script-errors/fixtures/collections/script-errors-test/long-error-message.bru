@@ -1,0 +1,20 @@
+meta {
+  name: long-error-message
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const longMessage = Array.from(
+    { length: 150 },
+    (_, index) => `Script error line ${index + 1}`
+  ).join('\n');
+
+  throw new Error(`${longMessage}\nEND OF LONG SCRIPT ERROR`);
+}
