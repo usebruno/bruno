@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
@@ -22,12 +22,12 @@ import {
   IconAppWindow,
   IconEyeOff
 } from '@tabler/icons';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, addResponseExample, expandItem, collapseItem } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -61,8 +61,8 @@ import {
   determineCollectionItemDrop,
   getInitialExampleName,
   findParentItemInCollection,
-  getSelectionInfo,
-  getSortedDraggedItems
+  getSortedDraggedItems,
+  isCollectionItemCollapsed
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -73,10 +73,10 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
-import useMultiSelectDragDisabled from 'hooks/useMultiSelectDragDisabled';
+import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu }) => {
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isItemMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -94,8 +94,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const allCollections = useSelector((state) => state.collections.collections);
-  const collection = allCollections?.find((c) => c.uid === collectionUid);
+  const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
+  const store = useStore();
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(item.uid);
@@ -107,16 +107,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
   const dispatch = useDispatch();
 
-  // When dragging a multi-selected row, carry all effectively-selected folders/requests
-  // (excluding collections) so dropping one moves the entire selection together.
-  const multiDragItems = useMemo(() => {
-    if (!isSelected || selectedSidebarUids.length < 2) return null;
-    const { effectiveSelection, hasCollection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
-    if (hasCollection) return null;
-    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
-  }, [isSelected, selectedSidebarUids, allCollections]);
-
-  const isDragDisabled = useMultiSelectDragDisabled({ isSelected, selectedSidebarUids, allCollections });
+  const multiDragItems = isMultiSelected ? multiDragItemsForSelection : null;
+  const isRedirectedToCollectionDrag = isMultiSelected && multiDragCollections?.length > 0;
+  const isDragDisabled = isMultiSelected && isItemMultiDragDisabled && !isRedirectedToCollectionDrag;
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -132,10 +125,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
-  const [examplesExpanded, setExamplesExpanded] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const itemIsCollapsed = hasSearchText ? false : item.collapsed;
+  const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
@@ -173,13 +165,16 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: isDragDisabled ? 'disabled-drag' : 'collection-item',
-    item: {
-      ...item,
-      sourceCollectionUid: collectionUid,
-      wasSelected: isSelected,
-      ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
-    },
+    type: isRedirectedToCollectionDrag ? 'collection' : 'collection-item',
+    item: isRedirectedToCollectionDrag
+      ? { ...collection, wasSelected: true, multiSelectedItems: multiDragCollections }
+      : {
+          ...item,
+          sourceCollectionUid: collectionUid,
+          wasSelected: isSelected,
+          ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
+        },
+    canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -253,7 +248,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
 
       const draggedItems = getSortedDraggedItems({
         draggedItem,
-        allCollections,
+        allCollections: store.getState().collections.collections,
         workspaces,
         activeWorkspace,
         collectionSortOrder,
@@ -306,10 +301,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
 
   const iconClassName = classnames({
     'rotate-90': !itemIsCollapsed
-  });
-
-  const examplesIconClassName = classnames({
-    'rotate-90': examplesExpanded
   });
 
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
@@ -396,7 +387,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const handleExamplesCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    setExamplesExpanded(!examplesExpanded);
+    dispatch(
+      (isCollectionItemCollapsed(item) ? expandItem : collapseItem)({
+        itemUid: item.uid,
+        collectionUid: collectionUid
+      })
+    );
   };
 
   // prevent the parent's double-click handler from firing
@@ -773,6 +769,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
         onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
         data-selected={isSelected ? 'true' : undefined}
@@ -815,7 +812,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
-                  className={examplesIconClassName}
+                  className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleExamplesCollapse}
                   onDoubleClick={handleExamplesDoubleClick}
@@ -853,17 +850,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {appItems && appItems.length
             ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {showEmptyFolderMessage ? (
@@ -890,7 +887,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
       ) : null}
 
       {/* Show examples when expanded (only for HTTP requests) */}
-      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
+      {isItemARequest(item) && item.type === 'http-request' && !itemIsCollapsed && hasExamples && (
         <div>
           {(item.examples || []).map((example, index) => {
             return (
@@ -900,6 +897,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
                 item={item}
                 index={index}
                 collection={collection}
+                searchText={searchText}
+                openBulkMenu={openBulkMenu}
+                isParentDragDisabled={isDragDisabled}
+                parentMultiDragItems={multiDragItems}
               />
             );
           })}

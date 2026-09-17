@@ -7,14 +7,14 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries } from 'utils/collections/index';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
 
@@ -30,6 +30,33 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
+
+  const selectionInfo = useMemo(
+    () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
+    [collections, selectedSidebarUids]
+  );
+
+  // A collection can't be dragged together with folders/requests/apps from inside it.
+  const hasMixedCollectionSelection = Boolean(
+    selectionInfo?.hasCollection
+    && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp)
+  );
+
+  // Whether a selected collection row can be dragged as part of the multi-selection.
+  const isCollectionMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || hasMixedCollectionSelection);
+
+  // Whether a selected folder/request/app row can be dragged as part of the multi-selection.
+  const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
+
+  const multiDragCollections = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
+  }, [selectionInfo]);
+
+  const multiDragItems = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasCollection || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [selectionInfo]);
 
   const handleContainerClick = (e) => {
     if (e.currentTarget === e.target) {
@@ -71,7 +98,18 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} openBulkMenu={openBulkMenu} />;
+            return (
+              <Collection
+                searchText={searchText}
+                collection={entry.collection}
+                key={entry.key}
+                openBulkMenu={openBulkMenu}
+                isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
+                isItemMultiDragDisabled={isItemMultiDragDisabled}
+                multiDragCollections={multiDragCollections}
+                multiDragItems={multiDragItems}
+              />
+            );
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}

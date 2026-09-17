@@ -136,7 +136,7 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     const result = await runSingleRequest(...baseArgs);
 
     expect(result.status).toBe('skipped');
-    expect(result.response.status).toBe('-');
+    expect(result.response.status).toBe('skipped');
     expect(result.response.duration).toBe(0);
     expect(result.response.size).toBe(0);
     expect(result.response.responseTime).toBe(0);
@@ -144,7 +144,7 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(typeof result.response.size).toBe('number');
   });
 
-  it('should return "-" as the response status when a pre-request script skips the request', async () => {
+  it('should return "skipped" as the response status when a pre-request script skips the request', async () => {
     prepareRequest.mockResolvedValue({
       method: 'GET',
       url: 'http://example.com/api/test',
@@ -160,7 +160,7 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
 
     expect(result.status).toBe('skipped');
     expect(result.skipped).toBe(true);
-    expect(result.response.status).toBe('-');
+    expect(result.response.status).toBe('skipped');
     expect(result.response.statusText).toBe('request skipped via pre-request script');
   });
 

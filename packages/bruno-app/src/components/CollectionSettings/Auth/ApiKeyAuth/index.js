@@ -66,7 +66,6 @@ const ApiKeyAuth = ({ collection }) => {
           onChange={(val) => handleAuthChange('key', val)}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
@@ -79,7 +78,6 @@ const ApiKeyAuth = ({ collection }) => {
           onChange={(val) => handleAuthChange('value', val)}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 

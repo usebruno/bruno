@@ -3,6 +3,7 @@ import type { Environment } from '@opencollection/types/config/environments';
 import type { Variable, SecretVariable } from '@opencollection/types/common/variables';
 import { stringifyYml } from './utils';
 import { hasTypedMetadata, toOpenCollectionTypedValue, serializeVariableValue } from './common/datatype';
+import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
 
 export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironmentVariable[]): (Variable | SecretVariable)[] | undefined => {
   if (!variables?.length) {
@@ -54,6 +55,11 @@ const stringifyEnvironment = (environment: BrunoEnvironment): string => {
     const ocEnvironment: Environment = {
       name: environment.name
     };
+
+    const environmentExtendsFrom = validatedEnvironmentExtendsFrom(environment.extends);
+    if (environmentExtendsFrom) {
+      (ocEnvironment as any).extends = environmentExtendsFrom;
+    }
 
     if (environment.color) {
       ocEnvironment.color = environment.color;
