@@ -13,7 +13,6 @@ describe('script access (dual-writer)', () => {
     });
     const { bodyRef, size } = await store.putBuffer(Buffer.alloc(50, 0x61));
     expect(size).toBe(50);
-    expect(() => store.assertScriptAccessible(bodyRef)).not.toThrow();
     expect(store.getBufferForScripts(bodyRef).length).toBe(50);
   });
 
@@ -24,7 +23,6 @@ describe('script access (dual-writer)', () => {
       idGen: () => 'small-1'
     });
     const { bodyRef } = await store.putBuffer(Buffer.from('ok'));
-    expect(() => store.assertScriptAccessible(bodyRef)).not.toThrow();
     expect(store.getBufferForScripts(bodyRef).toString()).toBe('ok');
   });
 });

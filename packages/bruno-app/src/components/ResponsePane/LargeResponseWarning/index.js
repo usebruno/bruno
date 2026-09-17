@@ -13,9 +13,6 @@ export const SHOW_INLINE_BYTES = 10 * 1024 * 1024;
 /** View-from-disk allowed at or below this; Download only above (bytes). */
 export const VIEW_MAX_BYTES = 50 * 1024 * 1024;
 
-/** @deprecated Use SHOW_INLINE_BYTES */
-export const LARGE_RESPONSE_BYTES = SHOW_INLINE_BYTES;
-
 const LargeResponseWarning = ({
   item,
   responseSize,

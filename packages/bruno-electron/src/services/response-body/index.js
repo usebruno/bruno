@@ -7,10 +7,9 @@ const {
   registerBrunoResponseProtocol,
   SCHEME
 } = require('./protocol');
-const { SHOW_INLINE_BYTES, VIEW_MAX_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
+const { SHOW_INLINE_BYTES, VIEW_MAX_BYTES, STORAGE_FILE } = require('./constants');
 const {
   BodyNotFoundError,
-  BodyTooLargeForScriptsError,
   BodyTooLargeForViewError,
   ResponseBodyError
 } = require('./errors');
@@ -59,10 +58,8 @@ module.exports = {
   SCHEME,
   SHOW_INLINE_BYTES,
   VIEW_MAX_BYTES,
-  STORAGE_MEMORY,
   STORAGE_FILE,
   BodyNotFoundError,
-  BodyTooLargeForScriptsError,
   BodyTooLargeForViewError,
   ResponseBodyError
 };

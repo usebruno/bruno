@@ -1,7 +1,6 @@
 const { protocol, net } = require('electron');
 const { pathToFileURL } = require('node:url');
 const { BodyNotFoundError } = require('./errors');
-const { STORAGE_FILE } = require('./constants');
 
 const SCHEME = 'bruno-response';
 
@@ -90,15 +89,13 @@ const registerBrunoResponseProtocol = (store) => {
       }
     }
 
-    if (stat.storage === STORAGE_FILE) {
-      const entryPath = store.getFilePath(bodyRef);
-      if (entryPath) {
-        try {
-          const fileResponse = await net.fetch(pathToFileURL(entryPath).href);
-          return new Response(fileResponse.body, { status: 200, headers });
-        } catch (_) {
-          /* fall through to buffer */
-        }
+    const entryPath = store.getFilePath(bodyRef);
+    if (entryPath) {
+      try {
+        const fileResponse = await net.fetch(pathToFileURL(entryPath).href);
+        return new Response(fileResponse.body, { status: 200, headers });
+      } catch (_) {
+        /* fall through to buffer */
       }
     }
 

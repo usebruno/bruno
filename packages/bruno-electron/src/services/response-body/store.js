@@ -161,15 +161,7 @@ const createResponseBodyStore = ({
     const maxLen = entry.size - start;
     const len = length == null ? maxLen : Math.min(Math.max(0, length | 0), maxLen);
 
-    if (entry.buffer) {
-      return entry.buffer.subarray(start, start + len);
-    }
-
-    return fs.readFileRange(entry.filePath, { position: start, length: len });
-  };
-
-  const assertScriptAccessible = (bodyRef) => {
-    getEntry(bodyRef);
+    return entry.buffer.subarray(start, start + len);
   };
 
   const getBufferForScripts = (bodyRef) => {
@@ -179,11 +171,7 @@ const createResponseBodyStore = ({
 
   const saveToPath = async (bodyRef, destPath) => {
     const entry = getEntry(bodyRef);
-    if (entry.filePath && fs.existsSync(entry.filePath)) {
-      await fs.copyFile(entry.filePath, destPath);
-      return;
-    }
-    await fs.writeFile(destPath, entry.buffer);
+    await fs.copyFile(entry.filePath, destPath);
   };
 
   const pin = (bodyRef) => {
@@ -228,7 +216,6 @@ const createResponseBodyStore = ({
     saveToPath,
     pin,
     release,
-    assertScriptAccessible,
     _entries: entries
   };
 };

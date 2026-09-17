@@ -80,7 +80,6 @@ describe('ResponseBodyStore', () => {
 
   test('scripts can read dual-written bodies of any size', async () => {
     const { bodyRef } = await store.putBuffer(Buffer.from('z'.repeat(150)));
-    expect(() => store.assertScriptAccessible(bodyRef)).not.toThrow();
     expect(store.getBufferForScripts(bodyRef)).toEqual(Buffer.from('z'.repeat(150)));
   });
 
