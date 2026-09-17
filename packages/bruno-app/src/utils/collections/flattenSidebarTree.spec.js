@@ -95,7 +95,7 @@ describe('flattenSidebarTree', () => {
 
   describe('examples', () => {
     it('emits example rows when expanded at request depth + 1', () => {
-      const c = collection('C', [request('r1', { examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }, { uid: 'ex2', name: 'err' }] })]);
+      const c = collection('C', [request('r1', { collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }, { uid: 'ex2', name: 'err' }] })]);
       const rows = flatten([loaded(c)]);
       const ex = rows.filter((r) => r.kind === 'example');
       expect(names(ex)).toEqual(['ok', 'err']);
@@ -121,7 +121,7 @@ describe('ancestry attributes', () => {
     expect(rows.find((r) => r.sortName === 'nested').parentName).toBe('f1');
   });
   it('stamps collectionId + parentName (request name) on example rows', () => {
-    const c = collection('My Coll', [request('r1', { examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
+    const c = collection('My Coll', [request('r1', { collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]);
     const ex = flatten([loaded(c)]).find((r) => r.kind === 'example');
     expect(ex.collectionId).toBe('my-coll');
     expect(ex.parentName).toBe('r1');
@@ -165,13 +165,13 @@ describe('buildIndexes', () => {
     expect(rowIndexByCollectionUid.get('col-x')).toBe(0);
   });
   it('item-uid map targets the item row, not its example rows', () => {
-    const c = collection('C', [request('r1', { uid: 'req-x', examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
+    const c = collection('C', [request('r1', { uid: 'req-x', collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]);
     const rows = flatten([loaded(c)]);
     const { rowIndexByItemUid } = buildIndexes(rows);
     expect(rows[rowIndexByItemUid.get('req-x')].kind).toBe('request');
   });
   it('indexes example rows by exampleUid', () => {
-    const c = collection('C', [request('r1', { uid: 'req-x', examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
+    const c = collection('C', [request('r1', { uid: 'req-x', collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]);
     const rows = flatten([loaded(c)]);
     const { rowIndexByItemUid } = buildIndexes(rows);
     expect(rows[rowIndexByItemUid.get('ex1')].kind).toBe('example');

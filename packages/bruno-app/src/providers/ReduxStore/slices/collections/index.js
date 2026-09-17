@@ -1146,17 +1146,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    toggleRequestExamples: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-
-        if (item && item.type === 'http-request') {
-          item.examplesExpanded = !item.examplesExpanded;
-        }
-      }
-    },
     requestUrlChanged: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4273,7 +4262,6 @@ export const {
   expandItem,
   collapseItem,
   toggleCollectionItem,
-  toggleRequestExamples,
   requestUrlChanged,
   updateItemSettings,
   updateAuth,

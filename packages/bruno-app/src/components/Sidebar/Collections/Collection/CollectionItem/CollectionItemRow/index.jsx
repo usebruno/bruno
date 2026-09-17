@@ -26,7 +26,7 @@ import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
-import { toggleCollectionItem, toggleRequestExamples, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -131,7 +131,7 @@ const CollectionItemRow = ({
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
-  const examplesExpanded = Boolean(item.examplesExpanded);
+  const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
@@ -387,7 +387,7 @@ const CollectionItemRow = ({
   const handleExamplesCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    dispatch(toggleRequestExamples({ collectionUid, itemUid: item.uid }));
+    dispatch((isCollectionItemCollapsed(item) ? expandItem : collapseItem)({ itemUid: item.uid, collectionUid }));
   };
 
   // prevent the parent's double-click handler from firing
