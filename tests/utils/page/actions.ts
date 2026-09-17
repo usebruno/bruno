@@ -2822,6 +2822,31 @@ const expectNoLink = async (cm: Locator) => {
 };
 
 /**
+ * The collections list is virtualized, so a row outside the viewport is not in
+ * DOM. Scroll the request to view.
+
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollSidebarListTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) return;
+
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((el) => Math.ceil(el.scrollHeight / el.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((el, offset) => el.scrollTo({ top: offset * el.clientHeight }), viewport);
+    // react-virtuoso mounts rows asynchronously after a scroll, so let it settle before checking.
+    await page.waitForTimeout(60);
+    if (await isRendered()) return;
+  }
+};
+
+/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -2838,6 +2863,7 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
     const requestRow = folderWrapper.locator('.collection-item-name').filter({
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
+    await scrollSidebarListTo(page, requestRow);
     await requestRow.click();
   });
 };
