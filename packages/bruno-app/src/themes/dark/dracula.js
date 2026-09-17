@@ -85,6 +85,12 @@ const draculaTheme = {
     subtle: colors.BRAND
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },
@@ -152,6 +158,7 @@ const draculaTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: colors.COMMENT,
     border2: colors.CURRENT_LINE,
     border1: colors.BG_ELEVATED,
     border0: colors.BG_DARKER
@@ -279,11 +286,9 @@ const draculaTheme = {
     bg: colors.BG_ELEVATED,
     list: {
       bg: colors.BG_DARKER,
-      borderRight: colors.BG_ELEVATED,
       borderBottom: colors.BG_ELEVATED,
       hoverBg: colors.BG_ELEVATED,
       active: {
-        border: colors.PURPLE,
         bg: colors.BG_ELEVATED,
         hoverBg: colors.BG_ELEVATED
       }
