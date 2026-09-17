@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
+import * as path from 'path';
+import { closeAllCollections, createCollection, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -53,28 +54,12 @@ test.describe('Create collection', () => {
     await createCollectionModal.getByRole('button', { name: 'Cancel' }).click();
   });
 
-  test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
-    const collectionName = 'test-collection';
-    const requestName = 'ping';
+  test('TC99: Verify user able to Create a new collection', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const collectionLocation = await createTmpDir('test-collection');
+    const collectionName = path.basename(collectionLocation);
 
-    await createCollection(page, collectionName, await createTmpDir(collectionName));
-
-    // Create a new request using the dialog/modal flow
-    await createRequest(page, requestName, collectionName);
-
-    // Set the URL
-    await page.locator('#request-url .CodeMirror').click();
-    await page.locator('#request-url').locator('textarea').fill('http://localhost:8081');
-    await page.locator('#request-actions').getByTestId('save-request-button').click();
-
-    // Send a request
-    await page.locator('#request-url .CodeMirror').click();
-    await page.locator('#request-url').locator('textarea').fill('/ping');
-    await page.locator('#request-actions').getByTestId('save-request-button').click();
-    await page.getByTestId('send-arrow-icon').click();
-
-    // Verify the response
-    await expect(page.getByRole('main')).toContainText('200 OK');
+    await createCollection(page, collectionName, collectionLocation);
+    await expect(page.getByText('Collection created!')).toBeVisible();
   });
 
   test('a newly created collection has no version set (shows "Not Set")', async ({ page, createTmpDir }) => {

@@ -586,6 +586,7 @@ export const BulkImportCollectionLocation = ({
       <Modal
         size="md"
         title="Bulk Import"
+        titleTestId="bulk-import-header-title"
         dataTestId="bulk-import-collection-location-modal"
         confirmText={importStarted ? 'Close' : 'Import'}
         confirmDisabled={Boolean(!selectedCollections?.length)}

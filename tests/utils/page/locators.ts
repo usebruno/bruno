@@ -10,6 +10,9 @@ import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildBulkImportSelectionLocators } from './import/bulk-import';
+import { buildCloneGitLocators } from './import/clone-git';
+import { buildImportModalLocators } from './import/modal';
 import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
@@ -315,20 +318,30 @@ export const buildCommonLocators = (page: Page) => ({
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
   import: {
-    modal: () => page.locator('[data-testid="import-collection-modal"]'),
-    locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
-    locationInput: () => page.locator('#collection-location'),
-    fileInput: () => page.locator('input[type="file"]'),
+    modal: () => page.getByTestId('import-collection-modal'),
+    locationModal: () => page.getByTestId('import-collection-location-modal'),
+    locationInput: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-location-input'),
+    locationCollectionName: (name: string) =>
+      page.getByTestId('import-collection-location-modal').getByText(name, { exact: true }),
+    locationFormatSelect: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-format-select'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    fileInput: () => page.getByTestId('import-collection-file-input'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
-    bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
-    bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
+    bulkFormatSelect: () =>
+      page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
+    bulkLocationInput: () =>
+      page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    importButton: (root?: Locator) =>
+      (root ?? page.getByTestId('import-collection-location-modal')).getByTestId(
+        'import-collection-location-modal-submit-btn'
+      ),
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
@@ -340,7 +353,10 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
-    })()
+    })(),
+    importModal: buildImportModalLocators(page),
+    cloneGit: buildCloneGitLocators(page),
+    bulkImport: buildBulkImportSelectionLocators(page)
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
