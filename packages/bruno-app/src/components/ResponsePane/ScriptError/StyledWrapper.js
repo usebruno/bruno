@@ -1,16 +1,60 @@
 import styled from 'styled-components';
 
+/* Grid rather than flex: grid sizes the list from its rows' content so the response below stays
+   visible when the cards don't need the pane, and when it does shrink the list, grid hands the free
+   space to the rows equally, capping each at its own content so a short error never grows past
+   what it has to show and the remainder flows to the longer cards. */
 const StyledWrapper = styled.div`
+  display: grid;
+  grid-auto-rows: minmax(auto, max-content);
+  gap: 0.5rem;
+  min-height: 0;
+  margin-bottom: 0.5rem;
+
+  .script-error {
+    display: flex;
+    flex-direction: column;
+    min-height: 10rem;
+  }
+
   .script-error-card {
     background-color: ${(props) => props.theme.background.base};
     border: solid 1px ${(props) => props.theme.border.border2};
     border-left: 4px solid ${(props) => props.theme.colors.text.danger};
     border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem 0rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    overflow-y: visible;
+  }
+
+  .script-error-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 8rem;
+    overflow-y: auto;
+    padding-bottom: 0.75rem;
+  }
+
+  .script-error.expanded {
+    min-height: 0;
+  }
+
+  .script-error.expanded .script-error-card {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .script-error.expanded .script-error-body {
+    flex: 1 1 auto;
+    max-height: none;
+  }
+
+  .script-error-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .script-error-header {
@@ -19,7 +63,7 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
   }
 
-  .close-button {
+  .icon-button {
     all: unset;
     opacity: 0.7;
     transition: opacity 0.2s;
