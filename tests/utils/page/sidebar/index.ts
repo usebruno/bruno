@@ -117,7 +117,6 @@ export const revealFolderRow = async (
 ): Promise<Locator> => {
   return await test.step(`Reveal folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
     const locators = buildSidebarLocators(page);
-    const collectionContainer = locators.collectionScope(collectionName);
 
     const collectionChevron = locators.collectionChevron(collectionName);
     await expect(collectionChevron).toBeVisible();
@@ -128,12 +127,9 @@ export const revealFolderRow = async (
       await collectionChevron.click();
     }
 
-    const rootFolder = collectionContainer.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
-    await expect(rootFolder).toBeVisible();
-
-    // Each CollectionItem renders as a wrapper div holding the row (.collection-item-name) and,
-    // once expanded, a children container. Scope to the wrapper so the next lookup is unambiguous.
-    let scope = collectionContainer;
+    // The sidebar is a flat, virtualized list: rows are siblings rather than nested wrappers, so
+    // each level is scoped by `data-collection-id` / `data-parent-name` instead of DOM ancestry.
+    let scope = locators.collectionScope(collectionName);
     for (const folderName of folderPath.slice(0, -1)) {
       const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
       await expect(row).toBeVisible();
@@ -143,7 +139,7 @@ export const revealFolderRow = async (
       if (!isExpanded) {
         await chevron.click();
       }
-      scope = row.locator('..');
+      scope = locators.folderScope(folderName);
     }
 
     const targetRow = scope
