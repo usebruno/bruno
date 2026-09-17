@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import range from 'lodash/range';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
@@ -27,27 +26,25 @@ import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
-import { toggleCollectionItem, addResponseExample, expandItem, collapseItem } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
-import RenameCollectionItem from './RenameCollectionItem';
-import CloneCollectionItem from './CloneCollectionItem';
-import DeleteCollectionItems from './DeleteCollectionItems';
-import IgnoreCollectionItem from './IgnoreCollectionItem';
-import RunCollectionItem from './RunCollectionItem';
-import GenerateCodeItem from './GenerateCodeItem';
+import RenameCollectionItem from '../RenameCollectionItem';
+import DeleteCollectionItems from '../DeleteCollectionItems';
+import IgnoreCollectionItem from '../IgnoreCollectionItem';
+import RunCollectionItem from '../RunCollectionItem';
+import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import CollectionItemInfo from './CollectionItemInfo/index';
-import CollectionItemIcon from './CollectionItemIcon';
-import ExampleItem from './ExampleItem';
+import CollectionItemInfo from '../CollectionItemInfo/index';
+import CollectionItemIcon from '../CollectionItemIcon';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
@@ -55,7 +52,6 @@ import {
   isTabForItemPresent as isTabForItemPresentSelector
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
-import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
@@ -64,7 +60,6 @@ import {
   getSortedDraggedItems,
   isCollectionItemCollapsed
 } from 'utils/collections/index';
-import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -76,7 +71,18 @@ import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isItemMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
+const CollectionItemRow = ({
+  item,
+  depth,
+  collectionUid,
+  collectionPathname,
+  searchText,
+  openBulkMenu,
+  children,
+  isItemMultiDragDisabled,
+  multiDragCollections,
+  multiDragItems: multiDragItemsForSelection
+}) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -125,6 +131,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
+  const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
@@ -182,17 +189,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
       dropEffect: 'move'
     }
   });
-
-  // Auto-scroll to show this item when its tab becomes active
-  useEffect(() => {
-    if (isTabForItemActive && ref.current) {
-      try {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors (some environments may not support smooth scrolling)
-      }
-    }
-  }, [isTabForItemActive]);
 
   const resolveDropFromMonitor = (monitor) => {
     return determineCollectionItemDrop({
@@ -303,6 +299,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     'rotate-90': !itemIsCollapsed
   });
 
+  const examplesIconClassName = classnames({
+    'rotate-90': examplesExpanded
+  });
+
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
@@ -387,12 +387,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const handleExamplesCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    dispatch(
-      (isCollectionItemCollapsed(item) ? expandItem : collapseItem)({
-        itemUid: item.uid,
-        collectionUid: collectionUid
-      })
-    );
+    dispatch((isCollectionItemCollapsed(item) ? expandItem : collapseItem)({ itemUid: item.uid, collectionUid }));
   };
 
   // prevent the parent's double-click handler from firing
@@ -414,7 +409,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     menuDropdownRef.current?.show();
   };
 
-  const indents = range(item.depth);
+  const indents = range(depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -589,11 +584,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
 
-  // Sort items by their "seq" property.
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
   const handleShowInFolder = () => {
     dispatch(showInFolder(item.pathname)).catch((error) => {
       console.error('Error opening the folder', error);
@@ -645,14 +635,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     toast.success(`Example "${name}" created successfully`);
     setCreateExampleModalOpen(false);
   };
-
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
-  const showEmptyFolderMessage
-    = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
-
-  const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
   const handleGenerateCode = () => {
     if (
@@ -807,12 +789,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
                   data-testid="folder-chevron"
                 />
               </ActionIcon>
-            ) : hasExamples ? (
+            ) : hasExamples && !hasSearchText ? (
               <ActionIcon style={{ width: 16, minWidth: 16 }}>
                 <IconChevronRight
                   size={16}
                   strokeWidth={2}
-                  className={iconClassName}
+                  className={examplesIconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
                   onClick={handleExamplesCollapse}
                   onDoubleClick={handleExamplesDoubleClick}
@@ -846,68 +828,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
           )}
         </div>
       </div>
-      {!itemIsCollapsed ? (
-        <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
-              })
-            : null}
-          {appItems && appItems.length
-            ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isItemMultiDragDisabled={isItemMultiDragDisabled} multiDragCollections={multiDragCollections} multiDragItems={multiDragItemsForSelection} />;
-              })
-            : null}
-          {showEmptyFolderMessage ? (
-            <div className="empty-folder-message">
-              {range(item.depth + 1).map((i) => (
-                <div className="indent-block" key={i} style={{ width: 16, minWidth: 16, height: '100%' }}>
-                  &nbsp;
-                </div>
-              ))}
-              <div style={{ paddingLeft: 8 }}>
-                <MenuDropdown
-                  data-testid="add-request-cta-folder"
-                  items={emptyFolderMenuItems}
-                  placement="bottom-start"
-                  appendTo={dropdownContainerRef?.current || document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                >
-                  <button className="ml-1 add-request-link">+ Add request</button>
-                </MenuDropdown>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
-      {/* Show examples when expanded (only for HTTP requests) */}
-      {isItemARequest(item) && item.type === 'http-request' && !itemIsCollapsed && hasExamples && (
-        <div>
-          {(item.examples || []).map((example, index) => {
-            return (
-              <ExampleItem
-                key={example.uid || index}
-                example={example}
-                item={item}
-                index={index}
-                collection={collection}
-                searchText={searchText}
-                openBulkMenu={openBulkMenu}
-                isParentDragDisabled={isDragDisabled}
-                parentMultiDragItems={multiDragItems}
-              />
-            );
-          })}
-        </div>
-      )}
+      {children}
     </StyledWrapper>
   );
 };
 
-export default React.memo(CollectionItem);
+export default React.memo(CollectionItemRow);

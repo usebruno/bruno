@@ -4,7 +4,6 @@ import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } f
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
-  addDepth,
   areItemsTheSameExceptSeqUpdate,
   collapseAllItemsInCollection,
   deleteItemInCollection,
@@ -270,7 +269,6 @@ export const collectionsSlice = createSlice({
       collection.lastAction = null;
 
       collapseAllItemsInCollection(collection);
-      addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
@@ -493,7 +491,6 @@ export const collectionsSlice = createSlice({
             item.items.push(action.payload.item);
           }
         }
-        addDepth(collection.items);
       }
     },
     deleteItem: (state, action) => {
@@ -751,7 +748,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedGrpcResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      const updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
 
       // Process based on event type
       switch (eventType) {
@@ -2656,7 +2653,7 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         if (type === 'request') {
-          let vars = get(folder, 'draft.request.vars.req', []);
+          const vars = get(folder, 'draft.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2666,7 +2663,7 @@ export const collectionsSlice = createSlice({
           }
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'draft.request.vars.res', []);
+          const vars = get(folder, 'draft.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2920,7 +2917,7 @@ export const collectionsSlice = createSlice({
           };
         }
         if (type === 'request') {
-          let vars = get(collection, 'draft.root.request.vars.req', []);
+          const vars = get(collection, 'draft.root.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2930,7 +2927,7 @@ export const collectionsSlice = createSlice({
           }
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'draft.root.request.vars.res', []);
+          const vars = get(collection, 'draft.root.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -3145,7 +3142,6 @@ export const collectionsSlice = createSlice({
             });
           }
         }
-        addDepth(collection.items);
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
@@ -3197,7 +3193,6 @@ export const collectionsSlice = createSlice({
           }
           currentSubItems = childItem.items;
         });
-        addDepth(collection.items);
       }
     },
     collectionChangeFileEvent: (state, action) => {
@@ -3793,7 +3788,6 @@ export const collectionsSlice = createSlice({
         };
         annotateTransient(collection.items);
       }
-      addDepth(collection.items);
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
@@ -3804,7 +3798,7 @@ export const collectionsSlice = createSlice({
       if (!collection.oauth2Credentials) {
         collection.oauth2Credentials = [];
       }
-      let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+      const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
 
       // Remove existing credentials for the same combination
       const filteredOauth2Credentials = filter(
@@ -3861,7 +3855,7 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       if (collection.oauth2Credentials) {
-        let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+        const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
@@ -4023,7 +4017,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedWsResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = {
+      const updatedResponse = {
         ...currentResponse,
         isError: false,
         error: '',

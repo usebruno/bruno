@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { setSandboxMode, runCollection, validateRunnerResults } from '../utils/page/index';
+import { setSandboxMode, runCollection, validateRunnerResults, getRunnerResultCounts } from '../utils/page/index';
 
 test.describe.parallel('Collection Run', () => {
   test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {
@@ -50,16 +50,8 @@ test.describe.parallel('Collection Run', () => {
     await runCollectionButton.click();
     await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
 
-    // Parse and validate test results from filter buttons
-    const allButton = page.locator('button').filter({ hasText: /^All/ });
-    const passedButton = page.locator('button').filter({ hasText: /^Passed/ });
-    const failedButton = page.locator('button').filter({ hasText: /^Failed/ });
-    const skippedButton = page.locator('button').filter({ hasText: /^Skipped/ });
-
-    const totalRequests = parseInt(await allButton.locator('span').innerText());
-    const passed = parseInt(await passedButton.locator('span').innerText());
-    const failed = parseInt(await failedButton.locator('span').innerText());
-    const skipped = parseInt(await skippedButton.locator('span').innerText());
+    // Parse and validate test results from the filter counts
+    const { totalRequests, passed, failed, skipped } = await getRunnerResultCounts(page);
 
     await expect(failed).toBe(0);
     await expect(passed).toBe(totalRequests - skipped - failed);
