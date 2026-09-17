@@ -35,6 +35,7 @@ const colors = {
   BORDER0: mix(0.2, BG_HIGHLIGHT, BG_ALT),
   BORDER1: mix(0.5, BG_HIGHLIGHT, BG_ALT),
   BORDER2: BG_HIGHLIGHT,
+  BORDER3: mix(0.5, GREY, BG_HIGHLIGHT),
 
   OVERLAY0: BG_HIGHLIGHT,
   OVERLAY1: mix(0.5, GREY, BG_HIGHLIGHT),
@@ -148,6 +149,7 @@ const cyberdreamDarkTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: colors.BORDER3,
     border2: colors.BORDER2,
     border1: colors.BORDER1,
     border0: colors.BORDER0
