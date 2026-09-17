@@ -40,9 +40,7 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const {
   getResponseBodyService,
-  SPILL_THRESHOLD_BYTES,
-  STORAGE_MEMORY,
-  BodyTooLargeForScriptsError
+  SHOW_INLINE_BYTES
 } = require('../../services/response-body');
 
 const getContentTypeHeader = (headers = {}) => {
@@ -64,17 +62,8 @@ const isTextLikeContentType = (contentType) => {
   );
 };
 
-/** True when post-response vars/scripts, assertions, or tests would read the body. */
-const requestNeedsResponseBodyForScripts = (request) => {
-  if (get(request, 'script.res')?.trim()) return true;
-  if (get(request, 'vars.res')?.length) return true;
-  if (get(request, 'assertions')?.length) return true;
-  const tests = get(request, 'tests');
-  return typeof tests === 'string' && Boolean(tests.trim());
-};
-
 /**
- * Ingest axios response stream into ResponseBodyStore; attach bodyRef + parsed data for scripts when memory-backed.
+ * Ingest axios response stream into ResponseBodyStore; attach bodyRef + parsed data from dual-writer buffer.
  */
 const ingestAxiosResponseBody = async (response, { disableParsingResponseJson } = {}) => {
   const bodyService = getResponseBodyService();
@@ -88,23 +77,17 @@ const ingestAxiosResponseBody = async (response, { disableParsingResponseJson } 
   response.bodyStorage = ingested.storage;
   response.size = ingested.size;
 
-  if (ingested.storage === STORAGE_MEMORY) {
-    const buffer = bodyService.store.getBufferForScripts(ingested.bodyRef);
-    response.data = buffer;
-    const parsed = parseDataFromResponse(response, disableParsingResponseJson);
-    response.data = parsed.data;
-    response.dataBuffer = parsed.dataBuffer;
-  } else {
-    response.data = null;
-    response.dataBuffer = Buffer.alloc(0);
-  }
+  const buffer = bodyService.store.getBufferForScripts(ingested.bodyRef);
+  response.data = buffer;
+  const parsed = parseDataFromResponse(response, disableParsingResponseJson);
+  response.data = parsed.data;
+  response.dataBuffer = parsed.dataBuffer;
 
   return ingested;
 };
 
 const shouldIncludeParsedDataInIpc = (response) => {
-  if (response.bodyStorage !== STORAGE_MEMORY) return false;
-  if (response.size > SPILL_THRESHOLD_BYTES) return false;
+  if (typeof response.size !== 'number' || response.size > SHOW_INLINE_BYTES) return false;
   return isTextLikeContentType(getContentTypeHeader(response.headers));
 };
 
@@ -1206,14 +1189,6 @@ const registerNetworkIpc = (mainWindow) => {
       cookiesStore.saveCookieJar();
 
       const runPostScripts = async () => {
-        if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY && !isResponseStream) {
-          if (requestNeedsResponseBodyForScripts(request)) {
-            const err = new BodyTooLargeForScriptsError(response.bodyRef, response.size);
-            response.postResponseScriptErrorMessage = err.message;
-          }
-          return;
-        }
-
         let postResponseScriptResult = null;
         let postResponseError = null;
         try {
@@ -2068,25 +2043,19 @@ const registerNetworkIpc = (mainWindow) => {
             let postResponseScriptResult;
             let postResponseError = null;
             try {
-              if (response.bodyStorage && response.bodyStorage !== STORAGE_MEMORY) {
-                if (requestNeedsResponseBodyForScripts(request)) {
-                  throw new BodyTooLargeForScriptsError(response.bodyRef, response.size);
-                }
-              } else {
-                postResponseScriptResult = await runPostResponse(
-                  request,
-                  response,
-                  requestUid,
-                  envVars,
-                  collectionPath,
-                  collection,
-                  collectionUid,
-                  runtimeVariables,
-                  processEnvVars,
-                  scriptingConfig,
-                  runRequestByItemPathname
-                );
-              }
+              postResponseScriptResult = await runPostResponse(
+                request,
+                response,
+                requestUid,
+                envVars,
+                collectionPath,
+                collection,
+                collectionUid,
+                runtimeVariables,
+                processEnvVars,
+                scriptingConfig,
+                runRequestByItemPathname
+              );
             } catch (error) {
               console.error('Post-response script error:', error);
               postResponseError = error;

@@ -22,22 +22,26 @@ describe('response-body client ring', () => {
     expect(mapped.data).toEqual({ ok: true });
   });
 
-  test('client pin/release/save forward to IpcPort', async () => {
+  test('client pin/release/save/read forward to IpcPort', async () => {
     const calls = [];
     const ipc = {
       invoke: async (channel, ...args) => {
         calls.push([channel, ...args]);
-        return channel.includes('pin') ? 'pin-1' : { success: true };
+        if (channel.includes('pin')) return 'pin-1';
+        if (channel.includes('read')) return { data: 'hello', size: 5 };
+        return { success: true };
       }
     };
     const client = createResponseBodyClient(ipc);
     expect(await client.pin('b1')).toBe('pin-1');
     await client.release('pin-1');
     await client.save('b1', { url: 'https://x' });
+    expect(await client.read('b1')).toEqual({ data: 'hello', size: 5 });
     expect(calls.map((c) => c[0])).toEqual([
       'renderer:response-body-pin',
       'renderer:response-body-release',
-      'renderer:response-body-save'
+      'renderer:response-body-save',
+      'renderer:response-body-read'
     ]);
   });
 });

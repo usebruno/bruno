@@ -26,8 +26,22 @@ class BodyTooLargeForScriptsError extends ResponseBodyError {
   }
 }
 
+class BodyTooLargeForViewError extends ResponseBodyError {
+  constructor(bodyRef, size, maxBytes) {
+    super(
+      `Response body is too large to view in-app (${size} bytes; max ${maxBytes}). Download the response instead.`,
+      'BODY_TOO_LARGE_FOR_VIEW'
+    );
+    this.name = 'BodyTooLargeForViewError';
+    this.bodyRef = bodyRef;
+    this.size = size;
+    this.maxBytes = maxBytes;
+  }
+}
+
 module.exports = {
   ResponseBodyError,
   BodyNotFoundError,
-  BodyTooLargeForScriptsError
+  BodyTooLargeForScriptsError,
+  BodyTooLargeForViewError
 };

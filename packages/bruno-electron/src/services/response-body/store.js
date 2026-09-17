@@ -1,18 +1,27 @@
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
-const { SPILL_THRESHOLD_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
-const { BodyNotFoundError, BodyTooLargeForScriptsError } = require('./errors');
+const { STORAGE_FILE } = require('./constants');
+const { BodyNotFoundError } = require('./errors');
 
 const defaultIdGen = () => randomUUID();
 
+const writeChunk = async (writeStream, buf) => {
+  if (!writeStream.write(buf)) {
+    await new Promise((resolve, reject) => {
+      writeStream.once('drain', resolve);
+      writeStream.once('error', reject);
+    });
+  }
+};
+
 /**
- * Pure response-body store (no Electron). Hybrid Map / spill-to-file.
+ * Pure response-body store (no Electron).
+ * Dumb dual multi-writer: every ingest writes to a spill file and to an in-memory buffer.
  */
 const createResponseBodyStore = ({
   fs,
   spillDir,
-  idGen = defaultIdGen,
-  spillThreshold = SPILL_THRESHOLD_BYTES
+  idGen = defaultIdGen
 } = {}) => {
   if (!fs) {
     throw new Error('createResponseBodyStore requires a FileSystemPort');
@@ -44,13 +53,32 @@ const createResponseBodyStore = ({
     const entry = entries.get(bodyRef);
     if (!entry) return;
     entries.delete(bodyRef);
-    if (entry.storage === STORAGE_FILE && entry.filePath && fs.existsSync(entry.filePath)) {
+    if (entry.filePath && fs.existsSync(entry.filePath)) {
       await fs.unlink(entry.filePath);
     }
   };
 
+  const finalizeEntry = (bodyRef, { buffer, filePath, size, contentType, headers }) => {
+    entries.set(bodyRef, {
+      storage: STORAGE_FILE,
+      filePath,
+      buffer,
+      size,
+      contentType,
+      headers,
+      refs: 0
+    });
+    return {
+      bodyRef,
+      size,
+      storage: STORAGE_FILE,
+      contentType
+    };
+  };
+
   /**
-   * Ingest a Node Readable. Spills to disk once accumulated size exceeds threshold.
+   * Ingest a Node Readable via dual writers: file + in-memory response buffer.
+   * No size / spill / drop logic in the writer.
    */
   const ingestStream = async (readable, { contentType, headers } = {}) => {
     if (!readable) {
@@ -60,72 +88,32 @@ const createResponseBodyStore = ({
     const bodyRef = idGen();
     const chunks = [];
     let size = 0;
-    let storage = STORAGE_MEMORY;
-    let writeStream = null;
     const destPath = filePathFor(bodyRef);
 
-    const startSpill = async () => {
-      await ensureSpillDir();
-      writeStream = fs.createWriteStream(destPath);
-      for (const chunk of chunks) {
-        if (!writeStream.write(chunk)) {
-          await new Promise((resolve, reject) => {
-            writeStream.once('drain', resolve);
-            writeStream.once('error', reject);
-          });
-        }
-      }
-      chunks.length = 0;
-      storage = STORAGE_FILE;
-    };
+    await ensureSpillDir();
+    const writeStream = fs.createWriteStream(destPath);
 
     try {
       for await (const chunk of readable) {
         const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
         size += buf.length;
-
-        if (storage === STORAGE_MEMORY) {
-          chunks.push(buf);
-          if (size > spillThreshold) {
-            await startSpill();
-          }
-        } else {
-          if (!writeStream.write(buf)) {
-            await new Promise((resolve, reject) => {
-              writeStream.once('drain', resolve);
-              writeStream.once('error', reject);
-            });
-          }
-        }
+        chunks.push(buf);
+        await writeChunk(writeStream, buf);
       }
 
-      if (storage === STORAGE_FILE && writeStream) {
-        await new Promise((resolve, reject) => {
-          writeStream.end((err) => (err ? reject(err) : resolve()));
-        });
-        entries.set(bodyRef, {
-          storage: STORAGE_FILE,
-          filePath: destPath,
-          size,
-          contentType,
-          headers,
-          refs: 0
-        });
-      } else {
-        const buffer = Buffer.concat(chunks, size);
-        entries.set(bodyRef, {
-          storage: STORAGE_MEMORY,
-          buffer,
-          size,
-          contentType,
-          headers,
-          refs: 0
-        });
-      }
+      await new Promise((resolve, reject) => {
+        writeStream.end((err) => (err ? reject(err) : resolve()));
+      });
+
+      return finalizeEntry(bodyRef, {
+        buffer: Buffer.concat(chunks, size),
+        filePath: destPath,
+        size,
+        contentType,
+        headers
+      });
     } catch (err) {
-      if (writeStream) {
-        writeStream.destroy();
-      }
+      writeStream.destroy();
       if (fs.existsSync(destPath)) {
         try {
           await fs.unlink(destPath);
@@ -135,44 +123,24 @@ const createResponseBodyStore = ({
       }
       throw err;
     }
-
-    return {
-      bodyRef,
-      size,
-      storage: entries.get(bodyRef).storage,
-      contentType
-    };
   };
 
   const putBuffer = async (buffer, { contentType, headers } = {}) => {
     const bodyRef = idGen();
     const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || []);
     const size = buf.length;
+    const destPath = filePathFor(bodyRef);
 
-    if (size > spillThreshold) {
-      await ensureSpillDir();
-      const destPath = filePathFor(bodyRef);
-      await fs.writeFile(destPath, buf);
-      entries.set(bodyRef, {
-        storage: STORAGE_FILE,
-        filePath: destPath,
-        size,
-        contentType,
-        headers,
-        refs: 0
-      });
-      return { bodyRef, size, storage: STORAGE_FILE, contentType };
-    }
+    await ensureSpillDir();
+    await fs.writeFile(destPath, buf);
 
-    entries.set(bodyRef, {
-      storage: STORAGE_MEMORY,
+    return finalizeEntry(bodyRef, {
       buffer: buf,
+      filePath: destPath,
       size,
       contentType,
-      headers,
-      refs: 0
+      headers
     });
-    return { bodyRef, size, storage: STORAGE_MEMORY, contentType };
   };
 
   const getStat = (bodyRef) => {
@@ -193,7 +161,7 @@ const createResponseBodyStore = ({
     const maxLen = entry.size - start;
     const len = length == null ? maxLen : Math.min(Math.max(0, length | 0), maxLen);
 
-    if (entry.storage === STORAGE_MEMORY) {
+    if (entry.buffer) {
       return entry.buffer.subarray(start, start + len);
     }
 
@@ -201,25 +169,21 @@ const createResponseBodyStore = ({
   };
 
   const assertScriptAccessible = (bodyRef) => {
-    const entry = getEntry(bodyRef);
-    if (entry.storage === STORAGE_FILE) {
-      throw new BodyTooLargeForScriptsError(bodyRef, entry.size);
-    }
+    getEntry(bodyRef);
   };
 
   const getBufferForScripts = (bodyRef) => {
     const entry = getEntry(bodyRef);
-    assertScriptAccessible(bodyRef);
     return entry.buffer;
   };
 
   const saveToPath = async (bodyRef, destPath) => {
     const entry = getEntry(bodyRef);
-    if (entry.storage === STORAGE_MEMORY) {
-      await fs.writeFile(destPath, entry.buffer);
+    if (entry.filePath && fs.existsSync(entry.filePath)) {
+      await fs.copyFile(entry.filePath, destPath);
       return;
     }
-    await fs.copyFile(entry.filePath, destPath);
+    await fs.writeFile(destPath, entry.buffer);
   };
 
   const pin = (bodyRef) => {
@@ -251,7 +215,7 @@ const createResponseBodyStore = ({
 
   const getFilePath = (bodyRef) => {
     const entry = getEntry(bodyRef);
-    return entry.storage === STORAGE_FILE ? entry.filePath : null;
+    return entry.filePath || null;
   };
 
   return {

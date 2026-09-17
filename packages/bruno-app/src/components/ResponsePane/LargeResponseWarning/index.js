@@ -7,9 +7,22 @@ import { formatSize } from 'utils/common/index';
 import Button from 'ui/Button/index';
 import { getResponseBodyClient } from 'utils/response-body';
 
-export const LARGE_RESPONSE_BYTES = 100 * 1024 * 1024;
+/** Show inline below this size; warning UI above (bytes). */
+export const SHOW_INLINE_BYTES = 10 * 1024 * 1024;
 
-const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
+/** View-from-disk allowed at or below this; Download only above (bytes). */
+export const VIEW_MAX_BYTES = 50 * 1024 * 1024;
+
+/** @deprecated Use SHOW_INLINE_BYTES */
+export const LARGE_RESPONSE_BYTES = SHOW_INLINE_BYTES;
+
+const LargeResponseWarning = ({
+  item,
+  responseSize,
+  onRevealResponse,
+  canView = true,
+  revealLoading = false
+}) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
   const canDownload = Boolean(response.bodyRef) && !response.stream?.running;
@@ -68,9 +81,15 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
             Large Response Warning
           </div>
           <div className="warning-description">
-            Handling responses over <span className="size-highlight supported-size">{formatSize(LARGE_RESPONSE_BYTES)}</span> could degrade performance.
+            Handling responses over <span className="size-highlight supported-size">{formatSize(SHOW_INLINE_BYTES)}</span> could degrade performance.
             <br />
             Size of current response: <span className="size-highlight current-size">{formatSize(responseSize)}</span>
+            {!canView ? (
+              <>
+                <br />
+                Responses over <span className="size-highlight supported-size">{formatSize(VIEW_MAX_BYTES)}</span> can only be downloaded.
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -79,11 +98,12 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           icon={<IconEye size={18} strokeWidth={1.5} />}
           iconPosition="left"
           onClick={onRevealResponse}
-          title="Show response content"
+          disabled={!canView || revealLoading}
+          title={canView ? 'Show response content' : 'Response is too large to view in-app'}
           color="secondary"
           size="sm"
         >
-          View
+          {revealLoading ? 'Loading…' : 'View'}
         </Button>
         <Button
           icon={<IconDownload size={18} strokeWidth={1.5} />}

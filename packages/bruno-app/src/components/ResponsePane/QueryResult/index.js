@@ -1,10 +1,12 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import { mediaUrlFor } from 'utils/response-body';
-import LargeResponseWarning, { LARGE_RESPONSE_BYTES } from '../LargeResponseWarning';
+import { getResponseBodyClient, mediaUrlFor } from 'utils/response-body';
+import LargeResponseWarning, { SHOW_INLINE_BYTES, VIEW_MAX_BYTES } from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -112,9 +114,17 @@ const QueryResult = ({
 }) => {
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
+  const [viewedBodyData, setViewedBodyData] = useState(null);
+  const [revealLoading, setRevealLoading] = useState(false);
   const { displayedTheme } = useTheme();
   const response = item.response || {};
   const bodyRef = response.bodyRef;
+
+  useEffect(() => {
+    setShowLargeResponse(false);
+    setViewedBodyData(null);
+    setRevealLoading(false);
+  }, [bodyRef]);
 
   const responseSize = useMemo(() => {
     if (typeof response.size === 'number') {
@@ -128,8 +138,17 @@ const QueryResult = ({
     return 0;
   }, [dataBuffer, response.size]);
 
-  const isLargeResponse = responseSize > LARGE_RESPONSE_BYTES;
+  const isLargeResponse = responseSize > SHOW_INLINE_BYTES;
+  const canViewLargeResponse = Boolean(bodyRef) && responseSize > SHOW_INLINE_BYTES && responseSize <= VIEW_MAX_BYTES;
+  const displayData = viewedBodyData != null ? viewedBodyData : data;
   const mediaSrc = useMemo(() => mediaUrlFor(bodyRef), [bodyRef]);
+
+  const isBinaryMedia = useMemo(() => {
+    const ct = (contentType || '').toLowerCase();
+    return ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video');
+  }, [contentType]);
+
+  const showLargeWarning = isLargeResponse && !showLargeResponse && !(bodyRef && isBinaryMedia);
 
   const detectedContentType = useMemo(() => {
     if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
@@ -138,13 +157,32 @@ const QueryResult = ({
 
   const formattedData = useMemo(
     () => {
-      if (isLargeResponse && !showLargeResponse) {
+      if (showLargeWarning) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      return formatResponse(displayData, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [displayData, dataBuffer, selectedFormat, filter, showLargeWarning]
   );
+
+  const handleRevealResponse = useCallback(async () => {
+    if (!canViewLargeResponse) return;
+    if (viewedBodyData != null) {
+      setShowLargeResponse(true);
+      return;
+    }
+
+    setRevealLoading(true);
+    try {
+      const result = await getResponseBodyClient().read(bodyRef);
+      setViewedBodyData(result?.data ?? '');
+      setShowLargeResponse(true);
+    } catch (err) {
+      toast.error(get(err, 'error.message') || get(err, 'message') || 'Failed to load response body');
+    } finally {
+      setRevealLoading(false);
+    }
+  }, [bodyRef, canViewLargeResponse, viewedBodyData]);
 
   const handleFilterChange = (value) => {
     if (onFilterChange) {
@@ -172,7 +210,7 @@ const QueryResult = ({
 
     // Auto media preview when content-type is binary and we have bodyRef
     const ct = (contentType || '').toLowerCase();
-    if (bodyRef && !data) {
+    if (bodyRef && !displayData) {
       if (ct.includes('image')) return 'preview-image';
       if (ct.includes('pdf')) return 'preview-pdf';
       if (ct.includes('audio')) return 'preview-audio';
@@ -180,7 +218,7 @@ const QueryResult = ({
     }
 
     return 'preview-text';
-  }, [selectedFormat, detectedContentType, contentType, bodyRef, data]);
+  }, [selectedFormat, detectedContentType, contentType, bodyRef, displayData]);
 
   const codeMirrorMode = useMemo(() => {
     // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
@@ -210,11 +248,13 @@ const QueryResult = ({
             </div>
           ) : null}
         </div>
-      ) : isLargeResponse && !showLargeResponse ? (
+      ) : showLargeWarning ? (
         <LargeResponseWarning
           item={item}
           responseSize={responseSize}
-          onRevealResponse={() => setShowLargeResponse(true)}
+          canView={canViewLargeResponse}
+          revealLoading={revealLoading}
+          onRevealResponse={handleRevealResponse}
         />
       ) : (
         <div className="h-full flex flex-col">
@@ -222,7 +262,7 @@ const QueryResult = ({
             <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
-                data={data}
+                data={displayData}
                 dataBuffer={dataBuffer}
                 formattedData={formattedData}
                 item={item}

@@ -7,10 +7,11 @@ const {
   registerBrunoResponseProtocol,
   SCHEME
 } = require('./protocol');
-const { SPILL_THRESHOLD_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
+const { SHOW_INLINE_BYTES, VIEW_MAX_BYTES, STORAGE_MEMORY, STORAGE_FILE } = require('./constants');
 const {
   BodyNotFoundError,
   BodyTooLargeForScriptsError,
+  BodyTooLargeForViewError,
   ResponseBodyError
 } = require('./errors');
 
@@ -26,8 +27,7 @@ const createResponseBodyService = (options = {}) => {
   const store = createResponseBodyStore({
     fs,
     spillDir,
-    idGen: options.idGen,
-    spillThreshold: options.spillThreshold
+    idGen: options.idGen
   });
 
   singleton = {
@@ -57,10 +57,12 @@ module.exports = {
   registerBrunoResponseScheme,
   CHANNELS,
   SCHEME,
-  SPILL_THRESHOLD_BYTES,
+  SHOW_INLINE_BYTES,
+  VIEW_MAX_BYTES,
   STORAGE_MEMORY,
   STORAGE_FILE,
   BodyNotFoundError,
   BodyTooLargeForScriptsError,
+  BodyTooLargeForViewError,
   ResponseBodyError
 };

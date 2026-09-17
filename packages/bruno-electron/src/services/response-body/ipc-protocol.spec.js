@@ -63,8 +63,7 @@ describe('response-body IPC adapter', () => {
       idGen: (() => {
         let n = 0;
         return () => `b-${++n}`;
-      })(),
-      spillThreshold: 100
+      })()
     });
     registerResponseBodyIpc({}, store);
   });
@@ -76,12 +75,15 @@ describe('response-body IPC adapter', () => {
     jest.dontMock('../../utils/filesystem');
   });
 
-  test('pin / release / save round-trip', async () => {
+  test('pin / release / save / read round-trip', async () => {
     const { CHANNELS } = require('./ipc');
     const { bodyRef } = await store.putBuffer(Buffer.from('hello'));
 
     const pinId = await handlers[CHANNELS.PIN]({}, bodyRef);
     expect(typeof pinId).toBe('string');
+
+    const readResult = await handlers[CHANNELS.READ]({}, bodyRef);
+    expect(readResult).toEqual({ data: 'hello', size: 5, contentType: null });
 
     const saveResult = await handlers[CHANNELS.SAVE]({}, {
       bodyRef,
@@ -92,6 +94,14 @@ describe('response-body IPC adapter', () => {
     expect(chooseFileToSave).toHaveBeenCalled();
 
     await expect(handlers[CHANNELS.RELEASE]({}, pinId)).resolves.toEqual({ success: true });
+  });
+
+  test('read rejects bodies larger than VIEW_MAX_BYTES', async () => {
+    const { CHANNELS } = require('./ipc');
+    const { VIEW_MAX_BYTES } = require('./constants');
+    const { BodyTooLargeForViewError } = require('./errors');
+    const { bodyRef } = await store.putBuffer(Buffer.alloc(VIEW_MAX_BYTES + 1, 0x61));
+    await expect(handlers[CHANNELS.READ]({}, bodyRef)).rejects.toBeInstanceOf(BodyTooLargeForViewError);
   });
 
   test('save cancelled returns cancelled flag', async () => {
@@ -135,8 +145,7 @@ describe('bruno-response protocol handler', () => {
       idGen: (() => {
         let n = 0;
         return () => `p-${++n}`;
-      })(),
-      spillThreshold: 100
+      })()
     });
     registerBrunoResponseProtocol(store);
   });

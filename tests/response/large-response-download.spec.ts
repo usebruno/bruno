@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { closeAllCollections, createCollection, createRequest, sendRequest, clickResponseAction } from '../utils/page/actions';
 
-const UNDER_100MB_URL = 'http://localhost:8081/api/large-payload?size=15728640';
+const BETWEEN_10_50MB_URL = 'http://localhost:8081/api/large-payload?size=15728640';
 const EXPECTED_SIZE = 15728640;
 
 test.describe('Large response download', () => {
@@ -18,10 +18,11 @@ test.describe('Large response download', () => {
     const downloadDir = await createTmpDir('large-download-out');
 
     await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await createRequest(page, 'download-mid', collectionName, { url: UNDER_100MB_URL });
+    await createRequest(page, 'download-mid', collectionName, { url: BETWEEN_10_50MB_URL });
     await sendRequest(page, 200);
 
-    await expect(page.getByTestId('response-preview-container')).toBeVisible({ timeout: 90000 });
+    await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 120000 });
+    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible();
 
     await expect(page.getByText(/15(\.\d+)?\s*MB/i).or(page.getByText(String(EXPECTED_SIZE)))).toBeVisible({ timeout: 30000 }).catch(() => {});
 
