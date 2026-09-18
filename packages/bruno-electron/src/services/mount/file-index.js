@@ -4,7 +4,6 @@ const { getStatements, getDatabase } = require('../../ipc/sqlite');
 const {
   hashFile,
   hashFileAsync,
-  normalize,
   posixifyPath,
   idForAbsolutePath,
   resolveDenylist,
@@ -29,7 +28,7 @@ class FileIndex {
   }
 
   async status(collectionPath, options = {}) {
-    const root = normalize(collectionPath);
+    const root = collectionPath;
     const metadata = this.#loadMetadata(root);
     const denylist = resolveDenylist(options.denylist);
     const added = [];
@@ -79,12 +78,12 @@ class FileIndex {
   }
 
   clearCollection(collectionPath) {
-    this.#statements.execute('file_index_clear_collection', { collection_path: normalize(collectionPath) });
+    this.#statements.execute('file_index_clear_collection', { collection_path: collectionPath });
   }
 
   entries(collectionPath) {
     const rows = this.#statements.execute('file_index_content_for_collection', {
-      collection_path: normalize(collectionPath)
+      collection_path: collectionPath
     });
     const map = new Map();
     for (const row of rows) {
@@ -94,9 +93,9 @@ class FileIndex {
   }
 
   stage(collectionPath, entry) {
-    const root = normalize(collectionPath);
+    const root = collectionPath;
     const { op } = entry;
-    const relativePath = path.normalize(entry.relativePath);
+    const relativePath = entry.relativePath;
 
     if (op === 'remove') {
       this.#statements.execute('file_index_delete_entry', { collection_path: root, relative_path: relativePath });
@@ -137,8 +136,8 @@ class FileIndex {
   }
 
   #resolveTarget(collectionPath, absolutePath) {
-    const root = normalize(collectionPath);
-    const relativePath = path.normalize(path.relative(root, normalize(absolutePath)));
+    const root = collectionPath;
+    const relativePath = path.relative(root, absolutePath);
     const escapesRoot = relativePath === '..' || relativePath.startsWith(`..${path.sep}`);
     if (escapesRoot || path.isAbsolute(relativePath)) return null;
     return { root, relativePath };
