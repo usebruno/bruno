@@ -140,8 +140,8 @@ describe('brunoToOpenCollection (export): client certificates', () => {
   });
 });
 
-describe('client certificates: export then import round-trip', () => {
-  it('keeps every certificate field, including the disabled flag', () => {
+describe('client certificates: round-trip', () => {
+  it('export then import keeps every certificate field, including the disabled flag', () => {
     const certs = [
       {
         domain: 'localhost',
@@ -168,5 +168,34 @@ describe('client certificates: export then import round-trip', () => {
     const { brunoConfig } = openCollectionToBruno(oc);
 
     expect(brunoConfig.clientCertificates.certs).toEqual(certs);
+  });
+
+  it('import then export keeps every certificate field, including the disabled flag', () => {
+    const clientCertificates = [
+      {
+        domain: 'localhost',
+        type: 'pem',
+        certificateFilePath: './certs/client-cert.pem',
+        privateKeyFilePath: './certs/client-key.pem',
+        passphrase: 'secret',
+        disabled: true
+      },
+      {
+        domain: 'example.com',
+        type: 'pkcs12',
+        pkcs12FilePath: './certs/client.pfx',
+        passphrase: 'pfx-secret'
+      }
+    ];
+
+    const bruno = openCollectionToBruno({
+      opencollection: '1.0.0',
+      info: { name: 'API' },
+      config: { clientCertificates }
+    });
+
+    const oc = brunoToOpenCollection(bruno);
+
+    expect(oc.config.clientCertificates).toEqual(clientCertificates);
   });
 });
