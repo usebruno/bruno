@@ -65,7 +65,9 @@ export const apiSpecSlice = createSlice({
       const apiSpec = findApiSpecByUid(state.apiSpecs, uid);
       if (apiSpec) {
         apiSpec.raw = content;
-        delete apiSpec.draft;
+        if (apiSpec.draft === content) {
+          delete apiSpec.draft;
+        }
       }
     },
     updateApiSpecDraft: (state, action) => {
@@ -121,6 +123,10 @@ export const openApiSpecTab = (apiSpec) => async (dispatch, getState) => {
     collectionUid = (await dispatch(mountScratchCollection(workspace.uid)))?.uid;
   }
 
+  if (getState().workspaces.activeWorkspaceUid !== workspace.uid) {
+    return;
+  }
+
   const uid = getApiSpecTabUid(collectionUid, pathname);
 
   if (!uid) {
@@ -163,9 +169,9 @@ export const dropApiSpecTabsMissingFrom = (workspaceUid, pathnames) => (dispatch
   }
 };
 
-const closeApiSpecTabs = (pathname) => (dispatch, getState) => {
+const closeApiSpecTabs = (collectionUid, pathname) => (dispatch, getState) => {
   const tabUids = getState().tabs.tabs
-    .filter((tab) => isApiSpecTabForPathname(tab, pathname))
+    .filter((tab) => tab.collectionUid === collectionUid && isApiSpecTabForPathname(tab, pathname))
     .map((tab) => tab.uid);
 
   if (tabUids.length) {
@@ -266,7 +272,7 @@ export const closeApiSpecFile
           ipcRenderer
             .invoke('renderer:remove-api-spec', apiSpec.pathname, workspacePath)
             .then(async () => {
-              dispatch(closeApiSpecTabs(apiSpec.pathname));
+              dispatch(closeApiSpecTabs(activeWorkspace?.scratchCollectionUid, apiSpec.pathname));
               dispatch(removeApiSpec({ uid }));
 
               if (activeWorkspace) {

@@ -204,3 +204,52 @@ describe('reopening API spec tabs when a workspace is opened', () => {
     expect(activeTabType(store)).toBe('workspaceOverview');
   });
 });
+
+describe('reopening API spec tabs on Windows, where file paths ignore case', () => {
+  const WORKSPACE_SPELLING = 'C:/Workspaces/Team/Petstore.yaml';
+  const SNAPSHOT_SPELLING = 'c:/workspaces/team/petstore.yaml';
+
+  let switchWorkspace;
+
+  beforeAll(async () => {
+    jest.resetModules();
+    jest.doMock('platform', () => ({ os: { family: 'Windows' } }));
+    window.ipcRenderer = { invoke: jest.fn(mockIpcInvoke) };
+    ({ switchWorkspace } = await import('./actions'));
+  });
+
+  afterAll(() => {
+    jest.dontMock('platform');
+    jest.resetModules();
+  });
+
+  it('reopens the saved tab when the workspace spells the same file with different capitals', async () => {
+    workspaceApiSpecPaths = [WORKSPACE_SPELLING];
+    snapshot = snapshotWith({ apiSpecTabs: [SNAPSHOT_SPELLING] });
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(specTabPaths(store)).toEqual([WORKSPACE_SPELLING]);
+  });
+
+  it('focuses the spec that was active even though its saved path is spelled differently', async () => {
+    workspaceApiSpecPaths = [WORKSPACE_SPELLING];
+    snapshot = snapshotWith({ apiSpecTabs: [SNAPSHOT_SPELLING], activeApiSpecTabPathname: SNAPSHOT_SPELLING });
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(activeTabType(store)).toBe('api-spec');
+  });
+
+  it('still skips a saved tab for a spec the workspace no longer holds', async () => {
+    workspaceApiSpecPaths = [WORKSPACE_SPELLING];
+    snapshot = snapshotWith({ apiSpecTabs: [SNAPSHOT_SPELLING, 'C:/Workspaces/Team/Orders.yaml'] });
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(specTabPaths(store)).toEqual([WORKSPACE_SPELLING]);
+  });
+});

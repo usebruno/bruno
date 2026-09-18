@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { waitForReadyPage } from '../../utils/page';
+import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../utils/page';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
@@ -218,7 +218,7 @@ test.describe('API spec tabs come back after a restart', () => {
     await openBothSpecs(page, app, firstPath, secondPath);
     await expect(buildCommonLocators(page).tabs.activeRequestTab()).toContainText(SECOND_SPEC.file);
 
-    await page.waitForTimeout(2000);
+    await waitForSnapshotApiSpecTabs(userDataPath, [firstPath, secondPath], { activePathname: secondPath });
     await closeElectronApp(app);
 
     const restarted = await launchElectronApp({ userDataPath });
@@ -252,7 +252,7 @@ test.describe('API spec tabs come back after a restart', () => {
 
     await openBothSpecs(page, app, firstPath, secondPath);
 
-    await page.waitForTimeout(2000);
+    await waitForSnapshotApiSpecTabs(userDataPath, [firstPath, secondPath]);
     await closeElectronApp(app);
 
     fs.rmSync(secondPath);

@@ -15,7 +15,7 @@ import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, focusTab, restoreTabs } from '../tabs';
 import { dropApiSpecTabsMissingFrom } from '../apiSpec';
-import { API_SPEC_TAB_TYPE, getApiSpecTabUid } from 'utils/api-specs';
+import { API_SPEC_TAB_TYPE, getApiSpecPathKey, getApiSpecTabUid } from 'utils/api-specs';
 import {
   setSnapshotReady,
   startSnapshotHydrationSession,
@@ -672,25 +672,28 @@ export const switchWorkspace = (workspaceUid) => {
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
 
-        const workspaceApiSpecPaths = new Set(
+        const workspaceApiSpecPathsByKey = new Map(
           (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])
             .map((apiSpec) => normalizePath(apiSpec?.path))
             .filter(Boolean)
+            .map((apiSpecPath) => [getApiSpecPathKey(apiSpecPath), apiSpecPath])
         );
         const reopenedApiSpecTabUids = new Set();
 
         (workspaceSnapshot?.apiSpecTabs || []).forEach((apiSpecPathname) => {
-          const normalizedPathname = normalizePath(apiSpecPathname);
-          const uid = getApiSpecTabUid(scratchCollection.uid, normalizedPathname);
-          if (!uid || !workspaceApiSpecPaths.has(normalizedPathname)) return;
+          const workspaceApiSpecPath = workspaceApiSpecPathsByKey.get(getApiSpecPathKey(apiSpecPathname));
+          if (!workspaceApiSpecPath) return;
+
+          const uid = getApiSpecTabUid(scratchCollection.uid, workspaceApiSpecPath);
+          if (!uid) return;
 
           reopenedApiSpecTabUids.add(uid);
           dispatch(addTab({
             uid,
             collectionUid: scratchCollection.uid,
             type: API_SPEC_TAB_TYPE,
-            apiSpecPathname: normalizedPathname,
-            tabName: path.basename(normalizedPathname)
+            apiSpecPathname: workspaceApiSpecPath,
+            tabName: path.basename(workspaceApiSpecPath)
           }));
         });
 

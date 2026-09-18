@@ -7,6 +7,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import apiSpecReducer, {
   clearApiSpecDraft,
+  closeApiSpecFile,
   dropApiSpecTabsMissingFrom,
   openApiSpecTab,
   saveApiSpecTabDraft,
@@ -142,6 +143,21 @@ describe('saveApiSpecTabDraft', () => {
     expect(getSpec(store).draft).toBeUndefined();
   });
 
+  it('keeps edits typed while the write was still in flight, instead of reverting to what reached disk', async () => {
+    let finishWrite;
+    window.ipcRenderer.invoke.mockReturnValue(new Promise((resolve) => { finishWrite = resolve; }));
+    const store = buildStore({ draft: EDITED_CONTENT });
+    const KEPT_TYPING = `${EDITED_CONTENT}\ninfo:`;
+
+    const saving = store.dispatch(saveApiSpecTabDraft(TAB_UID));
+    store.dispatch(updateApiSpecDraft({ uid: 'runtime-uid', content: KEPT_TYPING }));
+    finishWrite();
+    await saving;
+
+    expect(getSpec(store).raw).toBe(EDITED_CONTENT);
+    expect(getSpec(store).draft).toBe(KEPT_TYPING);
+  });
+
   it('does nothing when the tab it was asked to save has already been closed', async () => {
     const store = buildStore({ draft: EDITED_CONTENT });
 
@@ -230,12 +246,69 @@ describe('dropApiSpecTabsMissingFrom', () => {
   });
 });
 
+describe('removing an API spec from a workspace', () => {
+  const WORKSPACE_A = 'workspace-a';
+  const WORKSPACE_B = 'workspace-b';
+  const SCRATCH_B = 'scratch-collection-b';
+
+  const apiSpecTab = (collectionUid) => ({
+    uid: getApiSpecTabUid(collectionUid, SPEC_PATHNAME),
+    collectionUid,
+    type: 'api-spec',
+    apiSpecPathname: SPEC_PATHNAME
+  });
+
+  const buildStoreWithBothWorkspaces = () =>
+    configureStore({
+      reducer: { tabs: tabsReducer, apiSpec: apiSpecReducer, workspaces: (state = {}) => state },
+      preloadedState: {
+        workspaces: {
+          activeWorkspaceUid: WORKSPACE_A,
+          workspaces: [
+            { uid: WORKSPACE_A, pathname: '/workspace-a', scratchCollectionUid: SCRATCH_UID },
+            { uid: WORKSPACE_B, pathname: '/workspace-b', scratchCollectionUid: SCRATCH_B }
+          ]
+        },
+        tabs: {
+          tabs: [apiSpecTab(SCRATCH_UID), apiSpecTab(SCRATCH_B)],
+          activeTabUid: getApiSpecTabUid(SCRATCH_UID, SPEC_PATHNAME),
+          recentlyClosedTabs: []
+        },
+        apiSpec: {
+          apiSpecs: [{ uid: 'runtime-uid', pathname: SPEC_PATHNAME, raw: SAVED_CONTENT, filename: 'petstore.yaml' }]
+        }
+      }
+    });
+
+  beforeEach(() => {
+    jest.resetModules();
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+  });
+
+  it('leaves another workspace\'s tab on the same spec file open', async () => {
+    const store = buildStoreWithBothWorkspaces();
+    const workspaceActions = require('providers/ReduxStore/slices/workspaces/actions');
+    const loadSpy = jest
+      .spyOn(workspaceActions, 'loadWorkspaceApiSpecs')
+      .mockReturnValue(() => Promise.resolve());
+
+    await store.dispatch(closeApiSpecFile({ uid: 'runtime-uid' }));
+
+    expect(store.getState().tabs.tabs.map((tab) => tab.collectionUid)).toEqual([SCRATCH_B]);
+
+    loadSpy.mockRestore();
+  });
+});
+
 describe('opening an API spec from the sidebar', () => {
   const WORKSPACE_UID = 'workspace-a';
 
+  const workspacesTestReducer = (state = {}, action) =>
+    action.type === 'test/switchWorkspace' ? { ...state, activeWorkspaceUid: action.payload } : state;
+
   const buildWorkspaceStore = ({ scratchCollectionUid }) =>
     configureStore({
-      reducer: { tabs: tabsReducer, apiSpec: apiSpecReducer, workspaces: (state = {}) => state },
+      reducer: { tabs: tabsReducer, apiSpec: apiSpecReducer, workspaces: workspacesTestReducer },
       preloadedState: {
         workspaces: {
           activeWorkspaceUid: WORKSPACE_UID,
@@ -288,6 +361,24 @@ describe('opening an API spec from the sidebar', () => {
 
     expect(store.getState().tabs.tabs).toHaveLength(0);
     expect(toast.error).toHaveBeenCalled();
+
+    mountSpy.mockRestore();
+  });
+
+  it('does not open the tab when the user switched workspaces while the scratch collection was mounting', async () => {
+    const store = buildWorkspaceStore({ scratchCollectionUid: null });
+    const workspaceActions = require('providers/ReduxStore/slices/workspaces/actions');
+    const mountSpy = jest
+      .spyOn(workspaceActions, 'mountScratchCollection')
+      .mockReturnValue(async (dispatch) => {
+        dispatch({ type: 'test/switchWorkspace', payload: 'workspace-b' });
+        return { uid: SCRATCH_UID };
+      });
+
+    await store.dispatch(openApiSpecTab({ pathname: SPEC_PATHNAME, filename: 'petstore.yaml' }));
+
+    expect(store.getState().tabs.tabs).toHaveLength(0);
+    expect(store.getState().tabs.activeTabUid).toBeNull();
 
     mountSpy.mockRestore();
   });
