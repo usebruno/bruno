@@ -251,6 +251,7 @@ export const sendAiMessage = (
   allContent,
   requestContext,
   model,
+  modelApiFormat,
   contentType = 'app',
   variables = [],
   appEnabled = true,
@@ -394,6 +395,7 @@ export const sendAiMessage = (
       requests,
       requestId,
       model,
+      modelApiFormat,
       appEnabled
     });
   });
