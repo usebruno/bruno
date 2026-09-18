@@ -5,6 +5,7 @@ import { addRequestTag, deleteRequestTag, updateCollectionTagsList } from 'provi
 import { makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import TagList from 'components/TagList/index';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { getInheritedTagsWithSource } from 'utils/collections';
 
 const Tags = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -42,6 +43,12 @@ const Tags = ({ item, collection }) => {
     dispatch(makeTabPermanent({ uid: item.uid }));
   }, [dispatch, item.uid, collection.uid]);
 
+  // tags coming from parent folders already apply to this request, so reject duplicates
+  const handleValidation = (tag) => {
+    const inherited = getInheritedTagsWithSource(collection, item).find((entry) => entry.tag === tag.trim());
+    return inherited ? `Tag "${tag.trim()}" already exists on parent folder "${inherited.folderName}"` : '';
+  };
+
   const handleRequestSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
@@ -58,6 +65,7 @@ const Tags = ({ item, collection }) => {
         handleRemoveTag={handleRemove}
         tags={tags}
         onSave={handleRequestSave}
+        handleValidation={handleValidation}
         collectionFormat={collection.format}
       />
     </div>

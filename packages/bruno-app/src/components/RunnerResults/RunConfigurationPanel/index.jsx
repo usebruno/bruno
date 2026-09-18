@@ -5,19 +5,19 @@ import { IconGripVertical, IconCheck } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { isItemARequest, isItemAFolder } from 'utils/collections';
+import { isItemARequest, isItemAFolder, getEffectiveTags } from 'utils/collections';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
 import { isRequestTagsIncluded } from '@usebruno/common';
 
-const isRequestDisabled = (item, tags) => {
+const isRequestDisabled = (item, tags, collection) => {
   // WS and gRPC are not supported by the collection runner
   if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
 
-  // Check tag filtering
-  const requestTags = item.draft?.tags || item.tags || [];
+  // Check tag filtering against the request's own tags plus inherited folder tags
+  const requestTags = getEffectiveTags(collection, item);
   const includeTags = tags?.include || [];
   const excludeTags = tags?.exclude || [];
 
@@ -250,7 +250,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
       if (!savedConfiguration || isInitialMountRef.current) {
         isInitialMountRef.current = false;
         const enabledUids = finalRequests
-          .filter((item) => !isRequestDisabled(item, tags))
+          .filter((item) => !isRequestDisabled(item, tags, collection))
           .map((item) => item.uid);
         setSelectedItems(enabledUids);
       }
@@ -269,7 +269,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
     let changed = false;
 
     flattenedRequests.forEach((item) => {
-      const disabled = isRequestDisabled(item, tags);
+      const disabled = isRequestDisabled(item, tags, collection);
       const isCurrentlySelected = selectedItems.includes(item.uid);
       const isPendingReselect = pendingReselectRef.current.has(item.uid);
 
@@ -296,7 +296,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
     }
   }, [tags, flattenedRequests]);
 
-  const enabledRequests = flattenedRequests.filter((item) => !isRequestDisabled(item, tags));
+  const enabledRequests = flattenedRequests.filter((item) => !isRequestDisabled(item, tags, collection));
   const enabledCount = enabledRequests.length;
 
   const moveItem = useCallback((draggedItemUid, hoverIndex) => {
@@ -333,7 +333,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
   }, [selectedItems, collection.uid, dispatch, setSelectedItems]);
 
   const handleRequestSelect = useCallback((item) => {
-    if (isRequestDisabled(item, tags)) return;
+    if (isRequestDisabled(item, tags, collection)) return;
 
     try {
       if (selectedItems.includes(item.uid)) {
@@ -357,7 +357,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
     } catch (error) {
       console.error('Error selecting item:', error);
     }
-  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection.uid, tags]);
+  }, [selectedItems, setSelectedItems, flattenedRequests, dispatch, collection, tags]);
 
   const handleSelectAll = useCallback(() => {
     try {
@@ -383,7 +383,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
       const resetRequests = cloneDeep(originalRequests);
       setFlattenedRequests(resetRequests);
       const enabledUids = resetRequests
-        .filter((item) => !isRequestDisabled(item, tags))
+        .filter((item) => !isRequestDisabled(item, tags, collection))
         .map((item) => item.uid);
       setSelectedItems(enabledUids);
       const allUidsOrder = resetRequests.map((item) => item.uid);
@@ -427,7 +427,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
           <div className="requests-container">
             {flattenedRequests.map((item, idx) => {
               const isSelected = selectedItems.includes(item.uid);
-              const disabled = isRequestDisabled(item, tags);
+              const disabled = isRequestDisabled(item, tags, collection);
 
               return (
                 <RequestItem

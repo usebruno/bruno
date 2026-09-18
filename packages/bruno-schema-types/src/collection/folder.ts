@@ -21,4 +21,5 @@ export interface FolderRoot {
   request?: FolderRequest | null;
   docs?: string | null;
   meta?: FolderMeta | null;
+  tags?: string[] | null;
 }

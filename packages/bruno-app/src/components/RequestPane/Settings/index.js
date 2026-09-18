@@ -10,6 +10,8 @@ import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/c
 import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
+import InheritedTags from './InheritedTags';
+import { getInheritedTagsWithSource } from 'utils/collections';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -120,6 +122,14 @@ const Settings = ({ item, collection }) => {
             Tags
           </h3>
           <Tags item={item} collection={collection} />
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1 mb-4">
+            <IconTag size={16} />
+            Inherited Tags
+          </h3>
+          <InheritedTags itemUid={item.uid} tags={getInheritedTagsWithSource(collection, item)} />
         </div>
 
         <div className="flex flex-col gap-4">

@@ -508,6 +508,15 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+// A request's own tags plus the ones inherited from its ancestor folders
+const getEffectiveRequestTags = (collection, request) => {
+  const ownTags = request?.draft?.tags || request?.tags || [];
+  const inheritedTags = getTreePathFromCollectionToItem(collection, request)
+    .filter((node) => node.uid !== request.uid && node.type === 'folder')
+    .flatMap((folder) => (folder.draft || folder.root)?.tags || []);
+  return Array.from(new Set([...ownTags, ...inheritedTags]));
+};
+
 const parseBruFileMeta = (data) => {
   try {
     const metaRegex = /meta\s*{\s*([\s\S]*?)\s*}/;
@@ -986,6 +995,7 @@ module.exports = {
   mergeAuth,
   wrapAndJoinScripts,
   getTreePathFromCollectionToItem,
+  getEffectiveRequestTags,
   flattenItems,
   findItem,
   findItemInCollection,

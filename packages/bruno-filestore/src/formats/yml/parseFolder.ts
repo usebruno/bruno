@@ -39,6 +39,11 @@ const parseFolder = (ymlString: string): FolderRoot => {
       docs: null
     };
 
+    const tags = info?.tags;
+    if (Array.isArray(tags) && tags.length) {
+      folderRoot.tags = tags;
+    }
+
     if (ocFolder.request) {
       const folderRequest = folderRoot.request!;
 

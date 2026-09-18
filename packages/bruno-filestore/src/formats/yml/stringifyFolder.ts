@@ -49,6 +49,9 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     if (typeof seq === 'number' && Number.isFinite(seq)) {
       info.seq = seq;
     }
+    if (folderRoot.tags?.length) {
+      info.tags = folderRoot.tags;
+    }
     ocFolder.info = info;
 
     // request defaults

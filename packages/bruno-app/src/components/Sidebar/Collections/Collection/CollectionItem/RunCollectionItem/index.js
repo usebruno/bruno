@@ -54,11 +54,11 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
 
   const isFolderLoading = areItemsLoading(item);
 
-  const requestItemsForRecursiveFolderRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: item ? item.items : collection.items });
+  const requestItemsForRecursiveFolderRun = getRequestItemsForCollectionRun({ recursive: true, tags, collection, items: item ? item.items : collection.items });
   const totalRequestItemsCountForRecursiveFolderRun = requestItemsForRecursiveFolderRun.length;
   const shouldDisableRecursiveFolderRun = totalRequestItemsCountForRecursiveFolderRun <= 0;
 
-  const requestItemsForFolderRun = getRequestItemsForCollectionRun({ recursive: false, tags, items: item ? item.items : collection.items });
+  const requestItemsForFolderRun = getRequestItemsForCollectionRun({ recursive: false, tags, collection, items: item ? item.items : collection.items });
   const totalRequestItemsCountForFolderRun = requestItemsForFolderRun.length;
   const shouldDisableFolderRun = totalRequestItemsCountForFolderRun <= 0;
 
