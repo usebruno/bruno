@@ -58,6 +58,11 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           let ch;
           let word = '';
           while ((ch = stream.next()) != null) {
+            // `\:` marks the end of the param name; everything after is a literal, unhighlighted suffix
+            if (ch === '\\' && stream.peek() === ':') {
+              stream.backUp(1);
+              break;
+            }
             if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
               stream.backUp(1);
               const found = pathFoundInVariables(word, pathParams);
