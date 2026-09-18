@@ -103,7 +103,7 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: center;
     color: ${(props) => props.theme.colors.text.muted};
-    cursor: help;
+    cursor: pointer;
 
     &:hover {
       color: ${(props) => props.theme.colors.text.muted};
