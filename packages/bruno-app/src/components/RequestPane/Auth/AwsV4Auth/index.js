@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
-const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -24,6 +24,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -42,6 +45,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleSecretAccessKeyChange = (secretAccessKey) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -60,6 +66,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleSessionTokenChange = (sessionToken) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -78,6 +87,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleServiceChange = (service) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -96,6 +108,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleRegionChange = (region) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -114,6 +129,9 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleProfileNameChange = (profileName) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -143,6 +161,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -158,6 +177,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
         />
 
@@ -174,6 +194,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -188,6 +209,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -202,6 +224,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -216,6 +239,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>

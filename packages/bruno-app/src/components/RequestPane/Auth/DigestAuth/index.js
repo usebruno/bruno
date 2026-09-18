@@ -8,7 +8,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
+const DigestAuth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -23,6 +23,9 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handleUsernameChange = (username) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'digest',
@@ -37,6 +40,9 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   };
 
   const handlePasswordChange = (password) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'digest',
@@ -62,6 +68,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
         />
       </div>
@@ -77,6 +84,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
