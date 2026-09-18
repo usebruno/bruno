@@ -141,7 +141,8 @@ const QueryResult = ({
   const isLargeResponse = responseSize > SHOW_INLINE_BYTES;
   const canViewLargeResponse = Boolean(bodyRef) && responseSize > SHOW_INLINE_BYTES && responseSize <= VIEW_MAX_BYTES;
   const displayData = viewedBodyData != null ? viewedBodyData : data;
-  const mediaSrc = useMemo(() => mediaUrlFor(bodyRef), [bodyRef]);
+  // Prefer in-memory bytes (response examples) over the live request's bodyRef URL.
+  const mediaSrc = useMemo(() => (dataBuffer ? null : mediaUrlFor(bodyRef)), [bodyRef, dataBuffer]);
 
   const isBinaryMedia = useMemo(() => {
     const ct = (contentType || '').toLowerCase();

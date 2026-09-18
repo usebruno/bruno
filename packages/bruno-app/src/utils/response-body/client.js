@@ -13,8 +13,8 @@ export const createResponseBodyClient = (ipcPort) => {
       return ipcPort.invoke(RESPONSE_BODY_CHANNELS.SAVE, { bodyRef, url, pathname, headers });
     },
 
-    read(bodyRef) {
-      return ipcPort.invoke(RESPONSE_BODY_CHANNELS.READ, bodyRef);
+    read(bodyRef, options) {
+      return ipcPort.invoke(RESPONSE_BODY_CHANNELS.READ, bodyRef, options);
     },
 
     pin(bodyRef) {

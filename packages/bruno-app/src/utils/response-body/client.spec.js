@@ -36,11 +36,16 @@ describe('response-body client ring', () => {
     await client.release('pin-1');
     await client.save('b1', { url: 'https://x' });
     expect(await client.read('b1')).toEqual({ data: 'hello', size: 5 });
+    expect(await client.read('b1', { encoding: 'base64' })).toEqual({ data: 'hello', size: 5 });
     expect(calls.map((c) => c[0])).toEqual([
       'renderer:response-body-pin',
       'renderer:response-body-release',
       'renderer:response-body-save',
+      'renderer:response-body-read',
       'renderer:response-body-read'
     ]);
+    expect(calls[3][1]).toBe('b1');
+    expect(calls[4][1]).toBe('b1');
+    expect(calls[4][2]).toEqual({ encoding: 'base64' });
   });
 });
