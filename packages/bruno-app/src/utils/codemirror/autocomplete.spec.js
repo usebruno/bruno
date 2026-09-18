@@ -345,7 +345,26 @@ describe('Bruno Autocomplete', () => {
         expect(envHint.text).toBe('envVar');
       });
 
-      it('falls back to plain, unwrapped insertion for an unscoped/intermediate dotted-path segment', () => {
+      it('gives an unscoped process.env drill-down prefix the process.env icon, on the double-brace path too', () => {
+        const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue('{{}}');
+        mockedCodemirror.getRange.mockReturnValue('{{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        const processHint = result.list.find((hint) => hint.displayText === 'process');
+        expect(processHint).toBeTruthy();
+        expect(processHint.text).toBe('process');
+        expect(processHint.scope).toBe('process.env');
+        expect(processHint.render).toBeTruthy();
+      });
+
+      it('re-forms the `{{` pair, with no closing braces, for an unscoped/intermediate dotted-path segment', () => {
         const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
         mockedCodemirror.getLine.mockReturnValue('{');
@@ -359,8 +378,29 @@ describe('Bruno Autocomplete', () => {
         expect(result).toBeTruthy();
         const processHint = result.list.find((hint) => hint.displayText === 'process');
         expect(processHint).toBeTruthy();
-        expect(processHint.text).toBe('process');
-        expect(processHint.scope).toBeFalsy();
+        expect(processHint.text).toBe('{process');
+        expect(processHint.scope).toBe('process.env');
+        expect(processHint.render).toBeTruthy();
+      });
+
+      it('offers a scoped variable whose name contains a literal dot as one complete hint, not truncated to its first segment', () => {
+        const partialVariables = [{ name: 'api.host', scope: 'collection' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue('{');
+        mockedCodemirror.getRange.mockReturnValue('{');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables'],
+          enableSingleBraceTrigger: true
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list.find((hint) => hint.displayText === 'api')).toBeFalsy();
+
+        const apiHostHint = result.list.find((hint) => hint.displayText === 'api.host');
+        expect(apiHostHint).toBeTruthy();
+        expect(apiHostHint.scope).toBe('collection');
+        expect(apiHostHint.text).toBe('{api.host}}');
       });
     });
 
@@ -877,6 +917,81 @@ describe('Bruno Autocomplete', () => {
 
         // apple and avocado are prefix matches, banana contains 'a' as substring
         expect(result).toEqual(['apple', 'avocado', 'banana']);
+      });
+    });
+
+    describe('variable-scope awareness (3rd `variableScopes` argument)', () => {
+      it('offers a scoped, non-process.env hint whole instead of truncating it to its first segment', () => {
+        const hints = ['api', 'api.host'];
+        const variableScopes = { 'api.host': 'collection' };
+        const result = extractNextSegmentSuggestions(hints, '', variableScopes);
+
+        expect(result).toEqual(['api.host', 'api']);
+      });
+
+      it('still truncates a `process.env` scoped hint to its next segment, unaffected by the bypass', () => {
+        const hints = ['process', 'process.env', 'process.env.FOO'];
+        const variableScopes = { 'process.env.FOO': 'process.env' };
+        const result = extractNextSegmentSuggestions(hints, '', variableScopes);
+
+        expect(result).toEqual(['process']);
+      });
+
+      it('falls back to the original truncating behavior when no variableScopes map is passed', () => {
+        const hints = ['api', 'api.host'];
+        const result = extractNextSegmentSuggestions(hints, '');
+
+        expect(result).toEqual(['api']);
+      });
+    });
+
+    describe('scope-based grouping', () => {
+      it('groups by scope in global -> collection -> environment -> folder -> request -> oauth2 -> runtime -> process.env order, then alphabetically within a scope', () => {
+        const hints = [
+          'zRequestVar',
+          'aRequestVar',
+          'runtimeVar',
+          'oauthVar',
+          'globalVar',
+          'folderVar',
+          'envVar',
+          'processEnvVar',
+          'collectionVar'
+        ];
+        const variableScopes = {
+          zRequestVar: 'request',
+          aRequestVar: 'request',
+          runtimeVar: 'runtime',
+          oauthVar: 'oauth2',
+          globalVar: 'global',
+          folderVar: 'folder',
+          envVar: 'environment',
+          processEnvVar: 'process.env',
+          collectionVar: 'collection'
+        };
+
+        const result = extractNextSegmentSuggestions(hints, '', variableScopes);
+
+        expect(result).toEqual([
+          'globalVar',
+          'collectionVar',
+          'envVar',
+          'folderVar',
+          'aRequestVar',
+          'zRequestVar',
+          'oauthVar',
+          'runtimeVar',
+          'processEnvVar'
+        ]);
+      });
+
+      it('sorts an unscoped hint (synthetic drill-down prefix) after every real scope, and `dynamic` last of all', () => {
+        const hints = ['$guid', 'process', 'requestVar'];
+        const variableScopes = { $guid: 'dynamic', requestVar: 'request' };
+
+        const result = extractNextSegmentSuggestions(hints, '', variableScopes);
+
+        expect(result).toEqual(['requestVar', 'process', '$guid']);
       });
     });
   });

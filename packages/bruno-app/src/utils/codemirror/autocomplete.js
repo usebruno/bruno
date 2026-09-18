@@ -201,6 +201,47 @@ const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const SINGLE_BRACE_PATTERN = /\{$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
+const VARIABLE_SCOPE_DISPLAY_ORDER = [
+  'global',
+  'collection',
+  'environment',
+  'folder',
+  'request',
+  'oauth2',
+  'runtime',
+  'process.env'
+];
+
+/**
+ * Rank a variable's scope for display grouping, per VARIABLE_SCOPE_DISPLAY_ORDER,
+ * UNSCOPED_VARIABLE_RANK, and DYNAMIC_VARIABLE_RANK.
+ * @param {string} [scope]
+ * @returns {number}
+ */
+const getVariableScopeRank = (scope) => {
+  if (scope === 'dynamic') {
+    return VARIABLE_SCOPE_DISPLAY_ORDER.length + 1;
+  }
+  const index = VARIABLE_SCOPE_DISPLAY_ORDER.indexOf(scope);
+  return index === -1 ? VARIABLE_SCOPE_DISPLAY_ORDER.length : index;
+};
+
+/**
+ * Compare two hints for display ordering: group by scope first (per
+ * VARIABLE_SCOPE_DISPLAY_ORDER), then alphabetically within the same scope.
+ * @param {string} a
+ * @param {string} b
+ * @param {Object} [variableScopes] - name -> scope map
+ * @returns {number}
+ */
+const compareHintsByScope = (a, b, variableScopes = {}) => {
+  const rankDifference = getVariableScopeRank(variableScopes[a]) - getVariableScopeRank(variableScopes[b]);
+  if (rankDifference !== 0) {
+    return rankDifference;
+  }
+  return a.localeCompare(b);
+};
+
 /**
  * Generate progressive hints for a given full hint
  * @param {string} fullHint - The complete hint string
@@ -225,6 +266,12 @@ const generateProgressiveHints = (fullHint) => {
 const shouldSkipVariableKey = (key) => {
   return key === 'pathParams' || key === 'maskedEnvVariables' || key === 'process';
 };
+
+/**
+ * @param {string} hint
+ * @returns {boolean}
+ */
+const isProcessEnvDrillDownPrefix = (hint) => hint === 'process' || hint.startsWith('process.env');
 
 /**
  * Transform variables object into flat hint list
@@ -299,16 +346,22 @@ const addVariableHintsToSet = (variableHints, allVariables, variableScopes = {})
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 
-  let variableHintsList;
   if (Array.isArray(allVariables)) {
     const scoped = transformScopedVariablesToHints(allVariables);
-    variableHintsList = scoped.hints;
     Object.assign(variableScopes, scoped.scopes);
-  } else {
-    variableHintsList = transformVariablesToHints(allVariables);
+
+    scoped.hints.forEach((hint) => {
+      // split into prefixes only for process.env, so that atomic variables like `api.host` are not truncated to `api`
+      if (scoped.scopes[hint] === 'process.env') {
+        generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
+      } else {
+        variableHints.add(hint);
+      }
+    });
+    return;
   }
 
-  variableHintsList.forEach((hint) => {
+  transformVariablesToHints(allVariables).forEach((hint) => {
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 };
@@ -549,18 +602,26 @@ const getCurrentWordWithContext = (cm, options = {}) => {
  * Extract next segment suggestions from filtered hints
  * @param {string[]} filteredHints - Pre-filtered hints
  * @param {string} currentInput - Current user input
+ * @param {Object} [variableScopes] - name -> scope map.
  * @returns {string[]} Array of suggestion segments
  */
-const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
+const extractNextSegmentSuggestions = (filteredHints, currentInput, variableScopes = {}) => {
   const prefixMatches = new Set();
   const substringMatches = new Set();
   const lowerInput = currentInput.toLowerCase();
 
   filteredHints.forEach((hint) => {
     const lowerHint = hint.toLowerCase();
+    const scope = variableScopes[hint];
+    const isAtomicVariableName = !!scope && scope !== 'process.env';
 
     // For prefix matches, use the original progressive logic
     if (lowerHint.startsWith(lowerInput)) {
+      if (isAtomicVariableName) {
+        prefixMatches.add(hint);
+        return;
+      }
+
       // Handle exact match case
       if (lowerHint === lowerInput) {
         prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
@@ -593,21 +654,26 @@ const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
   });
 
   // Return prefix matches first, then substring matches
-  return [...Array.from(prefixMatches).sort(), ...Array.from(substringMatches).sort()];
+  // within each, group by scope and sort alphabetically within a scope.
+  return [
+    ...Array.from(prefixMatches).sort((a, b) => compareHintsByScope(a, b, variableScopes)),
+    ...Array.from(substringMatches).sort((a, b) => compareHintsByScope(a, b, variableScopes))
+  ];
 };
 
 /**
  * Extract the relevant part of hints based on user input
  * @param {string[]} filteredHints - Pre-filtered hints
  * @param {string} currentInput - Current user input
+ * @param {Object} [variableScopes] - name -> scope map
  * @returns {string[]} Array of hint parts
  */
-const getHintParts = (filteredHints, currentInput) => {
+const getHintParts = (filteredHints, currentInput, variableScopes = {}) => {
   if (!filteredHints || filteredHints.length === 0) {
     return [];
   }
 
-  return extractNextSegmentSuggestions(filteredHints, currentInput);
+  return extractNextSegmentSuggestions(filteredHints, currentInput, variableScopes);
 };
 
 /**
@@ -657,28 +723,16 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
     return hint.toLowerCase().includes(lowerWord);
   });
 
-  const hintParts = getHintParts(filtered, word);
+  // Only the `variables` category ever has real scope info -- pass it through only
+  // there, so the atomic-name bypass and the scope-based grouping in
+  // extractNextSegmentSuggestions can never affect the `api`/`anyword` categories,
+  // even by coincidence.
+  const atomicNameScopes = context === 'variables' ? categorizedHints.variableScopes || {} : {};
+  const hintParts = getHintParts(filtered, word, atomicNameScopes);
 
-  if (!word) {
-    // nothing is typed yet. show static variables first, then dynamic ones.
-    const variableScopes = categorizedHints.variableScopes || {};
-    const getScopeRank = (hint) => (variableScopes[hint] === 'dynamic' ? 1 : 0);
-
-    return [...hintParts]
-      // show non-dynamic variables before dynamic variables.
-      .sort((a, b) => {
-        const scopeDifference = getScopeRank(a) - getScopeRank(b);
-
-        if (scopeDifference !== 0) {
-          return scopeDifference;
-        }
-
-        // sort variables alphabetically within the same scope.
-        return a.localeCompare(b);
-      })
-      .slice(0, 50);
-  }
-
+  // extractNextSegmentSuggestions already grouped hintParts by scope (then
+  // alphabetically) within each of its prefix-match / substring-match buckets, so
+  // there's nothing left to re-sort here.
   return hintParts.slice(0, 50);
 };
 
@@ -735,6 +789,9 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
 
   const hintList = filteredHints.map((hint) => {
     const scope = variableScopes[hint];
+    if (!scope && isProcessEnvDrillDownPrefix(hint)) {
+      return { text: hint, displayText: hint, scope: 'process.env', render: renderVariableHint };
+    }
     if (!scope || !SCOPE_ICON[scope]) {
       return { text: hint, displayText: hint };
     }
@@ -766,8 +823,11 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
 const createSingleBraceVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '') => {
   const hintList = filteredHints.map((hint) => {
     const scope = variableScopes[hint];
+    if (!scope && isProcessEnvDrillDownPrefix(hint)) {
+      return { text: `{${hint}`, displayText: hint, scope: 'process.env', render: renderVariableHint };
+    }
     if (!scope || !SCOPE_ICON[scope]) {
-      return { text: hint, displayText: hint };
+      return { text: `{${hint}`, displayText: hint };
     }
     return {
       text: calculateSingleBraceInsertText(textAfterCursor, hint),
