@@ -161,7 +161,7 @@ const Script = ({ collection, folder }) => {
               onSave={handleSave}
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
-              showHintsFor={['req', 'res', 'bru']}
+              showHintsFor={['res', 'bru']}
               scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
