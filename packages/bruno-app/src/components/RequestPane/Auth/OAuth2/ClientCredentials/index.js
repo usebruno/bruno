@@ -308,7 +308,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         handleSave={handleSave}
         disabled={disabled}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} disabled={disabled} />
 
     </StyledWrapper>
   );

@@ -315,7 +315,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         handleSave={handleSave}
         disabled={disabled}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} />
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={interpolatedAuthUrl} credentialsId={credentialsId} disabled={disabled} />
     </Wrapper>
   );
 };
