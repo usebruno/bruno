@@ -1,9 +1,36 @@
 const { ipcRenderer, contextBridge, webUtils, shell } = require('electron');
+const { isBenchmarkEnabled } = require('./utils/benchmark');
+const {
+  recordIpcInvokeStart,
+  recordIpcInvokeEnd,
+  drainIpcEvents
+} = require('./benchmark/preload');
+
+const benchmarkEnabled = isBenchmarkEnabled();
 
 contextBridge.exposeInMainWorld('isPlaywright', process.env.PLAYWRIGHT === 'true');
+contextBridge.exposeInMainWorld('isBenchmarkBuild', benchmarkEnabled);
+
+if (benchmarkEnabled) {
+  contextBridge.exposeInMainWorld('benchmarkDrainIpcEvents', drainIpcEvents);
+}
+
+const invokeWithBenchmark = async (channel, ...args) => {
+  if (!benchmarkEnabled) {
+    return ipcRenderer.invoke(channel, ...args);
+  }
+
+  const context = recordIpcInvokeStart(channel);
+
+  try {
+    return await ipcRenderer.invoke(channel, ...args);
+  } finally {
+    recordIpcInvokeEnd(channel, context);
+  }
+};
 
 contextBridge.exposeInMainWorld('ipcRenderer', {
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  invoke: (channel, ...args) => invokeWithBenchmark(channel, ...args),
   send: (channel, ...args) => ipcRenderer.send(channel, ...args),
   on: (channel, handler) => {
     // Deliberately strip event as it includes `sender`

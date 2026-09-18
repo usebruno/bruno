@@ -28,6 +28,7 @@ const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection')
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
+const { checkpoint } = require('../utils/benchmark');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
 
@@ -703,6 +704,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspacePathname = null) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
+  checkpoint('watcher-initial-scan-complete', { collectionUid, watchPath, workspacePathname });
 
   const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
