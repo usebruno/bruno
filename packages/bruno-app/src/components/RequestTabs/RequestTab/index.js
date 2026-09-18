@@ -370,6 +370,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        data-testid={`request-tab-${tab.type}`}
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => {
           if (e.button === 1 && hasApiSpecDraft) {

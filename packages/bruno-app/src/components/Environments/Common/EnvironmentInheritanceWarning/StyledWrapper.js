@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
   }
 
-  .missing-name {
+  .environment-name {
     font-weight: 600;
     word-break: break-all;
   }
