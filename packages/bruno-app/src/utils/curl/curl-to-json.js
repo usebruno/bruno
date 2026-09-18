@@ -18,6 +18,10 @@ function getContentType(headers = {}) {
   return contentType ? headers[contentType] : null;
 }
 
+function isMultipartFormDataContentType(contentType) {
+  return typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
+}
+
 function repr(value, isKey) {
   return isKey ? '\'' + jsesc(value, { quotes: 'single' }) + '\'' : value;
 }
@@ -35,7 +39,7 @@ function getDataString(request) {
 
   const contentType = getContentType(request.headers);
 
-  if (isStructuredContentType(contentType)) {
+  if (isStructuredContentType(contentType) || isMultipartFormDataContentType(contentType)) {
     return { data: request.data };
   }
 

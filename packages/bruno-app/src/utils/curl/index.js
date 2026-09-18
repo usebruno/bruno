@@ -4,6 +4,54 @@ import { prettifyJsonString } from 'utils/common/index';
 import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
 
 export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
+  const getMultipartBoundary = (contentType) => {
+    const boundaryMatch = contentType?.match(/(?:^|;)\s*boundary=(?:"([^"]+)"|([^;]+))/i);
+    return boundaryMatch ? boundaryMatch[1] || boundaryMatch[2]?.trim() : null;
+  };
+
+  const normalizeMultipartLineEndings = (value) => {
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  };
+
+  const parseContentDispositionName = (headersText) => {
+    const contentDisposition = headersText
+      .split('\n')
+      .find((header) => header.toLowerCase().startsWith('content-disposition:'));
+    const nameMatch = contentDisposition?.match(/(?:^|;)\s*name="([^"]*)"/i);
+    return nameMatch ? nameMatch[1] : null;
+  };
+
+  const parseMultipartFormData = (bodyText, contentType) => {
+    const boundary = getMultipartBoundary(contentType);
+    if (!boundary || typeof bodyText !== 'string') {
+      return [];
+    }
+
+    const normalizedBody = normalizeMultipartLineEndings(bodyText);
+    return normalizedBody
+      .split(`--${boundary}`)
+      .map((part) => part.replace(/^\n/, '').replace(/\n$/, ''))
+      .filter((part) => part && part !== '--')
+      .map((part) => {
+        const separatorIndex = part.indexOf('\n\n');
+        const headersText = separatorIndex >= 0 ? part.slice(0, separatorIndex) : '';
+        const value = separatorIndex >= 0 ? part.slice(separatorIndex + 2).replace(/\n--$/, '') : '';
+        const name = parseContentDispositionName(headersText);
+
+        if (name === null) {
+          return null;
+        }
+
+        return {
+          name,
+          value,
+          type: 'text',
+          enabled: true
+        };
+      })
+      .filter(Boolean);
+  };
+
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
@@ -82,7 +130,9 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (normalizedContentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';
-        body.multipartForm = parsedBody;
+        body.multipartForm = Array.isArray(parsedBody)
+          ? parsedBody
+          : parseMultipartFormData(parsedBody, contentType);
       } else if (isPlainTextContentType(contentType)) {
         body.mode = 'text';
         body.text = parsedBody;
