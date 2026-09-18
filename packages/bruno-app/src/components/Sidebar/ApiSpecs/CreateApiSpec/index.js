@@ -5,12 +5,12 @@ import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
-import { createApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
+import { createApiSpecFile, openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
 import { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
-import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
+import path from 'utils/common/path';
 import { validateName, validateNameError } from 'utils/common/regex';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
@@ -97,11 +97,11 @@ const CreateApiSpec = ({ onClose }) => {
         }
       }
 
-      dispatch(createApiSpecFile(`${values.apiSpecName}.yaml`, values.apiSpecLocation, yamlContent))
+      const filename = `${values.apiSpecName}.yaml`;
+
+      dispatch(createApiSpecFile(filename, values.apiSpecLocation, yamlContent))
         .then(() => {
-          setTimeout(() => {
-            dispatch(showApiSpecPage());
-          }, 200);
+          dispatch(openApiSpecTab({ pathname: path.join(values.apiSpecLocation, filename), filename }));
           toast.success('ApiSpec created');
           onClose();
         })

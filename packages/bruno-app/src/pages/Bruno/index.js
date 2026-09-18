@@ -10,7 +10,6 @@ import Sidebar from 'components/Sidebar';
 import OpenCollection from 'components/Sidebar/OpenCollection';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
-import ApiSpecPanel from 'components/ApiSpecPanel';
 import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
@@ -45,9 +44,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
 
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
   const isDragging = useSelector((state) => state.app.isDragging);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
@@ -123,9 +120,7 @@ export default function Main() {
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
-            {showApiSpecPage && activeApiSpecUid ? (
-              <ApiSpecPanel key={activeApiSpecUid} />
-            ) : showManageWorkspacePage ? (
+            {showManageWorkspacePage ? (
               <ManageWorkspace />
             ) : (
               <>
@@ -142,7 +137,7 @@ export default function Main() {
           {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
             <AiChatPopout collection={activeCollection} />
           )}
-          {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
+          {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showManageWorkspacePage && (
             <AiChatSidebar collection={activeCollection} />
           )}
         </StyledWrapper>

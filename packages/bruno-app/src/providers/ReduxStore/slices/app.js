@@ -31,7 +31,6 @@ const initialState = {
   focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
-  showApiSpecPage: false,
   showManageWorkspacePage: false,
   isEnvironmentSettingsModalOpen: false,
   isGlobalEnvironmentSettingsModalOpen: false,
@@ -193,7 +192,6 @@ export const appSlice = createSlice({
     },
     showHomePage: (state) => {
       state.showHomePage = true;
-      state.showApiSpecPage = false;
       state.showManageWorkspacePage = false;
     },
     hideHomePage: (state) => {
@@ -202,17 +200,9 @@ export const appSlice = createSlice({
     showManageWorkspacePage: (state) => {
       state.showManageWorkspacePage = true;
       state.showHomePage = false;
-      state.showApiSpecPage = false;
     },
     hideManageWorkspacePage: (state) => {
       state.showManageWorkspacePage = false;
-    },
-    showApiSpecPage: (state) => {
-      state.showHomePage = false;
-      state.showApiSpecPage = true;
-    },
-    hideApiSpecPage: (state) => {
-      state.showApiSpecPage = false;
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
@@ -290,12 +280,10 @@ export const appSlice = createSlice({
     builder
       .addCase(addTab, (state) => {
         state.showHomePage = false;
-        state.showApiSpecPage = false;
         state.showManageWorkspacePage = false;
       })
       .addCase(focusTab, (state) => {
         state.showHomePage = false;
-        state.showApiSpecPage = false;
         state.showManageWorkspacePage = false;
       });
   }
@@ -315,8 +303,6 @@ export const {
   hideHomePage,
   showManageWorkspacePage,
   hideManageWorkspacePage,
-  showApiSpecPage,
-  hideApiSpecPage,
   updatePreferences,
   updateActivePreferencesTab,
   updateCookies,
