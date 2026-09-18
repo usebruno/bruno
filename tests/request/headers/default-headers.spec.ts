@@ -13,7 +13,6 @@ const DEFAULT_HEADERS = [
   'User-Agent',
   'Accept',
   'Accept-Encoding',
-  'request-start-time',
   'Connection',
   'Host'
 ];
@@ -201,12 +200,25 @@ test('shows the runtime-default explanation through ToolHint', async ({ page, cr
 
   await test.step('Explain a default header', async () => {
     await headers.defaultInfo('Accept').hover();
+    await expect(headers.defaultInfo('Accept')).toHaveCSS('cursor', 'pointer');
     await expect(headers.defaultInfoTooltip('Accept')).toHaveText('Automatically added at runtime');
   });
 
   await test.step('Explain the required Host header', async () => {
     await headers.defaultInfo('Host').hover();
+    await expect(headers.defaultInfo('Host')).toHaveCSS('cursor', 'pointer');
     await expect(headers.defaultInfoTooltip('Host')).toHaveText('Required by HTTP, cannot be omitted');
+  });
+});
+
+test('shows an angle-bracket Host placeholder before the host is known', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-host-placeholder', await createTmpDir('default-headers-host-placeholder'));
+  await createRequest(page, 'request-1', 'default-headers-host-placeholder', { url: '{{host}}/path' });
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+
+  await test.step('Show the Host placeholder enclosed in angle brackets', async () => {
+    await expect(headers.defaultRow('Host')).toContainText('<derived from request URL>');
   });
 });
 

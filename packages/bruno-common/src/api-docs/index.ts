@@ -1,4 +1,4 @@
-import isRequestTagsIncluded from '../tags';
+import isRequestTagsIncluded, { getEffectiveTags, getSavedFolderTags } from '../tags';
 
 export interface TaggedItem {
   type?: string;
@@ -60,7 +60,8 @@ const isRequestItem = (item: TaggedItem): boolean =>
 export const filterRequestItemsByTags = <T extends TaggedItem>(
   items: T[],
   includeTags: string[] = [],
-  excludeTags: string[] = []
+  excludeTags: string[] = [],
+  inheritedTags: string[] = []
 ): T[] => {
   if (includeTags.length === 0 && excludeTags.length === 0) {
     return items;
@@ -69,12 +70,17 @@ export const filterRequestItemsByTags = <T extends TaggedItem>(
   const filtered: T[] = [];
   for (const item of items) {
     if (isFolder(item)) {
-      const keptChildren = filterRequestItemsByTags((item.items ?? []) as T[], includeTags, excludeTags);
+      const keptChildren = filterRequestItemsByTags(
+        (item.items ?? []) as T[],
+        includeTags,
+        excludeTags,
+        getEffectiveTags(getSavedFolderTags(item), inheritedTags)
+      );
       if (keptChildren.length > 0) {
         filtered.push({ ...item, items: keptChildren });
       }
     } else if (isRequestItem(item)) {
-      if (isRequestTagsIncluded(item.tags ?? [], includeTags, excludeTags)) {
+      if (isRequestTagsIncluded(getEffectiveTags(item.tags, inheritedTags), includeTags, excludeTags)) {
         filtered.push(item);
       }
     } else {
