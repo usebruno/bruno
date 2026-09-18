@@ -133,10 +133,22 @@ const getParsedGrpcUrlObject = (url) => {
     return { host: normalizeWindowsNamedPipe(url), path: '', protocol: 'pipe', isLocalTransport: true };
   }
 
-  const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
+  const protocolUrl = addProtocolIfMissing(url.toLowerCase());
+  const urlObj = new URL(protocolUrl);
+
+  // WHATWG URL parsing elides default ports (http:80, https:443) for special schemes,
+  // so urlObj.host drops a port the user typed explicitly. Recover it from the
+  // protocol-added authority so callers (e.g. grpcurl) receive a full host:port.
+  let host = urlObj.host;
+  if (!urlObj.port) {
+    const portMatch = protocolUrl.match(/^[a-z][a-z0-9+\-.]*:\/\/[^/?#]*:(\d+)(?=[/?#]|$)/);
+    if (portMatch) {
+      host = `${urlObj.hostname}:${portMatch[1]}`;
+    }
+  }
 
   return {
-    host: urlObj.host,
+    host,
     protocol: urlObj.protocol.replace(':', ''),
     path: removeTrailingSlash(urlObj.pathname),
     isLocalTransport: false
