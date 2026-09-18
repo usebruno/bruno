@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { IconExclamationCircle, IconChevronRight, IconInfoCircle, IconChevronDown, IconArrowUpRight, IconArrowDownLeft } from '@tabler/icons';
@@ -6,41 +6,25 @@ import CodeEditor from 'components/CodeEditor/index';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
+import { formatResponse } from 'utils/common';
+import { PREVIEW_FORMAT_OPTIONS } from 'components/ResponsePane/QueryResult/index';
+import QueryResultPreview from 'components/ResponsePane/QueryResult/QueryResultPreview';
 
-const getContentMeta = (content) => {
-  if (typeof content === 'object') {
-    return {
-      isJSON: true,
-      content: JSON.stringify(content, null, 0)
-    };
+const extractJsonFromSSE = (content) => {
+  if (typeof content !== 'string') return null;
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('data:')) {
+      const dataStr = line.slice(5).trim();
+      try {
+        const parsed = JSON.parse(dataStr);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return null;
+      }
+    }
   }
-  try {
-    return {
-      isJSON: true,
-      content: JSON.stringify(JSON.parse(content), null, 0)
-    };
-  } catch {
-    return {
-      isJSON: false,
-      content: content
-    };
-  }
-};
-
-const parseContent = (content) => {
-  let contentMeta = getContentMeta(content);
-  return {
-    type: contentMeta.isJSON ? 'application/json' : 'text/plain',
-    content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
-  };
-};
-
-const getDataTypeText = (type) => {
-  const textMap = {
-    'text/plain': 'RAW',
-    'application/json': 'JSON'
-  };
-  return textMap[type] ?? 'RAW';
+  return null;
 };
 
 /**
@@ -59,7 +43,7 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => {
+const WSMessageItem = memo(({ message, isOpen, onToggle, streamFormat, streamViewTab, item, collection }) => {
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -70,9 +54,49 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
   const isInfo = message.type === 'info';
   const isError = message.type === 'error';
   const isOutgoing = message.type === 'outgoing';
-  let contentHexdump = message.messageHexdump;
-  let parsedContent = parseContent(message.message);
-  const dataType = getDataTypeText(parsedContent.type);
+  const selectedFormat = streamFormat || 'raw';
+  const contentHexdump = message.messageHexdump;
+
+  const rawMessage = typeof message.message === 'string' ? message.message : (message.message != null ? String(message.message) : '');
+
+  // Extract JSON payload from SSE data: prefix for formatResponse
+  const sseJsonPayload = useMemo(() => extractJsonFromSSE(rawMessage), [rawMessage]);
+
+  // Derive the CodeMirror mode from PREVIEW_FORMAT_OPTIONS (same as HTTP response path)
+  const codeMirrorMode = useMemo(() => {
+    return PREVIEW_FORMAT_OPTIONS
+      .filter((option) => option.type === 'item' || !option.type)
+      .find((option) => option.id === selectedFormat)?.codeMirrorMode || 'text/plain';
+  }, [selectedFormat]);
+
+  // Determine display value using formatResponse (same utility as HTTP response path)
+  const displayValue = useMemo(() => {
+    if (selectedFormat === 'hex') return contentHexdump || '';
+    if (selectedFormat === 'json' && sseJsonPayload) return sseJsonPayload;
+    if (selectedFormat === 'base64') return Buffer.from(rawMessage, 'utf-8').toString('base64');
+    const dataBuffer = Buffer.from(rawMessage, 'utf-8').toString('base64');
+    return formatResponse(rawMessage, dataBuffer, selectedFormat) || rawMessage;
+  }, [rawMessage, selectedFormat, contentHexdump, sseJsonPayload]);
+
+  // Compute preview mode for the preview toggle (same logic as QueryResult/index.js)
+  const previewMode = useMemo(() => {
+    if (selectedFormat === 'html') return 'preview-web';
+    if (selectedFormat === 'json') return 'preview-json';
+    if (selectedFormat === 'xml') return 'preview-xml';
+    if (selectedFormat === 'javascript') return 'preview-web';
+    return 'preview-text';
+  }, [selectedFormat]);
+
+  const viewTab = streamViewTab || 'editor';
+
+  // Check format compatibility: structured formats need matching content
+  const isCompatible = useMemo(() => {
+    if (selectedFormat === 'hex' || selectedFormat === 'raw' || selectedFormat === 'base64') return true;
+    if (!rawMessage) return true;
+    if (selectedFormat === 'json') return sseJsonPayload !== null;
+    if (selectedFormat === 'html') return /<[a-zA-Z][\s\S]*>/.test(rawMessage);
+    return false;
+  }, [rawMessage, selectedFormat, sseJsonPayload]);
 
   useEffect(() => {
     if (notified.current === true) return;
@@ -117,7 +141,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
           <span className="message-type-icon">
             <TypeIcon type={message.type} />
           </span>
-          <span data-testid="ws-message-content" className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{parsedContent.content}</span>
+          <span data-testid="ws-message-content" className="ml-3 text-ellipsis max-w-full overflow-hidden text-nowrap message-content">{rawMessage}</span>
         </div>
         <div className="flex shrink-0 gap-2 items-center">
           {message.timestamp && (
@@ -137,48 +161,39 @@ const WSMessageItem = memo(({ message, isOpen, onToggle, item, collection }) => 
         </div>
       </div>
       {isOpen && (
-        <>
-          <div className="mt-2 flex justify-end gap-2 text-xs ws-message-toolbar" role="tablist">
-            <div
-              className={classnames('select-none capitalize', {
-                'active': showHex,
-                'cursor-pointer': !showHex
-              })}
-              role="tab"
-              onClick={() => setShowHex(true)}
-            >
-              hexdump
-            </div>
-            <div
-              className={classnames('select-none capitalize', {
-                'active': !showHex,
-                'cursor-pointer': showHex
-              })}
-              role="tab"
-              onClick={() => setShowHex(false)}
-            >
-              {dataType.toLowerCase()}
-            </div>
-          </div>
-          <div className="mt-1 h-[300px] w-full">
+        <div className="mt-1 h-[300px] w-full">
+          {viewTab === 'preview' ? (
+            <QueryResultPreview
+              selectedTab="preview"
+              data={isCompatible && selectedFormat === 'json' && sseJsonPayload ? JSON.parse(sseJsonPayload) : rawMessage}
+              dataBuffer={Buffer.from(rawMessage, 'utf-8').toString('base64')}
+              formattedData={isCompatible ? displayValue : rawMessage}
+              item={item}
+              collection={collection}
+              codeMirrorMode={isCompatible ? codeMirrorMode : 'text/plain'}
+              previewMode={isCompatible ? previewMode : 'preview-text'}
+              disableRunEventListener={true}
+              displayedTheme={displayedTheme}
+            />
+          ) : (
             <CodeEditor
-              mode={showHex ? 'text/plain' : parsedContent.type}
+              mode={isCompatible ? codeMirrorMode : 'text/plain'}
               theme={displayedTheme}
-              enableLineWrapping={showHex ? false : true}
+              enableLineWrapping={selectedFormat !== 'hex'}
               font={preferences.codeFont || 'default'}
-              value={showHex ? contentHexdump : parsedContent.content}
+              value={isCompatible ? displayValue : rawMessage}
               item={item}
               collection={collection}
               readOnly
             />
-          </div>
-        </>
+          )}
+        </div>
       )}
     </div>
   );
 });
 
-const WSMessagesList = ({ messages = [], item, collection }) => {
+const WSMessagesList = ({ messages = [], streamFormat, streamViewTab, item, collection }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
@@ -234,8 +249,18 @@ const WSMessagesList = ({ messages = [], item, collection }) => {
 
   const renderItem = useCallback((_, msg) => {
     const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} item={item} collection={collection} />;
-  }, [openMessages, handleMessageToggle, item, collection]);
+    return (
+      <WSMessageItem
+        message={msg}
+        isOpen={isOpen}
+        onToggle={handleMessageToggle}
+        streamFormat={streamFormat}
+        streamViewTab={streamViewTab}
+        item={item}
+        collection={collection}
+      />
+    );
+  }, [openMessages, handleMessageToggle, streamFormat, streamViewTab, item, collection]);
 
   const computeItemKey = useCallback((_, msg) => {
     return msg.seq ?? msg.timestamp;
