@@ -4,8 +4,17 @@ export const buildTitleBarLocators = (page: Page) => ({
   workspaceMenuTrigger: () => page.getByTestId('workspace-menu'),
   activeWorkspaceName: () => page.getByTestId('workspace-menu').getByTestId('workspace-name'),
   importWorkspaceOption: () => page.getByTestId('workspace-menu-import-workspace'),
-  manageWorkspacesOption: () => page.getByTestId('workspace-menu-manage-workspaces')
+  manageWorkspacesOption: () => page.getByTestId('workspace-menu-manage-workspaces'),
+  openWorkspaceOption: () => page.getByTestId('workspace-menu-open-workspace')
 });
+
+export const clickOpenWorkspace = async (page: Page) => {
+  const titleBar = buildTitleBarLocators(page);
+  await test.step('Open workspace menu and click "Open workspace"', async () => {
+    await titleBar.workspaceMenuTrigger().click();
+    await titleBar.openWorkspaceOption().click();
+  });
+};
 
 export const clickImportWorkspace = async (page: Page) => {
   const titleBar = buildTitleBarLocators(page);

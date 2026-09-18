@@ -1,13 +1,10 @@
 import path from 'path';
 import { expect, test } from '../../../playwright';
-import { createWorkspace, switchWorkspace, waitForReadyPage } from '../../utils/page';
-import {
-  WORKSPACE_NAME,
-  initUserDataPath,
-  openWorkspaceFromMenu
-} from '../../utils/page/workspace/open-workspace';
-import { buildTitleBarLocators } from '../../utils/page/title-bar';
-import { buildToastLocators } from '../../utils/page/toast';
+import { buildCommonLocators, createWorkspace, stubOpenFilesDialog, switchWorkspace, waitForReadyPage } from '../../utils/page';
+import { clickOpenWorkspace } from '../../utils/page/title-bar';
+
+const initUserDataPath = path.join(__dirname, 'init-user-data');
+const WORKSPACE_NAME = 'my-workspace';
 
 test.describe('Open Workspace', () => {
   test('TC-3213: Verify that clicking the cancel button closes the dialog on open workspace', { tag: '@sanity' }, async ({
@@ -17,16 +14,17 @@ test.describe('Open Workspace', () => {
     const userDataPath = await createTmpDir('open-workspace-cancel');
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
-    const titleBarLocators = buildTitleBarLocators(page);
-    const initialWorkspaceName = await titleBarLocators.activeWorkspaceName().textContent();
+    const locators = buildCommonLocators(page);
+    const initialWorkspaceName = await locators.titleBar.activeWorkspaceName().textContent();
 
     await test.step('Open workspace dialog and click on cancel', async () => {
-      await openWorkspaceFromMenu(page, { app, canceled: true, filePaths: [] });
+      await stubOpenFilesDialog(app, { canceled: true, filePaths: [] });
+      await clickOpenWorkspace(page);
     });
 
     await test.step('Verify the active workspace remains unchanged', async () => {
       expect(initialWorkspaceName).not.toBeNull();
-      await expect(titleBarLocators.activeWorkspaceName()).toHaveText(initialWorkspaceName as string);
+      await expect(locators.titleBar.activeWorkspaceName()).toHaveText(initialWorkspaceName as string);
     });
   });
 
@@ -39,8 +37,7 @@ test.describe('Open Workspace', () => {
       templateVars: { wsLocation }
     });
     const page = await waitForReadyPage(app);
-    const toastLocators = buildToastLocators(page);
-    const titleBarLocators = buildTitleBarLocators(page);
+    const locators = buildCommonLocators(page);
 
     await test.step('Create a workspace and switch back to My Workspace', async () => {
       await createWorkspace(page, WORKSPACE_NAME);
@@ -49,12 +46,13 @@ test.describe('Open Workspace', () => {
 
     const workspacePath = path.join(wsLocation, WORKSPACE_NAME);
     await test.step('Open the workspace from the device', async () => {
-      await openWorkspaceFromMenu(page, { app, canceled: false, filePaths: [workspacePath] });
+      await stubOpenFilesDialog(app, { canceled: false, filePaths: [workspacePath] });
+      await clickOpenWorkspace(page);
     });
 
     await test.step('Verify workspace opened successfully', async () => {
-      await expect(toastLocators.confirmTextContent('Workspace opened successfully')).toBeVisible();
-      await expect(titleBarLocators.activeWorkspaceName()).toHaveText(WORKSPACE_NAME);
+      await expect(locators.toast.byMessage('Workspace opened successfully', { exact: true })).toBeVisible();
+      await expect(locators.titleBar.activeWorkspaceName()).toHaveText(WORKSPACE_NAME);
     });
   });
 });
