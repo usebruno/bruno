@@ -17,16 +17,17 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
     isDisabled
   }), [isDisabled]);
 
-  const saveResponseToFile = () => {
+  const saveResponseToFile = (e) => {
     if (isDisabled) {
       return;
     }
+    const quickSave = !e?.shiftKey;
     return new Promise((resolve, reject) => {
       ipcRenderer
-        .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname)
+        .invoke('renderer:save-response-to-file', response, item?.requestSent?.url, item.pathname, quickSave)
         .then((result) => {
           if (result && result.success) {
-            toast.success('Response downloaded to file');
+            toast.success(quickSave ? `Response saved to ${result.filePath}` : 'Response downloaded to file');
           }
           resolve();
         })
@@ -42,7 +43,7 @@ const ResponseDownload = forwardRef(({ item, children }, ref) => {
       ref={elementRef}
       aria-disabled={isDisabled}
       onClick={saveResponseToFile}
-      title={!children ? 'Save response to file' : null}
+      title={!children ? 'Save response (Shift+Click for Save As...)' : null}
       className={classnames({
         'opacity-50 cursor-not-allowed': isDisabled && !children
       })}
