@@ -267,8 +267,19 @@ const duplicatesPrecedingWord = (prefix, suggestion) => {
   return (pendingWord + head).endsWith(preceding[1]);
 };
 
+// Cursor sits on a declarator name that has no initializer yet — `const req`, or the last
+// name of `const a = 1, req`. Anything but more of the name, `=`, `,` or `;` is invalid there.
+const DECLARATOR_AWAITING_INIT_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*$/;
+const MEMBER_ACCESS_START_RE = /^\s*\??\s*[.([]/;
+
+// A member accessor offered at that point splices into the declaration itself
+// (`const req` + `.setUrl(…)` → `const req.setUrl(…)`), which does not parse.
+const splicesIntoDeclarator = (suggestion, prefix) =>
+  MEMBER_ACCESS_START_RE.test(suggestion) && DECLARATOR_AWAITING_INIT_RE.test(prefixTail(prefix));
+
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
+  if (splicesIntoDeclarator(cleaned, prefix)) return '';
   const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
   if (duplicatesPrecedingWord(prefix, deduped)) return '';
@@ -284,5 +295,6 @@ module.exports = {
   stripDisallowedApis,
   stripTypedPrefixOverlap,
   duplicatesPrecedingWord,
+  splicesIntoDeclarator,
   sanitizeSuggestion
 };

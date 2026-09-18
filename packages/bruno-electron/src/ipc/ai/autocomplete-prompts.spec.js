@@ -1,4 +1,4 @@
-const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, duplicatesPrecedingWord, sanitizeSuggestion } = require('./autocomplete-prompts');
+const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, duplicatesPrecedingWord, splicesIntoDeclarator, sanitizeSuggestion } = require('./autocomplete-prompts');
 
 describe('ensureNewlineAfterComment', () => {
   it('prepends a newline when code is suggested at the end of a comment line', () => {
@@ -465,5 +465,56 @@ describe('duplicatesPrecedingWord', () => {
   it('handles empty prefix or suggestion', () => {
     expect(duplicatesPrecedingWord('', 'const')).toBe(false);
     expect(duplicatesPrecedingWord('const c', '')).toBe(false);
+  });
+});
+
+describe('splicesIntoDeclarator', () => {
+  it('flags a member access offered on a declarator name', () => {
+    expect(splicesIntoDeclarator('.setUrl("https://x.com");', 'const req')).toBe(true);
+    expect(splicesIntoDeclarator('.getBody();', 'let res')).toBe(true);
+    expect(splicesIntoDeclarator('.bar();', 'var foo')).toBe(true);
+  });
+
+  it('flags a call or index opened on a declarator name', () => {
+    expect(splicesIntoDeclarator('(1);', 'const req')).toBe(true);
+    expect(splicesIntoDeclarator('[0];', 'const req')).toBe(true);
+  });
+
+  it('flags the last name of a multi-declarator statement', () => {
+    expect(splicesIntoDeclarator('.getUrl();', 'const a = 1, req')).toBe(true);
+  });
+
+  it('does not flag a member access once the initializer has started', () => {
+    expect(splicesIntoDeclarator('.getUrl();', 'const foo = req')).toBe(false);
+    expect(splicesIntoDeclarator('.getEnvVar("u");', 'const url = bru')).toBe(false);
+  });
+
+  it('does not flag a member access outside a declaration', () => {
+    expect(splicesIntoDeclarator('.setUrl("https://x.com");', 'req')).toBe(false);
+    expect(splicesIntoDeclarator('.getUrl());', 'bru.setVar("x", req')).toBe(false);
+  });
+
+  it('does not flag a suggestion that continues the name or assigns to it', () => {
+    expect(splicesIntoDeclarator('q = 1;', 'const re')).toBe(false);
+    expect(splicesIntoDeclarator(' = bru.getEnvVar("u");', 'const req')).toBe(false);
+  });
+});
+
+describe('sanitizeSuggestion — declarator splices', () => {
+  it('drops a member access that would break the declaration it completes', () => {
+    expect(sanitizeSuggestion({ text: '.setUrl("https://x.com");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: '.getBody();', prefix: 'const res', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('keeps a member access on a variable that is already initialized', () => {
+    expect(sanitizeSuggestion({ text: '.getUrl();', prefix: 'const foo = req', scriptType: 'pre-request' }))
+      .toBe('.getUrl();');
+  });
+
+  it('keeps an assignment completing the declaration', () => {
+    expect(sanitizeSuggestion({ text: ' = bru.getEnvVar("url");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe(' = bru.getEnvVar("url");');
   });
 });
