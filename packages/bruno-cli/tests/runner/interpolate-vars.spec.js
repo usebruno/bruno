@@ -3,6 +3,31 @@ const interpolateVars = require('../../src/runner/interpolate-vars');
 const prepareRequest = require('../../src/runner/prepare-request');
 
 describe('interpolate-vars: interpolateVars', () => {
+  it('interpolates form-url-encoded row values when Content-Type includes charset', () => {
+    const request = {
+      method: 'POST',
+      mode: 'formUrlEncoded',
+      url: 'http://api.example/search',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      data: [
+        { name: 'termId', value: '{{termId}}' },
+        { name: 'question', value: '{{question}}' }
+      ]
+    };
+
+    const result = interpolateVars(
+      request,
+      { termId: 'abc123', question: 'hello world' },
+      null,
+      null
+    );
+
+    expect(result.data).toEqual([
+      { name: 'termId', value: 'abc123' },
+      { name: 'question', value: 'hello world' }
+    ]);
+  });
+
   it('keeps stream-backed JSON request bodies intact', () => {
     const streamPayload = {
       pipe: jest.fn(),

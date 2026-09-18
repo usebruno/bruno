@@ -14,6 +14,7 @@ export {
 
 export {
   buildFormUrlEncodedPayload,
+  isFormUrlEncodedContentType,
   isFormData,
   extractBoundaryFromContentType
 } from './form-data';

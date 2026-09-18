@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, isFormUrlEncodedContentType } = require('@usebruno/common').utils;
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -150,7 +150,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
-    } else if (contentType === 'application/x-www-form-urlencoded') {
+    } else if (isFormUrlEncodedContentType(contentType)) {
       if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
