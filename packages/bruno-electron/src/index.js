@@ -69,6 +69,7 @@ const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/dee
 
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
+const { startBenchmark, stopBenchmark } = require('./benchmark');
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
@@ -189,6 +190,8 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   initializeShellEnv();
+
+  startBenchmark();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -548,6 +551,12 @@ app.on('before-quit', (event) => {
   event.preventDefault();
 
   (async () => {
+    try {
+      await stopBenchmark();
+    } catch (err) {
+      console.error('[benchmark] Failed to stop benchmark writer:', err);
+    }
+
     try {
       await Promise.race([
         closeAllWatchers(),

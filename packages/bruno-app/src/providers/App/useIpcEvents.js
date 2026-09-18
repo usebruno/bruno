@@ -52,6 +52,7 @@ import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
+import { checkpoint } from 'utils/benchmark';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -414,6 +415,8 @@ const useIpcEvents = () => {
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
+      checkpoint('collection-tree-rendered', { collectionUid, itemCount: tree?.items?.length ?? 0 });
+      checkpoint('redux-state-updated', { collectionUid });
     });
 
     const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
