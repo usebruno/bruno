@@ -1,4 +1,5 @@
 import { DB } from '../src/node/db';
+import { passthroughCodec } from '../src/node/codec';
 import type { Migration, StatementDef } from '../src/shared/types';
 import { loadMigrations, loadStatements } from './lib/sources';
 import { vacuumIntoStatement } from './lib/sql';
@@ -35,7 +36,7 @@ const main = () => {
     const backupPath = path.join(tempDir, 'bruno_backup.db');
     dbHandle = new DatabaseSync(dbPath);
     dbHandle.exec(vacuumIntoStatement(backupPath));
-    backupHandle = new DB(backupPath, migrations);
+    backupHandle = new DB(backupPath, migrations, { codec: passthroughCodec });
 
     const migratedDb = backupHandle._db;
     if (migratedDb === undefined) throw new Error('the migrated database is not open.');
