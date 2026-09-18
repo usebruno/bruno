@@ -11,6 +11,7 @@ import {
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
@@ -104,13 +105,27 @@ const QueryParams = ({ item, collection }) => {
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '20%'
+      width: '20%',
+      render: ({ row, value, onChange }) => (
+        <SingleLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={onChange}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          variablesAutocomplete={true}
+          docKey={`${item.uid}:query-param:${row.uid}:name`}
+          placeholder={!value ? 'Name' : ''}
+        />
+      )
     },
     {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ value, onChange }) => (
+      render: ({ row, value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -120,6 +135,7 @@ const QueryParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           variablesAutocomplete={true}
+          docKey={`${item.uid}:query-param:${row.uid}:value`}
           placeholder={!value ? 'Value' : ''}
         />
       )

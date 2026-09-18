@@ -5,6 +5,7 @@ import { moveVar, setRequestVars } from 'providers/ReduxStore/slices/collections
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
+import SingleLineEditor from 'components/SingleLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
@@ -78,7 +79,20 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
       isKeyField: true,
       sortable: true,
       placeholder: 'Name',
-      width: '20%'
+      width: '20%',
+      render: ({ row, value, onChange }) => (
+        <SingleLineEditor
+          value={value || ''}
+          theme={storedTheme}
+          onSave={onSave}
+          onChange={onChange}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          docKey={`${item.uid}:var:${varType}:${row.uid}:name`}
+          placeholder={!value ? 'Name' : ''}
+        />
+      )
     },
     {
       key: 'value',

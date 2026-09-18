@@ -167,6 +167,7 @@ const Assertions = ({ item, collection }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
+            docKey={`${item.uid}:assert:${row.uid}:name`}
             placeholder={!value ? 'Value' : ''}
           />
         );

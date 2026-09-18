@@ -7,7 +7,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
   applyEditorState,
-  captureViewState,
+  captureEditorState,
   readPersistedEditorState,
   writePersistedEditorState
 } from 'components/CodeEditor/state-persistence';
@@ -84,7 +84,7 @@ class MultiLineEditor extends Component {
       writePersistedEditorState({
         scope: this.props.persistenceScope,
         key: this._currentDocKey,
-        state: captureViewState(this.editor)
+        state: captureEditorState(this.editor)
       });
     }, 250);
 
@@ -102,7 +102,7 @@ class MultiLineEditor extends Component {
       writePersistedEditorState({
         scope: this.props.persistenceScope,
         key: this._currentDocKey,
-        state: captureViewState(this.editor)
+        state: captureEditorState(this.editor)
       });
     }
     if (this.editor && this._persistViewStateDebounced) {
