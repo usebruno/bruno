@@ -110,6 +110,7 @@ const LargeResponseWarning = ({
           title="Download response to file"
           color="secondary"
           size="sm"
+          data-testid="large-response-download-btn"
         >
           Download
         </Button>

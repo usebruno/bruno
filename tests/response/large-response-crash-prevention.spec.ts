@@ -35,7 +35,7 @@ test.describe('Large response handling', () => {
     const viewBtn = page.getByRole('button', { name: /^View$/i });
     await expect(viewBtn).toBeVisible();
     await expect(viewBtn).toBeEnabled();
-    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible();
+    await expect(page.getByTestId('large-response-download-btn')).toBeVisible();
     await expect(page.getByTestId('response-preview-container')).toHaveCount(0);
 
     await viewBtn.click();
@@ -44,14 +44,14 @@ test.describe('Large response handling', () => {
   });
 
   test('over 50MB text shows Large Response Warning with Download only', async ({ page, createTmpDir }) => {
-    const collectionName = 'large-download-only';
+    const collectionName = 'large-too-big';
     await createCollection(page, collectionName, await createTmpDir(collectionName));
     await createRequest(page, 'huge-text', collectionName, { url: OVER_50MB_URL });
 
     await sendRequest(page, 200);
 
     await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 120000 });
-    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible();
+    await expect(page.getByTestId('large-response-download-btn')).toBeVisible();
     const viewBtn = page.getByRole('button', { name: /^View$/i });
     await expect(viewBtn).toBeVisible();
     await expect(viewBtn).toBeDisabled();
