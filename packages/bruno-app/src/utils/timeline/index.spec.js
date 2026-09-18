@@ -8,13 +8,12 @@ const names = (rows) => rows.map((row) => row.name);
 const valueOf = (rows, name) => rows.find((row) => row.name === name)?.value;
 
 // One redirect hop as the network layer logs it: a request marker, its headers, then the response.
-const hop = (url, host, startTime) => [
+const hop = (url, host) => [
   { type: 'separator' },
   info(`Preparing request to ${url}`),
   { type: 'request', message: `GET ${url}` },
   header('Accept: application/json, text/plain, */*'),
   header('User-Agent: bruno-runtime/2.0.0'),
-  header(`request-start-time: ${startTime}`),
   header('Accept-Encoding: gzip, compress, deflate, br'),
   header(`Host: ${host}`),
   header('Connection: keep-alive'),
@@ -23,7 +22,7 @@ const hop = (url, host, startTime) => [
 
 describe('sentHeadersFromTimeline', () => {
   const singleHop = [
-    ...hop('http://localhost:6000/echo-request', 'localhost:6000', '1785918722100'),
+    ...hop('http://localhost:6000/echo-request', 'localhost:6000'),
     { type: 'response', message: 'HTTP/1.1 200 OK' },
     responseHeader('content-type: text/plain'),
     info('Request completed in 4 ms')
@@ -33,7 +32,6 @@ describe('sentHeadersFromTimeline', () => {
     expect(sentHeadersFromTimeline(singleHop)).toEqual([
       { name: 'Accept', value: 'application/json, text/plain, */*' },
       { name: 'User-Agent', value: 'bruno-runtime/2.0.0' },
-      { name: 'request-start-time', value: '1785918722100' },
       { name: 'Accept-Encoding', value: 'gzip, compress, deflate, br' },
       { name: 'Host', value: 'localhost:6000' },
       { name: 'Connection', value: 'keep-alive' }
@@ -52,11 +50,11 @@ describe('sentHeadersFromTimeline', () => {
   // final hop's headers reached the server that produced the response being shown.
   describe('followed redirect', () => {
     const redirected = [
-      ...hop('http://localhost:6000/redirect-other-host', 'localhost:6000', '1785918722100'),
+      ...hop('http://localhost:6000/redirect-other-host', 'localhost:6000'),
       { type: 'response', message: 'HTTP/1.1 302 Found' },
       responseHeader('location: http://127.0.0.1:6000/echo-request-redirect/hello'),
       info('Cross-origin redirect: stripping Authorization and Proxy-Authorization headers'),
-      ...hop('http://127.0.0.1:6000/echo-request-redirect/hello', '127.0.0.1:6000', '1785918722104'),
+      ...hop('http://127.0.0.1:6000/echo-request-redirect/hello', '127.0.0.1:6000'),
       { type: 'response', message: 'HTTP/1.1 200 OK' },
       info('Request completed in 4 ms')
     ];
@@ -64,7 +62,6 @@ describe('sentHeadersFromTimeline', () => {
     test('reports the final hop, not the first', () => {
       const rows = sentHeadersFromTimeline(redirected);
       expect(valueOf(rows, 'Host')).toBe('127.0.0.1:6000');
-      expect(valueOf(rows, 'request-start-time')).toBe('1785918722104');
     });
 
     test('does not concatenate the hops', () => {

@@ -18,21 +18,23 @@ const createHeaders = () => {
 
 describe('bruno default headers catalog', () => {
   it('includes the expected default header names', () => {
-    expect(getBrunoDefaultHeaderNames()).toEqual(
-      expect.arrayContaining([
-        'User-Agent',
-        'Accept',
-        'Accept-Encoding',
-        'request-start-time',
-        'Connection',
-        'Host'
-      ])
-    );
+    expect(getBrunoDefaultHeaderNames()).toEqual([
+      'User-Agent',
+      'Accept',
+      'Accept-Encoding',
+      'Connection',
+      'Host'
+    ]);
   });
 
   it('marks Host as not omittable', () => {
     const host = BRUNO_DEFAULT_HEADERS.find((header) => header.name === 'Host');
     expect(host?.omittable).toBe(false);
+  });
+
+  it('uses an angle-bracket Host placeholder before the host is known', () => {
+    const host = BRUNO_DEFAULT_HEADERS.find((header) => header.name === 'Host');
+    expect(host?.previewValue).toBe('<derived from request URL>');
   });
 
   it('builds the runtime User-Agent', () => {
