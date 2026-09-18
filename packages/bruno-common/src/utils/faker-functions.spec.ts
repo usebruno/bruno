@@ -54,6 +54,7 @@ describe('mockDataFunctions Regex Validation', () => {
       randomStreetAddress: /^[\s\S]+$/,
       randomCountry: /^[\s\S]+$/,
       randomCountryCode: /^[\s\S]+$/,
+      randomZipCode: /^[0-9]{5}(-[0-9]{4})?$/,
       randomLatitude: /^[\s\S]+$/,
       randomLongitude: /^[\s\S]+$/,
       randomAvatarImage: /^[\s\S]+$/,
