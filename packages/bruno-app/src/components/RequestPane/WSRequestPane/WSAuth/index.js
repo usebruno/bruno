@@ -102,8 +102,8 @@ const WSAuth = ({ item, collection }) => {
           && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
           && inheritedSource.auth?.mode !== 'oauth1'
           && inheritedSource.auth?.mode !== 'oauth2' ? (
-            <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
-          ) : null}
+              <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+            ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>

@@ -89,8 +89,8 @@ const GrpcAuth = ({ item, collection }) => {
         {authMode === 'inherit'
           && inheritedSource
           && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode) ? (
-            <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
-          ) : null}
+              <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+            ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>
