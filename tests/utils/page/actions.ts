@@ -1,4 +1,5 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -14,6 +15,12 @@ type CollectionFormat = 'bru' | 'yml';
 type WaitForAppReadyOptions = {
   timeout?: number;
 };
+
+/**
+ * Read an element's scroll dimensions for asserting scroll/overflow behavior.
+ */
+export const getScrollMetrics = (locator: Locator) =>
+  locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
 
 /**
  * Wait for the Electron app to have a ready, loaded window.
@@ -121,8 +128,18 @@ const closeAllCollections = async (page) => {
  * @param collectionName - The name of the collection to open
  * @returns void
  */
+// sidebar is virtualized, opening a request lower in the list scrolls the collection header
+// out of the viewport, and Virtuoso unmounts it once it passes the overscan.
+// Reset the list to the top so the header row is rendered before we locate it.
+const revealCollectionsTop = async (page: Page) => {
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
+};
+
 const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
 };
@@ -551,11 +568,10 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     // Click on the collection first to open it if it's closed
     await locators.sidebar.collection(collectionName).click();
 
-    // Find the request within the collection's context
-    // Use the collection container (.collection-name) scoped to sidebar to scope the search
-    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+    const request = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .locator('.collection-item-name')
+      .filter({ hasText: requestName });
 
     await request.hover();
     await request.locator('.menu-icon').click();
@@ -785,7 +801,7 @@ const createFolder = async (
     // Scope to the parent so same-named folders in other collections don't trip strict mode.
     const parentScope = isCollection
       ? locators.sidebar.collectionScope(parentName)
-      : locators.sidebar.folder(parentName).locator('..');
+      : locators.sidebar.folderScope(parentName);
     await expect(parentScope.locator('.collection-item-name').filter({ hasText: folderName })).toBeVisible();
   });
 };
@@ -1477,8 +1493,10 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    const request = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: requestName });
     if (!persist) {
       await request.click();
     } else {
@@ -1498,8 +1516,10 @@ const openfolder = async (page: Page, collectionName: string, folderName: string
   await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    const folder = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: folderName });
     if (!persist) {
       await folder.click();
     } else {
@@ -1547,6 +1567,7 @@ const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'p
  */
 const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
   await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
     const locators = buildCommonLocators(page);
     const collection = locators.sidebar.collection(collectionName);
     if (!persist) {
@@ -1632,11 +1653,10 @@ const openFolderRequest = async (page: Page, collectionName: string, folderName:
     const { sidebar, tabs } = buildCommonLocators(page);
     const collectionRow = sidebar.collectionRow(collectionName);
     await collectionRow.click();
-    const collectionWrapper = collectionRow.locator('..');
-    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    const folder = sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
     await folder.waitFor({ state: 'visible' });
     await folder.click();
-    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    const request = sidebar.folderScope(folderName).locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
     await request.waitFor({ state: 'visible' });
     await request.click();
     await expect(tabs.activeRequestTab()).toContainText(requestName);
@@ -2700,7 +2720,7 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
-  const requestBranch = requestRow.locator('..');
+  const requestBranch = page.locator(`[data-parent-name="${requestName}"]`);
   const exampleRow = requestBranch
     .locator('.collection-item-name')
     .filter({ has: page.locator('.example-icon') })
@@ -2808,6 +2828,31 @@ const expectNoLink = async (cm: Locator) => {
 };
 
 /**
+ * The collections list is virtualized, so a row outside the viewport is not in
+ * DOM. Scroll the request to view.
+
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollSidebarListTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) return;
+
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((el) => Math.ceil(el.scrollHeight / el.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((el, offset) => el.scrollTo({ top: offset * el.clientHeight }), viewport);
+    // react-virtuoso mounts rows asynchronously after a scroll, so let it settle before checking.
+    await page.waitForTimeout(60);
+    if (await isRendered()) return;
+  }
+};
+
+/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -2819,11 +2864,12 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
     const { sidebar } = buildCommonLocators(page);
     await sidebar.folder(folderName).click();
 
-    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const folderWrapper = page.locator(`[data-parent-name="${folderName}"]`);
     const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const requestRow = folderWrapper.locator('.collection-item-name').filter({
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
+    await scrollSidebarListTo(page, requestRow);
     await requestRow.click();
   });
 };

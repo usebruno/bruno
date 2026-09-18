@@ -499,6 +499,9 @@ export const buildScriptErrorLocators = (page: Page) => ({
   title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
   /** Close button within a card */
   closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
+  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
+  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */
