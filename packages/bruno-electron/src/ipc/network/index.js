@@ -2005,23 +2005,26 @@ const registerNetworkIpc = (mainWindow) => {
                 }
 
                 timeEnd = Date.now();
-                response = {
-                  status: error.response.status,
-                  statusText: error.response.statusText,
-                  headers: error.response.headers,
-                  duration: timeEnd - timeStart,
-                  bodyRef: error.response.bodyRef || null,
-                  size: error.response.size || 0,
-                  data: getDataForIpc(error.response),
-                  responseTime: error.response.responseTime,
-                  timeline: error.response.timeline
-                };
+                // Keep the ingested axios response for scripts/assertions (parsed `.data`).
+                // Only the runner IPC payload should use getDataForIpc().
+                response = error.response;
+                response.duration = timeEnd - timeStart;
 
                 // if we get a response from the server, we consider it as a success
                 sendRunnerResponseReceived({
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
-                  responseReceived: response,
+                  responseReceived: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers,
+                    duration: response.duration,
+                    bodyRef: response.bodyRef || null,
+                    size: response.size || 0,
+                    data: getDataForIpc(response),
+                    responseTime: response.responseTime,
+                    timeline: response.timeline
+                  },
                   eventData
                 });
               } else {
