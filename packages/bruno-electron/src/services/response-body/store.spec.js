@@ -1,4 +1,5 @@
 const { Readable } = require('node:stream');
+const path = require('node:path');
 const { createResponseBodyStore } = require('./store');
 const { createMemoryFileSystem } = require('./memory-fs');
 const { BodyNotFoundError } = require('./errors');
@@ -7,18 +8,20 @@ describe('ResponseBodyStore', () => {
   let idSeq;
   let store;
   let fs;
+  const spillDir = path.join(path.sep, 'spill');
 
   beforeEach(() => {
     idSeq = 0;
     fs = createMemoryFileSystem();
     store = createResponseBodyStore({
       fs,
-      spillDir: '/spill',
+      spillDir,
       idGen: () => `body-${++idSeq}`
     });
   });
 
   const streamFrom = (data) => Readable.from([Buffer.from(data)]);
+  const spillPath = (bodyRef) => path.join(spillDir, bodyRef);
 
   test('dual-writes small bodies to memory and file', async () => {
     const result = await store.ingestStream(streamFrom('hello world'), {
@@ -29,10 +32,10 @@ describe('ResponseBodyStore', () => {
       bodyRef: 'body-1',
       size: 11
     });
-    expect(fs.existsSync('/spill/body-1')).toBe(true);
+    expect(fs.existsSync(spillPath('body-1'))).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from('hello world'));
     expect(await store.readRange(result.bodyRef, 0, 5)).toEqual(Buffer.from('hello'));
-    expect(store.getFilePath(result.bodyRef)).toBe('/spill/body-1');
+    expect(store.getFilePath(result.bodyRef)).toBe(spillPath('body-1'));
   });
 
   test('dual-writes large streams to memory and file', async () => {
@@ -40,7 +43,7 @@ describe('ResponseBodyStore', () => {
     const result = await store.ingestStream(streamFrom(payload));
 
     expect(result.size).toBe(150);
-    expect(fs.existsSync('/spill/body-1')).toBe(true);
+    expect(fs.existsSync(spillPath('body-1'))).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from(payload));
     expect(await store.readRange(result.bodyRef, 0, 10)).toEqual(Buffer.from('x'.repeat(10)));
     expect(await store.readRange(result.bodyRef, 140, 20)).toEqual(Buffer.from('x'.repeat(10)));
@@ -49,19 +52,21 @@ describe('ResponseBodyStore', () => {
   test('putBuffer always writes file and keeps buffer', async () => {
     const result = await store.putBuffer(Buffer.from('y'.repeat(120)));
     expect(result.bodyRef).toBe('body-1');
-    expect(fs.existsSync('/spill/body-1')).toBe(true);
+    expect(fs.existsSync(spillPath('body-1'))).toBe(true);
     expect(store.getBufferForScripts(result.bodyRef)).toEqual(Buffer.from('y'.repeat(120)));
     expect(await store.readRange(result.bodyRef)).toEqual(Buffer.from('y'.repeat(120)));
   });
 
   test('saveToPath copies from file', async () => {
+    const outMem = path.join(path.sep, 'out', 'mem.txt');
+    const outFile = path.join(path.sep, 'out', 'file.txt');
     const mem = await store.putBuffer(Buffer.from('abc'));
-    await store.saveToPath(mem.bodyRef, '/out/mem.txt');
-    expect(await fs.readFile('/out/mem.txt')).toEqual(Buffer.from('abc'));
+    await store.saveToPath(mem.bodyRef, outMem);
+    expect(await fs.readFile(outMem)).toEqual(Buffer.from('abc'));
 
     const file = await store.putBuffer(Buffer.from('z'.repeat(150)));
-    await store.saveToPath(file.bodyRef, '/out/file.txt');
-    expect(await fs.readFile('/out/file.txt')).toEqual(Buffer.from('z'.repeat(150)));
+    await store.saveToPath(file.bodyRef, outFile);
+    expect(await fs.readFile(outFile)).toEqual(Buffer.from('z'.repeat(150)));
   });
 
   test('pin keeps entry until all pins released', async () => {
@@ -103,7 +108,7 @@ describe('ResponseBodyStore', () => {
     });
 
     await expect(store.ingestStream(failing)).rejects.toThrow('boom');
-    expect(fs.existsSync('/spill/body-1')).toBe(false);
+    expect(fs.existsSync(spillPath('body-1'))).toBe(false);
     expect(() => store.getStat('body-1')).toThrow(BodyNotFoundError);
   });
 });
