@@ -317,8 +317,9 @@ export class MaskedEditor {
           currentLine++;
           currentCh = 0;
         } else {
-          // Create masked node
-          const maskedNode = document.createTextNode(this.maskChar);
+          const maskedNode = document.createElement('span');
+          maskedNode.textContent = this.maskChar;
+          maskedNode.setAttribute('data-testid', 'masked-character');
 
           // Create mark with proper bounds checking
           const fromPos = { line: currentLine, ch: currentCh };
@@ -355,8 +356,9 @@ export class MaskedEditor {
         const lineLength = this.editor.getLine(line).length;
 
         if (lineLength > 0) {
-          // Create masked node for entire line
-          const maskedNode = document.createTextNode(this.maskChar.repeat(lineLength));
+          const maskedNode = document.createElement('span');
+          maskedNode.textContent = this.maskChar.repeat(lineLength);
+          maskedNode.setAttribute('data-testid', 'masked-line');
 
           // Create mark with proper bounds checking
           const mark = this.editor.markText({ line, ch: 0 },

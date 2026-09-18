@@ -1,12 +1,14 @@
-import { test, expect, Locator } from '../../playwright';
+import { test, expect, Locator, Page } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
   createRequest,
   openRequest,
   selectRequestPaneTab,
+  selectAuthMode,
   buildCommonLocators
 } from '../utils/page';
+import { buildRequestLocators } from '../utils/request';
 import {
   buildAutocompleteLocators,
   pressAutocompleteShortcut,
@@ -14,6 +16,24 @@ import {
   setEditorState,
   pickHint
 } from '../utils/page/autocomplete';
+
+/** A labeled single-line auth field (Bearer Token, AWS Secret Access Key, ...), scoped to the
+ * request pane so it doesn't collide with a same-named label elsewhere on the page. */
+const authFieldEditor = (page: Page, labelText: string) =>
+  buildRequestLocators(page)
+    .pane()
+    .locator('label')
+    .filter({ hasText: new RegExp(`^${labelText}$`) })
+    .locator('..')
+    .locator('.single-line-editor-wrapper .CodeMirror')
+    .first();
+
+const expectFullyMasked = async (editor: Locator, realValue: string) => {
+  await expect(editor.getByTestId('masked-character')).toHaveCount(realValue.length);
+  if (realValue.length > 0) {
+    await expect(editor.locator('.CodeMirror-line').first()).not.toContainText(realValue);
+  }
+};
 
 test.describe('Variable autocomplete — insertion correctness', () => {
   test.afterEach(async ({ page }) => {
@@ -216,5 +236,83 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await page.keyboard.press('Enter');
     await expect(widget()).toHaveCount(0);
     expect(await readEditorValue(valueEditor)).toBe(`{{${activeName}}}`);
+  });
+});
+
+test.describe('Variable autocomplete — masked fields', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('picking a variable via autocomplete into a masked field renders it masked immediately (regression for the masking-on-pick bug)', async ({
+    page,
+    createTmpDir
+  }) => {
+    await createCollection(page, 'autocomplete-masked-pick', await createTmpDir());
+    await createRequest(page, 'req', 'autocomplete-masked-pick', { url: 'https://example.com/api' });
+    await openRequest(page, 'autocomplete-masked-pick', 'req');
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, 'Bearer Token');
+
+    const tokenEditor = authFieldEditor(page, 'Token');
+    const { widget } = buildAutocompleteLocators(page);
+
+    await tokenEditor.click();
+    await setEditorState(tokenEditor, '{{$gui}}', 6);
+    await pressAutocompleteShortcut(page);
+    await expect(widget()).toBeVisible();
+
+    await pickHint(page, '$guid');
+
+    expect(await readEditorValue(tokenEditor)).toBe('{{$guid}}');
+    await expectFullyMasked(tokenEditor, '{{$guid}}');
+  });
+
+  test('pasting a variable reference into a masked field renders it masked', async ({ page, createTmpDir }) => {
+    await createCollection(page, 'autocomplete-masked-paste', await createTmpDir());
+    await createRequest(page, 'req', 'autocomplete-masked-paste', { url: 'https://example.com/api' });
+    await openRequest(page, 'autocomplete-masked-paste', 'req');
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, 'Bearer Token');
+
+    const tokenEditor = authFieldEditor(page, 'Token');
+    const pastedValue = '{{$guid}}';
+
+    await tokenEditor.click();
+    await page.evaluate(async (text) => {
+      await navigator.clipboard.writeText(text);
+    }, pastedValue);
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+V`);
+
+    expect(await readEditorValue(tokenEditor)).toBe(pastedValue);
+    await expectFullyMasked(tokenEditor, pastedValue);
+  });
+
+  test('undoing an edit in a masked field re-masks the restored content', async ({ page, createTmpDir }) => {
+    await createCollection(page, 'autocomplete-masked-undo', await createTmpDir());
+    await createRequest(page, 'req', 'autocomplete-masked-undo', { url: 'https://example.com/api' });
+    await openRequest(page, 'autocomplete-masked-undo', 'req');
+    await selectRequestPaneTab(page, 'Auth');
+    await selectAuthMode(page, 'Bearer Token');
+
+    const tokenEditor = authFieldEditor(page, 'Token');
+    const baseValue = 'basevalue';
+
+    await tokenEditor.click();
+    await setEditorState(tokenEditor, baseValue, baseValue.length);
+    await expectFullyMasked(tokenEditor, baseValue);
+
+    await page.keyboard.press('End');
+    await page.keyboard.type('X');
+    expect(await readEditorValue(tokenEditor)).toBe('basevalueX');
+    await expectFullyMasked(tokenEditor, 'basevalueX');
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+Z`);
+
+    expect(await readEditorValue(tokenEditor)).toBe(baseValue);
+    await expectFullyMasked(tokenEditor, baseValue);
   });
 });
