@@ -10,7 +10,9 @@ import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const authMode = folder.draft ? get(folder, 'draft.request.auth.mode') : get(folder, 'root.request.auth.mode');
+  const authMode = folder.draft
+    ? get(folder, 'draft.request.auth.mode', 'inherit')
+    : get(folder, 'root.request.auth.mode', 'inherit');
 
   const onModeChange = useCallback((value) => {
     dispatch(
