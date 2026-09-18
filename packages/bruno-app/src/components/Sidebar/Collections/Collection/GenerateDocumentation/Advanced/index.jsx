@@ -6,7 +6,7 @@ import SegmentedControl from 'ui/SegmentedControl';
 import IncludeExcludeTags from './IncludeExcludeTags';
 import StyledWrapper from './StyledWrapper';
 
-const TAGS_HINT = 'Tags are labels on requests (e.g. smoke, WIP). Manage tags in Request › Settings';
+const TAGS_HINT = 'Tags are labels on requests and folders (e.g. smoke, WIP), and a request also matches its folders\' tags. Manage them in Request › Settings and Folder › Settings';
 
 const REQUEST_MODE_ITEMS = [
   { 'value': 'all', 'label': 'All requests', 'className': 'seg-option', 'data-testid': 'docs-requests-all' },

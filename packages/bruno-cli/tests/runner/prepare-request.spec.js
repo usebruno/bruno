@@ -672,6 +672,94 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Effective tags', () => {
+    // prepareRequest resolves tags against the tree, so the item must be reachable in collection.items
+    const httpRequest = (pathname, tags) => ({
+      type: 'http-request',
+      name: pathname.split('/').pop(),
+      pathname: `/collection/${pathname}.bru`,
+      ...(tags !== undefined ? { tags } : {}),
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        script: {},
+        vars: {}
+      }
+    });
+
+    const folder = (pathname, tags, items) => ({
+      type: 'folder',
+      name: pathname.split('/').pop(),
+      pathname: `/collection/${pathname}`,
+      root: { meta: { name: pathname.split('/').pop(), tags } },
+      items
+    });
+
+    const collectionWith = (items) => ({ pathname: '/collection', root: {}, items });
+
+    it('carries the request own tags when it sits at the collection root', async () => {
+      const item = httpRequest('login', ['smoke', 'fast']);
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual(['smoke', 'fast']);
+    });
+
+    it('is an empty list when neither request nor folders carry tags', async () => {
+      const item = httpRequest('login');
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual([]);
+    });
+
+    it('inherits the tags of the folder holding the request', async () => {
+      const item = httpRequest('auth/login', ['smoke']);
+      const result = await prepareRequest(item, collectionWith([folder('auth', ['auth'], [item])]));
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('accumulates tags from every folder above the request', async () => {
+      const item = httpRequest('api/v2/users', ['smoke']);
+      const collection = collectionWith([folder('api', ['api'], [folder('api/v2', ['v2'], [item])])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'api', 'v2']);
+    });
+
+    it('does not pick up tags from a sibling folder', async () => {
+      const item = httpRequest('auth/login');
+      const collection = collectionWith([
+        folder('auth', ['auth'], [item]),
+        folder('billing', ['billing'], [httpRequest('billing/invoice')])
+      ]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['auth']);
+    });
+
+    it('de-duplicates a tag the request repeats from its folder', async () => {
+      const item = httpRequest('auth/login', ['smoke']);
+      const collection = collectionWith([folder('auth', ['auth', 'smoke'], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('normalizes malformed tags on the request and its folders', async () => {
+      const item = httpRequest('auth/login', [' smoke ', 'smoke', 42, null]);
+      const collection = collectionWith([folder('auth', ['  auth  ', '', undefined], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+  });
+
   describe('GraphQL request', () => {
     it('keeps variables as string for interpolation', async () => {
       const item = {
