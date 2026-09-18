@@ -6,7 +6,7 @@ import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
-import InheritedAuth from '../../Auth/InheritedAuth';
+import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -97,6 +97,13 @@ const WSAuth = ({ item, collection }) => {
     <StyledWrapper className="w-full overflow-y-scroll">
       <div className="flex items-center justify-between mb-4">
         <WSAuthMode item={item} collection={collection} />
+        {authMode === 'inherit'
+          && inheritedSource
+          && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
+          && inheritedSource.auth?.mode !== 'oauth1'
+          && inheritedSource.auth?.mode !== 'oauth2' ? (
+            <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+          ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>

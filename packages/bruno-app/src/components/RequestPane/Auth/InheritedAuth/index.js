@@ -6,21 +6,16 @@ import { humanizeRequestAuthMode } from 'utils/collections';
 import AuthFields from '../AuthFields';
 import StyledWrapper from './StyledWrapper';
 
-const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsupportedMessage }) => {
+export const InheritedAuthSourceLabel = ({ collection, inheritedSource }) => {
   const dispatch = useDispatch();
   const inheritedMode = inheritedSource?.auth?.mode;
-  const inheritedRequest = { auth: inheritedSource?.auth || { mode: 'none' } };
 
-  if (supportedModes && inheritedMode && !supportedModes.includes(inheritedMode)) {
-    return (
-      <div className="flex flex-row w-full gap-2">
-        <div>{unsupportedMessage || 'Inherited auth not supported. Using no auth instead.'}</div>
-      </div>
-    );
+  if (!inheritedSource) {
+    return null;
   }
 
   const handleNavigateToSource = () => {
-    const isFolder = inheritedSource?.type === 'folder';
+    const isFolder = inheritedSource.type === 'folder';
     const targetUid = isFolder ? inheritedSource.uid : collection.uid;
     if (!targetUid || !collection?.uid) {
       return;
@@ -49,19 +44,37 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
 
   return (
     <StyledWrapper>
-      <div className="flex flex-row w-full gap-2 items-center">
-        <div>Auth inherited from {inheritedSource?.name}: </div>
+      <div className="flex flex-row items-center gap-2">
+        <div>Auth inherited from {inheritedSource.name}: </div>
         <button
           type="button"
           className="inherit-mode-text"
           data-testid="inherited-auth-mode"
           onClick={handleNavigateToSource}
-          aria-label={`Open ${humanizeRequestAuthMode(inheritedMode)} auth in ${inheritedSource?.name}`}
+          aria-label={`Open ${humanizeRequestAuthMode(inheritedMode)} auth in ${inheritedSource.name}`}
         >
           {humanizeRequestAuthMode(inheritedMode)}
         </button>
       </div>
-      <div className="inherited-auth-fields mt-4" data-testid="inherited-auth-fields" aria-disabled="true">
+    </StyledWrapper>
+  );
+};
+
+const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsupportedMessage }) => {
+  const inheritedMode = inheritedSource?.auth?.mode;
+  const inheritedRequest = { auth: inheritedSource?.auth || { mode: 'none' } };
+
+  if (supportedModes && inheritedMode && !supportedModes.includes(inheritedMode)) {
+    return (
+      <div className="flex flex-row w-full gap-2">
+        <div>{unsupportedMessage || 'Inherited auth not supported. Using no auth instead.'}</div>
+      </div>
+    );
+  }
+
+  return (
+    <StyledWrapper>
+      <div className="inherited-auth-fields" data-testid="inherited-auth-fields" aria-disabled="true">
         <AuthFields
           authMode={inheritedMode}
           collection={collection}

@@ -7,7 +7,7 @@ import AuthMode from './AuthMode';
 import StyledWrapper from './StyledWrapper';
 import { getEffectiveAuthSource } from 'utils/auth';
 import AuthFields from './AuthFields';
-import InheritedAuth from './InheritedAuth';
+import InheritedAuth, { InheritedAuthSourceLabel } from './InheritedAuth';
 
 const Auth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -47,6 +47,9 @@ const Auth = ({ item, collection }) => {
     <StyledWrapper className="w-full overflow-auto">
       <div className="flex items-center justify-between mb-4">
         <AuthMode item={item} collection={collection} />
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+        ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>

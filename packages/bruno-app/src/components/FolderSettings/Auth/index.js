@@ -18,7 +18,7 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
-import InheritedAuth from 'components/RequestPane/Auth/InheritedAuth';
+import InheritedAuth, { InheritedAuthSourceLabel } from 'components/RequestPane/Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import AuthMode from '../AuthMode';
 import StyledWrapper from './StyledWrapper';
@@ -203,8 +203,11 @@ const Auth = ({ collection, folder }) => {
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center">
+      <div className="flex items-center justify-between mb-4">
         <AuthMode collection={collection} folder={folder} />
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+        ) : null}
       </div>
       {getAuthView()}
       <div className="mt-6">
