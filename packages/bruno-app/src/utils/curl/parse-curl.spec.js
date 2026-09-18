@@ -428,6 +428,14 @@ describe('parseCurlCommand', () => {
         { name: 'file', value: ['/path/to/file.txt'], type: 'file', enabled: true }
       ]);
     });
+
+    it('should skip form fields without a name=value pair', () => {
+      const result = parseCurlCommand(`
+        curl --form "invalid" https://api.example.com/upload
+      `);
+
+      expect(result.multipartUploads).toEqual([]);
+    });
   });
 
   describe('Cookie', () => {
