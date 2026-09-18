@@ -22,6 +22,7 @@ import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
+import { buildAutocompleteLocators } from './autocomplete';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -44,6 +45,7 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  autocomplete: buildAutocompleteLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
   responseExample: buildResponseExampleLocators(page),
