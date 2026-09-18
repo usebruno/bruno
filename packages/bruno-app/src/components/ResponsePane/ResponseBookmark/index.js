@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getExampleBodyType } from 'utils/responseBodyProcessor';
 import { detectContentTypeFromBase64 } from 'utils/response';
+import { getResponseBodyClient } from 'utils/response-body';
 import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
@@ -80,14 +81,28 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
         }))
       : [];
 
+    let data = response.data;
+    let dataBuffer = response.dataBuffer;
+
+    // dataBuffer is not kept in Redux; read raw bytes from the store when saving.
+    if (response.bodyRef && dataBuffer == null) {
+      try {
+        const result = await getResponseBodyClient().read(response.bodyRef, { encoding: 'base64' });
+        dataBuffer = result?.dataBuffer;
+      } catch (err) {
+        toast.error(err?.error?.message || err?.message || 'Failed to load response body');
+        return;
+      }
+    }
+
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
-    const sniffedMime = detectContentTypeFromBase64(response.dataBuffer);
+    const sniffedMime = detectContentTypeFromBase64(dataBuffer);
     const bodyType = getExampleBodyType(contentType, sniffedMime);
 
     const content = bodyType === 'binary'
-      ? response.dataBuffer
-      : formatResponse(response.data, response.dataBuffer, bodyType);
+      ? dataBuffer
+      : formatResponse(data, dataBuffer, bodyType);
 
     const exampleData = {
       name: name,

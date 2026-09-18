@@ -1,18 +1,12 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { clearRequestTimeline } from 'providers/ReduxStore/slices/collections/index';
+import { clearRequestTimelineAndReleasePins } from 'providers/ReduxStore/slices/collections/actions';
 
 const ClearTimeline = ({ collection, item }) => {
   const dispatch = useDispatch();
 
-  const clearResponse = () =>
-    dispatch(
-      clearRequestTimeline({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+  const clearResponse = () => dispatch(clearRequestTimelineAndReleasePins(item, collection));
 
   return (
     <StyledWrapper className="flex items-center">

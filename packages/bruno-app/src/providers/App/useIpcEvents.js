@@ -249,6 +249,9 @@ const useIpcEvents = () => {
       dispatch(collectionRenamedEvent(val));
     });
 
+    // Dispatch folder-run events synchronously first. Awaiting pins before dispatch
+    // reorders IPC (assertion/test results overtake response-received) and leaves
+    // items stuck in `running`, which under-counts passed runner results.
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
       // Folder runs reuse the workspace baseline across N requests; clear it
       // per request so request N's global-env update doesn't diff against
@@ -256,7 +259,28 @@ const useIpcEvents = () => {
       if (val.type === 'testrun-started' || val.type === 'request-queued') {
         dispatch(_clearScriptGlobalEnvBaseline());
       }
+
       dispatch(runFolderEvent(val));
+
+      if (val.type === 'response-received' && val.responseReceived?.bodyRef) {
+        const { pinBodyRef } = require('utils/response-body');
+        pinBodyRef(val.responseReceived.bodyRef)
+          .then((pinId) => {
+            if (!pinId) return;
+            dispatch(
+              runFolderEvent({
+                ...val,
+                responseReceived: {
+                  ...val.responseReceived,
+                  bodyPinId: pinId
+                }
+              })
+            );
+          })
+          .catch((err) => {
+            console.warn('Failed to pin runner response body:', err?.message || err);
+          });
+      }
     });
 
     const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', (val) => {
