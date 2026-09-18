@@ -13,6 +13,7 @@ import catppuccinMacchiato from './dark/catppuccin-macchiato';
 import catppuccinMocha from './dark/catppuccin-mocha';
 import { gruvboxDarkSoft, gruvboxDarkMedium, gruvboxDarkHard } from './dark/gruvbox';
 import nord from './dark/nord';
+import dracula from './dark/dracula';
 import vscodeDark from './dark/vscode';
 import cyberdreamDark from './dark/cyberdream-dark';
 
@@ -34,6 +35,7 @@ const themes = {
   'gruvbox-dark-medium': gruvboxDarkMedium,
   'gruvbox-dark-hard': gruvboxDarkHard,
   nord,
+  dracula,
   'vscode-light': vscodeLight,
   'vscode-dark': vscodeDark,
   'cyberdream-light': cyberdreamLight,
@@ -125,6 +127,11 @@ export const themeRegistry = {
   'nord': {
     id: 'nord',
     name: 'Nord',
+    mode: 'dark'
+  },
+  'dracula': {
+    id: 'dracula',
+    name: 'Dracula',
     mode: 'dark'
   },
   'vscode-light': {
