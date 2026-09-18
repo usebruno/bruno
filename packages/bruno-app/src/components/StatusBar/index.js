@@ -18,9 +18,6 @@ const StatusBar = () => {
   const dispatch = useDispatch();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const showHomePage = useSelector((state) => state.app.showHomePage);
-  const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);

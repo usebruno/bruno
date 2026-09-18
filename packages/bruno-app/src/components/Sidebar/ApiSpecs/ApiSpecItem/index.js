@@ -1,17 +1,19 @@
-import { setActiveApiSpecUid } from 'providers/ReduxStore/slices/apiSpec';
-import { showApiSpecPage as _showApiSpecPage } from 'providers/ReduxStore/slices/app';
+import { openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
 import Dropdown from 'components/Dropdown';
 import { IconDots, IconX } from '@tabler/icons';
 import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
 import { forwardRef } from 'react';
+import { isApiSpecTabForPathname } from 'utils/api-specs';
 
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
 
-  const activeApiSpecUid = useSelector((state) => state.apiSpec.activeApiSpecUid);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
+  const isActive = useSelector((state) => {
+    const activeTab = state.tabs.tabs.find((tab) => tab.uid === state.tabs.activeTabUid);
+    return isApiSpecTabForPathname(activeTab, apiSpec?.pathname);
+  });
 
   const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
 
@@ -19,8 +21,7 @@ const ApiSpecItem = ({ apiSpec }) => {
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const handleOpenApiSpec = (apiSpec) => (e) => {
-    dispatch(_showApiSpecPage());
-    dispatch(setActiveApiSpecUid({ uid: apiSpec.uid }));
+    dispatch(openApiSpecTab(apiSpec));
   };
 
   const MenuIcon = forwardRef((props, ref) => {
@@ -34,7 +35,7 @@ const ApiSpecItem = ({ apiSpec }) => {
   return (
     <div
       className={`flex flex-grow api-spec-item items-center h-full overflow-hidden w-full justify-between ${
-        showApiSpecPage && apiSpec?.uid == activeApiSpecUid ? 'active' : ''
+        isActive ? 'active' : ''
       }`}
     >
       {closeApiSpecModal && <CloseApiSpec apiSpec={apiSpec} onClose={() => setCloseApiSpecModal(false)} />}
