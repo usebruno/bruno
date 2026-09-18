@@ -144,7 +144,7 @@ const Wrapper = styled.div`
     }
   }
 
-  /* Icon-only actions: the label is dropped, so aria-label carries the name. */
+   /* Icon-only actions: the label is dropped, so aria-label carries the name. */
   .tiny .runner-actions {
     .button-content {
       display: none;
@@ -154,6 +154,11 @@ const Wrapper = styled.div`
       padding-left: 0.5rem;
       padding-right: 0.5rem;
     }
+  }
+
+  .loading-icon {
+    transform: scaleY(-1);
+    animation: rotateCounterClockwise 1s linear infinite;
   }
 `;
 
