@@ -182,7 +182,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
                     <div className="card-divider" />
                     <div className="env-section">
                       <EnvironmentSelectionList
-                        title="Environments to include"
+                        title="Environments To Include"
                         environments={environments}
                         selectedUids={selectedEnvUids}
                         onToggle={toggleEnv}
