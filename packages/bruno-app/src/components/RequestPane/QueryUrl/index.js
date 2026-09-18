@@ -404,6 +404,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <SingleLineEditor
             ref={editorRef}
             value={url}
+            docKey={`${item.uid}:url`}
             placeholder="Enter URL or paste a cURL request"
             onSave={(finalValue) => onSave(finalValue)}
             theme={storedTheme}
