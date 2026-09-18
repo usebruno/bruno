@@ -105,7 +105,6 @@ function makeAxiosInstance({
   instance.interceptors.request.use((config) => {
     config.metadata = config.metadata || {};
     config.metadata.startTime = Date.now();
-    config.headers['request-start-time'] = config.metadata.startTime;
 
     // Omit listed defaults and script-deleted headers. set(null) so Axios
     // does not put User-Agent / Accept-Encoding back.

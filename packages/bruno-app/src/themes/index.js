@@ -2,15 +2,20 @@ import light from './light/light';
 import lightMonochrome from './light/light-monochrome';
 import lightPastel from './light/light-pastel';
 import catppuccinLatte from './light/catppuccin-latte';
+import { gruvboxLightSoft, gruvboxLightMedium, gruvboxLightHard } from './light/gruvbox';
 import vscodeLight from './light/vscode';
+import cyberdreamLight from './light/cyberdream-light';
 import dark from './dark/dark';
 import darkMonochrome from './dark/dark-monochrome';
 import darkPastel from './dark/dark-pastel';
 import catppuccinFrappe from './dark/catppuccin-frappe';
 import catppuccinMacchiato from './dark/catppuccin-macchiato';
 import catppuccinMocha from './dark/catppuccin-mocha';
+import { gruvboxDarkSoft, gruvboxDarkMedium, gruvboxDarkHard } from './dark/gruvbox';
 import nord from './dark/nord';
+import dracula from './dark/dracula';
 import vscodeDark from './dark/vscode';
+import cyberdreamDark from './dark/cyberdream-dark';
 
 const themes = {
   light,
@@ -23,9 +28,18 @@ const themes = {
   'catppuccin-frappe': catppuccinFrappe,
   'catppuccin-macchiato': catppuccinMacchiato,
   'catppuccin-mocha': catppuccinMocha,
+  'gruvbox-light-soft': gruvboxLightSoft,
+  'gruvbox-light-medium': gruvboxLightMedium,
+  'gruvbox-light-hard': gruvboxLightHard,
+  'gruvbox-dark-soft': gruvboxDarkSoft,
+  'gruvbox-dark-medium': gruvboxDarkMedium,
+  'gruvbox-dark-hard': gruvboxDarkHard,
   nord,
+  dracula,
   'vscode-light': vscodeLight,
-  'vscode-dark': vscodeDark
+  'vscode-dark': vscodeDark,
+  'cyberdream-light': cyberdreamLight,
+  'cyberdream-dark': cyberdreamDark
 };
 
 // Theme metadata for UI display
@@ -48,6 +62,21 @@ export const themeRegistry = {
   'catppuccin-latte': {
     id: 'catppuccin-latte',
     name: 'Catppuccin Latte',
+    mode: 'light'
+  },
+  'gruvbox-light-soft': {
+    id: 'gruvbox-light-soft',
+    name: 'Gruvbox Light Soft',
+    mode: 'light'
+  },
+  'gruvbox-light-medium': {
+    id: 'gruvbox-light-medium',
+    name: 'Gruvbox Light Medium',
+    mode: 'light'
+  },
+  'gruvbox-light-hard': {
+    id: 'gruvbox-light-hard',
+    name: 'Gruvbox Light Hard',
     mode: 'light'
   },
   'dark': {
@@ -80,9 +109,29 @@ export const themeRegistry = {
     name: 'Catppuccin Mocha',
     mode: 'dark'
   },
+  'gruvbox-dark-soft': {
+    id: 'gruvbox-dark-soft',
+    name: 'Gruvbox Dark Soft',
+    mode: 'dark'
+  },
+  'gruvbox-dark-medium': {
+    id: 'gruvbox-dark-medium',
+    name: 'Gruvbox Dark Medium',
+    mode: 'dark'
+  },
+  'gruvbox-dark-hard': {
+    id: 'gruvbox-dark-hard',
+    name: 'Gruvbox Dark Hard',
+    mode: 'dark'
+  },
   'nord': {
     id: 'nord',
     name: 'Nord',
+    mode: 'dark'
+  },
+  'dracula': {
+    id: 'dracula',
+    name: 'Dracula',
     mode: 'dark'
   },
   'vscode-light': {
@@ -93,6 +142,16 @@ export const themeRegistry = {
   'vscode-dark': {
     id: 'vscode-dark',
     name: 'VS Code Dark',
+    mode: 'dark'
+  },
+  'cyberdream-light': {
+    id: 'cyberdream-light',
+    name: 'Cyberdream Light',
+    mode: 'light'
+  },
+  'cyberdream-dark': {
+    id: 'cyberdream-dark',
+    name: 'Cyberdream Dark',
     mode: 'dark'
   }
 };

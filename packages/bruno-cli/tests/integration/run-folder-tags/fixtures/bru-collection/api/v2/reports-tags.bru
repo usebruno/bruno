@@ -1,0 +1,18 @@
+meta {
+  name: reports-tags
+  type: http
+  seq: 2
+  tags: [
+    smoke
+  ]
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  console.log('REQ_TAGS ' + JSON.stringify(req.getTags()));
+}

@@ -20,8 +20,18 @@ const jsonToCollectionBru = (json) => {
   if (meta) {
     bru += 'meta {\n';
     for (const key in meta) {
+      if (key === 'tags') continue;
       bru += `  ${key}: ${meta[key]}\n`;
     }
+
+    if (meta.tags && meta.tags.length) {
+      bru += `  tags: [\n`;
+      for (const tag of meta.tags) {
+        bru += `    ${tag}\n`;
+      }
+      bru += `  ]\n`;
+    }
+
     bru += '}\n\n';
   }
 
