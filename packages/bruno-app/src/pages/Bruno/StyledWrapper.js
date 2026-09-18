@@ -23,6 +23,23 @@ const Wrapper = styled.div`
   .fw-600 {
     font-weight: 500;
   }
+
+  /* Islands layout (beta): sidebar and main panel float as separate cards on a canvas */
+  &.layout-islands {
+    border-top: none;
+    gap: 8px;
+    padding: 8px;
+    background: ${(props) => props.theme.background.base};
+    box-sizing: border-box;
+
+    aside,
+    > .main-panel {
+      border-radius: ${(props) => props.theme.border.radius.lg};
+      box-shadow: ${(props) => props.theme.shadow.md};
+      border: 1px solid ${(props) => props.theme.border.border1};
+      overflow: hidden;
+    }
+  }
 `;
 
 export default Wrapper;
