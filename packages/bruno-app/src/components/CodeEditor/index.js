@@ -220,7 +220,14 @@ class CodeEditor extends React.Component {
           } else {
             this.editor.toggleComment();
           }
-        }
+        },
+        // On macOS with German/Swiss-German keyboard, Option+G is the standard
+        // shortcut for "@". CodeMirror's sublime keymap binds Alt-G to "jumpToLine",
+        // which overrides the system input method. Disable it on macOS so the OS
+        // can handle Option+G and insert "@" correctly.
+        ...(typeof navigator !== 'undefined' && navigator.platform && navigator.platform.includes('Mac')
+          ? { 'Alt-G': false }
+          : {})
       },
       foldOptions: {
         widget: (from, to) => {
@@ -241,10 +248,10 @@ class CodeEditor extends React.Component {
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
               );
-              count = dcm.documentElement.children.length;
+              count = dcm.document.children.length;
             } catch (e) { }
           }
-          return count ? `\u21A4${count}\u21A6` : '\u2194';
+          return count ? `↤${count}↦` : '↔';
         }
       }
     })));
