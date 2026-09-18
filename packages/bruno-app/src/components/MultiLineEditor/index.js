@@ -174,10 +174,34 @@ class MultiLineEditor extends Component {
         'Shift-Tab': false,
         ...(enableFolding
           ? {
-              'Ctrl-Y': 'foldAll',
-              'Cmd-Y': 'foldAll',
-              'Ctrl-I': 'unfoldAll',
-              'Cmd-I': 'unfoldAll'
+              'Ctrl-I': (cm) => {
+                let isAnyFolded = false;
+                for (let i = cm.firstLine(), e = cm.lastLine(); i <= e; i++) {
+                  if (cm.isFolded(CodeMirror.Pos(i, 0))) {
+                    isAnyFolded = true;
+                    break;
+                  }
+                }
+                if (isAnyFolded) {
+                  cm.execCommand('unfoldAll');
+                } else {
+                  cm.execCommand('foldAll');
+                }
+              },
+              'Cmd-I': (cm) => {
+                let isAnyFolded = false;
+                for (let i = cm.firstLine(), e = cm.lastLine(); i <= e; i++) {
+                  if (cm.isFolded(CodeMirror.Pos(i, 0))) {
+                    isAnyFolded = true;
+                    break;
+                  }
+                }
+                if (isAnyFolded) {
+                  cm.execCommand('unfoldAll');
+                } else {
+                  cm.execCommand('foldAll');
+                }
+              }
             }
           : {})
       }
