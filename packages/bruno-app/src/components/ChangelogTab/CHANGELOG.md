@@ -104,7 +104,8 @@ You can now store a default environment with a collection. Bruno selects it auto
 
 ### Import, Export, and Interoperability
 
-* Postman import preserves scripts, auth, NTLM config, binary bodies, and descriptions, and there is a new preserve scripts option for import and export
+* Postman import retains NTLM auth, binary bodies, and descriptions
+* Option to keep Postman scripts unchanged when importing or exporting a single collection
 * Postman export retains OAuth2, AWS, Digest, and OAuth1 auth settings
 * OpenAPI import keeps collection-level and tag-level descriptions and populates the Docs tab
 * OpenAPI export retains scheme-less request URLs
