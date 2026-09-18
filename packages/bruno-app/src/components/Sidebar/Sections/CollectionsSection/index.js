@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import {
   IconArrowsSort,
   IconDotsVertical,
@@ -21,6 +21,7 @@ import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
+import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
 import filter from 'lodash/filter';
 
@@ -44,12 +45,11 @@ const CollectionsSection = () => {
   const dispatch = useDispatch();
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
-  const { collections } = useSelector((state) => state.collections);
-  const { collectionSortOrder } = useSelector((state) => state.collections);
-  const { isCreatingCollection } = useSelector((state) => state.app);
+  const store = useStore();
+  const collectionSortOrder = useSelector(selectCollectionSortOrder);
+  const isCreatingCollection = useSelector((state) => state.app.isCreatingCollection);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
@@ -88,16 +88,18 @@ const CollectionsSection = () => {
     });
   };
 
-  const workspaceCollections = useMemo(() => {
+  const getWorkspaceCollections = () => {
     if (!activeWorkspace) return [];
+    const state = store.getState();
+    const { workspaces } = state.workspaces;
 
-    return collections.filter((c) => {
+    return selectCollections(state).filter((c) => {
       if (isScratchCollection(c, workspaces)) {
         return false;
       }
       return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
     });
-  }, [activeWorkspace, collections, workspaces]);
+  };
 
   const handleImportCollection = ({ rawData, type, repositoryUrl, ...rest }) => {
     setImportCollectionModalOpen(false);
@@ -176,7 +178,7 @@ const CollectionsSection = () => {
   };
 
   const selectAllCollectionsToClose = () => {
-    setCollectionsToClose(workspaceCollections.map((c) => c.uid));
+    setCollectionsToClose(getWorkspaceCollections().map((c) => c.uid));
   };
 
   const clearCollectionsToClose = () => {
@@ -194,7 +196,7 @@ const CollectionsSection = () => {
       return;
     }
 
-    const scratchCollection = collections.find((c) => c.uid === scratchCollectionUid);
+    const scratchCollection = selectCollections(store.getState()).find((c) => c.uid === scratchCollectionUid);
     if (!scratchCollection) {
       toast.error('Unable to create request');
       return;

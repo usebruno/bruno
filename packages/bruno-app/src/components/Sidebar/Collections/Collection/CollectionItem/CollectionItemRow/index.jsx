@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
@@ -21,7 +21,7 @@ import {
   IconAppWindow,
   IconEyeOff
 } from '@tabler/icons';
-import { useSelector, useDispatch, useStore } from 'react-redux';
+import { useSelector, useDispatch, useStore, shallowEqual } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
@@ -51,7 +51,7 @@ import {
   isTabForItemActive as isTabForItemActiveSelector,
   isTabForItemPresent as isTabForItemPresentSelector
 } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
+import { selectCollectionByUid } from 'src/selectors/collections';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
@@ -84,23 +84,22 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const selectorInput = {
-    itemUid: item.uid,
-    itemPathname: item.pathname,
-    collectionUid
-  };
-
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
-
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-
-  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
-  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
+  const { isTabForItemActive, isTabForItemPresent, tabUidForItem } = useSelector(
+    useMemo(() => {
+      const selectorInput = { itemUid: item.uid, itemPathname: item.pathname, collectionUid };
+      const selectActive = isTabForItemActiveSelector(selectorInput);
+      const selectPresent = isTabForItemPresentSelector(selectorInput);
+      const selectTabUid = getTabUidForItemSelector(selectorInput);
+      return (state) => ({
+        isTabForItemActive: selectActive(state),
+        isTabForItemPresent: selectPresent(state),
+        tabUidForItem: selectTabUid(state)
+      });
+    }, [item.uid, item.pathname, collectionUid]),
+    shallowEqual
+  );
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
   const store = useStore();
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
@@ -173,14 +172,14 @@ const CollectionItemRow = ({
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: isRedirectedToCollectionDrag ? 'collection' : 'collection-item',
-    item: isRedirectedToCollectionDrag
-      ? { ...collection, wasSelected: true, multiSelectedItems: multiDragCollections }
+    item: () => (isRedirectedToCollectionDrag
+      ? { ...selectCollectionByUid(store.getState(), collectionUid), wasSelected: true, multiSelectedItems: multiDragCollections }
       : {
           ...item,
           sourceCollectionUid: collectionUid,
           wasSelected: isSelected,
           ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
-        },
+        }),
     canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -682,6 +681,7 @@ const CollectionItemRow = ({
     // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
     let targetFolderUid = item.uid;
     if (!isFolder) {
+      const collection = selectCollectionByUid(store.getState(), collectionUid);
       const parentFolder = findParentItemInCollection(collection, item.uid);
       targetFolderUid = parentFolder ? parentFolder.uid : null;
     }
