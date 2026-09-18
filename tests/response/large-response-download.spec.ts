@@ -14,15 +14,15 @@ test.describe('Large response download', () => {
   });
 
   test('downloads mid-size body to disk via bodyRef', async ({ page, createTmpDir }) => {
-    const collectionName = 'large-download';
-    const downloadDir = await createTmpDir('large-download-out');
+    const collectionName = 'large-save-body';
+    const downloadDir = await createTmpDir('large-save-body-out');
 
     await createCollection(page, collectionName, await createTmpDir(collectionName));
-    await createRequest(page, 'download-mid', collectionName, { url: BETWEEN_10_50MB_URL });
+    await createRequest(page, 'save-mid', collectionName, { url: BETWEEN_10_50MB_URL });
     await sendRequest(page, 200);
 
     await expect(page.getByText('Large Response Warning')).toBeVisible({ timeout: 120000 });
-    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible();
+    await expect(page.getByTestId('large-response-download-btn')).toBeVisible();
 
     await expect(page.getByText(/15(\.\d+)?\s*MB/i).or(page.getByText(String(EXPECTED_SIZE)))).toBeVisible({ timeout: 30000 }).catch(() => {});
 

@@ -9,10 +9,9 @@ describe('formatResponse', () => {
   };
 
   describe('invalid inputs', () => {
-    it('should return empty string for invalid inputs', () => {
+    it('should return empty string when data or mode is missing', () => {
       const invalidCases = [
         [undefined, 'dGVzdA==', 'json'],
-        [{ test: 'data' }, null, 'json'],
         [{ test: 'data' }, 'dGVzdA==', null],
         [undefined, undefined, undefined]
       ];
@@ -22,6 +21,11 @@ describe('formatResponse', () => {
         expect(result).toBe('');
         expect(typeof result).toBe('string');
       });
+    });
+
+    it('should format from structured data when buffer is absent (bodyRef path)', () => {
+      const result = formatResponse({ test: 'data' }, null, 'json');
+      expect(result).toBe('{\n  "test": "data"\n}');
     });
   });
 
