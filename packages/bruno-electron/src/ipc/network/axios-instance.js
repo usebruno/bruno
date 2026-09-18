@@ -137,8 +137,8 @@ function makeAxiosInstance({
       message: `${config.method.toUpperCase()} ${config.url}`
     });
 
-    // Add request data if available
-    if (config.data) {
+    // Add request data if available (skip streams — they can't be meaningfully serialized)
+    if (config.data && typeof config.data?.pipe !== 'function') {
       let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
