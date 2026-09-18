@@ -21,18 +21,26 @@ const registerResponseBodyIpc = (mainWindow, store) => {
     return { success: true };
   });
 
-  ipcMain.handle(CHANNELS.READ, async (_event, bodyRef) => {
+  ipcMain.handle(CHANNELS.READ, async (_event, bodyRef, options = {}) => {
     const stat = store.getStat(bodyRef);
     if (stat.size > VIEW_MAX_BYTES) {
       throw new BodyTooLargeForViewError(bodyRef, stat.size, VIEW_MAX_BYTES);
     }
 
     const buf = await store.readRange(bodyRef, 0, stat.size);
-    return {
-      data: buf.toString('utf8'),
+    const payload = {
       size: stat.size,
       contentType: stat.contentType || null
     };
+
+    // base64 keeps raw bytes for example save / sniffing; utf8 is the View path.
+    if (options?.encoding === 'base64') {
+      payload.dataBuffer = buf.toString('base64');
+    } else {
+      payload.data = buf.toString('utf8');
+    }
+
+    return payload;
   });
 
   ipcMain.handle(CHANNELS.SAVE, async (_event, { bodyRef, url, pathname, headers } = {}) => {

@@ -85,6 +85,16 @@ describe('response-body IPC adapter', () => {
     const readResult = await handlers[CHANNELS.READ]({}, bodyRef);
     expect(readResult).toEqual({ data: 'hello', size: 5, contentType: null });
 
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const { bodyRef: pngRef } = await store.putBuffer(png);
+    const base64Result = await handlers[CHANNELS.READ]({}, pngRef, { encoding: 'base64' });
+    expect(base64Result).toEqual({
+      dataBuffer: png.toString('base64'),
+      size: png.length,
+      contentType: null
+    });
+    expect(base64Result.data).toBeUndefined();
+
     const saveResult = await handlers[CHANNELS.SAVE]({}, {
       bodyRef,
       url: 'https://example.com/a.txt',
