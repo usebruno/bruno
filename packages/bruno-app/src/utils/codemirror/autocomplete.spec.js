@@ -402,6 +402,47 @@ describe('Bruno Autocomplete', () => {
         expect(apiHostHint.scope).toBe('collection');
         expect(apiHostHint.text).toBe('{api.host}}');
       });
+
+      it('does not duplicate the typed prefix when completing an atomic dotted variable inside `{{`', () => {
+        const partialVariables = [{ name: 'api.host', scope: 'collection' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 6 });
+        mockedCodemirror.getLine.mockReturnValue('{{api.');
+        mockedCodemirror.getRange.mockReturnValue('{{api.');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables']
+        });
+
+        expect(result).toBeTruthy();
+
+        const apiHostHint = result.list.find((hint) => hint.displayText === 'api.host');
+        expect(apiHostHint).toBeTruthy();
+        expect(apiHostHint.scope).toBe('collection');
+        expect(result.from).toEqual({ line: 0, ch: 6 });
+        expect(result.to).toEqual({ line: 0, ch: 6 });
+        expect(apiHostHint.from).toEqual({ line: 0, ch: 2 });
+        expect(apiHostHint.to).toEqual({ line: 0, ch: 6 });
+        expect(apiHostHint.text).toBe('api.host}}');
+      });
+
+      it('does not widen the range for a non-prefix (substring) match on an atomic dotted variable', () => {
+        const partialVariables = [{ name: 'api.host', scope: 'collection' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 6 });
+        mockedCodemirror.getLine.mockReturnValue('{{host');
+        mockedCodemirror.getRange.mockReturnValue('{{host');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables']
+        });
+
+        expect(result).toBeTruthy();
+
+        const apiHostHint = result.list.find((hint) => hint.displayText === 'api.host');
+        expect(apiHostHint).toBeTruthy();
+        expect(apiHostHint.from).toBeUndefined();
+        expect(apiHostHint.to).toBeUndefined();
+        expect(apiHostHint.text).toBe('api.host}}');
+      });
     });
 
     describe('API object context (req, res, bru)', () => {

@@ -784,8 +784,11 @@ const renderVariableHint = (li, self, completion) => {
  * @param {string} [textAfterCursor] - characters already exist on the line right after the cursor
  * @returns {Object} Hint object with list and positions
  */
-const createVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '') => {
+const createVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '', word = '') => {
   const closingSuffix = '}'.repeat(countMissingClosingBraces(textAfterCursor));
+
+  const wordStart = { line: to.line, ch: to.ch - word.length };
+  const isPrefixMatch = (hint) => !!word && hint.toLowerCase().startsWith(word.toLowerCase());
 
   const hintList = filteredHints.map((hint) => {
     const scope = variableScopes[hint];
@@ -795,12 +798,20 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
     if (!scope || !SCOPE_ICON[scope]) {
       return { text: hint, displayText: hint };
     }
-    return {
+
+    const hintObject = {
       text: `${hint}${closingSuffix}`,
       displayText: hint,
       scope,
       render: renderVariableHint
     };
+
+    if (isPrefixMatch(hint)) {
+      hintObject.from = wordStart;
+      hintObject.to = to;
+    }
+
+    return hintObject;
   });
 
   return {
@@ -929,7 +940,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     if (isSingleBrace) {
       return createSingleBraceVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor);
     }
-    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor);
+    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor, word);
   }
 
   return createStandardHintList(filteredHints, from, to);

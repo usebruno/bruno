@@ -908,6 +908,7 @@ describe('getAllVariablesWithScope', () => {
       { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
     ],
     runtimeVariables: { runtimeVar: 'runtime-value' },
+    promptVariables: { '?promptVar': 'prompt-value' },
     processEnvVariables: { API_KEY: 'secret-key' },
     oauth2Credentials: [
       { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
@@ -922,6 +923,13 @@ describe('getAllVariablesWithScope', () => {
     expect(byName.collectionVar).toBe('collection');
     expect(byName.envVar).toBe('environment');
     expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes prompt variables, tagged with the runtime scope', () => {
+    const all = getAllVariablesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName['?promptVar']).toBe('runtime');
   });
 
   it('includes oauth2 credential variables tagged with scope=oauth2', () => {

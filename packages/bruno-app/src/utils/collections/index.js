@@ -1909,6 +1909,7 @@ export const getAllVariablesWithScope = (collection, item) => {
     folderVariables,
     requestVariables,
     runtimeVariables,
+    promptVariables,
     oauth2CredentialVariables,
     mergedProcessEnvVariables
   } = computeVariableScopeBuckets(collection, item);
@@ -1932,6 +1933,10 @@ export const getAllVariablesWithScope = (collection, item) => {
   });
 
   Object.keys(runtimeVariables || {}).forEach((name) => {
+    scopeByName[name] = 'runtime';
+  });
+
+  Object.keys(promptVariables || {}).forEach((name) => {
     scopeByName[name] = 'runtime';
   });
 
