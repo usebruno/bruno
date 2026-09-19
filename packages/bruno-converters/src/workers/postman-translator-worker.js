@@ -141,7 +141,7 @@ function createBalancedBatches(scriptEntries, workerCount) {
   ).filter((batch) => batch.length > 0);
 }
 
-const scriptTranslationWorker = async (scriptMap) => {
+const scriptTranslationWorker = async (scriptMap, { vaultTarget } = {}) => {
   // Convert the Map to an array of entries
   const scriptEntries = Array.from(scriptMap.entries());
   const maxWorkers = getMaxWorkers();
@@ -153,7 +153,7 @@ const scriptTranslationWorker = async (scriptMap) => {
 
     try {
       const translatedScripts = new Map();
-      const result = await workerPool.runTask({ scripts: scriptEntries });
+      const result = await workerPool.runTask({ scripts: scriptEntries, vaultTarget });
 
       if (result.error) {
         console.error('Error in script translation worker:', result.error);
@@ -183,7 +183,7 @@ const scriptTranslationWorker = async (scriptMap) => {
 
   // Process all batches in parallel using worker pool
   const batchPromises = batches.map((batch) => {
-    return workerPool.runTask({ scripts: batch })
+    return workerPool.runTask({ scripts: batch, vaultTarget })
       .then((modScripts) => {
         modScripts.forEach(([name, { request }]) => {
           translatedScripts.set(name, { request });

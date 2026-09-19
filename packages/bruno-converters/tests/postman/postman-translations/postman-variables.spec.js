@@ -63,4 +63,23 @@ describe('postmanTranslations - variables commands', () => {
     const inputScript = 'pm.globals.clear();';
     expect(postmanTranslation(inputScript)).toBe('bru.deleteAllGlobalEnvVars();');
   });
+
+  // The mangled key is re-printed by recast, which emits its own double quotes.
+  test('should translate pm.vault.get against the chosen environment scope', () => {
+    const inputScript = 'pm.vault.get(\'api-key\');';
+    expect(postmanTranslation(inputScript)).toBe('bru.getGlobalEnvVar("vault_api-key");');
+    expect(postmanTranslation(inputScript, { vaultTarget: 'collection' })).toBe('bru.getEnvVar("vault_api-key");');
+  });
+
+  test('should translate pm.vault commands via the regex fallback when the script cannot be parsed', () => {
+    // The trailing `{` makes the AST pass throw, leaving the regex replacements as the only path.
+    const inputScript = 'pm.vault.get(\'api-key\'); if (x) {';
+    expect(postmanTranslation(inputScript)).toBe('bru.getGlobalEnvVar(\'vault_api-key\'); if (x) {');
+    expect(postmanTranslation(inputScript, { vaultTarget: 'collection' })).toBe('bru.getEnvVar(\'vault_api-key\'); if (x) {');
+  });
+
+  test('should fall back to renaming only when the vault key is computed', () => {
+    const inputScript = 'pm.vault.get(secretPath); if (x) {';
+    expect(postmanTranslation(inputScript)).toBe('bru.getGlobalEnvVar(secretPath); if (x) {');
+  });
 });

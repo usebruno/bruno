@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, useMemo, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -11,7 +11,7 @@ import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
-import { wsdlToBruno } from '@usebruno/converters';
+import { wsdlToBruno, detectPostmanVaultKeys } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import Portal from 'components/Portal';
@@ -19,7 +19,9 @@ import Modal from 'components/Modal';
 import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import VaultSecrets from 'components/Sidebar/VaultSecrets';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
+import { applyVaultSecrets, defaultVaultConfig } from 'utils/importers/vault-secrets';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
 // Extract collection name from raw data
@@ -55,11 +57,13 @@ const getCollectionName = (format, rawData) => {
 };
 
 // Convert raw data to Bruno collection format
-// Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts } = {}) => {
+// Returns { collection, issues, vaultKeys } where issues tracks items that were skipped or
+// degraded and vaultKeys lists the Postman vault secrets the user still has to supply
+const convertCollection = async (format, rawData, { groupingType, collectionFormat, preserveScripts, vaultTarget } = {}) => {
   try {
     let collection;
     let issues = [];
+    let vaultKeys = [];
 
     switch (format) {
       case 'openapi':
@@ -69,9 +73,10 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
         collection = await wsdlToBruno(rawData);
         break;
       case 'postman': {
-        const result = await postmanToBruno(rawData, { preserveScripts });
+        const result = await postmanToBruno(rawData, { preserveScripts, vaultTarget });
         collection = result.collection;
         issues = result.issues || [];
+        vaultKeys = result.vaultKeys || [];
         break;
       }
       case 'insomnia':
@@ -91,7 +96,7 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
         throw new Error('Unknown collection format');
     }
 
-    return { collection, issues };
+    return { collection, issues, vaultKeys };
   } catch (err) {
     console.error('Conversion error:', err);
     toastError(err, 'Failed to convert collection');
@@ -112,6 +117,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
   const [preserveScripts, setPreserveScripts] = useState(false);
+  const [vaultConfig, setVaultConfig] = useState(defaultVaultConfig);
   const dropdownTippyRef = useRef();
   const optionsDropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
@@ -121,8 +127,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
   const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
   const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
+  const vaultKeys = useMemo(() => (isPostman ? detectPostmanVaultKeys(rawData) : []), [isPostman, rawData]);
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const globalEnvironments = useSelector((state) => state.globalEnvironments?.globalEnvironments) || [];
   const preferences = useSelector((state) => state.app.preferences);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
@@ -145,7 +153,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts });
+      const { collection: convertedCollection, issues, vaultKeys: importedVaultKeys } = await convertCollection(format, rawData, { groupingType, collectionFormat, preserveScripts, vaultTarget: vaultConfig.target });
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
@@ -173,21 +181,33 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         options.rawOpenAPISpec = rawContent || rawData;
       }
 
+      // Runs before the collection is handed off - the collection target writes its environment
+      // as part of the import itself.
+      const vaultIssues = await applyVaultSecrets({
+        vaultKeys: importedVaultKeys,
+        config: vaultConfig,
+        collections: [convertedCollection],
+        globalEnvironments,
+        dispatch
+      });
+
       handleSubmit(convertedCollection, values.collectionLocation, options);
 
-      if (issues && issues.length > 0) {
+      const allIssues = [...(issues || []), ...vaultIssues];
+
+      if (allIssues.length > 0) {
         // Show toast with copy/report actions
-        showImportIssuesToast(issues);
+        showImportIssuesToast(allIssues);
 
         // Log each issue to Bruno's internal console
-        const skipped = issues.filter((i) => i.severity === 'error').length;
-        const warnings = issues.filter((i) => i.severity === 'warning').length;
+        const skipped = allIssues.filter((i) => i.severity === 'error').length;
+        const warnings = allIssues.filter((i) => i.severity === 'warning').length;
         const parts = [];
         if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
         if (warnings > 0) parts.push(`${warnings} warning(s)`);
         const timestamp = new Date().toISOString();
         dispatch(addLog({ type: 'warn', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
-        issues.forEach((issue) => {
+        allIssues.forEach((issue) => {
           const logType = issue.severity === 'error' ? 'error' : 'warn';
           const logArgs = [`[${issue.path}] ${issue.message}`];
           if (issue.sourceItem) logArgs.push(issue.sourceItem);
@@ -379,6 +399,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 </label>
               )}
             </div>
+
+            {vaultKeys.length > 0 && (
+              <VaultSecrets vaultKeys={vaultKeys} config={vaultConfig} onChange={setVaultConfig} />
+            )}
 
             {isOpenApi && (
               <div className="mt-4 flex gap-4 items-center justify-between">

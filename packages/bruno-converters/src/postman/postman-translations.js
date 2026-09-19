@@ -1,4 +1,5 @@
 import translateCode from '../utils/postman-to-bruno-translator';
+import { mangleVaultKey } from './postman-vault';
 
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
@@ -167,36 +168,64 @@ const replacements = {
   'pm\\.cookies\\.insertAfter\\(': 'bru.cookies.add('
 };
 
-const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
-  const newKey = key.replace(/^pm\\\./, 'postman\\.');
-  acc[key] = replacements[key];
-  acc[newKey] = replacements[key];
-  return acc;
-}, {});
+// Vault secrets land in whichever environment scope the user picked at import time. A quoted key
+// is mangled the same way the `{{vault:...}}` references were, so the lookup still resolves; the
+// bare rename that follows it catches computed keys, which cannot be mangled here.
+const vaultMethods = {
+  global: { get: 'bru.getGlobalEnvVar', set: 'bru.setGlobalEnvVar', unset: 'bru.deleteGlobalEnvVar' },
+  collection: { get: 'bru.getEnvVar', set: 'bru.setEnvVar', unset: 'bru.deleteEnvVar' }
+};
 
-const compiledReplacements = Object.entries(extendedReplacements).map(([pattern, replacement]) => ({
-  regex: new RegExp(pattern, 'g'),
-  replacement
-}));
+const buildVaultReplacements = (methods) =>
+  Object.entries(methods).reduce((acc, [method, target]) => {
+    acc[`pm\\.vault\\.${method}\\((['"])([^'"]*)\\1`] = (_match, quote, key) =>
+      `${target}(${quote}${mangleVaultKey(key)}${quote}`;
+    acc[`pm\\.vault\\.${method}\\(`] = `${target}(`;
+    return acc;
+  }, {});
 
-const processRegexReplacement = (code) => {
-  for (const { regex, replacement } of compiledReplacements) {
+const vaultReplacements = {
+  global: buildVaultReplacements(vaultMethods.global),
+  collection: buildVaultReplacements(vaultMethods.collection)
+};
+
+const compileReplacements = (replacementMap) => {
+  const extendedReplacements = Object.keys(replacementMap).reduce((acc, key) => {
+    const newKey = key.replace(/^pm\\\./, 'postman\\.');
+    acc[key] = replacementMap[key];
+    acc[newKey] = replacementMap[key];
+    return acc;
+  }, {});
+
+  return Object.entries(extendedReplacements).map(([pattern, replacement]) => ({
+    regex: new RegExp(pattern, 'g'),
+    replacement
+  }));
+};
+
+const compiledReplacements = {
+  global: compileReplacements({ ...replacements, ...vaultReplacements.global }),
+  collection: compileReplacements({ ...replacements, ...vaultReplacements.collection })
+};
+
+const processRegexReplacement = (code, vaultTarget) => {
+  for (const { regex, replacement } of compiledReplacements[vaultTarget] ?? compiledReplacements.global) {
     code = code.replace(regex, replacement);
   }
   return code;
 };
 
-const postmanTranslation = (script) => {
+const postmanTranslation = (script, { vaultTarget = 'global' } = {}) => {
   let modifiedScript = Array.isArray(script) ? script.join('\n') : script;
   let translatedScript;
 
   try {
-    translatedScript = translateCode(modifiedScript);
+    translatedScript = translateCode(modifiedScript, { vaultTarget });
   } catch (e) {
     console.warn('Error in postman translation:', e);
 
     try {
-      translatedScript = processRegexReplacement(modifiedScript);
+      translatedScript = processRegexReplacement(modifiedScript, vaultTarget);
     } catch (e) {
       console.warn('Error in postman translation:', e);
       translatedScript = modifiedScript;
