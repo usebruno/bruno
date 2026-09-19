@@ -5,6 +5,7 @@ import { getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritan
 import { cloneDeep, isEqual } from 'lodash';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
+import { getPersistedDraftSession } from 'providers/ReduxStore/utils/draftSession';
 
 const initialState = {
   globalEnvironments: [],
@@ -416,6 +417,31 @@ export const updateGlobalEnvironmentColor = (environmentUid, color) => (dispatch
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const restoreGlobalEnvironmentDraftFromSession = () => (dispatch, getState) => {
+  const session = getPersistedDraftSession();
+  const persistedDraft = session?.globalEnvironmentDraft;
+
+  if (!persistedDraft) {
+    return;
+  }
+
+  const state = getState();
+  const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
+  const environment = globalEnvironments.find((env) =>
+    env.uid === persistedDraft.environmentUid
+    || (persistedDraft.environmentName && env.name === persistedDraft.environmentName)
+  );
+
+  if (!environment) {
+    return;
+  }
+
+  dispatch(setGlobalEnvironmentDraft({
+    environmentUid: environment.uid,
+    variables: persistedDraft.variables
+  }));
 };
 
 export default globalEnvironmentsSlice.reducer;
