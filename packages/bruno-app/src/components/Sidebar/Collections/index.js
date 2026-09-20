@@ -1,16 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
-import Collection from './Collection';
-import CollectionItem from './Collection/CollectionItem';
-import GitRemoteCollectionRow from './GitRemoteCollectionRow';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
+import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries, getSelectionInfo, getVisibleSidebarRows } from 'utils/collections/index';
-import { buildSidebarSearchIndex } from 'utils/collections/search';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
@@ -23,18 +21,16 @@ const SEARCH_DEBOUNCE_MS = 350;
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   // The input renders from `searchText` so typing stays instant; everything that has to walk the
-  // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the index and re-renders
+  // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows and re-renders
   // the tree once rather than per character.
   const [searchText, setSearchText] = useState('');
   const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS);
-  // Subscribed field by field: selecting the whole collections slice re-renders the entire
-  // sidebar whenever any unrelated part of it changes (active connections, runner state,
-  // last-clicked uid, transient directories).
-  const collections = useSelector((state) => state.collections.collections);
-  const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
-  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
+  const virtuosoRef = useRef(null);
+  const lastScrolledTabUidRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -49,11 +45,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
-  // Which rows a search leaves visible, resolved once per term for the whole sidebar. Each row then
-  // checks membership instead of searching its own subtree while it renders.
-  const searchIndex = useMemo(
-    () => buildSidebarSearchIndex(collections, debouncedSearchText),
-    [collections, debouncedSearchText]
+  // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
+  const { rows, itemsByUid, collectionsByUid } = useMemo(
+    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
+    [sidebarEntries, debouncedSearchText]
   );
 
   // Shown while the workspace is still being indexed, and while a search is settling — the two
@@ -62,37 +57,66 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     (entry) => entry.kind === 'loaded' && entry.collection.mountStatus === 'mounting'
   );
   const isSearchPending = searchText !== debouncedSearchText;
-  const hasSearchText = Boolean(debouncedSearchText.trim().length);
 
-  // Only while searching. A search opens every folder that contains a match, so the tree it renders
-  // is unbounded — that is the case worth virtualising, and it is also the one where drag and drop
-  // is meaningless, since an item's real neighbours are filtered out of view.
-  const searchRows = useMemo(
-    () => (hasSearchText ? getVisibleSidebarRows({ sidebarEntries, searchText: debouncedSearchText }) : []),
-    [hasSearchText, sidebarEntries, debouncedSearchText]
-  );
+  // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
+  const ghostsByPath = useMemo(() => {
+    const map = new Map();
+    for (const entry of sidebarEntries) {
+      if (entry.kind === 'ghost' && entry.entry?.path) map.set(entry.entry.path, entry.entry);
+    }
+    return map;
+  }, [sidebarEntries]);
 
+  // Multi-select drag context, computed once for the whole list and threaded to rows via SidebarRow.
   const selectionInfo = useMemo(
     () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
     [collections, selectedSidebarUids]
   );
 
-  const isMultiDragDisabled = !!selectionInfo && selectionInfo.hasCollection && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp);
+  // A collection can't be dragged together with folders/requests/apps from inside it.
+  const hasMixedCollectionSelection = Boolean(
+    selectionInfo?.hasCollection
+    && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp)
+  );
+
+  // Whether a selected collection row can be dragged as part of the multi-selection.
+  const isCollectionMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || hasMixedCollectionSelection);
+
+  // Whether a selected folder/request/app row can be dragged as part of the multi-selection.
+  const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
 
   const multiDragCollections = useMemo(() => {
-    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest) return null;
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp || selectionInfo.hasExample) return null;
     return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
   }, [selectionInfo]);
 
   const multiDragItems = useMemo(() => {
-    if (!selectionInfo || selectionInfo.hasCollection) return null;
+    if (!selectionInfo || selectionInfo.hasCollection || selectionInfo.hasExample) return null;
     return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [selectionInfo]);
 
+  const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
+
+  // Resolve the active tab's row index (item rows first, then collection headers).
+  const rowIndex = rowIndexByItemUid.get(activeTabUid);
+  const activeRowIndex = activeTabUid !== null
+    ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
+    : null;
+
+  useEffect(() => {
+    if (activeRowIndex === null) return;
+    if (lastScrolledTabUidRef.current === activeTabUid) return;
+    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
+    lastScrolledTabUidRef.current = activeTabUid;
+  }, [activeTabUid, activeRowIndex]);
+
+  // Clear multi-selection only when clicking the bare scroller background.
+  // The `contains` guard ignores events propagated from portaled menus/modals in <body>.
+  // The `[data-sidebar-row]` check covers all row types and inline menus/modals rendered within a row.
   const handleContainerClick = (e) => {
-    if (e.currentTarget === e.target) {
-      dispatch(clearSidebarSelection());
-    }
+    if (!e.currentTarget.contains(e.target)) return;
+    if (e.target.closest('[data-sidebar-row]')) return;
+    dispatch(clearSidebarSelection());
   };
 
   if (!sidebarEntries.length) {
@@ -121,68 +145,41 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         data-testid="sidebar-progress"
       />
 
+      {isCreatingCollection && (
+        <InlineCollectionCreator
+          onComplete={onDismissCreate}
+          onCancel={onDismissCreate}
+          onOpenAdvanced={onOpenAdvancedCreate}
+        />
+      )}
+
       <div
-        // While searching, Virtuoso is the scroller; a second scroll container around it would
-        // fight it for the wheel and break its viewport measurement.
-        className={`collections-list flex flex-col flex-1 overflow-hidden${hasSearchText ? '' : ' hover:overflow-y-auto'}`}
+        className="collections-list flex flex-col flex-1 overflow-hidden"
         onClick={handleContainerClick}
       >
-        {isCreatingCollection && (
-          <InlineCollectionCreator
-            onComplete={onDismissCreate}
-            onCancel={onDismissCreate}
-            onOpenAdvanced={onOpenAdvancedCreate}
-          />
-        )}
-        {hasSearchText ? (
-          <Virtuoso
-            data={searchRows}
-            // minHeight:0 lets a flex child shrink below its content, which is what gives Virtuoso
-            // a bounded height to measure instead of growing to the full list.
-            style={{ flex: '1 1 auto', minHeight: 0 }}
-            computeItemKey={(index, row) => row.uid}
-            itemContent={(index, row) => (row.kind === 'collection' ? (
-              <Collection
-                flat
-                collection={row.collection}
-                searchText={debouncedSearchText}
-                searchIndex={searchIndex}
-                openBulkMenu={openBulkMenu}
-                isMultiDragDisabled={isMultiDragDisabled}
-                multiDragCollections={multiDragCollections}
-                multiDragItems={multiDragItems}
-              />
-            ) : (
-              <CollectionItem
-                flat
-                item={row.item}
-                collectionUid={row.collection.uid}
-                collectionPathname={row.collection.pathname}
-                searchText={debouncedSearchText}
-                searchIndex={searchIndex}
-                openBulkMenu={openBulkMenu}
-                isMultiDragDisabled={isMultiDragDisabled}
-                multiDragItems={multiDragItems}
-              />
-            ))}
-          />
-        ) : sidebarEntries.map((entry) => {
-          if (entry.kind === 'loaded') {
-            return (
-              <Collection
-                searchText={debouncedSearchText}
-                searchIndex={searchIndex}
-                collection={entry.collection}
-                key={entry.key}
-                openBulkMenu={openBulkMenu}
-                isMultiDragDisabled={isMultiDragDisabled}
-                multiDragCollections={multiDragCollections}
-                multiDragItems={multiDragItems}
-              />
-            );
-          }
-          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
-        })}
+        <Virtuoso
+          ref={virtuosoRef}
+          data-testid="sidebar-collections-scroller"
+          style={{ height: '100%' }}
+          data={rows}
+          computeItemKey={(_, row) => row.id}
+          defaultItemHeight={26}
+          increaseViewportBy={{ top: 400, bottom: 600 }}
+          itemContent={(_, row) => (
+            <SidebarRow
+              row={row}
+              searchText={debouncedSearchText}
+              openBulkMenu={openBulkMenu}
+              itemsByUid={itemsByUid}
+              collectionsByUid={collectionsByUid}
+              ghostsByPath={ghostsByPath}
+              isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
+              isItemMultiDragDisabled={isItemMultiDragDisabled}
+              multiDragCollections={multiDragCollections}
+              multiDragItems={multiDragItems}
+            />
+          )}
+        />
       </div>
       <CollectionItemDragPreview />
       <BulkActionsMenu menuProps={menuProps} />

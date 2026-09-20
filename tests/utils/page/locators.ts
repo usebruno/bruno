@@ -18,6 +18,8 @@ import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
+import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 
@@ -28,6 +30,7 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
@@ -49,6 +52,7 @@ export const buildCommonLocators = (page: Page) => ({
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
+  manageWorkspace: buildManageWorkspaceLocators(page),
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
@@ -246,6 +250,7 @@ export const buildCommonLocators = (page: Page) => ({
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
     allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
     filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
@@ -493,6 +498,9 @@ export const buildScriptErrorLocators = (page: Page) => ({
   title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
   /** Close button within a card */
   closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
+  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
+  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */

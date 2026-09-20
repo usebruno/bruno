@@ -5,7 +5,11 @@ import path, { normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
 import { isRequestTagsIncluded } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-import { buildSidebarSearchIndex } from 'utils/collections/search';
+import {
+  doesRequestMatchSearchText,
+  doesFolderHaveItemsMatchSearchText,
+  doesCollectionHaveItemsMatchingSearchText
+} from 'utils/collections/search';
 import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -14,20 +18,6 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   }
 
   return str.replaceAll('\t', ' '.repeat(numSpaces));
-};
-
-export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
-      i.depth = initialDepth;
-
-      if (i.items && i.items.length) {
-        depth(i.items, initialDepth + 1);
-      }
-    });
-  };
-
-  depth(items, 1);
 };
 
 const setCollapsedRecursively = (items, collapsed) => {
@@ -222,6 +212,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: param.type,
         name: param.name,
         value: param.value,
+        contentType: param.contentType,
         description: param.description,
         enabled: param.enabled
       };
@@ -1439,6 +1430,8 @@ export const maskInputValue = (value) => {
 };
 
 export const getTreePathFromCollectionToItem = (collection, _item) => {
+  if (!_item?.uid) return [];
+
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -1937,72 +1930,57 @@ export const buildSidebarEntries = ({ collections = [], workspaces = [], activeW
 };
 
 /**
- * Every row the sidebar currently shows, in render order, flattened.
- *
- * This is the single source of ordering for the sidebar: the virtualised search list renders from
- * it and keyboard navigation walks it, so the two cannot drift apart. Nesting is carried as
- * `depth` rather than by structure, which is also how a row indents itself.
- *
- * @param {Object} options
- * @param {Array} options.sidebarEntries - from buildSidebarEntries
- * @param {string} options.searchText
- * @returns {Array<{ uid: string, kind: 'collection'|'item', collection: Object, item?: Object }>}
- */
-export const getVisibleSidebarRows = ({ sidebarEntries = [], searchText = '' }) => {
-  const hasSearchText = Boolean(searchText && searchText.trim().length);
-  const rows = [];
-
-  // The same index the rendered rows are filtered by.
-  const searchIndex = hasSearchText
-    ? buildSidebarSearchIndex(sidebarEntries.filter((e) => e.kind === 'loaded').map((e) => e.collection), searchText)
-    : null;
-
-  const visitItems = (collection, items = []) => {
-    const { folderItems, appItems, requestItems } = groupItemsBySidebarOrder(items);
-
-    folderItems.forEach((folder) => {
-      if (hasSearchText && !searchIndex.has(folder.uid)) return;
-      rows.push({ uid: folder.uid, kind: 'item', collection, item: folder });
-      // A search shows every match in context, so folders are walked regardless of collapse state.
-      if (hasSearchText || !folder.collapsed) {
-        visitItems(collection, folder.items);
-      }
-    });
-
-    // Apps have nothing to match on, so a search hides them entirely.
-    if (!hasSearchText) {
-      appItems.forEach((app) => rows.push({ uid: app.uid, kind: 'item', collection, item: app }));
-    }
-
-    requestItems.forEach((request) => {
-      if (hasSearchText && !searchIndex.has(request.uid)) return;
-      rows.push({ uid: request.uid, kind: 'item', collection, item: request });
-    });
-  };
-
-  sidebarEntries.forEach((entry) => {
-    if (entry.kind !== 'loaded') return;
-    const { collection } = entry;
-    if (hasSearchText && !searchIndex.has(collection.uid)) return;
-    rows.push({ uid: collection.uid, kind: 'collection', collection });
-    if (hasSearchText || !collection.collapsed) {
-      visitItems(collection, collection.items);
-    }
-  });
-
-  return rows;
-};
-
-/**
- * The uids of {@link getVisibleSidebarRows}, for callers that only need identity and order —
- * range selection, for one. Derived from the same walk so ordering can never disagree.
+ * Returns an ordered list of all currently visible sidebar item UIDs, reflecting collapse state and search filters.
  *
  * @param {Object} options
  * @param {Array} options.sidebarEntries
  * @param {string} options.searchText
  * @returns {string[]}
  */
-export const getVisibleSidebarUidsInOrder = (options) => getVisibleSidebarRows(options).map((row) => row.uid);
+export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText = '' }) => {
+  const hasSearchText = Boolean(searchText && searchText.trim().length);
+  const uids = [];
+
+  const visitItems = (items = []) => {
+    const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+    const appItems = [...filter(items, (i) => i.type === 'app' && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+    const requestItems = [...filter(items, (i) => isItemARequest(i) && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+
+    folderItems.forEach((folder) => {
+      if (hasSearchText && !doesFolderHaveItemsMatchSearchText(folder, searchText)) return;
+      uids.push(folder.uid);
+      if (hasSearchText || !folder.collapsed) {
+        visitItems(folder.items);
+      }
+    });
+
+    if (!hasSearchText) {
+      appItems.forEach((app) => uids.push(app.uid));
+    }
+
+    requestItems.forEach((request) => {
+      if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
+      uids.push(request.uid);
+
+      const examplesVisible = request.type === 'http-request' && (hasSearchText || !isCollectionItemCollapsed(request));
+      if (examplesVisible && request.examples?.length) {
+        request.examples.forEach((example) => uids.push(example.uid));
+      }
+    });
+  };
+
+  sidebarEntries.forEach((entry) => {
+    if (entry.kind !== 'loaded') return;
+    const { collection } = entry;
+    if (hasSearchText && !doesCollectionHaveItemsMatchingSearchText(collection, searchText)) return;
+    uids.push(collection.uid);
+    if (hasSearchText || !collection.collapsed) {
+      visitItems(collection.items);
+    }
+  });
+
+  return uids;
+};
 
 const isPathnameDescendantOf = (pathname, ancestorPathname) => {
   if (!pathname || !ancestorPathname || pathname === ancestorPathname) return false;
@@ -2034,7 +2012,28 @@ const getSelectionEntryType = (item) => {
   return 'file';
 };
 
+// Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
+export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
+
+// Indexes every example by uid in a single pass over all collections, since examples are nested
+// within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
+// callers whose selection contains no examples never pay for it.
+const buildExampleOwnerIndex = (collections) => {
+  const index = new Map();
+  for (const collection of collections) {
+    for (const item of flattenItems(collection.items)) {
+      if (!item.examples) continue;
+      for (const example of item.examples) {
+        index.set(example.uid, { collection, item, example });
+      }
+    }
+  }
+  return index;
+};
+
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  let exampleOwnerIndex = null;
+
   const resolved = selectedUids
     .map((uid) => {
       const collection = findCollectionByUid(collections, uid);
@@ -2044,23 +2043,51 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       const owningCollection = findCollectionByItemUid(collections, uid);
       const item = owningCollection && findItemInCollection(owningCollection, uid);
-      if (!item) return null;
+      if (item) {
+        return {
+          uid,
+          type: getSelectionEntryType(item),
+          collectionUid: owningCollection.uid,
+          pathname: item.pathname,
+          item
+        };
+      }
 
-      return {
-        uid,
-        type: getSelectionEntryType(item),
-        collectionUid: owningCollection.uid,
-        pathname: item.pathname,
-        item
-      };
+      exampleOwnerIndex = exampleOwnerIndex || buildExampleOwnerIndex(collections);
+      const exampleOwner = exampleOwnerIndex.get(uid);
+      if (exampleOwner) {
+        return {
+          uid,
+          type: 'example',
+          collectionUid: exampleOwner.collection.uid,
+          pathname: null,
+          item: exampleOwner.item,
+          example: exampleOwner.example
+        };
+      }
+
+      return null;
     })
     .filter(Boolean);
 
   const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
   const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+  const selectedRequestPathnames = resolved.filter((r) => r.type === 'request').map((r) => r.pathname);
+
+  // Since examples lack pathnames, they are considered absorbed if their parent request is selected
+  // (either directly or via an ancestor folder/collection).
+  const isExampleAbsorbed = (entry) => {
+    const parentPathname = entry.item.pathname;
+    return (
+      selectedRequestPathnames.includes(parentPathname)
+      || selectedCollectionPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+      || selectedFolderPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+    );
+  };
 
   const effectiveSelection = resolved.filter((entry) => {
     if (entry.type === 'collection') return true;
+    if (entry.type === 'example') return !isExampleAbsorbed(entry);
     if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
     return !selectedFolderPathnames.some(
       (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
@@ -2072,7 +2099,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request'),
-    hasApp: effectiveSelection.some((e) => e.type === 'app')
+    hasApp: effectiveSelection.some((e) => e.type === 'app'),
+    hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
 };
 

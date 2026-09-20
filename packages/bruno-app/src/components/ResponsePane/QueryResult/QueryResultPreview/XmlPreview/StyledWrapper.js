@@ -26,6 +26,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.codemirror.tokens.string};
     white-space: pre-wrap;
     word-break: break-all;
+    cursor: pointer;
   }
 
   .xml-empty-value {

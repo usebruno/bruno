@@ -1,4 +1,4 @@
-import { newHttpRequest } from './actions';
+import { newHttpRequest, warmSearchIndex } from './actions';
 
 const mockUuid = jest.fn();
 
@@ -96,6 +96,81 @@ describe('collection actions', () => {
           requestPaneTab: 'body'
         })
       });
+    });
+  });
+
+  describe('warmSearchIndex', () => {
+    const activeWorkspace = {
+      uid: 'ws-1',
+      collections: [{ path: '/c1' }, { path: '/c2' }]
+    };
+
+    const getState = (collections) => () => ({
+      workspaces: { workspaces: [activeWorkspace], activeWorkspaceUid: 'ws-1' },
+      collections: { collections, collectionSortOrder: 'default' }
+    });
+
+    it('warms every not-mounted collection in the active workspace', async () => {
+      const dispatch = jest.fn();
+      const collections = [
+        { uid: 'c1', pathname: '/c1', name: 'One', mountStatus: 'unmounted', brunoConfig: { ignore: ['dist'] } },
+        { uid: 'c2', pathname: '/c2', name: 'Two', mountStatus: 'mounting' }
+      ];
+
+      await warmSearchIndex()(dispatch, getState(collections));
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-index-warm', {
+        collections: [
+          { uid: 'c1', pathname: '/c1', name: 'One', ignore: ['dist'] },
+          { uid: 'c2', pathname: '/c2', name: 'Two', ignore: undefined }
+        ]
+      });
+    });
+
+    it('excludes a collection that is already mounted', async () => {
+      const dispatch = jest.fn();
+      const collections = [
+        { uid: 'c1', pathname: '/c1', name: 'One', mountStatus: 'mounted' },
+        { uid: 'c2', pathname: '/c2', name: 'Two', mountStatus: 'unmounted' }
+      ];
+
+      await warmSearchIndex()(dispatch, getState(collections));
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:search-index-warm', {
+        collections: [{ uid: 'c2', pathname: '/c2', name: 'Two', ignore: undefined }]
+      });
+    });
+
+    it('does nothing when every collection in the workspace is already mounted', async () => {
+      const dispatch = jest.fn();
+      const collections = [
+        { uid: 'c1', pathname: '/c1', name: 'One', mountStatus: 'mounted' },
+        { uid: 'c2', pathname: '/c2', name: 'Two', mountStatus: 'mounted' }
+      ];
+
+      await warmSearchIndex()(dispatch, getState(collections));
+
+      expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when there is no active workspace', async () => {
+      const dispatch = jest.fn();
+      const state = () => ({
+        workspaces: { workspaces: [], activeWorkspaceUid: null },
+        collections: { collections: [], collectionSortOrder: 'default' }
+      });
+
+      await warmSearchIndex()(dispatch, state);
+
+      expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when the main process call rejects', async () => {
+      const dispatch = jest.fn();
+      window.ipcRenderer.invoke.mockRejectedValueOnce(new Error('boom'));
+      const collections = [{ uid: 'c1', pathname: '/c1', name: 'One', mountStatus: 'unmounted' }];
+
+      await expect(warmSearchIndex()(dispatch, getState(collections))).resolves.toBeUndefined();
     });
   });
 });
