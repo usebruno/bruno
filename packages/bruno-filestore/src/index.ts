@@ -2,7 +2,6 @@ import type { BrunoCollection, BrunoItem, BrunoEnvironment } from '@usebruno/sch
 
 import {
   parseBruRequest,
-  parseBruRequestTreeFields,
   parseBruCollection,
   parseBruEnvironment,
   stringifyBruRequest,
@@ -36,21 +35,6 @@ import { redactLargeBruTextBlocks, restoreRedactedBlocks } from './formats/bru/u
 export const parseRequest = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
   if (options.format === 'bru') {
     return parseBruRequest(content);
-  } else if (options.format === 'yml') {
-    return parseYmlItem(content);
-  }
-  throw new Error(`Unsupported format: ${options.format}`);
-};
-
-/**
- * Parses only the fields a sidebar/search tree node needs. For `.bru` this skips the ohm grammar
- * (~1 MB/s) in favour of a block scanner, which is what makes mounting a large `.bru` collection
- * viable. `.yml` is already fast enough that it uses the real parser and simply returns more than
- * asked for; callers keep only the tree fields either way.
- */
-export const parseRequestTreeFields = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
-  if (options.format === 'bru') {
-    return parseBruRequestTreeFields(content);
   } else if (options.format === 'yml') {
     return parseYmlItem(content);
   }

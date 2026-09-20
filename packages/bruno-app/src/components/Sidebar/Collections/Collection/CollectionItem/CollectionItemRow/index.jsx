@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, resolveDeferredItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -640,15 +640,10 @@ const CollectionItemRow = ({
     setCreateExampleModalOpen(false);
   };
 
-  const handleGenerateCode = async () => {
-    // The snippet is built in the renderer from the item's headers, body and auth, so a deferred
-    // node has to be parsed in full first — unlike sending, which the main process resolves itself.
-    // The parse also lands in the store, so the modal below renders against the loaded item.
-    const resolvedItem = await dispatch(resolveDeferredItem(item, collectionUid)).catch(() => item);
-
+  const handleGenerateCode = () => {
     if (
-      (resolvedItem?.request?.url !== '')
-      || (resolvedItem?.draft?.request?.url !== undefined && resolvedItem?.draft?.request?.url !== '')
+      (item?.request?.url !== '')
+      || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
     ) {
       setGenerateCodeItemModalOpen(true);
     } else {

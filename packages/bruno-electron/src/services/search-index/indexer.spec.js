@@ -53,14 +53,6 @@ describe('indexCollection', () => {
     expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ relativePath: path.join('users', 'get.bru') }));
   });
 
-  it('parses with treeFieldsOnly so the full grammar never runs at index time', async () => {
-    const collectionPath = makeCollection();
-
-    await indexCollection({ collectionPath, collectionUid: 'col-1', collectionName: 'My Collection' });
-
-    expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ treeFieldsOnly: true }));
-  });
-
   it('does not re-index or re-parse a file that has not changed', async () => {
     const collectionPath = makeCollection();
     await indexCollection({ collectionPath, collectionUid: 'col-1', collectionName: 'My Collection' });

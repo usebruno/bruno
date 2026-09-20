@@ -1,12 +1,10 @@
 const { get, each, find, isString, filter } = require('lodash');
-const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
-const { posixifyPath, getRequestFormat } = require('./filesystem');
+const { posixifyPath } = require('./filesystem');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
-const { parseRequestViaWorker } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
 
@@ -621,34 +619,6 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   return findItemByPathname(flattenedItems, pathname);
 };
 
-/**
- * A mounted collection carries requests as deferred nodes — tree metadata plus method and url, but
- * no headers, body, auth, scripts, assertions or tests. The renderer fills a request in when the
- * user opens it, so anything here that is about to *execute* or *serialize* a request has to read
- * the file itself rather than trust what the renderer sent. Serializing a deferred node throws on
- * its missing `request.body`, except in `renderer:clone-folder`, which stringifies the node
- * directly and so writes a valid but gutted file.
- *
- * Read and parsed off the main thread: the collection runner calls this once per request, so doing
- * it synchronously stalls the main process between every request in a run. The file is re-read at
- * the moment it is needed rather than batched up front, so an edit part-way through a run is picked
- * up by the requests that follow it.
- *
- * A deferred item cannot have unsaved changes — editing one requires opening it, which loads it in
- * full and clears the flag — so there is no draft to preserve here.
- */
-const resolveDeferredItem = async (item) => {
-  if (!item?.deferred || !item.pathname) return item;
-
-  const content = await fs.promises.readFile(item.pathname, 'utf8');
-  const data = await parseRequestViaWorker(content, { format: getRequestFormat(item.pathname) });
-  hydrateRequestWithUuid(data, item.pathname);
-
-  // uid is derived from the pathname on both sides, but keep the tree node's copy authoritative so
-  // response and timeline events keep routing to the row the user is looking at.
-  return { ...item, ...data, uid: item.uid, deferred: false };
-};
-
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
     return '';
@@ -984,7 +954,6 @@ module.exports = {
   findItemInCollection,
   findItemByPathname,
   findItemInCollectionByPathname,
-  resolveDeferredItem,
   findParentItemInCollection,
   findParentItemInCollectionByPathname,
   parseBruFileMeta,

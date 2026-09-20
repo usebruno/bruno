@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState, Fragment } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { cloneDeep } from 'lodash';
 import * as FileSaver from 'file-saver';
 import jsyaml from 'js-yaml';
 import jsesc from 'jsesc';
@@ -17,7 +18,6 @@ import useCollectionGitRemoteUrl from 'hooks/useCollectionGitRemoteUrl';
 import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts, getCollectionVersion, getUniqueTagsFromItems } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { generateApiDocsHtml, getApiDocsFileName, filterRequestItemsByTags } from '@usebruno/common';
-import { resolveDeferredCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const FEATURES = [
   'Standalone HTML file - no server required',
@@ -40,7 +40,6 @@ const CollectionNotFound = ({ onClose }) => (
 
 const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const { version } = useApp();
-  const dispatch = useDispatch();
   const collection = useSelector((state) =>
     findCollectionByUid(state.collections.collections, collectionUid)
   );
@@ -101,9 +100,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const { gitCollectionUrl, isResolved: gitUrlLoaded } = useCollectionGitRemoteUrl(collection?.pathname);
   const hasGitUrl = gitUrlLoaded && Boolean(gitCollectionUrl);
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(() => {
     try {
-      const collectionCopy = await dispatch(resolveDeferredCollection(collection.uid));
+      const collectionCopy = cloneDeep(collection);
 
       // Match the sidebar's ordering (folders then requests, by seq, at every depth)
       // so the generated docs read in the same order as the collection tree.
@@ -134,7 +133,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       console.error('Error generating documentation:', error);
       toast.error('Failed to generate documentation');
     }
-  }, [dispatch, collection, version, onClose, currentVersion, selectedEnvUidsSet, activeTags, includeGitLink, gitCollectionUrl]);
+  }, [collection, version, onClose, currentVersion, selectedEnvUidsSet, activeTags, includeGitLink, gitCollectionUrl]);
 
   if (!collection) {
     return <CollectionNotFound onClose={onClose} />;

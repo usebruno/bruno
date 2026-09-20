@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
@@ -147,14 +147,13 @@ describe('GenerateDocumentation', () => {
     expect(screen.getByTestId('generate-btn')).toBeEnabled();
   });
 
-  it('generates docs with the resolved git url, the shared filename, and the format-aware version', async () => {
+  it('generates docs with the resolved git url, the shared filename, and the format-aware version', () => {
     mockGitRemote = { gitCollectionUrl: 'https://github.com/org/repo.git', isResolved: true };
     const { onClose } = renderModal(buildCollection({ name: 'My Collection' }));
 
     fireEvent.click(screen.getByTestId('generate-btn'));
 
-    // Generating first fills in any request the user never opened, so the handler is async.
-    await waitFor(() => expect(generateApiDocsHtml).toHaveBeenCalledTimes(1));
+    expect(generateApiDocsHtml).toHaveBeenCalledTimes(1);
     const [, options] = generateApiDocsHtml.mock.calls[0];
     expect(options.gitCollectionUrl).toBe('https://github.com/org/repo.git');
     expect(options.collectionVersion).toBe('2.0');
@@ -163,7 +162,7 @@ describe('GenerateDocumentation', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('omits the git url when the include-git-link toggle is turned off', async () => {
+  it('omits the git url when the include-git-link toggle is turned off', () => {
     mockGitRemote = { gitCollectionUrl: 'https://github.com/org/repo.git', isResolved: true };
     renderModal(buildCollection());
 
@@ -172,7 +171,6 @@ describe('GenerateDocumentation', () => {
 
     fireEvent.click(screen.getByTestId('generate-btn'));
 
-    await waitFor(() => expect(generateApiDocsHtml).toHaveBeenCalled());
     const [, options] = generateApiDocsHtml.mock.calls[0];
     expect(options.gitCollectionUrl).toBeUndefined();
   });
@@ -226,7 +224,7 @@ describe('GenerateDocumentation', () => {
       expectSummary('2 Folders', '5 requests');
     });
 
-    it('generates the docs with the same tags the counts were based on', async () => {
+    it('generates the docs with the same tags the counts were based on', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
       addTag('Include tags', 'smoke');
@@ -235,7 +233,6 @@ describe('GenerateDocumentation', () => {
 
       fireEvent.click(screen.getByTestId('generate-btn'));
 
-      await waitFor(() => expect(generateApiDocsHtml).toHaveBeenCalled());
       const [, options] = generateApiDocsHtml.mock.calls[0];
       expect(options.tags).toEqual({ include: ['smoke'], exclude: ['wip'] });
     });

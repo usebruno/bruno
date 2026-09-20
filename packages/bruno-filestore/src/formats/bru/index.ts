@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import {
   bruToJsonV2,
-  bruToTreeFields,
   jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,
@@ -10,9 +9,6 @@ import {
 } from '@usebruno/lang';
 import { normalizeTags } from '@usebruno/common';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
-
-// Fields a sidebar/search tree node needs, read without running the grammar. See bruToTreeFields.
-export const parseBruRequestTreeFields = (data: string): any => bruToTreeFields(data);
 
 export const parseBruRequest = (data: string | any, parsed: boolean = false): any => {
   try {

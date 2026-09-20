@@ -43,10 +43,8 @@ const hydrateEnvironments = (collectionPath, environments = []) => {
   }
 };
 
-// Cold-start scan for the default mount path (no file cache): walk the collection once, parse
-// every file across the worker pool, and build a single tree. Request nodes carry only what the
-// sidebar and the searches read; collection and folder roots are parsed in full because folder
-// names and `seq` drive sidebar ordering and requests inherit from them.
+// Cold-start scan for the default mount path (no file cache): walk the collection once and parse
+// every file in full across the worker pool.
 //
 // Unlike the cache-backed path this keeps no state — nothing is persisted or reconciled, so the
 // tree is always derived from what is on disk right now.
@@ -73,11 +71,7 @@ const scanCollection = async ({ collectionPath, collectionUid, denylist }) => {
             collectionPath,
             relativePath: entry.relativePath,
             format: entry.format,
-            type: entry.type,
-            // Requests become deferred nodes, so only their tree fields are needed. Collection and
-            // folder roots are parsed in full — the sidebar orders folders by their `seq` and
-            // requests inherit headers/auth/scripts from them.
-            treeFieldsOnly: true
+            type: entry.type
           }));
         } catch (err) {
           entries.set(entry.relativePath, {
@@ -92,7 +86,7 @@ const scanCollection = async ({ collectionPath, collectionUid, denylist }) => {
   const parseMs = performance.now() - parseStartedAt;
 
   const buildStartedAt = performance.now();
-  const tree = buildTree(collectionPath, entries, { uidFor: getRequestUid, deferRequests: true });
+  const tree = buildTree(collectionPath, entries, { uidFor: getRequestUid });
   const buildMs = performance.now() - buildStartedAt;
 
   // The watcher runs with ignoreInitial, so nothing else populates these at mount: the bruno

@@ -28,7 +28,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, resolveDeferredItem, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -763,7 +763,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (itemPathname && !hasRequestExtension(itemPathname, format)) {
           itemPathname = `${itemPathname}.${format}`;
         }
-        const _item = cloneDeep(await resolveDeferredItem(findItemInCollectionByPathname(collection, itemPathname)));
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if (_item) {
           // WS/gRPC items live on separate IPC channels and can't be driven via
           // the HTTP runRequest. Record a Skipped row so the user sees feedback.
@@ -1352,8 +1352,7 @@ const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, _item, collection, environment, runtimeVariables) => {
     let seq = 0;
-    // Sending from the sidebar never opens the request, so it can still be a deferred node.
-    const item = await resolveDeferredItem(_item);
+    const item = _item;
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
@@ -1456,7 +1455,7 @@ const registerNetworkIpc = (mainWindow) => {
           if (itemPathname && !hasRequestExtension(itemPathname, format)) {
             itemPathname = `${itemPathname}.${format}`;
           }
-          const _item = cloneDeep(await resolveDeferredItem(findItemInCollectionByPathname(collection, itemPathname)));
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if (_item) {
             // WS/gRPC items live on separate IPC channels and can't be driven via
             // the HTTP runRequest. Record a Skipped row so the user sees feedback.
@@ -1618,7 +1617,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           stopRunnerExecution = false;
 
-          const item = cloneDeep(await resolveDeferredItem(folderRequests[currentRequestIndex]));
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {

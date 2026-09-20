@@ -15,11 +15,9 @@ import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
-  findCollectionByItemUid,
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
-  flattenItems,
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
@@ -39,7 +37,6 @@ import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
-  evictClosedItems as _evictClosedItems,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
@@ -936,14 +933,7 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
       return reject(new Error('Unable to locate item'));
     }
 
-    // A request the user never opened is a deferred node, and cloning serializes it.
-    // Folder children are resolved inside renderer:clone-folder as it walks them.
-    let item;
-    try {
-      item = await dispatch(resolveDeferredItem(treeItem, collectionUid));
-    } catch (error) {
-      return reject(error);
-    }
+    const item = treeItem;
 
     if (isItemAFolder(item)) {
       const parentFolder = findParentItemInCollection(collection, item.uid) || collection;
@@ -1076,13 +1066,7 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
-          // The clipboard holds whatever the tree held when the item was copied, so a request the
-          // user never opened is still a deferred node. It is resolved against the collection it
-          // came from, which is not necessarily the one being pasted into. Folders take the same
-          // trip inside renderer:clone-folder, which resolves their children as it walks them.
-          const sourceCollectionUid = findCollectionByItemUid(state.collections.collections, copiedItem.uid)?.uid;
-          const resolvedItem = await dispatch(resolveDeferredItem(copiedItem, sourceCollectionUid));
-          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(resolvedItem));
+          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
 
@@ -3382,67 +3366,6 @@ export const loadRequestViaWorker
       });
     };
 
-// Requests are mounted as deferred tree nodes carrying only what the sidebar and searches read.
-// Opening one parses it in full; the parsed item arrives back over main:collection-tree-updated,
-// and is also returned here for callers that need it before that lands in the store.
-export const loadRequest
-  = ({ collectionUid, pathname }) =>
-    () => {
-      const { ipcRenderer } = window;
-      return ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname });
-    };
-
-/**
- * A request the user has never opened is a deferred tree node: it carries name, method and url but
- * none of the headers, body, auth, scripts or tests. Anything that *serializes* an item — clone,
- * paste, export, documentation — has to fill it in first, or it writes an empty request.
- *
- * Execution paths do not need this: the main process resolves deferred items itself when it runs
- * them (`resolveDeferredItem` in bruno-electron), where the file is already at hand.
- */
-export const resolveDeferredItem
-  = (item, collectionUid) =>
-    async (dispatch) => {
-      if (!item?.deferred || !item?.pathname) return item;
-
-      const data = await dispatch(loadRequest({ collectionUid, pathname: item.pathname }));
-
-      return { ...item, ...data, uid: item.uid, deferred: false };
-    };
-
-/**
- * The same fill-in as `resolveDeferredItem`, for consumers that serialize a whole collection at
- * once — export, documentation. Returns a copy with every deferred request parsed, in one IPC
- * round trip rather than one per request.
- *
- * The copy is deliberately not written back to the store: nothing here is open, and keeping a
- * fully parsed collection around after a one-shot export is what deferred nodes exist to avoid.
- * Requests that fail to parse are left as they are, so an export reports them rather than aborting.
- */
-export const resolveDeferredCollection
-  = (collectionUid) =>
-    async (dispatch, getState) => {
-      const collection = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
-      if (!collection) return collection;
-
-      const deferredItems = flattenItems(collection.items).filter((item) => item.deferred && item.pathname);
-      if (!deferredItems.length) return collection;
-
-      const { ipcRenderer } = window;
-      const loaded = await ipcRenderer.invoke('renderer:load-requests', {
-        pathnames: deferredItems.map((item) => item.pathname)
-      });
-
-      const dataByPathname = new Map(loaded.map(({ pathname, data }) => [pathname, data]));
-      deferredItems.forEach((item) => {
-        const data = dataByPathname.get(item.pathname);
-        if (!data) return;
-        Object.assign(item, data, { uid: item.uid, deferred: false });
-      });
-
-      return collection;
-    };
-
 export const loadLargeRequest
   = ({ collectionUid, pathname }) =>
     (dispatch, getState) => {
@@ -3502,10 +3425,6 @@ export const mountCollection
  * Search is the reason this exists. Both searches read `collection.items`, and an unmounted
  * collection has none — so before this, global search silently found nothing in any collection the
  * user had not clicked this session, with no indication that whole collections were missing.
- *
- * It is affordable now and was not before: a mounted collection holds deferred tree nodes rather
- * than full requests, and items are released again when their last tab closes, so mounting
- * everything costs the tree and nothing else.
  *
  * Sequential on purpose. The main-process directory walk is synchronous, so mounting in parallel
  * would not overlap the walks anyway — it would only bunch them together and stall IPC for
@@ -3817,41 +3736,6 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
       console.error('Failed to delete transient request files:', err);
     }
   }
-
-  dispatch(evictItemsWithNoOpenTabs({ closedTabUids: tabUids }));
-};
-
-/**
- * Releases every item whose last tab just closed back to a deferred tree node, so the store holds
- * what is open rather than everything ever opened. Reopening re-parses from disk.
- *
- * An item can be referenced by more than one tab — an example tab addresses its parent request by
- * `pathname` rather than by uid — so a request is only released once no remaining tab points at it
- * either way. The reducer applies its own safety checks (drafts, transient items, live streams).
- */
-const evictItemsWithNoOpenTabs = ({ closedTabUids }) => (dispatch, getState) => {
-  const state = getState();
-  const openTabs = state.tabs?.tabs || [];
-  const openTabUids = new Set(openTabs.map((tab) => tab.uid));
-  const openTabPathnames = new Set(openTabs.map((tab) => tab.pathname).filter(Boolean));
-
-  const evictionsByCollection = {};
-  each(closedTabUids, (tabUid) => {
-    if (openTabUids.has(tabUid)) return;
-
-    for (const collection of state.collections.collections) {
-      const item = findItemInCollection(collection, tabUid);
-      if (!item) continue;
-      if (!openTabPathnames.has(item.pathname)) {
-        (evictionsByCollection[collection.uid] ||= []).push(tabUid);
-      }
-      break;
-    }
-  });
-
-  Object.entries(evictionsByCollection).forEach(([collectionUid, itemUids]) => {
-    dispatch(_evictClosedItems({ collectionUid, itemUids }));
-  });
 };
 
 /**

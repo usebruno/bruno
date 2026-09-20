@@ -26,7 +26,6 @@ import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
-import DeferredRequest from './DeferredRequest';
 import RequestIsLoading from './RequestIsLoading';
 import RequestTabPanelLoading from './RequestTabPanelLoading';
 import FolderNotFound from './FolderNotFound';
@@ -501,11 +500,6 @@ const RequestTabPanel = () => {
       item = findItemInCollectionByPathname(collection, focusedTab.pathname);
     }
 
-    // A deferred item carries example names only, not their request/response bodies.
-    if (item?.deferred) {
-      return <DeferredRequest item={item} collection={collection} />;
-    }
-
     let example = null;
     if (item?.examples) {
       example = item.examples.find((ex) => ex.uid === focusedTab.uid);
@@ -596,10 +590,6 @@ const RequestTabPanel = () => {
     return showLoading
       ? <RequestTabPanelLoading name={focusedTab.name} />
       : <RequestNotFound itemUid={activeTabUid} />;
-  }
-
-  if (item.deferred) {
-    return <DeferredRequest item={item} collection={collection} />;
   }
 
   if (item.partial) {

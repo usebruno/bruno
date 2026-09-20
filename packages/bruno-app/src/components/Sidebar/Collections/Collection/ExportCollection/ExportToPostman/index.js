@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { useDispatch } from 'react-redux';
+import { cloneDeep } from 'lodash';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { IconCaretDown } from '@tabler/icons';
@@ -8,7 +9,7 @@ import { sanitizeName, validateName, validateNameError } from 'utils/common/rege
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Dropdown from 'components/Dropdown';
-import { browseDirectory, exportCollectionToPostman, resolveDeferredCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory, exportCollectionToPostman } from 'providers/ReduxStore/slices/collections/actions';
 import { exportPostmanCollection } from 'utils/exporters/postman-collection';
 import StyledWrapper from './StyledWrapper';
 
@@ -53,7 +54,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
 
     setIsExporting(true);
     try {
-      const content = exportPostmanCollection(await dispatch(resolveDeferredCollection(collection.uid)), { preserveScripts });
+      const content = exportPostmanCollection(cloneDeep(collection), { preserveScripts });
       await dispatch(exportCollectionToPostman(values.location, `${values.fileName.trim()}.json`, content, overwrite));
       toast.success('Collection exported successfully');
       onExported();

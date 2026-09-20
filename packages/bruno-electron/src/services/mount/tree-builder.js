@@ -142,44 +142,6 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
   };
 };
 
-// Carries only what the sidebar and the searches read. `method`/`url` stay nested under `request`
-// so the sidebar's method badge and global search keep reading the same paths, and everything
-// heavy — headers, body, auth, scripts, settings, example bodies, raw text — is left on disk until
-// the request is opened.
-//
-// `deferred` marks "not parsed yet, on purpose". It is deliberately not `partial`, which means
-// "could not be fully parsed" and renders a warning triangle in the sidebar.
-const buildDeferredRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) => {
-  const uid = uidOverrides?.get(absolutePath) || uidFor(absolutePath);
-  const data = entry.data || {};
-  return {
-    uid,
-    name: data.name || stripExt(basename),
-    type: data.type || 'http-request',
-    seq: data.seq,
-    tags: data.tags,
-    request: {
-      method: data.request?.method,
-      url: data.request?.url
-    },
-    examples: (data.examples || []).map((example, i) => ({
-      uid: example.uid || uidForSeed(`${posixifyPath(absolutePath)}#example#${i}`),
-      name: example.name
-    })),
-    app: data.app ?? null,
-    // The mount path reports byteSize instead of returning the file's text; `raw` covers the
-    // cache path, which still carries it.
-    size: sizeInMB(entry.byteSize ?? (entry.raw ? Buffer.byteLength(entry.raw, 'utf8') : 0)),
-    filename: basename,
-    pathname: absolutePath,
-    draft: null,
-    deferred: true,
-    partial: false,
-    loading: false,
-    ...(entry.error ? { error: entry.error, partial: true, deferred: false } : {})
-  };
-};
-
 const buildEnvironmentNode = (collectionPath, relativePath, entry, uidFor) => {
   const basename = path.basename(relativePath);
   const absolutePath = path.join(collectionPath, relativePath);
@@ -197,9 +159,6 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   const uidOverrides = options.uidOverrides;
   const uidFor = options.uidFor || idForAbsolutePath;
   const transientEntries = options.transientEntries || [];
-  // Collection and folder roots are always built in full — the sidebar needs folder names and
-  // `seq` to order the tree, and requests inherit headers/auth/scripts from them.
-  const buildNode = options.deferRequests ? buildDeferredRequestNode : buildRequestNode;
 
   const tree = {
     pathname: collectionPath,
@@ -245,7 +204,7 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   for (const { relativePath, entry } of requests) {
     const segments = path.dirname(relativePath).split(path.sep).filter((s) => s && s !== '.');
     const { cursor } = ensureFolder(collectionPath, tree.items, segments, uidFor);
-    cursor.push(buildNode(
+    cursor.push(buildRequestNode(
       path.join(collectionPath, relativePath),
       path.basename(relativePath),
       entry,

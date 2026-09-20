@@ -167,8 +167,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           type: 'http-request',
           pathname: row.pathname,
           name: row.name,
-          request: { method: row.method, url: row.url },
-          deferred: true
+          request: { method: row.method, url: row.url }
         },
         name: row.name,
         path: [row.collectionName, row.folderPath, row.name].filter(Boolean).join('/'),
@@ -247,8 +246,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   const ensureCollectionIsMounted = (collection) => {
-    if (!collection || collection.mountStatus === 'mounted') return;
-    dispatch(mountCollection({
+    if (!collection || collection.mountStatus === 'mounted') return Promise.resolve();
+    return dispatch(mountCollection({
       collectionUid: collection.uid,
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
@@ -299,7 +298,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
   const handleResultSelection = (result) => {
     const targetCollection = collections.find((c) => c.uid === result.collectionUid);
-    ensureCollectionIsMounted(targetCollection);
 
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
       window.open('https://docs.usebruno.com/', '_blank');
@@ -313,17 +311,23 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
 
       if (existingTab) {
+        ensureCollectionIsMounted(targetCollection);
         dispatch(focusTab({ uid: result.item.uid }));
       } else {
-        dispatch(addTab({
-          uid: result.item.uid,
-          collectionUid: result.collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(result.item),
-          type: result.item.type,
-          pathname: result.item.pathname
-        }));
+        // The item may only exist in the search index, not yet in the store — wait for the
+        // collection to be fully mounted before opening a tab for it.
+        Promise.resolve(ensureCollectionIsMounted(targetCollection)).then(() => {
+          dispatch(addTab({
+            uid: result.item.uid,
+            collectionUid: result.collectionUid,
+            requestPaneTab: getDefaultRequestPaneTab(result.item),
+            type: result.item.type,
+            pathname: result.item.pathname
+          }));
+        });
       }
     } else if (result.type === SEARCH_TYPES.FOLDER) {
+      ensureCollectionIsMounted(targetCollection);
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
@@ -331,6 +335,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         pathname: result.item.pathname
       }));
     } else if (result.type === SEARCH_TYPES.COLLECTION) {
+      ensureCollectionIsMounted(targetCollection);
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,

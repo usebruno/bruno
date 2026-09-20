@@ -20,8 +20,7 @@ const parseForIndex = async (root, entry) => {
       collectionPath: root,
       relativePath: entry.relativePath,
       format: cls.format,
-      type: cls.type,
-      treeFieldsOnly: true
+      type: cls.type
     });
     if (result.data?.name) name = result.data.name;
     method = result.data?.request?.method || null;
