@@ -12,7 +12,7 @@ import { toOpenCollectionVariables } from './common/variables';
 import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import { stringifyYml } from './utils';
-import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
+import { HTTP_SCRIPT_KEYS, normalizeTags } from '@usebruno/common';
 
 const hasRequestDefaults = (folderRoot: FolderRoot): boolean => {
   const requestDefaults = folderRoot?.request;
@@ -48,6 +48,10 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     const seq = folderRoot.meta?.seq;
     if (typeof seq === 'number' && Number.isFinite(seq)) {
       info.seq = seq;
+    }
+    const tags = normalizeTags(folderRoot.meta?.tags);
+    if (tags.length) {
+      info.tags = tags;
     }
     ocFolder.info = info;
 

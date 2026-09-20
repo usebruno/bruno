@@ -8,6 +8,7 @@ import {
   collectionBruToJson as _collectionBruToJson,
   jsonToCollectionBru as _jsonToCollectionBru
 } from '@usebruno/lang';
+import { normalizeTags } from '@usebruno/common';
 import { getOauth2AdditionalParameters } from './utils/oauth2-additional-params';
 
 // Fields a sidebar/search tree node needs, read without running the grammar. See bruToTreeFields.
@@ -302,6 +303,11 @@ export const parseBruCollection = (data: string | any, parsed: boolean = false):
         const sequence = json.meta.seq;
         transformedJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
       }
+
+      const tags = normalizeTags(json.meta.tags);
+      if (tags.length) {
+        transformedJson.meta.tags = tags;
+      }
     }
 
     // add oauth2 additional parameters if they exist
@@ -348,6 +354,13 @@ export const stringifyBruCollection = (json: any, isFolder?: boolean): string =>
       if (json.meta.seq !== undefined) {
         const sequence = json.meta.seq;
         collectionBruJson.meta.seq = !isNaN(sequence) ? Number(sequence) : 1;
+      }
+
+      if (isFolder) {
+        const tags = normalizeTags(json.meta.tags);
+        if (tags.length) {
+          collectionBruJson.meta.tags = tags;
+        }
       }
     }
 

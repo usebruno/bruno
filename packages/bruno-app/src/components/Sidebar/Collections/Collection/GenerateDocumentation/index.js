@@ -92,7 +92,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   );
 
   const { folderCount, requestCount } = useMemo(
-    () => getCollectionItemCounts(filterRequestItemsByTags(collection?.items || [], activeTags.include, activeTags.exclude)),
+    () => getCollectionItemCounts(
+      filterRequestItemsByTags(sortItemsBySidebarOrder(collection?.items || []), activeTags.include, activeTags.exclude)
+    ),
     [collection?.items, activeTags]
   );
 

@@ -4100,6 +4100,45 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) return;
+
+      const trimmedTag = tag.trim();
+      if (!trimmedTag) return;
+
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+
+      const tags = get(folder, 'draft.meta.tags', []);
+      if (!tags.includes(trimmedTag)) {
+        tags.push(trimmedTag);
+      }
+      set(folder, 'draft.meta.tags', tags);
+
+      collection.allTags = getUniqueTagsFromItems(collection.items);
+    },
+    deleteFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) return;
+
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+      const tags = get(folder, 'draft.meta.tags', []);
+      set(folder, 'draft.meta.tags', tags.filter((t) => t !== tag.trim()));
+
+      collection.allTags = getUniqueTagsFromItems(collection.items);
+    },
     updateCollectionTagsList: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4520,6 +4559,8 @@ export const {
   updateFolderAuthMode,
   addRequestTag,
   deleteRequestTag,
+  addFolderTag,
+  deleteFolderTag,
   updateCollectionTagsList,
   updateActiveConnections,
   runWsRequestEvent,

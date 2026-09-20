@@ -15,6 +15,7 @@ export interface FolderRequest {
 export interface FolderMeta {
   name?: string | null;
   seq?: number | null;
+  tags?: string[] | null;
 }
 
 export interface FolderRoot {
