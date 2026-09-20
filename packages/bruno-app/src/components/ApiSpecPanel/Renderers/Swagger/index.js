@@ -2,6 +2,7 @@ import { memo } from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import StyledWrapper from './StyledWrapper';
 import { serializeBody } from './serializeBody';
+import { normalizeSpecForSwagger } from './normalizeSpec';
 
 /*
   OpenAPISec 3.1.0 resolver ignores to dereference "$refs" when document.baseURI is not http/https as the packaged app is loaded over "file:/", so every internal $ref fails with "Evaluation failed on URI".
@@ -77,11 +78,12 @@ const requestInterceptor = (req) => {
 };
 
 const Swagger = ({ spec, onComplete }) => {
+  const normalizedSpec = normalizeSpecForSwagger(spec);
   return (
     <StyledWrapper>
       <div className="swagger-root w-full">
         <SwaggerUI
-          spec={spec}
+          spec={normalizedSpec}
           onComplete={onComplete}
           requestInterceptor={requestInterceptor}
         />
