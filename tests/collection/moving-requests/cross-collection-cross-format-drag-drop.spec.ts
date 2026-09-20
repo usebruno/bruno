@@ -20,10 +20,7 @@ test.describe('Cross-Format Collection Drag and Drop', () => {
 
     // Expand the bru collection and locate the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'bru-collection' }).click();
-    const bruCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'bru-collection' })
-      .locator('..');
+    const bruCollectionContainer = page.locator('[data-collection-id="bru-collection"]');
     const bruRequest = bruCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(bruRequest).toBeVisible();
 
@@ -32,10 +29,7 @@ test.describe('Cross-Format Collection Drag and Drop', () => {
     await bruRequest.dragTo(ymlCollection);
 
     // Verify the request appears in the yml collection (increase timeout for file watcher processing)
-    const ymlCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'yml-collection' })
-      .locator('..');
+    const ymlCollectionContainer = page.locator('[data-collection-id="yml-collection"]');
     // The yml collection may need to be expanded after the drop
     const ymlCollectionItems = ymlCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName });
     // Wait for file watcher to process the new file, then expand collection if needed

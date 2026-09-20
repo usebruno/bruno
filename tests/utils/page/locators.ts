@@ -216,7 +216,14 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
-    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
+    ownItem: (tagName: string) => page.locator('.tag-item:not(.inherited)', { hasText: tagName }),
+    ownItems: () => page.locator('.tag-item:not(.inherited)'),
+    error: () => page.getByTestId('tag-error'),
+    inheritedToggle: () => page.getByTestId('inherited-tags-toggle'),
+    inheritedList: () => page.getByTestId('inherited-tag-list'),
+    inheritedItems: () => page.getByTestId('inherited-tag'),
+    inheritedItem: (tagName: string) => page.getByTestId('inherited-tag').filter({ hasText: tagName })
   },
   generateDocs: {
     menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
@@ -498,6 +505,9 @@ export const buildScriptErrorLocators = (page: Page) => ({
   title: (card?: Locator) => (card ?? page).getByTestId('script-error-title'),
   /** Close button within a card */
   closeButton: (card?: Locator) => (card ?? page).getByTestId('script-error-close'),
+  expandToggle: (card?: Locator) => (card ?? page).getByTestId('script-error-expand-toggle'),
+  copyButton: (card?: Locator) => (card ?? page).getByTestId('script-error-copy'),
+  body: (card?: Locator) => (card ?? page).getByTestId('script-error-body'),
   /** Source label within a card */
   sourceLabel: (card?: Locator) => (card ?? page).getByTestId('script-error-source-label'),
   /** File path link within a card */
