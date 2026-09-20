@@ -2,11 +2,11 @@ const { get, each, find, isString, filter } = require('lodash');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
-const { posixifyPath } = require('./filesystem');
+const { posixifyPath, getRequestFormat } = require('./filesystem');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
-const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { parseRequestViaWorker } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { GRPC_SCRIPT_KEYS } = require('@usebruno/common');
 
@@ -566,67 +566,6 @@ const parseBruFileMeta = (data) => {
   }
 };
 
-// Parse YML file meta information
-const parseYmlFileMeta = (data) => {
-  try {
-    const yaml = require('js-yaml');
-    const parsed = yaml.load(data);
-
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
-      return null;
-    }
-
-    const metaJson = parsed.meta;
-
-    // Transform to the format expected by bruno-app
-    let requestType = metaJson.type;
-    const typeMap = {
-      http: 'http-request',
-      graphql: 'graphql-request',
-      grpc: 'grpc-request',
-      ws: 'ws-request'
-    };
-    requestType = typeMap[requestType] || 'http-request';
-
-    const sequence = metaJson.seq;
-    const transformedJson = {
-      type: requestType,
-      name: metaJson.name,
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
-      settings: {},
-      tags: metaJson.tags || [],
-      request: {
-        method: '',
-        url: '',
-        params: [],
-        headers: [],
-        auth: { mode: 'none' },
-        body: { mode: 'none' },
-        script: {},
-        vars: {},
-        assertions: [],
-        tests: '',
-        docs: ''
-      }
-    };
-
-    return transformedJson;
-  } catch (err) {
-    console.error('Error parsing YAML file meta:', err);
-    return null;
-  }
-};
-
-// Format-aware meta parsing function
-const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
-  if (format === 'yml') {
-    return parseYmlFileMeta(data);
-  } else {
-    return parseBruFileMeta(data);
-  }
-};
-
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
   const prefix = path.join(os.tmpdir(), 'bruno-');
@@ -680,6 +619,34 @@ const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
+};
+
+/**
+ * A mounted collection carries requests as deferred nodes — tree metadata plus method and url, but
+ * no headers, body, auth, scripts, assertions or tests. The renderer fills a request in when the
+ * user opens it, so anything here that is about to *execute* or *serialize* a request has to read
+ * the file itself rather than trust what the renderer sent. Serializing a deferred node throws on
+ * its missing `request.body`, except in `renderer:clone-folder`, which stringifies the node
+ * directly and so writes a valid but gutted file.
+ *
+ * Read and parsed off the main thread: the collection runner calls this once per request, so doing
+ * it synchronously stalls the main process between every request in a run. The file is re-read at
+ * the moment it is needed rather than batched up front, so an edit part-way through a run is picked
+ * up by the requests that follow it.
+ *
+ * A deferred item cannot have unsaved changes — editing one requires opening it, which loads it in
+ * full and clears the flag — so there is no draft to preserve here.
+ */
+const resolveDeferredItem = async (item) => {
+  if (!item?.deferred || !item.pathname) return item;
+
+  const content = await fs.promises.readFile(item.pathname, 'utf8');
+  const data = await parseRequestViaWorker(content, { format: getRequestFormat(item.pathname) });
+  hydrateRequestWithUuid(data, item.pathname);
+
+  // uid is derived from the pathname on both sides, but keep the tree node's copy authoritative so
+  // response and timeline events keep routing to the row the user is looking at.
+  return { ...item, ...data, uid: item.uid, deferred: false };
 };
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -991,10 +958,10 @@ module.exports = {
   findItemInCollection,
   findItemByPathname,
   findItemInCollectionByPathname,
+  resolveDeferredItem,
   findParentItemInCollection,
   findParentItemInCollectionByPathname,
   parseBruFileMeta,
-  parseFileMeta,
   hydrateRequestWithUuid,
   transformRequestToSaveToFilesystem,
   sortCollection,

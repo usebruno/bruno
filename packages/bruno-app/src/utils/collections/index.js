@@ -5,11 +5,7 @@ import path, { normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
 import { isRequestTagsIncluded } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
-import {
-  doesRequestMatchSearchText,
-  doesFolderHaveItemsMatchSearchText,
-  doesCollectionHaveItemsMatchingSearchText
-} from 'utils/collections/search';
+import { buildSidebarSearchIndex } from 'utils/collections/search';
 import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
@@ -945,18 +941,25 @@ export const getCollectionItemCounts = (items = []) => {
 };
 
 /**
- * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
- * requests by `seq`. The same ordering is applied recursively to every nested folder
- * so an exported/serialized tree matches the sidebar at all depths.
+ * Splits one level of collection items into the three groups the Sidebar renders, in order:
+ * folders (via `sortByNameThenSequence`), then standalone apps by `seq`, then requests by `seq`.
  *
- * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
- * mirroring the sidebar. Transient items are excluded too.
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded, as are
+ * transient items. Returns the original item references — callers rely on that for memoization —
+ * and does not descend into nested folders.
+ */
+export const groupItemsBySidebarOrder = (items = []) => ({
+  folderItems: sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient)),
+  appItems: filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq),
+  requestItems: filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq)
+});
+
+/**
+ * Flattens `groupItemsBySidebarOrder` into a single ordered list, applied recursively to every
+ * nested folder so an exported/serialized tree matches the sidebar at all depths.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
-  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
-  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
-  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+  const { folderItems, appItems, requestItems } = groupItemsBySidebarOrder(items);
 
   return [...folderItems, ...appItems, ...requestItems].map((item) =>
     Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
@@ -1934,52 +1937,72 @@ export const buildSidebarEntries = ({ collections = [], workspaces = [], activeW
 };
 
 /**
- * Returns an ordered list of all currently visible sidebar item UIDs, reflecting collapse state and search filters.
+ * Every row the sidebar currently shows, in render order, flattened.
+ *
+ * This is the single source of ordering for the sidebar: the virtualised search list renders from
+ * it and keyboard navigation walks it, so the two cannot drift apart. Nesting is carried as
+ * `depth` rather than by structure, which is also how a row indents itself.
  *
  * @param {Object} options
- * @param {Array} options.sidebarEntries
+ * @param {Array} options.sidebarEntries - from buildSidebarEntries
  * @param {string} options.searchText
- * @returns {string[]}
+ * @returns {Array<{ uid: string, kind: 'collection'|'item', collection: Object, item?: Object }>}
  */
-export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText = '' }) => {
+export const getVisibleSidebarRows = ({ sidebarEntries = [], searchText = '' }) => {
   const hasSearchText = Boolean(searchText && searchText.trim().length);
-  const uids = [];
+  const rows = [];
 
-  const visitItems = (items = []) => {
-    const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
-    const appItems = [...filter(items, (i) => i.type === 'app' && !i.isTransient)].sort((a, b) => a.seq - b.seq);
-    const requestItems = [...filter(items, (i) => isItemARequest(i) && !i.isTransient)].sort((a, b) => a.seq - b.seq);
+  // The same index the rendered rows are filtered by.
+  const searchIndex = hasSearchText
+    ? buildSidebarSearchIndex(sidebarEntries.filter((e) => e.kind === 'loaded').map((e) => e.collection), searchText)
+    : null;
+
+  const visitItems = (collection, items = []) => {
+    const { folderItems, appItems, requestItems } = groupItemsBySidebarOrder(items);
 
     folderItems.forEach((folder) => {
-      if (hasSearchText && !doesFolderHaveItemsMatchSearchText(folder, searchText)) return;
-      uids.push(folder.uid);
+      if (hasSearchText && !searchIndex.has(folder.uid)) return;
+      rows.push({ uid: folder.uid, kind: 'item', collection, item: folder });
+      // A search shows every match in context, so folders are walked regardless of collapse state.
       if (hasSearchText || !folder.collapsed) {
-        visitItems(folder.items);
+        visitItems(collection, folder.items);
       }
     });
 
+    // Apps have nothing to match on, so a search hides them entirely.
     if (!hasSearchText) {
-      appItems.forEach((app) => uids.push(app.uid));
+      appItems.forEach((app) => rows.push({ uid: app.uid, kind: 'item', collection, item: app }));
     }
 
     requestItems.forEach((request) => {
-      if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
-      uids.push(request.uid);
+      if (hasSearchText && !searchIndex.has(request.uid)) return;
+      rows.push({ uid: request.uid, kind: 'item', collection, item: request });
     });
   };
 
   sidebarEntries.forEach((entry) => {
     if (entry.kind !== 'loaded') return;
     const { collection } = entry;
-    if (hasSearchText && !doesCollectionHaveItemsMatchingSearchText(collection, searchText)) return;
-    uids.push(collection.uid);
+    if (hasSearchText && !searchIndex.has(collection.uid)) return;
+    rows.push({ uid: collection.uid, kind: 'collection', collection });
     if (hasSearchText || !collection.collapsed) {
-      visitItems(collection.items);
+      visitItems(collection, collection.items);
     }
   });
 
-  return uids;
+  return rows;
 };
+
+/**
+ * The uids of {@link getVisibleSidebarRows}, for callers that only need identity and order —
+ * range selection, for one. Derived from the same walk so ordering can never disagree.
+ *
+ * @param {Object} options
+ * @param {Array} options.sidebarEntries
+ * @param {string} options.searchText
+ * @returns {string[]}
+ */
+export const getVisibleSidebarUidsInOrder = (options) => getVisibleSidebarRows(options).map((row) => row.uid);
 
 const isPathnameDescendantOf = (pathname, ancestorPathname) => {
   if (!pathname || !ancestorPathname || pathname === ancestorPathname) return false;

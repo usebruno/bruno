@@ -20,18 +20,18 @@ const config = {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
     target: [
-      {
-        target: 'pkg',
-        arch: ['x64', 'arm64']
-      },
+      // {
+      //   target: 'pkg',
+      //   arch: ['x64', 'arm64']
+      // },
       {
         target: 'dmg',
         arch: ['x64', 'arm64']
-      },
-      {
-        target: 'zip',
-        arch: ['x64', 'arm64']
       }
+      // {
+      //   target: 'zip',
+      //   arch: ['x64', 'arm64']
+      // }
     ],
     icon: 'resources/icons/mac/icon.icns',
     hardenedRuntime: true,
@@ -53,18 +53,18 @@ const config = {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     icon: 'resources/icons/png',
     target: [
-      {
-        target: 'AppImage',
-        arch: ['x64', 'arm64']
-      },
-      {
-        target: 'deb',
-        arch: ['x64', 'arm64']
-      },
-      {
-        target: 'rpm',
-        arch: ['x64', 'arm64']
-      }
+      // {
+      //   target: 'AppImage',
+      //   arch: ['x64', 'arm64']
+      // },
+      // {
+      //   target: 'deb',
+      //   arch: ['x64', 'arm64']
+      // },
+      // {
+      //   target: 'rpm',
+      //   arch: ['x64', 'arm64']
+      // }
     ],
     protocols: [
       {
@@ -96,10 +96,10 @@ const config = {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/win/icon.ico',
     target: [
-      {
-        target: 'nsis',
-        arch: ['x64', 'arm64']
-      }
+      // {
+      //   target: 'nsis',
+      //   arch: ['x64', 'arm64']
+      // }
     ],
     sign: null,
     publisherName: 'Bruno Software Inc'

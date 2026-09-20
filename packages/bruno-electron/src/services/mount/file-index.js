@@ -3,13 +3,11 @@ const path = require('node:path');
 const { Database } = require('../storage');
 const {
   hashFile,
-  hashFileAsync,
   normalize,
   posixifyPath,
   idForAbsolutePath,
   resolveDenylist,
-  isDenied,
-  walk
+  diffFiles
 } = require('../../utils/mount');
 
 const MIGRATIONS = [
@@ -59,46 +57,7 @@ class FileIndex {
     const root = normalize(collectionPath);
     const stored = this.#loadStored(root);
     const denylist = resolveDenylist(options.denylist);
-    const added = [];
-    const updated = [];
-    const removed = [];
-    const seen = new Set();
-
-    const files = walk(root, denylist);
-    const results = await Promise.all(files.map(async ({ relativePath, absolutePath }) => {
-      const stat = await fs.promises.stat(absolutePath, { bigint: true });
-      const mtime = stat.mtimeNs;
-      const prior = stored.get(relativePath);
-
-      if (!prior) {
-        const hash = await hashFileAsync(absolutePath);
-        return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
-      }
-      if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
-      const hash = await hashFileAsync(absolutePath);
-      if (hash === prior.hash) return { kind: 'unchanged', relativePath };
-      return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
-    }));
-
-    for (const r of results) {
-      if (r.kind === 'added') {
-        added.push(r.entry);
-        seen.add(r.entry.relativePath);
-      } else if (r.kind === 'updated') {
-        updated.push(r.entry);
-        seen.add(r.entry.relativePath);
-      } else {
-        seen.add(r.relativePath);
-      }
-    }
-
-    for (const [relativePath, row] of stored) {
-      if (seen.has(relativePath)) continue;
-      if (isDenied(posixifyPath(relativePath), denylist)) continue;
-      removed.push({ relativePath, id: row.id, hash: row.hash });
-    }
-
-    return { added, updated, removed };
+    return diffFiles(root, stored, denylist);
   }
 
   clear() {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconSearch,
@@ -8,22 +9,32 @@ import {
   IconFileText,
   IconBook
 } from '@tabler/icons';
-import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { getDefaultRequestPaneTab } from 'utils/collections';
+import { getDefaultRequestPaneTab, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
-import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
+import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, flattenItemsWithPaths } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
+import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import StyledWrapper from './StyledWrapper';
+
+// Fixed row height (px). MUST stay in sync with `.result-item` in StyledWrapper.js, since it is
+// passed to Virtuoso as `fixedItemHeight`.
+const RESULT_ROW_HEIGHT = 52;
+
+// The list scrolls beyond this; it caps how tall the modal grows, not how many results exist.
+const MAX_VISIBLE_RESULTS = 8;
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [results, setResults] = useState([]);
+  // True from the keystroke until its results land, so the progress bar covers the debounce window
+  // and the search itself rather than leaving stale results looking current.
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
-  const resultsRef = useRef(null);
+  const virtuosoRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
@@ -78,11 +89,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         });
       }
 
-      // Search collection items
-      const flattenedItems = flattenItems(collection.items);
-      flattenedItems.forEach((item) => {
-        const itemPath = getItemPath(item, collection, findParentItemInCollection);
-        const itemPathLower = itemPath.toLowerCase();
+      // Paths for the whole collection in one walk. Deriving each item's path on its own meant
+      // re-flattening the collection once per ancestor, for every item, on every keystroke.
+      flattenItemsWithPaths(collection).forEach(({ item, path: itemPath }) => {
+        const itemPathLower = enablePathMatch ? itemPath.toLowerCase() : '';
 
         if (isItemARequest(item)) {
           // add an optional check for the item name to prevent a crash if it doesn’t exist.
@@ -133,7 +143,45 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return results;
   };
 
-  const performSearch = (searchQuery) => {
+  const searchUnmountedCollections = async (searchTerms) => {
+    const unmounted = collections.filter((c) => c.mountStatus !== 'mounted');
+    if (!unmounted.length) return [];
+
+    try {
+      const { ipcRenderer } = window;
+      const rows = await ipcRenderer.invoke('renderer:search-index-query', {
+        collections: unmounted.map((c) => ({
+          uid: c.uid,
+          pathname: c.pathname,
+          name: c.name,
+          ignore: c.brunoConfig?.ignore
+        })),
+        terms: searchTerms,
+        limit: 50
+      });
+
+      return rows.map((row) => ({
+        type: SEARCH_TYPES.REQUEST,
+        item: {
+          uid: row.uid,
+          type: 'http-request',
+          pathname: row.pathname,
+          name: row.name,
+          request: { method: row.method, url: row.url },
+          deferred: true
+        },
+        name: row.name,
+        path: [row.collectionName, row.folderPath, row.name].filter(Boolean).join('/'),
+        matchType: MATCH_TYPES.REQUEST,
+        method: row.method || '',
+        collectionUid: row.collectionUid
+      }));
+    } catch (err) {
+      return [];
+    }
+  };
+
+  const performSearch = async (searchQuery) => {
     const normalizedQuery = normalizeQuery(searchQuery);
 
     if (!normalizedQuery) {
@@ -154,21 +202,25 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     const enablePathMatch = normalizedQuery.includes('/');
     const searchResults = searchInCollections(searchTerms, enablePathMatch);
-    const sortedResults = sortResults(searchResults);
 
-    setResults(sortedResults);
+    setResults(sortResults(searchResults));
     setSelectedIndex(0);
+
+    const indexResults = await searchUnmountedCollections(searchTerms);
+    if (indexResults.length) {
+      setResults((prev) => sortResults([...prev, ...indexResults]));
+    }
   };
 
   const debouncedSearch = useCallback((searchQuery) => {
-    // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Set new timeout
-    debounceTimeoutRef.current = setTimeout(() => {
-      performSearch(searchQuery);
+    setIsSearching(true);
+    debounceTimeoutRef.current = setTimeout(async () => {
+      await performSearch(searchQuery);
+      setIsSearching(false);
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
   }, [collections]); // Depend on collections to recreate when they change
 
@@ -328,14 +380,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  // Auto-scroll selected item into view
+  // Keyboard navigation asks the list to scroll, rather than reaching for a DOM node: the selected
+  // row may not be rendered at all while the list is virtualised.
   useEffect(() => {
-    if (resultsRef.current && results.length > 0) {
-      const selectedElement = resultsRef.current.children[selectedIndex];
-      selectedElement?.scrollIntoView({
-        behavior: SEARCH_CONFIG.SCROLL_BEHAVIOR,
-        block: SEARCH_CONFIG.SCROLL_BLOCK
-      });
+    if (results.length > 0) {
+      virtuosoRef.current?.scrollIntoView({ index: selectedIndex, behavior: SEARCH_CONFIG.SCROLL_BEHAVIOR });
     }
   }, [selectedIndex, results]);
 
@@ -419,9 +468,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
+          <IndeterminateProgressBar active={isSearching} data-testid="global-search-progress" />
+
           <div
             className="command-k-results"
-            ref={resultsRef}
             id="search-results"
             role="listbox"
             aria-label="Search results"
@@ -447,58 +497,65 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
                 </p>
               </div>
             ) : (
-              results.map((result, index) => {
-                const isSelected = index === selectedIndex;
-                const typeLabel = getTypeLabel(result.type);
+              <Virtuoso
+                ref={virtuosoRef}
+                data={results}
+                style={{ height: Math.min(results.length, MAX_VISIBLE_RESULTS) * RESULT_ROW_HEIGHT }}
+                fixedItemHeight={RESULT_ROW_HEIGHT}
+                increaseViewportBy={RESULT_ROW_HEIGHT * 4}
+                computeItemKey={(index, result) => `${result.type}-${result.item.id || result.item.uid}-${index}`}
+                itemContent={(index, result) => {
+                  const isSelected = index === selectedIndex;
+                  const typeLabel = getTypeLabel(result.type);
 
-                return (
-                  <div
-                    key={`${result.type}-${result.item.id || result.item.uid}-${index}`}
-                    id={`search-result-${index}`}
-                    className={`result-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => handleResultSelection(result)}
-                    data-selected={isSelected}
-                    data-type={result.type}
-                    role="option"
-                    aria-selected={isSelected}
-                    aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
-                    tabIndex={-1}
-                  >
-                    <div className="result-icon">
-                      {getResultIcon(result.type)}
-                    </div>
-                    <div className="result-content">
-                      <div className="result-info">
-                        <div className="result-name">
-                          {highlightText(result.name, query)}
-                        </div>
-                        <div className="result-path">
-                          {result.type === SEARCH_TYPES.DOCUMENTATION
-                            ? result.description
-                            : result.type === SEARCH_TYPES.REQUEST
-                              ? highlightText(result.item.request?.url || '', query)
-                              : highlightText(result.path, query)}
-                        </div>
+                  return (
+                    <div
+                      id={`search-result-${index}`}
+                      className={`result-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleResultSelection(result)}
+                      data-selected={isSelected}
+                      data-type={result.type}
+                      role="option"
+                      aria-selected={isSelected}
+                      aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
+                      tabIndex={-1}
+                    >
+                      <div className="result-icon">
+                        {getResultIcon(result.type)}
                       </div>
-                      <div className="result-badges">
-                        {result.type === SEARCH_TYPES.REQUEST && result.method && (
-                          <span
-                            className={`method-badge ${result.method.toLowerCase()}`}
-                            aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
-                          >
-                            {result.method.toUpperCase().replace(/-/g, ' ')}
-                          </span>
-                        )}
-                        {typeLabel && (
-                          <div className="result-type" aria-label={`Item type ${typeLabel}`}>
-                            {typeLabel}
+                      <div className="result-content">
+                        <div className="result-info">
+                          <div className="result-name">
+                            {highlightText(result.name, query)}
                           </div>
-                        )}
+                          <div className="result-path">
+                            {result.type === SEARCH_TYPES.DOCUMENTATION
+                              ? result.description
+                              : result.type === SEARCH_TYPES.REQUEST
+                                ? highlightText(result.item.request?.url || '', query)
+                                : highlightText(result.path, query)}
+                          </div>
+                        </div>
+                        <div className="result-badges">
+                          {result.type === SEARCH_TYPES.REQUEST && result.method && (
+                            <span
+                              className={`method-badge ${result.method.toLowerCase()}`}
+                              aria-label={`HTTP method ${result.method.toUpperCase().replace(/-/g, ' ')}`}
+                            >
+                              {result.method.toUpperCase().replace(/-/g, ' ')}
+                            </span>
+                          )}
+                          {typeLabel && (
+                            <div className="result-type" aria-label={`Item type ${typeLabel}`}>
+                              {typeLabel}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                }}
+              />
             )}
           </div>
 

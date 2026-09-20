@@ -15,9 +15,11 @@ import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
+  findCollectionByItemUid,
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
+  flattenItems,
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
@@ -37,12 +39,14 @@ import brunoClipboard from 'utils/bruno-clipboard';
 
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  evictClosedItems as _evictClosedItems,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
+  updateCollectionLoadStats,
   moveCollection,
   deleteItem as _deleteItemFromState,
   brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
@@ -922,14 +926,23 @@ export const cloneItem = (newName, newFilename, itemUid, collectionUid) => (disp
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!collection) {
-      throw new Error('Collection not found');
+      return reject(new Error('Collection not found'));
     }
     const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
-    if (!item) {
-      throw new Error('Unable to locate item');
+    const treeItem = findItemInCollection(collectionCopy, itemUid);
+    if (!treeItem) {
+      return reject(new Error('Unable to locate item'));
+    }
+
+    // A request the user never opened is a deferred node, and cloning serializes it.
+    // Folder children are resolved inside renderer:clone-folder as it walks them.
+    let item;
+    try {
+      item = await dispatch(resolveDeferredItem(treeItem, collectionUid));
+    } catch (error) {
+      return reject(error);
     }
 
     if (isItemAFolder(item)) {
@@ -1063,7 +1076,13 @@ export const pasteItem = (targetCollectionUid, targetItemUid = null) => (dispatc
           const newFilename = sanitizeName(newName);
 
           const filename = resolveRequestFilename(newFilename, targetCollection.format);
-          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(copiedItem));
+          // The clipboard holds whatever the tree held when the item was copied, so a request the
+          // user never opened is still a deferred node. It is resolved against the collection it
+          // came from, which is not necessarily the one being pasted into. Folders take the same
+          // trip inside renderer:clone-folder, which resolves their children as it walks them.
+          const sourceCollectionUid = findCollectionByItemUid(state.collections.collections, copiedItem.uid)?.uid;
+          const resolvedItem = await dispatch(resolveDeferredItem(copiedItem, sourceCollectionUid));
+          const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(resolvedItem));
           set(itemToSave, 'name', trim(newName));
           set(itemToSave, 'filename', trim(filename));
 
@@ -3230,21 +3249,22 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         return;
       }
       const { pathname } = collectionSnapshotData;
+      // Read-only below, and this runs once per mounted collection — cloning here meant deep-copying
+      // a whole collection tree to look up a uid and an environment.
       const collection = findCollectionByPathname(state.collections.collections, pathname);
-      const collectionCopy = cloneDeep(collection);
-      const collectionUid = collectionCopy?.uid;
+      const collectionUid = collection?.uid;
 
       // update selected environment
       // Precedence:
       //   1. The environment saved in the ui-state-snapshot always wins.
       //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
       //      is applied ONLY the first time a collection is opened/imported.
-      const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
+      const environment = findCollectionEnvironmentFromSnapshot(collection, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
       } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
-        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        const defaultEnvironmentName = collection?.brunoConfig?.presets?.defaultEnvironment;
         if (defaultEnvironmentName && collectionUid) {
           // Apply the default now if its environment file is already loaded; otherwise mark
           // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
@@ -3362,14 +3382,65 @@ export const loadRequestViaWorker
       });
     };
 
-// todo: could be removed
+// Requests are mounted as deferred tree nodes carrying only what the sidebar and searches read.
+// Opening one parses it in full; the parsed item arrives back over main:collection-tree-updated,
+// and is also returned here for callers that need it before that lands in the store.
 export const loadRequest
   = ({ collectionUid, pathname }) =>
-    (dispatch, getState) => {
-      return new Promise(async (resolve, reject) => {
-        const { ipcRenderer } = window;
-        ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname }).then(resolve).catch(reject);
+    () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:load-request', { collectionUid, pathname });
+    };
+
+/**
+ * A request the user has never opened is a deferred tree node: it carries name, method and url but
+ * none of the headers, body, auth, scripts or tests. Anything that *serializes* an item — clone,
+ * paste, export, documentation — has to fill it in first, or it writes an empty request.
+ *
+ * Execution paths do not need this: the main process resolves deferred items itself when it runs
+ * them (`resolveDeferredItem` in bruno-electron), where the file is already at hand.
+ */
+export const resolveDeferredItem
+  = (item, collectionUid) =>
+    async (dispatch) => {
+      if (!item?.deferred || !item?.pathname) return item;
+
+      const data = await dispatch(loadRequest({ collectionUid, pathname: item.pathname }));
+
+      return { ...item, ...data, uid: item.uid, deferred: false };
+    };
+
+/**
+ * The same fill-in as `resolveDeferredItem`, for consumers that serialize a whole collection at
+ * once — export, documentation. Returns a copy with every deferred request parsed, in one IPC
+ * round trip rather than one per request.
+ *
+ * The copy is deliberately not written back to the store: nothing here is open, and keeping a
+ * fully parsed collection around after a one-shot export is what deferred nodes exist to avoid.
+ * Requests that fail to parse are left as they are, so an export reports them rather than aborting.
+ */
+export const resolveDeferredCollection
+  = (collectionUid) =>
+    async (dispatch, getState) => {
+      const collection = cloneDeep(findCollectionByUid(getState().collections.collections, collectionUid));
+      if (!collection) return collection;
+
+      const deferredItems = flattenItems(collection.items).filter((item) => item.deferred && item.pathname);
+      if (!deferredItems.length) return collection;
+
+      const { ipcRenderer } = window;
+      const loaded = await ipcRenderer.invoke('renderer:load-requests', {
+        pathnames: deferredItems.map((item) => item.pathname)
       });
+
+      const dataByPathname = new Map(loaded.map(({ pathname, data }) => [pathname, data]));
+      deferredItems.forEach((item) => {
+        const data = dataByPathname.get(item.pathname);
+        if (!data) return;
+        Object.assign(item, data, { uid: item.uid, deferred: false });
+      });
+
+      return collection;
     };
 
 export const loadLargeRequest
@@ -3387,9 +3458,16 @@ export const mountCollection
       dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounting' }));
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
+      // End-to-end mount cost as the user experiences it: the main-process scan plus IPC transport.
+      // The per-phase breakdown rides in on the tree message — see scanCollection.
+      const mountStartedAt = performance.now();
       return new Promise(async (resolve, reject) => {
         callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
           .then(async (transientDirPath) => {
+            dispatch(updateCollectionLoadStats({
+              collectionUid,
+              loadStats: { mountMs: Math.round(performance.now() - mountStartedAt) }
+            }));
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
@@ -3415,6 +3493,97 @@ export const mountCollection
             reject();
           });
       });
+    };
+
+/**
+ * Mounts every collection in the active workspace that is not mounted yet, without expanding any of
+ * them in the sidebar.
+ *
+ * Search is the reason this exists. Both searches read `collection.items`, and an unmounted
+ * collection has none — so before this, global search silently found nothing in any collection the
+ * user had not clicked this session, with no indication that whole collections were missing.
+ *
+ * It is affordable now and was not before: a mounted collection holds deferred tree nodes rather
+ * than full requests, and items are released again when their last tab closes, so mounting
+ * everything costs the tree and nothing else.
+ *
+ * Sequential on purpose. The main-process directory walk is synchronous, so mounting in parallel
+ * would not overlap the walks anyway — it would only bunch them together and stall IPC for
+ * everything else. One at a time keeps the app responsive while this runs in the background.
+ * Idempotent, so the callers that signal "workspace settled" can each fire it without coordinating.
+ */
+export const mountWorkspaceCollections
+  = ({ workspacePathname = null } = {}) =>
+    async (dispatch, getState) => {
+      const state = getState();
+      const { workspaces, activeWorkspaceUid } = state.workspaces;
+      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      if (!activeWorkspace) return;
+
+      // The same list the sidebar renders, so this mounts exactly what the user can see, in the
+      // order they see it. It also carries the two rules this would otherwise have to repeat:
+      // scratch collections are excluded, and paths are matched case-insensitively on Windows.
+      const pending = buildSidebarEntries({
+        collections: state.collections.collections,
+        workspaces,
+        activeWorkspace,
+        collectionSortOrder: state.collections.collectionSortOrder
+      })
+        .filter((entry) => entry.kind === 'loaded')
+        .map((entry) => entry.collection)
+        .filter((collection) => collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting');
+
+      for (const collection of pending) {
+        // Re-read: an earlier iteration takes time, and the user may have clicked this collection
+        // in the meantime, which mounts it through the same thunk.
+        const current = findCollectionByUid(getState().collections.collections, collection.uid);
+        if (!current || current.mountStatus === 'mounted' || current.mountStatus === 'mounting') continue;
+
+        await dispatch(mountCollection({
+          collectionUid: current.uid,
+          collectionPathname: current.pathname,
+          brunoConfig: current.brunoConfig,
+          // Restoring tabs for every collection in the workspace would open tabs the user never
+          // asked for; the active collection's tabs are restored by the flow that mounts it.
+          skipTabRestore: true,
+          workspacePathname: workspacePathname || activeWorkspace.pathname || null
+        })).catch((err) => console.error(`Failed to background-mount ${current.pathname}:`, err));
+      }
+    };
+
+export const warmSearchIndex
+  = () =>
+    async (dispatch, getState) => {
+      const state = getState();
+      const { workspaces, activeWorkspaceUid } = state.workspaces;
+      const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+      if (!activeWorkspace) return;
+
+      const collections = buildSidebarEntries({
+        collections: state.collections.collections,
+        workspaces,
+        activeWorkspace,
+        collectionSortOrder: state.collections.collectionSortOrder
+      })
+        .filter((entry) => entry.kind === 'loaded')
+        .map((entry) => entry.collection)
+        .filter((collection) => collection.mountStatus !== 'mounted');
+
+      if (!collections.length) return;
+
+      const { ipcRenderer } = window;
+      try {
+        await ipcRenderer.invoke('renderer:search-index-warm', {
+          collections: collections.map((collection) => ({
+            uid: collection.uid,
+            pathname: collection.pathname,
+            name: collection.name,
+            ignore: collection.brunoConfig?.ignore
+          }))
+        });
+      } catch (err) {
+        console.error('Failed to warm search index:', err);
+      }
     };
 
 export const showInFolder = (collectionPath) => () => {
@@ -3648,6 +3817,41 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
       console.error('Failed to delete transient request files:', err);
     }
   }
+
+  dispatch(evictItemsWithNoOpenTabs({ closedTabUids: tabUids }));
+};
+
+/**
+ * Releases every item whose last tab just closed back to a deferred tree node, so the store holds
+ * what is open rather than everything ever opened. Reopening re-parses from disk.
+ *
+ * An item can be referenced by more than one tab — an example tab addresses its parent request by
+ * `pathname` rather than by uid — so a request is only released once no remaining tab points at it
+ * either way. The reducer applies its own safety checks (drafts, transient items, live streams).
+ */
+const evictItemsWithNoOpenTabs = ({ closedTabUids }) => (dispatch, getState) => {
+  const state = getState();
+  const openTabs = state.tabs?.tabs || [];
+  const openTabUids = new Set(openTabs.map((tab) => tab.uid));
+  const openTabPathnames = new Set(openTabs.map((tab) => tab.pathname).filter(Boolean));
+
+  const evictionsByCollection = {};
+  each(closedTabUids, (tabUid) => {
+    if (openTabUids.has(tabUid)) return;
+
+    for (const collection of state.collections.collections) {
+      const item = findItemInCollection(collection, tabUid);
+      if (!item) continue;
+      if (!openTabPathnames.has(item.pathname)) {
+        (evictionsByCollection[collection.uid] ||= []).push(tabUid);
+      }
+      break;
+    }
+  });
+
+  Object.entries(evictionsByCollection).forEach(([collectionUid, itemUids]) => {
+    dispatch(_evictClosedItems({ collectionUid, itemUids }));
+  });
 };
 
 /**

@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import range from 'lodash/range';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
@@ -24,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, resolveDeferredItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -40,8 +39,8 @@ import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs';
-import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
+import useVisibleSidebarItems from 'hooks/useVisibleSidebarItems';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
@@ -54,7 +53,6 @@ import {
   isTabForItemActive as isTabForItemActiveSelector,
   isTabForItemPresent as isTabForItemPresentSelector
 } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import {
   canCollectionItemBeDropped,
@@ -63,7 +61,6 @@ import {
   findParentItemInCollection,
   getSortedDraggedItems
 } from 'utils/collections/index';
-import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -74,22 +71,36 @@ import useKeybinding from 'hooks/useKeybinding';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu, isMultiDragDisabled, multiDragItems: multiDragItemsForSelection }) => {
+/**
+ * `flat` renders the row on its own, without its subtree: the virtualised search list already holds
+ * every descendant as a row of its own, and rendering them here as well would nest the whole tree
+ * inside one virtual row. Indentation comes from `item.depth` either way, so the row looks the same.
+ *
+ * Drag and drop is off in flat mode. Only a fraction of the rows exist while virtualised, so
+ * dropping onto something scrolled out of view has nothing to land on — and reordering a filtered
+ * tree, where an item's real neighbours are hidden, is not a meaningful gesture anyway.
+ */
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, searchIndex, flat = false, openBulkMenu, isMultiDragDisabled, multiDragItems: multiDragItemsForSelection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const selectorInput = {
-    itemUid: item.uid,
-    itemPathname: item.pathname,
-    collectionUid
-  };
 
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
+  // Each of these builds a createSelector, and createSelector's memo lives on the instance it
+  // returns. Built inline they would be new instances on every render, so the memo could never
+  // hold — every row would rescan the tab list on every render, and react-redux would tear down
+  // and re-create three store subscriptions per row along with it.
+  const { activeSelector, presentSelector, tabUidSelector } = useMemo(() => {
+    const selectorInput = { itemUid: item.uid, itemPathname: item.pathname, collectionUid };
+    return {
+      activeSelector: isTabForItemActiveSelector(selectorInput),
+      presentSelector: isTabForItemPresentSelector(selectorInput),
+      tabUidSelector: getTabUidForItemSelector(selectorInput)
+    };
+  }, [item.uid, item.pathname, collectionUid]);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-
-  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
-  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
+  // All three resolve to a boolean or a uid, so reference equality is both correct and cheaper
+  // than a deep compare.
+  const isTabForItemActive = useSelector(activeSelector);
+  const isTabForItemPresent = useSelector(presentSelector);
+  const tabUidForItem = useSelector(tabUidSelector);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
@@ -106,7 +117,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
   const dispatch = useDispatch();
 
   const multiDragItems = isMultiSelected ? multiDragItemsForSelection : null;
-  const isDragDisabled = isMultiSelected && isMultiDragDisabled;
+  const isDragDisabled = flat || (isMultiSelected && isMultiDragDisabled);
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -272,6 +283,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
       setDropType(null);
     },
     canDrop: (draggedItem, monitor) => {
+      if (flat) return false;
       if (draggedItem.uid === item.uid) return false;
 
       const dropType = resolveDropFromMonitor(monitor);
@@ -567,25 +579,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     'is-sidebar-dragging': isSidebarDragging
   });
 
-  if (searchText && searchText.length) {
-    if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
-        return null;
-      }
-    } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
-        return null;
-      }
-    }
-  }
+  const { folderItems, appItems, requestItems } = useVisibleSidebarItems(item.items, { hasSearchText, searchIndex, skip: flat });
 
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
-  };
-
-  // Sort items by their "seq" property.
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
   };
 
   const handleShowInFolder = () => {
@@ -640,18 +637,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
     setCreateExampleModalOpen(false);
   };
 
-  const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
-  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
   const showEmptyFolderMessage
     = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
-  const handleGenerateCode = () => {
+  const handleGenerateCode = async () => {
+    // The snippet is built in the renderer from the item's headers, body and auth, so a deferred
+    // node has to be parsed in full first — unlike sending, which the main process resolves itself.
+    // The parse also lands in the store, so the modal below renders against the loaded item.
+    const resolvedItem = await dispatch(resolveDeferredItem(item, collectionUid)).catch(() => item);
+
     if (
-      (item?.request?.url !== '')
-      || (item?.draft?.request?.url !== undefined && item?.draft?.request?.url !== '')
+      (resolvedItem?.request?.url !== '')
+      || (resolvedItem?.draft?.request?.url !== undefined && resolvedItem?.draft?.request?.url !== '')
     ) {
       setGenerateCodeItemModalOpen(true);
     } else {
@@ -839,21 +838,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, o
           )}
         </div>
       </div>
-      {!itemIsCollapsed ? (
+      {!flat && !itemIsCollapsed ? (
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {appItems && appItems.length
             ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
               })
             : null}
           {showEmptyFolderMessage ? (

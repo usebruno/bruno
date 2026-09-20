@@ -1,4 +1,5 @@
 const bruToJsonV2 = require('../v2/src/bruToJson');
+const bruToTreeFields = require('../v2/src/bruToTreeFields');
 const jsonToBruV2 = require('../v2/src/jsonToBru');
 const bruToEnvJsonV2 = require('../v2/src/envToJson');
 const envJsonToBruV2 = require('../v2/src/jsonToEnv');
@@ -13,6 +14,7 @@ const { outdentString } = require('../v2/src/utils');
 
 module.exports = {
   bruToJsonV2,
+  bruToTreeFields,
   jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,

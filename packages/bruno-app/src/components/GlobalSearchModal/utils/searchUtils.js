@@ -1,5 +1,5 @@
 import React from 'react';
-import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG } from '../constants';
+import { SEARCH_TYPES, MATCH_TYPES } from '../constants';
 
 export const normalizeQuery = (searchQuery) => {
   return searchQuery.trim().replace(/\/+/g, '/');
@@ -72,23 +72,28 @@ export const getTypeLabel = (type) => {
   return baseLabels[type] || '';
 };
 
-export const getItemPath = (item, collection, findParentItemInCollection) => {
-  const pathParts = [];
-  let currentItem = item;
-  let depth = 0;
-  const maxDepth = SEARCH_CONFIG.MAX_DEPTH;
+/**
+ * Every item in a collection paired with its display path, built in one walk.
+ *
+ * Replaces a per-item `getItemPath` that climbed to the root calling
+ * `findParentItemInCollection` at each level — and that helper flattens the whole collection on
+ * every call. Computing it for each item made searching a collection quadratic in its size
+ * (items x depth x items), which a workspace-wide search multiplied by the number of collections.
+ * Here each item is visited once and its path is its parent's path plus its own name.
+ *
+ * @returns {Array<{ item: Object, path: string }>} in the tree's own order
+ */
+export const flattenItemsWithPaths = (collection) => {
+  const entries = [];
 
-  while (currentItem && depth < maxDepth) {
-    pathParts.unshift(currentItem.name);
-    const parent = findParentItemInCollection(collection, currentItem.uid);
-    if (parent) {
-      currentItem = parent;
-      depth++;
-    } else {
-      break;
+  const visit = (items = [], parentPath) => {
+    for (const item of items) {
+      const path = `${parentPath}/${item.name}`;
+      entries.push({ item, path });
+      if (item.items?.length) visit(item.items, path);
     }
-  }
+  };
 
-  pathParts.unshift(collection.name);
-  return pathParts.join('/');
+  visit(collection.items, collection.name);
+  return entries;
 };

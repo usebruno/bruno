@@ -5,9 +5,9 @@ import { IconCheck, IconAlertTriangle, IconFileExport } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import ExportToPostman from 'components/Sidebar/Collections/Collection/ExportCollection/ExportToPostman';
 import exportOpenCollection from 'utils/exporters/opencollection';
-import { cloneDeep } from 'lodash';
 import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index';
-import { useSelector } from 'react-redux';
+import { resolveDeferredCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch, useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 import toast from 'react-hot-toast';
 
@@ -18,6 +18,7 @@ const EXPORT_FORMATS = {
 };
 
 const ShareCollection = ({ onClose, collectionUid }) => {
+  const dispatch = useDispatch();
   const collection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
   const isCollectionLoading = areItemsLoading(collection);
   const [selectedFormat, setSelectedFormat] = useState(EXPORT_FORMATS.ZIP);
@@ -58,8 +59,8 @@ const ShareCollection = ({ onClose, collectionUid }) => {
     }
   };
 
-  const handleExportYaml = () => {
-    const collectionCopy = cloneDeep(collection);
+  const handleExportYaml = async () => {
+    const collectionCopy = await dispatch(resolveDeferredCollection(collection.uid));
     exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
   };
 
@@ -83,7 +84,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           await handleExportZip();
           break;
         case EXPORT_FORMATS.YAML:
-          handleExportYaml();
+          await handleExportYaml();
           break;
       }
       onClose();

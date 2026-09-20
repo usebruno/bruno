@@ -22,7 +22,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 //   '''
 // }
 const indentLevel = 4;
-const grammar = ohm.grammar(`Bru {
+const GRAMMAR_SOURCE = `Bru {
   BruEnvFile = (vars | secretvars | externalsecrets | extends | color)*
 
   nl = "\\r"? "\\n"
@@ -92,7 +92,7 @@ const grammar = ohm.grammar(`Bru {
   unquotedextendsvaluechar = ~(nl | "[" | "]" | ",") any
   extendsname = ":" singlelinechar*
   color = "color:" singlelinechar*
-}`);
+}`;
 
 const mapPairListToKeyValPairs = (pairList = []) => {
   if (!pairList.length) {
@@ -183,7 +183,7 @@ const concatArrays = (objValue, srcValue) => {
   }
 };
 
-const sem = grammar.createSemantics().addAttribute('ast', {
+const SEMANTIC_ACTIONS = {
   BruEnvFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
       return {
@@ -373,9 +373,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       color: anystring.sourceString.trim()
     };
   }
-});
+};
+
+// ohm builds the grammar and its semantics eagerly, and both are large: constructing them costs
+// around 78MB of heap across this package's three grammars, paid at import even by a consumer that
+// never parses a `.bru` file. The mount path is exactly that consumer — it scans tree fields — and
+// each parser worker is a thread whose heap counts against the main process. Built on first parse
+// instead, and memoised, so the cost lands only where a real parse happens.
+let compiled = null;
+const compileGrammar = () => {
+  if (!compiled) {
+    const grammar = ohm.grammar(GRAMMAR_SOURCE);
+    compiled = { grammar, sem: grammar.createSemantics().addAttribute('ast', SEMANTIC_ACTIONS) };
+  }
+  return compiled;
+};
 
 const parser = (input) => {
+  const { grammar, sem } = compileGrammar();
   const match = grammar.match(input);
 
   if (match.succeeded()) {

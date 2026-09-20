@@ -24,7 +24,7 @@ const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
-const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { hydrateRequestWithUuid } = require('../utils/collection');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -220,8 +220,6 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
 };
 
 const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread, watcher) => {
-  console.log(`watcher add: ${pathname}`);
-
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -372,41 +370,34 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
 
     try {
-      // we need to send a partial file info to the UI
-      // so that the UI can display the file in the collection tree
-      file.data = {
-        name: path.basename(pathname),
-        type: 'http-request'
-      };
+      // Files this large are not parsed on mount at all. The sidebar gets a placeholder named
+      // after the file, and `renderer:load-large-request` parses it if the user opens it.
+      // The name is derived from the filename rather than the file's `meta`/`info` block so no
+      // parse is needed here — the same fallback the v2 tree builder uses.
+      if (fileStats.size >= MAX_FILE_SIZE) {
+        file.data = {
+          name: path.basename(pathname, path.extname(pathname)),
+          type: 'http-request'
+        };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        return;
+      }
 
-      const metaJson = parseFileMeta(content, format);
-      file.data = metaJson;
-      file.partial = true;
+      file.data = await parseRequestViaWorker(content, {
+        format,
+        filename: pathname
+      });
+      stageToCache(collectionPath, pathname, file.data);
+      file.partial = false;
       file.loading = false;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-      if (fileStats.size < MAX_FILE_SIZE) {
-        // This is to update the loading indicator in the UI
-        file.data = metaJson;
-        file.partial = false;
-        file.loading = true;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-
-        // This is to update the file info in the UI
-        file.data = await parseRequestViaWorker(content, {
-          format,
-          filename: pathname
-        });
-        stageToCache(collectionPath, pathname, file.data);
-        file.partial = false;
-        file.loading = false;
-        file.data.raw = content;
-        hydrateRequestWithUuid(file.data, pathname);
-        win.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
     } catch (error) {
       file.data = {
         name: path.basename(pathname),
@@ -622,7 +613,6 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     if (!fs.existsSync(collectionPath)) {
       return;
     }
-    console.log(`watcher unlink: ${pathname}`);
     // drop the file from the snapshot regardless of type (request/env/config/folder root)
     unstageFromCache(collectionPath, pathname);
 

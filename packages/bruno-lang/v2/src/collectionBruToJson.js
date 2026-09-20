@@ -13,7 +13,7 @@ const {
 // the key is hidden and not added into the json automatically
 const ANNOTATIONS_KEY = Symbol('annotations');
 
-const grammar = ohm.grammar(`Bru {
+const GRAMMAR_SOURCE = `Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
 
@@ -110,7 +110,7 @@ const grammar = ohm.grammar(`Bru {
   scriptres = "script:post-response" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
-}`);
+}`;
 
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTypes = false) => {
   if (!pairList.length) {
@@ -158,7 +158,7 @@ const mapPairListToKeyValPair = (pairList = []) => {
   return _.merge({}, ...pairList[0]);
 };
 
-const sem = grammar.createSemantics().addAttribute('ast', {
+const SEMANTIC_ACTIONS = {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
       return {};
@@ -715,9 +715,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       docs: outdentString(textblock.sourceString)
     };
   }
-});
+};
+
+// ohm builds the grammar and its semantics eagerly, and both are large: constructing them costs
+// around 78MB of heap across this package's three grammars, paid at import even by a consumer that
+// never parses a `.bru` file. The mount path is exactly that consumer — it scans tree fields — and
+// each parser worker is a thread whose heap counts against the main process. Built on first parse
+// instead, and memoised, so the cost lands only where a real parse happens.
+let compiled = null;
+const compileGrammar = () => {
+  if (!compiled) {
+    const grammar = ohm.grammar(GRAMMAR_SOURCE);
+    compiled = { grammar, sem: grammar.createSemantics().addAttribute('ast', SEMANTIC_ACTIONS) };
+  }
+  return compiled;
+};
 
 const parser = (input) => {
+  const { grammar, sem } = compileGrammar();
   const match = grammar.match(input);
 
   if (match.succeeded()) {

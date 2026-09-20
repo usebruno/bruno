@@ -40,7 +40,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *  ]
  *
  */
-const grammar = ohm.grammar(`Bru {
+const GRAMMAR_SOURCE = `Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
@@ -195,7 +195,7 @@ const grammar = ohm.grammar(`Bru {
   scriptaftercallend = "script:grpc:after-call-end" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
-}`);
+}`;
 
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTypes = false) => {
   if (!pairList.length) {
@@ -376,7 +376,7 @@ const parseExampleContent = (content) => {
   }
 };
 
-const sem = grammar.createSemantics().addAttribute('ast', {
+const SEMANTIC_ACTIONS = {
   BruFile(tags) {
     if (!tags || !tags.ast || !tags.ast.length) {
       return {};
@@ -1302,9 +1302,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   examplecontent(chars) {
     return outdentString(chars.sourceString);
   }
-});
+};
+
+// ohm builds the grammar and its semantics eagerly, and both are large: constructing them costs
+// around 78MB of heap across this package's three grammars, paid at import even by a consumer that
+// never parses a `.bru` file. The mount path is exactly that consumer — it scans tree fields — and
+// each parser worker is a thread whose heap counts against the main process. Built on first parse
+// instead, and memoised, so the cost lands only where a real parse happens.
+let compiled = null;
+const compileGrammar = () => {
+  if (!compiled) {
+    const grammar = ohm.grammar(GRAMMAR_SOURCE);
+    compiled = { grammar, sem: grammar.createSemantics().addAttribute('ast', SEMANTIC_ACTIONS) };
+  }
+  return compiled;
+};
 
 const parser = (input) => {
+  const { grammar, sem } = compileGrammar();
   const match = grammar.match(input);
 
   if (match.succeeded()) {

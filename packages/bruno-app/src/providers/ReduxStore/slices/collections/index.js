@@ -14,6 +14,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  findParentItemInCollection,
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
@@ -46,6 +47,88 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'error',
   'isTransient'
 ];
+
+// The subset a deferred tree node can be trusted for. Everything omitted here (`request`,
+// `settings`, `examples`, `raw`) only exists on an item once it has been parsed in full.
+const TREE_DERIVED_REQUEST_FIELDS = [
+  'name',
+  'type',
+  'seq',
+  'tags',
+  'filename',
+  'pathname',
+  'size',
+  'isTransient'
+];
+
+/**
+ * Everything an item keeps when it is evicted back to a deferred tree node. Mirrors
+ * `buildDeferredRequestNode` in bruno-electron's tree-builder — the shape mount produces — plus the
+ * fields the slice itself owns (`depth`, `isTransient`). Anything not listed is re-read from disk
+ * the next time the request is opened.
+ */
+const evictItemToTreeNode = (item) => {
+  const { uid, name, type, seq, tags, filename, pathname, size, app, depth, isTransient } = item;
+
+  return {
+    uid,
+    name,
+    type,
+    seq,
+    tags,
+    filename,
+    pathname,
+    size,
+    app: app ?? null,
+    depth,
+    isTransient,
+    request: { method: item.request?.method, url: item.request?.url },
+    examples: (item.examples || []).map((example) => ({ uid: example.uid, name: example.name })),
+    draft: null,
+    deferred: true,
+    partial: false,
+    loading: false
+  };
+};
+
+/**
+ * An item is safe to evict only when nothing still depends on what is about to be dropped.
+ *
+ * `draft` is the one that would lose user data: the close flow gates on the Unsaved Changes modal,
+ * so a draft should already be saved or discarded by now, but eviction must never be the thing that
+ * discards it. A transient item has no file to re-read, and a `partial` one could not be parsed in
+ * the first place, so neither can be rebuilt. An in-flight request or a live stream is still writing
+ * into `item.response`, which closing a tab does not stop.
+ */
+/**
+ * The response an evicted item lost, read back off the collection timeline. `responseReceived`
+ * writes the same payload to both `item.response` and a timeline entry, so this is a lookup rather
+ * than a second copy. Best-effort: the user can clear the timeline, in which case the pane stays
+ * empty until the request is sent again.
+ */
+const findLastTimelineResponse = (collection, itemUid) => {
+  const timeline = collection.timeline;
+  if (!Array.isArray(timeline)) return null;
+
+  for (let i = timeline.length - 1; i >= 0; i--) {
+    const entry = timeline[i];
+    if (entry.type === 'request' && entry.itemUid === itemUid && entry.data?.response) {
+      return entry.data.response;
+    }
+  }
+
+  return null;
+};
+
+const canEvictItem = (item) =>
+  isItemARequest(item)
+  && !item.deferred
+  && !item.draft
+  && !item.isTransient
+  && !item.partial
+  && !item.response?.stream?.running
+  && item.requestState !== 'sending'
+  && item.requestState !== 'queued';
 
 const FILE_DERIVED_FOLDER_FIELDS = [
   'name',
@@ -92,7 +175,13 @@ const mergeTreeItems = (existingItems, newItems) => {
       return merged;
     }
 
-    const merged = { ...existing, ...pick(newItem, FILE_DERIVED_REQUEST_FIELDS) };
+    // A deferred node carries only tree metadata, so it must not overwrite an item that has
+    // already been parsed in full — that would strip request/settings/examples while leaving the
+    // item looking loaded.
+    const fields = newItem.deferred && !existing.deferred
+      ? TREE_DERIVED_REQUEST_FIELDS
+      : FILE_DERIVED_REQUEST_FIELDS;
+    const merged = { ...existing, ...pick(newItem, fields) };
     // only drop the draft if it matches what's on disk — user may still be typing
     const draftMatchesFile = existing.draft && areItemsTheSameExceptSeqUpdate(existing.draft, newItem);
     merged.draft = draftMatchesFile ? null : (existing.draft || null);
@@ -294,6 +383,14 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         collection.isLoading = action.payload.isLoading;
+      }
+    },
+    // Merged rather than replaced: the main-process phase timings ride in on the tree message
+    // while the end-to-end total comes from the mount thunk, and the two can arrive in any order.
+    updateCollectionLoadStats: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.loadStats = { ...collection.loadStats, ...action.payload.loadStats };
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -3043,6 +3140,30 @@ export const collectionsSlice = createSlice({
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
     },
+    /**
+     * Releases items whose last tab just closed, back to the deferred tree node mount produced.
+     * Without this the store keeps every request the user has ever opened fully parsed for the rest
+     * of the session — the resident set grows with requests-ever-opened rather than tabs-open.
+     *
+     * Reopening re-parses from disk through the same path a fresh mount uses, and the response
+     * pane is restored from `collection.timeline`, which is collection-level and unaffected here.
+     */
+    evictClosedItems: (state, action) => {
+      const { collectionUid, itemUids } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      itemUids.forEach((itemUid) => {
+        const item = findItemInCollection(collection, itemUid);
+        if (!item || !canEvictItem(item)) return;
+
+        const parent = findParentItemInCollection(collection, itemUid) || collection;
+        const index = parent.items.findIndex((i) => i.uid === itemUid);
+        if (index !== -1) {
+          parent.items[index] = evictItemToTreeNode(item);
+        }
+      });
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -3079,7 +3200,7 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
-        for (const directoryName of subDirectories) {
+        subDirectories.forEach((directoryName, idx) => {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
@@ -3090,6 +3211,7 @@ export const collectionsSlice = createSlice({
               collapsed: true,
               type: 'folder',
               isTransient: isTransientFile,
+              depth: idx + 1,
               items: []
             };
             currentSubItems.push(childItem);
@@ -3098,7 +3220,8 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
-        }
+        });
+        const itemDepth = subDirectories.length + 1;
 
         if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
@@ -3122,6 +3245,19 @@ export const collectionsSlice = createSlice({
             currentItem.size = file.size;
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
+            currentItem.depth = itemDepth;
+            // Reopening an evicted item loses the response pane's contents, but the same response
+            // is still on the collection timeline, which is not evicted. Restore from there rather
+            // than storing a second copy of it anywhere.
+            if (currentItem.deferred && !currentItem.response) {
+              const lastResponse = findLastTimelineResponse(collection, currentItem.uid);
+              if (lastResponse) {
+                currentItem.response = lastResponse;
+                currentItem.requestState = 'received';
+              }
+            }
+            // A watcher event always carries a full parse, so the item is no longer deferred.
+            currentItem.deferred = false;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -3141,11 +3277,12 @@ export const collectionsSlice = createSlice({
               loading: file.loading,
               size: file.size,
               error: file.error,
-              isTransient: isTransientFile
+              isTransient: isTransientFile,
+              depth: itemDepth,
+              deferred: false
             });
           }
         }
-        addDepth(collection.items);
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
@@ -3188,6 +3325,7 @@ export const collectionsSlice = createSlice({
               collapsed: true,
               type: 'folder',
               isTransient: isTransientDir,
+              depth: idx + 1,
               items: []
             };
             currentSubItems.push(childItem);
@@ -3197,7 +3335,6 @@ export const collectionsSlice = createSlice({
           }
           currentSubItems = childItem.items;
         });
-        addDepth(collection.items);
       }
     },
     collectionChangeFileEvent: (state, action) => {
@@ -3260,6 +3397,7 @@ export const collectionsSlice = createSlice({
               item.pathname = file.meta.pathname;
               item.raw = file.data.raw;
               item.size = file.size;
+              item.deferred = false;
               // Only clear draft if it matches the file content
               // This preserves characters typed during autosave
               // The raw comparison is guarded so an undefined === undefined match
@@ -3282,6 +3420,7 @@ export const collectionsSlice = createSlice({
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
             item.size = file.size;
+            item.deferred = false;
             if (!item.draft || item.draft.raw === file.data.raw) {
               item.draft = null;
             }
@@ -3770,6 +3909,9 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
+      if (tree?.loadStats) {
+        collection.loadStats = { ...collection.loadStats, ...tree.loadStats };
+      }
       collection.items = mergeTreeItems(collection.items, tree?.items || []);
       collection.environments = tree?.environments || [];
       if (tree?.root !== undefined) {
@@ -4218,6 +4360,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  updateCollectionLoadStats,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
   updateCollectionVersion,
@@ -4351,6 +4494,7 @@ export const {
   updateCollectionPresets,
   updateCollectionProtobuf,
   collectionAddFileEvent,
+  evictClosedItems,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,

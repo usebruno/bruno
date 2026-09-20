@@ -1,13 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
-import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import {
   IconChevronRight,
   IconDots,
-  IconLoader2,
   IconFilePlus,
   IconFolderPlus,
   IconCopy,
@@ -39,8 +37,8 @@ import CollectionItem from './CollectionItem';
 import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
-import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, getSortedDraggedItems } from 'utils/collections';
+import useVisibleSidebarItems from 'hooks/useVisibleSidebarItems';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -49,7 +47,6 @@ import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
-import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
@@ -66,7 +63,11 @@ import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
+/**
+ * `flat` renders the collection's own header row only — the virtualised search list carries its
+ * items as rows of their own. See CollectionItem for why drag and drop is off in that mode.
+ */
+const Collection = ({ collection, searchText, searchIndex, flat = false, openBulkMenu, isMultiDragDisabled, multiDragCollections, multiDragItems: multiDragItemsForSelection }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -89,7 +90,11 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
   // (bruno.json, .js scripts) don't affect empty state
   const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i) || i.type === 'app')).length || 0;
 
-  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  // Held across renders: `isTabForItemActive` builds a createSelector, whose memo is bound to the
+  // instance. Building a new one each render means it recomputes every time and react-redux tears
+  // down and re-creates the store subscription with it.
+  const isCollectionFocusedSelector = useMemo(() => isTabForItemActive({ itemUid: collection.uid }), [collection.uid]);
+  const isCollectionFocused = useSelector(isCollectionFocusedSelector);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(collection.uid);
@@ -106,7 +111,7 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
   const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
-  const isDragDisabled = isMultiSelected && isMultiDragDisabled;
+  const isDragDisabled = flat || (isMultiSelected && isMultiDragDisabled);
   const multiDragItems = isMultiSelected ? multiDragCollections : null;
 
   // Open the OpenAPI Sync tab
@@ -366,6 +371,7 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
       setDropType(null);
     },
     canDrop: (draggedItem) => {
+      if (flat) return false;
       if (draggedItem.uid === collection.uid) return false;
       return !draggedItem.multiSelectedItems?.some((i) => i.uid === collection.uid);
     },
@@ -402,10 +408,10 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
     return () => clearTimeout(timer);
   }, [itemCount, isLoading, collection.mountStatus]);
 
-  if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
-      return null;
-    }
+  const { folderItems, appItems, requestItems } = useVisibleSidebarItems(collection.items, { hasSearchText, searchIndex, skip: flat });
+
+  if (hasSearchText && !searchIndex.has(collection.uid)) {
+    return null;
   }
 
   const collectionRowClassName = classnames(
@@ -420,14 +426,6 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
     }
   );
 
-  // we need to sort request items by seq property
-  const sortItemsBySequence = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
-  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
-  const appItems = sortItemsBySequence(filter(collection.items, (i) => i.type === 'app' && !i.isTransient));
-  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
   const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
 
   const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
@@ -639,7 +637,6 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
-          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         {!isDragging && !isMultiSelected && (
           <div>
@@ -661,16 +658,16 @@ const Collection = ({ collection, searchText, openBulkMenu, isMultiDragDisabled,
         )}
       </div>
       <div>
-        {!collectionIsCollapsed ? (
+        {!flat && !collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
             })}
             {appItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
             })}
             {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} searchIndex={searchIndex} openBulkMenu={openBulkMenu} isMultiDragDisabled={isMultiDragDisabled} multiDragItems={multiDragItemsForSelection} />;
             })}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">

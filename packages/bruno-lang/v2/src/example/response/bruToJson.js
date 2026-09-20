@@ -10,7 +10,7 @@ const { mapPairListToKeyValPairs } = require('../../common/semantic-utils');
  * Handles parsing of response blocks within example files.
  * Supports headers, status, and body parsing.
  */
-const responseGrammar = ohm.grammar(`Response {
+const GRAMMAR_SOURCE = `Response {
   ResponseFile = responsecontent*
   
   nl = "\\r"? "\\n"
@@ -58,7 +58,7 @@ const responseGrammar = ohm.grammar(`Response {
   responsebodyfields = (responsebodytype | responsebodycontentvalue)*
   responsebodytype = st* "type" st* ":" st* valuechar* nl*
   responsebodycontentvalue = st* "content" st* ":" st* multilinetextblock
-}`);
+}`;
 
 const astResponseAttribute = {
   ResponseFile(tags) {
@@ -120,14 +120,28 @@ const astResponseAttribute = {
   }
 };
 
-const grammarSemantics = responseGrammar.createSemantics();
-grammarSemantics.addAttribute('ast', { ...astBaseAttribute, ...astResponseAttribute });
+const ATTRIBUTES = { ...astBaseAttribute, ...astResponseAttribute };
+
+// Built on first parse rather than at import: ohm constructs the grammar and its semantics
+// eagerly, and a consumer that never parses an example — the mount path, which only scans tree
+// fields — would otherwise pay for them anyway. See the same pattern in v2/src/bruToJson.js.
+let compiled = null;
+const compileGrammar = () => {
+  if (!compiled) {
+    const grammar = ohm.grammar(GRAMMAR_SOURCE);
+    const semantics = grammar.createSemantics();
+    semantics.addAttribute('ast', ATTRIBUTES);
+    compiled = { grammar, semantics };
+  }
+  return compiled;
+};
 
 const parseResponse = (input) => {
-  const match = responseGrammar.match(input);
+  const { grammar, semantics } = compileGrammar();
+  const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = grammarSemantics(match).ast;
+    let ast = semantics(match).ast;
     return ast;
   } else {
     console.log('match failed', match);

@@ -50,6 +50,7 @@ const {
   isWindowsOS,
   hasRequestExtension,
   getCollectionFormat,
+  getRequestFormat,
   searchForRequestFiles,
   validateName,
   getCollectionStats,
@@ -76,9 +77,10 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const snapshotManager = require('../services/snapshot');
+const { scanCollection } = require('../services/mount/scan');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, resolveDeferredItem, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
@@ -1614,7 +1616,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const parseCollectionItems = async (items = [], currentPath) => {
         for (const item of items) {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-            const content = await stringifyRequestViaWorker(item, { format });
+            // Children the user never opened are deferred nodes, so the source files are read here
+            // rather than taken from the renderer's copy — otherwise the clone comes out empty.
+            const content = await stringifyRequestViaWorker(await resolveDeferredItem(item), { format });
 
             // Use the correct file extension based on target format
             const baseName = path.parse(item.filename).name;
@@ -1715,7 +1719,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           await writeFile(folderRootPath, content);
         } else if (REQUEST_TYPES.includes(item?.type)) {
           if (fs.existsSync(item.pathname)) {
-            const itemToSave = transformRequestToSaveToFilesystem(item);
+            // Reordering rewrites the whole file, and the renderer only holds a deferred node for
+            // a request the user has never opened — so read it back before serializing it.
+            const itemToSave = transformRequestToSaveToFilesystem(await resolveDeferredItem(item));
             const content = await stringifyRequestViaWorker(itemToSave, { format });
             await writeFile(item.pathname, content);
           }
@@ -2282,54 +2288,66 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  // todo: could be removed
+  // Parses one request that was mounted as a deferred tree node, pushes the full item into the
+  // tree, and returns it so a caller that needs the request immediately does not have to wait for
+  // the tree update to land in the store. Distinct from renderer:load-large-request, which handles
+  // files too big to parse on mount at all and applies bru text-block redaction.
   ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
-    let fileStats;
+    const format = getRequestFormat(pathname);
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname)
+      }
+    };
+
     try {
-      fileStats = fs.statSync(pathname);
-      if (hasRequestExtension(pathname)) {
-        const file = {
-          meta: {
-            collectionUid,
-            pathname,
-            name: path.basename(pathname)
-          }
-        };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseBruFileMeta(bruContent);
-        file.data = metaJson;
-        file.loading = true;
-        file.partial = true;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = parseRequest(bruContent);
-        file.partial = false;
-        file.loading = true;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
+      const [fileStats, content] = await Promise.all([
+        fs.promises.stat(pathname),
+        fs.promises.readFile(pathname, 'utf8')
+      ]);
+
+      // Parsed off the main thread. A deferred request is only read when it is opened, so this is
+      // on the path between the click and the request appearing — and running the `.bru` grammar
+      // here stalls everything else in main for the duration, which scales with the file's size.
+      file.data = await parseRequestViaWorker(content, { format, filename: pathname });
+      file.partial = false;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
+      hydrateRequestWithUuid(file.data, pathname);
+      mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      return file.data;
     } catch (error) {
-      if (hasRequestExtension(pathname)) {
-        const file = {
-          meta: {
-            collectionUid,
-            pathname,
-            name: path.basename(pathname)
-          }
-        };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseBruFileMeta(bruContent);
-        file.data = metaJson;
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.error = { message: error?.message };
+      file.partial = true;
+      file.loading = false;
+      hydrateRequestWithUuid(file.data, pathname);
+      mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
       return Promise.reject(error);
     }
+  });
+
+  // Parses a batch of deferred requests and returns them without touching the tree. Whole-collection
+  // consumers — export, documentation — need every request's body in one go, and resolving them one
+  // at a time would be an IPC round trip per request. They are not put into the tree because none of
+  // them is open: the store would then hold a fully parsed collection for a one-shot export.
+  ipcMain.handle('renderer:load-requests', async (event, { pathnames }) => {
+    return Promise.all((pathnames || []).map(async (pathname) => {
+      try {
+        const content = await fs.promises.readFile(pathname, 'utf8');
+        const data = await parseRequestViaWorker(content, { format: getRequestFormat(pathname), filename: pathname });
+        hydrateRequestWithUuid(data, pathname);
+        return { pathname, data };
+      } catch (error) {
+        return { pathname, error: { message: error?.message } };
+      }
+    }));
   });
 
   ipcMain.handle('renderer:load-large-request', async (event, { collectionUid, pathname }) => {
@@ -2398,18 +2416,26 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       throw error;
     }
-    const {
-      size,
-      filesCount,
-      maxFileSize
-    } = await getCollectionStats(collectionPathname);
+    // Scan and parse the whole collection across the worker pool, then emit it as one tree.
+    // Request nodes are deferred (see tree-builder): the sidebar and searches get what they
+    // need, and a request is parsed in full only when it is opened.
+    mainWindow.webContents.send('main:collection-loading-state-updated', { collectionUid, isLoading: true });
 
-    const shouldLoadCollectionAsync
-      = (size > MAX_COLLECTION_SIZE_IN_MB)
-        || (filesCount > MAX_COLLECTION_FILES_COUNT)
-        || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    const tree = await scanCollection({
+      collectionPath: collectionPathname,
+      collectionUid,
+      denylist: brunoConfig?.ignore
+    });
+    mainWindow.webContents.send('main:collection-tree-loaded', { collectionUid, tree });
+    if (tree.brunoConfig) {
+      mainWindow.webContents.send('main:bruno-config-update', { collectionUid, brunoConfig: tree.brunoConfig });
+    }
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
+    // The tree above already covers everything on disk, so the watcher only reports live changes.
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, false, {
+      workspacePathname: workspacePathname || null,
+      ignoreInitial: true
+    });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);

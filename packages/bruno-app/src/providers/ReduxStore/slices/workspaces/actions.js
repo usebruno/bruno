@@ -8,7 +8,7 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, mountWorkspaceCollections, warmSearchIndex, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
@@ -448,6 +448,8 @@ const maybeCompleteSnapshotHydrationSession = (dispatch, getState) => {
   clearSnapshotHydrationTimeout();
   dispatch(setSnapshotReady(true));
   dispatch(clearSnapshotHydrationSession());
+  dispatch(mountWorkspaceCollections());
+  dispatch(warmSearchIndex());
   return true;
 };
 
@@ -473,6 +475,8 @@ const scheduleSnapshotHydrationTimeout = (dispatch, getState, workspaceUid) => {
     dispatch(setSnapshotReady(true));
     dispatch(clearSnapshotHydrationSession());
     clearSnapshotHydrationTimeout();
+    dispatch(mountWorkspaceCollections());
+    dispatch(warmSearchIndex());
   }, SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS);
 };
 
@@ -747,6 +751,10 @@ export const switchWorkspace = (workspaceUid) => {
       const hasHydrationSession = Boolean(state.app.snapshotHydration?.workspaceUid);
       if (!state.app.snapshotReady && !hasHydrationSession) {
         dispatch(setSnapshotReady(true));
+      }
+      if (!hasHydrationSession) {
+        dispatch(mountWorkspaceCollections());
+        dispatch(warmSearchIndex());
       }
     }
   };

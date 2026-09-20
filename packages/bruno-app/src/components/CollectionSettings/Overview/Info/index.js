@@ -1,20 +1,23 @@
-import React from 'react';
-import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
-import { useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { IconApi, IconBook, IconClock, IconFolder, IconShare, IconTag, IconWorld } from '@tabler/icons';
 import ShareCollection from 'components/ShareCollection/index';
-import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import ChangeCollectionVersion from 'components/Sidebar/Collections/Collection/ChangeCollectionVersion';
+import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import ToolHint from 'components/ToolHint';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import StyledWrapper from './StyledWrapper';
+import React, { useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getTotalRequestCountInCollection } from 'utils/collections/';
+import { areItemsLoading, getCollectionVersion, getItemsLoadStats } from 'utils/collections/index';
 import Migration from '../Migration';
+import StyledWrapper from './StyledWrapper';
+
+// Sub-second timings still read as seconds so the phases stay directly comparable.
+const formatSeconds = (ms) => (typeof ms === 'number' ? `${(ms / 1000).toFixed(2)}s` : '—');
 
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
+  const loadStats = collection.loadStats;
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
@@ -148,6 +151,27 @@ const Info = ({ collection }) => {
               </div>
             </div>
           </div>
+
+          {loadStats ? (
+            <div className="flex items-start" data-testid="info-load-time-row">
+              <div className="icon-box load-time flex-shrink-0 p-3 rounded-lg">
+                <IconClock className="w-5 h-5" stroke={1.5} />
+              </div>
+              <div className="ml-4">
+                <div className="font-medium">Load time</div>
+                <div className="mt-1 text-muted" data-testid="info-load-time-value">
+                  {formatSeconds(loadStats.mountMs ?? loadStats.scanMs)}
+                  {loadStats.fileCount !== undefined ? ` · ${loadStats.fileCount} files parsed` : ''}
+                </div>
+                {loadStats.scanMs !== undefined ? (
+                  <div className="mt-1 text-muted">
+                    {`scan ${formatSeconds(loadStats.scanMs)} — walk ${formatSeconds(loadStats.walkMs)}, `}
+                    {`parse ${formatSeconds(loadStats.parseMs)}, tree ${formatSeconds(loadStats.buildMs)}`}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex items-start group cursor-pointer" onClick={handleToggleShowShareCollectionModal(true)}>
             <div className="icon-box share flex-shrink-0 p-3 rounded-lg">
