@@ -14,7 +14,8 @@ import {
   getSelectionInfo,
   getUniqueTagsFromItems,
   getCollectionVersion,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getWorkspaceCollections
 } from './index';
 
 describe('mergeHeaders', () => {
@@ -887,5 +888,57 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getWorkspaceCollections', () => {
+  const collectionOne = { uid: 'c1', name: 'One', pathname: '/home/dev/collections/one' };
+  const collectionTwo = { uid: 'c2', name: 'Two', pathname: '/home/dev/collections/two' };
+  const scratch = { uid: 'scratch-uid', name: 'Scratch', pathname: '/home/dev/scratch' };
+  const otherWorkspaceCollection = { uid: 'c3', name: 'Three', pathname: '/home/dev/other/three' };
+
+  const activeWorkspace = {
+    uid: 'w1',
+    scratchCollectionUid: 'scratch-uid',
+    collections: [
+      { path: '/home/dev/collections/one' },
+      { path: '/home/dev/collections/two/' },
+      { path: '/home/dev/scratch' }
+    ]
+  };
+  const otherWorkspace = {
+    uid: 'w2',
+    collections: [{ path: '/home/dev/other/three' }]
+  };
+  const workspaces = [activeWorkspace, otherWorkspace];
+  const collections = [collectionOne, collectionTwo, scratch, otherWorkspaceCollection];
+
+  it('returns only the collections listed by the active workspace, excluding scratch', () => {
+    const result = getWorkspaceCollections({ collections, workspaces, activeWorkspace });
+
+    expect(result).toEqual([collectionOne, collectionTwo]);
+  });
+
+  it('matches paths regardless of separators and trailing slashes', () => {
+    const windowsWorkspace = {
+      uid: 'w3',
+      collections: [{ path: 'C:\\Users\\dev\\collections\\one\\' }]
+    };
+    const windowsCollection = { uid: 'c4', name: 'One', pathname: 'C:/Users/dev/collections/one' };
+
+    const result = getWorkspaceCollections({
+      collections: [windowsCollection],
+      workspaces: [windowsWorkspace],
+      activeWorkspace: windowsWorkspace
+    });
+
+    expect(result).toEqual([windowsCollection]);
+  });
+
+  it('returns an empty list with no active workspace, or a workspace listing none', () => {
+    const emptyWorkspace = { uid: 'w4', collections: [] };
+
+    expect(getWorkspaceCollections({ collections, workspaces, activeWorkspace: null })).toEqual([]);
+    expect(getWorkspaceCollections({ collections, workspaces: [emptyWorkspace], activeWorkspace: emptyWorkspace })).toEqual([]);
   });
 });
