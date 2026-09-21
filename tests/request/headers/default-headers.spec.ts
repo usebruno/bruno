@@ -179,7 +179,7 @@ test('shows an angle-bracket Host placeholder before the host is known', async (
   await createCollection(page, 'default-headers-host-placeholder', await createTmpDir('default-headers-host-placeholder'));
   await createRequest(page, 'request-1', 'default-headers-host-placeholder', { url: '{{host}}/path' });
   await selectRequestPaneTab(page, 'Headers');
-  const headers = await showInheritedHeaders(page);
+  const headers = await showDefaultHeaders(page);
 
   await test.step('Show the Host placeholder enclosed in angle brackets', async () => {
     await expect(headers.defaultRow('Host')).toContainText('<derived from request URL>');
