@@ -20,7 +20,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     line-height: 1.25rem;
-    color: ${(props) => props.theme.colors.text.subtext2};
+    color: ${(props) => props.theme.text};
   }
 `;
 

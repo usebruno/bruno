@@ -12,10 +12,10 @@ describe('IncludeExcludeTags', () => {
     const { getByText, getByLabelText } = renderWithTheme(
       <IncludeExcludeTags tags={{ include: [], exclude: [] }} availableTags={['prod']} onChange={() => {}} />
     );
-    expect(getByText('Include tags')).toBeInTheDocument();
-    expect(getByText('Exclude tags')).toBeInTheDocument();
-    expect(getByLabelText('Include tags')).toBeInTheDocument();
-    expect(getByLabelText('Exclude tags')).toBeInTheDocument();
+    expect(getByText('Include Tags')).toBeInTheDocument();
+    expect(getByText('Exclude Tags')).toBeInTheDocument();
+    expect(getByLabelText('Include Tags')).toBeInTheDocument();
+    expect(getByLabelText('Exclude Tags')).toBeInTheDocument();
   });
 
   it('adds an existing collection tag to the include list', () => {
@@ -23,7 +23,7 @@ describe('IncludeExcludeTags', () => {
     const { getByLabelText } = renderWithTheme(
       <IncludeExcludeTags tags={{ include: [], exclude: [] }} availableTags={['prod', 'wip']} onChange={onChange} />
     );
-    const input = getByLabelText('Include tags');
+    const input = getByLabelText('Include Tags');
     fireEvent.change(input, { target: { value: 'prod' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
@@ -35,7 +35,7 @@ describe('IncludeExcludeTags', () => {
     const { getByLabelText, getByText } = renderWithTheme(
       <IncludeExcludeTags tags={{ include: [], exclude: [] }} availableTags={['prod']} onChange={onChange} />
     );
-    const input = getByLabelText('Include tags');
+    const input = getByLabelText('Include Tags');
     fireEvent.change(input, { target: { value: 'ghost' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
@@ -48,7 +48,7 @@ describe('IncludeExcludeTags', () => {
     const { getByLabelText, getByText } = renderWithTheme(
       <IncludeExcludeTags tags={{ include: [], exclude: ['prod'] }} availableTags={['prod']} onChange={onChange} />
     );
-    const input = getByLabelText('Include tags');
+    const input = getByLabelText('Include Tags');
     fireEvent.change(input, { target: { value: 'prod' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 

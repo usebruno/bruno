@@ -10,7 +10,10 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   tabUnsavedMarker: (tabLabel: string) =>
     page.locator('.request-tab').filter({ hasText: tabLabel }).locator('.close-gradient'),
   unsavedChangesDialog: () => page.locator('.bruno-modal').filter({ hasText: 'unsaved changes in the API spec' }),
-  saveAndCloseButton: () => page.getByRole('button', { name: 'Save', exact: true })
+  saveAndCloseButton: () => page.getByRole('button', { name: 'Save', exact: true }),
+  sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
+  sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
+  sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove')
 });
 
 export const openApiSpecFromDialog = async (
@@ -79,10 +82,10 @@ export const closeApiSpecTab = async (page: Page, tabLabel: string): Promise<voi
 
 export const removeApiSpecFromWorkspace = async (page: Page, name: string): Promise<void> => {
   await test.step(`Remove API spec "${name}" from the workspace`, async () => {
-    const item = buildApiSpecPanelLocators(page).sidebarItem(name).first();
-    await item.hover();
-    await item.locator('.menu-icon').click();
-    await page.locator('.dropdown-item.close-item').click();
+    const { sidebarRow, sidebarRowActions, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
+    await sidebarRow(name).first().hover();
+    await sidebarRowActions(name).first().click();
+    await sidebarRowRemoveMenuItem().click();
     await page.getByTestId('modal-submit-btn').click();
   });
 };
@@ -93,10 +96,10 @@ export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> 
 
     let remaining = await sidebarItems().count();
     while (remaining > 0) {
-      const item = sidebarItems().first();
-      await item.hover();
-      await item.locator('.menu-icon').click();
-      await page.locator('.dropdown-item.close-item').click();
+      const row = page.getByTestId('sidebar-api-spec-row').first();
+      await row.hover();
+      await row.getByTestId('api-spec-actions').click();
+      await page.getByTestId('api-spec-actions-remove').click();
       await page.getByTestId('modal-submit-btn').click();
       await expect(sidebarItems()).toHaveCount(remaining - 1);
       remaining -= 1;
