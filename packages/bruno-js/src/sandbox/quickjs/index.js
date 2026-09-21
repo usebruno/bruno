@@ -5,7 +5,6 @@ const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
-const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { addRequireShimToContext } = require('./shims/require');
 const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
 
@@ -190,8 +189,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     bru?.grpc && addBrunoGrpcShimToContext(vm, bru.grpc);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    addLocalModuleLoaderShimToContext(vm, collectionPath);
-    addRequireShimToContext(vm);
+    addRequireShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 
     await addLibraryShimsToContext(vm);

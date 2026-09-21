@@ -30,6 +30,20 @@ const createManagedQuickJsContext = (module) => {
 };
 
 /**
+ * Evaluates code that yields a function and calls it with the given handles. The
+ * function and its return value are disposed; a throw in either step propagates.
+ */
+const evalAndCall = (vm, { code, args = [] }) => {
+  const evalCode = vm.evalCodeRetained || vm.evalCode;
+  const fn = vm.unwrapResult(evalCode.call(vm, code));
+  try {
+    vm.unwrapResult(vm.callFunction(fn, vm.global, ...args)).dispose();
+  } finally {
+    fn.dispose();
+  }
+};
+
+/**
  * Track every deferred created by the async shims (sendRequest, axios, cookie
  * jar, sleep, ...) so teardown can wait for them to settle. A user script that
  * fires-and-forgets async work (e.g. an un-awaited setTimeout) resolves the
@@ -226,6 +240,7 @@ async function invokeFunction(vm, quickFn, args = []) {
 module.exports = {
   marshallToVm,
   invokeFunction,
+  evalAndCall,
   createManagedQuickJsContext,
   disposeQuickJsContext,
   trackQuickJsContext

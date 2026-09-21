@@ -1,17 +1,17 @@
-/**
- * Returns JavaScript code that sets up the require() function in the QuickJS VM.
- * Modules are looked up in globalThis.requireObject; paths are loaded through the host
- * loader that addLocalModuleLoaderShimToContext places at __brunoLoadLocalModule. The
- * code captures that loader and deletes the global, so user scripts cannot reach it.
- *
- * @returns {string} JavaScript code to eval in the VM
- */
-function getRequireCode() {
-  return `
-    (() => {
-      const loadLocalModule = globalThis.__brunoLoadLocalModule;
-      delete globalThis.__brunoLoadLocalModule;
+const createLocalModuleLoaderHandle = require('./local-module');
+const { evalAndCall } = require('../utils');
 
+/**
+ * Returns a factory function (as VM source) that installs globalThis.require.
+ *
+ * The factory takes the host loader as an argument, so require closes over it and the
+ * loader is never placed on the VM global where user scripts could call it directly.
+ *
+ * @returns {string} JavaScript source of the factory, to eval then call with the loader
+ */
+function getRequireFactoryCode() {
+  return `
+    (loadLocalModule) => {
       globalThis.require = (mod) => {
         let lib = globalThis.requireObject[mod];
         let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
@@ -38,20 +38,22 @@ function getRequireCode() {
           throw new Error("Cannot find module " + mod);
         }
       }
-    })()
+    }
   `;
 }
 
 /**
- * Adds the require() function to a QuickJS VM context. Call it after
- * addLocalModuleLoaderShimToContext when local modules are needed.
+ * Installs require() into a QuickJS VM context.
  * @param {Object} vm - QuickJS VM context
+ * @param {string} [collectionPath] - Root local modules must stay within
  */
-function addRequireShimToContext(vm) {
-  vm.evalCode(getRequireCode());
+function addRequireShimToContext(vm, collectionPath) {
+  createLocalModuleLoaderHandle(vm, collectionPath).consume((loadLocalModule) => {
+    evalAndCall(vm, { code: getRequireFactoryCode(), args: [loadLocalModule] });
+  });
 }
 
 module.exports = {
-  getRequireCode,
+  getRequireFactoryCode,
   addRequireShimToContext
 };

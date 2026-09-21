@@ -2,8 +2,18 @@ const path = require('path');
 const fs = require('fs');
 const { marshallToVm } = require('../utils');
 
-const addLocalModuleLoaderShimToContext = (vm, collectionPath) => {
-  let loadLocalModuleHandle = vm.newFunction('loadLocalModule', function (module) {
+/**
+ * Creates the host function that loads a collection-local module's source.
+ *
+ * Returns the handle without placing it on the VM global. require closes over it
+ * (see addRequireShimToContext). The caller disposes the handle after require captures it.
+ *
+ * @param {Object} vm - QuickJS VM context
+ * @param {string} collectionPath - Root the loaded module must stay within
+ * @returns {Object} The QuickJS function handle
+ */
+const createLocalModuleLoaderHandle = (vm, collectionPath) => {
+  return vm.newFunction('loadLocalModule', function (module) {
     const filename = vm.dump(module);
 
     // Check if the filename has an extension
@@ -23,13 +33,10 @@ const addLocalModuleLoaderShimToContext = (vm, collectionPath) => {
       throw new Error(`Cannot find module ${filename}`);
     }
 
-    let code = fs.readFileSync(filePath).toString();
+    const code = fs.readFileSync(filePath).toString();
 
     return marshallToVm(code, vm);
   });
-
-  vm.setProp(vm.global, '__brunoLoadLocalModule', loadLocalModuleHandle);
-  loadLocalModuleHandle.dispose();
 };
 
-module.exports = addLocalModuleLoaderShimToContext;
+module.exports = createLocalModuleLoaderHandle;

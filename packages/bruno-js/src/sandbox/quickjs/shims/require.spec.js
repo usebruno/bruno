@@ -1,6 +1,6 @@
 const { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } = require('@jest/globals');
 const { newQuickJSWASMModule } = require('quickjs-emscripten');
-const { addRequireShimToContext, getRequireCode } = require('./require');
+const { addRequireShimToContext, getRequireFactoryCode } = require('./require');
 const { createEvalHelper } = require('../utils/test-helpers');
 
 describe('require shim tests', () => {
@@ -39,13 +39,13 @@ describe('require shim tests', () => {
     }
   });
 
-  describe('getRequireCode', () => {
+  describe('getRequireFactoryCode', () => {
     it('should return a string', () => {
-      expect(typeof getRequireCode()).toBe('string');
+      expect(typeof getRequireFactoryCode()).toBe('string');
     });
 
     it('should contain require function definition', () => {
-      const code = getRequireCode();
+      const code = getRequireFactoryCode();
       expect(code).toContain('globalThis.require');
       expect(code).toContain('requireObject');
     });
@@ -145,11 +145,11 @@ describe('require shim tests', () => {
   });
 
   describe('local module loading', () => {
-    it('captures the host loader and removes it from the global', () => {
-      const code = getRequireCode();
+    it('resolves local paths through the captured loader, never a global', () => {
+      const code = getRequireFactoryCode();
       expect(code).toContain('isModuleAPath');
-      expect(code).toContain('const loadLocalModule = globalThis.__brunoLoadLocalModule');
-      expect(code).toContain('delete globalThis.__brunoLoadLocalModule');
+      expect(code).toContain('loadLocalModule');
+      expect(code).not.toContain('__brunoLoadLocalModule');
     });
   });
 });
