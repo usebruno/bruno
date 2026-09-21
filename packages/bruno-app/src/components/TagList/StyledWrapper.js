@@ -37,6 +37,44 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .inherited-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .inherited-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: ${(props) => props.theme.font.size.sm};
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.text};
+      outline-offset: 2px;
+      border-radius: 3px;
+    }
+  }
+
+  /* Tags cascaded down from a parent folder: not removable here, so they read as muted */
+  .tag-item.inherited {
+    border-style: dashed;
+    background-color: transparent;
+    box-shadow: none;
+    color: ${(props) => props.theme.textSecondary || props.theme.text};
+  }
+
   .tag-icon {
     color: ${(props) => props.theme.textSecondary || props.theme.text};
     opacity: 0.7;
