@@ -11,7 +11,8 @@ import {
   closeOtherTabsFrom,
   closeApiSpecTab,
   removeApiSpecFromWorkspace,
-  removeAllApiSpecsFromWorkspace
+  removeAllApiSpecsFromWorkspace,
+  expandApiSpecsSection
 } from '../../utils/page/openapi/render-spec';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { createTransientRequest } from '../../utils/page/actions';
@@ -43,15 +44,22 @@ test.describe('API specs open as workspace tabs', () => {
 
   test('opens two specs as two tabs the user can switch between, and closing one keeps the other and the sidebar entry', async ({
     page,
-    electronApp
+    electronApp,
+    createTmpDir
   }) => {
     const locators = buildCommonLocators(page);
     const { sidebarItem } = buildApiSpecPanelLocators(page);
 
-    await openApiSpecFromDialog(page, electronApp, fixture(FIRST_SPEC.file));
+    const specsDir = await createTmpDir('api-spec-two-tabs');
+    const firstPath = path.join(specsDir, FIRST_SPEC.file);
+    const secondPath = path.join(specsDir, SECOND_SPEC.file);
+    fs.copyFileSync(fixture(FIRST_SPEC.file), firstPath);
+    fs.copyFileSync(fixture(SECOND_SPEC.file), secondPath);
+
+    await openApiSpecFromDialog(page, electronApp, firstPath);
     await expect(sidebarItem(FIRST_SPEC.name)).toBeVisible();
 
-    await openApiSpecFromDialog(page, electronApp, fixture(SECOND_SPEC.file));
+    await openApiSpecFromDialog(page, electronApp, secondPath);
     await expect(sidebarItem(SECOND_SPEC.name)).toBeVisible();
 
     await openApiSpecSidebarItem(page, FIRST_SPEC.name);
@@ -63,12 +71,12 @@ test.describe('API specs open as workspace tabs', () => {
     await expect(secondTab).toBeVisible();
     await expect(firstTab).toBeVisible();
 
-    await expect(sidebarItem(SECOND_SPEC.name)).toHaveClass(/active/);
-    await expect(sidebarItem(FIRST_SPEC.name)).not.toHaveClass(/active/);
+    await expect(sidebarItem(SECOND_SPEC.name)).toHaveAttribute('data-selected', 'true');
+    await expect(sidebarItem(FIRST_SPEC.name)).not.toHaveAttribute('data-selected', 'true');
 
     await firstTab.click();
-    await expect(sidebarItem(FIRST_SPEC.name)).toHaveClass(/active/);
-    await expect(sidebarItem(SECOND_SPEC.name)).not.toHaveClass(/active/);
+    await expect(sidebarItem(FIRST_SPEC.name)).toHaveAttribute('data-selected', 'true');
+    await expect(sidebarItem(SECOND_SPEC.name)).not.toHaveAttribute('data-selected', 'true');
 
     await closeApiSpecTab(page, FIRST_SPEC.file);
 
@@ -231,7 +239,10 @@ test.describe('API spec tabs come back after a restart', () => {
 
     const restartedPanel = buildApiSpecPanelLocators(restartedPage);
     await expect(restartedPanel.specEditor()).toHaveCount(1, { timeout: 15000 });
+    await expandApiSpecsSection(restartedPage);
     await expect(restartedPanel.sidebarItems()).toHaveCount(2);
+    await expect(restartedPanel.sidebarItem(FIRST_SPEC.name)).toBeVisible();
+    await expect(restartedPanel.sidebarItem(SECOND_SPEC.name)).toBeVisible();
 
     await closeElectronApp(restarted);
   });
@@ -261,9 +272,14 @@ test.describe('API spec tabs come back after a restart', () => {
     const restartedPage = await waitForReadyPage(restarted);
     const restartedLocators = buildCommonLocators(restartedPage);
 
+    const restartedPanel = buildApiSpecPanelLocators(restartedPage);
+
     await expect(restartedLocators.tabs.requestTab(FIRST_SPEC.file)).toHaveCount(1, { timeout: 15000 });
     await expect(restartedLocators.tabs.requestTab(SECOND_SPEC.file)).toHaveCount(0);
-    await expect(restartedPage.locator('.api-spec-item')).toHaveCount(1, { timeout: 30000 });
+    await expandApiSpecsSection(restartedPage);
+    await expect(restartedPanel.sidebarItems()).toHaveCount(1, { timeout: 30000 });
+    await expect(restartedPanel.sidebarItem(FIRST_SPEC.name)).toBeVisible();
+    await expect(restartedPanel.sidebarItem(SECOND_SPEC.name)).toHaveCount(0);
 
     await closeElectronApp(restarted);
   });

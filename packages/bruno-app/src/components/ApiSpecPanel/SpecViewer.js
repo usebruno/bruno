@@ -45,10 +45,11 @@ const MIN_RIGHT_PANE_WIDTH = 450;
  *  - onSave                (fn)      Called with current editor content on save (editable mode only)
  *  - leftPaneWidth         (number|null) Persisted left pane width in px; null = use 50/50 default
  *  - onLeftPaneWidthChange (fn)      Persist the new width (called on mouseup / double-click / resize-clamp)
- *  - draftContent          (string|null) Unsaved content owned by the caller. Pass with `onDraftChange`
- *                          to hold the draft outside this component, so the caller can read whether
- *                          there are unsaved edits (tab indicator, save shortcut, close confirmation).
- *  - onDraftChange         (fn)      Receives every edit; its presence makes the editor controlled.
+ *  - draftContent          (string|null) Unsaved content owned by the caller, so the caller can read
+ *                          whether there are unsaved edits (tab indicator, save shortcut, close
+ *                          confirmation). Falls back to `content` when there is no draft.
+ *  - onDraftChange         (fn)      Receives every edit. Required unless `readOnly`, because the
+ *                          editor holds no content of its own.
  */
 const SpecViewer = ({
   content,
@@ -63,17 +64,7 @@ const SpecViewer = ({
   const { displayedTheme, theme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const isDraftControlled = typeof onDraftChange === 'function';
-  const [localContent, setLocalContent] = useState(content);
-
-  useEffect(() => {
-    if (!isDraftControlled) {
-      setLocalContent(content);
-    }
-  }, [content, isDraftControlled]);
-
-  const editorContent = isDraftControlled ? (draftContent ?? content) : localContent;
-  const setEditorContent = isDraftControlled ? onDraftChange : setLocalContent;
+  const editorContent = draftContent ?? content;
 
   const hasChanges = !readOnly && editorContent !== content;
 
@@ -146,7 +137,7 @@ const SpecViewer = ({
           theme={displayedTheme}
           value={readOnly ? content : editorContent}
           readOnly={readOnly ? 'nocursor' : false}
-          onEdit={readOnly ? undefined : (val) => setEditorContent(val)}
+          onEdit={readOnly ? undefined : onDraftChange}
           mode="yaml"
           font={get(preferences, 'font.codeFont', 'default')}
         />

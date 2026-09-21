@@ -1,8 +1,13 @@
-import { test, expect, Page, ElectronApplication } from '../../../../playwright';
+import { test, expect, Locator, Page, ElectronApplication } from '../../../../playwright';
+
+const apiSpecsSection = (page: Page) =>
+  page.locator('.sidebar-section').filter({ has: page.locator('.section-title', { hasText: 'API Specs' }) });
 
 export const buildApiSpecPanelLocators = (page: Page) => ({
   addMenuButton: () => page.getByTestId('api-specs-header-add-menu'),
   openApiSpecMenuItem: () => page.getByTestId('api-specs-header-add-menu-open-api-spec'),
+  section: () => apiSpecsSection(page),
+  sectionContent: () => apiSpecsSection(page).locator('.section-content'),
   sidebarItems: () => page.locator('.api-spec-item'),
   sidebarItem: (name: string) => page.locator('.api-spec-item').filter({ hasText: name }),
   specEditor: () => page.locator('.api-spec-left-pane .CodeMirror'),
@@ -11,10 +16,24 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
     page.locator('.request-tab').filter({ hasText: tabLabel }).locator('.close-gradient'),
   unsavedChangesDialog: () => page.locator('.bruno-modal').filter({ hasText: 'unsaved changes in the API spec' }),
   saveAndCloseButton: () => page.getByRole('button', { name: 'Save', exact: true }),
+  sidebarRows: () => page.getByTestId('sidebar-api-spec-row'),
   sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
   sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
   sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove')
 });
+
+export const expandApiSpecsSection = async (page: Page): Promise<void> => {
+  await test.step('Open the API Specs sidebar section', async () => {
+    const { section, sectionContent } = buildApiSpecPanelLocators(page);
+    const header = section().locator('.section-header');
+    await header.waitFor();
+
+    if ((await sectionContent().count()) === 0) {
+      await header.click();
+    }
+    await expect(sectionContent()).toHaveCount(1);
+  });
+};
 
 export const openApiSpecFromDialog = async (
   page: Page,
@@ -80,11 +99,15 @@ export const closeApiSpecTab = async (page: Page, tabLabel: string): Promise<voi
   });
 };
 
+const openRowActionsMenu = async (row: Locator): Promise<void> => {
+  await row.focus();
+  await row.getByTestId('api-spec-actions').click();
+};
+
 export const removeApiSpecFromWorkspace = async (page: Page, name: string): Promise<void> => {
   await test.step(`Remove API spec "${name}" from the workspace`, async () => {
-    const { sidebarRow, sidebarRowActions, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
-    await sidebarRow(name).first().hover();
-    await sidebarRowActions(name).first().click();
+    const { sidebarRow, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
+    await openRowActionsMenu(sidebarRow(name).first());
     await sidebarRowRemoveMenuItem().click();
     await page.getByTestId('modal-submit-btn').click();
   });
@@ -92,17 +115,20 @@ export const removeApiSpecFromWorkspace = async (page: Page, name: string): Prom
 
 export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> => {
   await test.step('Remove every API spec from the workspace', async () => {
-    const { sidebarItems } = buildApiSpecPanelLocators(page);
+    const { sidebarRows, sidebarRowRemoveMenuItem, section } = buildApiSpecPanelLocators(page);
 
-    let remaining = await sidebarItems().count();
-    while (remaining > 0) {
-      const row = page.getByTestId('sidebar-api-spec-row').first();
-      await row.hover();
-      await row.getByTestId('api-spec-actions').click();
-      await page.getByTestId('api-spec-actions-remove').click();
+    if ((await section().count()) === 0) return;
+    await expandApiSpecsSection(page);
+
+    for (let pass = 0; pass < 20; pass += 1) {
+      const remaining = await sidebarRows().count();
+      if (remaining === 0) return;
+
+      await openRowActionsMenu(sidebarRows().first());
+      await sidebarRowRemoveMenuItem().click();
       await page.getByTestId('modal-submit-btn').click();
-      await expect(sidebarItems()).toHaveCount(remaining - 1);
-      remaining -= 1;
+      await expect(sidebarRows()).toHaveCount(remaining - 1);
+      await expect(page.getByTestId('modal-submit-btn')).toHaveCount(0);
     }
   });
 };
