@@ -6,12 +6,38 @@ import { humanizeRequestAuthMode } from 'utils/collections';
 import AuthFields from '../AuthFields';
 import StyledWrapper from './StyledWrapper';
 
-export const InheritedAuthSourceLabel = ({ collection, inheritedSource }) => {
+export const isInheritedAuthSupported = (inheritedSource, supportedModes) => {
+  if (!supportedModes) {
+    return true;
+  }
+
+  const inheritedMode = inheritedSource?.auth?.mode;
+  return Boolean(inheritedMode && supportedModes.includes(inheritedMode));
+};
+
+export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supportedModes, unsupportedMessage }) => {
   const dispatch = useDispatch();
   const inheritedMode = inheritedSource?.auth?.mode;
 
   if (!inheritedSource) {
     return null;
+  }
+
+  if (!isInheritedAuthSupported(inheritedSource, supportedModes)) {
+    const message = unsupportedMessage || 'Inherited auth not supported. Using no auth instead.';
+    return (
+      <StyledWrapper className="inherited-auth-source">
+        <div className="inherited-auth-source-row">
+          <div
+            className="inherited-auth-source-copy"
+            data-testid="inherited-auth-unsupported"
+            title={typeof message === 'string' ? message : undefined}
+          >
+            {message}
+          </div>
+        </div>
+      </StyledWrapper>
+    );
   }
 
   const handleNavigateToSource = () => {
@@ -43,9 +69,11 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource }) => {
   };
 
   return (
-    <StyledWrapper>
-      <div className="flex flex-row items-center gap-2">
-        <div>Auth inherited from {inheritedSource.name}: </div>
+    <StyledWrapper className="inherited-auth-source">
+      <div className="inherited-auth-source-row">
+        <div className="inherited-auth-source-copy" title={`Auth inherited from ${inheritedSource.name}`}>
+          Auth inherited from {inheritedSource.name}:
+        </div>
         <button
           type="button"
           className="inherit-mode-text"
@@ -64,12 +92,8 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
   const inheritedMode = inheritedSource?.auth?.mode;
   const inheritedRequest = { auth: inheritedSource?.auth || { mode: 'none' } };
 
-  if (supportedModes && inheritedMode && !supportedModes.includes(inheritedMode)) {
-    return (
-      <div className="flex flex-row w-full gap-2">
-        <div>{unsupportedMessage || 'Inherited auth not supported. Using no auth instead.'}</div>
-      </div>
-    );
+  if (!isInheritedAuthSupported(inheritedSource, supportedModes)) {
+    return null;
   }
 
   return (

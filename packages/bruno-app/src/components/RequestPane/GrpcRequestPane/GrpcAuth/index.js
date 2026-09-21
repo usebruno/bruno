@@ -72,7 +72,6 @@ const GrpcAuth = ({ item, collection }) => {
             item={item}
             inheritedSource={inheritedSource}
             supportedModes={AUTH_MODES_GRPC}
-            unsupportedMessage="Inherited auth not supported by gRPC. Using no auth instead."
           />
         );
       }
@@ -84,13 +83,16 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
         <GrpcAuthMode item={item} collection={collection} />
-        {authMode === 'inherit'
-          && inheritedSource
-          && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode) ? (
-              <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
-            ) : null}
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel
+            collection={collection}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+            unsupportedMessage="Inherited auth not supported by gRPC. Using no auth instead."
+          />
+        ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>

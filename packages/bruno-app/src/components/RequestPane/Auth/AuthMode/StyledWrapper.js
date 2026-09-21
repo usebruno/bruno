@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  flex-shrink: 0;
   font-size: ${(props) => props.theme.font.size.base};
 
   .auth-mode-selector {

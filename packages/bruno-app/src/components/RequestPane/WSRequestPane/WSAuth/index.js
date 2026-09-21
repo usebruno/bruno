@@ -11,7 +11,20 @@ import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-import { AUTH_MODES_WS } from 'utils/common/constants';
+import { AUTH_MODES, AUTH_MODES_WS } from 'utils/common/constants';
+
+const WS_INHERITED_AUTH_MODES = AUTH_MODES_WS.filter((mode) => mode !== AUTH_MODES.OAUTH2);
+
+const getWsInheritedUnsupportedMessage = (inheritedSource) => {
+  const inheritedMode = inheritedSource?.auth?.mode;
+  if (inheritedMode === AUTH_MODES.OAUTH1) {
+    return 'OAuth 1.0 not yet supported by WebSockets. Using no auth instead.';
+  }
+  if (inheritedMode === AUTH_MODES.OAUTH2) {
+    return 'OAuth 2 not yet supported by WebSockets. Using no auth instead.';
+  }
+  return 'Inherited auth not supported by WebSockets. Using no auth instead.';
+};
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -67,23 +80,12 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        if (inheritedSource?.auth?.mode === 'oauth1' || inheritedSource?.auth?.mode === 'oauth2') {
-          return (
-            <>
-              <div className="flex flex-row w-full mt-2 gap-2">
-                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
-              </div>
-            </>
-          );
-        }
-
         return (
           <InheritedAuth
             collection={collection}
             item={item}
             inheritedSource={inheritedSource}
-            supportedModes={AUTH_MODES_WS}
-            unsupportedMessage="Inherited auth not supported by WebSockets. Using no auth instead."
+            supportedModes={WS_INHERITED_AUTH_MODES}
           />
         );
       }
@@ -95,15 +97,16 @@ const WSAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
         <WSAuthMode item={item} collection={collection} />
-        {authMode === 'inherit'
-          && inheritedSource
-          && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
-          && inheritedSource.auth?.mode !== 'oauth1'
-          && inheritedSource.auth?.mode !== 'oauth2' ? (
-              <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
-            ) : null}
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel
+            collection={collection}
+            inheritedSource={inheritedSource}
+            supportedModes={WS_INHERITED_AUTH_MODES}
+            unsupportedMessage={getWsInheritedUnsupportedMessage(inheritedSource)}
+          />
+        ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>
