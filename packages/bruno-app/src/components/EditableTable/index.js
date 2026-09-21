@@ -283,14 +283,22 @@ const EditableTable = ({
   }, [rowsWithEmpty.length, isEmptyRow, showAddRow]);
 
   useEffect(() => {
-    if (rowsWithEmpty.length > prevRowCountRef.current && prevRowCountRef.current > 0) {
-      virtuosoRef.current?.scrollToIndex({
-        index: rowsWithEmpty.length - 1,
-        behavior: 'smooth'
-      });
+    const previousCount = prevRowCountRef.current;
+    const nextCount = rowsWithEmpty.length;
+    prevRowCountRef.current = nextCount;
+
+    // Only follow a newly appended empty add-row. Prepending default headers
+    // also grows the list and must not smooth-scroll to the bottom.
+    if (previousCount > 0 && nextCount === previousCount + 1) {
+      const lastIndex = nextCount - 1;
+      if (isLastEmptyRow(rowsWithEmpty[lastIndex], lastIndex)) {
+        virtuosoRef.current?.scrollToIndex({
+          index: lastIndex,
+          behavior: 'smooth'
+        });
+      }
     }
-    prevRowCountRef.current = rowsWithEmpty.length;
-  }, [rowsWithEmpty.length]);
+  }, [isLastEmptyRow, rowsWithEmpty]);
 
   const handleValueChange = useCallback((rowUid, key, value) => {
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);

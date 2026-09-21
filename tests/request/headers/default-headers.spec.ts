@@ -88,7 +88,7 @@ test('hides defaults and shows a flat editable request headers table', async ({ 
     await expect(headers.defaultSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
     await expect(headers.addRow()).toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleDefaults()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
   });
 
   await test.step('Keep hide state after switching request panes', async () => {
@@ -97,19 +97,19 @@ test('hides defaults and shows a flat editable request headers table', async ({ 
 
     await expect(headers.defaultSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleDefaults()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
   });
 
   await test.step('Show defaults, then hide again', async () => {
     await headers.toggleDefaults().click();
     await expect(headers.defaultSectionRow()).toBeVisible();
     await expect(headers.requestSectionRow()).toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
+    await expect(headers.toggleDefaults()).toHaveText('Hide Additional Headers');
 
     await headers.toggleDefaults().click();
     await expect(headers.defaultSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText(`Show Inherited Headers (${DEFAULT_HEADERS.length})`);
+    await expect(headers.toggleDefaults()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
   });
 });
 
