@@ -154,19 +154,6 @@ const General = () => {
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
-  const browseDefaultLocation = () => {
-    dispatch(browseDirectory())
-      .then((dirPath) => {
-        if (typeof dirPath === 'string') {
-          formik.setFieldValue('defaultLocation', dirPath);
-        }
-      })
-      .catch((error) => {
-        formik.setFieldValue('defaultLocation', '');
-        console.error(error);
-      });
-  };
-
   const addCaCertificate = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
     if (filePath) {
@@ -178,19 +165,28 @@ const General = () => {
     formik.setFieldValue('customCaCertificate.filePath', null);
   };
 
+  const browseDefaultLocation = () => {
+    dispatch(browseDirectory())
+      .then((dirPath) => {
+        if (typeof dirPath === 'string') {
+          formik.setFieldValue('defaultLocation', dirPath);
+        }
+      })
+      .catch((error) => {
+        // cancelling resolves false, so this is a real failure: keep the existing value
+        console.error(error);
+        toast.error('Failed to browse for a default location');
+      });
+  };
+
   const customCaCertificateEnabled = formik.values.customCaCertificate.enabled;
   const customCaCertificatePath = formik.values.customCaCertificate.filePath;
   const keepDefaultCaCertificatesDisabled = !(customCaCertificateEnabled && customCaCertificatePath);
   const autoSaveEnabled = formik.values.autoSave.enabled;
 
-  // gate field level errors on touched so the errors are not flashed on type
+  // gate typed field errors on touched so they are not flashed on every keystroke
   const autoSaveIntervalTouched = get(formik.touched, 'autoSave.interval', false);
-  const autoSaveError
-    = typeof formik.errors.autoSave === 'string'
-      ? formik.errors.autoSave
-      : autoSaveIntervalTouched
-        ? formik.errors.autoSave?.interval
-        : undefined;
+  const autoSaveError = autoSaveIntervalTouched ? formik.errors.autoSave?.interval : undefined;
   const timeoutError = formik.touched.timeout ? formik.errors.timeout : undefined;
 
   return (
@@ -220,6 +216,7 @@ const General = () => {
                     type="button"
                     className="ca-certificate-remove"
                     aria-label="Remove custom CA certificate"
+                    data-testid="general-remove-ca-certificate"
                     disabled={!customCaCertificateEnabled}
                     onClick={deleteCaCertificate}
                   >
@@ -231,8 +228,9 @@ const General = () => {
                   <button
                     type="button"
                     className="ca-certificate-select"
+                    data-testid="general-select-ca-certificate"
                     disabled={!customCaCertificateEnabled}
-                    onClick={() => inputFileCaCertificateRef.current?.click()}
+                    onClick={() => inputFileCaCertificateRef.current.click()}
                   >
                     <IconUpload strokeWidth={1.5} size={14} aria-hidden="true" />
                     Select File
@@ -337,15 +335,13 @@ const General = () => {
           title="Default Location"
           description="Used as the default location for new workspaces and collections"
         >
-          <SettingsField
-            htmlFor="defaultLocation"
-            error={formik.errors.defaultLocation}
-            className="default-location-field"
-          >
+          <SettingsField error={formik.errors.defaultLocation} className="default-location-field">
             <input
               type="text"
               name="defaultLocation"
               id="defaultLocation"
+              aria-label="Default Location"
+              data-testid="general-default-location-input"
               className="textbox cursor-pointer default-location-input"
               autoComplete="off"
               autoCorrect="off"
@@ -357,7 +353,12 @@ const General = () => {
               onClick={browseDefaultLocation}
               placeholder="Click to browse for default location"
             />
-            <button type="button" className="default-location-browse" onClick={browseDefaultLocation}>
+            <button
+              type="button"
+              className="default-location-browse"
+              data-testid="general-browse-default-location"
+              onClick={browseDefaultLocation}
+            >
               Browse
             </button>
           </SettingsField>
