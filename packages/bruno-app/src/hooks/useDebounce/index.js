@@ -14,6 +14,7 @@ function useDebounce(value, delay, { skipDebounce } = {}) {
 
   useEffect(() => {
     if (isImmediate) {
+      // Keep the internal value in sync for the next debounced update.
       setDebouncedValue(value);
       return;
     }
