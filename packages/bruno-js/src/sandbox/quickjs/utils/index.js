@@ -29,7 +29,6 @@ const createManagedQuickJsContext = (module) => {
   };
 };
 
-
 /**
  * Track every deferred created by the async shims (sendRequest, axios, cookie
  * jar, sleep, ...) so teardown can wait for them to settle. A user script that
@@ -224,9 +223,9 @@ async function invokeFunction(vm, quickFn, args = []) {
     : Promise.resolve(value);
 }
 
+module.exports = {
   marshallToVm,
   invokeFunction,
-  createManagedQuickJsContext,
   createManagedQuickJsContext,
   disposeQuickJsContext,
   trackQuickJsContext
