@@ -524,6 +524,11 @@ const buildQueryString = (
   return params;
 };
 
+/** Collapses runs of whitespace to a single space, skipping over quoted string literals (including `"""` block strings) so field arguments like `"a  b"` are left untouched. */
+const GRAPHQL_STRING_OR_WHITESPACE = /"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|\s+/g;
+const collapseGraphqlQueryWhitespace = (query: string): string =>
+  query.replace(GRAPHQL_STRING_OR_WHITESPACE, (match) => (match[0] === '"' ? match : ' ')).trim();
+
 /** HAR `postData` for the request body. Mirrors the body-mode contract. */
 const buildPostData = (body: BrunoBody | undefined): any => {
   if (!body || !body.mode) return undefined;
@@ -583,7 +588,7 @@ const buildPostData = (body: BrunoBody | undefined): any => {
           // Leave as the raw string; an invalid-JSON snippet is still more useful than a thrown error.
         }
       }
-      const query = typeof graphql.query === 'string' ? graphql.query.replace(/\s+/g, ' ').trim() : graphql.query;
+      const query = typeof graphql.query === 'string' ? collapseGraphqlQueryWhitespace(graphql.query) : graphql.query;
       return { mimeType, text: JSON.stringify({ ...graphql, query, variables }) };
     }
     default:
