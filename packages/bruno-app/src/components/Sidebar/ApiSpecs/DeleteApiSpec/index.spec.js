@@ -2,7 +2,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import CloseApiSpec from './index';
+import { ThemeProvider } from 'styled-components';
+import themes from 'themes/index';
+import DeleteApiSpec from './index';
 
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
@@ -26,15 +28,17 @@ const renderModal = ({ draft } = {}) => {
 
   return render(
     <Provider store={store}>
-      <CloseApiSpec
-        apiSpec={draft === undefined ? apiSpec : { ...apiSpec, draft }}
-        onClose={jest.fn()}
-      />
+      <ThemeProvider theme={themes.light}>
+        <DeleteApiSpec
+          apiSpec={draft === undefined ? apiSpec : { ...apiSpec, draft }}
+          onClose={jest.fn()}
+        />
+      </ThemeProvider>
     </Provider>
   );
 };
 
-describe('the dialog for removing an API spec from the workspace', () => {
+describe('the dialog for deleting an API spec', () => {
   it('warns that unsaved changes will be discarded when the spec has been edited', () => {
     renderModal({ draft: 'openapi: 3.1.0' });
 

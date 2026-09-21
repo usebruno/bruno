@@ -6,6 +6,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { createApiSpecFile, openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
+import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
 import { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { exportApiSpec } from 'utils/exporters/openapi-spec';
@@ -19,24 +20,9 @@ const CreateApiSpec = ({ onClose }) => {
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-  const [defaultApiSpecLocation, setDefaultApiSpecLocation] = React.useState('');
+  const { location: defaultApiSpecLocation } = useDefaultApiSpecLocation();
 
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
-
-  React.useEffect(() => {
-    const getDefaultLocation = async () => {
-      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
-        try {
-          const { ipcRenderer } = window;
-          const apiSpecPath = await ipcRenderer.invoke('renderer:ensure-apispec-folder', activeWorkspace.pathname);
-          setDefaultApiSpecLocation(apiSpecPath);
-        } catch (error) {
-          console.error('Error getting apispec folder:', error);
-        }
-      }
-    };
-    getDefaultLocation();
-  }, [activeWorkspace]);
 
   const formik = useFormik({
     enableReinitialize: true,

@@ -37,9 +37,12 @@ const SidebarSection = ({
       <div
         ref={sectionRef}
         className={`sidebar-section ${localExpanded ? 'expanded' : ''} ${isOnlyExpanded ? 'single-expanded' : ''} ${expandedCount > 1 && localExpanded ? 'multi-expanded' : ''}`}
+        data-testid={`sidebar-section-${id}`}
+        data-expanded={localExpanded}
       >
         <div
           className="section-header"
+          data-testid={`sidebar-section-${id}-header`}
           onClick={handleToggle}
         >
           <div className="section-header-left">
