@@ -63,7 +63,7 @@
 
 // A value that is entirely a single variable reference (e.g. "{{accessToken}}"), optionally
 // with surrounding whitespace. Matches the pattern used by useDetectSensitiveField.
-const SINGLE_VARIABLE_REFERENCE_REGEX = /^\s*\{\{.*\}\}\s*$/;
+const SINGLE_VARIABLE_REFERENCE_REGEX = /^\s*\{\{[\w$.-]+\}\}\s*$/;
 
 export class MaskedEditor {
   constructor(editor, maskChar = '*') {
