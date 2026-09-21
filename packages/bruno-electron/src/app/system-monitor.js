@@ -69,7 +69,7 @@ class SystemMonitor {
       }
 
       const uptime = (currentTime - this.startTime) / 1000;
-      var processes = metrics.map((metric) => ({
+      let processes = metrics.map((metric) => ({
         pid: metric.pid,
         title: metric.title,
         memory: metric.memory.workingSetSize * 1024,
