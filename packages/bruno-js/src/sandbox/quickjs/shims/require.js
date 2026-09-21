@@ -1,6 +1,5 @@
 const createLocalModuleLoaderHandle = require('./local-module');
 
-
 /**
  * Returns a factory function (as VM source) that installs globalThis.require.
  *
