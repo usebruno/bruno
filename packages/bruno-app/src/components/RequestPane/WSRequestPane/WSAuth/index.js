@@ -15,17 +15,6 @@ import { AUTH_MODES, AUTH_MODES_WS } from 'utils/common/constants';
 
 const WS_INHERITED_AUTH_MODES = AUTH_MODES_WS.filter((mode) => mode !== AUTH_MODES.OAUTH2);
 
-const getWsInheritedUnsupportedMessage = (inheritedSource) => {
-  const inheritedMode = inheritedSource?.auth?.mode;
-  if (inheritedMode === AUTH_MODES.OAUTH1) {
-    return 'OAuth 1.0 not yet supported by WebSockets. Using no auth instead.';
-  }
-  if (inheritedMode === AUTH_MODES.OAUTH2) {
-    return 'OAuth 2 not yet supported by WebSockets. Using no auth instead.';
-  }
-  return 'Inherited auth not supported by WebSockets. Using no auth instead.';
-};
-
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -104,7 +93,7 @@ const WSAuth = ({ item, collection }) => {
             collection={collection}
             inheritedSource={inheritedSource}
             supportedModes={WS_INHERITED_AUTH_MODES}
-            unsupportedMessage={getWsInheritedUnsupportedMessage(inheritedSource)}
+            protocolLabel="WebSockets"
           />
         ) : null}
       </div>

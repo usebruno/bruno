@@ -90,7 +90,7 @@ const GrpcAuth = ({ item, collection }) => {
             collection={collection}
             inheritedSource={inheritedSource}
             supportedModes={AUTH_MODES_GRPC}
-            unsupportedMessage="Inherited auth not supported by gRPC. Using no auth instead."
+            protocolLabel="gRPC"
           />
         ) : null}
       </div>

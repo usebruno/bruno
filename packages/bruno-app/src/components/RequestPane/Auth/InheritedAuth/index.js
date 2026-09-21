@@ -15,7 +15,15 @@ export const isInheritedAuthSupported = (inheritedSource, supportedModes) => {
   return Boolean(inheritedMode && supportedModes.includes(inheritedMode));
 };
 
-export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supportedModes, unsupportedMessage }) => {
+const getUnsupportedInheritedAuthMessage = (inheritedMode, protocolLabel) => {
+  const modeLabel = humanizeRequestAuthMode(inheritedMode);
+  if (protocolLabel) {
+    return `${modeLabel} is not supported by ${protocolLabel}. Using no auth instead.`;
+  }
+  return `${modeLabel} is not supported. Using no auth instead.`;
+};
+
+export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supportedModes, protocolLabel, unsupportedMessage }) => {
   const dispatch = useDispatch();
   const inheritedMode = inheritedSource?.auth?.mode;
 
@@ -24,7 +32,7 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
   }
 
   if (!isInheritedAuthSupported(inheritedSource, supportedModes)) {
-    const message = unsupportedMessage || 'Inherited auth not supported. Using no auth instead.';
+    const message = unsupportedMessage || getUnsupportedInheritedAuthMessage(inheritedMode, protocolLabel);
     return (
       <StyledWrapper className="inherited-auth-source">
         <div className="inherited-auth-source-row">
