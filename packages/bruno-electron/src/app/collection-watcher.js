@@ -586,8 +586,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         stageToCache(collectionPath, pathname, file.data);
       }
 
-      file.data.raw = content;
       file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {

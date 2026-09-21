@@ -2283,6 +2283,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // The raw file text behind one item, read fresh from disk. Not carried in the mount tree — it
+  // duplicates every other field as a single string, for every item, whether or not it is ever
+  // opened — so File Mode and the export flows that need it (for `js`-type items) ask for it here.
+  ipcMain.handle('renderer:get-item-raw', async (event, { pathname }) => {
+    validatePathIsInsideCollection(pathname);
+    return fs.promises.readFile(pathname, 'utf8');
+  });
+
   ipcMain.handle('renderer:load-large-request', async (event, { collectionUid, pathname }) => {
     let fileStats;
     if (!hasBruExtension(pathname)) {

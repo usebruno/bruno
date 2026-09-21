@@ -131,7 +131,9 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     settings: data.settings,
     examples: data.examples,
     app: data.app ?? null,
-    raw: entry.raw ?? null,
+    // `raw` is deliberately not carried into the tree — it duplicates every other field as one
+    // string, for every item, whether or not it is ever opened. `renderer:get-item-raw` reads it
+    // on demand for the one item that needs it (File Mode, or an export walking `js`-type items).
     size: sizeInMB(entry.raw ? Buffer.byteLength(entry.raw, 'utf8') : 0),
     filename: basename,
     pathname: absolutePath,

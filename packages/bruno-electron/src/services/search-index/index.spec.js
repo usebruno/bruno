@@ -117,6 +117,41 @@ describe('SearchIndex', () => {
     index.close();
   });
 
+  describe('getFolderTree', () => {
+    const folderRow = (overrides = {}) => row({
+      relativePath: 'users/folder.bru',
+      absolutePath: '/c/users/folder.bru',
+      itemPath: 'users',
+      type: 'folder',
+      seq: 2,
+      name: 'Users',
+      method: null,
+      url: null,
+      ...overrides
+    });
+
+    it('returns seq as a plain Number, not the BigInt the underlying connection reads by default', () => {
+      const index = makeIndex();
+      index.apply('/c', { upsert: [folderRow()] });
+
+      const [folder] = index.getFolderTree('/c');
+
+      expect(folder.seq).toBe(2);
+      expect(typeof folder.seq).toBe('number');
+      index.close();
+    });
+
+    it('leaves seq as null for a folder/request that never set one', () => {
+      const index = makeIndex();
+      index.apply('/c', { upsert: [folderRow({ seq: null })] });
+
+      const [folder] = index.getFolderTree('/c');
+
+      expect(folder.seq).toBeNull();
+      index.close();
+    });
+  });
+
   it('status reports every file as added against an empty index', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-search-index-collection-'));
     fs.mkdirSync(path.join(dir, 'users'));

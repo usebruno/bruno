@@ -2,7 +2,8 @@ import reducer, {
   createCollection,
   toggleCollectionFileMode,
   updateFileContent,
-  collectionChangeFileEvent
+  collectionChangeFileEvent,
+  setItemRaw
 } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
@@ -357,5 +358,36 @@ describe('collectionChangeFileEvent — failed parse', () => {
     expect(item.error).toBeFalsy();
     expect(item.request.url).toBe('https://example.com/recovered');
     expect(item.raw).toBe(fixedRaw);
+  });
+});
+
+describe('setItemRaw', () => {
+  test('sets raw on the item fetched on demand', () => {
+    const state = reducer(
+      makeInitialState({ item: { raw: undefined } }),
+      setItemRaw({ collectionUid: COLLECTION_UID, itemUid: ITEM_UID, raw: 'meta {\n  name: user_info\n}' })
+    );
+
+    expect(state.collections[0].items[0].raw).toBe('meta {\n  name: user_info\n}');
+  });
+
+  test('does nothing for an unknown collection', () => {
+    const initialState = makeInitialState();
+    const state = reducer(
+      initialState,
+      setItemRaw({ collectionUid: 'unknown', itemUid: ITEM_UID, raw: 'edited' })
+    );
+
+    expect(state).toEqual(initialState);
+  });
+
+  test('does nothing for an unknown item', () => {
+    const initialState = makeInitialState();
+    const state = reducer(
+      initialState,
+      setItemRaw({ collectionUid: COLLECTION_UID, itemUid: 'unknown', raw: 'edited' })
+    );
+
+    expect(state.collections[0].items[0].raw).toBe(initialState.collections[0].items[0].raw);
   });
 });

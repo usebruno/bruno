@@ -27,6 +27,9 @@ import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@use
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
+// `raw` is deliberately not here — it is fetched on demand (see `setItemRaw`), not carried by the
+// tree. Picking it from a fresh tree on every reload would either always be empty or clobber a
+// value that was just fetched for the one item that is actually open.
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
   'type',
@@ -36,7 +39,6 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'settings',
   'examples',
   'app',
-  'raw',
   'filename',
   'pathname',
   'partial',
@@ -3773,6 +3775,16 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    // The only writer of `item.raw` — fetched on demand for the one item that needs it (see
+    // `fetchItemRaw`), never carried by the tree itself.
+    setItemRaw: (state, action) => {
+      const { collectionUid, itemUid, raw } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (item) item.raw = raw;
+    },
     collectionLoadedFromTree: (state, action) => {
       const { collectionUid, tree } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4418,6 +4430,7 @@ export const {
   updateFolderDocs,
   toggleCollectionFileMode,
   updateFileContent,
+  setItemRaw,
   updateAppCode,
   toggleAppMode,
   appSetRuntimeVariable,

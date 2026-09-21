@@ -7,6 +7,7 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { fetchCollectionTreeFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
@@ -45,10 +46,50 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  // A collection that isn't mounted yet has no `collection.items` — its structure lives only in
+  // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
+  // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
+  const [indexTreesByUid, setIndexTreesByUid] = useState({});
+
+  useEffect(() => {
+    const toFetch = sidebarEntries.filter((entry) =>
+      entry.kind === 'loaded'
+      && entry.collection.mountStatus !== 'mounted'
+      && !entry.collection.collapsed
+      && !(entry.collection.uid in indexTreesByUid));
+
+    if (!toFetch.length) return;
+
+    toFetch.forEach((entry) => {
+      const { collection } = entry;
+      dispatch(fetchCollectionTreeFromIndex({
+        uid: collection.uid,
+        pathname: collection.pathname,
+        name: collection.name,
+        ignore: collection.brunoConfig?.ignore
+      }))
+        .then(({ items }) => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
+        })
+        .catch(() => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+        });
+    });
+  }, [sidebarEntries, indexTreesByUid, dispatch]);
+
+  // Substitute the index-read tree for a not-yet-mounted collection's (empty) `items`, so
+  // flattenSidebarTree walks real structure instead of nothing.
+  const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
+    if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
+    const indexItems = indexTreesByUid[entry.collection.uid];
+    if (!indexItems) return entry;
+    return { ...entry, collection: { ...entry.collection, items: indexItems } };
+  }), [sidebarEntries, indexTreesByUid]);
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
-    [sidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
+    [renderedSidebarEntries, debouncedSearchText]
   );
 
   // Shown while the workspace is still being indexed, and while a search is settling — the two

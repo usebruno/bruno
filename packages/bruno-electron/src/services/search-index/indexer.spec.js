@@ -11,6 +11,9 @@ const mockRun = jest.fn(async (type, args) => {
   if (args.relativePath.endsWith('get.bru')) {
     return { data: { name: 'Get Users', request: { method: 'GET', url: 'https://api.test/users' } } };
   }
+  if (args.relativePath.endsWith('folder.bru')) {
+    return { data: { meta: { name: 'Users', seq: 1 } } };
+  }
   return { data: { name: path.basename(args.relativePath, '.bru') } };
 });
 jest.mock('../pool', () => ({
@@ -44,13 +47,17 @@ describe('indexCollection', () => {
     expect(results[0].method).toBe('GET');
   });
 
-  it('does not index folder.bru as a searchable request', async () => {
+  it('indexes folder.bru for the sidebar tree, but not as a searchable request', async () => {
     const collectionPath = makeCollection();
 
     await indexCollection({ collectionPath, collectionUid: 'col-1', collectionName: 'My Collection' });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ relativePath: path.join('users', 'get.bru') }));
+    expect(mockRun).toHaveBeenCalledTimes(2);
+    expect(mockRun).toHaveBeenCalledWith('parse-file', expect.objectContaining({ relativePath: path.join('users', 'folder.bru') }));
+
+    const results = getSearchIndex().search({ terms: ['users'], collectionPaths: [collectionPath] });
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe('Get Users');
   });
 
   it('does not re-index or re-parse a file that has not changed', async () => {

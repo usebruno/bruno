@@ -1,4 +1,4 @@
-import { newHttpRequest, warmSearchIndex } from './actions';
+import { newHttpRequest, warmSearchIndex, fetchItemRaw, resolveJsItemsRaw } from './actions';
 
 const mockUuid = jest.fn();
 
@@ -171,6 +171,80 @@ describe('collection actions', () => {
       const collections = [{ uid: 'c1', pathname: '/c1', name: 'One', mountStatus: 'unmounted' }];
 
       await expect(warmSearchIndex()(dispatch, getState(collections))).resolves.toBeUndefined();
+    });
+  });
+
+  describe('fetchItemRaw', () => {
+    it('fetches raw content over IPC and dispatches setItemRaw with it', async () => {
+      const dispatch = jest.fn();
+      window.ipcRenderer.invoke.mockResolvedValueOnce('meta {\n  name: Ping\n}');
+
+      const raw = await fetchItemRaw({ collectionUid: 'col-1', itemUid: 'item-1', pathname: '/coll/ping.bru' })(dispatch);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:get-item-raw', { pathname: '/coll/ping.bru' });
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/setItemRaw',
+        payload: { collectionUid: 'col-1', itemUid: 'item-1', raw: 'meta {\n  name: Ping\n}' }
+      });
+      expect(raw).toBe('meta {\n  name: Ping\n}');
+    });
+  });
+
+  describe('resolveJsItemsRaw', () => {
+    // A real store's dispatch also runs thunks it's handed (redux-thunk); this stands in for
+    // that so fetchItemRaw's dispatch(fetchItemRaw(...)) call inside resolveJsItemsRaw resolves.
+    const makeThunkDispatch = () => {
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch) : action));
+      return dispatch;
+    };
+
+    it('fetches raw for every js-type item and leaves everything else untouched', async () => {
+      const dispatch = makeThunkDispatch();
+      window.ipcRenderer.invoke.mockResolvedValue('console.log("hi")');
+      const collectionCopy = {
+        uid: 'col-1',
+        items: [
+          { uid: 'js-1', type: 'js', pathname: '/coll/util.js', raw: null },
+          { uid: 'req-1', type: 'http-request', pathname: '/coll/ping.bru' }
+        ]
+      };
+
+      const result = await resolveJsItemsRaw(collectionCopy)(dispatch);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledTimes(1);
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:get-item-raw', { pathname: '/coll/util.js' });
+      expect(result.items[0].raw).toBe('console.log("hi")');
+      expect(result.items[1].raw).toBeUndefined();
+      expect(result).toBe(collectionCopy);
+    });
+
+    it('skips a js item that already has raw', async () => {
+      const dispatch = makeThunkDispatch();
+      const collectionCopy = {
+        uid: 'col-1',
+        items: [{ uid: 'js-1', type: 'js', pathname: '/coll/util.js', raw: 'already here' }]
+      };
+
+      await resolveJsItemsRaw(collectionCopy)(dispatch);
+
+      expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    });
+
+    it('resolves raw for js items nested inside folders', async () => {
+      const dispatch = makeThunkDispatch();
+      window.ipcRenderer.invoke.mockResolvedValue('nested content');
+      const collectionCopy = {
+        uid: 'col-1',
+        items: [{
+          uid: 'folder-1',
+          type: 'folder',
+          items: [{ uid: 'js-1', type: 'js', pathname: '/coll/api/util.js', raw: undefined }]
+        }]
+      };
+
+      await resolveJsItemsRaw(collectionCopy)(dispatch);
+
+      expect(collectionCopy.items[0].items[0].raw).toBe('nested content');
     });
   });
 });

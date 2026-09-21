@@ -18,6 +18,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
+  flattenItems,
   isItemAFolder,
   refreshUidsInItem,
   isItemARequest,
@@ -78,7 +79,8 @@ import {
   addSaveTransientRequestModal,
   updatePathParam,
   toggleCollection,
-  setSidebarSelection
+  setSidebarSelection,
+  setItemRaw
 } from './index';
 
 import { each } from 'lodash';
@@ -3503,6 +3505,51 @@ export const warmSearchIndex
       } catch (err) {
         console.error('Failed to warm search index:', err);
       }
+    };
+
+/**
+ * The folder/request structure of a collection that isn't mounted yet, read from the search index
+ * instead of `collection.items` (empty until a real mount runs). Not written back to Redux — the
+ * sidebar merges it into the row it renders and discards it once the collection actually mounts.
+ */
+export const fetchCollectionTreeFromIndex
+  = ({ uid, pathname, name, ignore }) =>
+    async () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:search-index-tree', {
+        collection: { uid, pathname, name, ignore }
+      });
+    };
+
+/**
+ * The raw file text behind one item, fetched on demand and written to `item.raw`. Not carried by
+ * the mount tree at all — see `setItemRaw`. Safe to call for an item that already has it; the
+ * fetch and dispatch just repeat.
+ */
+export const fetchItemRaw
+  = ({ collectionUid, itemUid, pathname }) =>
+    async (dispatch) => {
+      const { ipcRenderer } = window;
+      const raw = await ipcRenderer.invoke('renderer:get-item-raw', { pathname });
+      dispatch(setItemRaw({ collectionUid, itemUid, raw }));
+      return raw;
+    };
+
+/**
+ * Fills in `raw` for every `js`-type item in a collection copy — `.js` files export as their raw
+ * text (`transformCollectionToSaveToExportAsFile`), and `raw` isn't carried by the tree at all.
+ * `js` items are collection-level scripts, not per-request, so this is a handful of items at most
+ * regardless of collection size. Mutates and returns the copy passed in.
+ */
+export const resolveJsItemsRaw
+  = (collectionCopy) =>
+    async (dispatch) => {
+      const jsItems = flattenItems(collectionCopy.items).filter((item) => item.type === 'js' && item.raw == null);
+      await Promise.all(jsItems.map((item) =>
+        dispatch(fetchItemRaw({ collectionUid: collectionCopy.uid, itemUid: item.uid, pathname: item.pathname }))
+          .then((raw) => { item.raw = raw; })
+      ));
+      return collectionCopy;
     };
 
 export const showInFolder = (collectionPath) => () => {

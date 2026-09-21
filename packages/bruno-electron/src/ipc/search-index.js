@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const { indexCollection, getSearchIndex } = require('../services/search-index/indexer');
 const { ensureWatching, closeAll: closeAllSearchIndexWatchers } = require('../services/search-index/watcher');
+const { buildFolderTree } = require('../services/search-index/build-tree');
 const { getRequestUid } = require('../cache/requestUids');
 
 const indexedCollections = new Set();
@@ -51,9 +52,28 @@ const warmSearchIndex = async (event, { collections = [] } = {}) => {
   await ensureIndexed(collections);
 };
 
+// The sidebar's tree shape for a collection that isn't mounted yet — folders and requests, read
+// from the index instead of the (empty) in-memory tree. Not put into the real collection: the
+// caller decides whether and where to render it.
+const getCollectionTree = async (event, { collection } = {}) => {
+  if (!collection?.pathname) return { items: [] };
+
+  await ensureIndexed([collection]);
+  const rows = getSearchIndex().getFolderTree(collection.pathname);
+  return { items: buildFolderTree(collection.pathname, rows) };
+};
+
 const registerSearchIndexIpc = () => {
   ipcMain.handle('renderer:search-index-query', searchIndex);
   ipcMain.handle('renderer:search-index-warm', warmSearchIndex);
+  ipcMain.handle('renderer:search-index-tree', getCollectionTree);
 };
 
-module.exports = { registerSearchIndexIpc, searchIndex, warmSearchIndex, indexedCollections, closeAllSearchIndexWatchers };
+module.exports = {
+  registerSearchIndexIpc,
+  searchIndex,
+  warmSearchIndex,
+  getCollectionTree,
+  indexedCollections,
+  closeAllSearchIndexWatchers
+};

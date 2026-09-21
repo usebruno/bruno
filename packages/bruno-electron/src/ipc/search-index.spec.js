@@ -12,9 +12,10 @@ const mockSearch = jest.fn(() => [{
   collection_path: '/c1',
   collection_name: 'One'
 }]);
+const mockGetFolderTree = jest.fn(() => []);
 jest.mock('../services/search-index/indexer', () => ({
   indexCollection: (...args) => mockIndexCollection(...args),
-  getSearchIndex: () => ({ search: (...args) => mockSearch(...args) })
+  getSearchIndex: () => ({ search: (...args) => mockSearch(...args), getFolderTree: (...args) => mockGetFolderTree(...args) })
 }));
 jest.mock('../cache/requestUids', () => ({
   getRequestUid: (pathname) => `uid-for-${pathname}`
@@ -25,7 +26,12 @@ jest.mock('../services/search-index/watcher', () => ({
   ensureWatching: (...args) => mockEnsureWatching(...args)
 }));
 
-const { searchIndex, warmSearchIndex, indexedCollections } = require('./search-index');
+const mockBuildFolderTree = jest.fn(() => [{ uid: 'req-1', name: 'Get Users', type: 'http-request' }]);
+jest.mock('../services/search-index/build-tree', () => ({
+  buildFolderTree: (...args) => mockBuildFolderTree(...args)
+}));
+
+const { searchIndex, warmSearchIndex, getCollectionTree, indexedCollections } = require('./search-index');
 
 const expectedResult = [{
   uid: 'uid-for-/c1/users/get.bru',
@@ -43,6 +49,8 @@ beforeEach(() => {
   mockIndexCollection.mockClear();
   mockSearch.mockClear();
   mockEnsureWatching.mockClear();
+  mockGetFolderTree.mockClear();
+  mockBuildFolderTree.mockClear();
 });
 
 describe('searchIndex handler', () => {
@@ -122,5 +130,26 @@ describe('warmSearchIndex handler', () => {
     await warmSearchIndex(null, { collections: [{ uid: 'c1', pathname: '/c1', name: 'One' }] });
 
     expect(mockIndexCollection).not.toHaveBeenCalled();
+  });
+});
+
+describe('getCollectionTree handler', () => {
+  it('indexes the collection, then builds its tree from the index rows', async () => {
+    const collection = { uid: 'c1', pathname: '/c1', name: 'One', ignore: ['dist'] };
+
+    const result = await getCollectionTree(null, { collection });
+
+    expect(mockIndexCollection).toHaveBeenCalledWith(expect.objectContaining({ collectionPath: '/c1' }));
+    expect(mockGetFolderTree).toHaveBeenCalledWith('/c1');
+    expect(mockBuildFolderTree).toHaveBeenCalledWith('/c1', []);
+    expect(result).toEqual({ items: [{ uid: 'req-1', name: 'Get Users', type: 'http-request' }] });
+  });
+
+  it('returns an empty tree without touching the index when the collection has no pathname', async () => {
+    const result = await getCollectionTree(null, { collection: { uid: 'c1' } });
+
+    expect(mockIndexCollection).not.toHaveBeenCalled();
+    expect(mockBuildFolderTree).not.toHaveBeenCalled();
+    expect(result).toEqual({ items: [] });
   });
 });
