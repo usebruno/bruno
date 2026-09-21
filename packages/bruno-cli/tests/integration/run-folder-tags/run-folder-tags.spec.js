@@ -86,7 +86,7 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
 
     // TODO: consolidate `result.path` across OSS and EE. Drop this once both reporters emit the same path.
     return iterationReport.results
-      .map((result) => result.path.split(path.sep).join('/').replace(/\.(bru|ya?ml)$/, ''))
+      .map((result) => result.path.split(path.sep).join('/').replace(/\.(bru|yml)$/, ''))
       .sort();
   };
 
