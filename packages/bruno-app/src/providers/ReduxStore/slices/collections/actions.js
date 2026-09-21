@@ -35,12 +35,6 @@ import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, s
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
 import {
-  pinResponseForTimeline,
-  releaseBodyPin,
-  releaseTimelineBodyPins
-} from 'utils/response-body';
-
-import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
   removeCollection as _removeCollection,
@@ -695,25 +689,12 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             }))
           };
 
-          // Release previous active body pin before replacing the response
-          const prevPinId = item?.response?.bodyPinId;
-          if (prevPinId) {
-            await releaseBodyPin(prevPinId);
-          }
-
-          // Pin for active response + timeline retention (5A)
-          const { activePinId, timelinePinId } = await pinResponseForTimeline(serializedResponse.bodyRef);
-          if (activePinId) {
-            serializedResponse.bodyPinId = activePinId;
-          }
-
           return dispatch(
             responseReceived({
               itemUid,
               collectionUid,
               response: serializedResponse,
-              requestSent,
-              timelineBodyPinId: timelinePinId || null
+              requestSent
             })
           );
         })
@@ -753,54 +734,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         });
     }
   });
-};
-
-/**
- * Clear request timeline and release pinned bodyRefs (5A).
- */
-export const clearRequestTimelineAndReleasePins = (item, collection) => async (dispatch, getState) => {
-  const state = getState();
-  const liveCollection = findCollectionByUid(state.collections.collections, collection.uid);
-  const entries = (liveCollection?.timeline || []).filter((t) => t?.itemUid === item.uid);
-  await releaseTimelineBodyPins(entries);
-  dispatch(
-    clearRequestTimeline({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    })
-  );
-};
-
-/**
- * Clear active response and release its body pin (timeline pins retained).
- */
-export const clearResponseAndReleasePin = (item, collection) => async (dispatch) => {
-  if (item?.response?.bodyPinId) {
-    await releaseBodyPin(item.response.bodyPinId);
-  }
-  dispatch(
-    responseCleared({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      response: null
-    })
-  );
-};
-
-/**
- * Reset collection runner and release any pinned runner response bodies.
- */
-export const resetCollectionRunnerAndReleasePins = (collectionUid) => async (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const items = collection?.runnerResult?.items || [];
-  for (const runnerItem of items) {
-    const pinId = runnerItem?.responseReceived?.bodyPinId;
-    if (pinId) {
-      await releaseBodyPin(pinId);
-    }
-  }
-  dispatch(resetCollectionRunner({ collectionUid }));
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {

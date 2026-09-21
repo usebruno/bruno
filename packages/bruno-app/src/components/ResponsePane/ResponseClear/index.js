@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { IconEraser } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { clearResponseAndReleasePin } from 'providers/ReduxStore/slices/collections/actions';
+import { responseCleared } from 'providers/ReduxStore/slices/collections';
 import ActionIcon from 'ui/ActionIcon/index';
 
 // Hook to get clear response function
@@ -10,7 +10,13 @@ export const useResponseClear = (item, collection) => {
   const dispatch = useDispatch();
 
   const clearResponse = () => {
-    dispatch(clearResponseAndReleasePin(item, collection));
+    dispatch(
+      responseCleared({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        response: null
+      })
+    );
   };
 
   return { clearResponse };

@@ -1,4 +1,7 @@
-import { RESPONSE_BODY_CHANNELS } from './media-url';
+export const RESPONSE_BODY_CHANNELS = {
+  SAVE: 'renderer:response-body-save',
+  READ: 'renderer:response-body-read'
+};
 
 /**
  * @param {{ invoke: (channel: string, ...args: any[]) => Promise<any> }} ipcPort
@@ -15,14 +18,6 @@ export const createResponseBodyClient = (ipcPort) => {
 
     read(bodyRef, options) {
       return ipcPort.invoke(RESPONSE_BODY_CHANNELS.READ, bodyRef, options);
-    },
-
-    pin(bodyRef) {
-      return ipcPort.invoke(RESPONSE_BODY_CHANNELS.PIN, bodyRef);
-    },
-
-    release(pinIdOrBodyRef) {
-      return ipcPort.invoke(RESPONSE_BODY_CHANNELS.RELEASE, pinIdOrBodyRef);
     }
   };
 };

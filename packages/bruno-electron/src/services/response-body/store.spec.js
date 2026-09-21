@@ -69,15 +69,12 @@ describe('ResponseBodyStore', () => {
     expect(await fs.readFile(outFile)).toEqual(Buffer.from('z'.repeat(150)));
   });
 
-  test('pin keeps entry until all pins released', async () => {
-    const { bodyRef } = await store.putBuffer(Buffer.from('pinned'));
-    const pinId = store.pin(bodyRef);
-
-    await store.release(bodyRef); // still pinned
-    expect(store.getStat(bodyRef).size).toBe(6);
-
-    await store.release(pinId);
-    expect(() => store.getStat(bodyRef)).toThrow(BodyNotFoundError);
+  test('discardBuffer drops RAM but readRange still reads from file', async () => {
+    const { bodyRef } = await store.putBuffer(Buffer.from('spilled'));
+    store.discardBuffer(bodyRef);
+    expect(() => store.getBufferForScripts(bodyRef)).toThrow(/discarded/);
+    expect(store.getStat(bodyRef).size).toBe(7);
+    expect(await store.readRange(bodyRef)).toEqual(Buffer.from('spilled'));
   });
 
   test('scripts can read dual-written bodies of any size', async () => {

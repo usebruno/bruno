@@ -17,13 +17,7 @@ if (isDev) {
 const { format } = require('url');
 const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
-const {
-  registerBrunoResponseScheme,
-  createResponseBodyService
-} = require('./services/response-body');
-
-// Must run before app ready — privileged custom protocol for response body media.
-registerBrunoResponseScheme();
+const { createResponseBodyService } = require('./services/response-body');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
   console.debug('`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n'
@@ -516,10 +510,9 @@ app.on('ready', async () => {
     });
   });
 
-  // Response body store (spill / range-read / protocol) — before network IPC uses it
+  // Response body store (spill / range-read) — before network IPC uses it
   const responseBodyService = createResponseBodyService();
   responseBodyService.registerIpc(mainWindow);
-  responseBodyService.registerProtocol();
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);

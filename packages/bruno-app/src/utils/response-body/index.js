@@ -1,11 +1,4 @@
 import { createResponseBodyClient, getResponseBodyClient } from './client';
-import { mediaUrlFor } from './media-url';
-import {
-  pinBodyRef,
-  releaseBodyPin,
-  pinResponseForTimeline,
-  releaseTimelineBodyPins
-} from './pins';
 
 /** Map IPC/network response into Redux-safe shape: never dataBuffer. */
 export const mapNetworkResponseToRedux = (response = {}) => {
@@ -27,10 +20,5 @@ export const mapNetworkResponseToRedux = (response = {}) => {
 
 export {
   createResponseBodyClient,
-  getResponseBodyClient,
-  mediaUrlFor,
-  pinBodyRef,
-  releaseBodyPin,
-  pinResponseForTimeline,
-  releaseTimelineBodyPins
+  getResponseBodyClient
 };

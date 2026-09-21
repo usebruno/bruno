@@ -261,26 +261,6 @@ const useIpcEvents = () => {
       }
 
       dispatch(runFolderEvent(val));
-
-      if (val.type === 'response-received' && val.responseReceived?.bodyRef) {
-        const { pinBodyRef } = require('utils/response-body');
-        pinBodyRef(val.responseReceived.bodyRef)
-          .then((pinId) => {
-            if (!pinId) return;
-            dispatch(
-              runFolderEvent({
-                ...val,
-                responseReceived: {
-                  ...val.responseReceived,
-                  bodyPinId: pinId
-                }
-              })
-            );
-          })
-          .catch((err) => {
-            console.warn('Failed to pin runner response body:', err?.message || err);
-          });
-      }
     });
 
     const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', (val) => {

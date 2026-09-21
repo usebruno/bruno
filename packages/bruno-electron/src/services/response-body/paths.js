@@ -12,6 +12,16 @@ const getResponseBodiesDirectoryBase = (deps = {}) => {
   return path.join(getUserDataPath(), 'tmp', 'response-bodies');
 };
 
+
+const purgeResponseBodiesDirectory = (deps = {}) => {
+  const base = getResponseBodiesDirectoryBase(deps);
+  if (fs.existsSync(base)) {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+  fs.mkdirSync(base, { recursive: true });
+  return base;
+};
+
 const ensureResponseBodiesDirectory = (deps = {}) => {
   const base = getResponseBodiesDirectoryBase(deps);
   fs.mkdirSync(base, { recursive: true });
@@ -20,5 +30,6 @@ const ensureResponseBodiesDirectory = (deps = {}) => {
 
 module.exports = {
   getResponseBodiesDirectoryBase,
-  ensureResponseBodiesDirectory
+  ensureResponseBodiesDirectory,
+  purgeResponseBodiesDirectory
 };

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import { getResponseBodyClient, mediaUrlFor } from 'utils/response-body';
+import { useResponseBody } from 'hooks/useResponseBody';
 import LargeResponseWarning, { SHOW_INLINE_BYTES, VIEW_MAX_BYTES } from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
@@ -114,16 +114,20 @@ const QueryResult = ({
 }) => {
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
-  const [viewedBodyData, setViewedBodyData] = useState(null);
-  const [revealLoading, setRevealLoading] = useState(false);
   const { displayedTheme } = useTheme();
   const response = item.response || {};
   const bodyRef = response.bodyRef;
 
+  const isBinaryMedia = useMemo(() => {
+    const ct = (contentType || '').toLowerCase();
+    return ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video');
+  }, [contentType]);
+
+  const textBody = useResponseBody({ bodyRef, mode: 'text' });
+  const blobBody = useResponseBody({ bodyRef, contentType, mode: 'blob' });
+
   useEffect(() => {
     setShowLargeResponse(false);
-    setViewedBodyData(null);
-    setRevealLoading(false);
   }, [bodyRef]);
 
   const responseSize = useMemo(() => {
@@ -140,11 +144,12 @@ const QueryResult = ({
 
   const isLargeResponse = responseSize > SHOW_INLINE_BYTES;
   const canViewLargeResponse = Boolean(bodyRef) && responseSize > SHOW_INLINE_BYTES && responseSize <= VIEW_MAX_BYTES;
-  const displayData = viewedBodyData != null ? viewedBodyData : data;
-  // Prefer in-memory bytes (response examples) over the live request's bodyRef URL.
-  const mediaSrc = useMemo(() => (dataBuffer ? null : mediaUrlFor(bodyRef)), [bodyRef, dataBuffer]);
+  const canPreviewBinary =
+    Boolean(bodyRef) && isBinaryMedia && !dataBuffer && responseSize <= VIEW_MAX_BYTES;
+  const displayData = textBody.data != null ? textBody.data : data;
+  const mediaSrc = dataBuffer ? null : blobBody.objectUrl;
 
-  const showLargeWarning = isLargeResponse && !showLargeResponse;
+  const showLargeWarning = isLargeResponse && !showLargeResponse && !canPreviewBinary;
 
   const detectedContentType = useMemo(() => {
     if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
@@ -163,29 +168,25 @@ const QueryResult = ({
 
   const handleRevealResponse = useCallback(async () => {
     if (!canViewLargeResponse) return;
-    if (viewedBodyData != null) {
+    if (textBody.data != null) {
       setShowLargeResponse(true);
       return;
     }
 
-    // Media previews use mediaSrc from bodyRef; skip loading the body into memory.
-    const ct = (contentType || '').toLowerCase();
-    if (ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video')) {
-      setShowLargeResponse(true);
+    const ok = await textBody.load();
+    if (!ok) {
+      toast.error('Failed to load response body');
       return;
     }
+    setShowLargeResponse(true);
+  }, [canViewLargeResponse, textBody.data, textBody.load]);
 
-    setRevealLoading(true);
-    try {
-      const result = await getResponseBodyClient().read(bodyRef);
-      setViewedBodyData(result?.data ?? '');
-      setShowLargeResponse(true);
-    } catch (err) {
-      toast.error(get(err, 'error.message') || get(err, 'message') || 'Failed to load response body');
-    } finally {
-      setRevealLoading(false);
+  useEffect(() => {
+    if (!canPreviewBinary || showLargeWarning) {
+      return;
     }
-  }, [bodyRef, canViewLargeResponse, contentType, viewedBodyData]);
+    blobBody.load();
+  }, [bodyRef, canPreviewBinary, showLargeWarning]);
 
   const handleFilterChange = (value) => {
     if (onFilterChange) {
@@ -256,7 +257,7 @@ const QueryResult = ({
           item={item}
           responseSize={responseSize}
           canView={canViewLargeResponse}
-          revealLoading={revealLoading}
+          revealLoading={textBody.loading}
           onRevealResponse={handleRevealResponse}
         />
       ) : (

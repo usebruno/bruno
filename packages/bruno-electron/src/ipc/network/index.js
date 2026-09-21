@@ -105,6 +105,15 @@ const getDataForIpc = (response) => {
     return response.data;
   }
 };
+
+const discardIngestedBodyBuffer = (response) => {
+  if (!response?.bodyRef) return;
+  try {
+    getResponseBodyService().store.discardBuffer(response.bodyRef);
+  } catch (_) {
+    /* ignore */
+  }
+};
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
@@ -1347,6 +1356,9 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const ipcData = getDataForIpc(response);
+      if (!isResponseStream) {
+        discardIngestedBodyBuffer(response);
+      }
 
       return {
         status: response.status,
@@ -2190,6 +2202,8 @@ const registerNetworkIpc = (mainWindow) => {
               const domainsWithCookiesTest = await getDomainsWithCookies();
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
+
+            discardIngestedBodyBuffer(response);
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',

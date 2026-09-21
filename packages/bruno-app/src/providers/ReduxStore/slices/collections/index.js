@@ -696,7 +696,6 @@ export const collectionsSlice = createSlice({
             data: {
               request: timelineRequest,
               response: action.payload.response,
-              bodyPinId: action.payload.timelineBodyPinId || null,
               timestamp: timestamp
             }
           });

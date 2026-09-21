@@ -15,7 +15,7 @@ const writeChunk = async (writeStream, buf) => {
 
 /**
  * Pure response-body store (no Electron).
- * Dumb dual multi-writer: every ingest writes to a spill file and to an in-memory buffer.
+ * Every ingest writes to a spill file; RAM buffer is optional and may be discarded after request processing.
  */
 const createResponseBodyStore = ({
   fs,
@@ -31,8 +31,6 @@ const createResponseBodyStore = ({
 
   /** @type {Map<string, object>} */
   const entries = new Map();
-  /** @type {Map<string, string>} */
-  const pins = new Map();
 
   const ensureSpillDir = async () => {
     await fs.mkdirp(spillDir);
@@ -63,8 +61,7 @@ const createResponseBodyStore = ({
       buffer,
       size,
       contentType,
-      headers,
-      refs: 0
+      headers
     });
     return {
       bodyRef,
@@ -75,7 +72,6 @@ const createResponseBodyStore = ({
 
   /**
    * Ingest a Node Readable via dual writers: file + in-memory response buffer.
-   * No size / spill / drop logic in the writer.
    */
   const ingestStream = async (readable, { contentType, headers } = {}) => {
     if (!readable) {
@@ -157,44 +153,30 @@ const createResponseBodyStore = ({
     const maxLen = entry.size - start;
     const len = length == null ? maxLen : Math.min(Math.max(0, length | 0), maxLen);
 
-    return entry.buffer.subarray(start, start + len);
+    if (entry.buffer) {
+      return entry.buffer.subarray(start, start + len);
+    }
+
+    return fs.readFileRange(entry.filePath, { position: start, length: len });
   };
 
   const getBufferForScripts = (bodyRef) => {
     const entry = getEntry(bodyRef);
+    if (!entry.buffer) {
+      throw new Error(`Response body buffer discarded for ${bodyRef}`);
+    }
     return entry.buffer;
+  };
+
+  const discardBuffer = (bodyRef) => {
+    const entry = entries.get(bodyRef);
+    if (!entry) return;
+    entry.buffer = null;
   };
 
   const saveToPath = async (bodyRef, destPath) => {
     const entry = getEntry(bodyRef);
     await fs.copyFile(entry.filePath, destPath);
-  };
-
-  const pin = (bodyRef) => {
-    getEntry(bodyRef);
-    const pinId = idGen();
-    entries.get(bodyRef).refs += 1;
-    pins.set(pinId, bodyRef);
-    return pinId;
-  };
-
-  const release = async (pinIdOrBodyRef) => {
-    if (pins.has(pinIdOrBodyRef)) {
-      const bodyRef = pins.get(pinIdOrBodyRef);
-      pins.delete(pinIdOrBodyRef);
-      const entry = entries.get(bodyRef);
-      if (!entry) return;
-      entry.refs = Math.max(0, entry.refs - 1);
-      if (entry.refs === 0) {
-        await destroyEntry(bodyRef);
-      }
-      return;
-    }
-
-    const entry = entries.get(pinIdOrBodyRef);
-    if (!entry) return;
-    if (entry.refs > 0) return;
-    await destroyEntry(pinIdOrBodyRef);
   };
 
   const getFilePath = (bodyRef) => {
@@ -208,10 +190,10 @@ const createResponseBodyStore = ({
     getStat,
     readRange,
     getBufferForScripts,
+    discardBuffer,
     getFilePath,
     saveToPath,
-    pin,
-    release,
+    destroyEntry,
     _entries: entries
   };
 };

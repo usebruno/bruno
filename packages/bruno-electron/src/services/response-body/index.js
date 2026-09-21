@@ -1,12 +1,7 @@
 const { createResponseBodyStore } = require('./store');
 const { createNodeFileSystem } = require('./node-fs');
-const { ensureResponseBodiesDirectory } = require('./paths');
+const { purgeResponseBodiesDirectory } = require('./paths');
 const { registerResponseBodyIpc, CHANNELS } = require('./ipc');
-const {
-  registerBrunoResponseScheme,
-  registerBrunoResponseProtocol,
-  SCHEME
-} = require('./protocol');
 const { SHOW_INLINE_BYTES, VIEW_MAX_BYTES } = require('./constants');
 const {
   BodyNotFoundError,
@@ -21,7 +16,7 @@ const createResponseBodyService = (options = {}) => {
     return singleton;
   }
 
-  const spillDir = options.spillDir || ensureResponseBodiesDirectory();
+  const spillDir = options.spillDir || purgeResponseBodiesDirectory();
   const fs = options.fs || createNodeFileSystem();
   const store = createResponseBodyStore({
     fs,
@@ -34,9 +29,6 @@ const createResponseBodyService = (options = {}) => {
     spillDir,
     registerIpc(mainWindow) {
       return registerResponseBodyIpc(mainWindow, store);
-    },
-    registerProtocol() {
-      registerBrunoResponseProtocol(store);
     }
   };
 
@@ -53,9 +45,7 @@ const getResponseBodyService = () => {
 module.exports = {
   createResponseBodyService,
   getResponseBodyService,
-  registerBrunoResponseScheme,
   CHANNELS,
-  SCHEME,
   SHOW_INLINE_BYTES,
   VIEW_MAX_BYTES,
   BodyNotFoundError,
