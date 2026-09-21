@@ -573,8 +573,19 @@ const buildPostData = (body: BrunoBody | undefined): any => {
           : []
       };
     }
-    case 'graphql':
-      return { mimeType, text: JSON.stringify(body.graphql) };
+    case 'graphql': {
+      const graphql = body.graphql || {};
+      let variables = graphql.variables;
+      if (typeof variables === 'string') {
+        try {
+          variables = variables.trim() ? JSON.parse(variables) : undefined;
+        } catch {
+          // Leave as the raw string; an invalid-JSON snippet is still more useful than a thrown error.
+        }
+      }
+      const query = typeof graphql.query === 'string' ? graphql.query.replace(/\s+/g, ' ').trim() : graphql.query;
+      return { mimeType, text: JSON.stringify({ ...graphql, query, variables }) };
+    }
     default:
       return { mimeType, text: body[body.mode] };
   }

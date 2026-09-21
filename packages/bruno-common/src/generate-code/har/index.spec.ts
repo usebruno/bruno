@@ -526,14 +526,40 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(sparqlBody);
   });
 
-  it('graphql → mimeType=application/json, postData.text is JSON.stringify of body.graphql', async () => {
-    const graphql = { query: 'query Q { me { id } }', variables: { foo: 'bar' } };
+  it('graphql → mimeType=application/json, postData.text nests parsed variables as JSON', async () => {
+    const graphql = { query: 'query Q { me { id } }', variables: '{\n  "foo": "bar"\n}' };
     const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'graphql', graphql } }),
       shouldInterpolate: false
     });
     expect(har.postData.mimeType).toBe('application/json');
+    expect(har.postData.text).toBe(JSON.stringify({ query: graphql.query, variables: { foo: 'bar' } }));
+  });
+
+  it('graphql → invalid JSON variables falls back to the raw string instead of throwing', async () => {
+    const graphql = { query: 'query Q { me { id } }', variables: 'not valid json' };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      shouldInterpolate: false
+    });
     expect(har.postData.text).toBe(JSON.stringify(graphql));
+  });
+
+  it('graphql → query whitespace/newlines collapse to single spaces', async () => {
+    const graphql = {
+      query: 'query Query($var: Boolean!, $var2: String!) {\n  field(var: $var, var2: $var2)\n}',
+      variables: '{\n  "var": true,\n  "var2": "1234"\n}'
+    };
+    const { har } = await buildHar({
+      request: baseRequest({ body: { mode: 'graphql', graphql } }),
+      shouldInterpolate: false
+    });
+    expect(har.postData.text).toBe(
+      JSON.stringify({
+        query: 'query Query($var: Boolean!, $var2: String!) { field(var: $var, var2: $var2) }',
+        variables: { var: true, var2: '1234' }
+      })
+    );
   });
 
   it('file → mimeType from selected file, text=filePath, params has fileName + contentType', async () => {
