@@ -79,6 +79,24 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const [scroll, setScroll] = usePersistedState({ key: `request-headers-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
 
+  const pinHeadersToTop = useCallback(() => {
+    const pane = wrapperRef.current?.closest('.flex-boundary');
+    if (!pane) {
+      setScroll(0);
+      return;
+    }
+
+    const pin = () => {
+      pane.scrollTop = 0;
+    };
+    pin();
+    requestAnimationFrame(() => {
+      pin();
+      requestAnimationFrame(pin);
+    });
+    setScroll(0);
+  }, [setScroll]);
+
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
   const headersWidths = focusedTab?.tableColumnWidths?.['request-headers'] || {};
@@ -223,7 +241,10 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     }
 
     const toggle = row.section === ROW_TYPE.DEFAULT
-      ? () => setIsDefaultHeadersExpanded(!isDefaultHeadersExpanded)
+      ? () => {
+          pinHeadersToTop();
+          setIsDefaultHeadersExpanded(!isDefaultHeadersExpanded);
+        }
       : () => setIsRequestHeadersExpanded(!isRequestHeadersExpanded);
 
     return (
@@ -238,7 +259,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         <span>{row.label} ({row.count})</span>
       </button>
     );
-  }, [isDefaultHeadersExpanded, isRequestHeadersExpanded, setIsDefaultHeadersExpanded, setIsRequestHeadersExpanded]);
+  }, [isDefaultHeadersExpanded, isRequestHeadersExpanded, pinHeadersToTop, setIsDefaultHeadersExpanded, setIsRequestHeadersExpanded]);
 
   const getRowError = useCallback((row, index, key) => {
     if (row.rowType && row.rowType !== ROW_TYPE.REQUEST) {
@@ -448,7 +469,10 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
               type="button"
               className="btn-action toggle-default-headers select-none flex items-center gap-1"
               data-testid="toggle-default-headers"
-              onClick={() => setShowDefaultHeaders(!showDefaultHeaders)}
+              onClick={() => {
+                pinHeadersToTop();
+                setShowDefaultHeaders(!showDefaultHeaders);
+              }}
             >
               {showDefaultHeaders
                 ? <IconEyeOff size={16} strokeWidth={1.5} />
