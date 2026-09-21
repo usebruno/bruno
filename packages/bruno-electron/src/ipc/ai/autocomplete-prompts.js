@@ -208,13 +208,9 @@ const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.
 // or arrow param) — in which case a suggestion referencing it is legitimate.
 const buildApiBindingRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
-// Match a declarator for `<name>` whose initializer the cursor is still inside — the
-// statement runs to the cursor without crossing `;`, a brace, or a newline. The binding
-// is not usable yet, so a `<name>` on the right-hand side is still the global and must
-// not be exempted by the declaration being typed.
-// The comma alternative anchors `<name>` to a declarator position; excluding brackets
-// from that run keeps a comma inside a call or array literal (`const y = foo(a, res`)
-// from passing as one, so a statement that merely reads `<name>` keeps its exemption.
+// Cursor inside a declarator's own initializer (`const res = res.`), where `<name>` is
+// still the global. Brackets excluded so `const y = foo(a, res` reads as using `res`,
+// not declaring it.
 const buildPendingDeclRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+(?:[^;{}()\\[\\]\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
 
@@ -265,21 +261,20 @@ const duplicatesPrecedingWord = (prefix, suggestion) => {
   return (pendingWord + head).endsWith(preceding[1]);
 };
 
-// Cursor sits on a declarator name that has no initializer yet — `const req`, or the last
-// name of `const a = 1, req`. Anything but more of the name, `=`, `,` or `;` is invalid there.
-const DECLARATOR_AWAITING_INIT_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*$/;
-const MEMBER_ACCESS_START_RE = /^\s*\??\s*[.([]/;
+// A member accessor applied to a name still being declared, before any `=`:
+// `const req` + `.setUrl(…)` gives `const req.setUrl(…)`, which is not valid JavaScript.
+// Matched against prefix and suggestion joined, because the suggestion may carry part of
+// the name itself (`const re` + `req.setUrl(…)`) and only the join reveals the splice.
+const DECLARATOR_SPLICE_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*\??\s*[.([]/;
 
-// A member accessor offered at that point splices into the declaration itself
-// (`const req` + `.setUrl(…)` → `const req.setUrl(…)`), which does not parse.
 const splicesIntoDeclarator = (suggestion, prefix) =>
-  MEMBER_ACCESS_START_RE.test(suggestion) && DECLARATOR_AWAITING_INIT_RE.test(prefixTail(prefix));
+  DECLARATOR_SPLICE_RE.test(prefixTail(String(prefix || '')) + suggestion);
 
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
-  if (splicesIntoDeclarator(cleaned, prefix)) return '';
   const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (splicesIntoDeclarator(deduped, prefix)) return '';
   if (duplicatesPrecedingWord(prefix, deduped)) return '';
   return ensureNewlineAfterComment(prefix, deduped);
 };

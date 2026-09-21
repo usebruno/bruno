@@ -484,6 +484,20 @@ describe('sanitizeSuggestion — declarator splices', () => {
       .toBe('');
   });
 
+  it('drops a member access the model re-typed the declarator name into', () => {
+    expect(sanitizeSuggestion({ text: 'req.setUrl("https://x.com");', prefix: 'const req', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'req.setUrl("https://x.com");', prefix: 'const re', scriptType: 'pre-request' }))
+      .toBe('');
+    expect(sanitizeSuggestion({ text: 'res.getBody();', prefix: 'const r', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('drops a call or index the model re-typed the declarator name into', () => {
+    expect(sanitizeSuggestion({ text: 'req(1);', prefix: 'const re', scriptType: 'pre-request' })).toBe('');
+    expect(sanitizeSuggestion({ text: 'req[0];', prefix: 'const re', scriptType: 'pre-request' })).toBe('');
+  });
+
   it('keeps a member access on a variable that is already initialized', () => {
     expect(sanitizeSuggestion({ text: '.getUrl();', prefix: 'const foo = req', scriptType: 'pre-request' }))
       .toBe('.getUrl();');
