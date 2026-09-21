@@ -217,7 +217,14 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
-    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
+    ownItem: (tagName: string) => page.locator('.tag-item:not(.inherited)', { hasText: tagName }),
+    ownItems: () => page.locator('.tag-item:not(.inherited)'),
+    error: () => page.getByTestId('tag-error'),
+    inheritedToggle: () => page.getByTestId('inherited-tags-toggle'),
+    inheritedList: () => page.getByTestId('inherited-tag-list'),
+    inheritedItems: () => page.getByTestId('inherited-tag'),
+    inheritedItem: (tagName: string) => page.getByTestId('inherited-tag').filter({ hasText: tagName })
   },
   generateDocs: {
     menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
@@ -249,11 +256,11 @@ export const buildCommonLocators = (page: Page) => ({
         .filter({ has: page.getByText(name, { exact: true }) })
         .getByRole('checkbox'),
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
-    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
-    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
-    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
-    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
