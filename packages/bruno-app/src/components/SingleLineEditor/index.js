@@ -9,6 +9,7 @@ import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
+require('codemirror/addon/edit/closebrackets');
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -57,6 +58,9 @@ class SingleLineEditor extends Component {
       scrollbarStyle: null,
       tabindex: 0,
       readOnly: this.props.readOnly,
+      // Scoped to curly braces only, so `{{` auto-closes to `{{}}` for variable
+      // interpolation without affecting parens/brackets/quotes elsewhere (e.g. `?ids[]=1`).
+      autoCloseBrackets: { pairs: '{}', explode: '' },
       extraKeys: {
         'Enter': runHandler,
         'Alt-Enter': () => {

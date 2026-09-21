@@ -61,6 +61,10 @@
  * - Memory cleanup even on errors
  */
 
+// A value that is entirely a single variable reference (e.g. "{{accessToken}}"), optionally
+// with surrounding whitespace. Matches the pattern used by useDetectSensitiveField.
+const SINGLE_VARIABLE_REFERENCE_REGEX = /^\s*\{\{.*\}\}\s*$/;
+
 export class MaskedEditor {
   constructor(editor, maskChar = '*') {
     this.editor = editor;
@@ -154,6 +158,11 @@ export class MaskedEditor {
     try {
       const content = this.editor.getValue();
       const lineCount = this.editor.lineCount();
+
+      if (this.isSingleVariableReference(content)) {
+        this.clearAllMarks();
+        return;
+      }
 
       // For multiline content, use more efficient line-based masking
       if (lineCount > 1) {
@@ -250,6 +259,12 @@ export class MaskedEditor {
     }
 
     this.clearAllMarks();
+
+    // A value that is just a variable reference (e.g. "{{accessToken}}") isn't itself
+    // sensitive content, so leave it visible instead of masking it.
+    if (this.isSingleVariableReference(content)) {
+      return;
+    }
 
     // Apply new masking based on content size with editor operation
     if (content.length <= 500) {
@@ -398,6 +413,13 @@ export class MaskedEditor {
 
     // Clear our mark tracking
     this.marks.clear();
+  }
+
+  /**
+   * Check whether the content is entirely a single variable reference, e.g. "{{accessToken}}"
+   */
+  isSingleVariableReference(content) {
+    return typeof content === 'string' && SINGLE_VARIABLE_REFERENCE_REGEX.test(content);
   }
 
   /**
