@@ -1,0 +1,7 @@
+{
+  "name": "Production",
+  "variables": [
+    { "name": "api_url", "value": "https://api.updated.example.com", "enabled": true, "secret": false },
+    { "name": "api_version", "value": "v2", "enabled": true, "secret": false }
+  ]
+}

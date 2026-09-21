@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { loadMigrations, loadStatements } from './lib/sources';
+import { literal } from './lib/literal';
 
 const GENERATED_DIR = path.join(process.cwd(), 'src', 'generated');
 const NODE_DIR = path.join(GENERATED_DIR, 'node');
@@ -19,12 +20,12 @@ const main = () => {
 
   writeFile(
     path.join(NODE_DIR, 'migrations.ts'),
-    `${BANNER}\nimport type { Migration } from '../../shared/types';\n\nexport const migrations: Migration[] = ${JSON.stringify(migrations, null, 2)};\n`
+    `${BANNER}\nimport type { Migration } from '../../shared/types';\n\nexport const migrations: Migration[] = ${literal(migrations)};\n`
   );
 
   writeFile(
     path.join(NODE_DIR, 'statements.ts'),
-    `${BANNER}\nimport type { StatementDef } from '../../shared/types';\n\nexport const statements: StatementDef[] = ${JSON.stringify(statements, null, 2)};\n`
+    `${BANNER}\nimport type { StatementDef } from '../../shared/types';\n\nexport const statements: StatementDef[] = ${literal(statements)};\n`
   );
 
   const typeMap: Record<string, string> = {};
@@ -37,9 +38,9 @@ const main = () => {
   writeFile(
     path.join(WEB_DIR, 'statements.ts'),
     `${BANNER}\n\n`
-    + `export const statementTypes = ${JSON.stringify(typeMap, null, 2)} as const;\n\n`
+    + `export const statementTypes = ${literal(typeMap)} as const;\n\n`
     + `export type StatementName = ${statementName};\n\n`
-    + `export const statementTables: Record<string, readonly string[]> = ${JSON.stringify(tableMap, null, 2)};\n`
+    + `export const statementTables: Record<string, readonly string[]> = ${literal(tableMap)};\n`
   );
 
   console.log(`Generated ${migrations.length} migration(s) and ${statements.length} statement(s).`);

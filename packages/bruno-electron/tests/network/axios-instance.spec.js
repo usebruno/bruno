@@ -72,6 +72,57 @@ describe('axios-instance: default headers', () => {
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
   });
+
+  test('omits default headers listed in settings.omitHeaders', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      settings: {
+        omitHeaders: ['User-Agent', 'Accept']
+      },
+      __explicitHeaderNames: []
+    });
+
+    const headers = stubAdapter.getConfig().headers;
+    expect(headers['User-Agent']).toBeNull();
+    expect(headers['Accept']).toBeNull();
+  });
+
+  test('measures duration from metadata.startTime without sending request-start-time', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    const response = await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
+    const config = stubAdapter.getConfig();
+
+    expect(config.headers['request-start-time']).toBeUndefined();
+    expect(config.metadata.startTime).toEqual(expect.any(Number));
+    expect(Number(response.headers['request-duration'])).toBeGreaterThanOrEqual(0);
+  });
+
+  test('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      headers: {
+        'User-Agent': 'my-client/1.0'
+      },
+      settings: {
+        omitHeaders: ['User-Agent']
+      },
+      __explicitHeaderNames: ['User-Agent']
+    });
+
+    expect(stubAdapter.getConfig().headers['User-Agent']).toBe('my-client/1.0');
+  });
 });
 
 describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
@@ -452,9 +503,64 @@ describe('axios-instance: sent headers', () => {
     expect(error.response.sentHeaders).toMatchObject({
       'Host': `127.0.0.1:${server.address().port}`,
       'Connection': 'keep-alive',
-      'User-Agent': expect.stringMatching(/^bruno-runtime\//),
-      'request-start-time': expect.stringMatching(/^\d+$/)
+      'User-Agent': expect.stringMatching(/^bruno-runtime\//)
     });
+  });
+
+  test('omits Connection on the wire when listed in settings.omitHeaders', async () => {
+    let seenHeaders;
+    const echoServer = http.createServer((req, res) => {
+      seenHeaders = req.headers;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
+    const echoUrl = `http://127.0.0.1:${echoServer.address().port}/`;
+
+    try {
+      const instance = makeAxiosInstance();
+      // Attach a keepAlive agent the way production setupProxyAgents would.
+      await instance({
+        url: echoUrl,
+        method: 'get',
+        headers: {},
+        httpAgent: new http.Agent({ keepAlive: true }),
+        settings: { omitHeaders: ['Connection', 'Accept'] },
+        __explicitHeaderNames: []
+      });
+
+      expect(seenHeaders.connection).toBeUndefined();
+      expect(seenHeaders.accept).toBeUndefined();
+    } finally {
+      await new Promise((resolve) => echoServer.close(resolve));
+    }
+  });
+
+  test('keeps an explicit Connection when omitHeaders also lists Connection', async () => {
+    let seenHeaders;
+    const echoServer = http.createServer((req, res) => {
+      seenHeaders = req.headers;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
+    const echoUrl = `http://127.0.0.1:${echoServer.address().port}/`;
+
+    try {
+      const instance = makeAxiosInstance();
+      await instance({
+        url: echoUrl,
+        method: 'get',
+        headers: { Connection: 'close' },
+        httpAgent: new http.Agent({ keepAlive: true }),
+        settings: { omitHeaders: ['Connection'] },
+        __explicitHeaderNames: ['Connection']
+      });
+
+      expect(seenHeaders.connection).toBe('close');
+    } finally {
+      await new Promise((resolve) => echoServer.close(resolve));
+    }
   });
 
   test('the proxy credential stays visible but its value is masked', async () => {

@@ -1,0 +1,96 @@
+info:
+  name: HookTests
+  type: grpc
+  seq: 8
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  metadata:
+    - name: x-keep
+      value: kept-value
+    - name: x-remove
+      value: doomed-value
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "hook-tests"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: |-
+        // The hook runs before interpolation, so the scalars still carry the authored placeholders.
+        test('request scalars are readable, and not yet interpolated', () => {
+          expect(bru.grpc.request.url).to.equal('{{host}}');
+          expect(bru.grpc.request.method).to.equal('/hello.HelloService/SayHello');
+          expect(bru.grpc.request.methodType).to.equal('unary');
+          expect(bru.grpc.request.authMode).to.equal('none');
+          expect(bru.grpc.request.name).to.equal('HookTests');
+          expect(bru.grpc.request.protoPath).to.not.exist;
+        });
+
+        test('authored metadata is readable', () => {
+          expect(bru.grpc.request.metadata.count()).to.equal(2);
+          expect(bru.grpc.request.metadata.has('x-keep')).to.be.true;
+          expect(bru.grpc.request.metadata.has('X-KEEP')).to.be.true;
+          expect(bru.grpc.request.metadata.has('x-absent')).to.be.false;
+          expect(bru.grpc.request.metadata.get('x-remove')).to.equal('doomed-value');
+          expect(bru.grpc.request.metadata.one('x-keep')).to.eql({ key: 'x-keep', value: 'kept-value' });
+        });
+
+        // `messages` always reports what the call sent, and the call has yet to send anything.
+        test('no messages have been sent when the hook runs', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(0);
+        });
+
+        test('metadata can be changed before the call starts', () => {
+          bru.grpc.request.metadata.remove('x-remove');
+          bru.grpc.request.metadata.upsert('x-hook', 'set-by-hook');
+
+          expect(bru.grpc.request.metadata.has('x-remove')).to.be.false;
+          expect(bru.grpc.request.metadata.get('x-hook')).to.equal('set-by-hook');
+          expect(bru.grpc.request.metadata.count()).to.equal(2);
+        });
+    - type: grpc:after-call-end
+      code: |-
+        test('response scalars describe the completed call', () => {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+          expect(bru.grpc.response.statusText).to.be.a('string');
+          expect(bru.grpc.response.duration).to.be.a('number').and.to.be.above(0);
+        });
+
+        // Same request object as `beforeCallStart` saw, interpolated by now.
+        test('request scalars are interpolated by the time the call is over', () => {
+          expect(bru.grpc.request.url).to.equal('grpc://localhost:50051');
+          expect(bru.grpc.request.method).to.equal('/hello.HelloService/SayHello');
+          expect(bru.grpc.request.methodType).to.equal('unary');
+          expect(bru.grpc.request.name).to.equal('HookTests');
+        });
+
+        // The metadata read here is the one the call was made with, so a `delete` or `set` in
+        // `beforeCallStart` that never took effect would show up as a failure here.
+        test('the call carried the metadata the hook left behind', () => {
+          expect(bru.grpc.request.metadata.has('x-remove')).to.be.false;
+          expect(bru.grpc.request.metadata.get('x-keep')).to.equal('kept-value');
+          expect(bru.grpc.request.metadata.get('x-hook')).to.equal('set-by-hook');
+        });
+
+        test('response metadata and trailers are readable', () => {
+          expect(bru.grpc.response.metadata.count()).to.be.a('number');
+          expect(bru.grpc.response.trailers.count()).to.be.a('number');
+          expect(bru.grpc.response.metadata.toString()).to.be.a('string');
+        });
+
+        test('metadata is read-only once the call has been sent', () => {
+          expect(() => bru.grpc.response.metadata.upsert('x-late', '1')).to.throw();
+          expect(() => bru.grpc.request.metadata.upsert('x-late', '1')).to.throw();
+        });
+
+        // Deliberately failing, so the failure count on the tab label and the failed row are covered.
+        test('this failure is intentional', () => {
+          expect(bru.grpc.response.statusCode).to.equal(99);
+        });

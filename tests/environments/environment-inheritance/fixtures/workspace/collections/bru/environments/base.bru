@@ -1,0 +1,26 @@
+vars {
+  host: http://localhost:8081
+  api_url: https://base.example.com
+  base_only: base_only_value
+  api_key: plain_api_key
+  session_id: base_session
+  ~disabled_in_base: should_not_resolve
+  shadowed_by_disabled: from_base
+  overridden_plain: plain_from_base
+  @number
+  base_number: 42
+  @boolean
+  base_boolean: true
+  @object
+  base_object: '''
+    {"region":"eu"}
+  '''
+  @number
+  typed_override: 1
+}
+vars:secret [
+  base_token,
+  @object
+  base_secret_object,
+  overridden_secret
+]

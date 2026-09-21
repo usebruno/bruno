@@ -23,10 +23,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
 
     // Locate the request in source collection
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
 
@@ -39,10 +36,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Verify the request has been moved to the target collection
     // Check that the request now appears under target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
 
     // Verify the request is no longer in the source collection
@@ -50,7 +44,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
   });
 
-  test('Expected to show error toast message, when duplicate request found in drop location', async ({
+  test('Silently suffixes the filename when a duplicate request name exists in the drop location', async ({
     page,
     createTmpDir
   }) => {
@@ -71,14 +65,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Go back to source collection to drag the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
 
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
 
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
@@ -90,13 +78,14 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Perform drag and drop operation to target-collection
     await sourceRequest.dragTo(targetCollection);
 
-    // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
 
-    // source and target collection request should remain unchanged
-    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    // The target collection now shows two entries with the same display name
+    // (the original and the moved one; the filesystem name was silently suffixed).
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(2);
+
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
   });
 
   test('Tab should be closed after cross-collection drag and drop', async ({ page, createTmpDir }) => {
@@ -109,10 +98,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Open the request to create a tab
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await sourceRequest.click();
 
@@ -128,10 +114,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(requestTab).not.toBeVisible();
 
     // Verify the request appears in the target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
   });
 });

@@ -1,4 +1,12 @@
-export { addDigestInterceptor, getOAuth2Token, createOAuth1Authorizer, computeBodyHash, applyOAuth1ToRequest, addEdgeGridInterceptor } from './auth';
+export {
+  addDigestInterceptor,
+  getOAuth2Token,
+  createOAuth1Authorizer,
+  computeBodyHash,
+  applyOAuth1ToRequest,
+  addEdgeGridInterceptor,
+  handleNtlmRedirect
+} from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';
 export { default as cookies } from './cookies';
@@ -15,4 +23,10 @@ export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
 export * as scripting from './scripting';
 
-export { makeAxiosInstance, getSystemProxy, getSentHeaders, applySentHeadersToRequest } from './network';
+export {
+  makeAxiosInstance,
+  getSystemProxy,
+  getSentHeaders,
+  applySentHeadersToRequest,
+  applyOmitConnectionToAxiosConfig
+} from './network';

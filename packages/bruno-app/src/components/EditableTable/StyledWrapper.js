@@ -16,6 +16,22 @@ const StyledWrapper = styled.div`
     overflow: clip;
   }
 
+  /* Sticky section rows must stick to the pane scroller, not this clip box. */
+  &.has-section-rows .table-container {
+    overflow: visible;
+  }
+
+  &.has-section-rows thead tr {
+    height: 35px;
+  }
+
+  &.has-section-rows thead td {
+    height: 35px;
+    box-sizing: border-box;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -29,6 +45,9 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.sidebar.bg};
     user-select: none;
     overflow: visible;
+    position: sticky;
+    top: 0;
+    z-index: 13;
 
     border: none !important;
 
@@ -60,16 +79,27 @@ const StyledWrapper = styled.div`
 
       .resize-handle {
         position: absolute;
-        right: 0;
+        right: -2px;
         top: 0;
-        width: 4px;
+        width: 5px;
         height: 100%;
         cursor: col-resize;
         background: transparent;
         z-index: 10;
 
-        &:hover,
-        &.resizing {
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          transform: translateX(-50%);
+          background: transparent;
+        }
+
+        &:hover::after,
+        &.resizing::after {
           background: ${(props) => props.theme.colors.accent};
         }
       }
@@ -158,6 +188,31 @@ const StyledWrapper = styled.div`
         height: auto;
         max-height: calc(35px * 3); 
         overflow: auto;
+      }
+
+      &.section-header-row {
+        background: ${(props) => props.theme.sidebar.bg};
+
+        td.full-width-row {
+          position: sticky;
+          top: 34px;
+          z-index: 12;
+          height: 35px;
+          max-height: 35px;
+          padding: 0 !important;
+          border-right: none;
+          border-bottom: solid 1px ${(props) => props.theme.border.border0} !important;
+          overflow: visible;
+          background: ${(props) => props.theme.sidebar.bg};
+          box-shadow:
+            0 -1px 0 ${(props) => props.theme.sidebar.bg},
+            inset 0 -1px 0 ${(props) => props.theme.border.border0};
+
+          > * {
+            height: 100%;
+            max-height: none;
+          }
+        }
       }
     }
   }
@@ -248,6 +303,26 @@ const StyledWrapper = styled.div`
 
   tbody tr.dragging-source {
     opacity: 0.4;
+  }
+
+  @keyframes row-focus-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.warning.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  tbody tr.row-focus-flash td {
+    animation: row-focus-flash 2.5s ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr.row-focus-flash td {
+      animation: none;
+      background-color: ${(props) => props.theme.status.warning.background};
+    }
   }
 
   select {

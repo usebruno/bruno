@@ -21,7 +21,7 @@ const ApiSpecPanel = () => {
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   let apiSpec = find(apiSpecs, (c) => c.uid === activeApiSpecUid);
-  const { filename, pathname, raw, uid, leftPaneWidth } = apiSpec || {};
+  const { filename, pathname, raw, uid, leftPaneWidth, resolvedJson } = apiSpec || {};
 
   const handleLeftPaneWidthChange = useCallback(
     (w) => {
@@ -87,6 +87,7 @@ const ApiSpecPanel = () => {
       </div>
       <SpecViewer
         content={raw}
+        resolvedSpec={resolvedJson}
         onSave={(content) => dispatch(saveApiSpecToFile({ uid, content }))}
         leftPaneWidth={leftPaneWidth ?? null}
         onLeftPaneWidthChange={handleLeftPaneWidthChange}

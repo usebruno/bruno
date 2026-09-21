@@ -4,6 +4,7 @@ import type { Variable, SecretVariable } from '@opencollection/types/common/vari
 import { parseYml } from './utils';
 import { uuid, ensureString } from '../../utils';
 import { isTypedValue, fromOpenCollectionTypedValue } from './common/datatype';
+import { validatedEnvironmentExtendsFrom } from '@usebruno/common/utils';
 
 const isSecretVariable = (v: Variable | SecretVariable): v is SecretVariable => {
   return 'secret' in v && v.secret === true;
@@ -89,6 +90,11 @@ const parseEnvironment = (ymlString: string): BrunoEnvironment => {
       variables: toBrunoEnvironmentVariables(ocEnvironment.variables),
       color: ocEnvironment.color || null
     };
+
+    const ocEnvironmentExtendsFrom = validatedEnvironmentExtendsFrom(ocEnvironment.extends);
+    if (ocEnvironmentExtendsFrom) {
+      brunoEnvironment.extends = ocEnvironmentExtendsFrom;
+    }
 
     const externalSecrets = toBrunoExternalSecrets((ocEnvironment as any).externalSecrets);
     if (externalSecrets) {

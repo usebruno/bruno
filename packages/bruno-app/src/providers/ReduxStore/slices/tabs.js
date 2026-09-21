@@ -366,6 +366,25 @@ export const tabsSlice = createSlice({
         tab.focusErrorLine = null;
       }
     },
+    setFocusTableRow: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusTableRow = {
+          tableId: action.payload.tableId,
+          rowUid: action.payload.rowUid,
+          rowName: action.payload.rowName,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusTableRow: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusTableRow = null;
+      }
+    },
     updateQueryBuilderOpen: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -649,6 +668,8 @@ export const {
   updateScriptPaneTab,
   setFocusErrorLine,
   clearFocusErrorLine,
+  setFocusTableRow,
+  clearFocusTableRow,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,

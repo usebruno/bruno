@@ -1,4 +1,4 @@
-const { sanitizeName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile, moveCollectionDirectory } = require('./filesystem.js');
+const { sanitizeName, nextSuffixedName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile, moveCollectionDirectory } = require('./filesystem.js');
 const fs = require('fs-extra');
 const os = require('os');
 const path = require('path');
@@ -29,6 +29,21 @@ describe('sanitizeName', () => {
     const input = 'my/invalid/directory';
     const expectedOutput = 'my-invalid-directory';
     expect(sanitizeName(input)).toEqual(expectedOutput);
+  });
+});
+
+describe('nextSuffixedName', () => {
+  it('omits the suffix for n === 0', () => {
+    expect(nextSuffixedName('login', 'bru', 0)).toBe('login.bru');
+  });
+
+  it('appends the counter before the extension', () => {
+    expect(nextSuffixedName('login', 'bru', 2)).toBe('login 2.bru');
+  });
+
+  it('handles folders (no extension)', () => {
+    expect(nextSuffixedName('My Folder', '', 0)).toBe('My Folder');
+    expect(nextSuffixedName('My Folder', '', 1)).toBe('My Folder 1');
   });
 });
 

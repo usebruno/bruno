@@ -40,6 +40,6 @@ test.describe('OpenAPI Duplicate Names Handling', () => {
     await page.locator('#sidebar-collection-name').getByText('Duplicate Test Collection').click();
 
     // verify that all 3 requests were imported correctly despite duplicate operation names
-    await expect(page.locator('#collection-duplicate-test-collection .collection-item-name')).toHaveCount(3);
+    await expect(page.locator('[data-collection-id="duplicate-test-collection"] .collection-item-name')).toHaveCount(3);
   });
 });

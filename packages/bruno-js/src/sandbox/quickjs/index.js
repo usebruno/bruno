@@ -2,6 +2,7 @@ const addBruShimToContext = require('./shims/bru');
 const addBrunoRequestShimToContext = require('./shims/bruno-request');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
+const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
@@ -191,6 +192,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
+    bru?.grpc && addBrunoGrpcShimToContext(vm, bru.grpc);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     addLocalModuleLoaderShimToContext(vm, collectionPath);

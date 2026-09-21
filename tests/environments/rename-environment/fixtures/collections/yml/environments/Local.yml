@@ -1,0 +1,5 @@
+name: Local
+
+variables:
+  - name: host
+    value: https://echo.usebruno.com
