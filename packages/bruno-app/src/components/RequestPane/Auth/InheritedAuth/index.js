@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconExternalLink } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
@@ -80,7 +81,7 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
     <StyledWrapper className="inherited-auth-source">
       <div className="inherited-auth-source-row">
         <div className="inherited-auth-source-copy" title={`Auth inherited from ${inheritedSource.name}`}>
-          Auth inherited from {inheritedSource.name}:
+          Auth inherited from <span className="inherited-auth-source-name">{inheritedSource.name}</span>:
         </div>
         <button
           type="button"
@@ -90,6 +91,7 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
           aria-label={`Open ${humanizeRequestAuthMode(inheritedMode)} auth in ${inheritedSource.name}`}
         >
           {humanizeRequestAuthMode(inheritedMode)}
+          <IconExternalLink size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </div>
     </StyledWrapper>

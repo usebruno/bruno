@@ -26,15 +26,20 @@ const Wrapper = styled.div`
     white-space: nowrap;
   }
 
+  .inherited-auth-source-name {
+    font-weight: 600;
+  }
+
   .inherit-mode-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     color: ${(props) => props.theme.primary.text};
     background: transparent;
     border: none;
     padding: 0;
     font: inherit;
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
     white-space: nowrap;
     flex-shrink: 0;
 
