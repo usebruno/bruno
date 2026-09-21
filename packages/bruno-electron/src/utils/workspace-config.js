@@ -641,7 +641,7 @@ const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
     };
 
     const existingIndex = config.specs.findIndex(
-      (a) => a.name === normalizedSpec.name || (a.path && posixifyPath(a.path) === normalizedSpec.path)
+      (a) => a.path && specPathKey(posixifyPath(a.path)) === specPathKey(normalizedSpec.path)
     );
 
     if (existingIndex >= 0) {
@@ -656,6 +656,57 @@ const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
   });
 };
 
+// Windows paths are case-insensitive, so two spellings of one file must map to one entry.
+const specPathKey = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
+
+const hasWorkspaceFile = (workspacePath) =>
+  Boolean(workspacePath) && fs.existsSync(path.join(workspacePath, 'workspace.yml'));
+
+const isSameApiSpecEntry = (workspacePath, entry, apiSpecPath) => {
+  if (!entry?.path) return false;
+
+  const specPathFromYml = posixifyPath(entry.path);
+  const absoluteSpecPath = path.isAbsolute(specPathFromYml)
+    ? specPathFromYml
+    : path.resolve(workspacePath, specPathFromYml);
+
+  return specPathKey(path.normalize(absoluteSpecPath)) === specPathKey(path.normalize(apiSpecPath));
+};
+
+const findApiSpecEntry = (workspacePath, apiSpecPath) => {
+  const specs = readWorkspaceConfig(workspacePath).specs;
+  return (Array.isArray(specs) ? specs : []).find((a) => isSameApiSpecEntry(workspacePath, a, apiSpecPath)) || null;
+};
+
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
+
+const renameApiSpecInWorkspace = async (workspacePath, apiSpecPath, newName) => {
+  const trimmedName = typeof newName === 'string' ? newName.trim() : '';
+  if (!trimmedName) {
+    throw new Error('API spec name is required');
+  }
+  if (CONTROL_CHARACTERS.test(trimmedName)) {
+    throw new Error('API spec name cannot contain line breaks or control characters');
+  }
+
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    const specs = Array.isArray(config.specs) ? config.specs : [];
+    const spec = specs.find((a) => isSameApiSpecEntry(workspacePath, a, apiSpecPath));
+
+    if (!spec) {
+      throw new Error('API spec not found in workspace');
+    }
+
+    spec.name = trimmedName;
+    config.specs = specs;
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return config;
+  });
+};
+
 const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
   return withLock(getWorkspaceLockKey(workspacePath), async () => {
     const config = readWorkspaceConfig(workspacePath);
@@ -667,14 +718,7 @@ const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
     let removedApiSpec = null;
 
     config.specs = config.specs.filter((a) => {
-      const specPathFromYml = a.path ? posixifyPath(a.path) : a.path;
-      if (!specPathFromYml) return true;
-
-      const absoluteSpecPath = path.isAbsolute(specPathFromYml)
-        ? specPathFromYml
-        : path.resolve(workspacePath, specPathFromYml);
-
-      if (path.normalize(absoluteSpecPath) === path.normalize(apiSpecPath)) {
+      if (isSameApiSpecEntry(workspacePath, a, apiSpecPath)) {
         removedApiSpec = a;
         return false;
       }
@@ -723,7 +767,10 @@ module.exports = {
   resolveAndFilterWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,
+  renameApiSpecInWorkspace,
   removeApiSpecFromWorkspace,
+  findApiSpecEntry,
+  hasWorkspaceFile,
   generateYamlContent,
   getWorkspaceUid,
   writeWorkspaceFileAtomic,
