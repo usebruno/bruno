@@ -6,6 +6,8 @@ const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
+const addIntlShimToContext = require('./shims/lib/intl');
+const { scriptUsesIntl } = require('./shims/lib/intl');
 const { getRequireCode } = require('./shims/require');
 const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
 
@@ -129,6 +131,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
+    scriptUsesIntl(externalScript) && addIntlShimToContext(vm);
 
     Object.entries(variables)?.forEach(([key, value]) => {
       vm.setProp(vm.global, key, marshallToVm(value, vm));
@@ -178,6 +181,8 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
+    // QuickJS has no ICU; back Intl and the toLocale* methods with the host's.
+    addIntlShimToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
 
