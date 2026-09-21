@@ -20,6 +20,10 @@ const createFixture = () => {
   fs.symlinkSync('../outside/secret.js', path.join(collection, 'link.js'), 'file');
   fs.symlinkSync('../outside', path.join(collection, 'linkdir'), 'dir');
   fs.symlinkSync('./helper.js', path.join(collection, 'inside-link.js'), 'file');
+  fs.symlinkSync('..', path.join(collection, 'parent-link.js'), 'dir');
+  fs.symlinkSync('./missing-target.js', path.join(collection, 'dangling.js'), 'file');
+  fs.symlinkSync('./cycle-b.js', path.join(collection, 'cycle-a.js'), 'file');
+  fs.symlinkSync('./cycle-a.js', path.join(collection, 'cycle-b.js'), 'file');
 
   // The collection opened through a symlinked path
   fs.symlinkSync(collection, collectionLink, 'dir');
@@ -75,12 +79,24 @@ describeIfSymlinks('local module loader with symlinks', () => {
       expect((await requireFrom(collection, './linkdir/secret')).error).toBe(OUTSIDE_COLLECTION_ERROR);
     });
 
+    it('rejects a symlink whose target is the collection parent directory', async () => {
+      expect((await requireFrom(collection, './parent-link.js')).error).toBe(OUTSIDE_COLLECTION_ERROR);
+    });
+
     it('rejects a relative path that traverses out of the collection', async () => {
       expect((await requireFrom(collection, '../outside/secret.js')).error).toBe(OUTSIDE_COLLECTION_ERROR);
     });
 
     it('reports a missing module with the existing message', async () => {
       expect((await requireFrom(collection, './does-not-exist')).error).toBe(moduleNotFoundError('./does-not-exist'));
+    });
+
+    it('reports a symlink whose target does not exist as a missing module', async () => {
+      expect((await requireFrom(collection, './dangling.js')).error).toBe(moduleNotFoundError('./dangling.js'));
+    });
+
+    it('reports a symlink cycle as a missing module instead of hanging', async () => {
+      expect((await requireFrom(collection, './cycle-a.js')).error).toBe(moduleNotFoundError('./cycle-a.js'));
     });
 
     it('loads a real file inside the collection', async () => {
