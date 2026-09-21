@@ -144,12 +144,7 @@ const QueryResult = ({
   // Prefer in-memory bytes (response examples) over the live request's bodyRef URL.
   const mediaSrc = useMemo(() => (dataBuffer ? null : mediaUrlFor(bodyRef)), [bodyRef, dataBuffer]);
 
-  const isBinaryMedia = useMemo(() => {
-    const ct = (contentType || '').toLowerCase();
-    return ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video');
-  }, [contentType]);
-
-  const showLargeWarning = isLargeResponse && !showLargeResponse && !(bodyRef && isBinaryMedia);
+  const showLargeWarning = isLargeResponse && !showLargeResponse;
 
   const detectedContentType = useMemo(() => {
     if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
@@ -173,6 +168,13 @@ const QueryResult = ({
       return;
     }
 
+    // Media previews use mediaSrc from bodyRef; skip loading the body into memory.
+    const ct = (contentType || '').toLowerCase();
+    if (ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video')) {
+      setShowLargeResponse(true);
+      return;
+    }
+
     setRevealLoading(true);
     try {
       const result = await getResponseBodyClient().read(bodyRef);
@@ -183,7 +185,7 @@ const QueryResult = ({
     } finally {
       setRevealLoading(false);
     }
-  }, [bodyRef, canViewLargeResponse, viewedBodyData]);
+  }, [bodyRef, canViewLargeResponse, contentType, viewedBodyData]);
 
   const handleFilterChange = (value) => {
     if (onFilterChange) {

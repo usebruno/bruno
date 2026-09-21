@@ -84,7 +84,6 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     let data = response.data;
     let dataBuffer = response.dataBuffer;
 
-    // dataBuffer is not kept in Redux; read raw bytes from the store when saving.
     if (response.bodyRef && dataBuffer == null) {
       try {
         const result = await getResponseBodyClient().read(response.bodyRef, { encoding: 'base64' });
