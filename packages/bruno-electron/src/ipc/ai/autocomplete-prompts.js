@@ -208,9 +208,18 @@ const buildApiUsageRe = (name) => new RegExp(`(?<![\\w$.?])${name}\\s*\\??\\s*[.
 // or arrow param) — in which case a suggestion referencing it is legitimate.
 const buildApiBindingRe = (name) =>
   new RegExp(`\\b(?:const|let|var)\\s+${name}\\b|[(,]\\s*${name}\\s*[,)=]|\\b${name}\\s*=>`);
+// Match a declarator for `<name>` whose initializer the cursor is still inside — the
+// statement runs to the cursor without crossing `;`, a brace, or a newline. The binding
+// is not usable yet, so a `<name>` on the right-hand side is still the global and must
+// not be exempted by the declaration being typed.
+// The comma alternative anchors `<name>` to a declarator position; excluding brackets
+// from that run keeps a comma inside a call or array literal (`const y = foo(a, res`)
+// from passing as one, so a statement that merely reads `<name>` keeps its exemption.
+const buildPendingDeclRe = (name) =>
+  new RegExp(`\\b(?:const|let|var)\\s+(?:[^;{}()\\[\\]\\n]*,\\s*)?${name}\\b\\s*(?:=[^;{}\\n]*)?$`);
 
-const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res') };
-const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm') };
+const RES = { usage: buildApiUsageRe('res'), binding: buildApiBindingRe('res'), pendingDecl: buildPendingDeclRe('res') };
+const PM = { usage: buildApiUsageRe('pm'), binding: buildApiBindingRe('pm'), pendingDecl: buildPendingDeclRe('pm') };
 
 const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
 const TRAILING_WORD_RE = /[\w$]+$/;
@@ -220,8 +229,8 @@ const LEADING_WORD_RE = /^[\w$]+/;
 const PREFIX_TAIL_LIMIT = 512;
 const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
 
-const suggestionUsesBareName = (suggestion, prefix, { usage, binding }) => {
-  if (binding.test(prefix)) return false;
+const suggestionUsesBareName = (suggestion, prefix, { usage, binding, pendingDecl }) => {
+  if (binding.test(prefix) && !pendingDecl.test(prefixTail(prefix))) return false;
   const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
   return usage.test(suggestion) || usage.test(trailingExpr + suggestion);
 };
@@ -256,8 +265,19 @@ const duplicatesPrecedingWord = (prefix, suggestion) => {
   return (pendingWord + head).endsWith(preceding[1]);
 };
 
+// Cursor sits on a declarator name that has no initializer yet — `const req`, or the last
+// name of `const a = 1, req`. Anything but more of the name, `=`, `,` or `;` is invalid there.
+const DECLARATOR_AWAITING_INIT_RE = /\b(?:const|let|var)\s+(?:[^;{}()[\]\n]*,\s*)?[\w$]+\s*$/;
+const MEMBER_ACCESS_START_RE = /^\s*\??\s*[.([]/;
+
+// A member accessor offered at that point splices into the declaration itself
+// (`const req` + `.setUrl(…)` → `const req.setUrl(…)`), which does not parse.
+const splicesIntoDeclarator = (suggestion, prefix) =>
+  MEMBER_ACCESS_START_RE.test(suggestion) && DECLARATOR_AWAITING_INIT_RE.test(prefixTail(prefix));
+
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
+  if (splicesIntoDeclarator(cleaned, prefix)) return '';
   const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
   if (duplicatesPrecedingWord(prefix, deduped)) return '';
@@ -273,5 +293,6 @@ module.exports = {
   stripDisallowedApis,
   stripTypedPrefixOverlap,
   duplicatesPrecedingWord,
+  splicesIntoDeclarator,
   sanitizeSuggestion
 };
