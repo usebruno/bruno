@@ -97,7 +97,11 @@ const addBrunoResponseShimToContext = (vm, res) => {
   getHeaders.dispose();
 
   let getBody = vm.newFunction('getBody', function () {
-    return marshallToVm(res.getBody(), vm);
+    try {
+      return marshallToVm(res.getBody(), vm);
+    } catch (error) {
+      throw vm.newError(error.message || String(error));
+    }
   });
   vm.setProp(resFn, 'getBody', getBody);
   getBody.dispose();

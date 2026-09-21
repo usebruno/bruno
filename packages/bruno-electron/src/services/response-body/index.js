@@ -6,8 +6,10 @@ const { SHOW_INLINE_BYTES, VIEW_MAX_BYTES } = require('./constants');
 const {
   BodyNotFoundError,
   BodyTooLargeForViewError,
+  BodyTooLargeForScriptError,
   ResponseBodyError
 } = require('./errors');
+const { populateResponseDataForScripts } = require('./script-access');
 
 let singleton = null;
 
@@ -50,5 +52,7 @@ module.exports = {
   VIEW_MAX_BYTES,
   BodyNotFoundError,
   BodyTooLargeForViewError,
+  BodyTooLargeForScriptError,
+  populateResponseDataForScripts,
   ResponseBodyError
 };

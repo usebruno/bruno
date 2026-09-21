@@ -43,6 +43,9 @@ class BrunoResponse {
   }
 
   getBody() {
+    if (this.res?.scriptBodyError) {
+      throw new Error(this.res.scriptBodyError);
+    }
     return this.res ? this.res.data : null;
   }
 
@@ -118,6 +121,9 @@ class BrunoResponse {
   }
 
   getDataBuffer() {
+    if (this.res?.scriptBodyError) {
+      throw new Error(this.res.scriptBodyError);
+    }
     return this.res ? this.res.dataBuffer : null;
   }
 }

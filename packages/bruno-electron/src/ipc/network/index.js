@@ -40,7 +40,8 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const {
   getResponseBodyService,
-  SHOW_INLINE_BYTES
+  SHOW_INLINE_BYTES,
+  populateResponseDataForScripts
 } = require('../../services/response-body');
 
 const getContentTypeHeader = (headers = {}) => {
@@ -76,11 +77,12 @@ const ingestAxiosResponseBody = async (response, { disableParsingResponseJson } 
   response.bodyRef = ingested.bodyRef;
   response.size = ingested.size;
 
-  const buffer = bodyService.store.getBufferForScripts(ingested.bodyRef);
-  response.data = buffer;
-  const parsed = parseDataFromResponse(response, disableParsingResponseJson);
-  response.data = parsed.data;
-  response.dataBuffer = parsed.dataBuffer;
+  populateResponseDataForScripts(
+    bodyService.store,
+    response,
+    parseDataFromResponse,
+    disableParsingResponseJson
+  );
 
   return ingested;
 };
