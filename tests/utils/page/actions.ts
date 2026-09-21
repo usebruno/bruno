@@ -2779,20 +2779,18 @@ const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
   await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
-/** Plain click on a Rich Text docs link opens a transient request. */
-const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+/**
+ * Editable fields (Params, Vars, Headers, ...) only mark URLs and let Cmd/Ctrl+Click open them
+ * externally — a plain click just places the cursor, matching the URL bar's pre-existing
+ * behaviour. Click-to-open-as-a-request is reserved for response previews.
+ */
+const expectLinkDoesNotOpenRequest = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
   await expect(link).toBeVisible({ timeout: 10000 });
   await link.click();
-  await expectTransientRequestOpened(page, opts);
-};
+  await expect(cm).toContainClass('CodeMirror-focused');
 
-/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
-const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
-  await expect(link).toBeVisible({ timeout: 10000 });
-  const tabCountBefore = await page.locator('.request-tab').count();
-  await link.click({ modifiers });
-  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
-  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+  await expectLinkOpensExternally(page, cm);
 };
 
 /**
@@ -3730,8 +3728,7 @@ export {
   expectTransientRequestOpened,
   expectLinkOpensRequest,
   expectLinkOpensExternally,
-  expectRichTextLinkOpensRequest,
-  expectRichTextLinkOpensExternally,
+  expectLinkDoesNotOpenRequest,
   expectNoLink,
   LINK_AWARE_COLLECTION_NAME,
   LINK_CLICK_MODIFIER,

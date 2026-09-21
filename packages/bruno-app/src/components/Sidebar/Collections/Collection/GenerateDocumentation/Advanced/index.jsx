@@ -2,6 +2,7 @@ import React, { useId, useState } from 'react';
 import { IconChevronRight, IconListCheck, IconGitBranch, IconInfoCircle } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import ToggleSwitch from 'components/ToggleSwitch';
+import RadioButton from 'components/RadioButton';
 import IncludeExcludeTags from './IncludeExcludeTags';
 import StyledWrapper from './StyledWrapper';
 
@@ -19,6 +20,9 @@ const Advanced = ({
 }) => {
   const [open, setOpen] = useState(false);
   const requestsLabelId = useId();
+  const requestsModeName = useId();
+  const allRequestsId = useId();
+  const filterByTagsId = useId();
 
   return (
     <StyledWrapper className="advanced">
@@ -42,33 +46,37 @@ const Advanced = ({
                 <span>Requests to include</span>
               </div>
 
-              <div className="seg-row">
-                <div className="segmented" role="group" aria-labelledby={requestsLabelId}>
-                  <button
-                    type="button"
-                    aria-pressed={!filterByTags}
-                    className={`seg ${!filterByTags ? 'active' : ''}`}
-                    onClick={() => onFilterModeChange(false)}
-                    data-testid="docs-requests-all"
-                  >
+              <div className="adv-radio-group" role="radiogroup" aria-labelledby={requestsLabelId}>
+                <div className="adv-radio">
+                  <RadioButton
+                    id={allRequestsId}
+                    name={requestsModeName}
+                    checked={!filterByTags}
+                    onChange={() => onFilterModeChange(false)}
+                    dataTestId="docs-requests-all"
+                  />
+                  <label htmlFor={allRequestsId} className="adv-radio-label">
                     All requests
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={filterByTags}
-                    className={`seg ${filterByTags ? 'active' : ''}`}
-                    onClick={() => onFilterModeChange(true)}
-                    data-testid="docs-requests-filter"
-                  >
+                  </label>
+                </div>
+                <div className="adv-radio">
+                  <RadioButton
+                    id={filterByTagsId}
+                    name={requestsModeName}
+                    checked={filterByTags}
+                    onChange={() => onFilterModeChange(true)}
+                    dataTestId="docs-requests-filter"
+                  />
+                  <label htmlFor={filterByTagsId} className="adv-radio-label">
                     Filter by Tags
-                    <span
-                      className="seg-hint"
-                      data-tooltip-id="docs-tags-hint"
-                      data-tooltip-content={TAGS_HINT}
-                    >
-                      <IconInfoCircle size={16} aria-hidden="true" />
-                    </span>
-                  </button>
+                  </label>
+                  <span
+                    className="adv-radio-hint"
+                    data-tooltip-id="docs-tags-hint"
+                    data-tooltip-content={TAGS_HINT}
+                  >
+                    <IconInfoCircle size={16} aria-hidden="true" />
+                  </span>
                 </div>
               </div>
 
@@ -89,7 +97,7 @@ const Advanced = ({
                 <div className="adv-row">
                   <div className="adv-label mb-0">
                     <IconGitBranch size={16} className="adv-label-icon" aria-hidden="true" />
-                    <span>Include git repo URL</span>
+                    <span>Include Git repo URL</span>
                   </div>
                   <label className="adv-toggle" data-testid="docs-git-link-toggle">
                     <span className="toggle-label">Show</span>

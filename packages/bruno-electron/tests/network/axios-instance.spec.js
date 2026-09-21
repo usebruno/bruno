@@ -82,7 +82,7 @@ describe('axios-instance: default headers', () => {
       method: 'get',
       adapter: stubAdapter,
       settings: {
-        omitHeaders: ['User-Agent', 'Accept', 'request-start-time']
+        omitHeaders: ['User-Agent', 'Accept']
       },
       __explicitHeaderNames: []
     });
@@ -90,7 +90,18 @@ describe('axios-instance: default headers', () => {
     const headers = stubAdapter.getConfig().headers;
     expect(headers['User-Agent']).toBeNull();
     expect(headers['Accept']).toBeNull();
-    expect(headers['request-start-time']).toBeNull();
+  });
+
+  test('measures duration from metadata.startTime without sending request-start-time', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    const response = await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
+    const config = stubAdapter.getConfig();
+
+    expect(config.headers['request-start-time']).toBeUndefined();
+    expect(config.metadata.startTime).toEqual(expect.any(Number));
+    expect(Number(response.headers['request-duration'])).toBeGreaterThanOrEqual(0);
   });
 
   test('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
@@ -492,8 +503,7 @@ describe('axios-instance: sent headers', () => {
     expect(error.response.sentHeaders).toMatchObject({
       'Host': `127.0.0.1:${server.address().port}`,
       'Connection': 'keep-alive',
-      'User-Agent': expect.stringMatching(/^bruno-runtime\//),
-      'request-start-time': expect.stringMatching(/^\d+$/)
+      'User-Agent': expect.stringMatching(/^bruno-runtime\//)
     });
   });
 

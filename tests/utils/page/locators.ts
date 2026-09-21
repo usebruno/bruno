@@ -242,10 +242,11 @@ export const buildCommonLocators = (page: Page) => ({
         .filter({ has: page.getByText(name, { exact: true }) })
         .getByRole('checkbox'),
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
-    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
-    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
-    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
-    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
