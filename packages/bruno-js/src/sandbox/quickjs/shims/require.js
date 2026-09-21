@@ -1,5 +1,5 @@
 const createLocalModuleLoaderHandle = require('./local-module');
-const { evalAndCall } = require('../utils');
+
 
 /**
  * Returns a factory function (as VM source) that installs globalThis.require.
@@ -49,7 +49,13 @@ function getRequireFactoryCode() {
  */
 function addRequireShimToContext(vm, collectionPath) {
   createLocalModuleLoaderHandle(vm, collectionPath).consume((loadLocalModule) => {
-    evalAndCall(vm, { code: getRequireFactoryCode(), args: [loadLocalModule] });
+    const evalCode = vm.evalCodeRetained || vm.evalCode;
+    const fn = vm.unwrapResult(evalCode.call(vm, getRequireFactoryCode()));
+    try {
+      vm.unwrapResult(vm.callFunction(fn, vm.global, loadLocalModule)).dispose();
+    } finally {
+      fn.dispose();
+    }
   });
 }
 

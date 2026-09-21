@@ -51,6 +51,15 @@ describe('quickjs local module loader is private to require', () => {
     expect(seen).toBe('undefined:undefined:undefined');
   });
 
+  it('module arguments are only module, exports, and require', async () => {
+    fs.writeFileSync(
+      path.join(collection, 'args-len.js'),
+      'module.exports = arguments.length;'
+    );
+    const seen = await runScript(`bru.setVar('v', require('./args-len'))`);
+    expect(seen).toBe(3);
+  });
+
   it('the loader is not reachable through the require source', async () => {
     const src = await runScript(`bru.setVar('v', globalThis.require.toString())`);
     expect(src).not.toContain('__brunoLoadLocalModule');

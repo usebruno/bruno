@@ -58,4 +58,29 @@ describe('quickjs compiles a local module with its own module, exports and requi
     `);
     expect(JSON.parse(loaded)).toEqual({ sameObject: true, loads: 1, mutated: true });
   });
+
+  it('rejects requiring a path outside the collection', async () => {
+    await expect(
+      executeQuickJsVmAsync({
+        script: `require('../outside')`,
+        context: { bru: { cwd: () => collection, setVar: () => {} } },
+        collectionPath: collection
+      })
+    ).rejects.toThrow('Access to files outside of the collectionPath is not allowed');
+  });
+
+  it('rejects requiring a missing local module', async () => {
+    await expect(
+      executeQuickJsVmAsync({
+        script: `require('./does-not-exist')`,
+        context: { bru: { cwd: () => collection, setVar: () => {} } },
+        collectionPath: collection
+      })
+    ).rejects.toThrow('Cannot find module');
+  });
+
+  it('appends .js when the local path has no extension', async () => {
+    const loaded = await runScript(`bru.setVar('v', require('./helper'))`);
+    expect(loaded).toBe('helper value');
+  });
 });
