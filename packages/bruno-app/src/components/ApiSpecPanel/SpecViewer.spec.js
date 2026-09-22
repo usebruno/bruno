@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -25,7 +22,6 @@ jest.mock('hooks/useDragResize', () => ({
 
 jest.mock('./Renderers/Swagger', () => () => <div data-testid="swagger" />);
 
-// Stands in for CodeMirror so the test can read what the editor was handed and fire an edit.
 jest.mock('./FileEditor/CodeEditor/index', () => {
   return function MockCodeEditor({ value, readOnly, onEdit }) {
     return (
