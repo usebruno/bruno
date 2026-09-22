@@ -59,6 +59,8 @@ const { preferencesUtil, getPreferences, savePreferences } = require('./store/pr
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
+const registerAppDocumentIpc = require('./ipc/app-document');
+const AppDocuments = require('./app/app-documents');
 const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
@@ -72,6 +74,10 @@ const terminalManager = new TerminalManager();
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
+const appDocuments = new AppDocuments();
+
+// Scheme privileges are only honoured when registered before `app.ready`.
+AppDocuments.registerScheme();
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -528,6 +534,8 @@ app.on('ready', async () => {
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
   registerSqliteIpc(mainWindow);
+  appDocuments.handleProtocol();
+  registerAppDocumentIpc(appDocuments, mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
