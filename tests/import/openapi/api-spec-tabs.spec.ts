@@ -1,4 +1,4 @@
-import { test, expect, closeElectronApp } from '../../../playwright';
+import { test, expect, closeElectronApp, Page, ElectronApplication } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../utils/page';
@@ -15,7 +15,7 @@ import {
   expandApiSpecsSection
 } from '../../utils/page/openapi/render-spec';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { createTransientRequest } from '../../utils/page/actions';
+import { createTransientRequest, closeAllTabs } from '../../utils/page/actions';
 
 const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'Comprehensive API Test Collection' };
 const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping Test API' };
@@ -33,6 +33,7 @@ test.describe('API specs open as workspace tabs', () => {
 
   test.afterEach(async ({ page }) => {
     await removeAllApiSpecsFromWorkspace(page);
+    await closeAllTabs(page);
   });
 
   test.afterAll(async ({ electronApp }) => {
@@ -197,7 +198,7 @@ test.describe('API specs open as workspace tabs', () => {
 test.describe('API spec tabs come back after a restart', () => {
   test.setTimeout(90000);
 
-  const openBothSpecs = async (page: any, app: any, first: string, second: string) => {
+  const openBothSpecs = async (page: Page, app: ElectronApplication, first: string, second: string) => {
     const { sidebarItem } = buildApiSpecPanelLocators(page);
 
     await openApiSpecFromDialog(page, app, first);

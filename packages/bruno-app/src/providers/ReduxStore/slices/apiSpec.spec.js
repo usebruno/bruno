@@ -8,11 +8,11 @@ import toast from 'react-hot-toast';
 import apiSpecReducer, {
   clearApiSpecDraft,
   closeApiSpecFile,
-  dropApiSpecTabsMissingFrom,
   openApiSpecTab,
   saveApiSpecTabDraft,
   updateApiSpecDraft
 } from 'providers/ReduxStore/slices/apiSpec';
+import { dropApiSpecTabsMissingFrom } from 'providers/ReduxStore/slices/workspaces/actions';
 import tabsReducer from 'providers/ReduxStore/slices/tabs';
 import { getApiSpecTabUid } from 'utils/api-specs';
 
@@ -171,7 +171,7 @@ describe('saveApiSpecTabDraft', () => {
 const ORDERS_PATHNAME = '/workspace/orders.yaml';
 const OTHER_SPEC_PATHNAME = '/other-workspace/billing.yaml';
 
-const buildTwoWorkspaceStore = () =>
+const buildTwoWorkspaceStore = (apiSpecs = []) =>
   configureStore({
     reducer: { tabs: tabsReducer, apiSpec: apiSpecReducer, workspaces: (state = {}) => state },
     preloadedState: {
@@ -206,7 +206,7 @@ const buildTwoWorkspaceStore = () =>
         activeTabUid: getApiSpecTabUid('scratch-a', SPEC_PATHNAME),
         recentlyClosedTabs: []
       },
-      apiSpec: { apiSpecs: [] }
+      apiSpec: { apiSpecs }
     }
   });
 
@@ -243,6 +243,36 @@ describe('dropApiSpecTabsMissingFrom', () => {
     store.dispatch(dropApiSpecTabsMissingFrom('workspace-that-does-not-exist', []));
 
     expect(openSpecPaths(store)).toEqual([SPEC_PATHNAME, ORDERS_PATHNAME, OTHER_SPEC_PATHNAME]);
+  });
+
+  it('keeps a spec open when it has edits the user has not saved yet', () => {
+    const store = buildTwoWorkspaceStore([
+      { uid: 'spec-1', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: EDITED_CONTENT }
+    ]);
+
+    store.dispatch(dropApiSpecTabsMissingFrom('workspace-a', []));
+
+    expect(openSpecPaths(store)).toEqual([SPEC_PATHNAME, OTHER_SPEC_PATHNAME]);
+  });
+
+  it('closes a spec that was opened but never edited', () => {
+    const store = buildTwoWorkspaceStore([
+      { uid: 'spec-1', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0' }
+    ]);
+
+    store.dispatch(dropApiSpecTabsMissingFrom('workspace-a', []));
+
+    expect(openSpecPaths(store)).toEqual([OTHER_SPEC_PATHNAME]);
+  });
+
+  it('closes a spec whose edits were saved, so its content matches the file again', () => {
+    const store = buildTwoWorkspaceStore([
+      { uid: 'spec-1', pathname: SPEC_PATHNAME, raw: EDITED_CONTENT, draft: EDITED_CONTENT }
+    ]);
+
+    store.dispatch(dropApiSpecTabsMissingFrom('workspace-a', []));
+
+    expect(openSpecPaths(store)).toEqual([OTHER_SPEC_PATHNAME]);
   });
 });
 

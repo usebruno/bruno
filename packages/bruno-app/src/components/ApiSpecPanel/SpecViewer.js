@@ -114,8 +114,6 @@ const SpecViewer = ({
   }, [content]);
 
   const handleSwaggerComplete = useCallback(() => {
-    // Double rAF: wait for one full paint cycle so Swagger is actually on screen
-    // before hiding the loader — avoids a flash of unrendered content.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         clearTimeout(previewTimeoutRef.current);

@@ -38,7 +38,7 @@ const ApiSpecTab = ({ tabUid }) => {
 
   if (!apiSpec) {
     return (
-      <div className="flex items-center justify-center h-full gap-2 opacity-50">
+      <div className="flex items-center justify-center h-full gap-2 opacity-50" data-testid="api-spec-tab-loading">
         <IconLoader2 size={20} className="animate-spin" />
         <span>Loading API spec...</span>
       </div>
@@ -46,7 +46,7 @@ const ApiSpecTab = ({ tabUid }) => {
   }
 
   return (
-    <StyledWrapper className="flex flex-col flex-grow relative">
+    <StyledWrapper className="flex flex-col flex-grow relative" data-testid="api-spec-tab">
       <SpecViewer
         content={apiSpec.raw}
         resolvedSpec={apiSpec.resolvedJson}

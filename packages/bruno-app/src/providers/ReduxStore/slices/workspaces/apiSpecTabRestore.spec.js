@@ -60,6 +60,13 @@ const snapshotWith = ({ apiSpecTabs = [], activeApiSpecTabPathname = null }) => 
   collections: []
 });
 
+const snapshotFromOlderVersion = () => {
+  const older = snapshotWith({});
+  delete older.workspaces[0].apiSpecTabs;
+  delete older.workspaces[0].activeApiSpecTabPathname;
+  return older;
+};
+
 let snapshot = snapshotWith({});
 
 const mockIpcInvoke = (channel) => {
@@ -202,6 +209,21 @@ describe('reopening API spec tabs when a workspace is opened', () => {
 
     expect(specTabPaths(store)).toEqual([]);
     expect(activeTabType(store)).toBe('workspaceOverview');
+  });
+
+  it('opens a workspace that was saved before Bruno started remembering spec tabs', async () => {
+    workspaceApiSpecPaths = [PETSTORE];
+    snapshot = snapshotFromOlderVersion();
+    const reportedFailure = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(specTabPaths(store)).toEqual([]);
+    expect(activeTabType(store)).toBe('workspaceOverview');
+    expect(reportedFailure).not.toHaveBeenCalled();
+
+    reportedFailure.mockRestore();
   });
 });
 

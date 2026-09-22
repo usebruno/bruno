@@ -5,7 +5,6 @@ import { addTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import {
   API_SPEC_TAB_TYPE,
   findApiSpecByPathname,
-  getApiSpecPathKey,
   getApiSpecTabUid,
   hasUnsavedApiSpecChanges,
   isApiSpecTabForPathname
@@ -141,32 +140,6 @@ export const openApiSpecTab = (apiSpec) => async (dispatch, getState) => {
     apiSpecPathname: pathname,
     tabName: apiSpec?.filename || apiSpec?.name || null
   }));
-};
-
-export const dropApiSpecTabsMissingFrom = (workspaceUid, pathnames) => (dispatch, getState) => {
-  const state = getState();
-  const scratchCollectionUid = state.workspaces.workspaces
-    .find((workspace) => workspace.uid === workspaceUid)?.scratchCollectionUid;
-
-  if (!scratchCollectionUid) {
-    return;
-  }
-
-  const workspacePathKeys = new Set(
-    (pathnames || []).map((pathname) => getApiSpecPathKey(pathname)).filter(Boolean)
-  );
-
-  const tabUids = state.tabs.tabs
-    .filter((tab) => (
-      tab.type === API_SPEC_TAB_TYPE
-      && tab.collectionUid === scratchCollectionUid
-      && !workspacePathKeys.has(getApiSpecPathKey(tab.apiSpecPathname))
-    ))
-    .map((tab) => tab.uid);
-
-  if (tabUids.length) {
-    dispatch(closeTabs({ tabUids, reopenable: false }));
-  }
 };
 
 const closeApiSpecTabs = (collectionUid, pathname) => (dispatch, getState) => {

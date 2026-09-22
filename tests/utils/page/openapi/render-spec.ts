@@ -15,7 +15,7 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   tabUnsavedMarker: (tabLabel: string) =>
     page.locator('.request-tab').filter({ hasText: tabLabel }).locator('.close-gradient'),
   unsavedChangesDialog: () => page.locator('.bruno-modal').filter({ hasText: 'unsaved changes in the API spec' }),
-  saveAndCloseButton: () => page.getByRole('button', { name: 'Save', exact: true }),
+  saveAndCloseButton: () => page.getByTestId('api-spec-save'),
   sidebarRows: () => page.getByTestId('sidebar-api-spec-row'),
   sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
   sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
@@ -104,18 +104,23 @@ const openRowActionsMenu = async (row: Locator): Promise<void> => {
   await row.getByTestId('api-spec-actions').click();
 };
 
+const removeApiSpecRow = async (page: Page, row: Locator): Promise<void> => {
+  const { sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
+  await openRowActionsMenu(row);
+  await sidebarRowRemoveMenuItem().click();
+  await page.getByTestId('modal-submit-btn').click();
+};
+
 export const removeApiSpecFromWorkspace = async (page: Page, name: string): Promise<void> => {
   await test.step(`Remove API spec "${name}" from the workspace`, async () => {
-    const { sidebarRow, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
-    await openRowActionsMenu(sidebarRow(name).first());
-    await sidebarRowRemoveMenuItem().click();
-    await page.getByTestId('modal-submit-btn').click();
+    const { sidebarRow } = buildApiSpecPanelLocators(page);
+    await removeApiSpecRow(page, sidebarRow(name).first());
   });
 };
 
 export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> => {
   await test.step('Remove every API spec from the workspace', async () => {
-    const { sidebarRows, sidebarRowRemoveMenuItem, section } = buildApiSpecPanelLocators(page);
+    const { sidebarRows, section } = buildApiSpecPanelLocators(page);
 
     if ((await section().count()) === 0) return;
     await expandApiSpecsSection(page);
@@ -124,9 +129,7 @@ export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> 
       const remaining = await sidebarRows().count();
       if (remaining === 0) return;
 
-      await openRowActionsMenu(sidebarRows().first());
-      await sidebarRowRemoveMenuItem().click();
-      await page.getByTestId('modal-submit-btn').click();
+      await removeApiSpecRow(page, sidebarRows().first());
       await expect(sidebarRows()).toHaveCount(remaining - 1);
       await expect(page.getByTestId('modal-submit-btn')).toHaveCount(0);
     }

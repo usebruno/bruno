@@ -10,8 +10,6 @@ const ConfirmApiSpecClose = ({ name, onCancel, onCloseWithoutSave, onSaveAndClos
       <Modal
         size="md"
         title="Unsaved changes"
-        confirmText="Save and Close"
-        cancelText="Close without saving"
         disableEscapeKey={true}
         disableCloseOnOutsideClick={true}
         closeModalFadeTimeout={150}
@@ -32,15 +30,15 @@ const ConfirmApiSpecClose = ({ name, onCancel, onCloseWithoutSave, onSaveAndClos
 
         <div className="flex justify-between mt-6">
           <div>
-            <Button color="danger" onClick={onCloseWithoutSave}>
+            <Button color="danger" onClick={onCloseWithoutSave} data-testid="api-spec-discard">
               Don't Save
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button color="secondary" variant="ghost" onClick={onCancel}>
+            <Button color="secondary" variant="ghost" onClick={onCancel} data-testid="api-spec-cancel">
               Cancel
             </Button>
-            <Button onClick={onSaveAndClose}>
+            <Button onClick={onSaveAndClose} data-testid="api-spec-save">
               Save
             </Button>
           </div>

@@ -148,6 +148,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       e.preventDefault();
       e.stopPropagation();
 
+      if (hasApiSpecDraft) {
+        setShowConfirmApiSpecClose(true);
+        return;
+      }
+
       // Close the tab
       dispatch(
         closeTabs({
@@ -372,16 +377,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
         data-testid={`request-tab-${tab.type}`}
         onMouseDown={handleMouseDown}
-        onMouseUp={(e) => {
-          if (e.button === 1 && hasApiSpecDraft) {
-            e.stopPropagation();
-            e.preventDefault();
-            setShowConfirmApiSpecClose(true);
-            return;
-          }
-
-          handleMouseUp(e);
-        }}
+        onMouseUp={handleMouseUp}
       >
         {showConfirmCollectionClose && tab.type === 'collection-settings' && (
           <ConfirmCollectionClose

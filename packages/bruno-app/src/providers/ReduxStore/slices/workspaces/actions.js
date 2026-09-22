@@ -13,9 +13,14 @@ import { removeCollection, addTransientDirectory, updateCollectionMountStatus, e
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, focusTab, restoreTabs } from '../tabs';
-import { dropApiSpecTabsMissingFrom } from '../apiSpec';
-import { API_SPEC_TAB_TYPE, getApiSpecPathKey, getApiSpecTabUid } from 'utils/api-specs';
+import { addTab, closeTabs, focusTab, restoreTabs } from '../tabs';
+import {
+  API_SPEC_TAB_TYPE,
+  findApiSpecByPathname,
+  getApiSpecPathKey,
+  getApiSpecTabUid,
+  hasUnsavedApiSpecChanges
+} from 'utils/api-specs';
 import {
   setSnapshotReady,
   startSnapshotHydrationSession,
@@ -550,6 +555,33 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
     dispatch(markSnapshotCollectionHydrated({ pathname: collection.pathname }));
     maybeCompleteSnapshotHydrationSession(dispatch, getState);
   };
+};
+
+export const dropApiSpecTabsMissingFrom = (workspaceUid, pathnames) => (dispatch, getState) => {
+  const state = getState();
+  const scratchCollectionUid = state.workspaces.workspaces
+    .find((workspace) => workspace.uid === workspaceUid)?.scratchCollectionUid;
+
+  if (!scratchCollectionUid) {
+    return;
+  }
+
+  const workspacePathKeys = new Set(
+    (pathnames || []).map((pathname) => getApiSpecPathKey(pathname)).filter(Boolean)
+  );
+
+  const tabUids = state.tabs.tabs
+    .filter((tab) => (
+      tab.type === API_SPEC_TAB_TYPE
+      && tab.collectionUid === scratchCollectionUid
+      && !workspacePathKeys.has(getApiSpecPathKey(tab.apiSpecPathname))
+      && !hasUnsavedApiSpecChanges(findApiSpecByPathname(state.apiSpec.apiSpecs, tab.apiSpecPathname))
+    ))
+    .map((tab) => tab.uid);
+
+  if (tabUids.length) {
+    dispatch(closeTabs({ tabUids, reopenable: false }));
+  }
 };
 
 export const loadWorkspaceApiSpecs = (workspaceUid) => {
