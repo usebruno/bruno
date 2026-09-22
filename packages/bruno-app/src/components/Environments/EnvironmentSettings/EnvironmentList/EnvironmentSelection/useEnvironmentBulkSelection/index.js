@@ -4,7 +4,6 @@ import { isMacOS } from 'utils/common/platform';
 const useEnvironmentBulkSelection = ({
   environments,
   filteredEnvironments,
-  collectionUid,
   activeEnvUid,
   onOpenEnvironment,
   onRenameEnvironment
@@ -22,25 +21,14 @@ const useEnvironmentBulkSelection = ({
   const envUids = useMemo(() => (environments ? environments.map((env) => env.uid) : []), [environments]);
   const filteredEnvUids = useMemo(() => filteredEnvironments.map((env) => env.uid), [filteredEnvironments]);
 
-  const selectedEnvUidSet = useMemo(() => new Set(selectedEnvUids), [selectedEnvUids]);
+  const validSelectedEnvUids = useMemo(
+    () => selectedEnvUids.filter((uid) => envUids.includes(uid)),
+    [selectedEnvUids, envUids]
+  );
+  const selectedEnvUidSet = useMemo(() => new Set(validSelectedEnvUids), [validSelectedEnvUids]);
   const actionTargetUidSet = useMemo(() => new Set(actionTargetUids), [actionTargetUids]);
 
-  useEffect(() => {
-    setSelectedEnvUids([]);
-    setActionTargetUids([]);
-    setLastClickedEnvUid(null);
-    setMenuVisible(false);
-  }, [collectionUid]);
-
-  useEffect(() => {
-    setSelectedEnvUids((prev) => {
-      if (!prev.length) return prev;
-      const stillPresent = prev.filter((uid) => envUids.includes(uid));
-      return stillPresent.length === prev.length ? prev : stillPresent;
-    });
-  }, [envUids]);
-
-  const hasSelection = selectedEnvUids.length > 0;
+  const hasSelection = validSelectedEnvUids.length > 0;
   const selectedEnvironmentsList = useMemo(
     () => environments?.filter((env) => selectedEnvUidSet.has(env.uid)) || [],
     [environments, selectedEnvUidSet]
@@ -99,11 +87,11 @@ const useEnvironmentBulkSelection = ({
   }, [isAllSelected, filteredEnvUids, clearSelection]);
 
   const deleteViaShortcut = useCallback(() => {
-    const targets = hasSelection ? selectedEnvUids : (activeEnvUid ? [activeEnvUid] : []);
+    const targets = hasSelection ? validSelectedEnvUids : (activeEnvUid ? [activeEnvUid] : []);
     if (!targets.length) return;
     setActionTargetUids(targets);
     setShowDeleteModal(true);
-  }, [hasSelection, selectedEnvUids, activeEnvUid]);
+  }, [hasSelection, validSelectedEnvUids, activeEnvUid]);
 
   const selectEnvRange = useCallback((toUid) => {
     setSelectedEnvUids((prev) => {
@@ -156,11 +144,11 @@ const useEnvironmentBulkSelection = ({
     e.preventDefault();
     e.stopPropagation();
 
-    const isPartOfMultiSelection = selectedEnvUidSet.has(env.uid) && selectedEnvUids.length > 1;
-    setActionTargetUids(isPartOfMultiSelection ? selectedEnvUids : [env.uid]);
+    const isPartOfMultiSelection = selectedEnvUidSet.has(env.uid) && validSelectedEnvUids.length > 1;
+    setActionTargetUids(isPartOfMultiSelection ? validSelectedEnvUids : [env.uid]);
 
     openMenuAt(e);
-  }, [selectedEnvUids, selectedEnvUidSet, openMenuAt]);
+  }, [validSelectedEnvUids, selectedEnvUidSet, openMenuAt]);
 
   const handleDeleted = useCallback((failedUids) => {
     const stillPresent = new Set(failedUids || []);
@@ -273,7 +261,7 @@ const useEnvironmentBulkSelection = ({
   return {
     scopeRef,
     hasSelection,
-    selectedEnvUids,
+    selectedEnvUids: validSelectedEnvUids,
     isEnvSelected,
     selectedEnvironmentsList,
     actionTargetUids,

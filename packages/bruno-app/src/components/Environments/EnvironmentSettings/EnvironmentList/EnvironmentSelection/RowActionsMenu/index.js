@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
-import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from './ShortcutHints';
+import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
 
 const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected }) => {
   const menuItems = useMemo(() => {

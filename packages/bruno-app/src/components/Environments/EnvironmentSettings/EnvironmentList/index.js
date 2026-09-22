@@ -482,13 +482,14 @@ const EnvironmentList = ({
     setDotEnvViewMode(mode);
   };
 
-  const filteredEnvironments
-    = environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [];
+  const filteredEnvironments = useMemo(
+    () => environments?.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase())) || [],
+    [environments, searchText]
+  );
 
   const bulkSelection = useEnvironmentBulkSelection({
     environments,
     filteredEnvironments,
-    collectionUid: collection?.uid,
     activeEnvUid: activeView === 'environment' ? selectedEnvironment?.uid : undefined,
     onOpenEnvironment: handleEnvironmentClick,
     onRenameEnvironment: handleEnvironmentDoubleClick
@@ -612,7 +613,7 @@ const EnvironmentList = ({
         <div className="sidebar">
 
           <div className="sections-container">
-            <div className="env-selection-scope" ref={bulkSelection.scopeRef}>
+            <div ref={bulkSelection.scopeRef}>
               <CollapsibleSection
                 title="Environments"
                 expanded={environmentsExpanded}
