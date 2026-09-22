@@ -12,6 +12,9 @@ const outsideModule = path.join(root, 'outside.js');
 const deletedCollection = path.join(root, 'deleted-collection');
 const lockedDirectory = path.join(collection, 'locked');
 
+// chmod is a no-op on NTFS, so a locked directory cannot be produced there
+const itWherePermissionsApply = process.platform === 'win32' ? it.skip : it;
+
 const widenCwdToParent = `const parent = path.resolve(bru.cwd(), '..'); bru.cwd = () => parent;`;
 
 describe('local module loader keeps the collection boundary whatever a script passes in', () => {
@@ -90,7 +93,7 @@ describe('local module loader keeps the collection boundary whatever a script pa
   });
 
   describe('when resolving the file fails for a reason other than a missing path', () => {
-    it('reports a file behind a directory without search permission as a missing module', async () => {
+    itWherePermissionsApply('reports a file behind a directory without search permission as a missing module', async () => {
       fs.chmodSync(lockedDirectory, 0o000);
       try {
         expect(await runScript(`require('./locked/unreadable')`)).toBe(moduleNotFoundError('./locked/unreadable'));
