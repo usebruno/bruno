@@ -8,6 +8,7 @@ const { OUTSIDE_COLLECTION_ERROR, moduleNotFoundError } = require('../src/sandbo
 const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-local-module-')));
 const collection = path.join(root, 'collection');
 const collectionLink = path.join(root, 'collection-link');
+const danglingCollectionLink = path.join(root, 'collection-dangling-link');
 const outside = path.join(root, 'outside');
 
 const createFixture = () => {
@@ -27,6 +28,7 @@ const createFixture = () => {
 
   // The collection opened through a symlinked path
   fs.symlinkSync(collection, collectionLink, 'dir');
+  fs.symlinkSync(path.join(root, 'moved-away'), danglingCollectionLink, 'dir');
 };
 
 // Windows needs admin or Developer Mode to create symlinks. CI runners have it,
@@ -115,6 +117,12 @@ describeIfSymlinks('local module loader with symlinks', () => {
 
     it('rejects a file symlink whose target is outside the collection', async () => {
       expect((await requireFrom(collectionLink, './link.js')).error).toBe(OUTSIDE_COLLECTION_ERROR);
+    });
+  });
+
+  describe('when the collection path is a symlink whose target no longer exists', () => {
+    it('reports every module as missing instead of resolving relative to the dangling link', async () => {
+      expect((await requireFrom(danglingCollectionLink, './helper')).error).toBe(moduleNotFoundError('./helper'));
     });
   });
 });
