@@ -42,9 +42,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
   const handleSave = () => {
-    if (disabled) {
-      return;
-    }
     save();
   };
 

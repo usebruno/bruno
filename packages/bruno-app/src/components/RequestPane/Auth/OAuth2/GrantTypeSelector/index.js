@@ -16,9 +16,6 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection, disable
   });
 
   const onGrantTypeChange = (grantType) => {
-    if (disabled) {
-      return;
-    }
     let updatedValues = {
       ...valuesCache,
       ...oAuth,

@@ -41,9 +41,6 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
   }, [collection, item, authorizationUrl]);
 
   const handleSave = () => {
-    if (disabled) {
-      return;
-    }
     save();
   };
 

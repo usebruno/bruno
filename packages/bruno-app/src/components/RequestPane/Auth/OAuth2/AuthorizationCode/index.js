@@ -51,9 +51,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
   const handleSave = () => {
-    if (disabled) {
-      return;
-    }
     save();
   };
 
@@ -93,9 +90,6 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   };
 
   const handlePKCEToggle = (e) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'oauth2',

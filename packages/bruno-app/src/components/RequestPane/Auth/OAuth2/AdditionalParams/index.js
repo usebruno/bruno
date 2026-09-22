@@ -33,10 +33,6 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   const updateAdditionalParameters = ({ updatedAdditionalParameters }) => {
-    if (disabled) {
-      return;
-    }
-
     const filteredParams = cloneDeep(updatedAdditionalParameters);
 
     Object.keys(filteredParams).forEach((paramType) => {
@@ -105,7 +101,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
   };
 
   const handleAddNewAdditionalParam = () => {
-    if (disabled || hasEmptyRow()) {
+    if (hasEmptyRow()) {
       return;
     }
 

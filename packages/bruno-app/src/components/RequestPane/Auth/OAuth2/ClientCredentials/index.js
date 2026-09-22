@@ -40,9 +40,6 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
   const handleSave = () => {
-    if (disabled) {
-      return;
-    }
     save();
   };
 

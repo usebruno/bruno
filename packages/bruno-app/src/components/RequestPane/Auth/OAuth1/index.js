@@ -42,7 +42,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
 
   const handleRun = item?.uid ? () => dispatch(sendRequest(item, collection.uid)) : undefined;
   const handleSave = () => {
-    if (disabled || !save) {
+    if (!save) {
       return;
     }
     save();
@@ -74,9 +74,6 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
   };
 
   const handleBrowse = () => {
-    if (disabled) {
-      return;
-    }
     dispatch(browseFiles([], []))
       .then((filePaths) => {
         if (filePaths && filePaths.length > 0) {
@@ -101,9 +98,6 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
   };
 
   const handleClearFile = () => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'oauth1',

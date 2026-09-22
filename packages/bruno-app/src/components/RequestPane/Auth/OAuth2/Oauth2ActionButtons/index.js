@@ -62,9 +62,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   const handleFetchOauth2Credentials = async () => {
-    if (disabled) {
-      return;
-    }
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
     requestCopy.headers = {};
@@ -104,9 +101,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   const handleRefreshAccessToken = async () => {
-    if (disabled) {
-      return;
-    }
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
     requestCopy.headers = {};
@@ -139,9 +133,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
   };
 
   const handleClearCache = (e) => {
-    if (disabled) {
-      return;
-    }
     dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: interpolatedAccessTokenUrl, credentialsId }))
       .then(() => {
         toast.success('Cleared cache successfully');
