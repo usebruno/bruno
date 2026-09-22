@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const { protocol, session } = require('electron');
 
 const APP_SCHEME = 'bruno-app';
+const MAX_ENTRIES = 500;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
 
 // Must match the `partition` attribute on the app <webview> in bruno-app.
 // Deliberately not a `persist:` partition: guest origins are minted per
@@ -33,9 +35,12 @@ const APP_PARTITION = 'bruno-app-view';
  * out from under it.
  */
 class AppDocuments {
-  constructor() {
+  constructor({ maxEntries = MAX_ENTRIES, maxTotalBytes = MAX_TOTAL_BYTES } = {}) {
     this.entriesByOwner = new Map();
     this.htmlByToken = new Map();
+    this.maxEntries = maxEntries;
+    this.maxTotalBytes = maxTotalBytes;
+    this.totalBytes = 0;
   }
 
   /**
@@ -86,6 +91,17 @@ class AppDocuments {
       return this.urlFor(entry);
     }
 
+    if (!entry && this.entriesByOwner.size >= this.maxEntries) {
+      throw new Error('App document entry limit exceeded');
+    }
+
+    const htmlBytes = Buffer.byteLength(html, 'utf8');
+    const currentBytes = entry ? Buffer.byteLength(entry.html, 'utf8') : 0;
+    const nextTotalBytes = this.totalBytes - currentBytes + htmlBytes;
+    if (nextTotalBytes > this.maxTotalBytes) {
+      throw new Error('App document byte limit exceeded');
+    }
+
     if (entry) {
       entry.html = html;
       entry.version += 1;
@@ -94,6 +110,7 @@ class AppDocuments {
       this.entriesByOwner.set(ownerKey, entry);
     }
     this.htmlByToken.set(entry.token, html);
+    this.totalBytes = nextTotalBytes;
     return this.urlFor(entry);
   }
 
@@ -104,6 +121,7 @@ class AppDocuments {
   unregister(ownerKey) {
     const entry = this.entriesByOwner.get(ownerKey);
     if (!entry) return;
+    this.totalBytes -= Buffer.byteLength(entry.html, 'utf8');
     this.htmlByToken.delete(entry.token);
     this.entriesByOwner.delete(ownerKey);
   }
