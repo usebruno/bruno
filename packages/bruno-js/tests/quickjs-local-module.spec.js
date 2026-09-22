@@ -11,6 +11,7 @@ describe('quickjs compiles a local module with its own module, exports and requi
   beforeAll(() => {
     fs.mkdirSync(path.join(collection, 'nested'), { recursive: true });
     fs.writeFileSync(path.join(collection, 'helper.js'), 'module.exports = "helper value";');
+    fs.writeFileSync(path.join(root, 'outside.js'), 'module.exports = "outside the collection";');
     fs.writeFileSync(path.join(collection, 'nested', 'wraps-helper.js'), 'module.exports = require("../helper");');
     fs.writeFileSync(
       path.join(collection, 'exports-style.js'),
