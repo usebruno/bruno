@@ -62,7 +62,7 @@ test.describe('Sidebar scroll-to-active-tab', () => {
       await test.step('Closing the active bottom tab activates the top tab and scrolls to it', async () => {
         await expect(topRow).not.toBeInViewport();
 
-        await locators.tabs.closeTab(reqName(REQUEST_COUNT)).click();
+        await locators.tabs.closeTab(reqName(REQUEST_COUNT)).click({ force: true });
         await expect(locators.tabs.activeRequestTab()).toContainText(reqName(1));
         await expect(topRow).toBeInViewport();
       });
