@@ -71,6 +71,11 @@ const DEFAULT_ASSERTION_LIFETIME_SECONDS = 300;
 const DEFAULT_SECRET_JWT_ALG: TokenEndpointAuthSigningAlg = 'HS256';
 const DEFAULT_PRIVATE_KEY_JWT_ALG: TokenEndpointAuthSigningAlg = 'RS256';
 
+// Claims buildClaims() derives from the client configuration. `additionalClaims` may not override
+// them: an assertion with a substituted `sub` or `exp` is either rejected by the OP or weaker than
+// the configuration implies.
+const RESERVED_ASSERTION_CLAIMS = new Set(['iss', 'sub', 'aud', 'iat', 'exp', 'jti']);
+
 const REDACTED_PLACEHOLDER = '[REDACTED]';
 const SENSITIVE_BODY_PARAMS = ['client_secret', 'client_assertion'];
 
@@ -102,7 +107,7 @@ const buildClaims = (opts: TokenEndpointAuthOptions): Record<string, unknown> =>
   };
 
   for (const claim of opts.additionalClaims || []) {
-    if (claim?.enabled && claim?.name) {
+    if (claim?.enabled && claim?.name && !RESERVED_ASSERTION_CLAIMS.has(claim.name)) {
       claims[claim.name] = claim.value ?? '';
     }
   }

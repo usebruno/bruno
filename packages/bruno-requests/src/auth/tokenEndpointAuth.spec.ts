@@ -375,6 +375,37 @@ describe('applyTokenEndpointAuth', () => {
       expect((payload.exp as number) - (payload.iat as number)).toBe(120);
       expect(payload.iat as number).toBeGreaterThanOrEqual(before);
     });
+
+    it('ignores additionalClaims that would override reserved claims', async () => {
+      const result = await applyTokenEndpointAuth({
+        tokenEndpointAuthMethod: 'client_secret_jwt',
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        accessTokenUrl: TOKEN_URL,
+        assertionLifetime: 60,
+        additionalClaims: [
+          { name: 'iss', value: 'https://attacker.example.com', enabled: true },
+          { name: 'sub', value: 'someone-else', enabled: true },
+          { name: 'aud', value: 'https://attacker.example.com', enabled: true },
+          { name: 'iat', value: '0', enabled: true },
+          { name: 'exp', value: '9999999999', enabled: true },
+          { name: 'jti', value: 'fixed-jti', enabled: true },
+          { name: 'scope', value: 'read', enabled: true }
+        ]
+      });
+
+      const { payload } = await jwtVerify(
+        result.bodyParams.client_assertion,
+        new TextEncoder().encode(CLIENT_SECRET)
+      );
+      expect(payload.iss).toBe(CLIENT_ID);
+      expect(payload.sub).toBe(CLIENT_ID);
+      expect(payload.aud).toBe(TOKEN_URL);
+      expect(payload.jti).not.toBe('fixed-jti');
+      expect((payload.exp as number) - (payload.iat as number)).toBe(60);
+      // Non-reserved claims are still honoured.
+      expect(payload.scope).toBe('read');
+    });
   });
 });
 
