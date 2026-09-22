@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
+import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -13,7 +13,6 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -199,12 +198,9 @@ class MultiLineEditor extends Component {
       autoCompleteOptions
     );
 
-    setupLinkAware(this.editor, {
-      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
-    this._linkAwareItemType = this.props.item?.type;
-    this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    // Only marks URLs and lets Cmd/Ctrl+Click open them externally; click-to-open-as-new-request
+    // is reserved for response previews.
+    setupLinkAware(this.editor, { onLinkClick: undefined });
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -264,38 +260,25 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection, this.props.item);
-    if (!isEqual(variables, this.variables)) {
-      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-        this.editor.options.brunoVarInfo.variables = variables;
+    if (this.props.collection !== prevProps.collection || this.props.item !== prevProps.item) {
+      const variables = getAllVariables(this.props.collection, this.props.item);
+      if (!isEqual(variables, this.variables)) {
+        if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+          this.editor.options.brunoVarInfo.variables = variables;
+        }
+        this.addOverlay(variables);
       }
-      this.addOverlay(variables);
     }
 
-    // Update collection and item when they change
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+      if (this.props.collection !== this.editor.options.brunoVarInfo.collection) {
         this.editor.options.brunoVarInfo.collection = this.props.collection;
       }
-      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+      if (this.props.item !== this.editor.options.brunoVarInfo.item) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
 
-    // Re-wire link handler when item/collection context changes.
-    const itemType = this.props.item?.type;
-    const collectionUid = this.props.collection?.uid;
-    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
-      this._linkAwareItemType = itemType;
-      this._linkAwareCollectionUid = collectionUid;
-      this._linkAwarePresetType = presetType;
-      this.editor._destroyLinkAware?.();
-      setupLinkAware(this.editor, {
-        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-      });
-      this.editor.refresh();
-    }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
@@ -333,7 +316,9 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     if (this.props.mode !== prevProps.mode && this.editor) {
-      this.addOverlay(variables);
+      // `this.variables` is kept in sync by addOverlay(), so it is always the current
+      // variable set — no need to re-derive it just to re-apply the mode.
+      this.addOverlay(this.variables);
     }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);

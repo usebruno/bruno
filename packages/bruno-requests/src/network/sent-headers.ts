@@ -37,8 +37,8 @@ export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<str
 /** `request.headers` only holds what we put together, the headers table plus anything a
  *  pre-request script set.
  *
- *  But more headers actually go out. axios adds Accept and Accept-Encoding, Bruno adds User-Agent
- *  and request-start-time, Node adds Host and Connection. None of them exist until Node writes the
+ *  But more headers actually go out. axios adds Accept and Accept-Encoding, Bruno adds User-Agent,
+ *  Node adds Host and Connection. None of them exist until Node writes the
  *  request to the socket, long after we finished preparing it.
  *
  *  So after the send the two lists disagree, and this copies the missing ones in. It never replaces

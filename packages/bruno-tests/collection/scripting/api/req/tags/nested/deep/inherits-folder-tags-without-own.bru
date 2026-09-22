@@ -1,0 +1,18 @@
+meta {
+  name: inherits-folder-tags-without-own
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("a request with no tags of its own carries every folder tag above it", function () {
+    expect(req.getTags()).to.eql(['req-api', 'nested', 'deep']);
+    expect(req.tags).to.eql(['req-api', 'nested', 'deep']);
+  });
+}
