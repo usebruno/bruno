@@ -610,7 +610,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
         const disabledSystemHeaders = i.protocolProfileBehavior?.disabledSystemHeaders;
         if (disabledSystemHeaders && typeof disabledSystemHeaders === 'object') {
           const omitHeaders = Object.keys(disabledSystemHeaders)
-            .filter((headerName) => disabledSystemHeaders[headerName] === true);
+            .filter((headerName) => disabledSystemHeaders[headerName] === true)
+            .map((headerName) => headerName.trim())
+            .filter((headerName) => headerName.length > 0);
           if (omitHeaders.length > 0) {
             settings.omitHeaders = omitHeaders;
           }
