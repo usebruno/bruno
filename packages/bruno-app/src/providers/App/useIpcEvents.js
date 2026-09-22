@@ -415,8 +415,11 @@ const useIpcEvents = () => {
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
-      checkpoint('collection-tree-rendered', { collectionUid, itemCount: tree?.items?.length ?? 0 });
-      checkpoint('redux-state-updated', { collectionUid });
+      const collectionMeta = tree?.pathname
+        ? { collectionPathname: tree.pathname }
+        : { collectionUid };
+      checkpoint('collection-tree-rendered', { ...collectionMeta, itemCount: tree?.items?.length ?? 0 });
+      checkpoint('redux-state-updated', collectionMeta);
     });
 
     const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {

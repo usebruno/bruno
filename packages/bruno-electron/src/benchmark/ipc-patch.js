@@ -1,5 +1,6 @@
 const { performance } = require('node:perf_hooks');
 const { getMainMemorySnapshot } = require('./memory');
+const { extractBenchmarkContext } = require('./extract-context');
 
 const patchIpcMainForBenchmark = (ipcMain, aggregator) => {
   const originalHandle = ipcMain.handle.bind(ipcMain);
@@ -9,6 +10,8 @@ const patchIpcMainForBenchmark = (ipcMain, aggregator) => {
       const id = `${channel}-${performance.now()}`;
       const startMonoMs = performance.now();
       const memoryStart = getMainMemorySnapshot();
+      const meta = extractBenchmarkContext(args);
+      const metaFields = Object.keys(meta).length ? { meta } : {};
 
       aggregator.push({
         v: 1,
@@ -18,7 +21,8 @@ const patchIpcMainForBenchmark = (ipcMain, aggregator) => {
         side: 'main',
         phase: 'handler-start',
         monoMs: startMonoMs,
-        memory: memoryStart
+        memory: memoryStart,
+        ...metaFields
       });
 
       try {
@@ -36,7 +40,8 @@ const patchIpcMainForBenchmark = (ipcMain, aggregator) => {
           monoMs: endMonoMs,
           durationMs: endMonoMs - startMonoMs,
           memory: getMainMemorySnapshot(),
-          memoryStart
+          memoryStart,
+          ...metaFields
         });
       }
     });

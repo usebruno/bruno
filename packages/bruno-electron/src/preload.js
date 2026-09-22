@@ -20,7 +20,7 @@ const invokeWithBenchmark = async (channel, ...args) => {
     return ipcRenderer.invoke(channel, ...args);
   }
 
-  const context = recordIpcInvokeStart(channel);
+  const context = recordIpcInvokeStart(channel, ...args);
 
   try {
     return await ipcRenderer.invoke(channel, ...args);

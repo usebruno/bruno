@@ -1,11 +1,13 @@
 const { performance } = require('node:perf_hooks');
 const { nanoid } = require('nanoid');
+const { extractBenchmarkContext } = require('./extract-context');
 
 const ipcEvents = [];
 
-const recordIpcInvokeStart = (channel) => {
+const recordIpcInvokeStart = (channel, ...args) => {
   const id = nanoid(8);
   const monoMs = performance.now();
+  const meta = extractBenchmarkContext(args);
 
   ipcEvents.push({
     v: 1,
@@ -14,14 +16,16 @@ const recordIpcInvokeStart = (channel) => {
     channel,
     side: 'renderer',
     phase: 'invoke-start',
-    monoMs
+    monoMs,
+    ...(Object.keys(meta).length ? { meta } : {})
   });
 
-  return { id, startMonoMs: monoMs };
+  return { id, startMonoMs: monoMs, meta };
 };
 
 const recordIpcInvokeEnd = (channel, context) => {
   const endMonoMs = performance.now();
+  const meta = context.meta || {};
 
   ipcEvents.push({
     v: 1,
@@ -31,7 +35,8 @@ const recordIpcInvokeEnd = (channel, context) => {
     side: 'renderer',
     phase: 'invoke-end',
     monoMs: endMonoMs,
-    durationMs: endMonoMs - context.startMonoMs
+    durationMs: endMonoMs - context.startMonoMs,
+    ...(Object.keys(meta).length ? { meta } : {})
   });
 };
 

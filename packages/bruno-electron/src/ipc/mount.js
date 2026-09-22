@@ -15,8 +15,8 @@ const registerMountIpc = () => {
   ipcMain.handle(
     'renderer:mount-collection-v2',
     async (event, { collectionUid, collectionPathname, brunoConfig }) => {
-      const span = createSpan('mount-collection-v2', { collectionUid, collectionPathname });
-      checkpoint('mount-collection-start', { collectionUid, collectionPathname });
+      const span = createSpan('mount-collection-v2', { collectionPathname });
+      checkpoint('mount-collection-start', { collectionPathname });
 
       try {
         const win = BrowserWindow.fromWebContents(event.sender);
@@ -31,7 +31,7 @@ const registerMountIpc = () => {
         };
         const result = await manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit });
 
-        checkpoint('mount-collection-end', { collectionUid, collectionPathname });
+        checkpoint('mount-collection-end', { collectionPathname });
         return result;
       } finally {
         span.stop();

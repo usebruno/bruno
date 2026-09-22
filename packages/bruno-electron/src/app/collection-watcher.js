@@ -704,7 +704,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspacePathname = null) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
-  checkpoint('watcher-initial-scan-complete', { collectionUid, watchPath, workspacePathname });
+  checkpoint('watcher-initial-scan-complete', { collectionPathname: watchPath, workspacePathname });
 
   const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
