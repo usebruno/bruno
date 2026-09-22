@@ -885,6 +885,19 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
     return contentTypeHeader ? contentTypeHeader.value : null;
   };
 
+  const getDisabledSystemHeaders = (omitHeaders) => {
+    if (!omitHeaders || !Array.isArray(omitHeaders) || omitHeaders.length === 0) {
+      return null;
+    }
+
+    const disabledHeaders = {};
+    omitHeaders.forEach((headerName) => {
+      disabledHeaders[headerName.toLowerCase()] = true;
+    });
+
+    return Object.keys(disabledHeaders).length > 0 ? disabledHeaders : null;
+  };
+
   const generateItemSection = (itemsArray) => {
     if (!itemsArray || !Array.isArray(itemsArray)) {
       return [];
@@ -917,10 +930,19 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
 
         const methodsWithoutBody = ['GET', 'HEAD', 'OPTIONS'];
         const needsBodyPruningDisabled = hasBody && methodsWithoutBody.includes(method);
+        const disabledSystemHeaders = getDisabledSystemHeaders(item.settings?.omitHeaders);
+
+        const protocolProfileBehavior = {};
+        if (needsBodyPruningDisabled) {
+          protocolProfileBehavior.disableBodyPruning = true;
+        }
+        if (disabledSystemHeaders) {
+          protocolProfileBehavior.disabledSystemHeaders = disabledSystemHeaders;
+        }
 
         const postmanItem = {
           name: item.name || 'Untitled Request',
-          ...(needsBodyPruningDisabled ? { protocolProfileBehavior: { disableBodyPruning: true } } : {}),
+          ...(Object.keys(protocolProfileBehavior).length > 0 ? { protocolProfileBehavior } : {}),
           request: generateRequestSection(item.request),
           ...(requestEvents.length ? { event: requestEvents } : {})
         };
