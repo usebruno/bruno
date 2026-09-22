@@ -11,39 +11,41 @@ import EdgeGridAuth from '../EdgeGridAuth';
 import OAuth2 from '../OAuth2/index';
 
 const AuthFields = ({ authMode, collection, item, request, save, updateAuth, disabled }) => {
+  const authProps = { collection, item, request, save, updateAuth, disabled };
+
   switch (authMode) {
     case 'none': {
       return <div className="mt-2">No Auth</div>;
     }
     case 'awsv4': {
-      return <AwsV4Auth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <AwsV4Auth {...authProps} />;
     }
     case 'basic': {
-      return <BasicAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <BasicAuth {...authProps} />;
     }
     case 'bearer': {
-      return <BearerAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <BearerAuth {...authProps} />;
     }
     case 'digest': {
-      return <DigestAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <DigestAuth {...authProps} />;
     }
     case 'ntlm': {
-      return <NTLMAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <NTLMAuth {...authProps} />;
     }
     case 'oauth1': {
-      return <OAuth1 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <OAuth1 {...authProps} />;
     }
     case 'oauth2': {
-      return <OAuth2 collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <OAuth2 {...authProps} />;
     }
     case 'wsse': {
-      return <WsseAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <WsseAuth {...authProps} />;
     }
     case 'apikey': {
-      return <ApiKeyAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <ApiKeyAuth {...authProps} />;
     }
     case 'akamai-edgegrid': {
-      return <EdgeGridAuth collection={collection} item={item} request={request} save={save} updateAuth={updateAuth} disabled={disabled} />;
+      return <EdgeGridAuth {...authProps} />;
     }
     default: {
       return null;

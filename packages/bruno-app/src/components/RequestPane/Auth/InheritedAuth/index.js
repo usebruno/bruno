@@ -7,6 +7,9 @@ import { humanizeRequestAuthMode } from 'utils/collections';
 import AuthFields from '../AuthFields';
 import StyledWrapper from './StyledWrapper';
 
+const noop = () => {};
+const noopUpdateAuth = () => ({ type: 'noop' });
+
 export const isInheritedAuthSupported = (inheritedSource, supportedModes) => {
   if (!supportedModes) {
     return true;
@@ -50,9 +53,13 @@ export const InheritedAuthSourceLabel = ({ collection, inheritedSource, supporte
   }
 
   const handleNavigateToSource = () => {
+    if (!collection?.uid) {
+      return;
+    }
+
     const isFolder = inheritedSource.type === 'folder';
     const targetUid = isFolder ? inheritedSource.uid : collection.uid;
-    if (!targetUid || !collection?.uid) {
+    if (!targetUid) {
       return;
     }
 
@@ -114,6 +121,8 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
           collection={collection}
           item={item}
           request={inheritedRequest}
+          save={noop}
+          updateAuth={noopUpdateAuth}
           disabled
         />
       </div>

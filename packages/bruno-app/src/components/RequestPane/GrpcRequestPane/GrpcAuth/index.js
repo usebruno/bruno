@@ -11,7 +11,6 @@ import StyledWrapper from './StyledWrapper';
 import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
@@ -27,10 +26,6 @@ const GrpcAuth = ({ item, collection }) => {
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
     [authMode, item, collection]
   );
-
-  const save = () => {
-    return saveRequest(item.uid, collection.uid);
-  };
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
@@ -51,19 +46,19 @@ const GrpcAuth = ({ item, collection }) => {
         return <div>No Auth</div>;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'wsse': {
-        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'inherit': {
         return (

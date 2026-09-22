@@ -20,6 +20,9 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
   const handleSave = () => {
+    if (disabled) {
+      return;
+    }
     save();
   };
 
@@ -33,6 +36,9 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   });
 
   const handleAuthChange = (property, value) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'apikey',

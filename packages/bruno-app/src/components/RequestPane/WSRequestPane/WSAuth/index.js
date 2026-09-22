@@ -9,7 +9,6 @@ import StyledWrapper from './StyledWrapper';
 import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import { AUTH_MODES, AUTH_MODES_WS } from 'utils/common/constants';
 
@@ -22,10 +21,6 @@ const WSAuth = ({ item, collection }) => {
   const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
-
-  const save = () => {
-    return saveRequest(item.uid, collection.uid);
-  };
 
   const inheritedSource = useMemo(
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
@@ -49,13 +44,13 @@ const WSAuth = ({ item, collection }) => {
         return <div>No Auth</div>;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'oauth2': {
         return (
