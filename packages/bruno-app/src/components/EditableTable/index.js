@@ -11,6 +11,11 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
 const ROW_HEIGHT = 35;
+const DEFAULT_ROW_CONFIG = {};
+const defaultIsRowEditable = () => true;
+const defaultIsCheckboxDisabled = () => false;
+const defaultGetRowClassName = () => '';
+const defaultGetRowTestId = () => undefined;
 
 const findScrollParent = (element) => {
   let parent = element?.parentElement;
@@ -86,7 +91,7 @@ const EditableTable = ({
   showDelete = true,
   disableCheckbox = false,
   onCheckboxChange,
-  rowConfig = {},
+  rowConfig = DEFAULT_ROW_CONFIG,
   checkboxLabel = '',
   checkboxKey = 'enabled',
   reorderable: reorderableProp = false,
@@ -100,10 +105,10 @@ const EditableTable = ({
   isDraft
 }) => {
   const {
-    isEditable: isRowEditable = () => true,
-    isCheckboxDisabled = () => false,
-    className: getRowClassName = () => '',
-    testId: getRowTestId = () => undefined,
+    isEditable: isRowEditable = defaultIsRowEditable,
+    isCheckboxDisabled = defaultIsCheckboxDisabled,
+    className: getRowClassName = defaultGetRowClassName,
+    testId: getRowTestId = defaultGetRowTestId,
     renderFullWidth: renderFullWidthRow,
     renderActionCell
   } = rowConfig;

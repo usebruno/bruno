@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { formatSize } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
@@ -15,8 +15,13 @@ const getModeLabel = (mode) => {
   return mode.split('/').pop().split('+').pop();
 };
 
+const encoder = new TextEncoder();
+
 const StatusBar = ({ value, mode, longLineDetected, longLineMode, onToggle }) => {
-  const sizeText = formatSize(new TextEncoder().encode(value ?? '').length);
+  const sizeText = useMemo(
+    () => formatSize(encoder.encode(value ?? '').length),
+    [value]
+  );
   const modeLabel = longLineMode ? 'plain text' : getModeLabel(mode);
 
   return (
