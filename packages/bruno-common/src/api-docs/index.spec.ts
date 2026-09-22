@@ -9,7 +9,12 @@ import {
 } from './index';
 
 const req = (name: string, tags?: string[]) => ({ name, type: 'http-request', tags });
-const folder = (name: string, items: any[]) => ({ name, type: 'folder', items });
+const folder = (name: string, items: any[], tags?: string[]) => ({
+  name,
+  type: 'folder',
+  items,
+  root: { meta: { tags } }
+});
 
 describe('filterRequestItemsByTags', () => {
   it('returns the items unchanged when no tags are given', () => {
@@ -42,6 +47,61 @@ describe('filterRequestItemsByTags', () => {
   it('prunes a pre-existing empty folder (no items array) when filtering', () => {
     const result = filterRequestItemsByTags([{ name: 'Archive', type: 'folder' }, req('a', ['prod'])], ['prod'], []);
     expect(result.map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('cascades a folder tag onto its untagged requests', () => {
+    const items = [folder('tagged', [req('a')], ['prod']), folder('untagged', [req('b')])];
+    const result = filterRequestItemsByTags(items, ['prod'], []);
+    expect(result.map((i) => i.name)).toEqual(['tagged']);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('accumulates tags down nested folders so a deep request inherits every ancestor tag', () => {
+    const items = [folder('outer', [folder('inner', [req('a')], ['v2'])], ['prod'])];
+    expect(filterRequestItemsByTags(items, ['prod'], [])).toHaveLength(1);
+    expect(filterRequestItemsByTags(items, ['v2'], [])).toHaveLength(1);
+    expect(filterRequestItemsByTags(items, ['other'], [])).toHaveLength(0);
+  });
+
+  it('drops a request whose inherited folder tag is excluded, even when its own tag is included', () => {
+    const items = [folder('wip', [req('a', ['prod'])], ['wip']), req('b', ['prod'])];
+    const result = filterRequestItemsByTags(items, ['prod'], ['wip']);
+    expect(result.map((i) => i.name)).toEqual(['b']);
+  });
+
+  it('keeps a request whose own tag is included even when its folder carries a different tag', () => {
+    const items = [folder('f', [req('a', ['prod']), req('b')], ['smoke'])];
+    const result = filterRequestItemsByTags(items, ['prod'], []);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('prunes a tagged folder whose requests are all excluded by their own tags', () => {
+    const items = [folder('f', [req('a', ['wip'])], ['prod'])];
+    expect(filterRequestItemsByTags(items, ['prod'], ['wip'])).toEqual([]);
+  });
+
+  it('applies tags inherited from above the given items, for a run scoped to a subfolder', () => {
+    const items = [req('a'), req('b', ['wip']), req('c', ['smoke'])];
+    const result = filterRequestItemsByTags(items, ['prod'], ['wip'], ['prod']);
+    expect(result.map((i) => i.name)).toEqual(['a', 'c']);
+  });
+
+  it('carries inherited tags through a folder that carries none of its own', () => {
+    const items = [folder('plain', [req('a')])];
+    const result = filterRequestItemsByTags(items, ['prod'], [], ['prod']);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('ignores unsaved folder tags - docs describe the collection on disk', () => {
+    const withDraft = { ...folder('f', [req('a')], ['wip']), draft: { meta: { tags: ['prod'] } } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
+  });
+
+  it('ignores unsaved request tags', () => {
+    const withDraft = { ...req('a', ['wip']), draft: { tags: ['prod'] } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
   });
 });
 
