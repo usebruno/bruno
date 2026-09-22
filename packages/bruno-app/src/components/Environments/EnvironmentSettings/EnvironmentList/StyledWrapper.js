@@ -68,7 +68,7 @@ const StyledWrapper = styled.div`
 
     .env-list-search-input {
       width: 100%;
-      padding: 5px 24px 5px 26px;
+      padding: 3px 24px 3px 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
@@ -157,7 +157,8 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 4px 8px;
+    height: 1.6rem;
+    padding: 0 8px;
     margin-bottom: 1px;
     font-size: 13px;
     color: ${(props) => props.theme.text};
@@ -237,7 +238,7 @@ const StyledWrapper = styled.div`
     }
 
     &:hover {
-      background: ${(props) => props.theme.workspace.button.bg};
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
     &.active {
@@ -246,12 +247,7 @@ const StyledWrapper = styled.div`
     }
 
     &.is-selected {
-      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
-      border-left: 3px solid ${(props) => props.theme.primary.solid};
-
-      &:hover {
-        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
-      }
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
     &.renaming,

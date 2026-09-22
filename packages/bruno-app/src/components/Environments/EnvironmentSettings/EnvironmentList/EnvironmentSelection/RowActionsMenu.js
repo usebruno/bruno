@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
-import { getPlatformModifierKey, isMacOS } from 'utils/common/platform';
-
-const modKey = getPlatformModifierKey();
-const selectShortcut = `${modKey}+Click`;
-const selectAllShortcut = isMacOS() ? `${modKey}A` : `${modKey}+A`;
+import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from './ShortcutHints';
 
 const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected }) => {
   const menuItems = useMemo(() => {
@@ -37,7 +33,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         id: 'select',
         label: 'Select',
         leftSection: IconCheck,
-        rightSection: <span className="shortcut">{selectShortcut}</span>,
+        rightSection: <SelectShortcutHint />,
         onClick: onSelect
       });
     }
@@ -47,7 +43,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         id: 'select-all',
         label: isAllSelected ? 'Unselect all' : 'Select all',
         leftSection: IconChecks,
-        rightSection: <span className="shortcut">{selectAllShortcut}</span>,
+        rightSection: <SelectAllShortcutHint />,
         onClick: onSelectAll
       },
       { id: 'divider-3', type: 'divider' },
@@ -55,6 +51,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         id: 'delete',
         label: 'Delete',
         leftSection: IconTrash,
+        rightSection: <DeleteShortcutHint />,
         className: 'delete-item',
         onClick: onDelete
       }

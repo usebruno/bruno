@@ -5,6 +5,7 @@ const useEnvironmentBulkSelection = ({
   environments,
   filteredEnvironments,
   collectionUid,
+  activeEnvUid,
   onOpenEnvironment,
   onRenameEnvironment
 }) => {
@@ -88,10 +89,6 @@ const useEnvironmentBulkSelection = ({
     setLastClickedEnvUid(uids[uids.length - 1]);
   }, []);
 
-  // Toggles: selects every filtered environment, or — if they're all
-  // already selected — clears the selection instead. Shared by the
-  // "Select all"/"Unselect all" menu item and the Cmd/Ctrl+A shortcut, so
-  // both always agree on what happens next.
   const selectAllEnvs = useCallback(() => {
     if (isAllSelected) {
       clearSelection();
@@ -101,9 +98,17 @@ const useEnvironmentBulkSelection = ({
     setLastClickedEnvUid(filteredEnvUids.length ? filteredEnvUids[filteredEnvUids.length - 1] : null);
   }, [isAllSelected, filteredEnvUids, clearSelection]);
 
+  const deleteViaShortcut = useCallback(() => {
+    const targets = hasSelection ? selectedEnvUids : (activeEnvUid ? [activeEnvUid] : []);
+    if (!targets.length) return;
+    setActionTargetUids(targets);
+    setShowDeleteModal(true);
+  }, [hasSelection, selectedEnvUids, activeEnvUid]);
+
   const selectEnvRange = useCallback((toUid) => {
     setSelectedEnvUids((prev) => {
-      const fromIndex = lastClickedEnvUid ? filteredEnvUids.indexOf(lastClickedEnvUid) : -1;
+      const anchorUid = lastClickedEnvUid || activeEnvUid;
+      const fromIndex = anchorUid ? filteredEnvUids.indexOf(anchorUid) : -1;
       const toIndex = filteredEnvUids.indexOf(toUid);
       if (fromIndex === -1 || toIndex === -1) {
         return prev.includes(toUid) ? prev : [...prev, toUid];
@@ -113,7 +118,7 @@ const useEnvironmentBulkSelection = ({
       filteredEnvUids.slice(start, end + 1).forEach((uid) => merged.add(uid));
       return Array.from(merged);
     });
-  }, [lastClickedEnvUid, filteredEnvUids]);
+  }, [lastClickedEnvUid, activeEnvUid, filteredEnvUids]);
 
   const handleRowInteraction = useCallback((e, env) => {
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
@@ -121,7 +126,13 @@ const useEnvironmentBulkSelection = ({
     if (isSelectionModifierPressed) {
       e.preventDefault();
       e.stopPropagation();
-      toggleEnvSelection(env.uid);
+      // Seed the selection with the environment that's currently open, so a
+      // Cmd/Ctrl-click elsewhere builds a multi-selection that includes it
+      if (!hasSelection && activeEnvUid && activeEnvUid !== env.uid) {
+        selectEnvs([activeEnvUid, env.uid]);
+      } else {
+        toggleEnvSelection(env.uid);
+      }
       setLastClickedEnvUid(env.uid);
       return;
     }
@@ -139,7 +150,7 @@ const useEnvironmentBulkSelection = ({
     }
 
     onOpenEnvironment?.(env);
-  }, [toggleEnvSelection, selectEnvRange, hasSelection, clearSelection, onOpenEnvironment]);
+  }, [toggleEnvSelection, selectEnvs, selectEnvRange, hasSelection, activeEnvUid, clearSelection, onOpenEnvironment]);
 
   const handleRowContextMenu = useCallback((e, env) => {
     e.preventDefault();
@@ -235,6 +246,27 @@ const useEnvironmentBulkSelection = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectAllEnvs]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isDeleteShortcut = isMacOS()
+        ? e.metaKey && (e.key === 'Backspace' || e.key === 'Delete')
+        : e.key === 'Delete';
+      if (!isDeleteShortcut) return;
+
+      const activeTag = document.activeElement?.tagName;
+      const isTextFieldFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+      if (isTextFieldFocused) return;
+
+      if (!scopeRef.current?.matches(':hover')) return;
+
+      e.preventDefault();
+      deleteViaShortcut();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [deleteViaShortcut]);
 
   const isEnvSelected = useCallback((uid) => selectedEnvUidSet.has(uid), [selectedEnvUidSet]);
 

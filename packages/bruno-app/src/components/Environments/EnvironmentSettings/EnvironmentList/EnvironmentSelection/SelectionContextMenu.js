@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
-import { getPlatformModifierKey, isMacOS } from 'utils/common/platform';
-
-const modKey = getPlatformModifierKey();
-const selectShortcut = `${modKey}+Click`;
-const selectAllShortcut = isMacOS() ? `${modKey}A` : `${modKey}+A`;
+import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from './ShortcutHints';
 
 const SelectionContextMenu = ({
   visible,
@@ -66,7 +62,7 @@ const SelectionContextMenu = ({
         id: 'select',
         label: 'Select',
         leftSection: IconCheck,
-        rightSection: <span className="shortcut">{selectShortcut}</span>,
+        rightSection: <SelectShortcutHint />,
         onClick: onSelect
       });
     }
@@ -76,7 +72,7 @@ const SelectionContextMenu = ({
         id: 'select-all',
         label: isAllSelected ? 'Unselect all' : 'Select all',
         leftSection: IconChecks,
-        rightSection: <span className="shortcut">{selectAllShortcut}</span>,
+        rightSection: <SelectAllShortcutHint />,
         onClick: onSelectAll
       },
       { id: 'divider-3', type: 'divider' },
@@ -84,6 +80,7 @@ const SelectionContextMenu = ({
         id: 'delete',
         label: selectedCount > 1 ? `Delete (${selectedCount})` : 'Delete',
         leftSection: IconTrash,
+        rightSection: <DeleteShortcutHint />,
         className: 'delete-item',
         onClick: onDelete
       }

@@ -94,8 +94,27 @@ const Wrapper = styled.div`
     }
 
     .shortcut {
+      display: flex;
+      align-items: center;
+      gap: 3px;
       font-size: 11px;
       color: ${(props) => props.theme.dropdown.mutedText};
+    }
+
+    .keycap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 15px;
+      height: 15px;
+      padding: 0 4px;
+      border: 1px solid ${(props) => props.theme.border.border2};
+      border-radius: 4px;
+      background: ${(props) => rgba(props.theme.text, 0.08)};
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1;
+      color: ${(props) => props.theme.dropdown.color};
     }
 
     .dropdown-tab-count {
