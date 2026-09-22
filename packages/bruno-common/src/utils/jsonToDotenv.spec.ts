@@ -164,6 +164,28 @@ describe('jsonToDotenv', () => {
       expect(parsed.APOSTROPHE).toBe('it\'s working');
     });
 
+    test.each([
+      '"hello"',
+      '\'hello\'',
+      '`hello`',
+      '""',
+      '\'\'',
+      '``',
+      '"C:\\new\\request"',
+      '"hello\u2028world"',
+      '"hello\u2029world"',
+      '"a\'b`"',
+      '\'a"b`\'',
+      '`a\'b"`'
+    ])('it should preserve literal surrounding quotes in %s through repeated round-trips', (value) => {
+      let currentValue = value;
+      for (let i = 0; i < 3; i++) {
+        const serialized = jsonToDotenv([{ name: 'VALUE', value: currentValue }]);
+        currentValue = dotenvToJson(serialized).VALUE;
+        expect(currentValue).toBe(value);
+      }
+    });
+
     test('it should preserve values with hash, single quote, and double quote through round-trip', () => {
       const variables = [{ name: 'COMPLEX', value: 'it\'s#"complex"' }];
       const serialized = jsonToDotenv(variables);

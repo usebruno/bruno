@@ -18,6 +18,7 @@ export interface DotenvVariable {
  * - Values with actual newlines/carriage returns → double-quote + escape \n/\r
  * - Values with # but no ' → single-quote (literal)
  * - Values with # and ' → backtick-quote or double-quote fallback
+ * - Matching surrounding quotes: wrap to preserve the literal quotes
  * - Values with leading/trailing whitespace → quote to prevent trimming
  * - Everything else → unquoted (preserves \, ", ' as-is)
  */
@@ -62,6 +63,11 @@ export const jsonToDotenv = (variables: DotenvVariable[]): string => {
           return `${v.name}=\`${value}\``;
         }
         return `${v.name}="${value}"`;
+      }
+
+      // dotenv removes matching outer quotes; preserve them as part of the value.
+      if (/^(['"`])[\s\S]*\1$/.test(value)) {
+        return `${v.name}='${value}'`;
       }
 
       // Everything else can be unquoted — dotenv preserves \, ", ' in unquoted values
