@@ -8,6 +8,8 @@ const COLLECTION_NAME = 'ScrollCol';
 const REQUEST_COUNT = 60;
 const reqName = (i: number) => `req-${String(i).padStart(3, '0')}`;
 
+const WINDOW_SIZE = { width: 1200, height: 500 };
+
 const buildCollectionOnDisk = (dir: string, count: number) => {
   initBruCollection(dir, COLLECTION_NAME);
   for (let i = 1; i <= count; i++) writeBruRequest(dir, reqName(i), { seq: i });
@@ -24,12 +26,15 @@ test.describe('Sidebar scroll-to-active-tab', () => {
       templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
     });
     const page = await waitForReadyPage(app);
+    await page.setViewportSize(WINDOW_SIZE);
     const locators = buildCommonLocators(page);
+    const topRow = locators.sidebar.request(reqName(1));
+    const bottomRow = locators.sidebar.request(reqName(REQUEST_COUNT));
 
     try {
       await test.step('App loads with the collection populated', async () => {
         await locators.sidebar.collection(COLLECTION_NAME).click();
-        await expect(locators.sidebar.request(reqName(1))).toBeVisible({ timeout: 15000 });
+        await expect(topRow).toBeVisible({ timeout: 15000 });
       });
 
       await test.step('Open a top and a bottom request as persistent tabs', async () => {
@@ -39,21 +44,27 @@ test.describe('Sidebar scroll-to-active-tab', () => {
       });
 
       await test.step('Activating the top tab scrolls the sidebar up to its row', async () => {
+        await expect(topRow).not.toBeInViewport();
+
         await locators.tabs.requestTab(reqName(1)).click();
         await expect(locators.tabs.activeRequestTab()).toContainText(reqName(1));
-        await expect(locators.sidebar.request(reqName(1))).toBeInViewport();
+        await expect(topRow).toBeInViewport();
       });
 
       await test.step('Activating the bottom tab scrolls the sidebar down to its row', async () => {
+        await expect(bottomRow).not.toBeInViewport();
+
         await locators.tabs.requestTab(reqName(REQUEST_COUNT)).click();
         await expect(locators.tabs.activeRequestTab()).toContainText(reqName(REQUEST_COUNT));
-        await expect(locators.sidebar.request(reqName(REQUEST_COUNT))).toBeInViewport();
+        await expect(bottomRow).toBeInViewport();
       });
 
       await test.step('Closing the active bottom tab activates the top tab and scrolls to it', async () => {
+        await expect(topRow).not.toBeInViewport();
+
         await locators.tabs.closeTab(reqName(REQUEST_COUNT)).click();
         await expect(locators.tabs.activeRequestTab()).toContainText(reqName(1));
-        await expect(locators.sidebar.request(reqName(1))).toBeInViewport();
+        await expect(topRow).toBeInViewport();
       });
     } finally {
       await closeElectronApp(app);
