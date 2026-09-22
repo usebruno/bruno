@@ -5,6 +5,10 @@ const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
+const { SearchIndex } = require('../search-index');
+const { indexCollection } = require('../search-index/indexer');
+const { buildFolderTree } = require('../search-index/build-tree');
+const { preferencesUtil } = require('../../store/preferences');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -68,7 +72,11 @@ const ensureTransientDirectory = () => {
 
 class MountManager {
   #index = null;
+  #searchIndex = null;
   #mounts = new Map();
+  #activeIndexingCount = 0;
+  #indexingStartedAt = null;
+  #lastIndexingDurationMs = null;
 
   async mount({ win, collectionPath, collectionUid, brunoConfig, emit }) {
     collectionPath = path.resolve(collectionPath);
@@ -102,12 +110,19 @@ class MountManager {
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
+      if (preferencesUtil.isSearchIndexEnabled()) {
+        this.#runIndexCollection(this.#getSearchIndex(), this.#getIndex(), {
+          collectionPath,
+          collectionName: path.basename(collectionPath)
+        }).catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err));
+      }
 
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
-        fileIndex: this.#getIndex()
+        fileIndex: this.#getIndex(),
+        searchIndex: preferencesUtil.isSearchIndexEnabled() ? this.#getSearchIndex() : null
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
@@ -142,6 +157,10 @@ class MountManager {
       this.#index.close();
       this.#index = null;
     }
+    if (this.#searchIndex) {
+      this.#searchIndex.close();
+      this.#searchIndex = null;
+    }
   }
 
   getCacheSize() {
@@ -153,12 +172,79 @@ class MountManager {
     }
   }
 
+  getSearchIndexSize() {
+    try {
+      return fs.statSync(this.#getSearchIndex().dbPath).size;
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return 0;
+      throw err;
+    }
+  }
+
   clearCache() {
     this.#getIndex().clear();
   }
 
+  clearSearchIndex() {
+    this.#getSearchIndex().clear();
+  }
+
+  searchIndex(term, options = {}) {
+    return this.#getSearchIndex().search(term, options);
+  }
+
+  async searchIndexTrees(term) {
+    const matches = this.searchIndex(term, { scope: 'request' });
+    const byCollection = new Map();
+    for (const row of matches) {
+      if (!byCollection.has(row.collectionPath)) byCollection.set(row.collectionPath, []);
+      byCollection.get(row.collectionPath).push(row);
+    }
+
+    const trees = {};
+    for (const [collectionPath, rows] of byCollection) {
+      trees[collectionPath] = buildFolderTree(collectionPath, rows);
+    }
+    return trees;
+  }
+
+  async getIndexTree({ collectionPath, collectionName }) {
+    const root = path.resolve(collectionPath);
+    await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
+    const rows = this.#getSearchIndex().rowsForCollection(root);
+    return { items: buildFolderTree(root, rows) };
+  }
+
+  sweepRemovedCollections(validPaths) {
+    const valid = new Set(validPaths.map((p) => path.resolve(p)));
+    const known = new Set([...this.#getIndex().collectionPaths(), ...this.#getSearchIndex().collectionPaths()]);
+    for (const collectionPath of known) {
+      if (valid.has(collectionPath)) continue;
+      this.#getIndex().clearCollection(collectionPath);
+      this.#getSearchIndex().clearCollection(collectionPath);
+    }
+  }
+
+  async indexCollectionInBackground({ collectionPath, collectionName }) {
+    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    const root = path.resolve(collectionPath);
+    const alreadyMounted = Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
+    if (alreadyMounted) return;
+    await this.#runIndexCollection(this.#getSearchIndex(), this.#getIndex(), { collectionPath: root, collectionName });
+  }
+
+  getIndexingStatus() {
+    return {
+      isIndexing: this.#activeIndexingCount > 0,
+      startedAt: this.#indexingStartedAt,
+      lastDurationMs: this.#lastIndexingDurationMs
+    };
+  }
+
   clearCollectionIndex(collectionPath) {
-    this.#getIndex().clearCollection(path.resolve(collectionPath));
+    const root = path.resolve(collectionPath);
+    this.#getIndex().clearCollection(root);
+    this.#getSearchIndex().clearCollection(root);
   }
 
   async #reconcile(entry) {
@@ -229,6 +315,37 @@ class MountManager {
   #getIndex() {
     if (!this.#index) this.#index = new FileIndex({});
     return this.#index;
+  }
+
+  #getSearchIndex() {
+    if (!this.#searchIndex) this.#searchIndex = new SearchIndex({});
+    return this.#searchIndex;
+  }
+
+  async #runIndexCollection(...args) {
+    if (this.#activeIndexingCount === 0) {
+      this.#indexingStartedAt = Date.now();
+      this.#broadcastIndexingStatus();
+    }
+    this.#activeIndexingCount++;
+    try {
+      await indexCollection(...args);
+    } finally {
+      this.#activeIndexingCount--;
+      if (this.#activeIndexingCount === 0) {
+        this.#lastIndexingDurationMs = Date.now() - this.#indexingStartedAt;
+        this.#indexingStartedAt = null;
+        this.#broadcastIndexingStatus();
+      }
+    }
+  }
+
+  #broadcastIndexingStatus() {
+    const { BrowserWindow } = require('electron');
+    const status = this.getIndexingStatus();
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('main:search-index-status', status);
+    }
   }
 }
 

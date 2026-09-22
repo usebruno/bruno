@@ -1,5 +1,6 @@
 const { ipcMain, BrowserWindow } = require('electron');
 const { MountManager } = require('../services/mount');
+const { getAllWorkspaceCollections } = require('../utils/workspace-collections');
 
 const manager = new MountManager();
 
@@ -9,6 +10,33 @@ const registerMountIpc = () => {
   ipcMain.handle('renderer:clear-file-cache', () => {
     manager.clearCache();
     return manager.getCacheSize();
+  });
+
+  ipcMain.handle('renderer:get-search-index-size', () => manager.getSearchIndexSize());
+
+  ipcMain.handle('renderer:get-search-index-status', () => manager.getIndexingStatus());
+
+  ipcMain.handle('renderer:search-index', (_, term, options) => {
+    if (!term || typeof term !== 'string') return [];
+    return manager.searchIndex(term, options || {});
+  });
+
+  ipcMain.handle('renderer:search-index-tree', (_, { collectionPath, collectionName }) => {
+    if (!collectionPath) return { items: [] };
+    return manager.getIndexTree({ collectionPath, collectionName });
+  });
+
+  ipcMain.handle('renderer:search-index-trees', (_, term) => {
+    if (!term || typeof term !== 'string') return {};
+    return manager.searchIndexTrees(term);
+  });
+
+  ipcMain.handle('renderer:clear-search-index', async () => {
+    manager.clearCache();
+    manager.clearSearchIndex();
+    const sizes = { fileCacheSize: manager.getCacheSize(), searchIndexSize: manager.getSearchIndexSize() };
+    getAllWorkspaceCollections().then(indexWorkspaceCollections).catch(() => {});
+    return sizes;
   });
 
   ipcMain.handle(
@@ -33,4 +61,19 @@ const unmount = (collectionUid) => manager.unmount(collectionUid);
 const shutdown = () => manager.shutdown();
 const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
-module.exports = { registerMountIpc, unmount, shutdown, clearCollectionIndex };
+const indexWorkspaceCollections = async (collections) => {
+  for (const { path: collectionPath, name } of collections) {
+    await manager.indexCollectionInBackground({ collectionPath, collectionName: name }).catch(() => {});
+  }
+};
+
+const sweepRemovedCollections = (validPaths) => manager.sweepRemovedCollections(validPaths);
+
+module.exports = {
+  registerMountIpc,
+  unmount,
+  shutdown,
+  clearCollectionIndex,
+  indexWorkspaceCollections,
+  sweepRemovedCollections
+};

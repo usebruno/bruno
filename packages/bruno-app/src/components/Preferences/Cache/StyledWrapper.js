@@ -59,6 +59,12 @@ const StyledWrapper = styled.div`
     gap: 1.25rem;
   }
 
+  .cache-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
   .cache-item-body-text {
     flex: 1;
     min-width: 0;
@@ -81,6 +87,15 @@ const StyledWrapper = styled.div`
     font-weight: 600;
     color: ${(props) => props.theme.text};
     margin-left: 0.25rem;
+  }
+
+  .indexing-live-badge {
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.status.info.text};
+    background: ${(props) => props.theme.status.info.background};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 1px 6px;
+    margin-left: 0.5rem;
   }
 `;
 

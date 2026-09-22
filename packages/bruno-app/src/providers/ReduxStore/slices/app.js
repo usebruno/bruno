@@ -17,6 +17,9 @@ import {
 
 const initialState = {
   isDragging: false,
+  searchIndexBuilding: false,
+  searchIndexStartedAt: null,
+  searchIndexLastDurationMs: null,
   idbConnectionReady: false,
   snapshotReady: false,
   snapshotHydration: {
@@ -134,6 +137,12 @@ export const appSlice = createSlice({
     },
     setSnapshotReady: (state, action) => {
       state.snapshotReady = action.payload;
+    },
+    setSearchIndexStatus: (state, action) => {
+      const { isIndexing, startedAt, lastDurationMs } = action.payload || {};
+      state.searchIndexBuilding = isIndexing;
+      state.searchIndexStartedAt = startedAt;
+      state.searchIndexLastDurationMs = lastDurationMs;
     },
     setSidebarState: (state, action) => {
       const { width, collapsed } = action.payload || {};
@@ -304,6 +313,7 @@ export const appSlice = createSlice({
 export const {
   idbConnectionReady,
   setSnapshotReady,
+  setSearchIndexStatus,
   setSidebarState,
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,

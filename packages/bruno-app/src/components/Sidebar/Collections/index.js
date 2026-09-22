@@ -7,16 +7,26 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { fetchCollectionTreeFromIndex, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
+import { normalizePath } from 'utils/common/path';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import useDebounce from 'hooks/useDebounce';
+import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
+const SEARCH_DEBOUNCE_MS = 350;
+
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
+  // The input renders from `searchText` so typing stays instant; everything that has to walk the
+  // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows once, not per character.
   const [searchText, setSearchText] = useState('');
+  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS);
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
@@ -35,11 +45,88 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  // A collection that isn't mounted yet has no `collection.items` - its structure lives only in
+  // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
+  // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
+  const [indexTreesByUid, setIndexTreesByUid] = useState({});
+
+  useEffect(() => {
+    const toFetch = sidebarEntries.filter((entry) =>
+      entry.kind === 'loaded'
+      && entry.collection.mountStatus !== 'mounted'
+      && !entry.collection.collapsed
+      && !(entry.collection.uid in indexTreesByUid));
+
+    if (!toFetch.length) return;
+
+    toFetch.forEach((entry) => {
+      const { collection } = entry;
+      dispatch(fetchCollectionTreeFromIndex({
+        collectionPath: collection.pathname,
+        collectionName: collection.name
+      }))
+        .then(({ items }) => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
+        })
+        .catch(() => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+        });
+    });
+  }, [sidebarEntries, indexTreesByUid, dispatch]);
+
+  const [searchTreesByPath, setSearchTreesByPath] = useState({});
+  const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
+
+  useEffect(() => {
+    if (!debouncedSearchText) {
+      setSearchTreesByPath({});
+      setIsSearchIndexPending(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchIndexPending(true);
+    dispatch(searchCollectionTreesFromIndex(debouncedSearchText))
+      .then((trees) => {
+        if (cancelled) return;
+        const byPath = {};
+        for (const [collectionPath, items] of Object.entries(trees || {})) {
+          byPath[normalizePath(collectionPath)] = items;
+        }
+        setSearchTreesByPath(byPath);
+      })
+      .catch(() => {
+        if (!cancelled) setSearchTreesByPath({});
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearchIndexPending(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [debouncedSearchText, dispatch]);
+
+  const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
+    if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
+    const items = indexTreesByUid[entry.collection.uid] || searchTreesByPath[normalizePath(entry.collection.pathname)];
+    if (!items) return entry;
+    return { ...entry, collection: { ...entry.collection, items } };
+  }), [sidebarEntries, indexTreesByUid, searchTreesByPath]);
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText }),
-    [sidebarEntries, searchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
+    [renderedSidebarEntries, debouncedSearchText]
   );
+
+  // Shown while a collection preview is being fetched from the index, and while a search is
+  // settling - the two moments the tree on screen is not yet the answer to what the user asked for.
+  const isIndexing = sidebarEntries.some((entry) =>
+    entry.kind === 'loaded'
+    && entry.collection.mountStatus !== 'mounted'
+    && !entry.collection.collapsed
+    && !(entry.collection.uid in indexTreesByUid));
+  const isSearchPending = searchText !== debouncedSearchText || isSearchIndexPending;
+  const showIndexingStatus = Boolean(debouncedSearchText) && searchIndexBuilding;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -123,6 +210,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
+      {showIndexingStatus && (
+        <div className="search-index-status" data-testid="sidebar-indexing-status">Indexing…</div>
+      )}
+      <IndeterminateProgressBar
+        active={isIndexing || isSearchPending || showIndexingStatus}
+        data-testid="sidebar-progress"
+      />
+
       {isCreatingCollection && (
         <InlineCollectionCreator
           onComplete={onDismissCreate}
@@ -146,7 +241,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           itemContent={(_, row) => (
             <SidebarRow
               row={row}
-              searchText={searchText}
+              searchText={debouncedSearchText}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

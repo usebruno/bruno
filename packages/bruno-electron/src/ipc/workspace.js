@@ -689,6 +689,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
     rendererReadyProcessed = true;
 
+    const allCollections = new Map();
+
     try {
       let defaultWorkspacePath = null;
 
@@ -703,6 +705,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(win, workspacePath);
+        }
+        for (const collection of getWorkspaceCollections(workspacePath)) {
+          if (!collection.notFoundLocally) allCollections.set(collection.path, collection);
         }
       }
 
@@ -722,6 +727,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           if (workspaceWatcher) {
             workspaceWatcher.addWatcher(win, workspacePath);
           }
+          for (const collection of getWorkspaceCollections(workspacePath)) {
+            if (!collection.notFoundLocally) allCollections.set(collection.path, collection);
+          }
         } catch (error) {
           console.error(`Error loading workspace ${workspacePath}:`, error);
           lastOpenedWorkspaces.remove(workspacePath);
@@ -732,6 +740,12 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
 
     win.webContents.send('main:workspaces-ready');
+    try {
+      require('./mount').sweepRemovedCollections(Array.from(allCollections.keys()));
+    } catch (error) {
+      console.error('Error sweeping removed collections from search index:', error);
+    }
+    require('./mount').indexWorkspaceCollections(Array.from(allCollections.values())).catch(() => {});
     ipcMain.emit('main:workspaces-ready', win);
   });
 };

@@ -3,23 +3,36 @@ import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-import { IconEraser } from '@tabler/icons';
+import { IconEraser, IconRefresh } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common';
 
+const formatDuration = (ms) => {
+  if (ms > 1000) {
+    return (ms / 1000).toFixed(1) + 's';
+  }
+  return Math.round(ms) + 'ms';
+};
+
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
+  const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexLastDurationMs = useSelector((state) => state.app.searchIndexLastDurationMs);
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const { ipcRenderer } = window;
 
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
+  const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
 
   const [fileCacheSize, setFileCacheSize] = useState(null);
+  const [searchIndexSize, setSearchIndexSize] = useState(null);
+
+  const indexingDurationMs = searchIndexBuilding ? null : searchIndexLastDurationMs;
 
   const refreshFileCacheSize = useCallback(() => {
     if (!ipcRenderer) return;
@@ -29,9 +42,21 @@ const Cache = () => {
       .catch(() => setFileCacheSize(null));
   }, [ipcRenderer]);
 
+  const refreshSearchIndexSize = useCallback(() => {
+    if (!ipcRenderer) return;
+    ipcRenderer
+      .invoke('renderer:get-search-index-size')
+      .then((size) => setSearchIndexSize(size))
+      .catch(() => setSearchIndexSize(null));
+  }, [ipcRenderer]);
+
   useEffect(() => {
     refreshFileCacheSize();
   }, [refreshFileCacheSize, fileCacheEnabled]);
+
+  useEffect(() => {
+    refreshSearchIndexSize();
+  }, [refreshSearchIndexSize, searchIndexEnabled]);
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -43,6 +68,13 @@ const Cache = () => {
     persist({
       ...preferences.cache,
       file: { enabled: !fileCacheEnabled }
+    });
+  };
+
+  const handleToggleSearchIndex = () => {
+    persist({
+      ...preferences.cache,
+      searchIndex: { enabled: !searchIndexEnabled }
     });
   };
 
@@ -66,6 +98,18 @@ const Cache = () => {
         toast.success('File cache cleared');
       })
       .catch(() => toast.error('Failed to clear file cache'));
+  };
+
+  const handleClearSearchIndex = () => {
+    if (!ipcRenderer) return;
+    ipcRenderer
+      .invoke('renderer:clear-search-index')
+      .then(({ fileCacheSize, searchIndexSize }) => {
+        setFileCacheSize(fileCacheSize);
+        setSearchIndexSize(searchIndexSize);
+        toast.success('File cache and search index cleared');
+      })
+      .catch((err) => toast.error(`Failed to clear search index: ${err?.message || err}`));
   };
 
   const handleClearSslSession = () => {
@@ -102,14 +146,63 @@ const Cache = () => {
               Cache size <strong>{fileCacheSize == null ? '—' : formatSize(fileCacheSize)}</strong>
             </p>
           </div>
-          <ActionIcon
-            label="Clear cache"
-            onClick={handleClearFileCache}
-            disabled={!fileCacheSize}
-            colorOnHover={theme.colors.text.danger}
-          >
-            <IconEraser size={16} strokeWidth={1.5} />
-          </ActionIcon>
+          <div className="cache-item-actions">
+            <ActionIcon label="Refresh cache size" onClick={refreshFileCacheSize}>
+              <IconRefresh size={16} strokeWidth={1.5} />
+            </ActionIcon>
+            <ActionIcon
+              label="Clear cache"
+              onClick={handleClearFileCache}
+              disabled={!fileCacheSize}
+              colorOnHover={theme.colors.text.danger}
+            >
+              <IconEraser size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </div>
+        </div>
+      </div>
+
+      <div className="cache-item">
+        <div className="cache-item-header">
+          <div className="cache-item-title-group">
+            <span className="cache-item-title">Search index</span>
+          </div>
+          <ToggleSwitch
+            data-testid="cache.searchIndex.enabled"
+            isOn={searchIndexEnabled}
+            handleToggle={handleToggleSearchIndex}
+            size="2xs"
+            activeColor={theme.primary.solid}
+          />
+        </div>
+        <div className="cache-item-body">
+          <div className="cache-item-body-text">
+            <p className="cache-item-description">
+              Lets you search requests in collections you haven't opened yet. Clearing it also
+              clears the file cache, and search results from unopened collections may be
+              unavailable until it's rebuilt.
+            </p>
+            <p className="cache-item-size">
+              Index size <strong>{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
+            </p>
+            <p className="cache-item-size">
+              Indexing time <strong>{indexingDurationMs == null ? '—' : formatDuration(indexingDurationMs)}</strong>
+              {searchIndexBuilding && <span className="indexing-live-badge">Indexing…</span>}
+            </p>
+          </div>
+          <div className="cache-item-actions">
+            <ActionIcon label="Refresh index size" onClick={refreshSearchIndexSize}>
+              <IconRefresh size={16} strokeWidth={1.5} />
+            </ActionIcon>
+            <ActionIcon
+              label="Clear search index"
+              onClick={handleClearSearchIndex}
+              disabled={!fileCacheSize && !searchIndexSize}
+              colorOnHover={theme.colors.text.danger}
+            >
+              <IconEraser size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </div>
         </div>
       </div>
 

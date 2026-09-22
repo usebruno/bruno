@@ -35,23 +35,45 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 
 // registered collections stage parsed data into the git-lite snapshot (no-op otherwise)
 const fileIndexByCollection = new Map();
+// registered collections keep the search index in sync with live edits, same idea as the cache above
+const searchIndexByCollection = new Map();
+const refreshSearchIndexEntry = (collectionPath, pathname) => {
+  const searchIndex = searchIndexByCollection.get(collectionPath);
+  if (!searchIndex) return;
+  const { revalidateEntry } = require('../services/search-index/indexer');
+  const requestPath = path.relative(collectionPath, pathname);
+  revalidateEntry(searchIndex, { collectionPath, requestPath }).catch((err) => {
+    console.error('[collection-watcher] search index refresh failed for', pathname, err);
+  });
+};
+
+const removeFromSearchIndex = (collectionPath, pathname) => {
+  const searchIndex = searchIndexByCollection.get(collectionPath);
+  if (!searchIndex) return;
+  searchIndex.remove(collectionPath, path.relative(collectionPath, pathname));
+};
+
 const stageToCache = (collectionPath, pathname, data) => {
   const index = fileIndexByCollection.get(collectionPath);
-  if (!index) return;
-  try {
-    index.stageParsed(collectionPath, pathname, data);
-  } catch (err) {
-    console.error('[collection-watcher] cache stage failed for', pathname, err);
+  if (index) {
+    try {
+      index.stageParsed(collectionPath, pathname, data);
+    } catch (err) {
+      console.error('[collection-watcher] cache stage failed for', pathname, err);
+    }
   }
+  refreshSearchIndexEntry(collectionPath, pathname);
 };
 const unstageFromCache = (collectionPath, pathname) => {
   const index = fileIndexByCollection.get(collectionPath);
-  if (!index) return;
-  try {
-    index.unstagePath(collectionPath, pathname);
-  } catch (err) {
-    console.error('[collection-watcher] cache unstage failed for', pathname, err);
+  if (index) {
+    try {
+      index.unstagePath(collectionPath, pathname);
+    } catch (err) {
+      console.error('[collection-watcher] cache unstage failed for', pathname, err);
+    }
   }
+  removeFromSearchIndex(collectionPath, pathname);
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
@@ -809,9 +831,12 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
+    const { ignoreInitial = false, fileIndex = null, searchIndex = null, workspacePathname = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
+    }
+    if (searchIndex) {
+      searchIndexByCollection.set(watchPath, searchIndex);
     }
 
     this.initializeLoadingState(collectionUid);
@@ -916,6 +941,7 @@ class CollectionWatcher {
     this.watchers[watchPath] = null;
 
     fileIndexByCollection.delete(watchPath);
+    searchIndexByCollection.delete(watchPath);
 
     dotEnvWatcher.removeCollectionWatcher(watchPath);
 

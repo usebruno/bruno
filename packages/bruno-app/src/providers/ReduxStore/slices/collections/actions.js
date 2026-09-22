@@ -3417,6 +3417,20 @@ export const mountCollection
       });
     };
 
+export const fetchCollectionTreeFromIndex
+  = ({ collectionPath, collectionName }) =>
+    async () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:search-index-tree', { collectionPath, collectionName });
+    };
+
+export const searchCollectionTreesFromIndex
+  = (term) =>
+    async () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:search-index-trees', term);
+    };
+
 export const showInFolder = (collectionPath) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

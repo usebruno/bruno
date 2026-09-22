@@ -1,5 +1,5 @@
 import React from 'react';
-import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG } from '../constants';
+import { SEARCH_TYPES, MATCH_TYPES } from '../constants';
 
 export const normalizeQuery = (searchQuery) => {
   return searchQuery.trim().replace(/\/+/g, '/');
@@ -58,7 +58,7 @@ export const sortResults = (results) => {
     if (aType !== bType) return aType - bType;
 
     // Finally sort alphabetically
-    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
   });
 };
 
@@ -70,25 +70,4 @@ export const getTypeLabel = (type) => {
   };
 
   return baseLabels[type] || '';
-};
-
-export const getItemPath = (item, collection, findParentItemInCollection) => {
-  const pathParts = [];
-  let currentItem = item;
-  let depth = 0;
-  const maxDepth = SEARCH_CONFIG.MAX_DEPTH;
-
-  while (currentItem && depth < maxDepth) {
-    pathParts.unshift(currentItem.name);
-    const parent = findParentItemInCollection(collection, currentItem.uid);
-    if (parent) {
-      currentItem = parent;
-      depth++;
-    } else {
-      break;
-    }
-  }
-
-  pathParts.unshift(collection.name);
-  return pathParts.join('/');
 };
