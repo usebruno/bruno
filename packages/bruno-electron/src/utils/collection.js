@@ -1,12 +1,10 @@
 const { get, each, find, isString, filter } = require('lodash');
-const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
 const { posixifyPath } = require('./filesystem');
 const os = require('os');
 const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
-const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
 
@@ -566,67 +564,6 @@ const parseBruFileMeta = (data) => {
   }
 };
 
-// Parse YML file meta information
-const parseYmlFileMeta = (data) => {
-  try {
-    const yaml = require('js-yaml');
-    const parsed = yaml.load(data);
-
-    if (!parsed || !parsed.meta) {
-      console.log('No "meta" section found in YAML file.');
-      return null;
-    }
-
-    const metaJson = parsed.meta;
-
-    // Transform to the format expected by bruno-app
-    let requestType = metaJson.type;
-    const typeMap = {
-      http: 'http-request',
-      graphql: 'graphql-request',
-      grpc: 'grpc-request',
-      ws: 'ws-request'
-    };
-    requestType = typeMap[requestType] || 'http-request';
-
-    const sequence = metaJson.seq;
-    const transformedJson = {
-      type: requestType,
-      name: metaJson.name,
-      seq: !isNaN(sequence) ? Number(sequence) : 1,
-      settings: {},
-      tags: metaJson.tags || [],
-      request: {
-        method: '',
-        url: '',
-        params: [],
-        headers: [],
-        auth: { mode: 'none' },
-        body: { mode: 'none' },
-        script: {},
-        vars: {},
-        assertions: [],
-        tests: '',
-        docs: ''
-      }
-    };
-
-    return transformedJson;
-  } catch (err) {
-    console.error('Error parsing YAML file meta:', err);
-    return null;
-  }
-};
-
-// Format-aware meta parsing function
-const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
-  if (format === 'yml') {
-    return parseYmlFileMeta(data);
-  } else {
-    return parseBruFileMeta(data);
-  }
-};
-
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
   const prefix = path.join(os.tmpdir(), 'bruno-');
@@ -1020,7 +957,6 @@ module.exports = {
   findParentItemInCollection,
   findParentItemInCollectionByPathname,
   parseBruFileMeta,
-  parseFileMeta,
   hydrateRequestWithUuid,
   transformRequestToSaveToFilesystem,
   sortCollection,

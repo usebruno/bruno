@@ -110,11 +110,11 @@ const StyledWrapper = styled.div`
   }
   .command-k-results {
     flex: 1;
-    overflow-y: auto;
-    max-height: 400px;
+    /* Virtuoso owns the scrolling now, and sizes itself from the result count, so this must not
+       introduce a second scroll container or an independent height cap. */
+    overflow: hidden;
     scrollbar-width: thin;
     padding: 6px 0;
-    scroll-behavior: smooth;
     /* Webkit scrollbar styling */
     &::-webkit-scrollbar {
       width: 8px;
@@ -134,8 +134,12 @@ const StyledWrapper = styled.div`
   .result-item {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
-    margin: 2px 8px;
+    /* Fixed height, and no vertical margin for it to collapse against: the list is virtualised and
+       this must match RESULT_ROW_HEIGHT, which is passed to Virtuoso as fixedItemHeight. */
+    height: 52px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    margin: 0 8px;
     gap: 10px;
     cursor: pointer;
     border-radius: ${(props) => props.theme.border.radius.base};

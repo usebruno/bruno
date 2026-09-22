@@ -7,14 +7,25 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { fetchCollectionTreeFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import useDebounce from 'hooks/useDebounce';
+import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
+// Long enough that a typed word resolves in one pass rather than once per character, short enough
+// that the results still feel attached to the keystroke.
+const SEARCH_DEBOUNCE_MS = 350;
+
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
+  // The input renders from `searchText` so typing stays instant; everything that has to walk the
+  // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows and re-renders
+  // the tree once rather than per character.
   const [searchText, setSearchText] = useState('');
+  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS);
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -35,11 +46,58 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  // A collection that isn't mounted yet has no `collection.items` — its structure lives only in
+  // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
+  // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
+  const [indexTreesByUid, setIndexTreesByUid] = useState({});
+
+  useEffect(() => {
+    const toFetch = sidebarEntries.filter((entry) =>
+      entry.kind === 'loaded'
+      && entry.collection.mountStatus !== 'mounted'
+      && !entry.collection.collapsed
+      && !(entry.collection.uid in indexTreesByUid));
+
+    if (!toFetch.length) return;
+
+    toFetch.forEach((entry) => {
+      const { collection } = entry;
+      dispatch(fetchCollectionTreeFromIndex({
+        uid: collection.uid,
+        pathname: collection.pathname,
+        name: collection.name,
+        ignore: collection.brunoConfig?.ignore
+      }))
+        .then(({ items }) => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
+        })
+        .catch(() => {
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+        });
+    });
+  }, [sidebarEntries, indexTreesByUid, dispatch]);
+
+  // Substitute the index-read tree for a not-yet-mounted collection's (empty) `items`, so
+  // flattenSidebarTree walks real structure instead of nothing.
+  const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
+    if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
+    const indexItems = indexTreesByUid[entry.collection.uid];
+    if (!indexItems) return entry;
+    return { ...entry, collection: { ...entry.collection, items: indexItems } };
+  }), [sidebarEntries, indexTreesByUid]);
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText }),
-    [sidebarEntries, searchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
+    [renderedSidebarEntries, debouncedSearchText]
   );
+
+  // Shown while the workspace is still being indexed, and while a search is settling — the two
+  // moments the tree on screen is not yet the answer to what the user asked for.
+  const isIndexing = sidebarEntries.some(
+    (entry) => entry.kind === 'loaded' && entry.collection.mountStatus === 'mounting'
+  );
+  const isSearchPending = searchText !== debouncedSearchText;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -123,6 +181,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
+      <IndeterminateProgressBar
+        active={isIndexing || isSearchPending}
+        data-testid="sidebar-progress"
+      />
+
       {isCreatingCollection && (
         <InlineCollectionCreator
           onComplete={onDismissCreate}
@@ -146,7 +209,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           itemContent={(_, row) => (
             <SidebarRow
               row={row}
-              searchText={searchText}
+              searchText={debouncedSearchText}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

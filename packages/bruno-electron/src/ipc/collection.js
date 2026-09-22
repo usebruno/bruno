@@ -72,6 +72,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies, addCookieForDomain, modif
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const snapshotManager = require('../services/snapshot');
+const { scanCollection } = require('../services/mount/scan');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
@@ -2278,54 +2279,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  // todo: could be removed
-  ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
-    let fileStats;
-    try {
-      fileStats = fs.statSync(pathname);
-      if (hasRequestExtension(pathname)) {
-        const file = {
-          meta: {
-            collectionUid,
-            pathname,
-            name: path.basename(pathname)
-          }
-        };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseBruFileMeta(bruContent);
-        file.data = metaJson;
-        file.loading = true;
-        file.partial = true;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-        file.data = parseRequest(bruContent);
-        file.partial = false;
-        file.loading = true;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
-    } catch (error) {
-      if (hasRequestExtension(pathname)) {
-        const file = {
-          meta: {
-            collectionUid,
-            pathname,
-            name: path.basename(pathname)
-          }
-        };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
-        const metaJson = parseBruFileMeta(bruContent);
-        file.data = metaJson;
-        file.partial = true;
-        file.loading = false;
-        file.size = sizeInMB(fileStats?.size);
-        hydrateRequestWithUuid(file.data, pathname);
-        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
-      }
-      return Promise.reject(error);
-    }
+  // The raw file text behind one item, read fresh from disk. Not carried in the mount tree — it
+  // duplicates every other field as a single string, for every item, whether or not it is ever
+  // opened — so File Mode and the export flows that need it (for `js`-type items) ask for it here.
+  ipcMain.handle('renderer:get-item-raw', async (event, { pathname }) => {
+    validatePathIsInsideCollection(pathname);
+    return fs.promises.readFile(pathname, 'utf8');
   });
 
   ipcMain.handle('renderer:load-large-request', async (event, { collectionUid, pathname }) => {
@@ -2394,18 +2353,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       throw error;
     }
-    const {
-      size,
-      filesCount,
-      maxFileSize
-    } = await getCollectionStats(collectionPathname);
+    // Scan and parse the whole collection across the worker pool, then emit it as one tree.
+    mainWindow.webContents.send('main:collection-loading-state-updated', { collectionUid, isLoading: true });
 
-    const shouldLoadCollectionAsync
-      = (size > MAX_COLLECTION_SIZE_IN_MB)
-        || (filesCount > MAX_COLLECTION_FILES_COUNT)
-        || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
+    const tree = await scanCollection({
+      collectionPath: collectionPathname,
+      collectionUid,
+      denylist: brunoConfig?.ignore
+    });
+    mainWindow.webContents.send('main:collection-tree-loaded', { collectionUid, tree });
+    if (tree.brunoConfig) {
+      mainWindow.webContents.send('main:bruno-config-update', { collectionUid, brunoConfig: tree.brunoConfig });
+    }
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
+    // The tree above already covers everything on disk, so the watcher only reports live changes.
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, false, {
+      workspacePathname: workspacePathname || null,
+      ignoreInitial: true
+    });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);

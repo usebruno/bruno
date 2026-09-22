@@ -15,11 +15,9 @@ export const MATCH_TYPES = {
 };
 
 export const SEARCH_CONFIG = {
-  MAX_DEPTH: 20,
   FOCUS_DELAY: 100,
   SCROLL_BEHAVIOR: 'smooth',
-  SCROLL_BLOCK: 'nearest',
-  DEBOUNCE_DELAY: 300
+  DEBOUNCE_DELAY: 350
 };
 
 export const DOCUMENTATION_RESULT = {

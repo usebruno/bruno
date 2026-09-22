@@ -70,14 +70,16 @@ const parseFile = ({ collectionPath, relativePath, format, type }) => {
   const buf = fs.readFileSync(absolutePath);
   const stat = fs.statSync(absolutePath, { bigint: true });
   const mtime = stat.mtimeNs;
-  const hash = sha256(buf);
   const content = buf.toString('utf8');
+  const hash = sha256(buf);
+  const payload = { raw: content };
+
   try {
     const data = parseContent(content, format, type, buf.length);
-    return { relativePath, mtime, hash, data, format, type, raw: content };
+    return { relativePath, mtime, hash, data, format, type, ...payload };
   } catch (err) {
     const data = format === 'bru' && type === 'request' ? extractBruMeta(content) : {};
-    return { relativePath, mtime, hash, data, format, type, raw: content, partial: true, error: { message: err.message, stack: err.stack } };
+    return { relativePath, mtime, hash, data, format, type, ...payload, partial: true, error: { message: err.message, stack: err.stack } };
   }
 };
 

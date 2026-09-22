@@ -51,6 +51,7 @@ const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
+const { registerSearchIndexIpc, closeAllSearchIndexWatchers } = require('./ipc/search-index');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -132,7 +133,8 @@ const focusMainWindow = () => {
 const closeAllWatchers = () => Promise.allSettled([
   collectionWatcher.closeAllWatchers(),
   workspaceWatcher.closeAllWatchers(),
-  apiSpecWatcher.closeAllWatchers()
+  apiSpecWatcher.closeAllWatchers(),
+  closeAllSearchIndexWatchers()
 ]);
 
 // Parse protocol URL from command line arguments (if any)
@@ -528,6 +530,7 @@ app.on('ready', async () => {
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
   registerSqliteIpc(mainWindow);
+  registerSearchIndexIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {

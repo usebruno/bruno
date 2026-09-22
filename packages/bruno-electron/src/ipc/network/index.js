@@ -1350,8 +1350,9 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+  ipcMain.handle('send-http-request', async (event, _item, collection, environment, runtimeVariables) => {
     let seq = 0;
+    const item = _item;
     const collectionUid = collection.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);

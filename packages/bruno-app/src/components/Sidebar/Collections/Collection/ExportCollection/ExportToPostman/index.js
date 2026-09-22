@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { useDispatch } from 'react-redux';
+import { cloneDeep } from 'lodash';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { cloneDeep } from 'lodash';
 import { IconCaretDown } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';

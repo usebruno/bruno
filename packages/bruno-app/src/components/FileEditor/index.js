@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from './CodeEditor/index';
-import { saveFile } from 'providers/ReduxStore/slices/collections/actions';
+import { saveFile, fetchItemRaw } from 'providers/ReduxStore/slices/collections/actions';
 import { IconDeviceFloppy } from '@tabler/icons';
 import { toggleCollectionFileMode, updateFileContent } from 'providers/ReduxStore/slices/collections';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -12,6 +13,13 @@ const FileEditor = ({ item, collection }) => {
   const { displayedTheme, theme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [scroll, setScroll] = usePersistedState({ key: `file-mode-scroll-${item.uid}`, default: 0 });
+
+  // `raw` isn't carried by the mount tree — it's fetched here, for the one item File Mode is
+  // actually showing, rather than kept resident for every item in the collection.
+  useEffect(() => {
+    if (item.draft || item.raw != null) return;
+    dispatch(fetchItemRaw({ collectionUid: collection.uid, itemUid: item.uid, pathname: item.pathname }));
+  }, [dispatch, collection.uid, item.uid, item.pathname, item.draft, item.raw]);
 
   const content = item.draft ? item.draft.raw : item.raw || '';
 

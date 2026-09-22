@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -6,7 +6,6 @@ import { getEmptyImage } from 'react-dnd-html5-backend';
 import {
   IconChevronRight,
   IconDots,
-  IconLoader2,
   IconFilePlus,
   IconFolderPlus,
   IconCopy,
@@ -75,10 +74,13 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
 
-  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  // Held across renders: `isTabForItemActive` builds a createSelector, whose memo is bound to the
+  // instance. Building a new one each render means it recomputes every time and react-redux tears
+  // down and re-creates the store subscription with it.
+  const isCollectionFocusedSelector = useMemo(() => isTabForItemActive({ itemUid: collection.uid }), [collection.uid]);
+  const isCollectionFocused = useSelector(isCollectionFocusedSelector);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(collection.uid);
@@ -593,7 +595,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
-          {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
         {!isDragging && !isMultiSelected && (
           <div>

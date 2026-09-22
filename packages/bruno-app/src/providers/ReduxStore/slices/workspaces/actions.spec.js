@@ -14,6 +14,8 @@ jest.mock('../collections/actions', () => ({
   openMultipleCollections: jest.fn(() => () => Promise.resolve({ opened: [], failed: [], invalid: [] })),
   openScratchCollectionEvent: jest.fn(() => () => Promise.resolve()),
   mountCollection: jest.fn(() => () => Promise.resolve()),
+  mountWorkspaceCollections: jest.fn(() => () => Promise.resolve()),
+  warmSearchIndex: jest.fn(() => () => Promise.resolve()),
   hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve())
 }));
 

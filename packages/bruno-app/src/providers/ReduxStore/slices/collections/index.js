@@ -27,6 +27,9 @@ import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@use
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
+// `raw` is deliberately not here — it is fetched on demand (see `setItemRaw`), not carried by the
+// tree. Picking it from a fresh tree on every reload would either always be empty or clobber a
+// value that was just fetched for the one item that is actually open.
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
   'type',
@@ -36,7 +39,6 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'settings',
   'examples',
   'app',
-  'raw',
   'filename',
   'pathname',
   'partial',
@@ -292,6 +294,14 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         collection.isLoading = action.payload.isLoading;
+      }
+    },
+    // Merged rather than replaced: the main-process phase timings ride in on the tree message
+    // while the end-to-end total comes from the mount thunk, and the two can arrive in any order.
+    updateCollectionLoadStats: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.loadStats = { ...collection.loadStats, ...action.payload.loadStats };
       }
     },
     setCollectionSecurityConfig: (state, action) => {
@@ -3076,7 +3086,7 @@ export const collectionsSlice = createSlice({
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
-        for (const directoryName of subDirectories) {
+        subDirectories.forEach((directoryName, idx) => {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           currentPath = path.join(currentPath, directoryName);
           if (!childItem) {
@@ -3087,6 +3097,7 @@ export const collectionsSlice = createSlice({
               collapsed: true,
               type: 'folder',
               isTransient: isTransientFile,
+              depth: idx + 1,
               items: []
             };
             currentSubItems.push(childItem);
@@ -3095,7 +3106,8 @@ export const collectionsSlice = createSlice({
             childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
-        }
+        });
+        const itemDepth = subDirectories.length + 1;
 
         if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
@@ -3119,6 +3131,7 @@ export const collectionsSlice = createSlice({
             currentItem.size = file.size;
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
+            currentItem.depth = itemDepth;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -3138,7 +3151,8 @@ export const collectionsSlice = createSlice({
               loading: file.loading,
               size: file.size,
               error: file.error,
-              isTransient: isTransientFile
+              isTransient: isTransientFile,
+              depth: itemDepth
             });
           }
         }
@@ -3184,6 +3198,7 @@ export const collectionsSlice = createSlice({
               collapsed: true,
               type: 'folder',
               isTransient: isTransientDir,
+              depth: idx + 1,
               items: []
             };
             currentSubItems.push(childItem);
@@ -3760,11 +3775,24 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    // The only writer of `item.raw` — fetched on demand for the one item that needs it (see
+    // `fetchItemRaw`), never carried by the tree itself.
+    setItemRaw: (state, action) => {
+      const { collectionUid, itemUid, raw } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (item) item.raw = raw;
+    },
     collectionLoadedFromTree: (state, action) => {
       const { collectionUid, tree } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
+      if (tree?.loadStats) {
+        collection.loadStats = { ...collection.loadStats, ...tree.loadStats };
+      }
       collection.items = mergeTreeItems(collection.items, tree?.items || []);
       collection.environments = tree?.environments || [];
       if (tree?.root !== undefined) {
@@ -4251,6 +4279,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  updateCollectionLoadStats,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
   updateCollectionVersion,
@@ -4401,6 +4430,7 @@ export const {
   updateFolderDocs,
   toggleCollectionFileMode,
   updateFileContent,
+  setItemRaw,
   updateAppCode,
   toggleAppMode,
   appSetRuntimeVariable,

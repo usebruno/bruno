@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
@@ -51,7 +51,6 @@ import {
   isTabForItemActive as isTabForItemActiveSelector,
   isTabForItemPresent as isTabForItemPresentSelector
 } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
@@ -84,20 +83,25 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const selectorInput = {
-    itemUid: item.uid,
-    itemPathname: item.pathname,
-    collectionUid
-  };
 
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
+  // Each of these builds a createSelector, and createSelector's memo lives on the instance it
+  // returns. Built inline they would be new instances on every render, so the memo could never
+  // hold — every row would rescan the tab list on every render, and react-redux would tear down
+  // and re-create three store subscriptions per row along with it.
+  const { activeSelector, presentSelector, tabUidSelector } = useMemo(() => {
+    const selectorInput = { itemUid: item.uid, itemPathname: item.pathname, collectionUid };
+    return {
+      activeSelector: isTabForItemActiveSelector(selectorInput),
+      presentSelector: isTabForItemPresentSelector(selectorInput),
+      tabUidSelector: getTabUidForItemSelector(selectorInput)
+    };
+  }, [item.uid, item.pathname, collectionUid]);
 
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-
-  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
-  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
+  // All three resolve to a boolean or a uid, so reference equality is both correct and cheaper
+  // than a deep compare.
+  const isTabForItemActive = useSelector(activeSelector);
+  const isTabForItemPresent = useSelector(presentSelector);
+  const tabUidForItem = useSelector(tabUidSelector);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));

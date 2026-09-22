@@ -944,18 +944,25 @@ export const getCollectionItemCounts = (items = []) => {
 };
 
 /**
- * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
- * requests by `seq`. The same ordering is applied recursively to every nested folder
- * so an exported/serialized tree matches the sidebar at all depths.
+ * Splits one level of collection items into the three groups the Sidebar renders, in order:
+ * folders (via `sortByNameThenSequence`), then standalone apps by `seq`, then requests by `seq`.
  *
- * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
- * mirroring the sidebar. Transient items are excluded too.
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded, as are
+ * transient items. Returns the original item references — callers rely on that for memoization —
+ * and does not descend into nested folders.
+ */
+export const groupItemsBySidebarOrder = (items = []) => ({
+  folderItems: sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient)),
+  appItems: filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq),
+  requestItems: filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq)
+});
+
+/**
+ * Flattens `groupItemsBySidebarOrder` into a single ordered list, applied recursively to every
+ * nested folder so an exported/serialized tree matches the sidebar at all depths.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
-  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
-  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
-  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+  const { folderItems, appItems, requestItems } = groupItemsBySidebarOrder(items);
 
   return [...folderItems, ...appItems, ...requestItems].map((item) =>
     Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item

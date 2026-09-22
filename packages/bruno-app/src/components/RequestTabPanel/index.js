@@ -24,7 +24,6 @@ import FileEditor from 'components/FileEditor';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
-import { produce } from 'immer';
 import CollectionOverview from 'components/CollectionSettings/Overview';
 import RequestNotLoaded from './RequestNotLoaded';
 import RequestIsLoading from './RequestIsLoading';
@@ -102,29 +101,28 @@ const RequestTabPanel = () => {
     isVerticalLayoutRef.current = isVerticalLayout;
   }, [isVerticalLayout]);
 
-  // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
-  const collections = produce(_collections, (draft) => {
-    const collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
+  const globalEnvFields = useMemo(() => ({
+    globalEnvironmentVariables: getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+    globalEnvSecrets: getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid }),
+    globalEnvironments,
+    activeGlobalEnvironmentUid
+  }), [globalEnvironments, activeGlobalEnvironmentUid]);
 
-    if (collection) {
-      // add selected global env variables to the collection object
-      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-        globalEnvironments,
-        activeGlobalEnvironmentUid
-      });
-      const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
-      collection.globalEnvironmentVariables = globalEnvironmentVariables;
-      collection.globalEnvSecrets = globalEnvSecrets;
-      collection.globalEnvironments = globalEnvironments;
-      collection.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
-    }
-  });
+  // The panes read the selected global environment off the collection object. Only the focused
+  // collection needs it, so it is merged onto that one — grafting it across the whole array costs
+  // a full Immer pass per render, and this component re-renders on every collection change.
+  const collection = useMemo(() => {
+    const focusedCollection = find(_collections, (c) => c.uid === focusedTab?.collectionUid);
+    return focusedCollection ? { ...focusedCollection, ...globalEnvFields } : focusedCollection;
+  }, [_collections, focusedTab?.collectionUid, globalEnvFields]);
 
-  const collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+  // Preserves the previous behaviour, where only the focused collection carried the global env.
+  const collectionByUid = (uid) =>
+    (uid === focusedTab?.collectionUid ? collection : find(_collections, (c) => c.uid === uid));
 
   const isItemsLoading = useMemo(() => {
     return collection?.mountStatus === 'mounting' || areItemsLoading(collection);
-  }, [collection?.mountStatus, collection]);
+  }, [collection]);
 
   const [dragging, setDragging] = useState(false);
   const draggingRef = useRef(false);
@@ -459,8 +457,8 @@ const RequestTabPanel = () => {
     }
 
     const instanceCollection = instance.sourceType === 'collection'
-      ? find(collections, (c) => c.uid === instance.collectionUid)
-      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+      ? collectionByUid(instance.collectionUid)
+      : (focusedTab.collectionUid ? collectionByUid(focusedTab.collectionUid) : null);
 
     return <MockServerDashboard instance={instance} collection={instanceCollection} />;
   }
@@ -476,8 +474,8 @@ const RequestTabPanel = () => {
     }
 
     const instanceCollection = instance.sourceType === 'collection'
-      ? find(collections, (c) => c.uid === instance.collectionUid)
-      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+      ? collectionByUid(instance.collectionUid)
+      : (focusedTab.collectionUid ? collectionByUid(focusedTab.collectionUid) : null);
 
     return (
       <MockResponse

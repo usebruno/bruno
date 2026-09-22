@@ -255,6 +255,13 @@ const hasRequestExtension = (filename, format = null) => {
   return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
+/**
+ * The format of a single request file, taken from the file itself rather than from the collection
+ * it is being read *for*. Those differ when an item crosses collections — pasting a `.bru` request
+ * into a `.yml` collection — where the source has to be parsed as what it is on disk.
+ */
+const getRequestFormat = (pathname) => (String(pathname).toLowerCase().endsWith('.yml') ? 'yml' : 'bru');
+
 const createDirectory = async (dir) => {
   if (!dir) {
     throw new Error(`directory: path is null`);
@@ -551,7 +558,9 @@ const getCollectionStats = async (directoryPath) => {
         await calculateStats(fullPath);
       }
 
-      if (path.extname(fullPath) === '.bru') {
+      // Counts both formats. Counting only `.bru` made every `.yml` collection report 0 files
+      // and 0 bytes, so it never crossed the async thresholds and always parsed on the main thread.
+      if (hasRequestExtension(fullPath)) {
         const stats = await fsPromises.stat(fullPath);
         size += stats?.size;
         if (maxFileSize < stats?.size) {
@@ -789,6 +798,7 @@ module.exports = {
   validateName,
   hasSubDirectories,
   getCollectionStats,
+  getRequestFormat,
   sizeInMB,
   safeWriteFile,
   safeWriteFileSync,
