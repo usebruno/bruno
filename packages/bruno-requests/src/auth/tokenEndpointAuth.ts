@@ -71,6 +71,9 @@ const DEFAULT_ASSERTION_LIFETIME_SECONDS = 300;
 const DEFAULT_SECRET_JWT_ALG: TokenEndpointAuthSigningAlg = 'HS256';
 const DEFAULT_PRIVATE_KEY_JWT_ALG: TokenEndpointAuthSigningAlg = 'RS256';
 
+const REDACTED_PLACEHOLDER = '[REDACTED]';
+const SENSITIVE_BODY_PARAMS = ['client_secret', 'client_assertion'];
+
 const resolveTokenEndpointAuthMethod = (opts: TokenEndpointAuthOptions): TokenEndpointAuthMethod => {
   if (opts.tokenEndpointAuthMethod) {
     return opts.tokenEndpointAuthMethod;
@@ -167,6 +170,40 @@ const signClientAssertion = async (
   return new SignJWT(claims as Record<string, unknown>)
     .setProtectedHeader(header)
     .sign(signingKey);
+};
+
+/**
+ * Returns copies of a token-endpoint request's `headers` and `data` with client authentication
+ * material replaced by a placeholder, for debug traces and logs. `Authorization` headers and the
+ * `client_secret` / `client_assertion` body params are redacted; `client_assertion_type` is kept,
+ * since it names the method without revealing anything. The arguments are left unmodified, so the
+ * caller's real request still carries the credentials.
+ */
+export const redactClientAuthMaterial = (
+  { headers, data }: { headers?: Record<string, unknown>; data?: unknown }
+): { headers: Record<string, unknown>; data: unknown } => {
+  const redactedHeaders: Record<string, unknown> = { ...(headers || {}) };
+  for (const name of Object.keys(redactedHeaders)) {
+    if (name.toLowerCase() === 'authorization') {
+      redactedHeaders[name] = REDACTED_PLACEHOLDER;
+    }
+  }
+
+  let redactedData: unknown = data;
+  if (typeof data === 'string') {
+    const sensitiveParams = new RegExp(`(^|&)(${SENSITIVE_BODY_PARAMS.join('|')})=[^&]*`, 'g');
+    redactedData = data.replace(sensitiveParams, `$1$2=${REDACTED_PLACEHOLDER}`);
+  } else if (data && typeof data === 'object') {
+    const redactedParams: Record<string, unknown> = { ...(data as Record<string, unknown>) };
+    for (const param of SENSITIVE_BODY_PARAMS) {
+      if (param in redactedParams) {
+        redactedParams[param] = REDACTED_PLACEHOLDER;
+      }
+    }
+    redactedData = redactedParams;
+  }
+
+  return { headers: redactedHeaders, data: redactedData };
 };
 
 /**

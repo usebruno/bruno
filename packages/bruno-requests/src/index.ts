@@ -2,6 +2,7 @@ export {
   addDigestInterceptor,
   getOAuth2Token,
   applyTokenEndpointAuth,
+  redactClientAuthMaterial,
   createOAuth1Authorizer,
   computeBodyHash,
   applyOAuth1ToRequest,

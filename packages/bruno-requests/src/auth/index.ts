@@ -1,6 +1,6 @@
 export { addDigestInterceptor } from './digestauth-helper';
 export { getOAuth2Token } from './oauth2-helper';
-export { applyTokenEndpointAuth } from './tokenEndpointAuth';
+export { applyTokenEndpointAuth, redactClientAuthMaterial } from './tokenEndpointAuth';
 export type {
   TokenEndpointAuthMethod,
   TokenEndpointAuthSigningAlg,

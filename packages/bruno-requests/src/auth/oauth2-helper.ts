@@ -4,6 +4,7 @@ import debug from 'debug';
 
 import {
   applyTokenEndpointAuth,
+  redactClientAuthMaterial,
   type TokenEndpointAuthMethod,
   type TokenEndpointAuthSigningAlg,
   type AdditionalClaim
@@ -167,7 +168,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInst
   requestConfig.data = qs.stringify(data);
 
   debug('oauth2')('> request');
-  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
+  debug('oauth2')(JSON.stringify({ ...requestConfig, ...redactClientAuthMaterial(requestConfig) }, null, 2));
 
   try {
     const httpClient = axiosInstance || axios;
@@ -252,7 +253,7 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: Ax
   requestConfig.data = qs.stringify(data);
 
   debug('oauth2')('> request');
-  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
+  debug('oauth2')(JSON.stringify({ ...requestConfig, ...redactClientAuthMaterial(requestConfig) }, null, 2));
 
   try {
     const httpClient = axiosInstance || axios;

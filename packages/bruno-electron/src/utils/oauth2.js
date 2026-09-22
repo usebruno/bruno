@@ -4,7 +4,7 @@ const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-wind
 const { authorizeUserInSystemBrowser } = require('../ipc/network/authorize-user-in-system-browser');
 const Oauth2Store = require('../store/oauth2');
 const { makeAxiosInstance } = require('../ipc/network/axios-instance');
-const { applyTokenEndpointAuth } = require('@usebruno/requests');
+const { applyTokenEndpointAuth, redactClientAuthMaterial } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('./common');
 const { preferencesUtil } = require('../store/preferences');
 const qs = require('qs');
@@ -66,8 +66,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
     requestDetails = {
       request: {
         url: requestUrl,
-        headers: requestHeaders,
-        data: requestData,
+        ...redactClientAuthMaterial({ headers: requestHeaders, data: requestData }),
         method: 'POST'
       },
       response: {
@@ -88,8 +87,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
       requestDetails = {
         request: {
           url: requestUrl,
-          headers: requestHeaders,
-          data: requestData,
+          ...redactClientAuthMaterial({ headers: requestHeaders, data: requestData }),
           method: 'POST'
         },
         response: {
@@ -109,8 +107,7 @@ const getCredentialsFromTokenUrl = async ({ requestConfig, certsAndProxyConfig }
       requestDetails = {
         request: {
           url: requestUrl,
-          headers: requestHeaders,
-          data: requestData
+          ...redactClientAuthMaterial({ headers: requestHeaders, data: requestData })
         },
         response: {
           status: '-',

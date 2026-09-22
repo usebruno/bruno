@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { jwtVerify, importSPKI, exportJWK, generateKeyPair } from 'jose';
-import { applyTokenEndpointAuth } from './tokenEndpointAuth';
+import { applyTokenEndpointAuth, redactClientAuthMaterial } from './tokenEndpointAuth';
 
 const TOKEN_URL = 'https://idp.example.com/oauth2/token';
 const CLIENT_ID = 'my-client';
@@ -375,5 +375,67 @@ describe('applyTokenEndpointAuth', () => {
       expect((payload.exp as number) - (payload.iat as number)).toBe(120);
       expect(payload.iat as number).toBeGreaterThanOrEqual(before);
     });
+  });
+});
+
+describe('redactClientAuthMaterial', () => {
+  it('redacts the Authorization header whatever its casing and leaves others alone', () => {
+    const { headers } = redactClientAuthMaterial({
+      headers: { 'Authorization': 'Basic c2VjcmV0', 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    expect(headers.Authorization).toBe('[REDACTED]');
+    expect(headers['Content-Type']).toBe('application/x-www-form-urlencoded');
+
+    const lowercased = redactClientAuthMaterial({ headers: { authorization: 'Basic c2VjcmV0' } });
+    expect(lowercased.headers.authorization).toBe('[REDACTED]');
+  });
+
+  it('redacts client_secret and client_assertion in a form-encoded body', () => {
+    const { data } = redactClientAuthMaterial({
+      headers: {},
+      data: `grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`
+        + `&client_assertion=eyJhbGciOi.payload.sig&client_assertion_type=${JWT_BEARER_ASSERTION_TYPE}&scope=read`
+    });
+    expect(data).toBe(
+      `grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=[REDACTED]`
+      + `&client_assertion=[REDACTED]&client_assertion_type=${JWT_BEARER_ASSERTION_TYPE}&scope=read`
+    );
+  });
+
+  it('redacts a body param that appears first in the body', () => {
+    const { data } = redactClientAuthMaterial({ data: 'client_secret=shhh&grant_type=password' });
+    expect(data).toBe('client_secret=[REDACTED]&grant_type=password');
+  });
+
+  it('redacts the same params in an object body', () => {
+    const { data } = redactClientAuthMaterial({
+      data: {
+        grant_type: 'client_credentials',
+        client_secret: CLIENT_SECRET,
+        client_assertion: 'eyJhbGciOi.payload.sig',
+        client_assertion_type: JWT_BEARER_ASSERTION_TYPE
+      }
+    });
+    expect(data).toEqual({
+      grant_type: 'client_credentials',
+      client_secret: '[REDACTED]',
+      client_assertion: '[REDACTED]',
+      client_assertion_type: JWT_BEARER_ASSERTION_TYPE
+    });
+  });
+
+  it('leaves the arguments untouched so the real request still carries the credentials', () => {
+    const headers = { Authorization: 'Basic c2VjcmV0' };
+    const data = { client_secret: CLIENT_SECRET };
+    const redacted = redactClientAuthMaterial({ headers, data });
+
+    expect(headers.Authorization).toBe('Basic c2VjcmV0');
+    expect(data.client_secret).toBe(CLIENT_SECRET);
+    expect(redacted.headers).not.toBe(headers);
+    expect(redacted.data).not.toBe(data);
+  });
+
+  it('tolerates a missing headers or data', () => {
+    expect(redactClientAuthMaterial({})).toEqual({ headers: {}, data: undefined });
   });
 });
