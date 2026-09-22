@@ -2344,6 +2344,34 @@ export const isScratchCollection = (collection, workspaces) => {
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
 };
 
+export const isSelectionEntryCollapsed = (entry) =>
+  entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
+
+export const isSelectionEntryCollapsible = (entry) =>
+  entry.type === 'collection' || entry.type === 'folder' || (entry.type === 'request' && entry.item.examples?.length > 0);
+
+/**
+ * Derives bulk-actions menu state from Redux collections/workspaces and the current sidebar selection.
+ * Filters out scratch collections, then resolves selection via getSelectionInfo.
+ */
+export const getBulkActionsSelection = ({ collections = [], workspaces = [], selectedUids = [] }) => {
+  const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
+  const selectionInfo = getSelectionInfo({ collections: visibleCollections, selectedUids });
+  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp, hasExample } = selectionInfo;
+
+  const collapsibleEntries = effectiveSelection.filter(isSelectionEntryCollapsible);
+  const canCollapse = collapsibleEntries.length > 0;
+
+  return {
+    ...selectionInfo,
+    isPureCollectionSelection: hasCollection && !hasFolder && !hasRequest && !hasApp && !hasExample,
+    canDelete: !hasCollection && (hasFolder || hasRequest || hasApp || hasExample),
+    collapsibleEntries,
+    canCollapse,
+    allCollapsed: canCollapse && collapsibleEntries.every(isSelectionEntryCollapsed)
+  };
+};
+
 const SCOPE_CONFIG = [
   {
     type: VARIABLE_ADD_SCOPES.GLOBAL,
