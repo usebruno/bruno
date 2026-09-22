@@ -1,4 +1,4 @@
-import { Locator, Page } from '../../../../playwright';
+import { Locator, Page, expect, test } from '../../../../playwright';
 import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
@@ -99,4 +99,54 @@ export const buildSidebarLocators = (page: Page) => {
       fileNameInput: (): Locator => page.locator('#file-name')
     }
   };
+};
+
+/**
+ * Walks the sidebar to a folder and returns its row, expanding the collection and every parent
+ * folder on the way — a collapsed node keeps its children out of the DOM entirely, so a nested
+ * folder is unreachable until its ancestors are open. The target folder itself is left as it is.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderPath - Folder names from the collection root down to the target folder
+ * @returns The target folder's `.collection-item-name` row, ready to click, hover or double-click
+ */
+export const revealFolderRow = async (
+  page: Page,
+  collectionName: string,
+  folderPath: string[]
+): Promise<Locator> => {
+  return await test.step(`Reveal folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    const locators = buildSidebarLocators(page);
+
+    const collectionChevron = locators.collectionChevron(collectionName);
+    await expect(collectionChevron).toBeVisible();
+    const isCollectionExpanded = await collectionChevron.evaluate((el: HTMLElement) =>
+      el.classList.contains('rotate-90')
+    );
+    if (!isCollectionExpanded) {
+      await collectionChevron.click();
+    }
+
+    // The sidebar is a flat, virtualized list: rows are siblings rather than nested wrappers, so
+    // each level is scoped by `data-collection-id` / `data-parent-name` instead of DOM ancestry.
+    let scope = locators.collectionScope(collectionName);
+    for (const folderName of folderPath.slice(0, -1)) {
+      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+      await expect(row).toBeVisible();
+
+      const chevron = row.getByTestId('folder-chevron');
+      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+      if (!isExpanded) {
+        await chevron.click();
+      }
+      scope = locators.folderScope(folderName);
+    }
+
+    const targetRow = scope
+      .locator('.collection-item-name')
+      .filter({ hasText: folderPath[folderPath.length - 1] })
+      .first();
+    await expect(targetRow).toBeVisible();
+    return targetRow;
+  });
 };
