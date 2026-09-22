@@ -503,24 +503,25 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
     data.scope = scope;
   }
 
-  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
-  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
-  Object.assign(data, clientAuth.bodyParams);
-
-  axiosRequestConfig.url = url;
-  axiosRequestConfig.responseType = 'arraybuffer';
-  if (additionalParameters?.token?.length) {
-    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
-  }
-  axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
+    const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+    Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+    Object.assign(data, clientAuth.bodyParams);
+
+    axiosRequestConfig.url = url;
+    axiosRequestConfig.responseType = 'arraybuffer';
+    if (additionalParameters?.token?.length) {
+      applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
+    }
+    axiosRequestConfig.data = qs.stringify(data);
+
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
     credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
-    return Promise.reject(safeStringifyJSON(error?.response?.data));
+    return Promise.reject(safeStringifyJSON(error?.response?.data || error?.message));
   }
 };
 
@@ -647,24 +648,25 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
     data.scope = scope;
   }
 
-  const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
-  Object.assign(axiosRequestConfig.headers, clientAuth.headers);
-  Object.assign(data, clientAuth.bodyParams);
-
-  axiosRequestConfig.url = url;
-  axiosRequestConfig.responseType = 'arraybuffer';
-  if (additionalParameters?.token?.length) {
-    applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
-  }
-  axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
   try {
+    const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+    Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+    Object.assign(data, clientAuth.bodyParams);
+
+    axiosRequestConfig.url = url;
+    axiosRequestConfig.responseType = 'arraybuffer';
+    if (additionalParameters?.token?.length) {
+      applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.token);
+    }
+    axiosRequestConfig.data = qs.stringify(data);
+
     const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
     debugInfo.data.push(requestDetails);
     credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
     return { collectionUid, url, credentials, credentialsId, debugInfo };
   } catch (error) {
-    return Promise.reject(safeStringifyJSON(error?.response?.data));
+    return Promise.reject(safeStringifyJSON(error?.response?.data || error?.message));
   }
 };
 
@@ -690,18 +692,19 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'Accept': 'application/json'
     };
 
-    const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
-    Object.assign(axiosRequestConfig.headers, clientAuth.headers);
-    Object.assign(data, clientAuth.bodyParams);
-
-    axiosRequestConfig.url = url;
-    axiosRequestConfig.responseType = 'arraybuffer';
-    if (additionalParameters?.refresh?.length) {
-      applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.refresh);
-    }
-    axiosRequestConfig.data = qs.stringify(data);
     let debugInfo = { data: [] };
     try {
+      const clientAuth = await applyTokenEndpointAuth({ ...oAuth, accessTokenUrl: url });
+      Object.assign(axiosRequestConfig.headers, clientAuth.headers);
+      Object.assign(data, clientAuth.bodyParams);
+
+      axiosRequestConfig.url = url;
+      axiosRequestConfig.responseType = 'arraybuffer';
+      if (additionalParameters?.refresh?.length) {
+        applyAdditionalParameters(axiosRequestConfig, data, additionalParameters.refresh);
+      }
+      axiosRequestConfig.data = qs.stringify(data);
+
       const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig });
       debugInfo.data.push(requestDetails);
       if (!credentials || credentials?.error) {
