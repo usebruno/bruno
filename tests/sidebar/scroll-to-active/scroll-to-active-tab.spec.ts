@@ -28,10 +28,8 @@ test.describe('Sidebar scroll-to-active-tab', () => {
 
     try {
       await test.step('App loads with the collection populated', async () => {
-        // Expand the collection, then wait for the last request
-        // deterministic since every file already exists on disk
         await locators.sidebar.collection(COLLECTION_NAME).click();
-        await expect(locators.sidebar.request(reqName(REQUEST_COUNT))).toBeVisible({ timeout: 15000 });
+        await expect(locators.sidebar.request(reqName(1))).toBeVisible({ timeout: 15000 });
       });
 
       await test.step('Open a top and a bottom request as persistent tabs', async () => {

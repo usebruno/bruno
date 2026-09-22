@@ -1541,6 +1541,9 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
       .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
       .getByTestId('sidebar-collection-item-row')
       .filter({ hasText: requestName });
+    // The list is virtualized. a row outside the rendered window is absent from the DOM,
+    // scroll it into view before interacting.
+    await scrollSidebarListTo(page, request);
     if (!persist) {
       await request.click();
     } else {
