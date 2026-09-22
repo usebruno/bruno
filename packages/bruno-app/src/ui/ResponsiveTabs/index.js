@@ -265,7 +265,7 @@ const ResponsiveTabs = ({
             placement="bottom-start"
             selectedItemId={activeTab}
           >
-            <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
+            <div data-testid="responsive-tabs-more" className="more-tabs select-none flex items-center cursor-pointer gap-1">
               <IconChevronsRight size={18} strokeWidth={2} />
             </div>
           </MenuDropdown>

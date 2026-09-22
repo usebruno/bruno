@@ -10,3 +10,4 @@ export type {
 } from './tokenEndpointAuth';
 export { createOAuth1Authorizer, computeBodyHash, applyOAuth1ToRequest } from './oauth1-request-authorization';
 export { addEdgeGridInterceptor, signEdgeGridRequest } from './edgegrid-helper';
+export { handleNtlmRedirect } from './ntlm';

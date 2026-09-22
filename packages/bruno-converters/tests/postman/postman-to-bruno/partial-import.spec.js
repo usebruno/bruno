@@ -1,24 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import postmanToBruno from '../../../src/postman/postman-to-bruno';
-
-const makeCollection = (items, overrides = {}) => ({
-  info: {
-    _postman_id: 'test-id',
-    name: 'Test Collection',
-    schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
-  },
-  item: items,
-  ...overrides
-});
-
-const makeRequest = (name, method = 'GET', url = 'https://example.com') => ({
-  name,
-  request: {
-    method,
-    header: [],
-    url: { raw: url, protocol: 'https', host: ['example', 'com'] }
-  }
-});
+import { makeCollection, makeRequest } from '../../common/postman-collection';
 
 describe('partial-import', () => {
   it('should import valid items and skip items with missing method', async () => {
@@ -145,19 +127,19 @@ describe('partial-import', () => {
 
   it('should handle mixed valid/invalid items with folders and bad variables', async () => {
     const items = [
-      makeRequest('r1', 'POST'),
+      makeRequest('r1', { method: 'POST' }),
       { name: 'r2-missing-method', request: { header: [], url: { raw: 'https://example.com' } } },
-      makeRequest('r3', 'POST'),
+      makeRequest('r3', { method: 'POST' }),
       {
         name: 'API Folder',
         item: [
-          makeRequest('valid-in-folder', 'GET'),
+          makeRequest('valid-in-folder'),
           { name: 'r4-null-method', request: { method: null, header: [], url: { raw: 'https://example.com' } } },
           {
             name: 'Nested Subfolder',
             item: [
               { name: 'r5-empty-method', request: { method: '', header: [], url: { raw: 'https://example.com' } } },
-              makeRequest('valid-nested', 'DELETE')
+              makeRequest('valid-nested', { method: 'DELETE' })
             ]
           }
         ]

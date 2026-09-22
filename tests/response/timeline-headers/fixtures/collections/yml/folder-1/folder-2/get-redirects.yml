@@ -1,0 +1,36 @@
+info:
+  name: get-redirects
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:8081/api/redirect/2
+  auth: inherit
+  headers:
+    - name: request-header-1
+      value: request-header-value-1
+    - name: request-header-2
+      value: request-header-value-2
+    - name: request-set-header-1
+      value: request-set-header-definition-1
+    - name: request-interpolated-1
+      value: "{{request-token-1}}"
+    - name: request-delete-header-1
+      value: request-delete-header-value-1
+    - name: request-delete-headers-1
+      value: request-delete-headers-value-1
+    - name: request-delete-headers-2
+      value: request-delete-headers-value-2
+    - name: shared-header-1
+      value: request-shared-value-1
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        req.setHeader('request-set-header-1', 'request-set-header-script-1');
+        req.setHeader('request-set-header-2', 'request-set-header-script-2');
+        req.deleteHeader('request-delete-header-1');
+        req.deleteHeaders(['request-delete-headers-1', 'request-delete-headers-2']);
+        bru.setVar('request-token-1', 'request-interpolated-script-1');

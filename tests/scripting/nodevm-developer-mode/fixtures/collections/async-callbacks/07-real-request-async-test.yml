@@ -1,0 +1,31 @@
+info:
+  name: 07-real-request-async-test
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("sync pass (control)", function () {
+          expect(1).to.equal(1);
+        });
+
+        test("async test awaiting a real request (bug check)", async function () {
+          const response = await bru.sendRequest({
+            method: "get",
+            url: "http://localhost:8081/ping"
+          });
+          expect(response.data).to.equal("pong");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

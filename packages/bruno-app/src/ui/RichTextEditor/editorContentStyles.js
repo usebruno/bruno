@@ -109,11 +109,7 @@ const editorContentStyles = css`
     cursor: pointer;
     vertical-align: top;
     background-color: transparent;
-    color-scheme: dark;
-
-    html.light & {
-      color-scheme: light;
-    }
+    color-scheme: ${(props) => props.theme.mode};
   }
 
   ul[data-type='taskList'] > li > div,
@@ -134,20 +130,16 @@ const editorContentStyles = css`
   }
 
   code {
-    background-color: transparent;
+    background-color: ${(props) => (props.theme.mode === 'light' ? props.theme.sidebar.bg : 'transparent')};
     border: solid 1px ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
     font-size: 0.85em;
     padding: 0.15em 0.35em;
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
-
-    html.light & {
-      background-color: ${(props) => props.theme.sidebar.bg};
-    }
   }
 
   pre {
-    background-color: transparent;
+    background-color: ${(props) => (props.theme.mode === 'light' ? props.theme.sidebar.bg : 'transparent')};
     border: solid 1px ${(props) => props.theme.border.border0};
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
@@ -156,15 +148,32 @@ const editorContentStyles = css`
     border-radius: ${(props) => props.theme.border.radius.base};
     overflow-x: auto;
 
-    html.light & {
-      background-color: ${(props) => props.theme.sidebar.bg};
-    }
-
     code {
       background-color: transparent;
       padding: 0;
       font-size: 0.85em;
       border: none;
+    }
+  }
+
+  .editor-code-block.single-line pre {
+    padding-top: 0.75rem;
+    padding-right: 2.5rem;
+  }
+
+  .editor-code-block-header {
+    color: ${(props) => props.theme.dropdown.iconColor};
+  }
+
+  .editor-code-block-lang-selector,
+  .editor-code-block-copy {
+    background: ${(props) => props.theme.bg};
+    border: solid 1px ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.base};
+
+    &:hover {
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      color: ${(props) => props.theme.dropdown.color};
     }
   }
 
@@ -271,10 +280,59 @@ const editorContentStyles = css`
 
   .editor-raw-html-block {
     margin: 0.5rem 0;
-    padding: 0.5rem;
-    border: dashed 1px ${(props) => props.theme.border.border0};
-    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  /* Syntax Highlighting for code blocks (highlight.js classes from lowlight) */
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-title,
+  .hljs-section,
+  .hljs-doctag,
+  .hljs-name,
+  .hljs-strong {
+    color: ${(props) => props.theme.codemirror.tokens.keyword};
+  }
+
+  .hljs-comment {
+    color: ${(props) => props.theme.codemirror.tokens.comment};
+  }
+
+  .hljs-string,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    color: ${(props) => props.theme.codemirror.tokens.string};
+  }
+
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-attribute {
+    color: ${(props) => props.theme.codemirror.tokens.variable};
+  }
+
+  .hljs-attr,
+  .hljs-property {
+    color: ${(props) => props.theme.codemirror.tokens.property};
+  }
+
+  .hljs-number,
+  .hljs-literal {
+    color: ${(props) => props.theme.codemirror.tokens.number};
+  }
+
+  .hljs-built_in,
+  .hljs-type,
+  .hljs-params,
+  .hljs-meta,
+  .hljs-link {
+    color: ${(props) => props.theme.codemirror.tokens.atom};
+  }
+
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-addition,
+  .hljs-deletion {
+    color: ${(props) => props.theme.codemirror.tokens.tag};
   }
 `;
-
 export default editorContentStyles;

@@ -6,7 +6,8 @@ const defs: StatementDef[] = [
   { name: 'insertWithId', type: 'exec', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)', tables: ['items'] },
   { name: 'getItem', type: 'one', sql: 'SELECT * FROM items WHERE id = :id', tables: ['items'] },
   { name: 'allItems', type: 'many', sql: 'SELECT * FROM items', tables: ['items'] },
-  { name: 'invalid', type: 'invalid_type' as StatementType, sql: 'SELECT * FROM items', tables: ['items'] }
+  { name: 'invalid', type: 'invalid_type' as StatementType, sql: 'SELECT * FROM items', tables: ['items'] },
+  { name: 'unpreparable', type: 'one', sql: 'SELECT * FROM missing_table', tables: ['missing_table'] }
 ];
 
 jest.doMock('../../src/generated/node/statements', () => ({ statements: defs }));
@@ -18,6 +19,16 @@ const newStatements = (onMutation?: (event: unknown) => void) => {
   db.exec('CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT)');
   return new Statements(db, onMutation);
 };
+
+let error: jest.SpyInstance;
+
+beforeEach(() => {
+  error = jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  error.mockRestore();
+});
 
 describe('Statements.execute mutation signalling', () => {
   it('notifies with the statement name and tables after a successful write', () => {
@@ -75,5 +86,31 @@ describe('Statements.execute mutation signalling', () => {
     const statements = newStatements(onMutation);
     expect(() => statements.execute('invalid', {})).toThrow('unknown definition type: invalid_type');
     expect(onMutation).not.toHaveBeenCalled();
+  });
+});
+
+describe('Statements preparation', () => {
+  it('discards only the statement that cannot be prepared', () => {
+    const statements = newStatements();
+
+    expect(statements._prepared.has('unpreparable')).toBe(false);
+    expect(statements._prepared.size).toBe(defs.length - 1);
+    expect(error).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the healthy statements usable', () => {
+    const statements = newStatements();
+
+    statements.execute('insertItem', { name: 'alpha' });
+
+    expect(statements.execute('allItems', {})).toEqual([{ id: 1, name: 'alpha' }]);
+  });
+
+  it('throws a distinct error when executing a discarded statement', () => {
+    const statements = newStatements();
+
+    expect(() => statements.execute('unpreparable', {})).toThrow(
+      'Statement "unpreparable" could not be prepared against this database'
+    );
   });
 });

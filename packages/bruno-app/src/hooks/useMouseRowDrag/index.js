@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTheme } from 'styled-components';
 
 export const DRAG_ROW_KEY_ATTR = 'data-drag-row-key';
+
+const MAX_PREVIEW_LABEL_LENGTH = 25;
+
+const truncatePreviewLabel = (label) => {
+  const text = label || '';
+  return text.length > MAX_PREVIEW_LABEL_LENGTH ? `${text.slice(0, MAX_PREVIEW_LABEL_LENGTH)}...` : text;
+};
 
 const movePreviewTo = (preview, x, y) => {
   preview.style.transform = `translate(${(x + 12) / 16}rem, ${(y + 12) / 16}rem)`;
@@ -27,6 +35,7 @@ const findScrollParent = (element) => {
 };
 
 export const useMouseRowDrag = ({ enabled, onReorder }) => {
+  const theme = useTheme();
   const [draggingKey, setDraggingKey] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
   const cleanupRef = useRef(null);
@@ -42,7 +51,7 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
     overlay.style.cssText = 'position: fixed; inset: 0; z-index: 9999; cursor: grabbing;';
 
     const preview = document.createElement('div');
-    preview.textContent = label || '';
+    preview.textContent = truncatePreviewLabel(label);
     preview.style.cssText = `
       position: fixed;
       top: 0;
@@ -50,8 +59,10 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
       z-index: 10000;
       padding: 0.25rem 0.625rem;
       border-radius: 0.25rem;
-      background: rgba(30, 30, 30, 0.9);
-      color: #fff;
+      background: ${theme.infoTip.bg};
+      color: ${theme.text};
+      border: 1px solid ${theme.infoTip.border};
+      box-shadow: ${theme.infoTip.boxShadow};
       font-size: 0.75rem;
       white-space: nowrap;
       pointer-events: none;
@@ -113,7 +124,7 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     scrollFrame = requestAnimationFrame(autoScroll);
-  }, [enabled, onReorder]);
+  }, [enabled, onReorder, theme]);
 
   const cancelDrag = useCallback(() => {
     cleanupRef.current?.();

@@ -70,6 +70,7 @@ const MenuDropdown = forwardRef(({
   autoFocusFirstOption = false,
   submenuPlacement = 'right',
   'data-testid': testId = 'menu-dropdown',
+  menuClassName,
   ...dropdownProps
 }, ref) => {
   const tippyRef = useRef();
@@ -499,7 +500,7 @@ const MenuDropdown = forwardRef(({
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} className={menuClassName}>
           {renderMenuContent()}
         </div>
         {footer && (

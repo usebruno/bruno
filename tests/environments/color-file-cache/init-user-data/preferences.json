@@ -1,0 +1,13 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}"
+  ],
+  "preferences": {
+    "cache": {
+      "file": {
+        "enabled": true
+      }
+    }
+  }
+}

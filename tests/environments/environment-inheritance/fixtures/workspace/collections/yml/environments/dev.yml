@@ -1,0 +1,16 @@
+name: dev
+extends: base
+variables:
+  - name: api_url
+    value: https://dev.example.com
+  - name: dev_only
+    value: dev_only_value
+  - name: typed_override
+    value: overridden_in_dev
+  - name: shadowed_by_disabled
+    value: never_applied
+    disabled: true
+  - name: overridden_secret
+    value: plain_wins_in_dev
+  - secret: true
+    name: overridden_plain

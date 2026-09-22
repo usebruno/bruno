@@ -6,49 +6,10 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/collections';
-import filter from 'lodash/filter';
+import { generateTransientRequestName } from 'utils/collections';
 import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
-
-const REQUEST_TYPE = {
-  HTTP: 'http',
-  GRAPHQL: 'graphql',
-  GRPC: 'grpc',
-  WEBSOCKET: 'websocket'
-};
-
-/**
- * Generate a request name for transient requests in the pattern "Untitled {Count}"
- * @param {Object} collection - The collection object
- * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
- */
-const generateTransientRequestName = (collection) => {
-  if (!collection || !collection.items) {
-    return 'Untitled 1';
-  }
-  const allItems = flattenItems(collection.items);
-  const transientRequests = filter(allItems, (item) => {
-    return isItemTransientRequest(item);
-  });
-
-  // Find the highest "Untitled X" number among transient requests
-  let maxNumber = 0;
-  transientRequests.forEach((item) => {
-    const match = item.name?.match(/^Untitled (\d+)$/);
-    if (match) {
-      const number = parseInt(match[1], 10);
-      if (number > maxNumber) {
-        maxNumber = number;
-      }
-    }
-  });
-
-  // Increment from the highest number found, or start at 1 if none found
-  const count = maxNumber + 1;
-
-  return `Untitled ${count}`;
-};
+import { PRESET_REQUEST_TYPES as REQUEST_TYPE } from 'utils/common/constants';
 
 const CreateTransientRequest = ({ collectionUid }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -76,15 +37,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         }
       });
     }
-  };
-
-  const handleLeftClick = () => {
-    handleItemClick(collectionPresets.requestType);
-  };
-
-  const handleRightClick = (e) => {
-    e.preventDefault();
-    setDropdownVisible(true);
   };
 
   const handleCreateHttpRequest = useCallback(() => {
@@ -185,10 +137,19 @@ const CreateTransientRequest = ({ collectionUid }) => {
       case REQUEST_TYPE.GRPC:
         handleCreateGrpcRequest();
         break;
-      case REQUEST_TYPE.WEBSOCKET:
+      case REQUEST_TYPE.WS:
         handleCreateWebSocketRequest();
         break;
     }
+  };
+
+  const handleLeftClick = () => {
+    handleItemClick(collectionPresets.requestType);
+  };
+
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    setDropdownVisible(true);
   };
 
   if (!collection) {
@@ -233,7 +194,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         </div>
         <div className="dropdown-label">gRPC</div>
       </div>
-      <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.WEBSOCKET)}>
+      <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.WS)}>
         <div className="dropdown-icon">
           <IconPlugConnected size={16} strokeWidth={2} />
         </div>

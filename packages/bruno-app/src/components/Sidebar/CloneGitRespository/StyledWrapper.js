@@ -19,6 +19,19 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
   }
 
+  .branch-select {
+    .input-wrapper-label {
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .select-trigger.textbox {
+      font-size: ${(props) => props.theme.font.size.base};
+      border-radius: ${(props) => props.theme.border.radius.sm};
+    }
+  }
+
   .clone-progress-steps {
     margin-bottom: 0.5rem;
   }

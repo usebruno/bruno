@@ -25,7 +25,14 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run dev:web',
-      url: 'http://localhost:3000',
+      stdout: 'pipe',
+      wait: { stdout: /ready\s+built in/i },
+      reuseExistingServer: !process.env.CI,
+      timeout: 10 * 60 * 1000
+    },
+    {
+      command: 'npm start --workspace=packages/bruno-tests',
+      url: 'http://localhost:8081/ping',
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000
     }

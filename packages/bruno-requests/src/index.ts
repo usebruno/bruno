@@ -6,7 +6,8 @@ export {
   createOAuth1Authorizer,
   computeBodyHash,
   applyOAuth1ToRequest,
-  addEdgeGridInterceptor
+  addEdgeGridInterceptor,
+  handleNtlmRedirect
 } from './auth';
 export type {
   TokenEndpointAuthMethod,
@@ -31,4 +32,10 @@ export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
 export * as scripting from './scripting';
 
-export { makeAxiosInstance, getSystemProxy } from './network';
+export {
+  makeAxiosInstance,
+  getSystemProxy,
+  getSentHeaders,
+  applySentHeadersToRequest,
+  applyOmitConnectionToAxiosConfig
+} from './network';

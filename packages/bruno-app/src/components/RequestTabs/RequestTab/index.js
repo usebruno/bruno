@@ -341,6 +341,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return (
       <StyledWrapper
         className={`flex items-center justify-between tab-container px-2 ${tab.preview ? 'italic' : ''}`}
+        data-testid={`request-tab-${tab.type}`}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
@@ -586,18 +587,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             setShowConfirmClose(false);
           }}
           onSaveAndClose={() => {
-            const useFileSave = collection.fileMode || item.type === 'js';
-            let savePromise;
-
-            if (useFileSave) {
-              savePromise = dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid));
-            } else if (isItemTransientRequest(item)) {
+            if (isItemTransientRequest(item)) {
               dispatch(addSaveTransientRequestModal({ item, collection, closeAfterSave: true }));
               setShowConfirmClose(false);
               return;
-            } else {
-              savePromise = dispatch(saveRequest(item.uid, collection.uid));
             }
+
+            const useFileSave = collection.fileMode || item.type === 'js';
+            const savePromise = useFileSave
+              ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
+              : dispatch(saveRequest(item.uid, collection.uid));
 
             savePromise
               .then(() => {

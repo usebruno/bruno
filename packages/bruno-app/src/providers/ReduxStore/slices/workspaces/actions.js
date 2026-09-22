@@ -364,8 +364,7 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   const unopenedCollectionPaths = new Set();
 
   try {
-    const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
-    await dispatch(loadWorkspaceCollections(workspace.uid, shouldRefreshCollections));
+    await dispatch(loadWorkspaceCollections(workspace.uid, true));
     updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {

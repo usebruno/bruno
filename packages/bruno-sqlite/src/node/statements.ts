@@ -14,15 +14,22 @@ export class Statements {
     this._onMutation = onMutation;
     for (const def of statementDefs) {
       this._defs.set(def.name, def);
-      this._prepared.set(def.name, db.prepare(def.sql));
+      try {
+        this._prepared.set(def.name, db.prepare(def.sql));
+      } catch (err) {
+        console.error(`failed to prepare the statement "${def.name}": `, err);
+      }
     }
   }
 
   execute(name: string, params: SQLiteParams = {}): unknown {
-    const stmt = this._prepared.get(name);
     const def = this._defs.get(name);
-    if (stmt === undefined || def === undefined) {
+    if (def === undefined) {
       throw new Error(`Unknown statement: "${name}"`);
+    }
+    const stmt = this._prepared.get(name);
+    if (stmt === undefined) {
+      throw new Error(`Statement "${name}" could not be prepared against this database`);
     }
     const args = params as Record<string, SupportedValueType>;
     switch (def.type) {

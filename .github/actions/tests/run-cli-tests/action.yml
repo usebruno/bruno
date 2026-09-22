@@ -5,6 +5,10 @@ inputs:
     description: 'Shell to use (bash, pwsh)'
     required: false
     default: 'bash'
+  experimental_cache_modules:
+    description: 'Pass --experimental-cache-modules to bru run (requires developer sandbox)'
+    required: false
+    default: 'false'
 runs:
   using: 'composite'
   steps:
@@ -23,7 +27,11 @@ runs:
         npm start --workspace=packages/bruno-tests &
         sleep 5
         cd packages/bruno-tests/collection
-        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
+        EXTRA_ARGS=""
+        if [ "${{ inputs.experimental_cache_modules }}" = "true" ]; then
+          EXTRA_ARGS="--experimental-cache-modules"
+        fi
+        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer $EXTRA_ARGS
 
     - name: Run Local Testbench and CLI Tests - Windows
       if: inputs.shell == 'pwsh'
@@ -42,4 +50,8 @@ runs:
         }
 
         cd packages/bruno-tests/collection
-        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer
+        $bruArgs = @("run", "--env", "Prod", "--output", "junit.xml", "--format", "junit", "--sandbox", "developer")
+        if ("${{ inputs.experimental_cache_modules }}" -eq "true") {
+          $bruArgs += "--experimental-cache-modules"
+        }
+        & node ../../bruno-cli/bin/bru.js @bruArgs

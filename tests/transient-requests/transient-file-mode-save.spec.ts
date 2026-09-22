@@ -6,6 +6,7 @@ import {
   createCollection,
   createTransientRequest,
   fillRequestUrl,
+  openRequest,
   saveTransientViaModal,
   SEARCH_CONTENT,
   searchInFileMode,
@@ -81,7 +82,9 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
       });
 
       await test.step('Saved request keeps the file-mode edit', async () => {
+        // Save & Close dismisses the tab; reopen from the sidebar to verify persisted content.
         await expect(locators.sidebar.request('Saved From Close X')).toBeVisible({ timeout: 10000 });
+        await openRequest(page, collectionName, 'Saved From Close X');
         await expect
           .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
           .toContain(editedUrl);
@@ -106,7 +109,9 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
       });
 
       await test.step('Saved request keeps the file-mode edit', async () => {
+        // Save & Close dismisses the tab; reopen from the sidebar to verify persisted content.
         await expect(locators.sidebar.request('Saved From Close Shortcut')).toBeVisible({ timeout: 10000 });
+        await openRequest(page, collectionName, 'Saved From Close Shortcut');
         await expect
           .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
           .toContain(editedUrl);

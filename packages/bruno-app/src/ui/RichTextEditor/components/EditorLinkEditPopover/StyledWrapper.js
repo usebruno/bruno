@@ -8,7 +8,17 @@ const StyledWrapper = styled.div`
   border-radius: ${(props) => props.theme.border.radius.base};
   border: 1px solid ${(props) => props.theme.dropdown.border};
   z-index: 9999;
-  position: absolute;
+  position: fixed;
+
+  &[data-popper-reference-hidden] {
+    visibility: hidden;
+    pointer-events: none;
+
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
+    }
+  }
 
   .editor-link-popover-content {
     display: flex;
