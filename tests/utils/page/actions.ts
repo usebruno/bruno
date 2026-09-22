@@ -3668,6 +3668,11 @@ const clickOutsideModal = async (page: Page) => {
   });
 };
 
+const getAppWebviewHtml = async (page: Page, electronApp: ElectronApplication): Promise<string> => {
+  await waitForAppGuestReady(page, electronApp);
+  return (await evalInActiveAppGuest(page, electronApp, 'document.documentElement.outerHTML')) as string;
+};
+
 export {
   waitForReadyPage,
   readClipboard,
@@ -3815,6 +3820,7 @@ export {
   exitApp,
   selectViewMode,
   getAppWebviewSrc,
+  getAppWebviewHtml,
   evalInActiveAppGuest,
   waitForAppGuestReady,
   createApp,
