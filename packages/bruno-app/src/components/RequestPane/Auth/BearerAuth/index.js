@@ -25,9 +25,6 @@ const BearerAuth = ({ item, collection, updateAuth, request, save, disabled }) =
   };
 
   const handleTokenChange = (token) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'bearer',

@@ -88,10 +88,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   };
 
   const handleFieldChange = (field: EdgeGridField, value: string) => {
-    if (disabled) {
-      return;
-    }
-
     const content: AkamaiEdgeGridAuthValues = {
       accessToken: edgeGridAuth.accessToken || '',
       clientToken: edgeGridAuth.clientToken || '',

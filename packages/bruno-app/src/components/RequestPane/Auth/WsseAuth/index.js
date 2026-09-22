@@ -24,9 +24,6 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
   };
 
   const handleUserChange = (username) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'wsse',
@@ -41,9 +38,6 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
   };
 
   const handlePasswordChange = (password) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'wsse',

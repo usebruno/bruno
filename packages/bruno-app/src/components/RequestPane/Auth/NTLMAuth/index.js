@@ -24,9 +24,6 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
   };
 
   const handleUsernameChange = (username) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'ntlm',
@@ -42,9 +39,6 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
   };
 
   const handlePasswordChange = (password) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'ntlm',
@@ -60,9 +54,6 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
   };
 
   const handleDomainChange = (domain) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'ntlm',

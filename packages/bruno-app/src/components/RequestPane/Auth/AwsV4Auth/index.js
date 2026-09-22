@@ -24,9 +24,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleAccessKeyIdChange = (accessKeyId) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -45,9 +42,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleSecretAccessKeyChange = (secretAccessKey) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -66,9 +60,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleSessionTokenChange = (sessionToken) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -87,9 +78,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleServiceChange = (service) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -108,9 +96,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleRegionChange = (region) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',
@@ -129,9 +114,6 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleProfileNameChange = (profileName) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'awsv4',

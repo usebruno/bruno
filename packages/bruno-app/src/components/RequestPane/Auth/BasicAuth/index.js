@@ -23,9 +23,6 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handleUsernameChange = (username) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'basic',
@@ -40,9 +37,6 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
   };
 
   const handlePasswordChange = (password) => {
-    if (disabled) {
-      return;
-    }
     dispatch(
       updateAuth({
         mode: 'basic',
