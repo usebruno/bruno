@@ -55,3 +55,92 @@ describe('description round-trip in collection.bru', () => {
     expect(parsed.headers[0].description).toBe('has \'\'\' quotes');
   });
 });
+
+describe('jsonToCollectionBru - meta tags', () => {
+  it('should serialize tags as a list block', () => {
+    const bru = jsonToCollectionBru({ meta: { name: 'folder', seq: 1, tags: ['tag_1', 'tag_2'] } });
+
+    expect(bru).toEqual(`meta {
+  name: folder
+  seq: 1
+  tags: [
+    tag_1
+    tag_2
+  ]
+}
+`);
+  });
+
+  it('should not write a tags key when tags is an empty array', () => {
+    const bru = jsonToCollectionBru({ meta: { name: 'folder', tags: [] } });
+
+    expect(bru).toEqual(`meta {
+  name: folder
+}
+`);
+  });
+
+  it('should not write a tags key when tags is absent', () => {
+    const bru = jsonToCollectionBru({ meta: { name: 'folder' } });
+
+    expect(bru).toEqual(`meta {
+  name: folder
+}
+`);
+  });
+
+  it('should serialize tags alongside other blocks', () => {
+    const bru = jsonToCollectionBru({
+      meta: { name: 'folder', tags: ['tag_1'] },
+      headers: [{ name: 'content-type', value: 'application/json', enabled: true }],
+      docs: 'some docs'
+    });
+
+    expect(bru).toEqual(`meta {
+  name: folder
+  tags: [
+    tag_1
+  ]
+}
+
+headers {
+  content-type: application/json
+}
+
+docs {
+  some docs
+}
+`);
+  });
+});
+
+describe('tags round-trip in collection.bru', () => {
+  it('should round-trip folder meta tags', () => {
+    const json = { meta: { name: 'folder', seq: 1, tags: ['tag_1', 'tag-2', 'Tag_3'] } };
+    const parsed = collectionBruToJson(jsonToCollectionBru(json));
+
+    expect(parsed.meta.tags).toEqual(['tag_1', 'tag-2', 'Tag_3']);
+    expect(parsed.meta.name).toEqual('folder');
+    expect(parsed.meta.seq).toEqual('1');
+  });
+
+  it('should round-trip a collection.bru that has tags and other blocks', () => {
+    const json = {
+      meta: { name: 'folder', tags: ['smoke'] },
+      headers: [{ name: 'Authorization', value: 'Bearer 123', enabled: true }],
+      docs: 'This folder needs auth token to be set in the headers.'
+    };
+    const parsed = collectionBruToJson(jsonToCollectionBru(json));
+
+    expect(parsed.meta.tags).toEqual(['smoke']);
+    expect(parsed.headers).toEqual([{ name: 'Authorization', value: 'Bearer 123', enabled: true }]);
+    expect(parsed.docs).toEqual('This folder needs auth token to be set in the headers.');
+  });
+
+  it('should round-trip a meta block with no tags', () => {
+    const parsed = collectionBruToJson(jsonToCollectionBru({ meta: { name: 'folder', tags: [] } }));
+
+    expect(parsed.meta.tags).toBeUndefined();
+    expect(parsed.meta.name).toEqual('folder');
+  });
+});

@@ -4,6 +4,8 @@ import { rgba } from 'polished';
 const StyledWrapper = styled.div`
   /* Main container */
   .theme-menu {
+    display: flex;
+    flex-direction: column;
     min-width: 200px;
     height: 325px;
     padding: 8px;
@@ -77,6 +79,8 @@ const StyledWrapper = styled.div`
   .theme-lists {
     display: flex;
     gap: 24px;
+    flex: 1;
+    min-height: 0;
 
     &.two-columns {
       gap: 0;
@@ -99,7 +103,10 @@ const StyledWrapper = styled.div`
 
   /* Individual theme list */
   .theme-list {
+    display: flex;
+    flex-direction: column;
     min-width: 180px;
+    min-height: 0;
     padding-top: 8px;
   }
 
@@ -110,6 +117,12 @@ const StyledWrapper = styled.div`
     font-size: 12px;
     color: ${(props) => props.theme.dropdown.mutedText};
     margin-bottom: 8px;
+  }
+
+  .theme-list-items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .active-badge {

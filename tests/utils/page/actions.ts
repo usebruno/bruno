@@ -1,11 +1,12 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
+import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
-import { EmptyStateRequestType } from './sidebar';
+import { EmptyStateRequestType, revealFolderRow } from './sidebar';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -14,6 +15,12 @@ type CollectionFormat = 'bru' | 'yml';
 type WaitForAppReadyOptions = {
   timeout?: number;
 };
+
+/**
+ * Read an element's scroll dimensions for asserting scroll/overflow behavior.
+ */
+export const getScrollMetrics = (locator: Locator) =>
+  locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
 
 /**
  * Wait for the Electron app to have a ready, loaded window.
@@ -121,8 +128,18 @@ const closeAllCollections = async (page) => {
  * @param collectionName - The name of the collection to open
  * @returns void
  */
+// sidebar is virtualized, opening a request lower in the list scrolls the collection header
+// out of the viewport, and Virtuoso unmounts it once it passes the overscan.
+// Reset the list to the top so the header row is rendered before we locate it.
+const revealCollectionsTop = async (page: Page) => {
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
+};
+
 const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
 };
@@ -551,11 +568,10 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     // Click on the collection first to open it if it's closed
     await locators.sidebar.collection(collectionName).click();
 
-    // Find the request within the collection's context
-    // Use the collection container (.collection-name) scoped to sidebar to scope the search
-    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+    const request = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .locator('.collection-item-name')
+      .filter({ hasText: requestName });
 
     await request.hover();
     await request.locator('.menu-icon').click();
@@ -785,7 +801,7 @@ const createFolder = async (
     // Scope to the parent so same-named folders in other collections don't trip strict mode.
     const parentScope = isCollection
       ? locators.sidebar.collectionScope(parentName)
-      : locators.sidebar.folder(parentName).locator('..');
+      : locators.sidebar.folderScope(parentName);
     await expect(parentScope.locator('.collection-item-name').filter({ hasText: folderName })).toBeVisible();
   });
 };
@@ -886,6 +902,8 @@ const importEnvironment = async (
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(filePath);
 
+    await locators.environment.importSubmitButton(type).click();
+
     const settingsTab = type === 'global'
       ? locators.environment.globalEnvTab()
       : locators.environment.collectionEnvTab();
@@ -955,6 +973,106 @@ const createEnvironment = async (
   });
 };
 
+/**
+ * Rename the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @param newName - The new name for the environment
+ * @returns void
+ */
+const renameEnvironment = async (page: Page, newName: string) => {
+  await test.step(`Rename environment to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.renameAction().click();
+
+    const nameInput = locators.environment.renameInput();
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill(newName);
+    await nameInput.press('Enter');
+
+    await expect(nameInput).toBeHidden();
+  });
+};
+
+/**
+ * Open an environment from the list in the environment settings tab
+ * @param page - The page object
+ * @param environmentName - The environment to open
+ * @param type - The environment scope the settings tab is showing
+ * @returns void
+ */
+const openEnvironmentInSettings = async (
+  page: Page,
+  environmentName: string,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Open environment "${environmentName}" in the settings tab`, async () => {
+    const { environment } = buildCommonLocators(page);
+
+    await environment.sidebarListItemExact(type, environmentName).click();
+    await expect(environment.detailsTitle()).toHaveText(environmentName);
+  });
+};
+
+/**
+ * Pick the environment that the currently open environment inherits its variables from
+ * @param page - The page object
+ * @param parentEnvironmentName - The environment to inherit from, or null to stop inheriting
+ * @returns void
+ */
+const setEnvironmentInheritance = async (page: Page, parentEnvironmentName: string | null) => {
+  await test.step(
+    parentEnvironmentName ? `Inherit variables from "${parentEnvironmentName}"` : 'Stop inheriting variables',
+    async () => {
+      const locators = buildCommonLocators(page);
+      await locators.environment.inheritsFromAction().click();
+
+      const option = parentEnvironmentName
+        ? locators.environment.inheritsFromOption(parentEnvironmentName)
+        : locators.environment.inheritsFromNoneOption();
+      await option.click();
+
+      const toastText = parentEnvironmentName
+        ? `Inheriting variables from ${parentEnvironmentName}`
+        : 'Stopped inheriting variables';
+      await expect(page.getByText(toastText).last()).toBeVisible();
+    }
+  );
+};
+
+/**
+ * Copy the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @param newName - Name for the copy
+ * @returns void
+ */
+const copyEnvironment = async (page: Page, newName: string) => {
+  await test.step(`Copy environment to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.copyAction().click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Copy Environment' });
+    await modal.locator('#environment-name').fill(newName);
+    await modal.getByRole('button', { name: 'Copy', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Delete the environment currently open in the environment settings tab
+ * @param page - The page object
+ * @returns void
+ */
+const deleteEnvironment = async (page: Page) => {
+  await test.step('Delete the open environment', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.environment.deleteAction().click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
+};
+
 type EnvironmentVariable = {
   name: string;
   value: string;
@@ -968,9 +1086,14 @@ type EnvironmentVariable = {
  * plain variable to the Variables tab before the row is added.
  * @param page - The page object
  * @param variable - The variable to add (name, value, and optional secret flag)
+ * @param options - `valueFirst` types the value into the row before naming it
  * @returns void
  */
-const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable) => {
+const addEnvironmentVariable = async (
+  page: Page,
+  variable: EnvironmentVariable,
+  options: AddRowOptions = {}
+) => {
   await test.step(`Add environment ${variable.isSecret ? 'secret' : 'variable'} "${variable.name}"`, async () => {
     const tab = variable.isSecret
       ? page.getByTestId('responsive-tab-secrets')
@@ -978,7 +1101,7 @@ const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable)
     await tab.click();
     await expect(tab).toHaveClass(/active/);
 
-    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType);
+    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType, options);
   });
 };
 
@@ -997,6 +1120,50 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
   });
 };
 
+type AddRowOptions = { valueFirst?: boolean };
+
+/**
+ * Bring part of the environment table into view. The table is virtualized, so a row outside the
+ * rendered window is absent from the DOM altogether, and waiting on the target alone never
+ * resolves. Walks the scroller a viewport at a time until the target renders, leaving the list
+ * wherever that happened.
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollEnvironmentTableTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) {
+    return;
+  }
+
+  const scroller = buildCommonLocators(page).environment.variablesScroller();
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((element) => Math.ceil(element.scrollHeight / element.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((element, offset) => element.scrollTo({ top: offset * element.clientHeight }), viewport);
+    if (await isRendered()) {
+      return;
+    }
+  }
+};
+
+/**
+ * The trailing empty row's Name input, scrolled into the rendered window first. Only the empty
+ * row carries the `Name` placeholder, so a match is always the row a new variable goes into.
+ * @param page - The page object
+ * @returns The empty row's Name input
+ */
+const emptyRowNameInput = async (page: Page) => {
+  const nameInput = page.locator('input[placeholder="Name"]').last();
+
+  await scrollEnvironmentTableTo(page, nameInput);
+  await nameInput.waitFor({ state: 'visible' });
+
+  return nameInput;
+};
+
 /**
  * Add a variable or secret to whichever environment tab (Variables / Secrets) is
  * currently active. The active tab determines the row's type, so select the tab
@@ -1005,40 +1172,154 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
  * @param name - The variable/secret name
  * @param value - The variable/secret value
  * @param dataType - Optional non-string dataType to assign (default `string`)
+ * @param options - `valueFirst` types the value into the row before naming it
  * @returns void
  */
 const addRowToActiveTab = async (
   page: Page,
   name: string,
   value: string,
-  dataType?: 'number' | 'boolean' | 'object'
+  dataType?: 'number' | 'boolean' | 'object',
+  options: AddRowOptions = {}
 ) => {
   await test.step(`Add row "${name}" to the active environment tab`, async () => {
-    const nameInput = page.locator('input[placeholder="Name"]').last();
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(name);
+    const { environment, dataTypeSelector } = buildCommonLocators(page);
+
+    if (options.valueFirst) {
+      const nameInput = await emptyRowNameInput(page);
+      // Filling the value appends another empty row, so the row being filled in stops being the
+      // last one — its formik index is what stays put until it has a name to be found by.
+      const formikName = await nameInput.getAttribute('name');
+      if (formikName === null) {
+        throw new Error('Empty environment row is missing its formik "name" attribute');
+      }
+      const rowIndex = Number(formikName.split('.')[0]);
+
+      const emptyRowEditor = environment.variableValueEditor(rowIndex);
+      await emptyRowEditor.scrollIntoViewIfNeeded();
+      await emptyRowEditor.click({ position: { x: 5, y: 5 } });
+      await expect(emptyRowEditor).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.type(value);
+      await expect(emptyRowEditor).toContainText(value);
+
+      await environment.variableNameInput(rowIndex).fill(name);
+    } else {
+      const nameInput = await emptyRowNameInput(page);
+      await nameInput.fill(name);
+    }
 
     const row = page.getByTestId(`env-var-row-${name}`);
     await row.waitFor({ state: 'visible' });
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
-    // renders as a compact overlay pinned to the cell's right side, which otherwise
-    // intercepts a centered click/hover.
-    await codeMirror.click({ position: { x: 5, y: 5 } });
-    if (dataType) {
-      await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
-      await page.keyboard.insertText(value);
+    if (!options.valueFirst) {
+      // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+      // renders as a compact overlay pinned to the cell's right side, which otherwise
+      // intercepts a centered click/hover.
+      await codeMirror.click({ position: { x: 5, y: 5 } });
+      if (dataType) {
+        await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
+        await page.keyboard.insertText(value);
+      } else {
+        await page.keyboard.type(value);
+      }
+    }
 
-      const { dataTypeSelector } = buildCommonLocators(page);
+    if (dataType) {
       await codeMirror.hover({ position: { x: 5, y: 5 } });
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
-    } else {
-      await page.keyboard.type(value);
     }
+  });
+};
+
+/**
+ * Replace the value of an existing environment variable row. The row must already be on the
+ * active tab; a secret keeps its value masked, so reveal it with the row's eye toggle
+ * before asserting on the displayed text. Whatever the row holds is cleared first, so the
+ * same call can be repeated against an app instance a previous test already wrote to.
+ * @param page - The page object
+ * @param name - The name of the row to fill
+ * @param value - The value to type
+ * @returns void
+ */
+const setEnvironmentVariableValue = async (page: Page, name: string, value: string) => {
+  await test.step(`Set environment variable "${name}" to "${value}"`, async () => {
+    const editor = buildCommonLocators(page).environment.varRowValueEditor(name);
+    await scrollEnvironmentTableTo(page, editor);
+    await editor.scrollIntoViewIfNeeded();
+    await editor.click({ position: { x: 5, y: 5 } });
+    await expect(editor).toHaveClass(/CodeMirror-focused/);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+a' : 'Control+a');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(value);
+    await expect(editor).not.toHaveClass(/CodeMirror-empty/);
+  });
+};
+
+/**
+ * Uncheck the enabled checkbox of an environment variable row. The row must already be on the
+ * active tab.
+ * @param page - The page object
+ * @param name - The name of the row to disable
+ * @returns void
+ */
+const disableEnvironmentVariable = async (page: Page, name: string) => {
+  await test.step(`Disable environment variable "${name}"`, async () => {
+    const checkbox = buildCommonLocators(page).environment.varRowEnabledCheckbox(name);
+    await scrollEnvironmentTableTo(page, checkbox);
+    await checkbox.click();
+    await expect(checkbox).not.toBeChecked();
+  });
+};
+
+/**
+ * Give an environment's secret rows their values and save. A secret's value never lives in the
+ * environment file, so a fixture can only declare the rows — a test that needs a secret
+ * resolved has to type the values in through the editor first.
+ * @param page - The page object
+ * @param environmentName - The environment holding the secret rows
+ * @param secrets - Secret name to value
+ * @param type - The environment scope the settings tab is showing
+ * @returns void
+ */
+const setEnvironmentSecrets = async (
+  page: Page,
+  environmentName: string,
+  secrets: Record<string, string>,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Set the secrets of environment "${environmentName}"`, async () => {
+    const { environment } = buildCommonLocators(page);
+
+    await openEnvironmentInSettings(page, environmentName, type);
+    await environment.secretsTab().click();
+
+    for (const [name, value] of Object.entries(secrets)) {
+      await setEnvironmentVariableValue(page, name, value);
+    }
+
+    await saveEnvironment(page);
+    await environment.variablesTab().click();
+  });
+};
+
+/**
+ * Filter the open environment's rows through the editor's search box, opening it first
+ * when it is still collapsed behind the search icon.
+ * @param page - The page object
+ * @param query - The text to filter by
+ * @returns void
+ */
+const searchEnvironmentVariables = async (page: Page, query: string) => {
+  await test.step(`Filter environment variables by "${query}"`, async () => {
+    const { environment } = buildCommonLocators(page);
+    if (!(await environment.searchInput().isVisible())) {
+      await environment.searchAction().click();
+    }
+    await environment.searchInput().fill(query);
   });
 };
 
@@ -1212,8 +1493,10 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    const request = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: requestName });
     if (!persist) {
       await request.click();
     } else {
@@ -1233,8 +1516,10 @@ const openfolder = async (page: Page, collectionName: string, folderName: string
   await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    const folder = page
+      .locator(`[data-collection-id="${collectionSlug(collectionName)}"]`)
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: folderName });
     if (!persist) {
       await folder.click();
     } else {
@@ -1282,6 +1567,7 @@ const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'p
  */
 const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
   await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
     const locators = buildCommonLocators(page);
     const collection = locators.sidebar.collection(collectionName);
     if (!persist) {
@@ -1367,11 +1653,10 @@ const openFolderRequest = async (page: Page, collectionName: string, folderName:
     const { sidebar, tabs } = buildCommonLocators(page);
     const collectionRow = sidebar.collectionRow(collectionName);
     await collectionRow.click();
-    const collectionWrapper = collectionRow.locator('..');
-    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    const folder = sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
     await folder.waitFor({ state: 'visible' });
     await folder.click();
-    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    const request = sidebar.folderScope(folderName).locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
     await request.waitFor({ state: 'visible' });
     await request.click();
     await expect(tabs.activeRequestTab()).toContainText(requestName);
@@ -2149,6 +2434,28 @@ const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent
 };
 
 /**
+ * Replace a CodeMirror editor's content through the CodeMirror API instead of typing it.
+ * Auto-close-bracket and auto-indent handling corrupts content typed character by character,
+ * so anything holding `{{var}}` tokens or several lines of braces goes through here.
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param content - The content to write
+ */
+const setCodeMirrorEditorValue = async (page: Page, editorTestId: string, content: string) => {
+  await test.step(`Set CodeMirror editor "${editorTestId}"`, async () => {
+    const editor = buildCommonLocators(page).codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    await editor.evaluate((el, value) => {
+      const cm = (el as any).CodeMirror;
+      if (!cm) {
+        throw new Error('CodeMirror instance not found');
+      }
+      cm.setValue(value);
+    }, content);
+  });
+};
+
+/**
  * Add a pre-request script (navigates to Script > Pre Request and replaces editor content)
  * @param page - The page object
  * @param content - The script content to add
@@ -2376,6 +2683,81 @@ const openFolderSettings = async (page: Page, collectionName: string, folderName
   });
 };
 
+/**
+ * Types a tag into the tag editor and commits it with Enter. Shared by the request Settings tab
+ * and the folder Settings tab, which render the same TagList.
+ * @param page - The Playwright page object
+ * @param tagName - The tag to add
+ * @returns void
+ */
+const addTag = async (page: Page, tagName: string) => {
+  await test.step(`Add tag "${tagName}"`, async () => {
+    const input = buildCommonLocators(page).tags.input();
+    await expect(input).toBeVisible();
+    await input.fill(tagName);
+    await input.press('Enter');
+  });
+};
+
+/**
+ * Removes a tag the item owns. Inherited tags have no remove control, so this only ever
+ * targets the removable chips.
+ * @param page - The Playwright page object
+ * @param tagName - The tag to remove
+ * @returns void
+ */
+const removeTag = async (page: Page, tagName: string) => {
+  await test.step(`Remove tag "${tagName}"`, async () => {
+    const chip = buildCommonLocators(page).tags.ownItem(tagName);
+    await expect(chip).toBeVisible();
+    await chip.locator('.tag-remove').click();
+  });
+};
+
+/**
+ * Saves the active folder settings tab and waits for the confirmation toast.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+const saveFolderSettings = async (page: Page) => {
+  await test.step('Save folder settings', async () => {
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await expect(page.getByText('Folder Settings saved successfully').last()).toBeVisible({ timeout: 5000 });
+  });
+};
+
+/**
+ * Opens folder settings for a folder nested at any depth, expanding each level on the way down.
+ * `openFolderSettings` only finds folders already visible in the sidebar; this walks a path such
+ * as ['api', 'v2'] so a child folder can be reached without its parent being expanded first.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderPath - Folder names from the collection root down to the target folder
+ * @returns void
+ */
+const openFolderSettingsByPath = async (page: Page, collectionName: string, folderPath: string[]) => {
+  await test.step(`Open folder settings for "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    const targetRow = await revealFolderRow(page, collectionName, folderPath);
+    await targetRow.dblclick();
+
+    const targetName = folderPath[folderPath.length - 1];
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: targetName })).toBeVisible();
+  });
+};
+
+/**
+ * Opens one tab of the folder settings pane (headers, script, test, vars, auth, docs, settings).
+ * @param page - The Playwright page object
+ * @param tabName - The settings tab to activate
+ * @returns void
+ */
+const selectFolderSettingsTab = async (page: Page, tabName: string) => {
+  await test.step(`Select folder settings tab "${tabName}"`, async () => {
+    await page.getByTestId(`folder-settings-tab-${tabName}`).click();
+  });
+};
+
 const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
   const descCell = rowLocator.getByTestId('column-description');
   await descCell.evaluate((el: any, val: string) => {
@@ -2413,7 +2795,7 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
-  const requestBranch = requestRow.locator('..');
+  const requestBranch = page.locator(`[data-parent-name="${requestName}"]`);
   const exampleRow = requestBranch
     .locator('.collection-item-name')
     .filter({ has: page.locator('.example-icon') })
@@ -2492,20 +2874,18 @@ const expectLinkOpensExternally = async (page: Page, cm: Locator) => {
   await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
 };
 
-/** Plain click on a Rich Text docs link opens a transient request. */
-const expectRichTextLinkOpensRequest = async (page: Page, link: Locator, opts: { type: LinkAwareRequestType; url: string }) => {
+/**
+ * Editable fields (Params, Vars, Headers, ...) only mark URLs and let Cmd/Ctrl+Click open them
+ * externally — a plain click just places the cursor, matching the URL bar's pre-existing
+ * behaviour. Click-to-open-as-a-request is reserved for response previews.
+ */
+const expectLinkDoesNotOpenRequest = async (page: Page, cm: Locator) => {
+  const link = cm.locator('.CodeMirror-link').first();
   await expect(link).toBeVisible({ timeout: 10000 });
   await link.click();
-  await expectTransientRequestOpened(page, opts);
-};
+  await expect(cm).toContainClass('CodeMirror-focused');
 
-/** Modifier+click on a Rich Text mode link — must fall back to "open externally", no new tab. */
-const expectRichTextLinkOpensExternally = async (page: Page, link: Locator, modifiers: Array<'Meta' | 'Control'> = []) => {
-  await expect(link).toBeVisible({ timeout: 10000 });
-  const tabCountBefore = await page.locator('.request-tab').count();
-  await link.click({ modifiers });
-  await page.waitForTimeout(300); // no new-tab locator to await — asserting absence of change
-  await expect(page.locator('.request-tab')).toHaveCount(tabCountBefore);
+  await expectLinkOpensExternally(page, cm);
 };
 
 /**
@@ -2523,6 +2903,31 @@ const expectNoLink = async (cm: Locator) => {
 };
 
 /**
+ * The collections list is virtualized, so a row outside the viewport is not in
+ * DOM. Scroll the request to view.
+
+ * @param page - The page object
+ * @param target - The row, or a control within a row, to scroll to
+ * @returns void
+ */
+const scrollSidebarListTo = async (page: Page, target: Locator) => {
+  const isRendered = () => target.isVisible().catch(() => false);
+  if (await isRendered()) return;
+
+  const scroller = page.getByTestId('sidebar-collections-scroller');
+  if (!(await scroller.count())) return;
+  await scroller.waitFor({ state: 'visible' });
+
+  const viewports = await scroller.evaluate((el) => Math.ceil(el.scrollHeight / el.clientHeight));
+  for (let viewport = 0; viewport <= viewports; viewport++) {
+    await scroller.evaluate((el, offset) => el.scrollTo({ top: offset * el.clientHeight }), viewport);
+    // react-virtuoso mounts rows asynchronously after a scroll, so let it settle before checking.
+    await page.waitForTimeout(60);
+    if (await isRendered()) return;
+  }
+};
+
+/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -2534,11 +2939,12 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
     const { sidebar } = buildCommonLocators(page);
     await sidebar.folder(folderName).click();
 
-    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const folderWrapper = page.locator(`[data-parent-name="${folderName}"]`);
     const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const requestRow = folderWrapper.locator('.collection-item-name').filter({
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
+    await scrollSidebarListTo(page, requestRow);
     await requestRow.click();
   });
 };
@@ -3357,12 +3763,21 @@ export {
   openEnvironmentConfigTab,
   importEnvironment,
   createEnvironment,
+  renameEnvironment,
+  openEnvironmentInSettings,
+  setEnvironmentInheritance,
+  copyEnvironment,
+  deleteEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
   cycleVariableSort,
   getVisibleVariableNames,
   dragVariableRow,
+  setEnvironmentVariableValue,
+  disableEnvironmentVariable,
+  setEnvironmentSecrets,
+  searchEnvironmentVariables,
   deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
@@ -3410,6 +3825,7 @@ export {
   switchWorkspace,
   selectScriptSubTab,
   editCodeMirrorEditor,
+  setCodeMirrorEditorValue,
   addPreRequestScript,
   addPostResponseScript,
   writeScriptContent,
@@ -3433,8 +3849,7 @@ export {
   expectTransientRequestOpened,
   expectLinkOpensRequest,
   expectLinkOpensExternally,
-  expectRichTextLinkOpensRequest,
-  expectRichTextLinkOpensExternally,
+  expectLinkDoesNotOpenRequest,
   expectNoLink,
   LINK_AWARE_COLLECTION_NAME,
   LINK_CLICK_MODIFIER,
@@ -3444,7 +3859,12 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  addTag,
+  removeTag,
+  saveFolderSettings,
   openFolderSettings,
+  openFolderSettingsByPath,
+  selectFolderSettingsTab,
   setTableRowDescriptionValue,
   setAppCode,
   setAppEnabled,

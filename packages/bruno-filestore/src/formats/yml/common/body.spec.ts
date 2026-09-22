@@ -60,3 +60,61 @@ describe('file body description', () => {
     }
   });
 });
+
+describe('multipart form contentType', () => {
+  it('toOpenCollectionBody: writes contentType when set, omits when empty or whitespace-only', () => {
+    const out = toOpenCollectionBody({
+      mode: 'multipartForm',
+      multipartForm: [
+        { uid: 'm1', type: 'text', name: 'metadata', value: '{"tag":"v1"}', contentType: 'application/json', enabled: true },
+        { uid: 'm2', type: 'text', name: 'plain', value: 'hello', contentType: '', enabled: true },
+        { uid: 'm3', type: 'text', name: 'ws', value: 'x', contentType: '   ', enabled: true },
+        { uid: 'm4', type: 'file', name: 'avatar', value: ['/tmp/me.png'], contentType: 'image/png', enabled: false }
+      ]
+    } as any);
+
+    expect(out?.type).toBe('multipart-form');
+    expect(out?.data).toHaveLength(4);
+    expect(out?.data[0]).toMatchObject({ name: 'metadata', contentType: 'application/json' });
+    expect(out?.data[1]).not.toHaveProperty('contentType');
+    expect(out?.data[2]).not.toHaveProperty('contentType');
+    expect(out?.data[3]).toMatchObject({ name: 'avatar', contentType: 'image/png', disabled: true });
+  });
+
+  it('toBrunoBody: reads contentType and defaults to null when absent', () => {
+    const out = toBrunoBody({
+      type: 'multipart-form',
+      data: [
+        { name: 'metadata', type: 'text', value: '{}', contentType: 'application/json' },
+        { name: 'plain', type: 'text', value: 'x' }
+      ]
+    } as any);
+
+    expect(out?.mode).toBe('multipartForm');
+    expect(out?.multipartForm).toHaveLength(2);
+
+    if (out?.multipartForm) {
+      expect(out.multipartForm[0]).toMatchObject({ name: 'metadata', contentType: 'application/json' });
+      expect(out.multipartForm[1].contentType).toBeNull();
+    }
+  });
+
+  it('round-trips multipart contentType through OC conversion', () => {
+    const brunoBody = {
+      mode: 'multipartForm',
+      multipartForm: [
+        { uid: 'm1', type: 'text', name: 'metadata', value: '{"tag":"v1"}', contentType: 'application/json', enabled: true },
+        { uid: 'm2', type: 'file', name: 'avatar', value: ['/tmp/me.png'], contentType: 'image/png', enabled: false }
+      ]
+    } as any;
+
+    const back = toBrunoBody(toOpenCollectionBody(brunoBody));
+
+    expect(back?.multipartForm).toHaveLength(2);
+
+    if (back?.multipartForm) {
+      expect(back.multipartForm[0]).toMatchObject({ name: 'metadata', contentType: 'application/json' });
+      expect(back.multipartForm[1]).toMatchObject({ name: 'avatar', contentType: 'image/png', enabled: false });
+    }
+  });
+});

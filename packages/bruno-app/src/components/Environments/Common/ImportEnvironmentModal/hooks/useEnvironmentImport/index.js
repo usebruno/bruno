@@ -4,12 +4,39 @@ import importPostmanEnvironment from 'utils/importers/postman-environment';
 import importBrunoEnvironment from 'utils/importers/bruno-environment';
 import { readMultipleFiles } from 'utils/importers/file-reader';
 import { toastError } from 'utils/common/error';
-import { generateCopyName, normalizeEnvName } from 'utils/environments';
-import { detectEnvironmentFormat, RESOLUTION_TYPES } from '../../utils';
+import { generateCopyName, normalizeEnvName, orderEnvironmentsByInheritance } from 'utils/environments';
+import {
+  buildReviewItems,
+  detectEnvironmentFormat,
+  ENV_STATUS,
+  IMPORT_STEPS,
+  initialResolutions,
+  initialSelection,
+  RESOLUTION_TYPES
+} from '../../utils';
 import { useEnvironmentTarget } from '../useEnvironmentTarget';
 
-export const IMPORT_STEPS = { UPLOAD: 'UPLOAD', REVIEW: 'REVIEW' };
-export const ENV_STATUS = { NEW: 'new', DUPLICATE: 'duplicate', INVALID: 'invalid' };
+export { ENV_STATUS, IMPORT_STEPS };
+
+const parseEnvironmentFiles = async (parsedFiles) => {
+  const valid = [];
+  const invalid = [];
+
+  for (const file of parsedFiles) {
+    try {
+      const format = detectEnvironmentFormat(file.content);
+      const result = format === 'postman'
+        ? await importPostmanEnvironment([file])
+        : await importBrunoEnvironment([file]);
+      valid.push(...result.valid);
+      invalid.push(...result.invalid);
+    } catch (err) {
+      invalid.push({ fileName: file.fileName || 'Unknown', error: 'Could not be read' });
+    }
+  }
+
+  return { valid, invalid };
+};
 
 export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCreated) => {
   const [step, setStep] = useState(IMPORT_STEPS.UPLOAD);
@@ -27,20 +54,34 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
 
     const isNameDuplicate = (envName) => currentExistingNames.some((existingName) => normalizeEnvName(existingName) === normalizeEnvName(envName));
     const replacedNames = new Set();
+    // A parent imported alongside its child can land under a different name — a copy suffix, or the
+    // name of the environment it replaced — and the child's `extends` has to follow it there.
+    const importedNames = new Map();
+    const updateImportedNames = (sourceName, landedName) => {
+      if (!importedNames.has(sourceName)) {
+        importedNames.set(sourceName, landedName);
+      }
+    };
+    const inheritedNameFor = (environment) =>
+      typeof environment.extends === 'string'
+        ? importedNames.get(environment.extends) ?? environment.extends
+        : environment.extends;
 
     setIsImporting(true);
-    for (const environment of environmentsToImport) {
+    for (const environment of orderEnvironmentsByInheritance(environmentsToImport)) {
       try {
         const isDuplicate = environment.status === ENV_STATUS.DUPLICATE;
+        const environmentToImport = { ...environment, extends: inheritedNameFor(environment) };
 
         if (isDuplicate) {
-          const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.COPY;
+          const resolution = itemResolutions.get(environment.id) || RESOLUTION_TYPES.CREATE_NEW;
           const normalizedName = normalizeEnvName(environment.name);
           if (resolution === RESOLUTION_TYPES.REPLACE && !replacedNames.has(normalizedName)) {
             const existingEnv = getExistingEnv(environment.name);
             if (existingEnv) {
-              await saveEnv(environment, existingEnv);
+              await saveEnv(environmentToImport, existingEnv);
               replacedNames.add(normalizedName);
+              updateImportedNames(environment.name, existingEnv.name);
               importedCount++;
             } else {
               throw new Error(`Environment ${environment.name} not found for replacement`);
@@ -49,7 +90,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             // copy
             const copyName = generateCopyName(environment.name, currentExistingNames);
             currentExistingNames.push(copyName);
-            await createEnv(copyName, environment);
+            await createEnv(copyName, environmentToImport);
+            updateImportedNames(environment.name, copyName);
             importedCount++;
           }
         } else {
@@ -57,7 +99,8 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
             ? generateCopyName(environment.name, currentExistingNames)
             : environment.name;
           currentExistingNames.push(name);
-          await createEnv(name, environment);
+          await createEnv(name, environmentToImport);
+          updateImportedNames(environment.name, name);
           importedCount++;
         }
       } catch (error) {
@@ -82,69 +125,19 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
     if (isImporting) return;
     try {
       setIsImporting(true);
+
       const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
+      const { valid, invalid } = await parseEnvironmentFiles(parsedFiles);
 
-      const filesByFormat = {};
-      const detectionFailures = [];
-
-      parsedFiles.forEach((file) => {
-        try {
-          const format = detectEnvironmentFormat(file.content);
-          (filesByFormat[format] = filesByFormat[format] || []).push(file);
-        } catch (err) {
-          detectionFailures.push({ fileName: file.fileName || 'Unknown', error: 'Failed to detect environment format' });
-        }
+      const reviewItems = buildReviewItems({
+        valid,
+        invalid: [...invalidFiles, ...invalid],
+        existingNames
       });
 
-      const results = await Promise.all(
-        Object.entries(filesByFormat).map(([format, filesForFormat]) =>
-          format === 'postman' ? importPostmanEnvironment(filesForFormat) : importBrunoEnvironment(filesForFormat)
-        )
-      );
-
-      const result = {
-        valid: results.flatMap((r) => r.valid),
-        invalid: results.flatMap((r) => r.invalid)
-      };
-
-      const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = result.valid
-        .filter((env) => !env.name || env.name === 'undefined')
-        .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
-
-      const allInvalid = [...invalidFiles, ...detectionFailures, ...result.invalid, ...missingNameEnvs];
-
-      const existingNamesNormalized = existingNames.map(normalizeEnvName);
-
-      let itemIndex = 0;
-      const validItems = validEnvironments.map((env) => {
-        const isDuplicate = existingNamesNormalized.includes(normalizeEnvName(env.name));
-        return { ...env, id: `env-${itemIndex++}`, status: isDuplicate ? ENV_STATUS.DUPLICATE : ENV_STATUS.NEW };
-      });
-
-      const invalidItems = allInvalid.map((env) => ({
-        ...env, id: `env-${itemIndex++}`, status: ENV_STATUS.INVALID
-      }));
-
-      const newItems = [...validItems, ...invalidItems];
-      const duplicates = validItems.filter((e) => e.status === ENV_STATUS.DUPLICATE);
-
-      if (duplicates.length === 0 && allInvalid.length === 0) {
-        await commitEnvironments(validItems, new Map());
-        return;
-      }
-
-      setItems(newItems);
-
-      const initialSelected = new Set(validItems.map((i) => i.id));
-      setSelected(initialSelected);
-
-      const initialResolutions = new Map();
-      duplicates.forEach((e) => {
-        initialResolutions.set(e.id, RESOLUTION_TYPES.COPY);
-      });
-      setResolutions(initialResolutions);
-
+      setItems(reviewItems);
+      setSelected(initialSelection(reviewItems));
+      setResolutions(initialResolutions(reviewItems));
       setStep(IMPORT_STEPS.REVIEW);
     } catch (err) {
       toastError(err, 'Import environment failed');
@@ -167,6 +160,7 @@ export const useEnvironmentImport = (type, collection, onClose, onEnvironmentCre
 
   return {
     step,
+    isImporting,
     items,
     selected,
     setSelected,

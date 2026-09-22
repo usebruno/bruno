@@ -3,13 +3,21 @@ import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import {
+  isRequestTagsIncluded,
+  getEffectiveTags,
+  getFolderTags,
+  getOwnTags,
+  getInheritedTagsFromTreePath,
+  getInheritedTagSourcesFromTreePath
+} from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
   doesCollectionHaveItemsMatchingSearchText
 } from 'utils/collections/search';
+import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -17,20 +25,6 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   }
 
   return str.replaceAll('\t', ' '.repeat(numSpaces));
-};
-
-export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
-      i.depth = initialDepth;
-
-      if (i.items && i.items.length) {
-        depth(i.items, initialDepth + 1);
-      }
-    });
-  };
-
-  depth(items, 1);
 };
 
 const setCollapsedRecursively = (items, collapsed) => {
@@ -225,6 +219,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: param.type,
         name: param.name,
         value: param.value,
+        contentType: param.contentType,
         description: param.description,
         enabled: param.enabled
       };
@@ -591,6 +586,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.root.meta = {};
           di.root.meta.name = meta?.name;
           di.root.meta.seq = meta?.seq;
+          if (meta?.tags?.length) {
+            di.root.meta.tags = meta.tags;
+          }
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
@@ -861,10 +859,12 @@ export const transformCollectionRootToSave = (collection) => {
 
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
+  const tags = getFolderTags(folder);
   const folderRootToSave = {
     meta: {
       name: folder.name,
-      seq: folder.seq
+      seq: folder.seq,
+      ...(tags.length ? { tags } : {})
     },
     docs: _folder.docs,
     request: {
@@ -876,7 +876,7 @@ export const transformFolderRootToSave = (folder) => {
     }
   };
 
-  each(_folder.request.headers, (header) => {
+  each(_folder?.request?.headers, (header) => {
     folderRootToSave.request.headers.push({
       uid: header.uid,
       name: header.name,
@@ -1223,21 +1223,20 @@ export const getDefaultRequestPaneTab = (item) => {
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  let variables = {};
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
-  if (environment) {
-    each(environment.variables, (variable) => {
-      if (variable.name && variable.enabled) {
-        variables[variable.name] = variable.value;
-      }
-    });
-  }
-  return variables;
+  const environment = resolveEnvironmentInheritance({
+    environments: globalEnvironments,
+    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    merge: true
+  });
+  return toVariablesMap(environment?.variables);
 };
 
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
-
+  const environment = resolveEnvironmentInheritance({
+    environments: globalEnvironments,
+    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    merge: true
+  });
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
       .filter((variable) => variable.name && variable.enabled && variable.secret)
@@ -1248,20 +1247,17 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 };
 
 export const getEnvironmentVariables = (collection) => {
-  let variables = {};
-  if (collection) {
-    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-    if (environment) {
-      // Apply secrets last so a secret wins over a plain variable of the same name,
-      // regardless of their order in the array.
-      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
-      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
-        variables[variable.name] = variable.value;
-      });
-    }
+  if (!collection) {
+    return {};
   }
 
-  return variables;
+  const environment = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    merge: true
+  });
+
+  return toVariablesMap(environment?.variables);
 };
 
 export const getEnvironmentVariablesMasked = (collection) => {
@@ -1270,8 +1266,12 @@ export const getEnvironmentVariablesMasked = (collection) => {
     return [];
   }
 
-  // Find the active environment in the collection
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  // Inherited variables are merged in so a secret defined on a parent is masked too.
+  const environment = resolveEnvironmentInheritance({
+    environments: collection.environments,
+    targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    merge: true
+  });
   if (!environment || !environment.variables) {
     return [];
   }
@@ -1435,6 +1435,8 @@ export const maskInputValue = (value) => {
 };
 
 export const getTreePathFromCollectionToItem = (collection, _item) => {
+  if (!_item?.uid) return [];
+
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -1482,27 +1484,6 @@ const mergeVars = (collection, requestTreePath = []) => {
     collectionVariables,
     folderVariables,
     requestVariables
-  };
-};
-
-export const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {
-      __name__: environment.name
-    };
-  }
-
-  const envVars = {};
-  each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
-  });
-
-  return {
-    ...envVars,
-    __name__: environment.name
   };
 };
 
@@ -1657,6 +1638,10 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
         const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
+      if (isItemAFolder(item)) {
+        const tags = includeDrafts ? getFolderTags(item) : get(item, 'root.meta.tags', []);
+        tags.forEach((tag) => allTags.add(tag));
+      }
       if (item.items) {
         getTags(item.items);
       }
@@ -1666,32 +1651,71 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
   return Array.from(allTags).sort();
 };
 
-export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
-  let requestItems = [];
+/** Tags an item inherits from the folders above it, each paired with the folder it came from. */
+export const getInheritedTagSourcesForItem = (collection, item) =>
+  getInheritedTagSourcesFromTreePath(getTreePathFromCollectionToItem(collection, item));
 
-  if (recursive) {
-    requestItems = flattenItems(items);
-  } else {
-    each(items, (item) => {
-      if (item.request) {
-        requestItems.push(item);
-      }
-    });
-  }
+export const getInheritedTagsForItem = (collection, item) =>
+  getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item));
+
+/** The tag set an item is filtered and reported by: its own tags plus its parent folders'. */
+export const getEffectiveTagsForItem = (collection, item) =>
+  getEffectiveTags(getOwnTags(item), getInheritedTagsForItem(collection, item));
+
+/**
+ * Pairs every request with the tags it inherits from the folders it sits in.
+ * `inheritedTags` is the effective tags of the folder the run starts at.
+ */
+const collectRequestsWithInheritedTags = ({ recursive, items, inheritedTags }) => {
+  const collected = [];
+
+  each(items, (item) => {
+    if (!isItemAFolder(item)) {
+      collected.push({ item, inheritedTags });
+      return;
+    }
+    if (recursive) {
+      collected.push(
+        ...collectRequestsWithInheritedTags({
+          recursive,
+          items: item.items,
+          inheritedTags: getEffectiveTags(getFolderTags(item), inheritedTags)
+        })
+      );
+    }
+  });
+
+  return collected;
+};
+
+/**
+ * Effective tags for every request in the tree, keyed by uid, resolved in a single walk — for
+ * callers that need them for a whole list at once rather than one item at a time.
+ */
+export const getEffectiveTagsByItemUid = (items = [], inheritedTags = []) =>
+  Object.fromEntries(
+    collectRequestsWithInheritedTags({ recursive: true, items, inheritedTags }).map(({ item, inheritedTags: inherited }) => [
+      item.uid,
+      getEffectiveTags(getOwnTags(item), inherited)
+    ])
+  );
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags, inheritedTags = [] }) => {
+  let requestItems = collectRequestsWithInheritedTags({ recursive, items, inheritedTags });
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
+  requestItems = requestItems.filter(({ item }) => requestTypes.includes(item.type) && !item.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
-      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    requestItems = requestItems.filter(({ item, inheritedTags: inherited }) => {
+      const effectiveTags = getEffectiveTags(getOwnTags(item), inherited);
+      return isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
     });
   }
 
-  return requestItems;
+  return requestItems.map(({ item }) => item);
 };
 
 export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
@@ -1817,13 +1841,19 @@ export const getVariableScope = (variableName, collection, item) => {
   const activeEnvironmentUidForScope = collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
   if (activeEnvironmentUidForScope) {
     const environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
-    if (environment && environment.variables) {
-      const envVar = resolveEnabledVariable(environment.variables, variableName);
+    if (environment) {
+      const { variables } = resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: environment,
+        merge: true
+      });
+      const envVar = resolveEnabledVariable(variables, variableName);
       if (envVar) {
         return {
           type: 'environment',
           value: envVar.value,
-          data: { environment, variable: envVar }
+          data: { environment, variable: envVar },
+          inheritedFrom: envVar.inheritedFrom
         };
       }
     }
@@ -1843,18 +1873,23 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 5. Check Global Environment Variables
-  const { globalEnvironmentVariables = {}, globalEnvSecrets = [] } = collection;
-  if (variableName in globalEnvironmentVariables) {
-    const isSecret = globalEnvSecrets.includes(variableName);
-    return {
-      type: 'global',
-      value: globalEnvironmentVariables[variableName],
-      data: {
-        variableName,
-        value: globalEnvironmentVariables[variableName],
-        variable: { name: variableName, secret: isSecret }
-      }
-    };
+  const { globalEnvironments, activeGlobalEnvironmentUid } = collection;
+  const globalEnvironment = find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid);
+  if (globalEnvironment) {
+    const { variables } = resolveEnvironmentInheritance({
+      environments: globalEnvironments,
+      targetEnvironment: globalEnvironment,
+      merge: true
+    });
+    const globalVar = resolveEnabledVariable(variables, variableName);
+    if (globalVar) {
+      return {
+        type: 'global',
+        value: globalVar.value,
+        data: { variableName, value: globalVar.value, variable: globalVar },
+        inheritedFrom: globalVar.inheritedFrom
+      };
+    }
   }
 
   // 6. Check Runtime Variables (set during request execution via scripts)
@@ -1974,6 +2009,11 @@ export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText =
     requestItems.forEach((request) => {
       if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
       uids.push(request.uid);
+
+      const examplesVisible = request.type === 'http-request' && (hasSearchText || !isCollectionItemCollapsed(request));
+      if (examplesVisible && request.examples?.length) {
+        request.examples.forEach((example) => uids.push(example.uid));
+      }
     });
   };
 
@@ -2020,7 +2060,28 @@ const getSelectionEntryType = (item) => {
   return 'file';
 };
 
+// Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
+export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
+
+// Indexes every example by uid in a single pass over all collections, since examples are nested
+// within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
+// callers whose selection contains no examples never pay for it.
+const buildExampleOwnerIndex = (collections) => {
+  const index = new Map();
+  for (const collection of collections) {
+    for (const item of flattenItems(collection.items)) {
+      if (!item.examples) continue;
+      for (const example of item.examples) {
+        index.set(example.uid, { collection, item, example });
+      }
+    }
+  }
+  return index;
+};
+
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  let exampleOwnerIndex = null;
+
   const resolved = selectedUids
     .map((uid) => {
       const collection = findCollectionByUid(collections, uid);
@@ -2030,23 +2091,51 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       const owningCollection = findCollectionByItemUid(collections, uid);
       const item = owningCollection && findItemInCollection(owningCollection, uid);
-      if (!item) return null;
+      if (item) {
+        return {
+          uid,
+          type: getSelectionEntryType(item),
+          collectionUid: owningCollection.uid,
+          pathname: item.pathname,
+          item
+        };
+      }
 
-      return {
-        uid,
-        type: getSelectionEntryType(item),
-        collectionUid: owningCollection.uid,
-        pathname: item.pathname,
-        item
-      };
+      exampleOwnerIndex = exampleOwnerIndex || buildExampleOwnerIndex(collections);
+      const exampleOwner = exampleOwnerIndex.get(uid);
+      if (exampleOwner) {
+        return {
+          uid,
+          type: 'example',
+          collectionUid: exampleOwner.collection.uid,
+          pathname: null,
+          item: exampleOwner.item,
+          example: exampleOwner.example
+        };
+      }
+
+      return null;
     })
     .filter(Boolean);
 
   const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
   const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+  const selectedRequestPathnames = resolved.filter((r) => r.type === 'request').map((r) => r.pathname);
+
+  // Since examples lack pathnames, they are considered absorbed if their parent request is selected
+  // (either directly or via an ancestor folder/collection).
+  const isExampleAbsorbed = (entry) => {
+    const parentPathname = entry.item.pathname;
+    return (
+      selectedRequestPathnames.includes(parentPathname)
+      || selectedCollectionPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+      || selectedFolderPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+    );
+  };
 
   const effectiveSelection = resolved.filter((entry) => {
     if (entry.type === 'collection') return true;
+    if (entry.type === 'example') return !isExampleAbsorbed(entry);
     if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
     return !selectedFolderPathnames.some(
       (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
@@ -2058,7 +2147,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request'),
-    hasApp: effectiveSelection.some((e) => e.type === 'app')
+    hasApp: effectiveSelection.some((e) => e.type === 'app'),
+    hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
 };
 
