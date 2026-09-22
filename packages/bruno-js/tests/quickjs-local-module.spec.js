@@ -83,4 +83,26 @@ describe('quickjs compiles a local module with its own module, exports and requi
     const loaded = await runScript(`bru.setVar('v', require('./helper'))`);
     expect(loaded).toBe('helper value');
   });
+
+  it('resolves an absolute path under bru.cwd()', async () => {
+    const loaded = await runScript(`bru.setVar('v', require(bru.cwd() + '/helper.js'))`);
+    expect(loaded).toBe('helper value');
+  });
+
+  it('lets a local module require a library name from requireObject', async () => {
+    fs.writeFileSync(
+      path.join(collection, 'uses-lib.js'),
+      'module.exports = require("fake-lib").ok;'
+    );
+    const loaded = await runScript(`
+      globalThis.requireObject['fake-lib'] = { ok: true };
+      bru.setVar('v', require('./uses-lib'));
+    `);
+    expect(loaded).toBe(true);
+  });
+
+  it('resolves a local path that already includes the .js extension', async () => {
+    const loaded = await runScript(`bru.setVar('v', require('./helper.js'))`);
+    expect(loaded).toBe('helper value');
+  });
 });
