@@ -96,6 +96,7 @@ const SelectionContextMenu = ({
       opened={visible}
       onChange={(isOpen) => !isOpen && onClose()}
       appendTo={document.body}
+      menuClassName="env-action-menu"
     >
       <div style={anchorStyle} />
     </MenuDropdown>

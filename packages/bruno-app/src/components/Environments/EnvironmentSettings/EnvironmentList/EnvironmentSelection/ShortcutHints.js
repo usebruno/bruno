@@ -1,18 +1,21 @@
 import React from 'react';
+import { IconCommand, IconBackspace, IconClick } from '@tabler/icons';
 import { isMacOS } from 'utils/common/platform';
 
 const Keycap = ({ children }) => <span className="keycap">{children}</span>;
 
+const CommandKeyIcon = () => <IconCommand size={13} strokeWidth={2} />;
+
 export const SelectShortcutHint = () => (
   <span className="shortcut">
-    <Keycap>{isMacOS() ? '⌘' : 'Ctrl'}</Keycap>
-    <span>+Click</span>
+    <Keycap>{isMacOS() ? <CommandKeyIcon /> : 'Ctrl'}</Keycap>
+    <Keycap><IconClick size={13} strokeWidth={2} /></Keycap>
   </span>
 );
 
 export const SelectAllShortcutHint = () => (
   <span className="shortcut">
-    <Keycap>{isMacOS() ? '⌘' : 'Ctrl'}</Keycap>
+    <Keycap>{isMacOS() ? <CommandKeyIcon /> : 'Ctrl'}</Keycap>
     <Keycap>A</Keycap>
   </span>
 );
@@ -20,8 +23,8 @@ export const SelectAllShortcutHint = () => (
 export const DeleteShortcutHint = () =>
   isMacOS() ? (
     <span className="shortcut">
-      <Keycap>⌘</Keycap>
-      <Keycap>⌦</Keycap>
+      <Keycap><CommandKeyIcon /></Keycap>
+      <Keycap><IconBackspace size={13} strokeWidth={2} /></Keycap>
     </span>
   ) : (
     <span className="shortcut">

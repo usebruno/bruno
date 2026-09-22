@@ -70,6 +70,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         items={menuItems}
         placement="bottom-end"
         appendTo={document.body}
+        menuClassName="env-action-menu"
         data-testid="env-row-menu"
       >
         <button

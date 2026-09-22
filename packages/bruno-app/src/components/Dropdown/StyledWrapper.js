@@ -28,6 +28,10 @@ const Wrapper = styled.div`
     &:focus-visible {
       outline: none;
     }
+
+    &.env-action-menu {
+      min-width: 220px;
+    }
   }
 
   &.hide-on-reference-clipped[data-reference-hidden],
@@ -96,8 +100,7 @@ const Wrapper = styled.div`
     .shortcut {
       display: flex;
       align-items: center;
-      gap: 3px;
-      font-size: 11px;
+      font-size: 12px;
       color: ${(props) => props.theme.dropdown.mutedText};
     }
 
@@ -105,16 +108,11 @@ const Wrapper = styled.div`
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 15px;
+      min-width: 12px;
       height: 15px;
-      padding: 0 4px;
-      border: 1px solid ${(props) => props.theme.border.border2};
-      border-radius: 4px;
-      background: ${(props) => rgba(props.theme.text, 0.08)};
-      font-size: 10px;
-      font-weight: 500;
+      font-size: 12px;
       line-height: 1;
-      color: ${(props) => props.theme.dropdown.color};
+      color: ${(props) => props.theme.dropdown.mutedText};
     }
 
     .dropdown-tab-count {
