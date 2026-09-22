@@ -25,4 +25,14 @@ const isWSDLCollection = (data) => {
   return hasWSDLNamespace || hasWSDLElements;
 };
 
-export { isWSDLCollection };
+const getWsdlImportOptions = (filePath) => {
+  if (!filePath) {
+    return {};
+  }
+  return {
+    uri: filePath,
+    resolve: (baseUri, ref) => window.ipcRenderer.invoke('renderer:resolve-wsdl-schema-ref', baseUri, ref)
+  };
+};
+
+export { isWSDLCollection, getWsdlImportOptions };
