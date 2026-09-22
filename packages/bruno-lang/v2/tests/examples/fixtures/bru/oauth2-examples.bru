@@ -25,7 +25,7 @@ auth:oauth2 {
   scope: read write
   state: 
   pkce: true
-  credentials_placement: header
+  token_endpoint_auth_method: client_secret_post
   credentials_id: authorization
   token_source: access_token
   token_placement: header

@@ -2,6 +2,14 @@ import axios, { AxiosInstance, AxiosRequestConfig, ResponseType } from 'axios';
 import qs from 'qs';
 import debug from 'debug';
 
+import {
+  applyTokenEndpointAuth,
+  redactClientAuthMaterial,
+  type TokenEndpointAuthMethod,
+  type TokenEndpointAuthSigningAlg,
+  type AdditionalClaim
+} from './tokenEndpointAuth';
+
 export interface TokenStore {
   saveCredential({ url, credentialsId, credentials }: { url: string; credentialsId: string; credentials: any }): Promise<boolean>;
   getCredential({ url, credentialsId }: { url: string; credentialsId: string }): Promise<any>;
@@ -23,7 +31,18 @@ export interface OAuth2Config {
   username?: string;
   password?: string;
   scope?: string;
+  /** @deprecated Read for backward compatibility; the new tokenEndpointAuthMethod takes precedence. */
   credentialsPlacement?: 'basic_auth_header' | 'body';
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
+  tokenEndpointAuthSigningAlg?: TokenEndpointAuthSigningAlg | '';
+  privateKey?: string;
+  privateKeyType?: 'text' | 'file' | '';
+  privateKeyFormat?: 'pem' | 'jwk' | '';
+  keyId?: string;
+  audience?: string;
+  assertionLifetime?: number | null;
+  additionalClaims?: AdditionalClaim[];
+  collectionPath?: string;
   credentialsId?: string;
   autoRefreshToken?: boolean;
   autoFetchToken?: boolean;
@@ -109,14 +128,7 @@ const safeParseJSONBuffer = (data: any) => {
  * Fetches an OAuth2 token using client credentials grant
  */
 const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
-  const {
-    accessTokenUrl,
-    clientId,
-    clientSecret,
-    scope,
-    credentialsPlacement = 'basic_auth_header',
-    additionalParameters
-  } = oauth2Config;
+  const { accessTokenUrl, clientId, scope, additionalParameters } = oauth2Config;
 
   if (!accessTokenUrl) {
     throw new Error('Access Token URL is required for OAuth2 client credentials flow');
@@ -145,18 +157,9 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInst
     data.scope = scope;
   }
 
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-  }
-
-  if (credentialsPlacement !== 'basic_auth_header') {
-    data.client_id = clientId;
-  }
-
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-    data.client_secret = clientSecret;
-  }
+  const clientAuth = await applyTokenEndpointAuth(oauth2Config);
+  Object.assign(requestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
 
   if (additionalParameters?.token?.length) {
     applyAdditionalParameters(requestConfig, data, additionalParameters.token);
@@ -165,7 +168,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInst
   requestConfig.data = qs.stringify(data);
 
   debug('oauth2')('> request');
-  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
+  debug('oauth2')(JSON.stringify({ ...requestConfig, ...redactClientAuthMaterial(requestConfig) }, null, 2));
 
   try {
     const httpClient = axiosInstance || axios;
@@ -200,16 +203,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInst
  * Fetches an OAuth2 token using password grant
  */
 const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
-  const {
-    accessTokenUrl,
-    clientId,
-    clientSecret,
-    username,
-    password,
-    scope,
-    credentialsPlacement = 'basic_auth_header',
-    additionalParameters
-  } = oauth2Config;
+  const { accessTokenUrl, clientId, username, password, scope, additionalParameters } = oauth2Config;
 
   if (!accessTokenUrl) {
     throw new Error('Access Token URL is required for OAuth2 password credentials flow');
@@ -248,18 +242,9 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: Ax
     data.scope = scope;
   }
 
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
-  }
-
-  if (credentialsPlacement !== 'basic_auth_header') {
-    data.client_id = clientId;
-  }
-
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
-    data.client_secret = clientSecret;
-  }
+  const clientAuth = await applyTokenEndpointAuth(oauth2Config);
+  Object.assign(requestConfig.headers, clientAuth.headers);
+  Object.assign(data, clientAuth.bodyParams);
 
   if (additionalParameters?.token?.length) {
     applyAdditionalParameters(requestConfig, data, additionalParameters.token);
@@ -268,7 +253,7 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: Ax
   requestConfig.data = qs.stringify(data);
 
   debug('oauth2')('> request');
-  debug('oauth2')(JSON.stringify(requestConfig, null, 2));
+  debug('oauth2')(JSON.stringify({ ...requestConfig, ...redactClientAuthMaterial(requestConfig) }, null, 2));
 
   try {
     const httpClient = axiosInstance || axios;

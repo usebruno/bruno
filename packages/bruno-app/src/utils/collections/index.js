@@ -419,7 +419,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  tokenEndpointAuthMethod: get(si.request, 'auth.oauth2.tokenEndpointAuthMethod')
+                    || (get(si.request, 'auth.oauth2.credentialsPlacement') === 'basic_auth_header'
+                      ? 'client_secret_basic'
+                      : 'client_secret_post'),
+                  tokenEndpointAuthSigningAlg: get(si.request, 'auth.oauth2.tokenEndpointAuthSigningAlg', ''),
+                  privateKey: get(si.request, 'auth.oauth2.privateKey', ''),
+                  privateKeyType: get(si.request, 'auth.oauth2.privateKeyType', ''),
+                  privateKeyFormat: get(si.request, 'auth.oauth2.privateKeyFormat', ''),
+                  keyId: get(si.request, 'auth.oauth2.keyId', ''),
+                  audience: get(si.request, 'auth.oauth2.audience', ''),
+                  assertionLifetime: get(si.request, 'auth.oauth2.assertionLifetime', null),
+                  additionalClaims: get(si.request, 'auth.oauth2.additionalClaims', []),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),
@@ -439,7 +450,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  tokenEndpointAuthMethod: get(si.request, 'auth.oauth2.tokenEndpointAuthMethod')
+                    || (get(si.request, 'auth.oauth2.credentialsPlacement') === 'basic_auth_header'
+                      ? 'client_secret_basic'
+                      : 'client_secret_post'),
+                  tokenEndpointAuthSigningAlg: get(si.request, 'auth.oauth2.tokenEndpointAuthSigningAlg', ''),
+                  privateKey: get(si.request, 'auth.oauth2.privateKey', ''),
+                  privateKeyType: get(si.request, 'auth.oauth2.privateKeyType', ''),
+                  privateKeyFormat: get(si.request, 'auth.oauth2.privateKeyFormat', ''),
+                  keyId: get(si.request, 'auth.oauth2.keyId', ''),
+                  audience: get(si.request, 'auth.oauth2.audience', ''),
+                  assertionLifetime: get(si.request, 'auth.oauth2.assertionLifetime', null),
+                  additionalClaims: get(si.request, 'auth.oauth2.additionalClaims', []),
                   pkce: get(si.request, 'auth.oauth2.pkce', false),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
@@ -474,7 +496,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                   clientId: get(si.request, 'auth.oauth2.clientId', ''),
                   clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
                   scope: get(si.request, 'auth.oauth2.scope', ''),
-                  credentialsPlacement: get(si.request, 'auth.oauth2.credentialsPlacement', 'body'),
+                  tokenEndpointAuthMethod: get(si.request, 'auth.oauth2.tokenEndpointAuthMethod')
+                    || (get(si.request, 'auth.oauth2.credentialsPlacement') === 'basic_auth_header'
+                      ? 'client_secret_basic'
+                      : 'client_secret_post'),
+                  tokenEndpointAuthSigningAlg: get(si.request, 'auth.oauth2.tokenEndpointAuthSigningAlg', ''),
+                  privateKey: get(si.request, 'auth.oauth2.privateKey', ''),
+                  privateKeyType: get(si.request, 'auth.oauth2.privateKeyType', ''),
+                  privateKeyFormat: get(si.request, 'auth.oauth2.privateKeyFormat', ''),
+                  keyId: get(si.request, 'auth.oauth2.keyId', ''),
+                  audience: get(si.request, 'auth.oauth2.audience', ''),
+                  assertionLifetime: get(si.request, 'auth.oauth2.assertionLifetime', null),
+                  additionalClaims: get(si.request, 'auth.oauth2.additionalClaims', []),
                   credentialsId: get(si.request, 'auth.oauth2.credentialsId', 'credentials'),
                   tokenPlacement: get(si.request, 'auth.oauth2.tokenPlacement', 'header'),
                   tokenHeaderPrefix: get(si.request, 'auth.oauth2.tokenHeaderPrefix', ''),

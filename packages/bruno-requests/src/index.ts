@@ -1,11 +1,20 @@
 export {
   addDigestInterceptor,
   getOAuth2Token,
+  applyTokenEndpointAuth,
+  redactClientAuthMaterial,
   createOAuth1Authorizer,
   computeBodyHash,
   applyOAuth1ToRequest,
   addEdgeGridInterceptor,
   handleNtlmRedirect
+} from './auth';
+export type {
+  TokenEndpointAuthMethod,
+  TokenEndpointAuthSigningAlg,
+  TokenEndpointAuthOptions,
+  TokenEndpointAuthResult,
+  AdditionalClaim
 } from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';

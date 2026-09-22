@@ -51,7 +51,7 @@ const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
           clientId: '',
           clientSecret: '',
           scope: '',
-          credentialsPlacement: 'body',
+          tokenEndpointAuthMethod: 'client_secret_post',
           credentialsId: 'credentials',
           tokenPlacement: 'header',
           tokenHeaderPrefix: 'Bearer',

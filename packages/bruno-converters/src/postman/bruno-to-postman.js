@@ -714,7 +714,11 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
           },
           {
             key: 'client_authentication',
-            value: oauth2.credentialsPlacement === 'body' ? 'body' : 'header',
+            value: (oauth2.tokenEndpointAuthMethod
+              ? oauth2.tokenEndpointAuthMethod === 'client_secret_post'
+              : oauth2.credentialsPlacement === 'body')
+              ? 'body'
+              : 'header',
             type: 'string'
           },
           {

@@ -2,32 +2,9 @@
 // Logic referred from https://github.com/ddo/oauth-1.0a
 
 import crypto from 'node:crypto';
-import fs from 'node:fs';
 import nodePath from 'node:path';
 
-// Private key file cache: avoids re-reading the same file on every request.
-// Keyed by absolute path; invalidated when the file's mtime changes.
-// Capped at 50 entries to prevent unbounded growth in long-running processes.
-const PRIVATE_KEY_CACHE_MAX = 50;
-const privateKeyCache = new Map<string, { mtimeMs: number; content: string }>();
-
-function readPrivateKeyFile(filePath: string): string {
-  const stat = fs.statSync(filePath);
-  const cached = privateKeyCache.get(filePath);
-  if (cached && cached.mtimeMs === stat.mtimeMs) {
-    return cached.content;
-  }
-  const content = fs.readFileSync(filePath, 'utf-8');
-  if (privateKeyCache.size >= PRIVATE_KEY_CACHE_MAX) {
-    // Evict the oldest entry (first inserted)
-    const oldestKey = privateKeyCache.keys().next().value;
-    if (oldestKey !== undefined) {
-      privateKeyCache.delete(oldestKey);
-    }
-  }
-  privateKeyCache.set(filePath, { mtimeMs: stat.mtimeMs, content });
-  return content;
-}
+import { readKeyFile } from './keyMaterial';
 
 export type SignatureMethod = 'HMAC-SHA1' | 'HMAC-SHA256' | 'HMAC-SHA512' | 'RSA-SHA1' | 'RSA-SHA256' | 'RSA-SHA512' | 'PLAINTEXT';
 
@@ -376,7 +353,7 @@ export function applyOAuth1ToRequest(request: {
       if (collectionPath && !nodePath.isAbsolute(filePath)) {
         filePath = nodePath.join(collectionPath, filePath);
       }
-      resolvedPrivateKey = readPrivateKeyFile(filePath);
+      resolvedPrivateKey = readKeyFile(filePath);
     } else {
       resolvedPrivateKey = privateKey.replace(/\\n/g, '\n');
     }
