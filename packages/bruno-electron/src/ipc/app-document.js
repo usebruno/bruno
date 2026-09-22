@@ -1,5 +1,8 @@
 const { ipcMain } = require('electron');
 
+const MAX_OWNER_KEY_LENGTH = 1024;
+const MAX_HTML_BYTES = 5 * 1024 * 1024;
+
 /**
  * Publishes an app's guest document and returns the `bruno-app://` URL the
  * renderer should point its <webview> at.
@@ -10,8 +13,14 @@ const registerAppDocument = (appDocuments, payload) => {
   if (typeof ownerKey !== 'string' || !ownerKey.length) {
     throw new Error('ownerKey must be a non-empty string');
   }
+  if (ownerKey.length > MAX_OWNER_KEY_LENGTH) {
+    throw new Error(`ownerKey must not exceed ${MAX_OWNER_KEY_LENGTH} characters`);
+  }
   if (typeof html !== 'string') {
     throw new Error('html must be a string');
+  }
+  if (Buffer.byteLength(html, 'utf8') > MAX_HTML_BYTES) {
+    throw new Error(`html must not exceed ${MAX_HTML_BYTES / 1024 / 1024} MB`);
   }
 
   return appDocuments.register(ownerKey, html);
