@@ -68,7 +68,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
     >
       <MenuDropdown
         items={menuItems}
-        placement="bottom-end"
+        placement="bottom-start"
         appendTo={document.body}
         menuClassName="env-action-menu"
         data-testid="env-row-menu"
