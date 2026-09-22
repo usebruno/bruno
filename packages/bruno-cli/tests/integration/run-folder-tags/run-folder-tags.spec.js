@@ -79,20 +79,21 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
   };
 
   // The OSS json reporter writes one `{ summary, results }` object; Enterprise writes an array
-  // holding one per iteration. Accept both so the suite passes on either codebase.
+  // holding one per iteration, and strips the `.bru` extension off each result path.
   const ranRequests = () => {
     const report = JSON.parse(fs.readFileSync(path.join(workDir, 'report.json'), 'utf8'));
     const iterationReport = Array.isArray(report) ? report[0] : report;
 
-    return iterationReport.results.map((result) => result.path.split(path.sep).join('/')).sort();
+    // TODO: consolidate `result.path` across OSS and EE. Drop this once both reporters emit the same path.
+    return iterationReport.results
+      .map((result) => result.path.split(path.sep).join('/').replace(/\.(bru|yml)$/, ''))
+      .sort();
   };
-
-  const withExt = (names) => names.map((name) => `${name}.${ext}`).sort();
 
   it('runs every request when neither tag option is given', async () => {
     await run([]);
 
-    expect(ranRequests()).toEqual(withExt([
+    expect(ranRequests()).toEqual([
       'untagged',
       'own-tagged',
       'api/inherits-only',
@@ -100,7 +101,7 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
       'api/v2/nested',
       'api/v2/reports-tags',
       'legacy/inherits-wip'
-    ]));
+    ].sort());
   }, RUN_TIMEOUT);
 
   it('includes requests that carry the tag only through an ancestor folder', async () => {
@@ -108,45 +109,45 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
 
     // `api/v2/*` match through their grandparent folder, so inheritance is not limited to the
     // nearest folder; `legacy/inherits-wip` proves a folder tag does not leak to a sibling tree.
-    expect(ranRequests()).toEqual(withExt([
+    expect(ranRequests()).toEqual([
       'api/inherits-only',
       'api/own-and-inherited',
       'api/v2/nested',
       'api/v2/reports-tags'
-    ]));
+    ].sort());
   }, RUN_TIMEOUT);
 
   it('does not cascade a nested folder tag back up to its parent folder', async () => {
     await run(['--tags', 'v2']);
 
-    expect(ranRequests()).toEqual(withExt(['api/v2/nested', 'api/v2/reports-tags']));
+    expect(ranRequests()).toEqual(['api/v2/nested', 'api/v2/reports-tags'].sort());
   }, RUN_TIMEOUT);
 
   it('matches own tags on the request alongside the inherited ones', async () => {
     await run(['--tags', 'smoke']);
 
-    expect(ranRequests()).toEqual(withExt([
+    expect(ranRequests()).toEqual([
       'own-tagged',
       'api/own-and-inherited',
       'api/v2/reports-tags',
       'legacy/inherits-wip'
-    ]));
+    ].sort());
   }, RUN_TIMEOUT);
 
   it('accepts a comma separated list of tags', async () => {
     await run(['--tags', 'v2,wip']);
 
-    expect(ranRequests()).toEqual(withExt([
+    expect(ranRequests()).toEqual([
       'api/v2/nested',
       'api/v2/reports-tags',
       'legacy/inherits-wip'
-    ]));
+    ].sort());
   }, RUN_TIMEOUT);
 
   it('excludes a whole subtree by its folder tag', async () => {
     await run(['--exclude-tags', 'api']);
 
-    expect(ranRequests()).toEqual(withExt(['untagged', 'own-tagged', 'legacy/inherits-wip']));
+    expect(ranRequests()).toEqual(['untagged', 'own-tagged', 'legacy/inherits-wip'].sort());
   }, RUN_TIMEOUT);
 
   it('excludes a request whose only match for the excluded tag is inherited', async () => {
@@ -154,11 +155,11 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
 
     // `legacy/inherits-wip` carries `smoke` itself, but the folder's `wip` still drops it:
     // an exclusion beats an inclusion, and a request cannot opt out of its folder's tags.
-    expect(ranRequests()).toEqual(withExt([
+    expect(ranRequests()).toEqual([
       'own-tagged',
       'api/own-and-inherited',
       'api/v2/reports-tags'
-    ]));
+    ].sort());
   }, RUN_TIMEOUT);
 
   it('runs nothing when no request carries the tag, directly or by inheritance', async () => {
@@ -172,7 +173,7 @@ describe.each(FORMATS)('CLI run — folder tags cascade to requests ($format col
     // root — the filter still has to see it.
     await run(['--tags', 'api'], ['api/v2', '-r']);
 
-    expect(ranRequests()).toEqual(withExt(['api/v2/nested', 'api/v2/reports-tags']));
+    expect(ranRequests()).toEqual(['api/v2/nested', 'api/v2/reports-tags'].sort());
   }, RUN_TIMEOUT);
 
   it('exposes own plus inherited tags to scripts via req.getTags()', async () => {
