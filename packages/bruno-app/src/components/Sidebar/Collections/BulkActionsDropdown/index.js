@@ -1,38 +1,33 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
-import { getSelectionInfo, isScratchCollection, isCollectionItemCollapsed } from 'utils/collections/index';
+import { getBulkActionsSelection, isSelectionEntryCollapsed } from 'utils/collections/index';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 
-const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item));
-const isEntryCollapsible = (entry) =>
-  entry.type === 'collection' || entry.type === 'folder' || (entry.type === 'request' && entry.item.examples?.length > 0);
-
+const selectBulkActionsSelection = createSelector(
+  [
+    (state) => state.collections.collections,
+    (state) => state.workspaces.workspaces,
+    (state) => state.collections.selectedSidebarUids
+  ],
+  (collections, workspaces, selectedUids) =>
+    getBulkActionsSelection({ collections, workspaces, selectedUids })
+);
 const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollections, onRequestDeleteItems }) => {
   const dispatch = useDispatch();
 
-  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
-  const collections = useSelector((state) => state.collections.collections);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
-  // This will filter out the scratch collections from the list
-  const visibleCollections = useMemo(
-    () => collections.filter((c) => !isScratchCollection(c, workspaces)),
-    [collections, workspaces]
-  );
-
-  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp, hasExample } = useMemo(
-    () => getSelectionInfo({ collections: visibleCollections, selectedUids: selectedSidebarUids }),
-    [visibleCollections, selectedSidebarUids]
-  );
-
-  const isPureCollectionSelection = hasCollection && !hasFolder && !hasRequest && !hasApp && !hasExample;
-  const canDelete = !hasCollection && (hasFolder || hasRequest || hasApp || hasExample);
-  const collapsibleEntries = effectiveSelection.filter(isEntryCollapsible);
-  const canCollapse = collapsibleEntries.length > 0;
-  const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
+  const {
+    effectiveSelection,
+    isPureCollectionSelection,
+    canDelete,
+    collapsibleEntries,
+    canCollapse,
+    allCollapsed
+  } = useSelector(selectBulkActionsSelection);
 
   const clearAndClose = useCallback(() => {
     dispatch(clearSidebarSelection());
@@ -70,7 +65,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
       }
 
       entries.forEach((entry) => {
-        if (isEntryCollapsed(entry) === isTargetCollapsed) return;
+        if (isSelectionEntryCollapsed(entry) === isTargetCollapsed) return;
 
         if (entry.type === 'collection') {
           dispatch(isTargetCollapsed ? collapseCollection(entry.uid) : expandCollection(entry.uid));
