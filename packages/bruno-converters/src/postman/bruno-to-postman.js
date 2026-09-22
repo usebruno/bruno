@@ -892,7 +892,16 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
 
     const disabledHeaders = {};
     omitHeaders.forEach((headerName) => {
-      disabledHeaders[headerName.toLowerCase()] = true;
+      if (typeof headerName !== 'string') {
+        return;
+      }
+
+      const name = headerName.trim();
+      if (!name) {
+        return;
+      }
+
+      disabledHeaders[name.toLowerCase()] = true;
     });
 
     return Object.keys(disabledHeaders).length > 0 ? disabledHeaders : null;
