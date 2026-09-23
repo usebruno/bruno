@@ -10,8 +10,8 @@ const MIN_COL_WIDTH = 60;
 // Captures the latest hook return value on each render
 let hookValue;
 
-function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH }) {
-  const hook = useResizableColumns({ defaultWidths, minColWidth });
+function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH, reservedWidth }) {
+  const hook = useResizableColumns({ defaultWidths, minColWidth, reservedWidth });
   hookValue = hook;
   return <div ref={hook.containerRef} />;
 }
@@ -99,6 +99,24 @@ describe('useResizableColumns', () => {
 
       setup();
 
+      expect(hookValue.colWidths).toBeNull();
+    });
+
+    it('subtracts reservedWidth from the measured width', () => {
+      setup({ reservedWidth: 100 });
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(CONTAINER_WIDTH - 100);
+    });
+
+    it('keeps subtracting reservedWidth on container resize', () => {
+      setup({ reservedWidth: 100 });
+      act(() => triggerResize(1400));
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(1300);
+    });
+
+    it('ignores a measurement that is fully consumed by reservedWidth', () => {
+      setup({ reservedWidth: CONTAINER_WIDTH });
       expect(hookValue.colWidths).toBeNull();
     });
 
@@ -275,6 +293,18 @@ describe('useResizableColumns', () => {
       fireMouse('mousemove', 700);
 
       expect(hookValue.colWidths[1]).toBe(widthAfterDrag);
+    });
+
+    it('ignores resize start before the container is measured', () => {
+      global.ResizeObserver = class {
+        constructor() {}
+        observe() {}
+        disconnect() {}
+      };
+      setup();
+
+      expect(() => startDrag(0, 100)).not.toThrow();
+      expect(hookValue.resizingIdx).toBeNull();
     });
 
     it('unmounting during an active drag does not throw', () => {

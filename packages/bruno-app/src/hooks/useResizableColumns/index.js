@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  * @param {number[]}      options.defaultWidths  - Default px width for each column (used as proportions)
  * @param {number[]|null} [options.initialWidths] - Persisted widths to restore; falls back to defaultWidths
  * @param {number}        [options.minColWidth]   - Minimum column width in px (default: 60)
+ * @param {number}        [options.reservedWidth] - Total width in px reserved for non resizable columns
  * @param {function}      [options.onResizeEnd]   - Called with final colWidths array after a drag ends
  *
  * @returns {{
@@ -112,7 +113,13 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
   return result;
 };
 
-export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {
+export function useResizableColumns({
+  defaultWidths,
+  initialWidths = null,
+  minColWidth = 60,
+  reservedWidth = 0,
+  onResizeEnd = null
+}) {
   const [colWidths, setColWidths] = useState(null);
   const [resizingIdx, setResizingIdx] = useState(null);
   const dragCleanupRef = useRef(null);
@@ -144,8 +151,11 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
     if (!node) return;
 
     const observer = new ResizeObserver((entries) => {
-      const newWidth = Math.floor(entries[0].contentRect.width);
-      if (!newWidth) return;
+      const measuredWidth = Math.floor(entries[0].contentRect.width);
+      if (!measuredWidth) return;
+
+      const newWidth = measuredWidth - reservedWidth;
+      if (newWidth <= 0) return;
 
       setColWidths((prev) => {
         if (!prev) {
@@ -164,6 +174,8 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
   const handleResizeStart = useCallback((e, separatorIdx) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!colWidths) return;
 
     const startX = e.clientX;
     const startWidths = [...colWidths];
