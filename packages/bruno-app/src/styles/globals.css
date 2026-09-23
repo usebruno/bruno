@@ -185,3 +185,15 @@ body.os-mac * {
  * transform: scale(1.1);
  * }
  */
+
+/*
+ * Applied by useOverflowCollapse while it lays a toolbar out at max-content to find the
+ * width each of its collapse levels needs. Transitions would report geometry that is
+ * still moving. The class is removed again within the same synchronous block, before the
+ * frame paints, so nothing here is ever visible.
+ */
+.measuring-overflow,
+.measuring-overflow * {
+  transition: none !important;
+  animation: none !important;
+}

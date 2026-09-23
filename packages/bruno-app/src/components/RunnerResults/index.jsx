@@ -7,7 +7,7 @@ import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunn
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getEffectiveTagsByItemUid } from 'utils/collections';
 import { IconRefresh, IconPlayerStop, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconReload } from '@tabler/icons';
-import useContainerBreakpoint from 'hooks/useContainerBreakpoint';
+import useOverflowCollapse from 'hooks/useOverflowCollapse';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
@@ -15,7 +15,7 @@ import RunnerFilter from './RunnerFilter';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
 
-const TOOLBAR_BREAKPOINTS = { compact: 720, tiny: 560 };
+const TOOLBAR_LEVELS = ['compact', 'tiny'];
 
 const getDisplayName = (fullPath, pathname, name = '') => {
   const relativePath = path.relative(fullPath, pathname);
@@ -75,7 +75,7 @@ export default function RunnerResults({ collection }) {
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
-  const [toolbarRef, toolbarBreakpointClass] = useContainerBreakpoint(TOOLBAR_BREAKPOINTS);
+  const toolbarRef = useOverflowCollapse(TOOLBAR_LEVELS);
   const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -316,7 +316,7 @@ export default function RunnerResults({ collection }) {
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
-      <div ref={toolbarRef} className={`flex items-center justify-between mb-4 pt-[14px] gap-4 min-w-0 ${toolbarBreakpointClass}`}>
+      <div ref={toolbarRef} className="runner-toolbar flex items-center justify-between mb-4 pt-[14px] gap-4 min-w-0">
         <RunnerFilter
           filters={filterOptions}
           activeFilter={activeFilter}

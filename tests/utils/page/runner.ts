@@ -107,16 +107,22 @@ export const runnerConfigItem = (page: Page, requestName: string): Locator =>
 
 /**
  * Reads test result counts from the filter buttons in the runner results view
+ *
+ * textContent, not innerText: a narrow toolbar folds the filter row into a dropdown,
+ * which hides the buttons without unmounting them. innerText would read the counts as
+ * empty and every caller would get NaN.
  * @param page - The Playwright page object
  * @returns An object with totalRequests, passed, failed, and skipped counts
  */
 export const getRunnerResultCounts = async (page: Page) => {
   const locators = buildRunnerLocators(page);
 
-  const totalRequests = parseInt(await locators.allCount().innerText());
-  const passed = parseInt(await locators.passedCount().innerText());
-  const failed = parseInt(await locators.failedCount().innerText());
-  const skipped = parseInt(await locators.skippedCount().innerText());
+  const readCount = async (locator: Locator) => parseInt((await locator.textContent()) ?? '');
+
+  const totalRequests = await readCount(locators.allCount());
+  const passed = await readCount(locators.passedCount());
+  const failed = await readCount(locators.failedCount());
+  const skipped = await readCount(locators.skippedCount());
 
   return { totalRequests, passed, failed, skipped };
 };
