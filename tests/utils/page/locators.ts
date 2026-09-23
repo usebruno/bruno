@@ -5,6 +5,7 @@ import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
@@ -37,6 +38,7 @@ export const buildCommonLocators = (page: Page) => ({
   timelineHeaders: buildTimelineHeaderLocators(page),
   devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
+  codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
@@ -204,6 +206,7 @@ export const buildCommonLocators = (page: Page) => ({
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {
