@@ -1,4 +1,4 @@
-name: Label new issues
+name: Label new GitHub issues
 
 on:
   issues:
@@ -8,8 +8,11 @@ permissions:
   issues: write
 
 jobs:
-  add-status-new:
+  add-label:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # Skip if the issue was opened with a status label already (e.g. via an issue template)
+    if: ${{ !contains(join(github.event.issue.labels.*.name, ' '), 'status-') }}
     steps:
       - name: Add status-new label
         run: gh issue edit "$NUMBER" --add-label "status-new"
