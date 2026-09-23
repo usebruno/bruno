@@ -60,4 +60,81 @@ extensions:
       await expect(locators.sidebar.request('Hidden Request')).not.toBeVisible();
     });
   });
+
+  test('Should hide a folder listed in the bruno.json ignore list when the collection is opened', async ({
+    page,
+    electronApp,
+    createTmpDir
+  }) => {
+    const locators = buildCommonLocators(page);
+    const collectionDir = await createTmpDir('config-ignore-bru-test');
+
+    await test.step('Create a bru collection that ignores the "hidden" folder', async () => {
+      fs.writeFileSync(
+        path.join(collectionDir, 'bruno.json'),
+        JSON.stringify(
+          {
+            version: '1',
+            name: 'Config Ignore Bru Test',
+            type: 'collection',
+            ignore: ['hidden']
+          },
+          null,
+          2
+        )
+      );
+
+      fs.mkdirSync(path.join(collectionDir, 'hidden'));
+      fs.writeFileSync(
+        path.join(collectionDir, 'hidden', 'folder.bru'),
+        `meta {
+  name: hidden
+  seq: 1
+}
+`
+      );
+      fs.writeFileSync(
+        path.join(collectionDir, 'hidden', 'hidden-request.bru'),
+        `meta {
+  name: Hidden Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/hidden
+  body: none
+  auth: none
+}
+`
+      );
+      fs.writeFileSync(
+        path.join(collectionDir, 'visible-request.bru'),
+        `meta {
+  name: Visible Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/visible
+  body: none
+  auth: none
+}
+`
+      );
+    });
+
+    await test.step('Open the collection', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionDir);
+      await expect(locators.sidebar.collection('Config Ignore Bru Test')).toBeVisible({ timeout: 30000 });
+      await openCollection(page, 'Config Ignore Bru Test');
+    });
+
+    await test.step('Ignored folder and its request stay hidden', async () => {
+      await expect(locators.sidebar.request('Visible Request')).toBeVisible({ timeout: 10000 });
+      await expect(locators.sidebar.folder('hidden')).not.toBeVisible();
+      await expect(locators.sidebar.request('Hidden Request')).not.toBeVisible();
+    });
+  });
 });
