@@ -211,7 +211,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         uid: 'inherited-headers-section',
         rowType: ROW_TYPE.SECTION,
         section: ROW_TYPE.INHERITED,
-        label: 'Runtime & Inherited Headers',
+        label: 'Inherited & Runtime Headers',
         count: allInheritedHeaders.length,
         expanded: isInheritedHeadersExpanded
       },
