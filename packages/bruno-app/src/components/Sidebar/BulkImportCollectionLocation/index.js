@@ -17,8 +17,7 @@ import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import { wsdlToBruno } from '@usebruno/converters';
-import { getWsdlImportOptions } from 'utils/importers/wsdl-collection';
+import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
@@ -80,7 +79,7 @@ const convertCollection = async (format, rawData, groupingType, filePath) => {
       collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
       break;
     case 'wsdl':
-      collection = await wsdlToBruno(rawData, getWsdlImportOptions(filePath));
+      collection = await convertWsdlToBruno(rawData, filePath);
       break;
     case 'postman': {
       const result = await postmanToBruno(rawData);

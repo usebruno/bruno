@@ -11,8 +11,7 @@ import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
-import { wsdlToBruno } from '@usebruno/converters';
-import { getWsdlImportOptions } from 'utils/importers/wsdl-collection';
+import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import { toastError } from 'utils/common/error';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import Portal from 'components/Portal';
@@ -67,7 +66,7 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
         collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
-        collection = await wsdlToBruno(rawData, getWsdlImportOptions(filePath));
+        collection = await convertWsdlToBruno(rawData, filePath);
         break;
       case 'postman': {
         const result = await postmanToBruno(rawData, { preserveScripts });

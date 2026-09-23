@@ -1066,7 +1066,13 @@ export const wsdlToBruno = async (wsdlContent, { uri, resolve } = {}) => {
       throw new Error('WSDL content must be a string');
     }
 
-    const result = await parseXML(wsdlContent);
+    let result;
+    try {
+      result = await parseXML(wsdlContent);
+    } catch (err) {
+      console.error(err);
+      throw new Error('The file is not valid XML');
+    }
     const definitions = result['wsdl:definitions'] || result.definitions;
 
     if (!definitions) {
