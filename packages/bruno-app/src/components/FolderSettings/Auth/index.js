@@ -18,8 +18,8 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import Button from 'ui/Button';
+import InheritedAuth, { InheritedAuthSourceLabel } from 'components/RequestPane/Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
-import { humanizeRequestAuthMode } from 'utils/collections/index';
 import AuthMode from '../AuthMode';
 import StyledWrapper from './StyledWrapper';
 
@@ -174,14 +174,7 @@ const Auth = ({ collection, folder }) => {
         );
       }
       case 'inherit': {
-        return (
-          <>
-            <div className="flex flex-row w-full mt-2 gap-2">
-              <div>Auth inherited from {inheritedSource.name}: </div>
-              <div className="inherit-mode-text" data-testid="inherited-auth-mode">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-            </div>
-          </>
-        );
+        return <InheritedAuth collection={collection} item={folder} inheritedSource={inheritedSource} />;
       }
       case 'akamai-edgegrid': {
         return (
@@ -210,8 +203,11 @@ const Auth = ({ collection, folder }) => {
         Configures authentication for the entire folder. This applies to all requests using the{' '}
         <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
       </div>
-      <div className="flex flex-grow justify-start items-center">
+      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
         <AuthMode collection={collection} folder={folder} />
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel collection={collection} inheritedSource={inheritedSource} />
+        ) : null}
       </div>
       {getAuthView()}
       <div className="mt-6">
