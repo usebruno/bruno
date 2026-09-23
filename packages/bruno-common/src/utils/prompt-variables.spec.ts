@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { extractPromptVariables, extractPromptVariablesFromString } from './prompt-variables';
+import { extractPromptVariables, extractPromptVariablesFromString, parsePromptVariable } from './prompt-variables';
 
 describe('prompt variable utils', () => {
   describe('extractPromptVariablesFromString', () => {
@@ -52,6 +52,58 @@ describe('prompt variable utils', () => {
       expect(extractPromptVariables('Prompt with invalid {{?{curly brace}}')).toEqual([]);
       expect(extractPromptVariables('Prompt with invalid {{?}curly brace}}')).toEqual([]);
       expect(extractPromptVariables('Prompt with invalid {{?{curly brace}}}')).toEqual([]);
+    });
+  });
+
+  describe('parsePromptVariable', () => {
+    it('should return a plain label with no options when there is no pipe', () => {
+      expect(parsePromptVariable('Token')).toEqual({ label: 'Token', options: null, multi: false, defaults: [] });
+      expect(parsePromptVariable('Enter Port Variable')).toEqual({ label: 'Enter Port Variable', options: null, multi: false, defaults: [] });
+    });
+
+    it('should parse a label and a list of options', () => {
+      expect(parsePromptVariable('Country|US,UK,DE')).toEqual({ label: 'Country', options: ['US', 'UK', 'DE'], multi: false, defaults: [] });
+    });
+
+    it('should parse a multi-select prompt when a double pipe is used', () => {
+      expect(parsePromptVariable('Regions||US,UK,DE')).toEqual({ label: 'Regions', options: ['US', 'UK', 'DE'], multi: true, defaults: [] });
+    });
+
+    it('should trim the label, options, and drop empty options', () => {
+      expect(parsePromptVariable('Country | US , UK ,DE ')).toEqual({ label: 'Country', options: ['US', 'UK', 'DE'], multi: false, defaults: [] });
+      expect(parsePromptVariable('Env|dev,,prod,')).toEqual({ label: 'Env', options: ['dev', 'prod'], multi: false, defaults: [] });
+      expect(parsePromptVariable('Regions|| US , UK ')).toEqual({ label: 'Regions', options: ['US', 'UK'], multi: true, defaults: [] });
+    });
+
+    it('should support a single option', () => {
+      expect(parsePromptVariable('Region|us-east-1')).toEqual({ label: 'Region', options: ['us-east-1'], multi: false, defaults: [] });
+    });
+
+    it('should treat option values with dots as literal values', () => {
+      expect(parsePromptVariable('Rate|1.5,2.5')).toEqual({ label: 'Rate', options: ['1.5', '2.5'], multi: false, defaults: [] });
+    });
+
+    it('should return null options when the pipe has no non-empty values', () => {
+      expect(parsePromptVariable('X|')).toEqual({ label: 'X', options: null, multi: false, defaults: [] });
+      expect(parsePromptVariable('X|,,')).toEqual({ label: 'X', options: null, multi: false, defaults: [] });
+      expect(parsePromptVariable('X||')).toEqual({ label: 'X', options: null, multi: true, defaults: [] });
+    });
+
+    it('should preselect an option marked with a leading asterisk and strip the marker', () => {
+      expect(parsePromptVariable('Env|dev,*stage,prod')).toEqual({ label: 'Env', options: ['dev', 'stage', 'prod'], multi: false, defaults: ['stage'] });
+      expect(parsePromptVariable('Env| dev , * stage ,prod')).toEqual({ label: 'Env', options: ['dev', 'stage', 'prod'], multi: false, defaults: ['stage'] });
+    });
+
+    it('should preselect only the first starred option for a single-select', () => {
+      expect(parsePromptVariable('Env|*dev,*stage,prod')).toEqual({ label: 'Env', options: ['dev', 'stage', 'prod'], multi: false, defaults: ['dev'] });
+    });
+
+    it('should preselect every starred option for a multi-select', () => {
+      expect(parsePromptVariable('Regions||*us,eu,*ap')).toEqual({ label: 'Regions', options: ['us', 'eu', 'ap'], multi: true, defaults: ['us', 'ap'] });
+    });
+
+    it('should drop a bare asterisk option with no value', () => {
+      expect(parsePromptVariable('Env|*,dev')).toEqual({ label: 'Env', options: ['dev'], multi: false, defaults: [] });
     });
   });
 });
