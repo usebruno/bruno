@@ -1795,9 +1795,6 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
   }
 
   const requestType = example.type || item.type;
-  if (requestType !== 'http-request' && requestType !== 'graphql-request') {
-    return Promise.reject(new Error('Try is only supported for HTTP and GraphQL examples'));
-  }
 
   // detach from the (frozen) store objects so the new request owns its data
   const exampleRequest = cloneDeep(example.request || {});
