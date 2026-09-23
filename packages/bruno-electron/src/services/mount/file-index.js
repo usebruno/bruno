@@ -94,7 +94,6 @@ class FileIndex {
 
     for (const [relativePath, row] of stored) {
       if (seen.has(relativePath)) continue;
-      if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
     }
 
@@ -116,14 +115,16 @@ class FileIndex {
     return this.#dbPath;
   }
 
-  entries(collectionPath) {
+  entries(collectionPath, options = {}) {
     const root = normalize(collectionPath);
+    const denylist = resolveDenylist(options.denylist);
     const rows = this.#db.all(
       'SELECT relative_path AS relativePath, data, raw FROM file_index_entries WHERE collection_path = ?',
       root
     );
     const map = new Map();
     for (const row of rows) {
+      if (isDenied(posixifyPath(row.relativePath), denylist)) continue;
       map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
     }
     return map;

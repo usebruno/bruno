@@ -1,4 +1,4 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 import { closeAllCollections, openCollection, openCollectionFromDialog } from '../../utils/page';
@@ -136,5 +136,66 @@ get {
       await expect(locators.sidebar.folder('hidden')).not.toBeVisible();
       await expect(locators.sidebar.request('Hidden Request')).not.toBeVisible();
     });
+  });
+
+  test('Should hide ignored folders when file cache is enabled', async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    const collectionDir = await createTmpDir('config-ignore-file-cache');
+    const userDataPath = await createTmpDir('config-ignore-file-cache-userdata');
+    const collectionName = 'Config Ignore File Cache Test';
+
+    fs.writeFileSync(
+      path.join(userDataPath, 'preferences.json'),
+      JSON.stringify({
+        preferences: {
+          onboarding: {
+            hasLaunchedBefore: true,
+            hasSeenWelcomeModal: true
+          },
+          cache: {
+            file: {
+              enabled: true
+            }
+          }
+        }
+      })
+    );
+    fs.writeFileSync(
+      path.join(collectionDir, 'bruno.json'),
+      JSON.stringify({
+        version: '1',
+        name: collectionName,
+        type: 'collection',
+        ignore: ['hidden']
+      })
+    );
+    fs.mkdirSync(path.join(collectionDir, 'hidden'));
+    fs.writeFileSync(path.join(collectionDir, 'hidden', 'folder.bru'), 'meta {\n  name: hidden\n  seq: 1\n}\n');
+    fs.writeFileSync(
+      path.join(collectionDir, 'hidden', 'hidden-request.bru'),
+      'meta {\n  name: Hidden Request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/hidden\n  body: none\n  auth: none\n}\n'
+    );
+    fs.writeFileSync(
+      path.join(collectionDir, 'visible-request.bru'),
+      'meta {\n  name: Visible Request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/visible\n  body: none\n  auth: none\n}\n'
+    );
+
+    const electronApp = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(electronApp);
+    const locators = buildCommonLocators(page);
+
+    try {
+      await openCollectionFromDialog(page, electronApp, collectionDir);
+      await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 30000 });
+      await openCollection(page, collectionName);
+
+      await expect(locators.sidebar.request('Visible Request')).toBeVisible({ timeout: 10000 });
+      await expect(locators.sidebar.folder('hidden')).not.toBeVisible();
+      await expect(locators.sidebar.request('Hidden Request')).not.toBeVisible();
+    } finally {
+      await closeElectronApp(electronApp);
+    }
   });
 });
