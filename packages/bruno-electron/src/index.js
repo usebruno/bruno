@@ -556,7 +556,7 @@ app.on('before-quit', (event) => {
       ]);
     } catch {}
 
-    try { await require('./ipc/mount').shutdown(); } catch { }
+    try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
 
     try { require('./ipc/sqlite').shutdown(); } catch {}
 
