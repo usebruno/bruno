@@ -6,6 +6,7 @@ const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
+const { addIntlPolyfillToContext } = require('./shims/lib/intl');
 const { getRequireCode } = require('./shims/require');
 const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
 
@@ -178,6 +179,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
+    addIntlPolyfillToContext(vm);
 
     const bundledCode = getBundledCode?.toString() || '';
 

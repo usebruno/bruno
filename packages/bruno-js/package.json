@@ -10,7 +10,8 @@
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
     "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --testPathIgnorePatterns test.js",
-    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
+    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js",
+    "sandbox:bundle-intl": "node ./src/sandbox/bundle-intl.js"
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
@@ -40,10 +41,19 @@
     "yaml": "2.3.4"
   },
   "devDependencies": {
+    "@formatjs/intl-collator": "^0.2.9",
+    "@formatjs/intl-datetimeformat": "^7.8.0",
+    "@formatjs/intl-displaynames": "^7.3.15",
+    "@formatjs/intl-getcanonicallocales": "^3.2.12",
+    "@formatjs/intl-listformat": "^8.3.15",
+    "@formatjs/intl-locale": "^5.3.11",
+    "@formatjs/intl-numberformat": "^9.4.3",
+    "@formatjs/intl-pluralrules": "^6.3.15",
+    "@formatjs/intl-relativetimeformat": "^12.3.15",
     "@rollup/plugin-commonjs": "^23.0.2",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "rollup": "3.30.0",
-    "@rollup/plugin-terser": "^1.0.0"
+    "@rollup/plugin-terser": "^1.0.0",
+    "rollup": "3.30.0"
   }
 }
