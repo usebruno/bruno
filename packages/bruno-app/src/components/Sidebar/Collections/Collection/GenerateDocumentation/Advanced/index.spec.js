@@ -73,20 +73,20 @@ describe('Advanced (Generate Documentation)', () => {
 
   it('asks for tags to include and exclude only while the user is filtering by tags', () => {
     const { queryByLabelText, rerenderWith } = renderAdvanced({ filterByTags: false });
-    expect(queryByLabelText('Include tags')).not.toBeInTheDocument();
-    expect(queryByLabelText('Exclude tags')).not.toBeInTheDocument();
+    expect(queryByLabelText('Include Tags')).not.toBeInTheDocument();
+    expect(queryByLabelText('Exclude Tags')).not.toBeInTheDocument();
 
     rerenderWith({ filterByTags: true });
 
-    expect(queryByLabelText('Include tags')).toBeInTheDocument();
-    expect(queryByLabelText('Exclude tags')).toBeInTheDocument();
+    expect(queryByLabelText('Include Tags')).toBeInTheDocument();
+    expect(queryByLabelText('Exclude Tags')).toBeInTheDocument();
   });
 
   it('explains what a tag is in a hint next to the filter choice', () => {
     const { getByTestId } = renderAdvanced();
     expand(getByTestId);
 
-    const hint = getByTestId('docs-requests-filter').closest('label').querySelector('.seg-hint');
+    const hint = getByTestId('docs-requests-filter').closest('.adv-radio').querySelector('.adv-radio-hint');
     expect(hint).toBeInTheDocument();
     expect(hint.getAttribute('data-tooltip-content')).toContain('Tags are labels');
   });
