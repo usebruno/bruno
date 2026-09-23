@@ -523,6 +523,8 @@ class XMLSampleGenerator {
       if (this.wsdlData.elements.has(key)) {
         return this.wsdlData.elements.get(key);
       }
+      // no element found within the namespace
+      return null;
     }
 
     // Try without namespace
@@ -816,22 +818,11 @@ class XMLSampleGenerator {
         return this.wsdlData.complexTypes.get(key);
       }
 
-      // A simple type can't be a complex type too
-      if (this.wsdlData.simpleTypes.has(key)) {
-        return null;
-      }
+      return null;
     }
 
-    // First try exact match
     for (const [, complexType] of this.wsdlData.complexTypes) {
       if (complexType.name === cleanTypeName) {
-        return complexType;
-      }
-    }
-
-    // Try with namespace prefix
-    for (const [key, complexType] of this.wsdlData.complexTypes) {
-      if (key.endsWith(`:${cleanTypeName}`) || key === cleanTypeName) {
         return complexType;
       }
     }
@@ -850,9 +841,7 @@ class XMLSampleGenerator {
       if (this.wsdlData.simpleTypes.has(key)) {
         return this.wsdlData.simpleTypes.get(key);
       }
-      if (this.wsdlData.complexTypes.has(key)) {
-        return null;
-      }
+      return null;
     }
 
     for (const [, simpleType] of this.wsdlData.simpleTypes) {
@@ -921,7 +910,7 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
   if (elementName.includes(':')) {
     const [prefix, local] = elementName.split(':');
     name = local;
-    namespace = wsdlData.namespaces.get(prefix) || prefix;
+    namespace = wsdlData.namespaces.get(prefix) || '';
   } else {
     name = elementName;
     namespace = '';
