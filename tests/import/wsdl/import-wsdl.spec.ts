@@ -131,7 +131,6 @@ test.describe('Import WSDL Collection', () => {
 
   test('Import a multi-file WSDL bundle, resolving schemaLocation references', async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'multifile', 'Service.wsdl');
-    
     await importCollection(page, wsdlFile, await createTmpDir('wsdl-multifile-test'));
 
     await test.step('Open the imported Submit request', async () => {
