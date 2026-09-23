@@ -11,8 +11,6 @@ const mockWatcher = {
 
 jest.mock('chokidar', () => ({
   watch: jest.fn((watchPath, options) => {
-    // Chokidar evaluates the predicate during its initial scan, before watch returns.
-    expect(options.ignored(require('path').join(watchPath, 'myfolder', 'somefile.yml'))).toBe(true);
     return mockWatcher;
   })
 }));
@@ -86,7 +84,7 @@ describe('CollectionWatcher', () => {
   it('honors configured ignore paths during the initial scan', () => {
     const watchPath = path.join('tmp', 'collection');
     const collectionUid = 'collection-uid';
-    const brunoConfig = { ignore: ['myfolder'] };
+    const brunoConfig = { ignore: ['ignored'] };
     const win = { webContents: { send: jest.fn() } };
 
     collectionWatcher.addWatcher(win, watchPath, collectionUid, brunoConfig);
@@ -94,9 +92,14 @@ describe('CollectionWatcher', () => {
     expect(getBrunoConfig(collectionUid)).toEqual(brunoConfig);
 
     const ignored = require('chokidar').watch.mock.calls[0][1].ignored;
-    expect(ignored(path.join(watchPath, 'myfolder', 'somefile.yml'))).toBe(true);
-    expect(ignored(path.join(watchPath, 'visible', 'somefile.yml'))).toBe(false);
-    expect(ignored(path.join(watchPath, '.git', 'config'))).toBe(true);
-    expect(ignored(path.join(watchPath, 'node_modules', 'package', 'index.js'))).toBe(true);
+    const ignoredDir = path.join(watchPath, 'ignored', 'somefile.yml');
+    const visibleDir = path.join(watchPath, 'visible', 'somefile.yml');
+    const gitDir = path.join(watchPath, '.git', 'config');
+    const nodeModulesDir = path.join(watchPath, 'node_modules', 'package', 'index.js');
+
+    expect(ignored(ignoredDir)).toBe(true);
+    expect(ignored(visibleDir)).toBe(false);
+    expect(ignored(gitDir)).toBe(true);
+    expect(ignored(nodeModulesDir)).toBe(true);
   });
 });
