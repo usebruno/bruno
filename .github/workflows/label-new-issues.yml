@@ -1,0 +1,19 @@
+name: Label new issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  add-status-new:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add status-new label
+        run: gh issue edit "$NUMBER" --add-label "status-new"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
