@@ -6,17 +6,14 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
       const bodyJson = item.draft?.request?.body?.json ?? item.request?.body?.json;
 
       if (bodyMode === 'json' && bodyJson && bodyJson.trim() !== '') {
-        // Skip validation if body contains Bruno template variables like {{foo_id}}
-        // These are interpolated later in the main process before the request is sent
-        const hasTemplateVars = /\{\{.+?\}\}/.test(bodyJson);
-        if (!hasTemplateVars) {
-          try {
-            // Strip JS-style comments outside of string values
-            const stripped = bodyJson.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m, str) => str || '');
-            JSON.parse(stripped);
-          } catch (e) {
-            return reject(new Error(`Invalid JSON in request body: ${e.message}`));
-          }
+        try {
+          // Replace Bruno template variables {{foo}} with a valid placeholder string
+          const withPlaceholders = bodyJson.replace(/\{\{.+?\}\}/g, '"__placeholder__"');
+          // Strip JS-style comments while preserving content inside strings
+          const stripped = withPlaceholders.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m, str) => str || '');
+          JSON.parse(stripped);
+        } catch (e) {
+          return reject(new Error(`Invalid JSON in request body: ${e.message}`));
         }
       }
 
