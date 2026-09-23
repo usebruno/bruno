@@ -6,12 +6,13 @@ import BearerAuth from '../../Auth/BearerAuth';
 import BasicAuth from '../../Auth/BasicAuth';
 import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-import { AUTH_MODES_WS } from 'utils/common/constants';
+import { AUTH_MODES, AUTH_MODES_WS } from 'utils/common/constants';
+
+const WS_INHERITED_AUTH_MODES = AUTH_MODES_WS.filter((mode) => mode !== AUTH_MODES.OAUTH2);
 
 const WSAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,10 +21,6 @@ const WSAuth = ({ item, collection }) => {
   const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
-
-  const save = () => {
-    return saveRequest(item.uid, collection.uid);
-  };
 
   const inheritedSource = useMemo(
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
@@ -47,13 +44,13 @@ const WSAuth = ({ item, collection }) => {
         return <div>No Auth</div>;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'oauth2': {
         return (
@@ -67,28 +64,14 @@ const WSAuth = ({ item, collection }) => {
         );
       }
       case 'inherit': {
-        // Check if inherited auth is OAuth1/OAuth2 - not supported for WebSockets
-        if (inheritedSource?.auth?.mode === 'oauth1' || inheritedSource?.auth?.mode === 'oauth2') {
-          return (
-            <>
-              <div className="flex flex-row w-full mt-2 gap-2">
-                {inheritedSource.auth.mode === 'oauth1' ? 'OAuth 1.0' : 'OAuth 2'} not <strong>yet</strong> supported by WebSockets. Using no auth instead.
-              </div>
-            </>
-          );
-        }
-
-        if (inheritedSource && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)) {
-          return null;
-        } else {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by WebSockets. Using no auth instead.</div>
-              </div>
-            </>
-          );
-        }
+        return (
+          <InheritedAuth
+            collection={collection}
+            item={item}
+            inheritedSource={inheritedSource}
+            supportedModes={WS_INHERITED_AUTH_MODES}
+          />
+        );
       }
       default: {
         return null;
@@ -96,21 +79,18 @@ const WSAuth = ({ item, collection }) => {
     }
   };
 
-  const inheritedLabel = authMode === 'inherit'
-    && inheritedSource
-    && AUTH_MODES_WS.includes(inheritedSource.auth?.mode)
-    && inheritedSource.auth?.mode !== 'oauth2' ? (
-        <div className="flex flex-row items-center gap-2">
-          <div>Auth inherited from {inheritedSource.name}: </div>
-          <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-        </div>
-      ) : null;
-
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
         <WSAuthMode item={item} collection={collection} />
-        {inheritedLabel}
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel
+            collection={collection}
+            inheritedSource={inheritedSource}
+            supportedModes={WS_INHERITED_AUTH_MODES}
+            protocolLabel="WebSockets"
+          />
+        ) : null}
       </div>
       {getAuthView()}
     </StyledWrapper>
