@@ -167,6 +167,7 @@ const registerGrpcEventHandlers = (window) => {
 
       const scriptingConfig = get(getBrunoConfig(collection.uid, collection), 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      scriptingConfig.cacheModules = false;
 
       // Attached before the hook runs so `bru.sendRequest` inside it honours the collection's
       // certificates and proxy, as it does for HTTP scripts.

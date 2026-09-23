@@ -1152,8 +1152,7 @@ export const handleMultipleCollectionItemsDrop
 
       // cache of directories by uid -> items array
       const directoryCache = new Map();
-      const getDirectoryItems = (coll, itemUid) => {
-        const dir = findParentItemInCollection(coll, itemUid) || coll;
+      const getDirectoryItems = (dir) => {
         if (!directoryCache.has(dir.uid)) {
           directoryCache.set(dir.uid, cloneDeep(dir.items));
         }
@@ -1323,7 +1322,7 @@ export const handleMultipleCollectionItemsDrop
               continue;
             }
 
-            const currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
+            const currentSourceItems = getDirectoryItems(draggedItemDirectory);
             const currentTargetItems = directoryCache.get(targetDir.uid) || [];
 
             if (newPathname !== draggedItemPathname) {

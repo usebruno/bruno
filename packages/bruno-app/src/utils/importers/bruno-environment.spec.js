@@ -157,3 +157,112 @@ describe('importBrunoEnvironment — inheritance', () => {
     expect(environment.extends).toBeUndefined();
   });
 });
+
+describe('importBrunoEnvironment — environment names', () => {
+  const importSingleEnvironment = (env) => importBrunoEnvironment([parsedFile(env)]);
+
+  it.each([
+    ['an integer', 123, '123'],
+    ['a negative number', -1, '-1'],
+    ['a decimal', 1.5, '1.5'],
+    ['zero', 0, '0']
+  ])('imports a name given as %s, as text', (_label, name, expected) => {
+    const { valid, invalid } = importSingleEnvironment({ name, variables: [] });
+
+    expect(invalid).toEqual([]);
+    expect(valid[0].name).toBe(expected);
+  });
+
+  it.each([
+    ['a boolean', true],
+    ['an object', {}],
+    ['an array', ['dev']],
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+    ['undefined', undefined],
+    ['null', null],
+    ['an empty string', ''],
+    ['whitespace only', '   ']
+  ])('rejects a name that is %s', (_label, name) => {
+    const { valid, invalid } = importSingleEnvironment({ name, variables: [] });
+
+    expect(valid).toEqual([]);
+    expect(invalid[0].error).toMatch(/missing or invalid name/);
+  });
+
+  it('keeps the rest of a multi-environment file when one name cannot be read as text', () => {
+    const { valid, invalid } = importBrunoEnvironment([
+      parsedFile({
+        info: { type: 'bruno-environment' },
+        environments: [
+          { name: 'dev', variables: [] },
+          { name: { nested: true }, variables: [] },
+          { name: 'prod', variables: [] }
+        ]
+      })
+    ]);
+
+    expect(valid.map((env) => env.name)).toEqual(['dev', 'prod']);
+    expect(invalid).toHaveLength(1);
+    expect(invalid[0].error).toMatch(/missing or invalid name/);
+  });
+
+  it('keeps the other files when one file carries an unusable name', () => {
+    const { valid, invalid } = importBrunoEnvironment([
+      parsedFile({ name: 'dev', variables: [] }, 'dev.json'),
+      parsedFile({ name: ['a', 'b'], variables: [] }, 'broken.json'),
+      parsedFile({ name: 'prod', variables: [] }, 'prod.json')
+    ]);
+
+    expect(valid.map((env) => env.name)).toEqual(['dev', 'prod']);
+    expect(invalid).toEqual([expect.objectContaining({ fileName: 'broken.json' })]);
+  });
+
+  it('treats a numeric name as a conflict with the same name written as text', () => {
+    const { valid } = importBrunoEnvironment([
+      parsedFile({ name: 123, variables: [] }, 'numeric.json'),
+      parsedFile({ name: '123', variables: [] }, 'text.json')
+    ]);
+
+    expect(valid.map((env) => env.name)).toEqual(['123', '123']);
+  });
+});
+
+describe('importBrunoEnvironment — environment colour', () => {
+  const importSingleEnvironment = (env) => importBrunoEnvironment([parsedFile(env)]);
+
+  it('carries a colour polished can read', () => {
+    const { valid: [environment], invalid } = importSingleEnvironment({ name: 'dev', variables: [], color: '#CE4F3B' });
+
+    expect(invalid).toEqual([]);
+    expect(environment.color).toBe('#CE4F3B');
+  });
+
+  it('imports the environment without a colour when the colour is unreadable', () => {
+    const { valid: [environment], invalid } = importSingleEnvironment({ name: 'dev', variables: [], color: 'notacolor' });
+
+    expect(invalid).toEqual([]);
+    expect(environment.name).toBe('dev');
+    expect(environment.color).toBeUndefined();
+  });
+
+  it('does not let a bad colour cost the other environments in the file', () => {
+    const { valid, invalid } = importBrunoEnvironment([
+      parsedFile({
+        info: { type: 'bruno-environment' },
+        environments: [
+          { name: 'dev', variables: [], color: '#2E8A54' },
+          { name: 'staging', variables: [], color: 'notacolor' },
+          { name: 'prod', variables: [], color: 'red' }
+        ]
+      })
+    ]);
+
+    expect(invalid).toEqual([]);
+    expect(valid.map((env) => [env.name, env.color])).toEqual([
+      ['dev', '#2E8A54'],
+      ['staging', undefined],
+      ['prod', 'red']
+    ]);
+  });
+});
