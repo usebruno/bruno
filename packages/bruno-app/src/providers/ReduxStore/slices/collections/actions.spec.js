@@ -118,13 +118,13 @@ describe('collection actions', () => {
           {
             uid: 'collection-uid',
             pathname: '/bruno/collection',
-            format: 'bru',
+            format: 'yml',
             items: [
               {
                 uid: 'item-uid',
                 type: 'http-request',
                 name: 'Get User',
-                pathname: '/bruno/collection/get-user.bru',
+                pathname: '/bruno/collection/get-user.yml',
                 request: { method: 'GET', url: 'https://api.example.com/users/1', auth: { mode: 'bearer', bearer: { token: 'abc' } } },
                 examples: [{ uid: 'example-uid', name: 'Success', type: 'http-request', request: exampleRequest }]
               },
@@ -133,7 +133,7 @@ describe('collection actions', () => {
                 type: 'http-request',
                 name,
                 isTransient: true,
-                pathname: `/tmp/transient/collection/${name}.bru`,
+                pathname: `/tmp/transient/collection/${name}.yml`,
                 request: { method: 'GET', url: '' }
               }))
             ]
@@ -150,7 +150,7 @@ describe('collection actions', () => {
 
       expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
         'renderer:new-request',
-        expect.stringContaining('Untitled 1.bru'),
+        expect.stringContaining('Untitled 1.yml'),
         expect.objectContaining({
           name: 'Untitled 1',
           isTransient: true,
@@ -184,7 +184,7 @@ describe('collection actions', () => {
 
       expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
         'renderer:new-request',
-        expect.stringContaining('Untitled 3.bru'),
+        expect.stringContaining('Untitled 3.yml'),
         expect.objectContaining({ name: 'Untitled 3' })
       );
     });
