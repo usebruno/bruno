@@ -17,7 +17,7 @@ import useStoredRunnerExchange from 'hooks/useStoredRunnerExchange';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
-  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [showErrorCards, setShowErrorCards] = useState(false);
 
   const { testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
@@ -26,7 +26,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   useEffect(() => {
     if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
-      setShowScriptErrorCard(true);
+      setShowErrorCards(true);
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
@@ -122,11 +122,11 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           />
         </div>
         <div className="flex flex-grow justify-end items-center">
-          {hasScriptError && !showScriptErrorCard && (
+          {hasScriptError && !showErrorCards && (
             <ScriptErrorIcon
               className="mr-2"
               itemUid={item.uid}
-              onClick={() => setShowScriptErrorCard(true)}
+              onClick={() => setShowErrorCards(true)}
             />
           )}
           <StatusCode status={status} />
@@ -135,10 +135,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
       </div>
       <section className="flex flex-col pt-3 flex-grow overflow-auto">
-        {hasScriptError && showScriptErrorCard && (
+        {hasScriptError && showErrorCards && (
           <ScriptError
             item={item}
-            onClose={() => setShowScriptErrorCard(false)}
+            onClose={() => setShowErrorCards(false)}
             collection={collection}
           />
         )}
