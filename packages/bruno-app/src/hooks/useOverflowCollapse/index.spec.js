@@ -24,12 +24,14 @@ class ControllableResizeObserver {
 const LEVELS = ['compact', 'tiny'];
 
 // jsdom has no layout, so the test supplies one: how wide the toolbar wants to be at each
-// level, plus 100px for every action beyond the first. Calibration is the only moment
-// offsetWidth should report a requirement rather than the room available, and it is
-// recognised by the class the hook applies for exactly that window — jsdom's cssstyle
-// rejects `max-content`, so style.width cannot be the tell.
+// level, plus 100px for every action beyond the first and every character of the count
+// beyond the first. Calibration is the only moment offsetWidth should report a requirement
+// rather than the room available, and it is recognised by the class the hook applies for
+// exactly that window — jsdom's cssstyle rejects `max-content`, so style.width cannot be
+// the tell.
 const REQUIRED_WIDTH = { '': 400, 'compact': 250, 'compact tiny': 180 };
 const ACTION_WIDTH = 100;
+const CHAR_WIDTH = 100;
 
 const originalResizeObserver = global.ResizeObserver;
 let availableWidth = 1000;
@@ -42,7 +44,13 @@ beforeAll(() => {
     get() {
       if (!this.classList.contains('measuring-overflow')) return availableWidth;
       const applied = LEVELS.filter((level) => this.classList.contains(level)).join(' ');
-      return REQUIRED_WIDTH[applied] + (this.childElementCount - 1) * ACTION_WIDTH;
+      const actions = this.querySelectorAll('button').length;
+      const count = this.querySelector('[data-count]')?.textContent ?? '';
+      return (
+        REQUIRED_WIDTH[applied]
+        + (actions - 1) * ACTION_WIDTH
+        + Math.max(count.length - 1, 0) * CHAR_WIDTH
+      );
     }
   });
   // Run rAF callbacks immediately so a resize lands within the act() that fired it.
@@ -74,15 +82,18 @@ const resizeTo = (width) => {
   });
 };
 
-const setup = ({ actions = 1 } = {}) => {
+const setup = ({ actions = 1, count = null } = {}) => {
   let renderCount = 0;
   let forceRender;
   let setActions;
+  let setCount;
   const Probe = () => {
-    const [, setCount] = useState(0);
+    const [, setRenders] = useState(0);
     const [actionCount, setNextActions] = useState(actions);
-    forceRender = setCount;
+    const [countLabel, setNextCount] = useState(count);
+    forceRender = setRenders;
     setActions = setNextActions;
+    setCount = setNextCount;
     renderCount += 1;
     const containerRef = useOverflowCollapse(LEVELS);
     return (
@@ -90,6 +101,7 @@ const setup = ({ actions = 1 } = {}) => {
         {Array.from({ length: actionCount }, (_, index) => (
           <button key={index} type="button" />
         ))}
+        {count === null ? null : <span data-count>{countLabel}</span>}
       </div>
     );
   };
@@ -112,6 +124,9 @@ const setup = ({ actions = 1 } = {}) => {
     forceRender: (n) => act(() => forceRender(n)),
     setActions: async (n) => {
       await act(async () => setActions(n));
+    },
+    setCount: async (label) => {
+      await act(async () => setCount(label));
     },
     ...utils
   };
@@ -177,6 +192,18 @@ describe('useOverflowCollapse', () => {
     await setActions(1);
 
     expect(applied()).toBe('');
+  });
+
+  it('re-measures when a child rewrites its text in place', async () => {
+    const { applied, setCount } = setup({ actions: 1, count: '0' });
+    expect(applied()).toBe('');
+
+    // The runner's filter counts tick up as requests finish. React rewrites the existing
+    // text node rather than replacing it, so nothing arrives or leaves the subtree — but
+    // the row is wider than the widths cached at mount, and has to be re-measured.
+    await setCount('12345678');
+
+    expect(applied()).toBe('compact');
   });
 
   it('never re-measures to resize', () => {

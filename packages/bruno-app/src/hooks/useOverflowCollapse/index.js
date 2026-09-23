@@ -22,10 +22,12 @@ const MEASURING_CLASS = 'measuring-overflow';
  * into the next decision is what makes a measured collapse oscillate at its own boundary.
  *
  * Contents changing is noticed rather than announced. A MutationObserver watches the
- * subtree for children arriving and leaving, so a caller cannot forget to declare that a
- * button is conditional — the failure that a hand-maintained dependency list invites, and
- * one that shows up as a quietly wrong collapse point rather than as an error. Only
- * childList is watched: the classes and inline width this hook writes are attributes, so
+ * subtree for children arriving and leaving and for text being rewritten, so a caller
+ * cannot forget to declare that a button is conditional — the failure that a
+ * hand-maintained dependency list invites, and one that shows up as a quietly wrong
+ * collapse point rather than as an error. characterData matters as much as childList: a
+ * count ticking from 0 to 1000 in place widens a row without adding a node. Attributes are
+ * left unwatched, and the classes and inline width this hook writes are attributes, so
  * calibrating can never trigger another calibration.
  *
  * Classes are written straight to the node rather than through state: CSS is the only
@@ -140,7 +142,7 @@ const useOverflowCollapse = (levels) => {
           staleRef.current = true;
           schedule();
         });
-        mutationObserverRef.current.observe(node, { childList: true, subtree: true });
+        mutationObserverRef.current.observe(node, { childList: true, characterData: true, subtree: true });
       }
 
       if (typeof ResizeObserver !== 'undefined') {
