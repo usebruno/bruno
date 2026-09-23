@@ -69,7 +69,7 @@ class AppDocuments {
   handleProtocol() {
     session.fromPartition(APP_PARTITION).protocol.handle(APP_SCHEME, (request) => {
       const html = this.htmlByToken.get(new URL(request.url).hostname);
-      if (!html) {
+      if (html === undefined) {
         return new Response(null, { status: 404 });
       }
       return new Response(html, {
