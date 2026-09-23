@@ -17,7 +17,7 @@ import ToolHint from 'components/ToolHint';
 import DeleteEnvironments from '../DeleteEnvironments';
 import CopyEnvironment from '../CopyEnvironment';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
-import { useEnvironmentBulkSelection, SelectionContextMenu, RowActionsMenu } from './EnvironmentSelection';
+import { useEnvironmentBulkSelection, SelectionContextMenu, RowActionsMenu } from 'components/Environments/Common/EnvironmentSelection';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import {

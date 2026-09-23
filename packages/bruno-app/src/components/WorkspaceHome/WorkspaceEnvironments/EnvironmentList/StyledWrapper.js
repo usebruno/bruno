@@ -32,7 +32,6 @@ const StyledWrapper = styled.div`
     flex-direction: column;
   }
 
-
     .btn-action {
       display: flex;
       align-items: center;
@@ -69,7 +68,7 @@ const StyledWrapper = styled.div`
 
     .env-list-search-input {
       width: 100%;
-      padding: 5px 24px 5px 26px;
+      padding: 3px 24px 3px 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
@@ -116,11 +115,11 @@ const StyledWrapper = styled.div`
   }
 
   .section-header {
-    margin-inline: 4px;
-    padding-left: 6px;
-    border-radius: 6px;
-    padding-right: 3px;
-    padding-block: 4px;
+    margin-inline: 4px !important;
+    padding-left: 6px !important;
+    border-radius: 6px ;
+    padding-right: 3px !important;
+    padding-block: 4px !important;
   }
 
   .environments-list {
@@ -158,13 +157,15 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 4px 8px;
+    height: 1.6rem;
+    padding: 0 8px;
     margin-bottom: 1px;
     font-size: 13px;
     color: ${(props) => props.theme.text};
     cursor: pointer;
     border-radius: 6px;
     transition: background 0.15s ease;
+    user-select: none;
 
     .environment-name {
       flex: 1;
@@ -176,8 +177,29 @@ const StyledWrapper = styled.div`
     .environment-actions {
       display: flex;
       align-items: center;
+      gap: 2px;
       opacity: 0;
       transition: opacity 0.15s ease;
+
+      .env-more-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 3px;
+        color: ${(props) => props.theme.colors.text.muted};
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+          color: ${(props) => props.theme.text};
+        }
+      }
 
       .activate-btn {
         display: flex;
@@ -216,12 +238,16 @@ const StyledWrapper = styled.div`
     }
 
     &:hover {
-      background: ${(props) => props.theme.workspace.button.bg};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     &.active {
-      background: ${(props) => props.theme.background.surface0};
+      background: ${(props) => props.theme.background.surface1};
       color: ${(props) => props.theme.text};
+    }
+
+    &.is-selected {
+      background: ${(props) => props.theme.background.surface1};
     }
 
     &.renaming,
