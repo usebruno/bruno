@@ -116,6 +116,14 @@ describe('isValidWorkspacePathOnDisk', () => {
     expect(isValidWorkspacePathOnDisk(workspacePath, { validateConfig: true })).toBe(false);
   });
 
+  test('returns false for non-string input instead of throwing from path.join', () => {
+    expect(isValidWorkspacePathOnDisk(undefined)).toBe(false);
+    expect(isValidWorkspacePathOnDisk(null)).toBe(false);
+    expect(isValidWorkspacePathOnDisk('')).toBe(false);
+    expect(isValidWorkspacePathOnDisk({ pathname: '/tmp/ws' })).toBe(false);
+    expect(isValidWorkspacePathOnDisk({ pathname: '/tmp/ws' }, { validateConfig: true })).toBe(false);
+  });
+
   test('returns true when workspace.yml exists and config validation is disabled', () => {
     const workspacePath = createWorkspaceDir(rootDir, 'exists-only');
 
