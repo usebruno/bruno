@@ -116,6 +116,15 @@ describe('jsonToDotenv', () => {
     });
   });
 
+  test.each([
+    '"hello\u2028world"',
+    '"hello\u2029world"',
+    '\'\u2028hello\'',
+    '\'\u2029hello\''
+  ])('it should leave Unicode-separated values unquoted in %s', (value) => {
+    expect(jsonToDotenv([{ name: 'VALUE', value }])).toBe(`VALUE=${value}`);
+  });
+
   describe('round-trip with dotenvToJson', () => {
     test('it should preserve simple values through round-trip', () => {
       const variables = [
@@ -172,8 +181,12 @@ describe('jsonToDotenv', () => {
       '\'\'',
       '``',
       '"C:\\new\\request"',
-      '"hello\u2028world"',
-      '"hello\u2029world"',
+      '"#\\n\\r"',
+      '\'#\\n\\r\'',
+      '`#\\n\\r`',
+      '"hello\nworld"',
+      '\'hello\rworld\'',
+      '`hello\r\nworld`',
       '"a\'b`"',
       '\'a"b`\'',
       '`a\'b"`'
