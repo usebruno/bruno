@@ -1387,6 +1387,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
+    require('./mount').clearCollectionIndex(collectionPath);
 
     // Clean up
     const { clearCollectionWorkspace } = require('../store/process-env');
@@ -2816,6 +2817,7 @@ const registerMainEventHandlers = (mainWindow) => {
 
   ipcMain.on('main:collection-opened', async (win, pathname, uid, brunoConfig) => {
     app.addRecentDocument(pathname);
+    require('./mount').indexCollectionInBackground(pathname, brunoConfig?.name).catch(() => {});
   });
 
   ipcMain.handle('renderer:scan-for-bruno-files', async (event, dir) => {

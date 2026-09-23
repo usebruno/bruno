@@ -89,14 +89,6 @@ const StyledWrapper = styled.div`
     margin-left: 0.25rem;
   }
 
-  .indexing-live-badge {
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.status.info.text};
-    background: ${(props) => props.theme.status.info.background};
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    padding: 1px 6px;
-    margin-left: 0.5rem;
-  }
 `;
 
 export default StyledWrapper;

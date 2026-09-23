@@ -9,18 +9,13 @@ import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common';
-
-const formatDuration = (ms) => {
-  if (ms > 1000) {
-    return (ms / 1000).toFixed(1) + 's';
-  }
-  return Math.round(ms) + 'ms';
-};
+import { Button } from 'ui/index';
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
-  const searchIndexLastDurationMs = useSelector((state) => state.app.searchIndexLastDurationMs);
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const { ipcRenderer } = window;
@@ -31,8 +26,6 @@ const Cache = () => {
 
   const [fileCacheSize, setFileCacheSize] = useState(null);
   const [searchIndexSize, setSearchIndexSize] = useState(null);
-
-  const indexingDurationMs = searchIndexBuilding ? null : searchIndexLastDurationMs;
 
   const refreshFileCacheSize = useCallback(() => {
     if (!ipcRenderer) return;
@@ -103,11 +96,11 @@ const Cache = () => {
   const handleClearSearchIndex = () => {
     if (!ipcRenderer) return;
     ipcRenderer
-      .invoke('renderer:clear-search-index')
+      .invoke('renderer:clear-search-index', activeWorkspace?.pathname)
       .then(({ fileCacheSize, searchIndexSize }) => {
         setFileCacheSize(fileCacheSize);
         setSearchIndexSize(searchIndexSize);
-        toast.success('File cache and search index cleared');
+        toast.success('Search index cleared');
       })
       .catch((err) => toast.error(`Failed to clear search index: ${err?.message || err}`));
   };
@@ -178,30 +171,31 @@ const Cache = () => {
         <div className="cache-item-body">
           <div className="cache-item-body-text">
             <p className="cache-item-description">
-              Lets you search requests in collections you haven't opened yet. Clearing it also
-              clears the file cache, and search results from unopened collections may be
-              unavailable until it's rebuilt.
+              Lets you search requests in collections you haven't opened yet. Clearing it means
+              search results from unopened collections may be unavailable until it's rebuilt.
             </p>
             <p className="cache-item-size">
               Index size <strong>{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
             </p>
-            <p className="cache-item-size">
-              Indexing time <strong>{indexingDurationMs == null ? '—' : formatDuration(indexingDurationMs)}</strong>
-              {searchIndexBuilding && <span className="indexing-live-badge">Indexing…</span>}
-            </p>
           </div>
           <div className="cache-item-actions">
-            <ActionIcon label="Refresh index size" onClick={refreshSearchIndexSize}>
+            <Button
+              label="Refresh index size"
+              size="xs"
+              disabled={searchIndexBuilding}
+              onClick={refreshSearchIndexSize}
+            >
               <IconRefresh size={16} strokeWidth={1.5} />
-            </ActionIcon>
-            <ActionIcon
+            </Button>
+            <Button
+              size="xs"
               label="Clear search index"
               onClick={handleClearSearchIndex}
-              disabled={!fileCacheSize && !searchIndexSize}
+              disabled={searchIndexBuilding}
               colorOnHover={theme.colors.text.danger}
             >
               <IconEraser size={16} strokeWidth={1.5} />
-            </ActionIcon>
+            </Button>
           </div>
         </div>
       </div>

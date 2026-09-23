@@ -17,7 +17,7 @@ const folderInfo = (relativePath) => {
   return dir === '.' || dir === '' ? { folderPath: null, folderName: null } : { folderPath: dir, folderName: path.basename(dir) };
 };
 
-const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data }) => ({
+const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data }, workspacePath) => ({
   collectionPath,
   collectionName,
   ...folderInfo(relativePath),
@@ -26,19 +26,10 @@ const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data
   requestType: data?.request?.method || null,
   requestUrl: data?.request?.url || null,
   requestProtocol: data?.type || 'http-request',
+  workspacePath,
   mtime,
   hash
 });
-
-const indexFromFileCache = (searchIndex, collectionPath, collectionName, entries) => {
-  searchIndex.transaction(() => {
-    searchIndex.clearCollection(collectionPath);
-    for (const [relativePath, entry] of entries) {
-      if (defaultClassify(relativePath)?.type !== 'request') continue;
-      searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath, ...entry }));
-    }
-  });
-};
 
 const runWithConcurrency = async (items, limit, task) => {
   const queue = [...items];
@@ -48,7 +39,7 @@ const runWithConcurrency = async (items, limit, task) => {
   await Promise.all(runners);
 };
 
-const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency) => {
+const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath) => {
   const files = walk(collectionPath, resolveDenylist(denylist))
     .map((f) => ({ ...f, cls: defaultClassify(f.relativePath) }))
     .filter((f) => f.cls?.type === 'request');
@@ -77,21 +68,16 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   await runWithConcurrency(toParse, concurrency, async ({ relativePath, format }) => {
     const result = await pool.run(JobType.ParseFile, { collectionPath, relativePath, format, type: 'request' });
     if (result.error) return;
-    searchIndex.upsert(toRow(collectionPath, collectionName, result));
+    searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
   });
 };
 
-const indexCollection = async (searchIndex, fileIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY }) => {
+const indexCollection = async (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath }) => {
   const root = normalize(collectionPath);
-  const cached = fileIndex.entries(root);
-  if (cached.size > 0) {
-    indexFromFileCache(searchIndex, root, collectionName, cached);
-    return;
-  }
-  await indexUncached(searchIndex, root, collectionName, denylist, concurrency);
+  await indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath);
 };
 
-const revalidateEntry = async (searchIndex, { collectionPath, collectionName, requestPath }) => {
+const revalidateEntry = async (searchIndex, { collectionPath, collectionName, requestPath, workspacePath }) => {
   const root = normalize(collectionPath);
   const absolutePath = path.join(root, requestPath);
   const prior = searchIndex.entry(root, requestPath);
@@ -118,7 +104,7 @@ const revalidateEntry = async (searchIndex, { collectionPath, collectionName, re
 
   const result = await getPool().run(JobType.ParseFile, { collectionPath: root, relativePath: requestPath, format: cls.format, type: 'request' });
   if (result.error) return prior || null;
-  const row = toRow(root, collectionName || prior?.collectionName, result);
+  const row = toRow(root, collectionName || prior?.collectionName, result, workspacePath ?? prior?.workspacePath);
   searchIndex.upsert(row);
   return row;
 };

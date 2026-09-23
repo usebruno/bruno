@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch, useStore } from 'react-redux';
-import { Virtuoso } from 'react-virtuoso';
-import path from 'path';
 import {
-  IconSearch,
-  IconX,
-  IconFolder,
+  IconBook,
   IconBox,
   IconFileText,
-  IconBook
+  IconFolder,
+  IconSearch,
+  IconX
 } from '@tabler/icons';
-import { findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { toggleCollection } from 'providers/ReduxStore/slices/collections';
+import path from 'path';
+import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { normalizePath } from 'utils/common/path';
-import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel } from './utils/searchUtils';
-import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
+import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector, useStore } from 'react-redux';
+import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
+import { findAncestorFolderUidsByPathname, findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections';
+import { normalizePath } from 'utils/common/path';
+import { DOCUMENTATION_RESULT, MATCH_TYPES, SEARCH_CONFIG, SEARCH_TYPES } from './constants';
 import StyledWrapper from './StyledWrapper';
+import { getTypeLabel, highlightText, isValidQuery, normalizeQuery, sortResults } from './utils/searchUtils';
 
 // Fixed row height (px). Must stay in sync with `.result-item` in StyledWrapper.js, since it's
 // passed to Virtuoso as `fixedItemHeight`.
@@ -31,6 +31,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [localResults, setLocalResults] = useState([]);
   const [externalResults, setExternalResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
   const virtuosoRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
@@ -54,9 +55,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
   }, [activeWorkspace, allCollections, workspaces]);
 
-  // Folder/Request results come from the search index, which isn't scoped to a workspace - so
-  // resolving them back to a Redux collection must check every collection, not just the active
-  // workspace's (that narrower list is still correct for collection name/path matching below).
   const findCollectionByPath = useCallback(
     (collectionPath) => allCollections.find((c) => normalizePath(c.pathname) === normalizePath(collectionPath)),
     [allCollections]
@@ -129,12 +127,14 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     if (!ipcRenderer) {
       setExternalResults([]);
+      setIsSearching(false);
       return;
     }
 
     const normalizedQuery = normalizeQuery(searchQuery);
     if (!normalizedQuery || !isValidQuery(normalizedQuery)) {
       setExternalResults([]);
+      setIsSearching(false);
       return;
     }
 
@@ -142,14 +142,15 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
     Promise.all(
       [SEARCH_TYPES.FOLDER, SEARCH_TYPES.REQUEST].map((scope) => ipcRenderer
-        .invoke('renderer:search-index', term, { scope })
+        .invoke('renderer:search-index', term, { scope, workspacePath: activeWorkspace?.pathname })
         .then((rows) => (rows || []).map((row) => ({ ...row, __scope: scope })))
         .catch(() => []))
     ).then((batches) => {
       if (searchRequestIdRef.current !== requestId) return;
       setExternalResults(batches.flat());
+      setIsSearching(false);
     });
-  }, [ipcRenderer]);
+  }, [ipcRenderer, activeWorkspace]);
 
   const mappedExternalResults = useMemo(() => {
     return externalResults
@@ -190,7 +191,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     [localResults, mappedExternalResults]
   );
 
-  const showIndexingStatus = Boolean(query.trim()) && searchIndexBuilding;
+  const showIndexingText = searchIndexBuilding;
 
   const ensureCollectionIsMounted = (collection) => {
     if (!collection || collection.mountStatus === 'mounted') return;
@@ -258,8 +259,14 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     if (!collection) return;
 
     const relativePath = result.type === SEARCH_TYPES.FOLDER ? result.row.folderPath : result.row.requestPath;
-    const item = findItemInCollectionByPathname(collection, path.join(result.row.collectionPath, relativePath));
+    const targetPathname = path.join(result.row.collectionPath, relativePath);
+    const item = findItemInCollectionByPathname(collection, targetPathname);
     if (!item) return;
+
+    dispatch(expandCollection(collection.uid));
+    findAncestorFolderUidsByPathname(collection, targetPathname).forEach((itemUid) => {
+      dispatch(expandItem({ itemUid, collectionUid: collection.uid }));
+    });
 
     if (result.type === SEARCH_TYPES.REQUEST) {
       const existingTab = store.getState().tabs.tabs.find((tab) => tab.uid === item.uid);
@@ -279,7 +286,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleResultSelection = async (result) => {
+  const handleResultSelection = (result) => {
     if (result.type === SEARCH_TYPES.DOCUMENTATION) {
       window.open('https://docs.usebruno.com/', '_blank');
       onClose();
@@ -287,8 +294,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }
 
     if (result.external) {
-      await openExternalResult(result);
       onClose();
+      openExternalResult(result);
       return;
     }
 
@@ -339,6 +346,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    setIsSearching(true);
     debounceTimeoutRef.current = setTimeout(() => {
       performLocalSearch(query);
       fetchIndexResults(query);
@@ -484,12 +492,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {showIndexingStatus && (
+          {showIndexingText && (
             <div className="search-index-status" data-testid="global-search-indexing-status">Indexing…</div>
           )}
-          {showIndexingStatus && (
-            <IndeterminateProgressBar active data-testid="global-search-indexing-progress" />
-          )}
+          <IndeterminateProgressBar active={isSearching || searchIndexBuilding} data-testid="global-search-progress" />
 
           <div
             className="command-k-results"

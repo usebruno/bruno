@@ -1,6 +1,6 @@
 const { ipcMain, BrowserWindow } = require('electron');
 const { MountManager } = require('../services/mount');
-const { getAllWorkspaceCollections } = require('../utils/workspace-collections');
+const { getWorkspaceCollections } = require('../utils/workspace-config');
 
 const manager = new MountManager();
 
@@ -26,22 +26,24 @@ const registerMountIpc = () => {
     return manager.getIndexTree({ collectionPath, collectionName });
   });
 
-  ipcMain.handle('renderer:search-index-trees', (_, term) => {
+  ipcMain.handle('renderer:search-index-trees', (_, term, workspacePath) => {
     if (!term || typeof term !== 'string') return {};
-    return manager.searchIndexTrees(term);
+    return manager.searchIndexTrees(term, workspacePath);
   });
 
-  ipcMain.handle('renderer:clear-search-index', async () => {
-    manager.clearCache();
+  ipcMain.handle('renderer:clear-search-index', async (_, workspacePath) => {
     manager.clearSearchIndex();
     const sizes = { fileCacheSize: manager.getCacheSize(), searchIndexSize: manager.getSearchIndexSize() };
-    getAllWorkspaceCollections().then(indexWorkspaceCollections).catch(() => {});
+    if (workspacePath) {
+      const collections = getWorkspaceCollections(workspacePath).filter((c) => !c.notFoundLocally);
+      indexWorkspaceCollections(collections, workspacePath).catch(() => {});
+    }
     return sizes;
   });
 
   ipcMain.handle(
     'renderer:mount-collection-v2',
-    async (event, { collectionUid, collectionPathname, brunoConfig }) => {
+    async (event, { collectionUid, collectionPathname, brunoConfig, workspacePathname }) => {
       const win = BrowserWindow.fromWebContents(event.sender);
       const send = (channel, payload) => {
         if (!win || win.isDestroyed?.()) return;
@@ -52,7 +54,7 @@ const registerMountIpc = () => {
         loading: (isLoading) => send('main:collection-loading-state-updated-v2', { collectionUid, isLoading }),
         config: (brunoConfig) => send('main:bruno-config-update-v2', { collectionUid, brunoConfig })
       };
-      return manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit });
+      return manager.mount({ win, collectionPath: collectionPathname, collectionUid, brunoConfig, emit, workspacePath: workspacePathname });
     }
   );
 };
@@ -61,11 +63,10 @@ const unmount = (collectionUid) => manager.unmount(collectionUid);
 const shutdown = () => manager.shutdown();
 const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
-const indexWorkspaceCollections = async (collections) => {
-  for (const { path: collectionPath, name } of collections) {
-    await manager.indexCollectionInBackground({ collectionPath, collectionName: name }).catch(() => {});
-  }
-};
+const indexWorkspaceCollections = (collections, workspacePath) => manager.indexManyCollectionsInBackground(collections, workspacePath);
+
+const indexCollectionInBackground = (collectionPath, collectionName, workspacePath) =>
+  manager.indexCollectionInBackground({ collectionPath, collectionName, workspacePath });
 
 const sweepRemovedCollections = (validPaths) => manager.sweepRemovedCollections(validPaths);
 
@@ -75,5 +76,6 @@ module.exports = {
   shutdown,
   clearCollectionIndex,
   indexWorkspaceCollections,
+  indexCollectionInBackground,
   sweepRemovedCollections
 };

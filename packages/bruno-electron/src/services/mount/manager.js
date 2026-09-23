@@ -75,10 +75,8 @@ class MountManager {
   #searchIndex = null;
   #mounts = new Map();
   #activeIndexingCount = 0;
-  #indexingStartedAt = null;
-  #lastIndexingDurationMs = null;
 
-  async mount({ win, collectionPath, collectionUid, brunoConfig, emit }) {
+  async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
     collectionPath = path.resolve(collectionPath);
 
     if (this.#mounts.has(collectionUid)) {
@@ -110,10 +108,17 @@ class MountManager {
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
-      if (preferencesUtil.isSearchIndexEnabled()) {
-        this.#runIndexCollection(this.#getSearchIndex(), this.#getIndex(), {
+
+      const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
+      const resolvedWorkspacePath = searchIndexEnabled
+        ? await this.#resolveWorkspacePath(collectionPath, workspacePath)
+        : null;
+
+      if (searchIndexEnabled) {
+        this.#runIndexCollection(this.#getSearchIndex(), {
           collectionPath,
-          collectionName: path.basename(collectionPath)
+          collectionName: path.basename(collectionPath),
+          workspacePath: resolvedWorkspacePath
         }).catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err));
       }
 
@@ -122,7 +127,8 @@ class MountManager {
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
         fileIndex: this.#getIndex(),
-        searchIndex: preferencesUtil.isSearchIndexEnabled() ? this.#getSearchIndex() : null
+        searchIndex: searchIndexEnabled ? this.#getSearchIndex() : null,
+        workspacePathname: resolvedWorkspacePath
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
@@ -193,8 +199,8 @@ class MountManager {
     return this.#getSearchIndex().search(term, options);
   }
 
-  async searchIndexTrees(term) {
-    const matches = this.searchIndex(term, { scope: 'request' });
+  async searchIndexTrees(term, workspacePath) {
+    const matches = this.searchIndex(term, { scope: 'request', workspacePath });
     const byCollection = new Map();
     for (const row of matches) {
       if (!byCollection.has(row.collectionPath)) byCollection.set(row.collectionPath, []);
@@ -225,19 +231,40 @@ class MountManager {
     }
   }
 
-  async indexCollectionInBackground({ collectionPath, collectionName }) {
+  async indexCollectionInBackground({ collectionPath, collectionName, workspacePath }) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     const root = path.resolve(collectionPath);
     const alreadyMounted = Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
     if (alreadyMounted) return;
-    await this.#runIndexCollection(this.#getSearchIndex(), this.#getIndex(), { collectionPath: root, collectionName });
+    const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
+    await this.#runIndexCollection(this.#getSearchIndex(), { collectionPath: root, collectionName, workspacePath: resolvedWorkspacePath });
+  }
+
+  async indexManyCollectionsInBackground(collections, workspacePath) {
+    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    this.#beginIndexingSession();
+    try {
+      const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
+      const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
+        root: path.resolve(collectionPath),
+        collectionName
+      }));
+      const ordered = [
+        ...resolved.filter((c) => priorPaths.has(c.root)),
+        ...resolved.filter((c) => !priorPaths.has(c.root))
+      ];
+
+      for (const { root, collectionName } of ordered) {
+        await indexCollection(this.#getSearchIndex(), { collectionPath: root, collectionName, workspacePath }).catch(() => {});
+      }
+    } finally {
+      this.#endIndexingSession();
+    }
   }
 
   getIndexingStatus() {
     return {
-      isIndexing: this.#activeIndexingCount > 0,
-      startedAt: this.#indexingStartedAt,
-      lastDurationMs: this.#lastIndexingDurationMs
+      isIndexing: this.#activeIndexingCount > 0
     };
   }
 
@@ -322,22 +349,29 @@ class MountManager {
     return this.#searchIndex;
   }
 
+  async #resolveWorkspacePath(collectionPath, workspacePath) {
+    if (workspacePath) return path.resolve(workspacePath);
+    const { findWorkspacePathForCollection } = require('../../utils/workspace-collections');
+    return findWorkspacePathForCollection(collectionPath).catch(() => null);
+  }
+
   async #runIndexCollection(...args) {
-    if (this.#activeIndexingCount === 0) {
-      this.#indexingStartedAt = Date.now();
-      this.#broadcastIndexingStatus();
-    }
-    this.#activeIndexingCount++;
+    this.#beginIndexingSession();
     try {
       await indexCollection(...args);
     } finally {
-      this.#activeIndexingCount--;
-      if (this.#activeIndexingCount === 0) {
-        this.#lastIndexingDurationMs = Date.now() - this.#indexingStartedAt;
-        this.#indexingStartedAt = null;
-        this.#broadcastIndexingStatus();
-      }
+      this.#endIndexingSession();
     }
+  }
+
+  #beginIndexingSession() {
+    this.#activeIndexingCount++;
+    if (this.#activeIndexingCount === 1) this.#broadcastIndexingStatus();
+  }
+
+  #endIndexingSession() {
+    this.#activeIndexingCount--;
+    if (this.#activeIndexingCount === 0) this.#broadcastIndexingStatus();
   }
 
   #broadcastIndexingStatus() {

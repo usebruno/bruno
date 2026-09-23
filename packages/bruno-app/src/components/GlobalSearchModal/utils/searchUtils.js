@@ -2,7 +2,7 @@ import React from 'react';
 import { SEARCH_TYPES, MATCH_TYPES } from '../constants';
 
 export const normalizeQuery = (searchQuery) => {
-  return searchQuery.trim().replace(/\/+/g, '/');
+  return searchQuery.trim();
 };
 
 export const isValidQuery = (normalizedQuery) => {

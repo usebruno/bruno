@@ -38,19 +38,20 @@ const fileIndexByCollection = new Map();
 // registered collections keep the search index in sync with live edits, same idea as the cache above
 const searchIndexByCollection = new Map();
 const refreshSearchIndexEntry = (collectionPath, pathname) => {
-  const searchIndex = searchIndexByCollection.get(collectionPath);
-  if (!searchIndex) return;
+  const registered = searchIndexByCollection.get(collectionPath);
+  if (!registered) return;
+  const { searchIndex, workspacePath } = registered;
   const { revalidateEntry } = require('../services/search-index/indexer');
   const requestPath = path.relative(collectionPath, pathname);
-  revalidateEntry(searchIndex, { collectionPath, requestPath }).catch((err) => {
+  revalidateEntry(searchIndex, { collectionPath, requestPath, workspacePath }).catch((err) => {
     console.error('[collection-watcher] search index refresh failed for', pathname, err);
   });
 };
 
 const removeFromSearchIndex = (collectionPath, pathname) => {
-  const searchIndex = searchIndexByCollection.get(collectionPath);
-  if (!searchIndex) return;
-  searchIndex.remove(collectionPath, path.relative(collectionPath, pathname));
+  const registered = searchIndexByCollection.get(collectionPath);
+  if (!registered) return;
+  registered.searchIndex.remove(collectionPath, path.relative(collectionPath, pathname));
 };
 
 const stageToCache = (collectionPath, pathname, data) => {
@@ -836,7 +837,7 @@ class CollectionWatcher {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
     if (searchIndex) {
-      searchIndexByCollection.set(watchPath, searchIndex);
+      searchIndexByCollection.set(watchPath, { searchIndex, workspacePath: workspacePathname });
     }
 
     this.initializeLoadingState(collectionUid);

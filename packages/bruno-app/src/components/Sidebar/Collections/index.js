@@ -1,21 +1,21 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Virtuoso } from 'react-virtuoso';
-import StyledWrapper from './StyledWrapper';
-import CreateOrOpenCollection from './CreateOrOpenCollection';
-import CollectionSearch from './CollectionSearch/index';
-import InlineCollectionCreator from './InlineCollectionCreator';
-import SidebarRow from './SidebarRow';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { fetchCollectionTreeFromIndex, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
-import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
-import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
-import { normalizePath } from 'utils/common/path';
-import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { fetchCollectionTreeFromIndex, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
-import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { normalizePath } from 'utils/common/path';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import CollectionSearch from './CollectionSearch/index';
+import CreateOrOpenCollection from './CreateOrOpenCollection';
+import InlineCollectionCreator from './InlineCollectionCreator';
+import SidebarRow from './SidebarRow';
+import StyledWrapper from './StyledWrapper';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -86,7 +86,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
     let cancelled = false;
     setIsSearchIndexPending(true);
-    dispatch(searchCollectionTreesFromIndex(debouncedSearchText))
+    dispatch(searchCollectionTreesFromIndex(debouncedSearchText, activeWorkspace?.pathname))
       .then((trees) => {
         if (cancelled) return;
         const byPath = {};
@@ -103,7 +103,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       });
 
     return () => { cancelled = true; };
-  }, [debouncedSearchText, dispatch]);
+  }, [debouncedSearchText, dispatch, activeWorkspace]);
 
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
@@ -118,15 +118,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [renderedSidebarEntries, debouncedSearchText]
   );
 
-  // Shown while a collection preview is being fetched from the index, and while a search is
-  // settling - the two moments the tree on screen is not yet the answer to what the user asked for.
-  const isIndexing = sidebarEntries.some((entry) =>
-    entry.kind === 'loaded'
-    && entry.collection.mountStatus !== 'mounted'
-    && !entry.collection.collapsed
-    && !(entry.collection.uid in indexTreesByUid));
   const isSearchPending = searchText !== debouncedSearchText || isSearchIndexPending;
-  const showIndexingStatus = Boolean(debouncedSearchText) && searchIndexBuilding;
+  const showIndexingText = searchIndexBuilding;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -210,13 +203,15 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      {showIndexingStatus && (
+      {showSearch && showIndexingText && (
         <div className="search-index-status" data-testid="sidebar-indexing-status">Indexing…</div>
       )}
-      <IndeterminateProgressBar
-        active={isIndexing || isSearchPending || showIndexingStatus}
-        data-testid="sidebar-progress"
-      />
+      {showSearch && (
+        <IndeterminateProgressBar
+          active={isSearchPending || searchIndexBuilding}
+          data-testid="sidebar-progress"
+        />
+      )}
 
       {isCreatingCollection && (
         <InlineCollectionCreator
