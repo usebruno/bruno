@@ -95,7 +95,6 @@ export const hydrateSeqInCollection = (collection) => {
 };
 // --- End inlined ---
 
-
 const addSuffixToDuplicateName = (item, index, allItems) => {
   // Check if the request name already exist and if so add a number suffix
   const nameSuffix = allItems.reduce((nameSuffix, otherItem, otherIndex) => {
