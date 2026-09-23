@@ -133,11 +133,11 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
+    await destroyPool({ force }).catch(() => {});
     if (this.#index) {
       this.#index.close();
       this.#index = null;
