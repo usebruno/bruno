@@ -101,7 +101,7 @@ describe('collection actions', () => {
 
   describe('tryResponseExample', () => {
     const exampleRequest = {
-      url: 'https://api.example.com/users/:id?verbose=true',
+      url: 'http://localhost:8081/api/echo/anything/:id?verbose=true',
       method: 'POST',
       headers: [{ uid: 'h1', name: 'Content-Type', value: 'application/json', enabled: true }],
       params: [
@@ -125,7 +125,7 @@ describe('collection actions', () => {
                 type: 'http-request',
                 name: 'Get User',
                 pathname: '/bruno/collection/get-user.yml',
-                request: { method: 'GET', url: 'https://api.example.com/users/1', auth: { mode: 'bearer', bearer: { token: 'abc' } } },
+                request: { method: 'GET', url: exampleRequest.url, auth: { mode: 'bearer', bearer: { token: 'abc' } } },
                 examples: [{ uid: 'example-uid', name: 'Success', type: 'http-request', request: exampleRequest }]
               },
               ...transientNames.map((name, index) => ({
