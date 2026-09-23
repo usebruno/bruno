@@ -2,7 +2,7 @@
 
 This release expands Bruno across scripting, Git workflows, environments, and migration.
 
-Highlights include **gRPC scripting**, **raising pull requests directly from Bruno**, **environment inheritance**, and stronger **Postman migration compatibility**. It also brings control over default headers, sidebar multi-select, lower Runner memory usage, richer reporting, and more capable generated documentation.
+Highlights include **gRPC scripting**, **raising pull requests directly from Bruno**, **environment inheritance**, and stronger **Postman migration compatibility**. It also brings control over runtime headers, sidebar multi-select, lower Runner memory usage, richer reporting, and more capable generated documentation.
 
 Mock Servers, the BRU to YAML migration, Apps and AI, response viewing, and imports all get reliability and usability fixes.
 
@@ -47,6 +47,8 @@ Inherited variables and secrets show up as read-only rows that tell you which en
 
 ![Environment inheritance in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.2.0/env-inheritance.png)
 
+[Read Docs →](https://link.usebruno.com/docs/environment-inheritance?version=4.2.0)
+
 ### Importing Environments
 
 Importing several environment files at once no longer fails as a whole when one of them is bad. Each file is imported on its own. You can also select different environment file formats together.
@@ -68,7 +70,6 @@ Several real-world import failures are closed out.
 * Legacy `postman.*` global variable APIs map to their Bruno equivalents
 * A request with `maxRedirects` above 50 no longer aborts the entire collection
 * Environment variables that omit the `enabled` field import correctly
-* Bulk Postman import now honours the Preserve scripts option
 
 ### NTLM Over HTTPS
 
@@ -76,11 +77,13 @@ NTLM requests now honour Bruno's TLS configuration. Servers presenting self-sign
 
 This clears a confirmed Postman migration gap that previously had no workaround in Bruno, unblocking corporate and internal services that rely on NTLM over HTTPS.
 
-### Default Headers
+### Runtime Headers
 
-The headers panel now lists the default headers Bruno adds for you (`User-Agent`, `Accept`, `Accept-Encoding`, `Host`, `Connection`) alongside the ones you set on the request, and you can turn any of them off from the UI when a request needs it.
+The headers panel now lists the runtime headers Bruno adds for you (`User-Agent`, `Accept`, `Accept-Encoding`, `Host`, `Connection`) alongside the ones you set on the request, and you can turn any of them off from the UI when a request needs it.
 
 The Timeline and Network tabs and the Runner reports reflect the same headers, including any added or changed by scripts.
+
+[Read Docs →](https://link.usebruno.com/docs/runtime-headers?version=4.2.0)
 
 ### Sidebar Multi-Select
 
@@ -117,9 +120,10 @@ Large collection runs use less memory in the app, and CLI runs are back to the m
 
 Mock Servers gets a round of fixes.
 
+* Mock Servers is on by default, and can still be turned off under Preferences > Beta
 * Creating a mock server from a collection or API spec generates its routes right away, instead of needing a separate Sync
 * The Create modal offers Collection, API spec, and Standalone as explicit choices
-* Port accepts 1–65535 and shows proper validation error
+* Port accepts 1–65535 and shows a proper validation error
 * Delay (ms) is locked while the server is running
 * Query Parameters opens with its Name and Value columns visible
 * Servers without responses are no longer indented under the server above them
@@ -138,8 +142,8 @@ Unsaved changes are now preserved through the migration rather than silently dis
 
 Generated documentation now covers far more of what Bruno can do.
 
-* **More request types.** Read-only pages render GraphQL, gRPC, and WebSocket requests with their schema, messages, and metadata. Previously this was HTTP only.
-* **Playground authentication parity.** The Playground now supports AWS Signature v4, Digest, WSSE, OAuth 1.0, and OAuth 2.0 (all grant types plus PKCE), so a documented request can actually be run from the docs.
+* **More request types.** Read-only pages render GraphQL and gRPC requests with their schema, messages, and metadata. Previously this was HTTP only.
+* **Playground authentication parity.** The Playground now supports Digest Auth.
 * **Playground scripting parity.** A wider safe-mode `bru.*` API and the bundled desktop script library set mean pre-request and post-response scripts behave much closer to how they do in the app.
 * **Authoring and sharing.** Tag filters exclude requests from generated docs and drive docs search, code snippets are available directly from examples and from the Playground URL bar, and Try it loads an example into the Playground in one click.
 * **Docs from the CLI.** `bru docs generate` produces the HTML documentation from the command line, so docs can be built in CI and published automatically.
