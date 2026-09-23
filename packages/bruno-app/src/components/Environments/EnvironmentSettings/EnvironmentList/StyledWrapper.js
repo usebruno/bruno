@@ -238,16 +238,16 @@ const StyledWrapper = styled.div`
     }
 
     &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     &.active {
-      background: ${(props) => props.theme.background.surface0};
+      background: ${(props) => props.theme.background.surface1};
       color: ${(props) => props.theme.text};
     }
 
     &.is-selected {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      background: ${(props) => props.theme.background.surface1};
     }
 
     &.renaming,

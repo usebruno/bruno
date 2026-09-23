@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import MenuDropdown from 'ui/MenuDropdown';
+import ContextMenu from 'ui/ContextMenu';
 import { IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
 import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
 
@@ -17,15 +17,6 @@ const SelectionContextMenu = ({
   isAllSelected,
   onClose
 }) => {
-  const anchorStyle = {
-    position: 'fixed',
-    left: `${position?.x || 0}px`,
-    top: `${position?.y || 0}px`,
-    width: '1px',
-    height: '1px',
-    pointerEvents: 'none'
-  };
-
   const isSingleSelection = selectedCount === 1;
 
   const menuItems = useMemo(() => {
@@ -90,16 +81,13 @@ const SelectionContextMenu = ({
   }, [isSingleSelection, selectedCount, onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected]);
 
   return (
-    <MenuDropdown
+    <ContextMenu
+      visible={visible}
+      position={position}
       items={menuItems}
-      placement="right-start"
-      opened={visible}
-      onChange={(isOpen) => !isOpen && onClose()}
-      appendTo={document.body}
+      onClose={onClose}
       menuClassName="env-action-menu"
-    >
-      <div style={anchorStyle} />
-    </MenuDropdown>
+    />
   );
 };
 
