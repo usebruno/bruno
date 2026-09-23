@@ -46,10 +46,6 @@ class FileIndex {
         const hash = await hashFileAsync(absolutePath);
         return { kind: 'added', entry: { relativePath, absolutePath, mtime, hash } };
       }
-      if (prior.applicationVersion !== this.#applicationVersion) {
-        const hash = await hashFileAsync(absolutePath);
-        return { kind: 'updated', entry: { relativePath, absolutePath, mtime, hash, prevHash: prior.hash } };
-      }
       if (prior.mtime === mtime) return { kind: 'unchanged', relativePath };
       const hash = await hashFileAsync(absolutePath);
       if (hash === prior.hash) return { kind: 'unchanged', relativePath };

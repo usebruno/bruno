@@ -1,5 +1,5 @@
 -- name: file_index_metadata_for_collection :many :bigints
-SELECT relative_path AS relativePath, id, mtime, hash, application_version AS applicationVersion
+SELECT relative_path AS relativePath, id, mtime, hash
 FROM file_index_entries
 WHERE collection_path = @collection_path;
 
