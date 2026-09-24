@@ -144,9 +144,7 @@ describe('flattenSidebarTree', () => {
 
     it('distinguishes a descendant nested under two copies of the same duplicated ancestor folder (the duplicated-subtree shape)', () => {
       // A folder move temporarily duplicates the whole subtree with the same
-      // uids at both locations. Immediate-parent-only scoping would give both
-      // copies of "nested" the same key (the shared folder uid); the full
-      // ancestor path disambiguates via the differing top-level ancestor.
+      // uids at both locations.
       const dupFolderUid = 'dup-folder';
       const dupReqUid = 'dup-req';
       const c = collection('C', [
