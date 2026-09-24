@@ -182,17 +182,6 @@ const ResponseExampleTopBar = ({
 
           <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
             <Button
-              color="primary"
-              variant="filled"
-              size="sm"
-              icon={<IconPlayerPlay size={16} />}
-              onClick={() => onTryExample?.(example)}
-              title="Open this example as a new request and send it"
-              data-testid="response-example-try-btn"
-            >
-              Try
-            </Button>
-            <Button
               color="secondary"
               size="sm"
               icon={<IconCode size={16} color={theme.examples.buttonIconColor} />}
@@ -208,6 +197,17 @@ const ResponseExampleTopBar = ({
               data-testid="response-example-edit-btn"
             >
               Edit Example
+            </Button>
+            <Button
+              color="primary"
+              variant="filled"
+              size="sm"
+              icon={<IconPlayerPlay size={16} />}
+              onClick={() => onTryExample?.(example)}
+              title="Open this example as a new request and send it"
+              data-testid="response-example-try-btn"
+            >
+              Try
             </Button>
           </div>
         </div>
