@@ -54,6 +54,7 @@ const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
       getPacResolver,
       resolveAgentsFromPac,
       PatchedHttpsProxyAgent: class {},
+      HeaderSafeHttpProxyAgent: class {},
       clearPacCache: jest.fn()
     };
   });
@@ -147,6 +148,31 @@ describe('proxy-util', () => {
     );
   });
 
+  test.each([
+    ['on', { protocol: 'http', hostname: 'p.example', port: '8080', auth: { disabled: true } }],
+    ['system', { http_proxy: 'http://p.example:8080' }]
+  ])('setupProxyAgents: %s mode uses HeaderSafeHttpProxyAgent for http requests', async (proxyMode, proxyConfig) => {
+    setupMocks();
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { getOrCreateHttpAgent, HeaderSafeHttpProxyAgent } = require('@usebruno/requests');
+
+    const requestConfig = { url: 'http://example.com/resource' };
+
+    await setupProxyAgents({
+      requestConfig,
+      proxyMode,
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline: []
+    });
+
+    expect(requestConfig.httpAgent).toBeDefined();
+    expect(getOrCreateHttpAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ AgentClass: HeaderSafeHttpProxyAgent, proxyUri: 'http://p.example:8080' })
+    );
+  });
+
   test('setupProxyAgents: PAC resolution error logs to timeline and falls back to direct agent', async () => {
     jest.doMock('../src/store/preferences', () => ({
       preferencesUtil: { isSslSessionCachingEnabled: () => false }
@@ -157,6 +183,7 @@ describe('proxy-util', () => {
       getPacResolver: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
       resolveAgentsFromPac: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
       PatchedHttpsProxyAgent: class {},
+      HeaderSafeHttpProxyAgent: class {},
       clearPacCache: jest.fn()
     }));
 
