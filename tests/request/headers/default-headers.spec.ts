@@ -207,7 +207,7 @@ test('shows the runtime-default explanation through ToolHint', async ({ page, cr
   await test.step('Explain the required Host header', async () => {
     await headers.defaultInfo('Host').hover();
     await expect(headers.defaultInfo('Host')).toHaveCSS('cursor', 'pointer');
-    await expect(headers.defaultInfoTooltip('Host')).toHaveText('Required by HTTP, cannot be omitted');
+    await expect(headers.defaultInfoTooltip('Host')).toHaveText('Automatically added at runtime. Required by HTTP, cannot be omitted');
   });
 });
 
