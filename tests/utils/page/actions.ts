@@ -3882,8 +3882,7 @@ const clickOutsideModal = async (page: Page) => {
 const getAppWebviewHtml = async (page: Page, electronApp: ElectronApplication): Promise<string> => {
   await waitForAppGuestReady(page, electronApp);
   return (await evalInActiveAppGuest(page, electronApp, 'document.documentElement.outerHTML')) as string;
-
-}
+};
 
 /**
  * Resizes the main window's content area and waits until the renderer reports the new width.
