@@ -2557,6 +2557,22 @@ const readScriptContent = async (page: Page, subTab: ScriptSubTab): Promise<stri
 };
 
 /**
+ * Read the content of the request's Body editor
+ * @param page - The page object
+ */
+const readRequestBody = async (page: Page): Promise<string> => {
+  await selectRequestPaneTab(page, 'Body');
+  const editorTestId = 'request-body-editor';
+  return buildCommonLocators(page)
+    .codeMirror.byTestId(editorTestId)
+    .evaluate((el: any, testId: string) => {
+      const cm = el.CodeMirror;
+      if (!cm) throw new Error(`CodeMirror instance not found for "${testId}"`);
+      return cm.getValue();
+    }, editorTestId);
+};
+
+/**
  * Add a test script (navigates to Tests tab and replaces editor content)
  * @param page - The page object
  * @param content - The test script content to add
@@ -3844,6 +3860,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  readRequestBody,
   expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
