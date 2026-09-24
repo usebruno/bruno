@@ -241,6 +241,27 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   }
 }
 
+/**
+ * Patched version of HttpProxyAgent that keeps the request header from being
+ * sent twice when the body is streamed.
+ *
+ * The upstream HttpProxyAgent (https://github.com/TooTallNate/proxy-agents/issues/346)
+ * regenerates the header in connect(), which resets `req._headerSent` to false.
+ * If part of the body was already buffered, the next write (e.g. a file stream
+ * chunk in a multipart body) then prepends the header again. Restoring the flag
+ * right after the synchronous header rewrite prevents the duplicate.
+ */
+export class HeaderSafeHttpProxyAgent extends HttpProxyAgent<any> {
+  connect(req: any, opts: any) {
+    const headerSent = req._headerSent;
+    const socket = super.connect(req, opts);
+    if (headerSent) {
+      req._headerSent = true;
+    }
+    return socket;
+  }
+}
+
 const getCertsAndProxyConfig = ({
   requestUrl,
   collectionPath,
@@ -443,7 +464,7 @@ export async function resolveAgentsFromPac({
     const scheme = keyword === 'HTTPS' ? 'https' : 'http';
     const proxyUri = `${scheme}://${hostPort}`;
     const result: ResolveAgentsFromPacResult = { directives };
-    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
+    if (wantHttp) result.httpAgent = getOrCreateHttpAgent({ AgentClass: HeaderSafeHttpProxyAgent, options: { keepAlive: true }, proxyUri, timeline: timeline || null, disableCache, hostname });
     if (wantHttps) result.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
     return result;
   }
@@ -529,7 +550,7 @@ async function createAgents({
         if (isHttpsRequest) {
           httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname }) as HttpsAgent;
         } else {
-          httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname });
+          httpAgent = getOrCreateHttpAgent({ AgentClass: HeaderSafeHttpProxyAgent, options: httpProxyAgentOptions as any, proxyUri, timeline: timeline || null, disableCache, hostname });
         }
       }
     }
@@ -566,7 +587,7 @@ async function createAgents({
             const parsedHttpProxy = new URL(http_proxy);
             const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
             const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
-            httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
+            httpAgent = getOrCreateHttpAgent({ AgentClass: HeaderSafeHttpProxyAgent, options: systemHttpProxyAgentOptions as any, proxyUri: http_proxy, timeline: timeline || null, disableCache, hostname });
           }
         } catch (error) {
           throw new Error('Invalid system http_proxy');
