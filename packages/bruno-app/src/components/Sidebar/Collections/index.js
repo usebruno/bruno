@@ -14,7 +14,7 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
-const isEmptyQuery = (value) => value === '';
+const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
