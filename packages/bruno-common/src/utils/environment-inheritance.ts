@@ -19,9 +19,14 @@ export interface ExtendableEnvironment {
   extends?: string | null;
 }
 
+export interface UnresolvedInheritance {
+  missingInheritedEnvironmentName?: string | null;
+  cyclicInheritancePath?: string[] | null;
+}
+
 export type ResolvedEnvironment<E extends ExtendableEnvironment, Merge extends boolean = false> = Merge extends true
-  ? E
-  : E & { inheritedVariables: E['variables'] };
+  ? E & UnresolvedInheritance
+  : E & { inheritedVariables: E['variables'] } & UnresolvedInheritance;
 
 export const validatedEnvironmentName = (reference: unknown): string | undefined => {
   if (typeof reference !== 'string') {
@@ -48,8 +53,9 @@ export const validatedEnvironmentExtendsFrom = (environmentExtendsReference: unk
 /**
  * An environment's `extends` chain, root ancestor first, so later entries override earlier ones.
  * The walk stops at an unresolvable reference or at a name already seen, so a broken or cyclic
- * chain yields the ancestors found so far, alongside the name that resolved to nothing — a parent
- * that was deleted, or renamed outside the app, leaves the references to it behind.
+ * chain yields the ancestors found so far, alongside the reference that ended the walk — nothing
+ * keeps an `extends` name pointing at an environment that still exists, or keeps a chain from
+ * closing a loop.
  */
 export const getInheritedEnvironments = <E extends ExtendableEnvironment>({
   environments,
@@ -57,13 +63,18 @@ export const getInheritedEnvironments = <E extends ExtendableEnvironment>({
 }: {
   environments: E[];
   environment: E;
-}): { inheritedEnvironments: E[]; missingInheritedEnvironmentName: string | null } => {
+}): {
+  inheritedEnvironments: E[];
+  missingInheritedEnvironmentName: string | null;
+  cyclicInheritancePath: string[] | null;
+} => {
   const scope = environments ?? [];
   const inheritedEnvironments: E[] = [];
-  const walked = new Set<string>([environment.name]);
+  const walkedNames: string[] = [environment.name];
 
   let current: E = environment;
   let missingInheritedEnvironmentName: string | null = null;
+  let cyclicInheritancePath: string[] | null = null;
 
   while (typeof current.extends === 'string') {
     const parent = scope.find((environment) => environment.name === current.extends);
@@ -72,16 +83,22 @@ export const getInheritedEnvironments = <E extends ExtendableEnvironment>({
       break;
     }
 
-    if (walked.has(parent.name)) {
+    const cycleStartIndex = walkedNames.indexOf(parent.name);
+    if (cycleStartIndex !== -1) {
+      cyclicInheritancePath = [...walkedNames.slice(cycleStartIndex), parent.name];
       break;
     }
 
-    walked.add(parent.name);
+    walkedNames.push(parent.name);
     inheritedEnvironments.push(parent);
     current = parent;
   }
 
-  return { inheritedEnvironments: inheritedEnvironments.reverse(), missingInheritedEnvironmentName };
+  return {
+    inheritedEnvironments: inheritedEnvironments.reverse(),
+    missingInheritedEnvironmentName,
+    cyclicInheritancePath
+  };
 };
 
 /**
@@ -109,7 +126,10 @@ export const getInheritableEnvironments = <E extends ExtendableEnvironment>({
   });
 };
 
-export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, Merge extends boolean = false>({
+export const resolveEnvironmentInheritance = <
+  E extends ExtendableEnvironment,
+  Merge extends boolean = false
+>({
   environments,
   targetEnvironment,
   merge
@@ -128,7 +148,7 @@ export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, M
     ) as ResolvedEnvironment<E, Merge>;
   }
 
-  const { inheritedEnvironments } = getInheritedEnvironments({
+  const { inheritedEnvironments, missingInheritedEnvironmentName, cyclicInheritancePath } = getInheritedEnvironments({
     environments: environments ?? [],
     environment: targetEnvironment
   });
@@ -169,8 +189,18 @@ export const resolveEnvironmentInheritance = <E extends ExtendableEnvironment, M
   const inheritedVariables = [...nonSecrets.values(), ...secrets.values()] as E['variables'];
 
   if (merge) {
-    return { ...targetEnvironment, variables: [...inheritedVariables, ...ownVariables] } as ResolvedEnvironment<E, Merge>;
+    return {
+      ...targetEnvironment,
+      variables: [...inheritedVariables, ...ownVariables],
+      missingInheritedEnvironmentName,
+      cyclicInheritancePath
+    } as ResolvedEnvironment<E, Merge>;
   }
 
-  return { ...targetEnvironment, inheritedVariables } as ResolvedEnvironment<E, Merge>;
+  return {
+    ...targetEnvironment,
+    inheritedVariables,
+    missingInheritedEnvironmentName,
+    cyclicInheritancePath
+  } as ResolvedEnvironment<E, Merge>;
 };

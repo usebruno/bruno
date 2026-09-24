@@ -74,7 +74,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
   return (
     <div className={`flex flex-col ${className}`}>
       <div className="flex flex-row gap-4 w-full">
-        <div className="flex-1 flex flex-col gap-2 min-w-0">
+        <div className="flex-1 flex flex-col gap-2 min-w-0" data-testid="runner-include-tags">
           <span>Include tags</span>
           <TagList
             tags={tags.include}
@@ -84,7 +84,7 @@ const RunnerTags = ({ collectionUid, className = '' }) => {
             handleValidation={handleValidation}
           />
         </div>
-        <div className="flex-1 flex flex-col gap-2 min-w-0">
+        <div className="flex-1 flex flex-col gap-2 min-w-0" data-testid="runner-exclude-tags">
           <span>Exclude tags</span>
           <TagList
             tags={tags.exclude}

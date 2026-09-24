@@ -514,3 +514,32 @@ script:grpc:after-call-end {
     });
   });
 });
+
+describe('jsonToBru stringify: multipart contentType', () => {
+  const parser = require('../src/bruToJson');
+
+  it('round-trips @contentType on text and file entries and keeps empty contentType empty', () => {
+    const input = {
+      body: {
+        mode: 'multipartForm',
+        multipartForm: [
+          { name: 'metadata', value: '{"tag":"v1"}', enabled: true, type: 'text', contentType: 'application/json' },
+          { name: 'plain', value: 'hello', enabled: true, type: 'text', contentType: '' },
+          { name: 'avatar', value: ['/tmp/me.png'], enabled: false, type: 'file', contentType: 'image/png' }
+        ]
+      }
+    };
+
+    const output = stringify(input);
+    expect(output).toContain('@contentType(application/json)');
+    expect(output).toContain('@contentType(image/png)');
+    expect(output).not.toContain('@contentType()');
+
+    const parsed = parser(output);
+    expect(parsed.body.multipartForm).toEqual([
+      { name: 'metadata', value: '{"tag":"v1"}', enabled: true, type: 'text', contentType: 'application/json' },
+      { name: 'plain', value: 'hello', enabled: true, type: 'text', contentType: '' },
+      { name: 'avatar', value: ['/tmp/me.png'], enabled: false, type: 'file', contentType: 'image/png' }
+    ]);
+  });
+});

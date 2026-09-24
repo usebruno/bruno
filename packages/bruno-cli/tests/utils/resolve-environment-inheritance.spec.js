@@ -11,14 +11,21 @@ const { resolveEnvironmentInheritance } = require('../../src/utils/environment')
 // only survives in the formats that persist it.
 describe('resolveEnvironmentInheritance', () => {
   let environmentsDir;
+  let warnings;
 
   beforeEach(() => {
     environmentsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-env-inheritance-'));
+    warnings = [];
+    jest.spyOn(console, 'warn').mockImplementation((warning) => warnings.push(warning));
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     fs.rmSync(environmentsDir, { recursive: true, force: true });
   });
+
+  // chalk keeps its colours when the runner reports a colour-capable stream, so assert on the text.
+  const warningsText = () => warnings.join('\n').replace(/\u001b\[\d+m/g, '');
 
   const variable = ({ name, value = '', enabled = true, secret = false }) => ({
     name,
@@ -90,6 +97,23 @@ describe('resolveEnvironmentInheritance', () => {
         variables: [variable({ name: 'host', value: 'dev-host' })],
         inheritedVariables: []
       });
+    });
+
+    it('warns about a reference no sibling file carries', () => {
+      const filePath = writeEnvironment({ name: 'dev', extends: 'base' });
+
+      resolveEnvironmentInheritance({ filePath });
+
+      expect(warningsText()).toContain('Referenced parent environment not found: base');
+    });
+
+    it('warns about nothing when the whole chain resolves', () => {
+      writeEnvironment({ name: 'base', variables: [variable({ name: 'scheme', value: 'https' })] });
+      const filePath = writeEnvironment({ name: 'dev', extends: 'base' });
+
+      resolveEnvironmentInheritance({ filePath });
+
+      expect(warnings).toEqual([]);
     });
   });
 
@@ -322,6 +346,15 @@ describe('resolveEnvironmentInheritance', () => {
 
       expect(result.inheritedVariables.map((row) => row.name)).toEqual(['cycleBOnly']);
       expect(valueOf(result, 'cycleAOnly')).toBe('a-value');
+    });
+
+    it('warns about the loop the chain closed', () => {
+      writeEnvironment({ name: 'base', extends: 'dev' });
+      const filePath = writeEnvironment({ name: 'dev', extends: 'base' });
+
+      resolveEnvironmentInheritance({ filePath });
+
+      expect(warningsText()).toContain('Circular environment inheritance: dev → base → dev');
     });
   });
 
