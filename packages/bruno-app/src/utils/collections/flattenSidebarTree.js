@@ -40,7 +40,7 @@ const groupCollectionItems = (collectionItems) => {
  */
 const walkChildren = (
   collectionContext,
-  { collectionItems = [], depth, parentName, parentUid }
+  { collectionItems = [], depth, parentName, ancestorPath = [] }
 ) => {
   const {
     collectionUid,
@@ -52,7 +52,10 @@ const walkChildren = (
     addItemToIndex
   } = collectionContext;
 
-  const parentKey = parentUid || 'root';
+  // Scope row ids by the full ancestor path, not just the immediate parent uid.
+  // During transient Redux races, the same item can temporarily exist in multiple
+  // locations. The full path keeps duplicated subtrees distinct at their point of divergence.
+  const parentKey = ancestorPath.length ? ancestorPath.join('/') : 'root';
 
   let visibleChildCount = 0;
 
@@ -88,7 +91,7 @@ const walkChildren = (
       collectionItems: folder.items,
       depth: depth + 1,
       parentName: folder.name || null,
-      parentUid: folder.uid
+      ancestorPath: [...ancestorPath, folder.uid]
     });
 
     if (!hasSearch && childCount === 0) {
@@ -226,7 +229,7 @@ const flattenCollection = ({
     collectionItems: collection.items,
     depth: 1,
     parentName: null,
-    parentUid: null
+    ancestorPath: []
   });
 
   // Append the collection-root empty-state CTA row.
