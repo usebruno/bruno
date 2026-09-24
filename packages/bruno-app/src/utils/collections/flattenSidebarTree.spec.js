@@ -113,6 +113,47 @@ describe('flattenSidebarTree', () => {
       expect(kinds(flatten([loaded(c)]))).not.toContain('example');
     });
   });
+
+  describe('row ids are parent-scoped', () => {
+    it('gives a request uid duplicated across two folders two distinct row ids', () => {
+      const dupUid = 'dup-req';
+      const c = collection('C', [
+        folder('folder-a', [request('moved', { uid: dupUid })]),
+        folder('folder-b', [request('moved', { uid: dupUid })])
+      ]);
+      const rows = flatten([loaded(c)]);
+      const dupRows = rows.filter((r) => r.itemUid === dupUid);
+      expect(dupRows).toHaveLength(2);
+      expect(dupRows[0].id).not.toBe(dupRows[1].id);
+    });
+
+    it('gives a folder uid duplicated across two parents two distinct row ids', () => {
+      const dupUid = 'dup-folder';
+      const c = collection('C', [
+        folder('parent-a', [folder('moved', [], { uid: dupUid })]),
+        folder('parent-b', [folder('moved', [], { uid: dupUid })])
+      ]);
+      const rows = flatten([loaded(c)]);
+      const dupRows = rows.filter((r) => r.itemUid === dupUid && r.kind === 'folder');
+      expect(dupRows).toHaveLength(2);
+      expect(dupRows[0].id).not.toBe(dupRows[1].id);
+    });
+
+    it('gives the same item the same row id across renders when its parent is unchanged', () => {
+      const c = collection('C', [folder('f1', [request('stable', { uid: 'stable-uid' })])]);
+      const first = flatten([loaded(c)]).find((r) => r.itemUid === 'stable-uid');
+      const second = flatten([loaded(c)]).find((r) => r.itemUid === 'stable-uid');
+      expect(first.id).toBe(second.id);
+    });
+
+    it('distinguishes two top-level (root-parented) items with different uids', () => {
+      const c = collection('C', [request('a', { uid: 'a-uid' }), request('b', { uid: 'b-uid' })]);
+      const rows = flatten([loaded(c)]);
+      const idA = rows.find((r) => r.itemUid === 'a-uid').id;
+      const idB = rows.find((r) => r.itemUid === 'b-uid').id;
+      expect(idA).not.toBe(idB);
+    });
+  });
 });
 
 describe('ancestry attributes', () => {
