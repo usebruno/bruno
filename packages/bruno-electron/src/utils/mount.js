@@ -17,7 +17,12 @@ const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])]
 
 const isDenied = (relativePathPosix, patterns) => {
   for (const pattern of patterns) {
-    if (path.matchesGlob(relativePathPosix, pattern)) return true;
+    const normalizedPattern = posixifyPath(pattern);
+    if (
+      relativePathPosix === normalizedPattern
+      || relativePathPosix.startsWith(`${normalizedPattern}/`)
+      || path.matchesGlob(relativePathPosix, normalizedPattern)
+    ) return true;
   }
   return false;
 };
@@ -55,6 +60,7 @@ const walk = (root, denylist) => {
 
       if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
+        if (isDenied(posixifyPath(childRel), denylist)) continue;
         visit(childAbs, childRel);
       } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;
