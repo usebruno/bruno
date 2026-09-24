@@ -10,8 +10,8 @@ const MIN_COL_WIDTH = 60;
 // Captures the latest hook return value on each render
 let hookValue;
 
-function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH, reservedWidth }) {
-  const hook = useResizableColumns({ defaultWidths, minColWidth, reservedWidth });
+function Fixture({ defaultWidths = DEFAULT_WIDTHS, minColWidth = MIN_COL_WIDTH, reservedWidth, onResizeEnd }) {
+  const hook = useResizableColumns({ defaultWidths, minColWidth, reservedWidth, onResizeEnd });
   hookValue = hook;
   return <div ref={hook.containerRef} />;
 }
@@ -356,6 +356,32 @@ describe('useResizableColumns', () => {
 
       expect(onClick).not.toHaveBeenCalled();
       document.body.removeEventListener('click', onClick);
+    });
+
+    it('ends the resize when the window loses focus mid-drag', () => {
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      const widthsAtBlur = [...hookValue.colWidths];
+
+      act(() => { window.dispatchEvent(new Event('blur')); });
+
+      expect(hookValue.resizingIdx).toBeNull();
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+
+      // Listeners are gone: later pointer events no longer resize
+      fireMouse('mousemove', 700);
+      expect(hookValue.colWidths).toEqual(widthsAtBlur);
+    });
+
+    it('persists the widths reached before the window lost focus', () => {
+      const onResizeEnd = jest.fn();
+      setup({ onResizeEnd });
+
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      act(() => { window.dispatchEvent(new Event('blur')); });
+
+      expect(onResizeEnd).toHaveBeenCalledWith(hookValue.colWidths);
     });
 
     it('unmounting during an active drag does not throw', () => {

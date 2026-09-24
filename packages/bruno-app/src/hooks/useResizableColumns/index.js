@@ -214,15 +214,14 @@ export function useResizableColumns({
     const cleanup = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onWindowBlur);
       document.body.classList.remove(COLUMN_RESIZE_CURSOR_CLASS);
       dragCleanupRef.current = null;
     };
 
-    const onMouseUp = () => {
+    const endResize = () => {
       setResizingIdx(null);
       cleanup();
-      // Prevent a resize gesture from triggering a click when the release lands on a clickable element.
-      suppressTrailingClickOnce();
       // Capture final widths for persistence — read directly from state via functional update
       if (onResizeEnd) {
         setColWidths((current) => {
@@ -232,8 +231,19 @@ export function useResizableColumns({
       }
     };
 
+    const onMouseUp = () => {
+      endResize();
+      // Prevent a resize gesture from triggering a click when the release lands on a clickable element.
+      suppressTrailingClickOnce();
+    };
+
+    const onWindowBlur = () => {
+      endResize();
+    };
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onWindowBlur);
     dragCleanupRef.current = cleanup;
   }, [colWidths, minColWidth]);
 
