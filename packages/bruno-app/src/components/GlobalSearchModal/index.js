@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons';
 import path from 'path';
 import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, mountUnmountedActiveWorkspaceCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
@@ -36,6 +36,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const virtuosoRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
   const searchRequestIdRef = useRef(0);
+  const hasMountedForSearchRef = useRef(false);
   const dispatch = useDispatch();
   const store = useStore();
   const { ipcRenderer } = window;
@@ -43,6 +44,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const allCollections = useSelector((state) => state.collections.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
+  const searchIndexBuildTrigger = useSelector((state) => state.app.preferences?.cache?.searchIndex?.buildTrigger);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
@@ -329,6 +332,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       setExternalResults([]);
       setLocalResults(createCollectionResults());
       setSelectedIndex(0);
+      hasMountedForSearchRef.current = false;
 
       return () => clearTimeout(timeoutId);
     }
@@ -338,6 +342,11 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen) return;
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+
+    if (query.trim() && searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
+      hasMountedForSearchRef.current = true;
+      dispatch(mountUnmountedActiveWorkspaceCollections());
+    }
 
     if (!query.trim()) {
       performLocalSearch(query);
@@ -354,7 +363,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
 
     return () => clearTimeout(debounceTimeoutRef.current);
-  }, [isOpen, query, performLocalSearch, fetchIndexResults]);
+  }, [isOpen, query, performLocalSearch, fetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuildTrigger]);
 
   useEffect(() => {
     if (results.length > 0) {

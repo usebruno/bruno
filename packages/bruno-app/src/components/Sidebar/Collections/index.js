@@ -2,7 +2,7 @@ import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { fetchCollectionTreeFromIndex, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchCollectionTreeFromIndex, mountUnmountedActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
@@ -27,10 +27,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
+  const searchIndexBuildTrigger = useSelector((state) => state.app.preferences?.cache?.searchIndex?.buildTrigger);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
+  const hasMountedForSearchRef = useRef(false);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -81,7 +84,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     if (!debouncedSearchText) {
       setSearchTreesByPath({});
       setIsSearchIndexPending(false);
+      hasMountedForSearchRef.current = false;
       return;
+    }
+
+    if (searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
+      hasMountedForSearchRef.current = true;
+      dispatch(mountUnmountedActiveWorkspaceCollections());
     }
 
     let cancelled = false;
@@ -103,7 +112,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       });
 
     return () => { cancelled = true; };
-  }, [debouncedSearchText, dispatch, activeWorkspace]);
+  }, [debouncedSearchText, dispatch, activeWorkspace, searchIndexEnabled, searchIndexBuildTrigger]);
 
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;

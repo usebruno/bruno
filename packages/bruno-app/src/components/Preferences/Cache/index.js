@@ -7,9 +7,15 @@ import { IconEraser, IconRefresh } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
+import SegmentedControl from 'ui/SegmentedControl';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common';
 import { Button } from 'ui/index';
+
+const SEARCH_INDEX_BUILD_TRIGGER_ITEMS = [
+  { value: 'app-start', label: 'On app start' },
+  { value: 'on-search', label: 'On search' }
+];
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -23,6 +29,7 @@ const Cache = () => {
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
+  const searchIndexBuildTrigger = get(preferences, 'cache.searchIndex.buildTrigger', 'app-start');
 
   const [fileCacheSize, setFileCacheSize] = useState(null);
   const [searchIndexSize, setSearchIndexSize] = useState(null);
@@ -67,7 +74,14 @@ const Cache = () => {
   const handleToggleSearchIndex = () => {
     persist({
       ...preferences.cache,
-      searchIndex: { enabled: !searchIndexEnabled }
+      searchIndex: { ...preferences.cache?.searchIndex, enabled: !searchIndexEnabled }
+    });
+  };
+
+  const handleSearchIndexBuildTriggerChange = (buildTrigger) => {
+    persist({
+      ...preferences.cache,
+      searchIndex: { ...preferences.cache?.searchIndex, buildTrigger }
     });
   };
 
@@ -156,6 +170,17 @@ const Cache = () => {
       </div>
 
       <div className="cache-item">
+        <div className="cache-item-build-trigger">
+          <span className="cache-item-build-trigger-label">Build search index</span>
+          <SegmentedControl
+            ariaLabel="Build search index"
+            name="searchIndexBuildTrigger"
+            value={searchIndexBuildTrigger}
+            onChange={handleSearchIndexBuildTriggerChange}
+            items={SEARCH_INDEX_BUILD_TRIGGER_ITEMS}
+            size="sm"
+          />
+        </div>
         <div className="cache-item-header">
           <div className="cache-item-title-group">
             <span className="cache-item-title">Search index</span>

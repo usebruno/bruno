@@ -39,11 +39,12 @@ const runWithConcurrency = async (items, limit, task) => {
   await Promise.all(runners);
 };
 
-const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath) => {
+const indexUncached = async (searchIndex, collectionPath, collectionName, denylist, concurrency, workspacePath, fileIndex) => {
   const files = walk(collectionPath, resolveDenylist(denylist))
     .map((f) => ({ ...f, cls: defaultClassify(f.relativePath) }))
     .filter((f) => f.cls?.type === 'request');
   const stored = searchIndex.entriesFor(collectionPath);
+  const cached = fileIndex ? fileIndex.entries(collectionPath) : null;
 
   const statuses = await Promise.all(files.map(async ({ relativePath, absolutePath, cls }) => {
     const stat = await fs.promises.stat(absolutePath, { bigint: true });
@@ -53,12 +54,23 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
       const hash = await hashFileAsync(absolutePath);
       if (hash === prior.hash) return { kind: 'unchanged', relativePath };
     }
+
+    const cachedEntry = cached?.get(relativePath);
+    if (cachedEntry && cachedEntry.mtime === stat.mtimeNs) {
+      return { kind: 'cached', relativePath, entry: cachedEntry };
+    }
+
     return { kind: 'stale', relativePath, format: cls.format };
   }));
 
   const seen = new Set(statuses.map((s) => s.relativePath));
   for (const [relativePath] of stored) {
     if (!seen.has(relativePath)) searchIndex.remove(collectionPath, relativePath);
+  }
+
+  for (const status of statuses) {
+    if (status.kind !== 'cached') continue;
+    searchIndex.upsert(toRow(collectionPath, collectionName, { relativePath: status.relativePath, ...status.entry }, workspacePath));
   }
 
   const toParse = statuses.filter((s) => s.kind === 'stale');
@@ -72,9 +84,9 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   });
 };
 
-const indexCollection = async (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath }) => {
+const indexCollection = async (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath, fileIndex }) => {
   const root = normalize(collectionPath);
-  await indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath);
+  await indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex);
 };
 
 const revalidateEntry = async (searchIndex, { collectionPath, collectionName, requestPath, workspacePath }) => {

@@ -3417,6 +3417,26 @@ export const mountCollection
       });
     };
 
+export const mountUnmountedActiveWorkspaceCollections = () => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  if (!activeWorkspace) return;
+
+  const workspacePaths = new Set((activeWorkspace.collections || []).map((wc) => normalizePath(wc.path)));
+  collections
+    .filter((c) => c.mountStatus === 'unmounted' && workspacePaths.has(normalizePath(c.pathname)))
+    .forEach((collection) => {
+      dispatch(mountCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig,
+        workspacePathname: activeWorkspace.pathname
+      })).catch(() => {});
+    });
+};
+
 export const fetchCollectionTreeFromIndex
   = ({ collectionPath, collectionName }) =>
     async () => {

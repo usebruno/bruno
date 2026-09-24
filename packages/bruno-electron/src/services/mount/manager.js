@@ -104,22 +104,28 @@ class MountManager {
     this.#mounts.set(collectionUid, entry);
 
     entry.emit.loading(true);
+    const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
+    if (searchIndexEnabled) this.#beginIndexingSession();
+    let indexingHandedOff = false;
     try {
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
-      const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
       const resolvedWorkspacePath = searchIndexEnabled
         ? await this.#resolveWorkspacePath(collectionPath, workspacePath)
         : null;
 
       if (searchIndexEnabled) {
-        this.#runIndexCollection(this.#getSearchIndex(), {
+        indexingHandedOff = true;
+        indexCollection(this.#getSearchIndex(), {
           collectionPath,
           collectionName: path.basename(collectionPath),
-          workspacePath: resolvedWorkspacePath
-        }).catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err));
+          workspacePath: resolvedWorkspacePath,
+          fileIndex: this.#getIndex()
+        })
+          .catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err))
+          .finally(() => this.#endIndexingSession());
       }
 
       // skip the startup walk (already done) and stage live edits into the cache
@@ -132,6 +138,7 @@ class MountManager {
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
+      if (searchIndexEnabled && !indexingHandedOff) this.#endIndexingSession();
       this.#mounts.delete(collectionUid);
       throw err;
     } finally {
@@ -237,25 +244,39 @@ class MountManager {
     const alreadyMounted = Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
     if (alreadyMounted) return;
     const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
-    await this.#runIndexCollection(this.#getSearchIndex(), { collectionPath: root, collectionName, workspacePath: resolvedWorkspacePath });
+    await this.#runIndexCollection(this.#getSearchIndex(), {
+      collectionPath: root,
+      collectionName,
+      workspacePath: resolvedWorkspacePath,
+      fileIndex: preferencesUtil.isFileCacheEnabled() ? this.#getIndex() : null
+    });
   }
 
   async indexManyCollectionsInBackground(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
+    if (preferencesUtil.getSearchIndexBuildTrigger() !== 'app-start') return;
+    const fileCacheEnabled = preferencesUtil.isFileCacheEnabled();
     this.#beginIndexingSession();
     try {
       const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
+      const fileCachePaths = fileCacheEnabled ? new Set(this.#getIndex().collectionPaths()) : new Set();
       const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
         root: path.resolve(collectionPath),
         collectionName
       }));
+      const isFast = (c) => priorPaths.has(c.root) || fileCachePaths.has(c.root);
       const ordered = [
-        ...resolved.filter((c) => priorPaths.has(c.root)),
-        ...resolved.filter((c) => !priorPaths.has(c.root))
+        ...resolved.filter(isFast),
+        ...resolved.filter((c) => !isFast(c))
       ];
 
       for (const { root, collectionName } of ordered) {
-        await indexCollection(this.#getSearchIndex(), { collectionPath: root, collectionName, workspacePath }).catch(() => {});
+        await indexCollection(this.#getSearchIndex(), {
+          collectionPath: root,
+          collectionName,
+          workspacePath,
+          fileIndex: fileCacheEnabled ? this.#getIndex() : null
+        }).catch(() => {});
       }
     } finally {
       this.#endIndexingSession();
