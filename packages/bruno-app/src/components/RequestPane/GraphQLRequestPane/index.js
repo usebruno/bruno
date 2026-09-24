@@ -30,7 +30,6 @@ import { findEnvironmentInCollection } from 'utils/collections';
 import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import AuthMode from '../Auth/AuthMode/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import StatusDot from 'components/StatusDot';
 
@@ -321,13 +320,6 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   let rightContent = null;
   switch (requestPaneTab) {
-    case 'auth':
-      rightContent = (
-        <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
-          <AuthMode item={item} collection={collection} />
-        </div>
-      );
-      break;
     case 'query':
       rightContent = (
         <div ref={schemaActionsRef} className="flex items-center gap-2">

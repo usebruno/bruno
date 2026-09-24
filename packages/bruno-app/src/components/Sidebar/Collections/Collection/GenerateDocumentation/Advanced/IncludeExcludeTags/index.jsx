@@ -44,26 +44,26 @@ const IncludeExcludeTags = ({
     <StyledWrapper className={className}>
       <div className="tags-columns">
         <div className="tags-column">
-          <span className="tags-label">Include tags</span>
+          <span className="tags-label">Include Tags</span>
           <DocsTagList
             tags={include}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'include')}
             handleRemoveTag={(tag) => handleRemoveTag(tag, 'include')}
             handleValidation={handleValidation}
-            ariaLabel="Include tags"
+            ariaLabel="Include Tags"
             placeholder="e.g. Production ready"
           />
         </div>
         <div className="tags-column">
-          <span className="tags-label">Exclude tags</span>
+          <span className="tags-label">Exclude Tags</span>
           <DocsTagList
             tags={exclude}
             tagsHintList={tagsHintList}
             handleAddTag={(tag) => handleAddTag(tag, 'exclude')}
             handleRemoveTag={(tag) => handleRemoveTag(tag, 'exclude')}
             handleValidation={handleValidation}
-            ariaLabel="Exclude tags"
+            ariaLabel="Exclude Tags"
             placeholder="e.g, Work in progress"
           />
         </div>
