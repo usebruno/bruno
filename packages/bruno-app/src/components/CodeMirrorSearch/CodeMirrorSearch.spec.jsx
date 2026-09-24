@@ -272,6 +272,106 @@ describe('CodeMirrorSearch', () => {
     });
   });
 
+  describe('Tab order', () => {
+    // Focuses `el`, presses Tab on it and returns whether the browser default was left alone
+    function pressTab(el, opts = {}) {
+      act(() => el.focus());
+      return fireEvent.keyDown(el, { key: 'Tab', ...opts });
+    }
+
+    function renderWithReplace(props = {}) {
+      renderSearch(props);
+      fireEvent.click(screen.getByTitle('Show replace'));
+    }
+
+    it('Tab from the search input moves to the replace input', () => {
+      renderWithReplace();
+      const notPrevented = pressTab(screen.getByTestId('codemirror-search-input'));
+      expect(notPrevented).toBe(false);
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-replace-input'));
+    });
+
+    it('Tab from the replace input moves to the first search-row button', () => {
+      renderWithReplace();
+      pressTab(screen.getByTestId('codemirror-search-replace-input'));
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-regex-btn'));
+    });
+
+    it('Shift+Tab from the replace input moves back to the search input', () => {
+      renderWithReplace();
+      pressTab(screen.getByTestId('codemirror-search-replace-input'), { shiftKey: true });
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
+    });
+
+    it('Shift+Tab from the first search-row button moves back to the replace input', () => {
+      renderWithReplace();
+      pressTab(screen.getByTestId('codemirror-search-regex-btn'), { shiftKey: true });
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-replace-input'));
+    });
+
+    it('Tab from the close button moves to the replace buttons, not back to the replace input', () => {
+      renderWithReplace();
+      pressTab(screen.getByTestId('codemirror-search-close-btn'));
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-replace-btn'));
+    });
+
+    it('stops the handled Tab from reaching outer keydown handlers such as a modal focus trap', () => {
+      renderWithReplace();
+      const outerHandler = jest.fn();
+      document.addEventListener('keydown', outerHandler);
+      try {
+        pressTab(screen.getByTestId('codemirror-search-input'));
+      } finally {
+        document.removeEventListener('keydown', outerHandler);
+      }
+      expect(outerHandler).not.toHaveBeenCalled();
+    });
+
+    it('leaves Tab from the last replace button and Shift+Tab from the search input to the browser', () => {
+      renderWithReplace();
+      const replaceAllBtn = screen.getByTestId('codemirror-search-replaceall-btn');
+      expect(pressTab(replaceAllBtn)).toBe(true);
+      expect(document.activeElement).toBe(replaceAllBtn);
+
+      const searchInput = screen.getByTestId('codemirror-search-input');
+      expect(pressTab(searchInput, { shiftKey: true })).toBe(true);
+      expect(document.activeElement).toBe(searchInput);
+    });
+
+    it('does not intercept Tab when the replace row is hidden', () => {
+      renderSearch();
+      const outerHandler = jest.fn();
+      document.addEventListener('keydown', outerHandler);
+      try {
+        expect(pressTab(screen.getByTestId('codemirror-search-input'))).toBe(true);
+      } finally {
+        document.removeEventListener('keydown', outerHandler);
+      }
+      expect(outerHandler).toHaveBeenCalled();
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
+    });
+
+    it('does not intercept Tab in a read-only editor', () => {
+      const ref = createRef();
+      renderSearch({ readOnly: true }, ref);
+      act(() => {
+        ref.current.openReplace();
+        jest.runAllTimers();
+      });
+      expect(pressTab(screen.getByTestId('codemirror-search-input'))).toBe(true);
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
+    });
+
+    it('does not intercept Tab combined with Ctrl, Meta or Alt', () => {
+      renderWithReplace();
+      const searchInput = screen.getByTestId('codemirror-search-input');
+      [{ ctrlKey: true }, { metaKey: true }, { altKey: true }].forEach((mod) => {
+        expect(pressTab(searchInput, mod)).toBe(true);
+        expect(document.activeElement).toBe(searchInput);
+      });
+    });
+  });
+
   describe('isDebouncing guard', () => {
     it('replace buttons are enabled once debounce settles', () => {
       const matches = [{ from: { line: 0, ch: 0 }, to: { line: 0, ch: 4 } }];
