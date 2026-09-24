@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import { useDrop, useDrag } from 'react-dnd';
@@ -27,7 +27,7 @@ import {
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -78,7 +78,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
 
-  const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
+  const selectIsCollectionFocused = useMemo(() => isTabForItemActive({ itemUid: collection.uid }), [collection.uid]);
+  const isCollectionFocused = useSelector(selectIsCollectionFocused);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(collection.uid);
@@ -92,7 +93,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   );
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
-  const allCollections = useSelector((state) => state.collections.collections);
+  const store = useStore();
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
   const isDragDisabled = isMultiSelected && isCollectionMultiDragDisabled;
@@ -317,7 +318,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
 
         const draggedItems = getSortedDraggedItems({
           draggedItem,
-          allCollections,
+          allCollections: store.getState().collections.collections,
           workspaces,
           activeWorkspace,
           collectionSortOrder,
@@ -336,7 +337,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       } else {
         const draggedItems = getSortedDraggedItems({
           draggedItem,
-          allCollections,
+          allCollections: store.getState().collections.collections,
           workspaces,
           activeWorkspace,
           collectionSortOrder,

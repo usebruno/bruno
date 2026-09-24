@@ -1,9 +1,9 @@
 import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import find from 'lodash/find';
 import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { NON_CLOSABLE_TAB_TYPES } from 'providers/ReduxStore/slices/tabs';
+import { selectTabByUid } from 'src/selectors/tab';
 import Button from 'ui/Button';
 import { useTheme } from 'providers/Theme';
 
@@ -60,9 +60,10 @@ class TabPanelErrorBoundaryInner extends React.Component {
 
 const TabPanelErrorBoundary = ({ tabUid, children }) => {
   const dispatch = useDispatch();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const focusedTab = find(tabs, (t) => t.uid === tabUid);
-  const isClosable = !focusedTab || !NON_CLOSABLE_TAB_TYPES.includes(focusedTab.type);
+  const isClosable = useSelector((state) => {
+    const tab = selectTabByUid(state, tabUid);
+    return !tab || !NON_CLOSABLE_TAB_TYPES.includes(tab.type);
+  });
   const { theme } = useTheme();
 
   const handleClose = () => {

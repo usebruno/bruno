@@ -7,9 +7,10 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
-import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
+import { findEnvironmentInCollection } from 'utils/collections/index';
+import { selectCollectionByUid } from 'src/selectors/collections';
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
 import StyledWrapper from './StyledWrapper';
@@ -47,7 +48,8 @@ export const SingleWSMessage = ({
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
-  const collections = useSelector((state) => state.collections.collections);
+
+  const store = useStore();
 
   const { name, content, type } = message;
   const displayMode = typeToMode(type);
@@ -162,7 +164,7 @@ export const SingleWSMessage = ({
 
   const onSendMessage = useCallback(async () => {
     try {
-      const col = findCollectionByUid(collections, collection.uid);
+      const col = selectCollectionByUid(store.getState(), collection.uid);
       const environment = resolveEnvironmentInheritance({
         environments: col?.environments,
         targetEnvironment: findEnvironmentInCollection(col, col?.activeEnvironmentUid)
@@ -178,7 +180,7 @@ export const SingleWSMessage = ({
     } catch (err) {
       toast.error(err.message || 'Failed to send message');
     }
-  }, [collections]);
+  }, [store, item, collection.uid, index]);
 
   return (
     <StyledWrapper

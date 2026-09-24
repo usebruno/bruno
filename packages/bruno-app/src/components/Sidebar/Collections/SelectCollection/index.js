@@ -3,9 +3,10 @@ import Modal from 'components/Modal/index';
 import { IconFiles } from '@tabler/icons';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { selectCollections } from 'src/selectors/collections';
 
 const SelectCollection = ({ onClose, onSelect, title }) => {
-  const { collections } = useSelector((state) => state.collections);
+  const collections = useSelector(selectCollections);
 
   return (
     <StyledWrapper>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { selectCollections } from 'src/selectors/collections';
 import {
   IconBox,
   IconTrash,
@@ -30,7 +31,7 @@ import StyledWrapper from './StyledWrapper';
 
 const CollectionsList = ({ workspace }) => {
   const dispatch = useDispatch();
-  const { collections } = useSelector((state) => state.collections);
+  const collections = useSelector(selectCollections);
   const dropdownRefs = useRef({});
 
   const [renameCollectionModalOpen, setRenameCollectionModalOpen] = useState(false);

@@ -1,14 +1,15 @@
 import React, { useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { produce } from 'immer';
-import find from 'lodash/find';
 import get from 'lodash/get';
 import {
+  findCollectionByUid,
   findItemInCollection,
   findItemInCollectionByPathname,
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections';
+import { selectCollections } from 'src/selectors/collections';
+import { selectTabs, selectActiveTabUid } from 'src/selectors/tab';
 import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
 import AppView from 'components/AppView';
@@ -25,40 +26,38 @@ const APP_CAPABLE_TAB_TYPES = new Set([
 ]);
 
 const AppPreviewKeepAlive = () => {
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const _collections = useSelector((state) => state.collections.collections);
+  const tabs = useSelector(selectTabs);
+  const activeTabUid = useSelector(selectActiveTabUid);
+  const collections = useSelector(selectCollections);
   const globalEnvironments = useSelector((state) => state.globalEnvironments?.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector(
     (state) => state.globalEnvironments?.activeGlobalEnvironmentUid
   );
 
-  const collections = useMemo(() => {
-    const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-      globalEnvironments,
-      activeGlobalEnvironmentUid
-    });
-    const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({
-      globalEnvironments,
-      activeGlobalEnvironmentUid
-    });
-    return produce(_collections, (draft) => {
-      for (const collection of draft) {
-        collection.globalEnvironmentVariables = globalEnvironmentVariables;
-        collection.globalEnvSecrets = globalEnvSecrets;
-        collection.globalEnvironments = globalEnvironments;
-        collection.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
-      }
-    });
-  }, [_collections, globalEnvironments, activeGlobalEnvironmentUid]);
-
   const everActiveRef = useRef(new Set());
 
   const appTabs = useMemo(() => {
     const out = [];
+    let globals = null;
+    const mergedByUid = new Map();
+    const withGlobals = (collection) => {
+      if (!mergedByUid.has(collection.uid)) {
+        if (!globals) {
+          globals = {
+            globalEnvironmentVariables: getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+            globalEnvSecrets: getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid }),
+            globalEnvironments,
+            activeGlobalEnvironmentUid
+          };
+        }
+        mergedByUid.set(collection.uid, { ...collection, ...globals });
+      }
+      return mergedByUid.get(collection.uid);
+    };
+
     for (const tab of tabs) {
       if (tab.type && !APP_CAPABLE_TAB_TYPES.has(tab.type)) continue;
-      const collection = find(collections, (c) => c.uid === tab.collectionUid);
+      const collection = findCollectionByUid(collections, tab.collectionUid);
       // File-mode collections render everything through FileEditor.
       if (!collection || collection.fileMode) continue;
       let item = findItemInCollection(collection, tab.uid);
@@ -68,7 +67,7 @@ const AppPreviewKeepAlive = () => {
       if (!item || item.partial || item.loading) continue;
 
       if (item.type === 'app') {
-        out.push({ tabUid: tab.uid, collection, item, kind: 'standalone' });
+        out.push({ tabUid: tab.uid, collection: withGlobals(collection), item, kind: 'standalone' });
         continue;
       }
 
@@ -77,11 +76,11 @@ const AppPreviewKeepAlive = () => {
         && tab.appPreview !== false;
       if (appEnabled) {
         const code = get(itemSource, 'app.code', '');
-        out.push({ tabUid: tab.uid, collection, item, kind: 'request', code });
+        out.push({ tabUid: tab.uid, collection: withGlobals(collection), item, kind: 'request', code });
       }
     }
     return out;
-  }, [tabs, collections]);
+  }, [tabs, collections, globalEnvironments, activeGlobalEnvironmentUid]);
 
   const validUids = new Set(appTabs.map((t) => t.tabUid));
   for (const uid of [...everActiveRef.current]) {

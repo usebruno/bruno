@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import find from 'lodash/find';
+import { selectActiveTab } from 'src/selectors/tab';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
@@ -18,12 +18,7 @@ const StatusBar = () => {
   const dispatch = useDispatch();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
-  const showHomePage = useSelector((state) => state.app.showHomePage);
-  const showManageWorkspacePage = useSelector((state) => state.app.showManageWorkspacePage);
-  const showApiSpecPage = useSelector((state) => state.app.showApiSpecPage);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeTab = useSelector(selectActiveTab);
   const logs = useSelector((state) => state.logs.logs);
   const [cookiesOpen, setCookiesOpen] = useState(false);
   const { version } = useApp();
