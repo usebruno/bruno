@@ -1,0 +1,16 @@
+info:
+  name: reports-tags
+  type: http
+  seq: 2
+  tags:
+    - smoke
+
+http:
+  method: GET
+  url: '{{host}}/ping'
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log('REQ_TAGS ' + JSON.stringify(req.getTags()));

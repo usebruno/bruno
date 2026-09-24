@@ -302,6 +302,9 @@ class SingleLineEditor extends Component {
   };
 
   toggleVisibleSecret = () => {
+    if (this.props.readOnly) {
+      return;
+    }
     const isVisible = !this.state.maskInput;
     this.setState({ maskInput: isVisible });
     this._enableMaskedEditor(isVisible);
@@ -313,7 +316,14 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
+      <button
+        type="button"
+        className="mx-2"
+        data-testid="secret-reveal-toggle"
+        disabled={this.props.readOnly}
+        tabIndex={this.props.readOnly ? -1 : 0}
+        onClick={() => this.toggleVisibleSecret()}
+      >
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

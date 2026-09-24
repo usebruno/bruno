@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://example.com/common/v4"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:detail="http://example.com/detail/v4">
+  <xs:import namespace="http://example.com/detail/v4" schemaLocation="Detail.xsd"/>
+  <xs:complexType name="PartyType">
+    <xs:sequence>
+      <xs:element name="status" type="detail:StatusType"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

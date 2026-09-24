@@ -51,6 +51,7 @@ const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
+const { registerWsdlIpc } = require('./ipc/wsdl');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -536,6 +537,7 @@ app.on('ready', async () => {
   registerSqliteIpc(mainWindow);
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
+  registerWsdlIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
