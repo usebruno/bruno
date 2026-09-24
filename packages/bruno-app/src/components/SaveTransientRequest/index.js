@@ -234,7 +234,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
       const targetPathname = path.join(targetDirname, targetFilename);
 
-      await ipcRenderer.invoke('renderer:save-transient-request', {
+      const saveResult = await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
@@ -243,13 +243,16 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourceFormat
       });
 
+      // use the path resolved by the handler.
+      const savedPathname = saveResult?.newPathname || targetPathname;
+
       if (!closeAfterSave) {
         dispatch(
           insertTaskIntoQueue({
             uid: uuid(),
             type: 'OPEN_REQUEST',
             collectionUid: targetCollection.uid,
-            itemPathname: targetPathname,
+            itemPathname: savedPathname,
             preview: false
           })
         );

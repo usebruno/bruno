@@ -1,0 +1,9 @@
+opencollection: 1.0.0
+info:
+  name: "onFail Workspace"
+  type: workspace
+collections:
+  - name: "onfail-collection"
+    path: "onfail-collection"
+specs:
+docs: ''

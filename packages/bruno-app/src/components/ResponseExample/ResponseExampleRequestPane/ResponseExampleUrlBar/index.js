@@ -6,7 +6,7 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 
-const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid, allowMethodSelect = false }) => {
+const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid, allowMethodSelect = false, urlPrefix = null, highlightPathParams = true }) => {
   const dispatch = useDispatch();
 
   const exampleData = useMemo(() => {
@@ -65,7 +65,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid,
 
   return (
     <StyledWrapper className="flex items-center">
-      <div className="url-bar-container w-full flex p-2 text-xs rounded-md items-center justify-between" data-testid="url-bar-container">
+      <div className="url-bar-container w-full flex py-2 text-xs rounded-md items-center justify-between" data-testid="url-bar-container">
         {allowMethodSelect ? (
           <div
             className={`flex-shrink-0 mr-2 ${editMode ? '' : 'pointer-events-none'}`}
@@ -84,6 +84,9 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid,
           </div>
         )}
 
+        {urlPrefix ? (
+          <span className="url-prefix flex-shrink-0 whitespace-nowrap" data-testid="url-bar-prefix">{urlPrefix}</span>
+        ) : null}
         <div
           id="response-example-url"
           className="response-example-url flex items-center flex-1 h-6 min-w-0 overflow-hidden"
@@ -93,7 +96,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid,
             onSave={onSave}
             onChange={onChange}
             collection={collection}
-            highlightPathParams={true}
+            highlightPathParams={highlightPathParams}
             item={item}
             readOnly={!editMode}
           />

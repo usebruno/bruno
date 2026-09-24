@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { createRequire } from 'node:module';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginBabel } from '@rsbuild/plugin-babel';
@@ -5,6 +7,10 @@ import { pluginStyledComponents } from '@rsbuild/plugin-styled-components';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginRemoteImages } from './plugins/remote-images/index.mjs';
+
+const require = createRequire(import.meta.url);
+const swaggerUiDir = path.dirname(require.resolve('swagger-ui-react'));
+const swaggerImmutable = require.resolve('immutable', { paths: [swaggerUiDir] });
 
 const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7srk4uh.cloudfront.net')
   .split(',')
@@ -34,7 +40,15 @@ export default defineConfig({
       '**/test-utils/**',
       '**/*.test.*',
       '**/*.spec.*'
-    ]
+    ],
+  },
+  resolve: {
+    // swagger-ui-react nests immutable@3 (CJS default export). sass hoists
+    // immutable@5 to the repo root, which dropped that default; redux-immutable
+    // is also hoisted there, so without this alias it loads v5 and crashes.
+    alias: {
+      immutable$: swaggerImmutable
+    }
   },
   html: {
     title: 'Bruno'
@@ -50,13 +64,13 @@ export default defineConfig({
         }
       },
       ignoreWarnings: [
-        (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
+        (warning) => warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
       ],
       // Add externals configuration to exclude Node.js libraries
       externals: {
         // List specific Node.js modules you want to exclude
         // Format: 'module-name': 'commonjs module-name'
-        'worker_threads': 'commonjs worker_threads',
+        'node:worker_threads': 'commonjs worker_threads',
         // 'path': 'commonjs path'
       },
       optimization: {
@@ -79,4 +93,3 @@ export default defineConfig({
     },
   }
 });
-``

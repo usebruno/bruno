@@ -38,6 +38,7 @@ See `playwright/index.ts` for the current set; the table covers the common ones.
 | `collectionFixturePath` | test | Copies `fixtures/collection(s)/` to temp dir |
 | `restartApp(opts)` | test | Restart with fresh user data |
 | `newPage` | test | Fresh app instance with tracing |
+| `installFakeClipboard(page)` | test | Replaces `navigator.clipboard` on that page for the test; `copiedText()` returns what the app copied |
 
 ## Test Data Conventions
 
@@ -87,6 +88,8 @@ Most specs load fixtures via `collectionFixturePath` (copies `fixtures/collectio
 4. **File watcher timing** — After creating files via IPC, the collection watcher must detect and process the change before the UI updates. Use Playwright's auto-retrying assertions (e.g., `expect(locator).toBeVisible()`) rather than immediate checks.
 
 5. **Default env vars in fixture** — `launchElectronApp` sets `DISABLE_SAMPLE_COLLECTION_IMPORT: 'true'` by default. Tests that need onboarding must override via `dotEnv`.
+
+6. **The renderer outlives the test** — `electronApp` is worker-scoped and `page` hands back the same window, so anything a spec patches into the page (a global, a stubbed browser API) leaks into later specs in that worker. Use a fixture that restores on teardown; the real clipboard is also shared across workers, so assert copies through `installFakeClipboard(page)`, not `navigator.clipboard.readText()`.
 
 ## Test Coverage Areas
 

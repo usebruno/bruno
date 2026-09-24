@@ -1,12 +1,8 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -20,19 +16,19 @@ test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {
     await prosemirror.click();
     await page.keyboard.type('Item 1');
 
-    await locators.docs.toolbarBtn('Bullet list').click();
+    await clickDocsToolbarBtn(locators, 'Bullet list');
     await expect(prosemirror.locator('ul > li')).toContainText('Item 1');
 
     await page.keyboard.press('Enter');
     await page.keyboard.type('Item 2');
 
-    await locators.docs.toolbarBtn('Numbered list').click();
+    await clickDocsToolbarBtn(locators, 'Numbered list');
     await expect(prosemirror.locator('ol > li').nth(1)).toContainText('Item 2');
 
-    await locators.docs.toolbarBtn('Numbered list').click();
+    await clickDocsToolbarBtn(locators, 'Numbered list');
     await expect(prosemirror.locator('p').filter({ hasText: 'Item 2' })).toBeVisible();
 
-    await locators.docs.toolbarBtn('Task list').click();
+    await clickDocsToolbarBtn(locators, 'Task list');
     await expect(prosemirror.locator('ul[data-type="taskList"] > li')).toBeVisible();
 
     const checkbox = prosemirror.locator('ul[data-type="taskList"] > li label input[type="checkbox"]').first();

@@ -1,0 +1,10 @@
+info:
+  name: child
+  type: folder
+
+request:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("childDir", __dirname);
+        bru.setEnvVar("childFile", __filename);

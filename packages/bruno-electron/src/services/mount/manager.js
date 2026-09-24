@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -119,6 +120,10 @@ class MountManager {
   }
 
   async unmount(collectionUid) {
+    try {
+      getWsClient()?.closeForCollection(collectionUid);
+    } catch (_) {}
+
     const entry = this.#mounts.get(collectionUid);
     if (!entry) return;
     this.#mounts.delete(collectionUid);
@@ -128,11 +133,11 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
+    await destroyPool({ force }).catch(() => {});
     if (this.#index) {
       this.#index.close();
       this.#index = null;

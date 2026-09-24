@@ -1,16 +1,19 @@
 import { OpenCollection } from "@opencollection/types";
+import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
 import { fromOpenCollectionEnvironments } from "./environment";
+import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: unknown };
+    openapi?: BrunoConfig['openapi'];
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -43,6 +46,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const scriptFlow = brunoExtension?.scripts?.flow;
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoConfig.scripts = { flow: scriptFlow };
+  }
+
+  const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtension?.openapi);
+  if (openApiEntries.length > 0) {
+    brunoConfig.openapi = openApiEntries;
   }
 
   const config = oc.config;
@@ -78,7 +86,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
           const pemCert = cert as PemCertificate;
           return {
             domain: pemCert.domain || '',
-            type: 'pem' as const,
+            type: 'cert' as const,
             certFilePath: pemCert.certificateFilePath || '',
             keyFilePath: pemCert.privateKeyFilePath || '',
             passphrase: pemCert.passphrase || '',
@@ -88,7 +96,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
           const pkcs12Cert = cert as Pkcs12Certificate;
           return {
             domain: pkcs12Cert.domain || '',
-            type: 'pkcs12' as const,
+            type: 'pfx' as const,
             pfxFilePath: pkcs12Cert.pkcs12FilePath || '',
             passphrase: pkcs12Cert.passphrase || '',
             ...(disabled && { disabled: true })
@@ -106,7 +114,8 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
   const root: BrunoCollectionRoot = {};
 
   if (oc.request) {
-    const scripts = fromOpenCollectionScripts(oc.request.scripts);
+    // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+    const scripts = fromOpenCollectionScripts(oc.request.scripts, HTTP_SCRIPT_KEYS);
     root.request = {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),

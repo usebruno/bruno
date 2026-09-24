@@ -3,10 +3,6 @@ import { closeAllCollections } from '../utils/page/actions';
 import { setupCollectionDocs, setupFolderDocs } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Points', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });

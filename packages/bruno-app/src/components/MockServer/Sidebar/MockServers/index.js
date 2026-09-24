@@ -25,7 +25,7 @@ import DeleteMockServerModal from 'components/MockServer/DeleteMockServerModal';
 import MockResponseSidebarItem from './MockResponseSidebarItem';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
-import StyledWrapper from '../../../Sidebar/ApiSpecs/StyledWrapper';
+import StyledWrapper from './StyledWrapper';
 
 const EMPTY_RESPONSES = [];
 
@@ -169,66 +169,81 @@ const MockServerItem = React.memo(({
     }
   ];
 
+  const handleRowClick = () => {
+    setExpanded((value) => !value);
+    openDashboard();
+  };
+
+  const handleChevronClick = (event) => {
+    event.stopPropagation();
+    setExpanded((value) => !value);
+  };
+
   return (
     <>
       <div
-        className="api-spec-item flex flex-grow items-center overflow-hidden w-full justify-between cursor-pointer py-1 pl-1 h-8"
+        className="mock-server-item flex items-center justify-between"
         data-testid={`mock-server-sidebar-item-${instance.uid}`}
       >
-        <span className="flex items-center flex-1 min-w-0">
-          {responses.length > 0 ? (
-            <button
-              type="button"
-              className={classnames('mr-1 flex-shrink-0', { 'rotate-90': expanded })}
-              onClick={(event) => {
-                event.stopPropagation();
-                setExpanded(!expanded);
-              }}
-              aria-label="Toggle mock responses"
-            >
-              <IconChevronRight size={14} />
-            </button>
-          ) : (
-            <span className="w-[18px] mr-1 flex-shrink-0" />
-          )}
-          <span
-            role="button"
-            tabIndex={0}
-            className="flex items-center flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden flex-1 min-w-0"
-            onClick={openDashboard}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openDashboard();
-              }
-            }}
+        <div
+          role="button"
+          tabIndex={0}
+          className="flex flex-grow items-center overflow-hidden"
+          onClick={handleRowClick}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) {
+              return;
+            }
+
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleRowClick();
+            }
+          }}
+        >
+          <ActionIcon
+            style={{ width: 16, minWidth: 16 }}
+            label="Toggle mock responses"
+            onClick={handleChevronClick}
           >
-            <StatusDot $running={isRunning} data-testid="mock-server-sidebar-status-dot" />
-            <span className="truncate">{instance.name}</span>
-            {responses.length > 0 ? (
-              <sup className="ml-1 opacity-70">{responses.length}</sup>
-            ) : null}
-          </span>
-        </span>
-        <MenuDropdown items={menuItems} placement="bottom-end">
-          <ActionIcon label="Mock server actions" className="mr-2">
-            <IconDots size={14} stroke={1.5} aria-hidden="true" />
+            <IconChevronRight
+              size={16}
+              strokeWidth={2}
+              className={classnames('chevron-icon', { 'rotate-90': expanded })}
+              style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+            />
           </ActionIcon>
-        </MenuDropdown>
+          <StatusDot className="ml-1" $running={isRunning} data-testid="mock-server-sidebar-status-dot" />
+          <span className="truncate">{instance.name}</span>
+          {responses.length > 0 ? (
+            <sup className="ml-1 opacity-70">{responses.length}</sup>
+          ) : null}
+        </div>
+        <div className="pr-2">
+          <MenuDropdown items={menuItems} placement="bottom-end">
+            <ActionIcon label="Mock server actions" className="mock-server-actions">
+              <IconDots size={18} aria-hidden="true" />
+            </ActionIcon>
+          </MenuDropdown>
+        </div>
       </div>
 
-      {expanded && responses.length > 0 ? (
-        <div className="pl-6">
-          {responses.map((response) => (
-            <MockResponseSidebarItem
-              key={response.uid}
-              response={response}
-              instance={instance}
-              collectionUid={collection?.uid || instance.collectionUid}
-              location={location}
-            />
-          ))}
-        </div>
+      {expanded ? (
+        responses.length > 0 ? (
+          <div>
+            {responses.map((response) => (
+              <MockResponseSidebarItem
+                key={response.uid}
+                response={response}
+                instance={instance}
+                collectionUid={collection?.uid || instance.collectionUid}
+                location={location}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="pl-9 empty-mock-server-message">No mock responses yet</div>
+        )
       ) : null}
     </>
   );
@@ -280,7 +295,7 @@ const MockServers = () => {
       return {
         instance,
         collection,
-        location: resolveMockResponseLocation(instance, collection, collections, workspaces, activeWorkspace)
+        location: resolveMockResponseLocation(instance, workspaces, activeWorkspace)
       };
     })
   ), [instances, collections, workspaces, activeWorkspace]);
@@ -291,7 +306,7 @@ const MockServers = () => {
     }
 
     const locationsKey = instanceLocations
-      .map(({ location }) => `${location.mockServerUid}:${location.collectionPath || ''}:${location.workspacePath || ''}`)
+      .map(({ location }) => `${location.mockServerUid}:${location.workspacePath || ''}`)
       .join('|');
 
     if (locationsKey === loadedLocationsKeyRef.current) {
@@ -349,7 +364,7 @@ const MockServers = () => {
         />
       )}
       <StyledWrapper>
-        <div className="api-specs-list">
+        <div className="mock-servers-list">
           {instanceLocations.map(({ instance, collection, location }) => (
             <MockServerItem
               instance={instance}

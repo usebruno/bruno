@@ -1,0 +1,16 @@
+meta {
+  name: cookie-header-with-other-header
+  type: http
+  seq: 55
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: cookie1=value1
+  X-Custom: keep-me
+}

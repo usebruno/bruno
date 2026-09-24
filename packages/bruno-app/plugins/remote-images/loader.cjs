@@ -141,7 +141,13 @@ module.exports = function remoteImagesLoader(source) {
 
     const urlToAssetPath = new Map();
     for (const url of urls) {
-      const { cachePath, hash } = await ensureCachedImage(url);
+      const { cachePath, hash } = await ensureCachedImage(url).catch((err) => {
+        console.warn(`remote-images: failed to download ${url} (${err.message})`);
+        return { cachePath: null, hash: null };
+      });
+      if (!cachePath || !hash) {
+        continue;
+      }
       const filename = assetFilenameFromHash(hash, url);
       // emitFile API needs Buffer; read one file at a time after streaming to disk
       const buffer = await readCachedFile(cachePath);

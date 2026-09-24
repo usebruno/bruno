@@ -1,0 +1,10 @@
+{
+  "name": "Broken Colour Env",
+  "variables": [
+    { "name": "host", "value": "https://colour.example.com", "enabled": true, "secret": false }
+  ],
+  "color": "notacolor",
+  "info": {
+    "type": "bruno-environment"
+  }
+}
