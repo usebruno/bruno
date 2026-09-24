@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://example.com/detail/v4"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="StatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ACTIVE"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

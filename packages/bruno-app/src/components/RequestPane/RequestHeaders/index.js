@@ -80,14 +80,6 @@ const getDefaultHeaderValue = (header, requestUrl) => {
     return getBrunoRuntimeUserAgent(appVersion);
   }
 
-  if (header.name === 'Host') {
-    try {
-      return new URL(requestUrl).host || header.previewValue;
-    } catch {
-      return header.previewValue;
-    }
-  }
-
   return header.previewValue || '';
 };
 
