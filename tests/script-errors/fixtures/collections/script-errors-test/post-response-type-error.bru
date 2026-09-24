@@ -1,0 +1,17 @@
+meta {
+  name: post-response-type-error
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const data = res.body;
+  const result = null;
+  result.nonExistentMethod();
+}

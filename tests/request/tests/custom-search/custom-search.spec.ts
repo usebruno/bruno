@@ -1,4 +1,5 @@
 import { test, expect } from '../../../../playwright';
+import { selectRequestPaneTab } from '../../../utils/page';
 
 const findShortcut = process.platform === 'darwin' ? 'Meta+f' : 'Control+f';
 
@@ -8,7 +9,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
 
     await page.getByText('search-test-request').click();
 
-    await page.getByRole('tab', { name: 'Script' }).click();
+    await selectRequestPaneTab(page, 'Script');
 
     // Pre Request tab should be active by default
     await expect(page.getByRole('button', { name: 'Pre Request' })).toBeVisible();
@@ -68,7 +69,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
 
     await page.getByText('search-test-request').click();
 
-    await page.getByRole('tab', { name: 'Script' }).click();
+    await selectRequestPaneTab(page, 'Script');
 
     // Test Pre Request tab
     await page.getByRole('button', { name: 'Pre Request' }).click();
@@ -102,7 +103,7 @@ test.describe('Custom Search Functionality in Scripts Tab', () => {
 
     await page.getByText('search-test-request').click();
 
-    await page.getByRole('tab', { name: 'Script' }).click();
+    await selectRequestPaneTab(page, 'Script');
 
     // Open search in Pre Request editor
     await page.getByRole('button', { name: 'Pre Request' }).click();

@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "DataTypes Workspace"
+  type: workspace
+
+collections:
+  - name: "datatypes-bru"
+    path: "collections/bru"
+  - name: "datatypes-yml"
+    path: "collections/yml"
+
+specs:
+
+docs: ''

@@ -1,16 +1,28 @@
 import path from 'path';
 import { test, expect, errors, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../utils/page';
+
+const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
 };
 
+// Helper to dismiss welcome modal if visible
+async function dismissWelcomeModalIfVisible(page: any) {
+  const welcomeModal = page.getByTestId('welcome-modal');
+  const isVisible = await welcomeModal.isVisible().catch(() => false);
+  if (isVisible) {
+    await page.getByRole('button', { name: 'Skip' }).click();
+    await expect(welcomeModal).not.toBeVisible();
+  }
+}
+
 test.describe('Onboarding', () => {
-  test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
-    // Use a fresh app instance to avoid contamination from previous tests
-    const userDataPath = await createTmpDir('onboarding-fresh');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+  test('should create sample collection on first launch', async ({ launchElectronApp }) => {
+    const app = await launchElectronApp({ initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // Verify sample collection appears in sidebar
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -34,8 +46,9 @@ test.describe('Onboarding', () => {
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('duplicate-collections');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - verify sample collection is created
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -55,7 +68,7 @@ test.describe('Onboarding', () => {
 
     // Restart app - should not create sample collection again
     const newApp = await launchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
+    const newPage = await waitForReadyPage(newApp);
 
     // Verify only one sample collection exists
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -76,8 +89,9 @@ test.describe('Onboarding', () => {
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('first-launch');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - sample collection should be created
     const sampleCollection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'Sample API Collection' });
@@ -112,10 +126,7 @@ test.describe('Onboarding', () => {
 
     // Restart app - sample collection should NOT be recreated
     const newApp = await reuseOrLaunchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
-
-    // Wait for the app to be loaded / onboarding to be completed
-    await newPage.locator('[data-app-state="loaded"]').waitFor();
+    const newPage = await waitForReadyPage(newApp);
 
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');

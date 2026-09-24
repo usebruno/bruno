@@ -1,0 +1,33 @@
+meta {
+  name: binary upload json
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{localhost}}/api/file-binary/binary-upload-json
+  body: file
+  auth: none
+}
+
+body:file {
+  file: @file(file.json) @contentType(application/json)
+}
+
+assert {
+  res.status: eq 200
+  res.body.bytesReceived: eq 23
+  res.body.sha256: eq 3f5d648773fc4a79418378d0e75768005a8ef0fbee232a7638d643b716c14175
+  res.body.contentType: eq application/json
+  res.body.looksLikeSerializedNodeStream: eq false
+}
+
+tests {
+  test("file body is uploaded byte-exact, not as a serialized stream envelope", function() {
+    const body = res.getBody();
+    expect(body.bytesReceived).to.equal(23);
+    expect(body.sha256).to.equal("3f5d648773fc4a79418378d0e75768005a8ef0fbee232a7638d643b716c14175");
+    expect(body.looksLikeSerializedNodeStream).to.equal(false);
+    expect(body.firstBytesUtf8).to.contain('"hello": "bruno"');
+  });
+}

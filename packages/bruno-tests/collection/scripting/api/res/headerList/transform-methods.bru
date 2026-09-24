@@ -1,0 +1,42 @@
+meta {
+  name: transform-methods
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.headerList.toObject()", function() {
+    const obj = res.headerList.toObject();
+    expect(obj).to.be.an('object');
+    expect(obj['x-powered-by']).to.equal('Express');
+  });
+
+  test("res.headerList.toString()", function() {
+    const str = res.headerList.toString();
+    expect(str).to.be.a('string');
+    expect(str).to.include('x-powered-by: Express');
+  });
+
+  test("res.headerList.toJSON()", function() {
+    const json = res.headerList.toJSON();
+    expect(json).to.be.an('array');
+    const header = json.find(h => h.key === 'x-powered-by');
+    expect(header).to.eql({ key: 'x-powered-by', value: 'Express' });
+  });
+}

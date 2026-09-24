@@ -25,6 +25,10 @@ const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId });
 };
 
+const clearOauth2CredentialsByCredentialsId = ({ collectionUid, credentialsId }) => {
+  oauth2Store.clearCredentialsByCredentialsId({ collectionUid, credentialsId });
+};
+
 const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   try {
     const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
@@ -304,6 +308,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl, additionalParameters } = oauth2;
     const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
     const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
+    // Always append a cryptographically random nonce to the user-configured state
+    // (or generate a fully random one when none is set). The state is validated when
+    // the callback is received to prevent authorization code injection / CSRF.
+    const effectiveState = generateState({ userState: state });
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -320,8 +328,8 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
       authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
     }
-    if (state) {
-      authorizationUrlWithQueryParams.searchParams.append('state', state);
+    if (effectiveState) {
+      authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
     }
     if (additionalParameters?.authorization?.length) {
       additionalParameters.authorization.forEach((param) => {
@@ -340,6 +348,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
         authorizeUrl,
         callbackUrl: effectiveCallbackUrl,
         session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl }),
+        expectedState: effectiveState,
         additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
       });
       resolve({ authorizationCode, debugInfo });
@@ -703,6 +712,18 @@ const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
 };
 
+// Build an OAuth2 state string to help prevent CSRF and forged auth codes.
+// If the user passes a state, it goes first; we append random bytes after it.
+// The user keeps their custom data, and the random suffix keeps the flow secure.
+const generateState = ({ userState }) => {
+  const trimmedUserState = userState?.trim();
+  if (trimmedUserState && trimmedUserState.length > 0) {
+    return trimmedUserState;
+  }
+  let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
+  return cryptographicallyRandomString;
+};
+
 const generateCodeChallenge = (codeVerifier) => {
   const hash = crypto.createHash('sha256');
   hash.update(codeVerifier);
@@ -756,6 +777,9 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   } = oauth2;
   const useSystemBrowser = preferencesUtil.shouldUseSystemBrowser();
   const effectiveCallbackUrl = callbackUrl && callbackUrl.length ? callbackUrl : BRUNO_OAUTH2_CALLBACK_URL;
+  // Use the user-configured state if present, otherwise generate a cryptographically
+  // random one. The state is validated when the callback is received to prevent CSRF.
+  const effectiveState = generateState({ userState: state });
 
   // Validate required fields
   if (!authorizationUrl) {
@@ -840,9 +864,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
-  if (state) {
-    authorizationUrlWithQueryParams.searchParams.append('state', state);
-  }
+  authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
+
   if (additionalParameters?.authorization?.length) {
     additionalParameters.authorization.forEach((param) => {
       if (param.enabled && param.name) {
@@ -862,6 +885,7 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
       callbackUrl: effectiveCallbackUrl,
       session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: authorizationUrl }),
       grantType: 'implicit',
+      expectedState: effectiveState,
       additionalHeaders: getAdditionalHeaders(additionalParameters?.authorization)
     });
 
@@ -941,6 +965,7 @@ const updateCollectionOauth2Credentials = ({ collectionUid, itemUid, collectionO
 module.exports = {
   persistOauth2Credentials,
   clearOauth2Credentials,
+  clearOauth2CredentialsByCredentialsId,
   getStoredOauth2Credentials,
   getOAuth2TokenUsingAuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
@@ -949,5 +974,6 @@ module.exports = {
   refreshOauth2Token,
   generateCodeVerifier,
   generateCodeChallenge,
+  generateState,
   updateCollectionOauth2Credentials
 };

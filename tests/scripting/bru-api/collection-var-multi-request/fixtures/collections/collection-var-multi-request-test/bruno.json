@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "collection-var-multi-request-test",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

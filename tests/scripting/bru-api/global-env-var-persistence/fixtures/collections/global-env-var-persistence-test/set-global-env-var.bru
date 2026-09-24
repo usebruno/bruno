@@ -1,0 +1,22 @@
+meta {
+  name: set-global-env-var
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("newGlobalVar", "new-global-value");
+}
+
+tests {
+  test("should have set new global env var", function() {
+    const val = bru.getGlobalEnvVar("newGlobalVar");
+    expect(val).to.equal("new-global-value");
+  });
+}

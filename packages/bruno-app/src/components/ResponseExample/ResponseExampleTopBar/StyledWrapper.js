@@ -10,6 +10,8 @@ const StyledWrapper = styled.div`
 
   .response-example-description {
     color: ${(props) => props.theme.colors.text.muted};
+    max-height: 10rem;
+    overflow-y: auto;
   }
 
   .primary-btn {

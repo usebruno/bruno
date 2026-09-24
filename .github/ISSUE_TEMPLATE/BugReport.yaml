@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report!
 
-        Before submitting, please make sure you've searched existing issues:
+        ⚠️ Before submitting, please make sure you've searched existing issues:
         👉 [Search existing issues](https://github.com/usebruno/bruno/issues?q=is%3Aissue)
 
   - type: checkboxes
@@ -21,13 +21,13 @@ body:
     attributes:
       label: 'This bug is:'
       options:
-        - label: making Bruno unusable for me
+        - label: Making Bruno unusable for me.
           required: false
-        - label: slowing me down but I'm able to continue working
+        - label: Slowing me down but I'm able to continue working.
           required: false
-        - label: annoying
+        - label: Annoying.
           required: false
-        - label: this feature was working in a previous version but is broken in the current release.
+        - label: This feature was working in a previous version but is broken in the current release.
           required: false
 
   - type: input
@@ -38,31 +38,50 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    attributes:
+      label: 💻 Operating System
+      description: Information about the operating system the issue occurs on.
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Others (Please specify below)
+    validations:
+      required: true
+
   - type: input
     attributes:
-      label: Operating System
-      description: Information about the operating system the issue occurs on.
-      placeholder: Windows 11 26100.3037 / macOS 15.1 (24B83) / Linux 6.13.1
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Describe the bug
-      description: A clear and concise description of the bug and how it's effecting your work along with steps to reproduce. 
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: .bru file to reproduce the bug
-      description: Attach your .bru file here that can reproduce the problem.
+      label: Specific OS Version / Distro
+      description: If you selected "Others", or have specific version info (e.g., Ubuntu 24.04, Windows Insider Build), type it here.
+      placeholder: E.g., Arch Linux, Debian, Windows Enterprise
     validations:
       required: false
 
   - type: textarea
     attributes:
-      label: Screenshots/Live demo link
+      label: 🐞 Describe the bug
+      description: A clear and concise description of the bug and how it's affecting your work
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 📝 Steps to reproduce
+      description: The exact steps that can be performed to reproduce the issue
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 📁 Collection to reproduce 
+      description: If possible, please attach the collection where the bug is present
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 📷 Screenshots/Live demo link
       description: Add some screenshots to help explain the problem.
     validations:
       required: true

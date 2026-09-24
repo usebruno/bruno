@@ -1,0 +1,48 @@
+name: typed_env
+
+variables:
+  - name: env_str
+    value: env_string
+  - name: env_num
+    value:
+      type: number
+      data: "300"
+  - name: env_bool
+    value:
+      type: boolean
+      data: "true"
+  - name: env_obj
+    value:
+      type: object
+      data: '{"scope":"env"}'
+  - name: env_untyped_num
+    value: "42"
+  - name: env_untyped_bool
+    value: "true"
+  - name: env_untyped_obj
+    value: '{"a":1}'
+  - name: mismatched_num
+    value:
+      type: number
+      data: "not-a-number"
+  - name: mismatched_bool
+    value:
+      type: boolean
+      data: "maybe"
+  - name: mismatched_obj
+    value:
+      type: object
+      data: "not-json"
+  - secret: true
+    name: env_secret_str
+  - secret: true
+    name: env_secret_num
+    type: number
+  - secret: true
+    name: env_secret_bool
+    type: boolean
+  - secret: true
+    name: env_secret_obj
+    type: object
+  - secret: true
+    name: env_secret_untyped

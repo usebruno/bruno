@@ -13,7 +13,7 @@ import {
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
-test.describe('Assertions - BRU Collection', () => {
+test.describe.serial('Assertions - BRU Collection', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {
     await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
 

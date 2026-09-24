@@ -11,6 +11,10 @@ export const convertOpenapiToBruno = (data, options = {}) => {
 };
 
 export const isOpenApiSpec = (data) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
   if (typeof data.info !== 'object' || data.info === null) {
     return false;
   }

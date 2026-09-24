@@ -63,6 +63,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: colors.GRAY_6,
+  BORDER2: colors.GRAY_5,
+  BORDER1: colors.BORDER,
+  BORDER0: colors.BORDER_LIGHT
+};
+
 palette.intent = {
   INFO: colors.BLUE,
   SUCCESS: colors.GREEN,
@@ -83,6 +90,12 @@ const vscodeDarkTheme = {
     text: colors.BRAND_TEXT,
     strong: '#0098ff',
     subtle: '#005a9e'
+  },
+
+  ws: {
+    activeMessage: {
+      label: colors.BRAND_TEXT
+    }
   },
 
   accents: {
@@ -152,9 +165,10 @@ const vscodeDarkTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_5,
-    border1: colors.BORDER,
-    border0: colors.BORDER_LIGHT
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -276,16 +290,14 @@ const vscodeDarkTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.EDITOR_BG,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: colors.BORDER,
+      bg: colors.EDITOR_BG,
       borderBottom: colors.BORDER,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
         bg: colors.GRAY_3,
-        hoverBg: colors.GRAY_3
+        hoverBg: colors.GRAY_5
       }
     }
   },

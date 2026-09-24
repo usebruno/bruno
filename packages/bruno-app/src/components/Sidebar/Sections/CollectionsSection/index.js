@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   IconArrowsSort,
@@ -15,10 +16,13 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
+import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
+import { sanitizeName } from 'utils/common/regex';
+import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
@@ -26,29 +30,63 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
+import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionsSection = () => {
-  const [showSearch, setShowSearch] = useState(false);
   const dispatch = useDispatch();
+  const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+  const { isCreatingCollection } = useSelector((state) => state.app);
+  const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [advancedCreateName, setAdvancedCreateName] = useState('');
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
+
+  // Import collection shortcut
+  useKeybinding('importCollection', () => {
+    setImportCollectionModalOpen(true);
+    return false;
+  });
+
+  // Default to true (don't show modal) so that:
+  // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
+  // 2. The modal doesn't flash before preferences are loaded from the electron process
+  // Only genuinely new users will have hasSeenWelcomeModal explicitly set to false by onboarding
+  const hasSeenWelcomeModal = get(preferences, 'onboarding.hasSeenWelcomeModal', true);
+  const showWelcomeModal = !hasSeenWelcomeModal;
+
+  const handleDismissWelcomeModal = () => {
+    const updatedPreferences = {
+      ...preferences,
+      onboarding: {
+        ...preferences.onboarding,
+        hasSeenWelcomeModal: true
+      }
+    };
+    dispatch(savePreferences(updatedPreferences)).catch(() => {
+      toast.error('Failed to save preferences');
+    });
+  };
 
   const workspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
@@ -80,9 +118,10 @@ const CollectionsSection = () => {
       : importCollection(convertedCollection, collectionLocation, options);
 
     dispatch(importAction)
-      .then(() => {
+      .then((importedItem) => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
+        handleImportResolved(convertedCollection, importedItem);
       });
   };
 
@@ -92,7 +131,7 @@ const CollectionsSection = () => {
   };
 
   const handleToggleSearch = () => {
-    setShowSearch((prev) => !prev);
+    dispatch(toggleSidebarSearch());
   };
 
   const handleSortCollections = () => {
@@ -145,14 +184,57 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    const options = {};
-    if (activeWorkspace?.pathname) {
-      options.workspaceId = activeWorkspace.pathname;
+    dispatch(setIsOpeningCollection(true));
+  };
+
+  const handleStartRequest = () => {
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (!scratchCollectionUid) {
+      toast.error('Unable to create request');
+      return;
     }
 
-    dispatch(openCollection(options)).catch((err) => {
-      toast.error('An error occurred while opening the collection');
+    const scratchCollection = collections.find((c) => c.uid === scratchCollectionUid);
+    if (!scratchCollection) {
+      toast.error('Unable to create request');
+      return;
+    }
+
+    const allItems = flattenItems(scratchCollection.items || []);
+    const transientRequests = filter(allItems, (item) => isItemTransientRequest(item));
+    let maxNumber = 0;
+    transientRequests.forEach((item) => {
+      const match = item.name?.match(/^Untitled (\d+)$/);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+        }
+      }
     });
+    const requestName = `Untitled ${maxNumber + 1}`;
+    const filename = sanitizeName(requestName);
+
+    dispatch(
+      newHttpRequest({
+        requestName,
+        filename,
+        requestType: 'http-request',
+        requestUrl: '',
+        requestMethod: 'GET',
+        collectionUid: scratchCollectionUid,
+        itemUid: null,
+        isTransient: true
+      })
+    ).catch((err) => {
+      toast.error('An error occurred while creating the request');
+    });
+  };
+
+  const handleOpenAdvancedCreate = (name) => {
+    dispatch(setIsCreatingCollection(false));
+    setAdvancedCreateName(name || '');
+    setCreateCollectionModalOpen(true);
   };
 
   const addDropdownItems = [
@@ -161,7 +243,7 @@ const CollectionsSection = () => {
       leftSection: IconPlus,
       label: 'Create collection',
       onClick: () => {
-        setCreateCollectionModalOpen(true);
+        dispatch(setIsCreatingCollection(true));
       }
     },
     {
@@ -243,16 +325,41 @@ const CollectionsSection = () => {
       </MenuDropdown>
 
       {collectionsToClose.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
       )}
     </>
   );
 
   return (
     <>
+      {showWelcomeModal && (
+        <WelcomeModal
+          onDismiss={handleDismissWelcomeModal}
+          onImportCollection={() => {
+            handleDismissWelcomeModal();
+            setImportCollectionModalOpen(true);
+          }}
+          onCreateCollection={() => {
+            handleDismissWelcomeModal();
+            setCreateCollectionModalOpen(true);
+          }}
+          onOpenCollection={() => {
+            handleDismissWelcomeModal();
+            handleOpenCollection();
+          }}
+          onStartRequest={() => {
+            handleDismissWelcomeModal();
+            handleStartRequest();
+          }}
+        />
+      )}
       {createCollectionModalOpen && (
         <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
+          onClose={() => {
+            setCreateCollectionModalOpen(false);
+            setAdvancedCreateName('');
+          }}
+          initialCollectionName={advancedCreateName}
         />
       )}
       {importCollectionModalOpen && (
@@ -265,6 +372,9 @@ const CollectionsSection = () => {
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
+          sourceUrl={importData.sourceUrl}
+          filePath={importData.filePath}
+          rawContent={importData.rawContent}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
@@ -283,13 +393,27 @@ const CollectionsSection = () => {
           collectionRepositoryUrl={gitRepositoryUrl}
         />
       )}
+      {postmanPackagePrompt && (
+        <PostmanPackageReport
+          key={postmanPackagePrompt.collectionPath}
+          report={postmanPackagePrompt.report}
+          collectionPath={postmanPackagePrompt.collectionPath}
+          onClose={clearPostmanPackagePrompt}
+        />
+      )}
       <SidebarSection
         id="collections"
         title="Collections"
         icon={IconBox}
         actions={sectionActions}
       >
-        <Collections showSearch={showSearch} />
+        <Collections
+          showSearch={showSearch}
+          isCreatingCollection={isCreatingCollection}
+          onCreateClick={() => dispatch(setIsCreatingCollection(true))}
+          onDismissCreate={() => dispatch(setIsCreatingCollection(false))}
+          onOpenAdvancedCreate={handleOpenAdvancedCreate}
+        />
       </SidebarSection>
     </>
   );

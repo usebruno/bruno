@@ -3,8 +3,9 @@ import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
+import { getItemTypeLabel } from 'utils/collections';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
@@ -18,11 +19,13 @@ import Button from 'ui/Button';
 
 const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
+  const itemTypeLabel = getItemTypeLabel(item);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -52,11 +55,11 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
     onSubmit: (values) => {
       dispatch(cloneItem(values.name, values.filename, item.uid, collectionUid))
         .then(() => {
-          toast.success('Request cloned!');
+          toast.success(`${itemTypeLabel} cloned!`);
           onClose();
         })
         .catch((err) => {
-          toast.error(err ? err.message : 'An error occurred while cloning the request');
+          toast.error(err ? err.message : `An error occurred while cloning the ${itemTypeLabel.toLowerCase()}`);
         });
     }
   });
@@ -86,14 +89,14 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal
           size="md"
-          title={`Clone ${isFolder ? 'Folder' : 'Request'}`}
+          title={`Clone ${itemTypeLabel}`}
           handleCancel={onClose}
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div>
               <label htmlFor="name" className="block font-medium">
-                {isFolder ? 'Folder' : 'Request'} Name
+                {itemTypeLabel} Name
               </label>
               <input
                 id="collection-item-name"
@@ -168,7 +171,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">
@@ -202,7 +205,7 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="clone-item-button">
                   Clone
                 </Button>
               </div>

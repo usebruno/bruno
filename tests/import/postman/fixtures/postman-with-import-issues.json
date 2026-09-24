@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "test-import-issues-001",
+    "name": "Import Issues Test Collection",
+    "description": "A Postman collection designed to test partial import handling. Contains a mix of valid requests, requests with missing/invalid methods, and edge cases that should be gracefully handled.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Valid GET Request",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "https://api.example.com/users",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "Missing Method (null)",
+      "request": {
+        "method": null,
+        "header": [],
+        "url": {
+          "raw": "https://api.example.com/should-be-skipped-1",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["should-be-skipped-1"]
+        }
+      }
+    },
+    {
+      "name": "Missing Method (absent)",
+      "request": {
+        "header": [],
+        "url": {
+          "raw": "https://api.example.com/should-be-skipped-2",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["should-be-skipped-2"]
+        }
+      }
+    },
+    {
+      "name": "Empty String Method",
+      "request": {
+        "method": "",
+        "header": [],
+        "url": {
+          "raw": "https://api.example.com/should-be-skipped-3",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["should-be-skipped-3"]
+        }
+      }
+    },
+    {
+      "name": "Whitespace-Only Method",
+      "request": {
+        "method": "   ",
+        "header": [],
+        "url": {
+          "raw": "https://api.example.com/should-be-skipped-4",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["should-be-skipped-4"]
+        }
+      }
+    },
+    {
+      "name": "Valid POST Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"test\", \"email\": \"test@example.com\"}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/users",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "API Folder",
+      "item": [
+        {
+          "name": "Valid Nested GET",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/nested/valid",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["nested", "valid"]
+            }
+          }
+        },
+        {
+          "name": "Nested Missing Method",
+          "request": {
+            "method": null,
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com/nested/should-be-skipped",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "path": ["nested", "should-be-skipped"]
+            }
+          }
+        },
+        {
+          "name": "Deep Subfolder",
+          "item": [
+            {
+              "name": "Deep Valid Request",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "https://api.example.com/deep/valid",
+                  "protocol": "https",
+                  "host": ["api", "example", "com"],
+                  "path": ["deep", "valid"]
+                }
+              }
+            },
+            {
+              "name": "Deep Bad Method",
+              "request": {
+                "method": null,
+                "header": [],
+                "url": {
+                  "raw": "https://api.example.com/deep/should-be-skipped",
+                  "protocol": "https",
+                  "host": ["api", "example", "com"],
+                  "path": ["deep", "should-be-skipped"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Valid PUT Request",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"updated\"}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "https://api.example.com/users/{{userId}}",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["users", "{{userId}}"],
+          "variable": [
+            { "key": "userId", "value": "123" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "No Request Object At All"
+    },
+    {
+      "name": "Valid PATCH Request",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"status\": \"active\"}"
+        },
+        "url": {
+          "raw": "https://api.example.com/users/1/status",
+          "protocol": "https",
+          "host": ["api", "example", "com"],
+          "path": ["users", "1", "status"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.example.com" },
+    { "key": "token", "value": "test-token-123" }
+  ]
+}

@@ -1,0 +1,20 @@
+meta {
+  name: multipart-mixed-form-data-file
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  sample: @file(bruno.png) @contentType(image/png)
+}
+
+assert {
+  res.body: matches ^[-]+[a-z0-9]+
+  res.body: contains Content-Type: image/png
+}

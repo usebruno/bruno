@@ -1,0 +1,19 @@
+name: Local
+
+variables:
+  - name: host
+    value: http://localhost:8080
+  - name: echo-host
+    value: https://echo.usebruno.com
+  - name: typed_env_num
+    value:
+      type: number
+      data: "300"
+  - name: typed_env_bool
+    value:
+      type: boolean
+      data: "true"
+  - name: typed_env_obj
+    value:
+      type: object
+      data: '{"scope":"env"}'

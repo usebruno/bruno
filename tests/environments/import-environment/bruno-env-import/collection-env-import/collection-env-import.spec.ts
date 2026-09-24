@@ -1,6 +1,7 @@
 import { test, expect } from '../../../../../playwright';
 import path from 'path';
 import fs from 'fs';
+import { buildCommonLocators } from '../../../../utils/page/locators';
 
 test.describe.serial('Collection Environment Import Tests', () => {
   test('should import single collection environment', async ({ pageWithUserData: page }) => {
@@ -37,14 +38,24 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await page.getByTestId('import-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(singleEnvFile);
+      await page.getByTestId('import-environment-modal-submit-btn').click();
     });
 
     await test.step('Verify imported environment and variables', async () => {
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();
 
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
+      const hostDesc = locators.environment.varRowDescriptionEditor('host');
+      await expect(hostDesc.locator('.CodeMirror-line').first()).toHaveText('Single-line host desc');
+
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
+
+      const secretDesc = locators.environment.varRowDescriptionEditor('secretToken');
+      await expect(secretDesc.locator('.CodeMirror-line').nth(0)).toHaveText('Secret line one');
+      await expect(secretDesc.locator('.CodeMirror-line').nth(1)).toHaveText('Secret line two');
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });
@@ -94,6 +105,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await page.getByTestId('import-environment').click();
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(multiEnvFile);
+      await page.getByTestId('import-environment-modal-submit-btn').click();
 
       const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
       await expect(envTab).toBeVisible();
@@ -124,8 +136,14 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify prod environment variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await locators.environment.settingsListItem('prod').click();
+
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
+
+      // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

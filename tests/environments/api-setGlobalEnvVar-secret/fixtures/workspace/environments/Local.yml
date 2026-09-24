@@ -1,0 +1,10 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: http://localhost:8081
+    enabled: true
+    secret: false
+  - name: apiToken
+    value: ""
+    enabled: true
+    secret: true

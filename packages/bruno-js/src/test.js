@@ -3,7 +3,6 @@ const Test = (__brunoTestResults, chai) => async (description, callback) => {
     await callback();
     __brunoTestResults.addResult({ description, status: 'pass' });
   } catch (error) {
-    console.log(chai.AssertionError);
     if (error instanceof chai.AssertionError) {
       const { message, actual, expected } = error;
       __brunoTestResults.addResult({
@@ -11,16 +10,19 @@ const Test = (__brunoTestResults, chai) => async (description, callback) => {
         status: 'fail',
         error: message,
         actual,
-        expected
+        expected,
+        stack: error.stack || null,
+        errorName: error.name || 'AssertionError'
       });
     } else {
       __brunoTestResults.addResult({
         description,
         status: 'fail',
-        error: error.message || 'An unexpected error occurred.'
+        error: error.message || 'An unexpected error occurred.',
+        stack: error.stack || null,
+        errorName: error.name || 'Error'
       });
     }
-    console.log(error);
   }
 };
 

@@ -24,7 +24,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .default-collection-location-input {
+  .default-location-input {
     max-width: 28rem;
   }
 `;

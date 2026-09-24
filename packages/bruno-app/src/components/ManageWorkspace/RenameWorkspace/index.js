@@ -25,7 +25,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
         .test('unique-name', 'A workspace with this name already exists', function (value) {
           if (!value) return true;
           return !workspaces.some((w) =>
-            w.uid !== workspace.uid && w.name.toLowerCase() === value.toLowerCase()
+            w.uid !== workspace.uid && w.name && w.name.toLowerCase() === value.toLowerCase()
           );
         })
     }),
@@ -63,6 +63,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
         confirmText="Rename"
         handleConfirm={onSubmit}
         handleCancel={onClose}
+        dataTestId="rename-workspace-modal"
       >
         <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
@@ -74,6 +75,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
               type="text"
               name="name"
               ref={inputRef}
+              data-testid="workspace-name-input"
               className="block textbox mt-2 w-full"
               autoComplete="off"
               autoCorrect="off"
@@ -83,7 +85,7 @@ const RenameWorkspace = ({ onClose, workspace }) => {
               value={formik.values.name || ''}
             />
             {formik.touched.name && formik.errors.name ? (
-              <div className="text-red-500">{formik.errors.name}</div>
+              <div className="text-red-500" data-testid="workspace-name-error">{formik.errors.name}</div>
             ) : null}
           </div>
         </form>

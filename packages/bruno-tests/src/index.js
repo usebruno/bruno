@@ -9,20 +9,35 @@ const multipartRouter = require('./multipart');
 const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
+const setupGraphQL = require('./graphql');
+const sseRouter = require('./sse');
+const fileBinaryRouter = require('./file-binary');
+const waitForRouter = require('./wait-for');
+const largePayloadRouter = require('./large-payload');
+const grpcServer = require('./grpc');
 
 const app = new express();
 const port = process.env.PORT || 8081;
 
 app.use(cors());
 
+// Mount before the global body parsers so file/binary uploads (including ones
+// declared as application/json) arrive as raw bytes instead of being parsed —
+// this is what lets us hash the body and verify the wire payload byte-exact.
+app.use('/api/file-binary', fileBinaryRouter);
+
 const saveRawBody = (req, res, buf) => {
   req.rawBuffer = Buffer.from(buf);
   req.rawBody = buf.toString();
 };
 
-app.use(bodyParser.json({ verify: saveRawBody }));
-app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
-app.use(bodyParser.text({ verify: saveRawBody }));
+/*
+ * body-parser defaults to a 100kb limit on these three parsers, which is too small for
+ * tests that echo back multi-megabyte bodies.
+ */
+app.use(bodyParser.json({ limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.text({ limit: '10mb', verify: saveRawBody }));
 app.use(xmlParser());
 // Only parse raw body for content types not already handled by other parsers
 app.use(express.raw({
@@ -48,6 +63,9 @@ app.use('/api/echo', echoRouter);
 app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
+app.use('/api/sse', sseRouter);
+app.use('/api/wait-for', waitForRouter);
+app.use('/api/large-payload', largePayloadRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
@@ -65,10 +83,47 @@ app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');
 });
 
+// Echoes the request back in one flat shape
+app.all('/api/echo/everything', (req, res) => {
+  return res.json({
+    method: req.method,
+    url: req.originalUrl,
+    query: req.query,
+    headers: req.headers,
+    body: req.rawBody
+  });
+});
+
+// The global JSON parser rejects malformed bodies before the route above runs.
+// Recover that case by echoing the raw bytes instead of surfacing a 400.
+app.use((err, req, res, next) => {
+  if (req.path === '/api/echo/everything') {
+    return res.json({
+      method: req.method,
+      url: req.originalUrl,
+      query: req.query,
+      headers: req.headers,
+      body: req.rawBody
+    });
+  }
+  return next(err);
+});
+
 const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
 
-server.listen(port, function () {
-  console.log(`Testbench started on port: ${port}`);
+grpcServer.start().catch((err) => {
+  console.error('Failed to start gRPC testbench', err);
+  process.exit(1);
 });
+
+setupGraphQL(app).then(() => {
+  server.listen(port, function () {
+    console.log(`Testbench started on port: ${port}`);
+  });
+})
+  .catch((error) => {
+    console.error('Failed to initialize GraphQL', error);
+    process.exit(1);
+  });

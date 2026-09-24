@@ -25,7 +25,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
+      <div ref={ref} data-testid="auth-placement-label" className="flex items-center justify-end auth-type-label select-none">
         {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
@@ -89,7 +89,7 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save }) => {
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
+      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"

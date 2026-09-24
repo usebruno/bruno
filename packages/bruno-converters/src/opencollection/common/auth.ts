@@ -7,8 +7,10 @@ import type {
   AuthAwsV4,
   AuthApiKey,
   AuthWsse,
+  AuthOAuth1,
   AuthOAuth2,
   BrunoAuth,
+  BrunoAuthOauth1,
   BrunoOAuth2
 } from '../types';
 
@@ -49,6 +51,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
       bearer: null,
       digest: null,
       ntlm: null,
+      oauth1: null,
       oauth2: {
         grantType: base.grantType || 'client_credentials',
         username: base.username || null,
@@ -157,6 +160,7 @@ const fromOpenCollectionOAuth2 = (auth: AuthOAuth2): BrunoAuth => {
         bearer: null,
         digest: null,
         ntlm: null,
+        oauth1: null,
         oauth2: null,
         wsse: null,
         apikey: null
@@ -172,6 +176,7 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
     bearer: null,
     digest: null,
     ntlm: null,
+    oauth1: null,
     oauth2: null,
     wsse: null,
     apikey: null
@@ -271,6 +276,31 @@ export const fromOpenCollectionAuth = (auth: Auth | undefined): BrunoAuth => {
         wsse: {
           username: wsseAuth.username || null,
           password: wsseAuth.password || null
+        }
+      };
+    }
+
+    case 'oauth1': {
+      const oauth1Auth = auth as AuthOAuth1;
+      return {
+        ...defaultAuth,
+        mode: 'oauth1',
+        oauth1: {
+          consumerKey: oauth1Auth.consumerKey || null,
+          consumerSecret: oauth1Auth.consumerSecret || null,
+          accessToken: oauth1Auth.accessToken || null,
+          accessTokenSecret: oauth1Auth.accessTokenSecret || null,
+          callbackUrl: oauth1Auth.callbackUrl || null,
+          verifier: oauth1Auth.verifier || null,
+          signatureMethod: (oauth1Auth.signatureMethod as BrunoAuthOauth1['signatureMethod']) || 'HMAC-SHA1',
+          privateKey: (typeof oauth1Auth.privateKey === 'object' && oauth1Auth.privateKey ? oauth1Auth.privateKey.value : oauth1Auth.privateKey) || null,
+          privateKeyType: (typeof oauth1Auth.privateKey === 'object' && oauth1Auth.privateKey ? oauth1Auth.privateKey.type : 'text') as BrunoAuthOauth1['privateKeyType'],
+          timestamp: oauth1Auth.timestamp || null,
+          nonce: oauth1Auth.nonce || null,
+          version: oauth1Auth.version || '1.0',
+          realm: oauth1Auth.realm || null,
+          placement: (oauth1Auth.placement as BrunoAuthOauth1['placement']) || 'header',
+          includeBodyHash: oauth1Auth.includeBodyHash || false
         }
       };
     }
@@ -460,6 +490,29 @@ export const toOpenCollectionAuth = (auth: BrunoAuth | null | undefined): Auth |
         username: auth.wsse?.username || '',
         password: auth.wsse?.password || ''
       };
+
+    case 'oauth1': {
+      const oauth1: AuthOAuth1 = {
+        type: 'oauth1',
+        consumerKey: auth.oauth1?.consumerKey || '',
+        consumerSecret: auth.oauth1?.consumerSecret || '',
+        accessToken: auth.oauth1?.accessToken || '',
+        accessTokenSecret: auth.oauth1?.accessTokenSecret || '',
+        callbackUrl: auth.oauth1?.callbackUrl || '',
+        verifier: auth.oauth1?.verifier || '',
+        signatureMethod: auth.oauth1?.signatureMethod || 'HMAC-SHA1',
+        privateKey: auth.oauth1?.privateKeyType === 'file'
+          ? { type: 'file' as const, value: auth.oauth1?.privateKey || '' }
+          : { type: 'text' as const, value: auth.oauth1?.privateKey || '' },
+        timestamp: auth.oauth1?.timestamp || '',
+        nonce: auth.oauth1?.nonce || '',
+        version: auth.oauth1?.version || '1.0',
+        realm: auth.oauth1?.realm || '',
+        placement: auth.oauth1?.placement || 'header',
+        includeBodyHash: auth.oauth1?.includeBodyHash || false
+      };
+      return oauth1;
+    }
 
     case 'oauth2':
       return toOpenCollectionOAuth2(auth.oauth2);

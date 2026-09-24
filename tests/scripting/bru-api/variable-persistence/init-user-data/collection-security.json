@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/variable-persistence-test",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

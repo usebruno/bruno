@@ -1,0 +1,16 @@
+{
+  "collections": [
+    {
+      "path": "{{projectRoot}}/tests/environments/datatype-preservation/fixtures/bru",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    },
+    {
+      "path": "{{projectRoot}}/tests/environments/datatype-preservation/fixtures/yml",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+opencollection: 1.0.0
+info:
+  name: My Collection
+extensions:
+  bruno:
+    presets:
+      request: {}

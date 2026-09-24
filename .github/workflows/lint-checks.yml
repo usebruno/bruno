@@ -1,0 +1,26 @@
+name: Lint Checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'release/v*']
+  pull_request:
+    branches: [main, 'release/v*']
+
+jobs:
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          skip-build: 'true'
+
+      - name: Lint Check
+        run: npm run lint
+        env:
+          ESLINT_PLUGIN_DIFF_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}

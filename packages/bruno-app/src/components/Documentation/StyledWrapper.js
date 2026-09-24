@@ -1,9 +1,9 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .editing-mode {
-    cursor: pointer;
-  }
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
 `;
 
 export default StyledWrapper;

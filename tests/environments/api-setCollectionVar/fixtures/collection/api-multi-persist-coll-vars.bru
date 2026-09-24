@@ -1,0 +1,21 @@
+meta {
+  name: api-multi-persist-coll-vars
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // The folder runner rebuilds request.collectionVariables on every iteration
+  // from collection.root, so collection-var writes don't accumulate across
+  // folder requests the way env-var writes do (env-vars share one object —
+  // see packages/bruno-electron/src/ipc/network/index.js:1397).
+  // This spec covers the supported shape: one script persisting multiple keys.
+  bru.setCollectionVar("multiple-persist-coll-vars-key1", "value1");
+  bru.setCollectionVar("multiple-persist-coll-vars-key2", "value2");
+}

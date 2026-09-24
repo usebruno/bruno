@@ -1,0 +1,24 @@
+info:
+  name: EdgeGrid Inherit 200
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/edgegrid/resource"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.authenticated
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

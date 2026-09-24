@@ -57,20 +57,10 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-Alt-F': 'replace', // Cmd+Option+F — standard replace shortcut on Mac
+        'Ctrl-H': 'replace', // Ctrl+H — standard replace shortcut on Windows/Linux
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')

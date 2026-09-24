@@ -295,9 +295,9 @@ describe('postmanTranslations - cookie API conversions', () => {
     const inputScript = `
       const jar = pm.cookies.jar();
       jar.get('https://api.com', 'session');
-      
+
       pm.cookies.jar().set('https://other.com', 'temp', 'value');
-      
+
       jar.getAll('https://api.com', (err, cookies) => {
         console.log(cookies);
       });
@@ -306,9 +306,9 @@ describe('postmanTranslations - cookie API conversions', () => {
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.getCookie('https://api.com', 'session');
-      
+
       bru.cookies.jar().setCookie('https://other.com', 'temp', 'value');
-      
+
       jar.getCookies('https://api.com', (err, cookies) => {
         console.log(cookies);
       });
@@ -319,54 +319,129 @@ describe('postmanTranslations - cookie API conversions', () => {
 
   // Tests for pm.cookies direct access methods (has, get, toObject)
 
-  test('should convert pm.cookies.has(name) to await hasCookie', () => {
+  test('should convert pm.cookies.has(name) to bru.cookies.has', () => {
     const inputScript = `pm.cookies.has('token')`;
-    const expectedOutput = `await bru.cookies.jar().hasCookie(req.getUrl(), 'token')`;
+    const expectedOutput = `bru.cookies.has('token')`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should convert pm.cookies.get(name) to await getCookie?.value', () => {
+  test('should convert pm.cookies.get(name) to bru.cookies.get', () => {
     const inputScript = `pm.cookies.get('token')`;
-    const expectedOutput = `(await bru.cookies.jar().getCookie(req.getUrl(), 'token'))?.value`;
+    const expectedOutput = `bru.cookies.get('token')`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should convert pm.cookies.toObject() to getCookies reduce', () => {
+  test('should convert pm.cookies.toObject() to bru.cookies.toObject', () => {
     const inputScript = `pm.cookies.toObject()`;
-    const expectedOutput = `(await bru.cookies.jar().getCookies(req.getUrl())).reduce((obj, c) => ({
-  ...obj,
-  [c.key]: c.value
-}), {})`;
+    const expectedOutput = `bru.cookies.toObject()`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should convert pm.cookies.has inside an if conditional', () => {
     const inputScript = `if (pm.cookies.has('auth')) { console.log('found'); }`;
-    const expectedOutput = `if (await bru.cookies.jar().hasCookie(req.getUrl(), 'auth')) { console.log('found'); }`;
+    const expectedOutput = `if (bru.cookies.has('auth')) { console.log('found'); }`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should convert pm.cookies.get with a variable argument', () => {
     const inputScript = `const val = pm.cookies.get(cookieName)`;
-    const expectedOutput = `const val = (await bru.cookies.jar().getCookie(req.getUrl(), cookieName))?.value`;
+    const expectedOutput = `const val = bru.cookies.get(cookieName)`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.toString() to bru.cookies.toString', () => {
+    const inputScript = `const str = pm.cookies.toString()`;
+    const expectedOutput = `const str = bru.cookies.toString()`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should handle mixed pm.cookies.get and pm.cookies.jar().set without conflict', () => {
     const inputScript = `const v = pm.cookies.get('token'); pm.cookies.jar().set('https://example.com', 'a', 'b');`;
-    const expectedOutput = `const v = (await bru.cookies.jar().getCookie(req.getUrl(), 'token'))?.value; bru.cookies.jar().setCookie('https://example.com', 'a', 'b');`;
+    const expectedOutput = `const v = bru.cookies.get('token'); bru.cookies.jar().setCookie('https://example.com', 'a', 'b');`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should handle combined has + get in same script', () => {
     const inputScript = `if (pm.cookies.has('auth')) { const token = pm.cookies.get('auth'); }`;
-    const expectedOutput = `if (await bru.cookies.jar().hasCookie(req.getUrl(), 'auth')) { const token = (await bru.cookies.jar().getCookie(req.getUrl(), 'auth'))?.value; }`;
+    const expectedOutput = `if (bru.cookies.has('auth')) { const token = bru.cookies.get('auth'); }`;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
   test('should handle aliased access: const cookies = pm.cookies', () => {
     const inputScript = `const cookies = pm.cookies; cookies.get('token');`;
-    const expectedOutput = `(await bru.cookies.jar().getCookie(req.getUrl(), 'token'))?.value;`;
+    const expectedOutput = `bru.cookies.get('token');`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  // Direct cookie access API tests (pm.cookies.get/has/toObject)
+  test('should convert pm.cookies.get to bru.cookies.get', () => {
+    const inputScript = `const token = pm.cookies.get('authToken');`;
+    const expectedOutput = `const token = bru.cookies.get('authToken');`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.has to bru.cookies.has', () => {
+    const inputScript = `const exists = pm.cookies.has('sessionId');`;
+    const expectedOutput = `const exists = bru.cookies.has('sessionId');`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.toObject to bru.cookies.toObject', () => {
+    const inputScript = `const allCookies = pm.cookies.toObject();`;
+    const expectedOutput = `const allCookies = bru.cookies.toObject();`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should convert pm.cookies.has in conditional', () => {
+    const inputScript = `if (pm.cookies.has('auth')) {
+  console.log(pm.cookies.get('auth'));
+}`;
+    const expectedOutput = `if (bru.cookies.has('auth')) {
+  console.log(bru.cookies.get('auth'));
+}`;
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  // Regression guards: jar patterns must be matched before simpler pm.cookies.* patterns
+  // to prevent pm.cookies.jar().get being caught by pm.cookies.get, etc.
+
+  test('regression: pm.cookies.jar().get must not be caught by pm.cookies.get pattern', () => {
+    const inputScript = `pm.cookies.jar().get('https://example.com', 'token', (err, cookie) => { console.log(cookie); });`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.jar().getCookie(');
+    expect(result).not.toContain('bru.cookies.get(');
+  });
+
+  test('regression: pm.cookies.jar().set must not be caught by pm.cookies.add pattern', () => {
+    const inputScript = `pm.cookies.jar().set('https://example.com', 'session', 'abc', (err) => {});`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.jar().setCookie(');
+    expect(result).not.toContain('bru.cookies.add(');
+  });
+
+  test('regression: mixed jar and direct patterns produce correct output for each', () => {
+    const inputScript = `const v = pm.cookies.get('token');\npm.cookies.jar().set('https://example.com', 'a', 'b');\npm.cookies.jar().get('https://example.com', 'a', cb);`;
+    const result = postmanTranslation(inputScript);
+    expect(result).toContain('bru.cookies.get(');
+    expect(result).toContain('bru.cookies.jar().setCookie(');
+    expect(result).toContain('bru.cookies.jar().getCookie(');
+  });
+
+  test('should handle mixed direct cookie access and jar methods', () => {
+    const inputScript = `
+      const token = pm.cookies.get('authToken');
+      const jar = pm.cookies.jar();
+      jar.set('https://example.com', 'newCookie', 'value');
+      const allCookies = pm.cookies.toObject();
+    `;
+
+    const expectedOutput = `
+      const token = bru.cookies.get('authToken');
+      const jar = bru.cookies.jar();
+      jar.setCookie('https://example.com', 'newCookie', 'value');
+      const allCookies = bru.cookies.toObject();
+    `;
+
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 });

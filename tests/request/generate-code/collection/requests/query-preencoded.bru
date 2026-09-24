@@ -1,0 +1,20 @@
+meta {
+  name: query-preencoded
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api?name=John%20Doe&email=john%40example.com
+  body: none
+  auth: none
+}
+
+params:query {
+  name: John%20Doe
+  email: john%40example.com
+}
+
+settings {
+  encodeUrl: false
+}

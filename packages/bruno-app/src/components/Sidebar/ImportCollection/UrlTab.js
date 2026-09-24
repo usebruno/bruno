@@ -17,9 +17,9 @@ const UrlTab = ({
     }
     setIsLoading(true);
     try {
-      const { data, specType } = await fetchAndValidateApiSpecFromUrl({ url: urlInput.trim() });
-      // Pass raw data for all types
-      handleSubmit({ rawData: data, type: specType });
+      const { data, specType, rawContent } = await fetchAndValidateApiSpecFromUrl({ url: urlInput.trim() });
+      // Pass raw data for all types, include sourceUrl and rawContent for OpenAPI sync
+      handleSubmit({ rawData: data, type: specType, sourceUrl: urlInput.trim(), rawContent });
     } catch (err) {
       console.error(err);
       setErrorMessage('URL import failed. Please check the URL and try again.');

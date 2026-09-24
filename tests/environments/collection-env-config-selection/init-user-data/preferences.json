@@ -1,6 +1,12 @@
 {
-  "maximized": true,
+  "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/environments/collection-env-config-selection/collection"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

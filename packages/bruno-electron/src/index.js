@@ -3,6 +3,8 @@ const path = require('path');
 const { execSync } = require('node:child_process');
 const isDev = require('electron-is-dev');
 const os = require('os');
+const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
+const { percentageToZoomLevel } = require('@usebruno/common');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -13,7 +15,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -33,19 +35,27 @@ if (os.platform() === 'linux') {
 
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
-const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
+const registerSnapshotIpc = require('./ipc/snapshot');
 const registerSystemMonitorIpc = require('./ipc/system-monitor');
 const registerWorkspaceIpc = require('./ipc/workspace');
 const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
+const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
+const registerMockServerIpc = require('./ipc/mock-server');
+const registerAiIpc = require('./ipc/ai');
+const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
+const { registerMountIpc } = require('./ipc/mount');
+const { registerSqliteIpc } = require('./ipc/sqlite');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { preferencesUtil, getPreferences, savePreferences } = require('./store/preferences');
 const { globalEnvironmentsManager } = require('./store/workspace-environments');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
@@ -53,12 +63,10 @@ const TerminalManager = require('./ipc/terminal');
 const { safeParseJSON, safeStringifyJSON } = require('./utils/common');
 const { getDomainsWithCookies } = require('./utils/cookies');
 const { cookiesStore } = require('./store/cookies');
-const onboardUser = require('./app/onboarding');
 const SystemMonitor = require('./app/system-monitor');
 const { getIsRunningInRosetta } = require('./utils/arch');
 const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/deeplink');
 
-const lastOpenedCollections = new LastOpenedCollections();
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
 
@@ -91,6 +99,25 @@ const isLinux = process.platform === 'linux';
 let mainWindow;
 let appProtocolUrl;
 
+// Helper function to save zoom percentage to preferences and notify renderer
+const saveZoomPreferences = async (percentage) => {
+  if (!mainWindow) return;
+
+  const clampedPercentage = Math.max(50, Math.min(150, percentage));
+
+  const prefs = getPreferences();
+  prefs.display = prefs.display || {};
+  prefs.display.zoomPercentage = clampedPercentage;
+
+  try {
+    await savePreferences(prefs);
+    // Notify renderer to update Redux state only after successful save
+    mainWindow.webContents.send('main:load-preferences', prefs);
+  } catch (err) {
+    console.error('Failed to save zoom preference:', err);
+  }
+};
+
 // Helper function to focus and restore the main window
 const focusMainWindow = () => {
   if (mainWindow) {
@@ -101,6 +128,12 @@ const focusMainWindow = () => {
     mainWindow.focus();
   }
 };
+
+const closeAllWatchers = () => Promise.allSettled([
+  collectionWatcher.closeAllWatchers(),
+  workspaceWatcher.closeAllWatchers(),
+  apiSpecWatcher.closeAllWatchers()
+]);
 
 // Parse protocol URL from command line arguments (if any)
 appProtocolUrl = getAppProtocolUrlFromArgv(process.argv);
@@ -155,6 +188,8 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  initializeShellEnv();
+
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
@@ -173,13 +208,25 @@ app.on('ready', async () => {
   }
 
   // Initialize system proxy cache early (non-blocking)
-  const { initializeSystemProxy } = require('./store/system-proxy');
-  initializeSystemProxy().catch((err) => {
-    console.warn('Failed to initialize system proxy cache:', err);
-  });
+  const { fetchSystemProxy } = require('./store/system-proxy');
+
+  // Note: irrespective of the state of the shell,
+  // try to fetch the system proxy information
+  waitForShellEnv()
+    .catch((err) => {
+      console.warn('Shell env init failed:', err);
+    })
+    .finally(() => {
+      fetchSystemProxy().catch((err) => {
+        console.warn('Failed to initialize system proxy cache:', err);
+      });
+    });
 
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
+  const WindowStateStore = require('./store/window-state');
+  const windowStateStore = new WindowStateStore();
+  const themeBg = windowStateStore.getThemeBg();
 
   mainWindow = new BrowserWindow({
     x,
@@ -189,6 +236,7 @@ app.on('ready', async () => {
     minWidth: 700,
     minHeight: 400,
     show: false,
+    backgroundColor: themeBg,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -233,6 +281,10 @@ app.on('ready', async () => {
     return mainWindow.isMaximized();
   });
 
+  ipcMain.handle('renderer:window-is-fullscreen', () => {
+    return mainWindow.isFullScreen();
+  });
+
   ipcMain.handle('renderer:open-preferences', () => {
     ipcMain.emit('main:open-preferences');
   });
@@ -242,17 +294,32 @@ app.on('ready', async () => {
   });
 
   ipcMain.handle('renderer:reset-zoom', () => {
-    mainWindow.webContents.setZoomLevel(0);
+    updateZoomLevel(100);
   });
 
   ipcMain.handle('renderer:zoom-in', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom + 0.5);
+    incrementZoomAndPersist(10);
   });
 
   ipcMain.handle('renderer:zoom-out', () => {
-    const currentZoom = mainWindow.webContents.getZoomLevel();
-    mainWindow.webContents.setZoomLevel(currentZoom - 0.5);
+    incrementZoomAndPersist(-10);
+  });
+
+  // Menu event handlers for zoom (from menu-template.js)
+  ipcMain.on('menu:reset-zoom', () => {
+    updateZoomLevel(100);
+  });
+
+  ipcMain.on('menu:zoom-in', () => {
+    incrementZoomAndPersist(10);
+  });
+
+  ipcMain.on('menu:zoom-out', () => {
+    incrementZoomAndPersist(-10);
+  });
+
+  ipcMain.handle('renderer:set-zoom-level', (event, zoomLevel) => {
+    mainWindow.webContents.setZoomLevel(zoomLevel);
   });
 
   ipcMain.handle('renderer:toggle-fullscreen', () => {
@@ -278,6 +345,12 @@ app.on('ready', async () => {
   });
 
   mainWindow.once('ready-to-show', () => {
+    // Apply saved zoom level from preferences before showing window
+    const zoomPercentage = preferencesUtil.getZoomPercentage();
+    if (zoomPercentage) {
+      const zoomLevel = percentageToZoomLevel(zoomPercentage);
+      mainWindow.webContents.setZoomLevel(zoomLevel);
+    }
     mainWindow.show();
   });
   const devPort = process.env.BRUNO_DEV_PORT || 3000;
@@ -356,7 +429,27 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  const AI_POPOUT_FRAME_PREFIX = 'bruno-ai-assistant';
+  const isAiPopoutFrame = (frameName) => Boolean(frameName && frameName.startsWith(AI_POPOUT_FRAME_PREFIX));
+
+  mainWindow.webContents.setWindowOpenHandler(({ url, frameName }) => {
+    if (isAiPopoutFrame(frameName) && (!url || url === 'about:blank')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 480,
+          height: 640,
+          minWidth: 400,
+          minHeight: 480,
+          backgroundColor: themeBg,
+          icon: path.join(__dirname, 'about', '256x256.png'),
+          autoHideMenuBar: true,
+          // No OS title bar, the chat header is the drag region and carries
+          // its own close/dock controls.
+          frame: false
+        }
+      };
+    }
     try {
       const { protocol } = new URL(url);
       if (['https:', 'http:'].includes(protocol)) {
@@ -368,17 +461,39 @@ app.on('ready', async () => {
     return { action: 'deny' };
   });
 
-  mainWindow.webContents.on('did-finish-load', async () => {
-    let ogSend = mainWindow.webContents.send;
-    mainWindow.webContents.send = function (channel, ...args) {
-      return ogSend.apply(this, [channel, ...args?.map((_) => {
-        // todo: replace this with @msgpack/msgpack encode/decode
-        return safeParseJSON(safeStringifyJSON(_));
-      })]);
+  mainWindow.webContents.on('did-create-window', (childWindow, { frameName }) => {
+    if (!isAiPopoutFrame(frameName)) return;
+    // Links inside AI responses open in the default browser and must never
+    // navigate the popout document itself (that would tear down the portal).
+    const openExternally = (url) => {
+      if (/^https?:\/\//.test(url)) {
+        shell.openExternal(url).catch((err) => {
+          console.error('Failed to open external URL from AI popout:', err);
+        });
+      }
     };
+    childWindow.webContents.setWindowOpenHandler(({ url }) => {
+      openExternally(url);
+      return { action: 'deny' };
+    });
+    childWindow.webContents.on('will-navigate', (event, url) => {
+      event.preventDefault();
+      openExternally(url);
+    });
+  });
 
-    // Handle onboarding
-    await onboardUser(mainWindow, lastOpenedCollections);
+  mainWindow.webContents.on('did-finish-load', async () => {
+    try {
+      let ogSend = mainWindow.webContents.send;
+      mainWindow.webContents.send = function (channel, ...args) {
+        return ogSend.apply(this, [channel, ...args.map((_) => {
+          // todo: replace this with @msgpack/msgpack encode/decode
+          return safeParseJSON(safeStringifyJSON(_));
+        })]);
+      };
+    } catch (err) {
+      console.error('Error wrapping webContents.send:', err);
+    }
 
     // Send cookies list after renderer is ready
     try {
@@ -398,36 +513,73 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
   registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerYmlMigrationIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
+  registerSnapshotIpc();
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
   registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);
   registerSystemMonitorIpc(mainWindow, systemMonitor);
   registerGitIpc(mainWindow);
+  registerOpenAPISyncIpc(mainWindow);
+  registerMockServerIpc(mainWindow);
+  registerAiIpc(mainWindow);
+  registerAiAutocompleteIpc(mainWindow);
+  registerMountIpc();
+  registerSqliteIpc(mainWindow);
+
+  // Internal delegator
+  ipcMain.handle('main:cache-clear', async () => {
+    ipcMain.emit('internal:snapshot:reset');
+  });
 });
 
-// Quit the app once all windows are closed
-app.on('before-quit', () => {
-  // Release single instance lock to allow other instances to take over
-  if (useSingleInstance && gotTheLock) {
-    app.releaseSingleInstanceLock();
-  }
+// Quit the app once all windows are closed.
+//
+// We defer the actual exit until async cleanup (chokidar fsevents handles)
+// finishes, otherwise the main process exits while native watcher cleanup
+// is mid-flight, and Chromium helper processes can detect the broken IPC
+// channel and abort(), producing the macOS "quit unexpectedly" dialog.
+let quitInProgress = false;
+app.on('before-quit', (event) => {
+  if (quitInProgress) return;
+  quitInProgress = true;
+  event.preventDefault();
 
-  try {
-    cookiesStore.saveCookieJar(true);
-  } catch (err) {
-    console.warn('Failed to flush cookies on quit', err);
-  }
+  (async () => {
+    try {
+      await Promise.race([
+        closeAllWatchers(),
+        // Cap the wait so a stuck watcher can't block exit indefinitely.
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+    } catch {}
 
-  // Stop system monitoring
-  systemMonitor.stop();
+    try { await require('./ipc/mount').shutdown(); } catch { }
 
-  try {
-    terminalManager.killAll();
-  } catch (err) {
-    console.error('Failed to kill all terminals on quit', err);
-  }
+    try { require('./ipc/sqlite').shutdown(); } catch {}
+
+    if (useSingleInstance && gotTheLock) {
+      try { app.releaseSingleInstanceLock(); } catch {}
+    }
+
+    try {
+      cookiesStore.saveCookieJar(true);
+    } catch (err) {
+      console.warn('Failed to flush cookies on quit', err);
+    }
+
+    systemMonitor.stop();
+
+    try {
+      terminalManager.killAll();
+    } catch (err) {
+      console.error('Failed to kill all terminals on quit', err);
+    }
+
+    app.exit(0);
+  })();
 });
 
 app.on('window-all-closed', app.quit);
@@ -441,7 +593,7 @@ app.on('open-file', (event, path) => {
 app.on('browser-window-focus', () => {
   // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
   globalShortcut.register('Ctrl+=', () => {
-    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
+    incrementZoomAndPersist(10);
   });
 });
 
@@ -449,3 +601,24 @@ app.on('browser-window-focus', () => {
 app.on('browser-window-blur', () => {
   globalShortcut.unregisterAll();
 });
+
+/**
+ * @param {number} inc (+/- amount to zoom in / out);
+ */
+function incrementZoomAndPersist(inc) {
+  const currentPercentage = preferencesUtil.getZoomPercentage();
+  const nextPercentage = Math.min(
+    Math.max(currentPercentage + inc, 50),
+    150
+  );
+  updateZoomLevel(nextPercentage);
+}
+
+/**
+ * @param {number} percent percentage to increase or decrease zoom by, percentage is converted to chrome's log value internally
+ */
+function updateZoomLevel(percent) {
+  const zoomLevel = percentageToZoomLevel(percent);
+  mainWindow.webContents.setZoomLevel(zoomLevel);
+  saveZoomPreferences(percent);
+}

@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/collection-var-multi-request-test",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

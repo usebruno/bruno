@@ -99,9 +99,9 @@ test.describe('Draft values are used in requests', () => {
 
     // Check that the generated code contains the draft header
     // The header appears as a --header argument in the generated curl/httpie/wget command
-    await expect(generatedCodeEditor).toContainText('x-draft-header');
+    await expect(generatedCodeEditor).toContainText('X-Draft-Header');
     await expect(generatedCodeEditor).toContainText('draft-value-123');
-    await expect(generatedCodeEditor).toContainText('x-folder-draft-header');
+    await expect(generatedCodeEditor).toContainText('X-Folder-Draft-Header');
     await expect(generatedCodeEditor).toContainText('folder-draft-value-123');
 
     // Close the modal by clicking the X button using the test id

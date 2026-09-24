@@ -26,6 +26,12 @@ tests {
     expect(valB).to.be.undefined;
   });
 
+  test("should not throw when called on empty scope", function() {
+    expect(function() {
+      bru.deleteAllCollectionVars();
+    }).to.not.throw();
+  });
+
   // Restore collection vars for subsequent requests
   for (const [key, value] of Object.entries(savedCollectionVars)) {
     bru.setCollectionVar(key, value);

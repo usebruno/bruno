@@ -114,6 +114,8 @@ const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => 
     };
   }
 
+  tokenConfig.source = oauth.tokenSource || 'access_token';
+
   return Object.keys(tokenConfig).length > 0 ? tokenConfig : undefined;
 };
 
@@ -143,13 +145,16 @@ const buildClientCredentialsFlow = (oauth: BrunoOAuth2): OAuth2ClientCredentials
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -179,13 +184,16 @@ const buildResourceOwnerPasswordFlow = (oauth: BrunoOAuth2): OAuth2ResourceOwner
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -212,18 +220,20 @@ const buildAuthorizationCodeFlow = (oauth: BrunoOAuth2): OAuth2AuthorizationCode
   if (credentials) flow.credentials = credentials;
 
   const authorizationRequest = mapAdditionalParameters(oauth.additionalParameters?.authorization);
-  if (authorizationRequest) {
-    flow.additionalParameters = { authorizationRequest };
-  }
-
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (authorizationRequest || accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (authorizationRequest) {
+      flow.additionalParameters.authorizationRequest = authorizationRequest;
+    }
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
@@ -345,6 +355,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     tokenPlacement: null,
     tokenHeaderPrefix: null,
     tokenQueryKey: null,
+    tokenSource: 'access_token',
     refreshTokenUrl: null,
     autoRefreshToken: false, // Default to false
     autoFetchToken: true, // Default to true
@@ -363,6 +374,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -408,6 +420,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -454,6 +467,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -502,6 +516,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';

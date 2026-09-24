@@ -1,0 +1,28 @@
+vars {
+  env_str: env_string
+  @number
+  env_num: 300
+  @boolean
+  env_bool: true
+  @object
+  env_obj: '''
+    {"scope":"env"}
+  '''
+  @number
+  falsy_num: 0
+  @boolean
+  falsy_bool: false
+  env_untyped_num: 42
+  env_untyped_bool: true
+  env_untyped_obj: {"a":1}
+}
+vars:secret [
+  env_secret_str,
+  @number
+  env_secret_num,
+  @boolean
+  env_secret_bool,
+  @object
+  env_secret_obj,
+  env_secret_untyped
+]

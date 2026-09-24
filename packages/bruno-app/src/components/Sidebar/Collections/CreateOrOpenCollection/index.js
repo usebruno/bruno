@@ -1,38 +1,26 @@
-import { useState } from 'react';
 import { useTheme } from '../../../../providers/Theme';
-import { useDispatch, useSelector } from 'react-redux';
-import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch } from 'react-redux';
+import { setIsOpeningCollection } from 'providers/ReduxStore/slices/app';
 
-import toast from 'react-hot-toast';
 import styled from 'styled-components';
-import CreateCollection from 'components/Sidebar/CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
 const LinkStyle = styled.span`
   color: ${(props) => props.theme['text-link']};
 `;
 
-const CreateOrOpenCollection = () => {
+const CreateOrOpenCollection = ({ onCreateClick }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch(
-      (err) => {
-        console.log(err);
-        toast.error('An error occurred while opening the collection');
-      }
-    );
+    dispatch(setIsOpeningCollection(true));
   };
   const CreateLink = () => (
     <LinkStyle
       className="underline text-link cursor-pointer"
       theme={theme}
-      onClick={() => setCreateCollectionModalOpen(true)}
+      onClick={onCreateClick}
     >
       Create
     </LinkStyle>
@@ -45,12 +33,6 @@ const CreateOrOpenCollection = () => {
 
   return (
     <StyledWrapper className="px-2 mt-4">
-      {createCollectionModalOpen ? (
-        <CreateCollection
-          onClose={() => setCreateCollectionModalOpen(false)}
-        />
-      ) : null}
-
       <div className="text-xs text-center">
         <div>No collections found.</div>
         <div className="mt-2">

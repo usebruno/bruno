@@ -1,6 +1,32 @@
 import LinkifyIt from 'linkify-it';
 import { isMacOS } from 'utils/common/platform';
 import { debounce } from 'lodash';
+
+const URL_TERMINATORS = /[\s"<>\\`]/;
+const VALID_URL_CHARS = /^[a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=%]/;
+
+function extendUrlWithBalancedParentheses(url, line, endIndex) {
+  let openParens = 0;
+  for (const char of url) {
+    if (char === '(') openParens++;
+    else if (char === ')') openParens--;
+  }
+  if (openParens <= 0) return { url, lastIndex: endIndex };
+
+  let extendedUrl = url;
+  let i = endIndex;
+  while (i < line.length) {
+    const char = line[i];
+    if (URL_TERMINATORS.test(char) || !VALID_URL_CHARS.test(char)) break;
+    if (char === '(') openParens++;
+    else if (char === ')') openParens--;
+    if (openParens < 0) break;
+    extendedUrl += char;
+    i++;
+  }
+  return { url: extendedUrl, lastIndex: i };
+}
+
 /**
  * Gets the visible line range using scroll info and lineAtHeight
  * @param {Object} editor - The CodeMirror editor instance
@@ -71,14 +97,15 @@ function markUrls(editor, linkify, linkClass, linkHint) {
         );
         if (isInVariable) return;
 
+        const extended = extendUrlWithBalancedParentheses(url, lineContent, lastIndex);
         try {
           editor.markText(
             { line: lineNum, ch: index },
-            { line: lineNum, ch: lastIndex },
+            { line: lineNum, ch: extended.lastIndex },
             {
               className: linkClass,
               attributes: {
-                'data-url': url,
+                'data-url': extended.url,
                 'title': linkHint
               }
             }
@@ -163,29 +190,50 @@ function updateCmdCtrlClass(event, editorWrapper, cmdCtrlClass, isCmdOrCtrlPress
 }
 
 /**
- * Handles click events on links to open them externally
+ * Handles click events on links to open them externally or through a custom handler.
+ * When a custom handler is registered, a plain click uses it (e.g. open as a new request)
+ * while Cmd/Ctrl+click still falls back to opening the link externally.
  * @param {Event} event - The click event
  * @param {string} linkClass - CSS class name for links
  * @param {Function} isCmdOrCtrlPressed - Function to check if Cmd/Ctrl is pressed
+ * @param {Function} onLinkClick - Optional custom click handler
  */
-function handleClick(event, linkClass, isCmdOrCtrlPressed) {
-  if (!isCmdOrCtrlPressed(event)) return;
+function handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
+  if (!event.target.classList.contains(linkClass)) return;
 
-  if (event.target.classList.contains(linkClass)) {
-    event.preventDefault();
-    event.stopPropagation();
-    const url = event.target.getAttribute('data-url');
-    if (url) {
-      window?.ipcRenderer?.openExternal(url);
-    }
+  const shouldUseCustomHandler = typeof onLinkClick === 'function';
+  const modifierPressed = isCmdOrCtrlPressed(event);
+  if (!shouldUseCustomHandler && !modifierPressed) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  const url = event.target.getAttribute('data-url');
+  if (!url) return;
+
+  if (shouldUseCustomHandler && !modifierPressed) {
+    onLinkClick(url);
+  } else {
+    window?.ipcRenderer?.openExternal(url);
   }
+}
+
+// Capture-phase mousedown: preventDefault before CodeMirror moves the cursor.
+function handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick) {
+  if (!event.target.classList.contains(linkClass)) return;
+
+  const shouldUseCustomHandler = typeof onLinkClick === 'function';
+  const modifierPressed = isCmdOrCtrlPressed(event);
+  if (!shouldUseCustomHandler && !modifierPressed) return;
+
+  event.preventDefault();
 }
 
 /**
  * Sets up link awareness for a CodeMirror editor instance.
  * This enables automatic URL detection, styling, and click-to-open functionality.
  * @param {Object} editor - The CodeMirror editor instance
- * @param {Object} options - Configuration options (currently unused but reserved for future use)
+ * @param {Object} options - Configuration options
+ * @param {Function} options.onLinkClick - Optional custom link click handler
  * @returns {void}
  */
 function setupLinkAware(editor, options = {}) {
@@ -195,9 +243,13 @@ function setupLinkAware(editor, options = {}) {
 
   // CSS class names and configuration
   const cmdCtrlClass = 'cmd-ctrl-pressed';
+  const linkClickClass = 'link-click-enabled';
   const linkClass = 'CodeMirror-link';
   const linkHoverClass = 'hovered-link';
-  const linkHint = isMacOS() ? 'Hold Cmd and click to open link' : 'Hold Ctrl and click to open link';
+  const onLinkClick = options?.onLinkClick;
+  const linkHint = typeof onLinkClick === 'function'
+    ? (isMacOS() ? 'Click to open as request · Cmd+Click to open externally' : 'Click to open as request · Ctrl+Click to open externally')
+    : isMacOS() ? 'Hold Cmd and click to open link' : 'Hold Ctrl and click to open link';
 
   // Helper function to check if Cmd/Ctrl is pressed
   const isCmdOrCtrlPressed = (event) => (isMacOS() ? event.metaKey : event.ctrlKey);
@@ -205,11 +257,15 @@ function setupLinkAware(editor, options = {}) {
   // Initialize LinkifyIt for URL detection
   const linkify = new LinkifyIt();
   const editorWrapper = editor.getWrapperElement();
+  if (typeof onLinkClick === 'function') {
+    editorWrapper.classList.add(linkClickClass);
+  }
 
   // Create bound versions of event handlers with proper parameters
   const boundMarkUrls = () => markUrls(editor, linkify, linkClass, linkHint);
   const boundUpdateCmdCtrlClass = (event) => updateCmdCtrlClass(event, editorWrapper, cmdCtrlClass, isCmdOrCtrlPressed);
-  const boundHandleClick = (event) => handleClick(event, linkClass, isCmdOrCtrlPressed);
+  const boundHandleClick = (event) => handleClick(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
+  const boundHandleMouseDown = (event) => handleMouseDown(event, linkClass, isCmdOrCtrlPressed, onLinkClick);
   const boundHandleMouseEnter = (event) => handleMouseEnter(event, linkClass, linkHoverClass, boundUpdateCmdCtrlClass);
   const boundHandleMouseLeave = (event) => handleMouseLeave(event, linkClass, linkHoverClass);
 
@@ -233,6 +289,8 @@ function setupLinkAware(editor, options = {}) {
 
   window.addEventListener('keydown', boundUpdateCmdCtrlClass);
   window.addEventListener('keyup', boundUpdateCmdCtrlClass);
+  // Capture phase — before CodeMirror's mousedown handler.
+  editorWrapper.addEventListener('mousedown', boundHandleMouseDown, true);
   editorWrapper.addEventListener('click', boundHandleClick);
   editorWrapper.addEventListener('mouseover', boundHandleMouseEnter);
   editorWrapper.addEventListener('mouseout', boundHandleMouseLeave);
@@ -244,10 +302,12 @@ function setupLinkAware(editor, options = {}) {
     editor.off('scroll', debouncedMarkUrls);
     window.removeEventListener('keydown', boundUpdateCmdCtrlClass);
     window.removeEventListener('keyup', boundUpdateCmdCtrlClass);
+    editorWrapper.removeEventListener('mousedown', boundHandleMouseDown, true);
     editorWrapper.removeEventListener('click', boundHandleClick);
     editorWrapper.removeEventListener('mouseover', boundHandleMouseEnter);
     editorWrapper.removeEventListener('mouseout', boundHandleMouseLeave);
+    editorWrapper.classList.remove(linkClickClass);
   };
 }
 
-export { setupLinkAware };
+export { setupLinkAware, extendUrlWithBalancedParentheses };

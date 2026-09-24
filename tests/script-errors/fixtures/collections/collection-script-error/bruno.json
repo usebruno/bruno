@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "collection-script-error",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -16,7 +16,11 @@ export const resolveRequestFilename = (name, extension = 'bru') => {
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   const relativePath = path.relative(rootPath, pathname);
-  return relativePath ? relativePath.split(path.sep) : [];
+  if (!relativePath || path.isAbsolute(relativePath)) {
+    return [];
+  }
+  const segments = relativePath.split(path.sep);
+  return segments[0] === '..' ? [] : segments;
 };
 
 export const isWindowsOS = () => {
@@ -38,6 +42,10 @@ export const isLinuxOS = () => {
   const osFamily = os.family.toLowerCase();
 
   return osFamily.includes('linux') || osFamily.includes('ubuntu') || osFamily.includes('debian') || osFamily.includes('fedora') || osFamily.includes('centos') || osFamily.includes('arch');
+};
+
+export const getPlatformModifierKey = () => {
+  return isMacOS() ? '⌘' : 'Ctrl';
 };
 
 export const getRevealInFolderLabel = () => {

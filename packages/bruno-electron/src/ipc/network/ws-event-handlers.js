@@ -1,6 +1,5 @@
 const { ipcMain, app } = require('electron');
 const { WsClient } = require('@usebruno/requests');
-const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { preferencesUtil } = require('../../store/preferences');
@@ -94,7 +93,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   wsRequest = setAuthHeaders(wsRequest, request, collection);
 
   if (wsRequest.oauth2) {
-    let requestCopy = cloneDeep(wsRequest);
+    const requestCopy = cloneDeep(wsRequest);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
@@ -400,35 +399,19 @@ const registerWsEventHandlers = (window) => {
 
   ipcMain.handle(
     'renderer:ws:queue-message',
-    async (event, { item, collection, environment, runtimeVariables, messageContent }) => {
+    async (event, { item, collection, environment, runtimeVariables, selectedMessageIndex }) => {
       try {
         const itemCopy = cloneDeep(item);
         const preparedRequest = await prepareWsRequest(itemCopy, collection, environment, runtimeVariables, {});
 
-        // If messageContent is provided, find and queue that specific message (interpolated)
-        // Otherwise, queue all messages
-        if (messageContent !== undefined && messageContent !== null) {
-          // Find the message index in the original request
-          const originalMessages = itemCopy.draft?.request?.body?.ws || itemCopy.request?.body?.ws || [];
-          const messageIndex = originalMessages.findIndex((msg) => msg.content === messageContent);
+        const messages = preparedRequest.body?.ws;
+        if (!messages || !Array.isArray(messages)) {
+          return { success: true };
+        }
 
-          if (messageIndex >= 0 && preparedRequest.body?.ws?.[messageIndex]) {
-            // Queue the interpolated version of the specific message
-            const message = preparedRequest.body.ws[messageIndex];
-            wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
-          } else {
-            // Message not found in request body, queue as-is (shouldn't happen in normal flow)
-            wsClient.queueMessage(preparedRequest.uid, collection.uid, messageContent);
-          }
-        } else {
-          // Queue all messages (they are already interpolated by prepareWsRequest -> interpolateVars)
-          if (preparedRequest.body && preparedRequest.body.ws && Array.isArray(preparedRequest.body.ws)) {
-            preparedRequest.body.ws
-              .filter((message) => message && message.content)
-              .forEach((message) => {
-                wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
-              });
-          }
+        const message = messages[selectedMessageIndex];
+        if (message && message.content) {
+          wsClient.queueMessage(preparedRequest.uid, collection.uid, message.content, message.type);
         }
 
         return { success: true };
@@ -451,9 +434,9 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Close a WebSocket connection
-  ipcMain.handle('renderer:ws:close-connection', (event, requestId, code, reason) => {
+  ipcMain.handle('renderer:ws:close-connection', async (event, requestId, code, reason) => {
     try {
-      wsClient.close(requestId, code, reason);
+      await wsClient.close(requestId, code, reason);
       return { success: true };
     } catch (error) {
       console.error('Error closing WebSocket connection:', error);
@@ -486,10 +469,22 @@ const registerWsEventHandlers = (window) => {
       return { success: false, error: error.message, status: 'disconnected' };
     }
   });
+
+  app.on('window-all-closed', () => {
+    if (wsClient && typeof wsClient.clearAllConnections === 'function') {
+      try {
+        wsClient.clearAllConnections();
+      } catch (error) {
+        console.error('Error clearing WebSocket connections:', error);
+      }
+    }
+  });
 };
+
+const getWsClient = () => wsClient;
 
 module.exports = {
   registerWsEventHandlers,
-  wsClient,
+  getWsClient,
   prepareWsRequest
 };

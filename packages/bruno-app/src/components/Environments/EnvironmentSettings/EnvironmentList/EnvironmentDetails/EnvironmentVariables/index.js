@@ -9,19 +9,22 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 import { sensitiveFields } from './constants';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
 
   const environmentsDraft = collection?.environmentsDraft;
   const hasDraftForThisEnv = environmentsDraft?.environmentUid === environment.uid;
 
-  // Check for non-secret variables used in sensitive fields
+  const collectionItems = collection?.items;
+  const collectionRoot = collection?.root;
+  const environmentVariables = environment?.variables;
+
   const nonSecretSensitiveVarUsageMap = useMemo(() => {
     const result = {};
-    if (!collection || !environment?.variables) {
+    if (!environmentVariables) {
       return result;
     }
-    const nonSecretVars = environment.variables.filter((v) => v.enabled && !v.secret && v.name);
+    const nonSecretVars = environmentVariables.filter((v) => v.enabled && !v.secret && v.name);
     if (!nonSecretVars.length) {
       return result;
     }
@@ -45,12 +48,12 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       return item.root;
     };
 
-    const collectionObj = getObjectToProcess(collection);
+    const collectionObj = collectionRoot;
     sensitiveFields.forEach((fieldPath) => {
       checkSensitiveField(collectionObj, fieldPath);
     });
 
-    const items = flattenItems(collection.items || []);
+    const items = flattenItems(collectionItems || []);
     items.forEach((item) => {
       const objToProcess = getObjectToProcess(item);
       sensitiveFields.forEach((fieldPath) => {
@@ -58,7 +61,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       });
     });
     return result;
-  }, [collection, environment]);
+  }, [collectionItems, collectionRoot, environmentVariables]);
 
   const hasSensitiveUsage = useCallback((name) => !!nonSecretSensitiveVarUsageMap[name], [nonSecretSensitiveVarUsageMap]);
 
@@ -92,7 +95,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
         return (
           <SensitiveFieldWarning
             fieldName={variable.name}
-            warningMessage="This variable is used in sensitive fields. Mark it as a secret for security"
+            warningMessage="This variable is used in sensitive fields. Add it as a secret in the Secrets tab for security"
           />
         );
       }
@@ -103,7 +106,9 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
 
   return (
     <EnvironmentVariablesTable
+      key={environment?.uid}
       environment={environment}
+      inheritedEnvironmentVariables={inheritedEnvironmentVariables}
       collection={collection}
       onSave={handleSave}
       draft={hasDraftForThisEnv ? environmentsDraft : null}
@@ -112,6 +117,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       setIsModified={setIsModified}
       renderExtraValueContent={renderExtraValueContent}
       searchQuery={searchQuery}
+      variableType={variableType}
     />
   );
 };

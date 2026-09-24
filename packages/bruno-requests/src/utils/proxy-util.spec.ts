@@ -200,6 +200,63 @@ describe('transformProxyConfig', () => {
 
         expect(result).toEqual(newConfig);
       });
+
+      // Backward compat: old manual users have no source field — pass through unchanged
+      test('should not modify new format without source field (backward compat: treated as manual)', () => {
+        const newConfig = {
+          inherit: false,
+          config: {
+            protocol: 'http',
+            hostname: 'proxy.example.com',
+            port: 8080,
+            auth: { username: 'user', password: 'pass' },
+            bypassProxy: ''
+          }
+        };
+
+        const result = transformProxyConfig(newConfig);
+
+        expect(result).toEqual(newConfig);
+        expect((result as any).source).toBeUndefined();
+      });
+
+      test('should not modify new format with source: manual', () => {
+        const newConfig = {
+          inherit: false,
+          source: 'manual',
+          pac: { source: '' },
+          config: {
+            protocol: 'http',
+            hostname: 'proxy.example.com',
+            port: 8080,
+            auth: { username: 'user', password: 'pass' },
+            bypassProxy: ''
+          }
+        };
+
+        const result = transformProxyConfig(newConfig);
+
+        expect(result).toEqual(newConfig);
+      });
+
+      test('should not modify new format with source: pac', () => {
+        const newConfig = {
+          inherit: false,
+          source: 'pac',
+          pac: { source: 'http://internal/proxy.pac' },
+          config: {
+            protocol: 'http',
+            hostname: '',
+            port: null,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        };
+
+        const result = transformProxyConfig(newConfig);
+
+        expect(result).toEqual(newConfig);
+      });
     });
 
     describe('Edge Cases', () => {

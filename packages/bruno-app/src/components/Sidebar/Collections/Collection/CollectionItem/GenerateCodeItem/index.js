@@ -5,9 +5,6 @@ import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
-import {
-  findEnvironmentInCollection
-} from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
@@ -31,16 +28,6 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     globalEnvironments,
     activeGlobalEnvironmentUid
   });
-  const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
-
-  let envVars = {};
-  if (environment) {
-    const vars = get(environment, 'variables', []);
-    envVars = vars.reduce((acc, curr) => {
-      acc[curr.name] = curr.value;
-      return acc;
-    }, {});
-  }
 
   // Function to handle normal request data
   const getNormalRequestData = () => {
@@ -90,13 +77,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   const interpolatedUrl = interpolateUrl({
     url: requestData.url,
     variables
-  });
+  }) || '';
 
-  // interpolate the path params
-  const finalUrl = interpolateUrlPathParams(
-    interpolatedUrl,
-    requestData.params
-  );
+  const validationUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables);
+
+  // Interpolation off renders the URL as typed, so an unresolved `{{var}}` is expected there;
+  // buildHar's own gate still rejects genuinely malformed input in that mode.
+  const isUrlValid = !generateCodePrefs.shouldInterpolate || validateURLWithVars(validationUrl);
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
@@ -117,8 +104,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     ...item,
     request: {
       ...requestData.request,
-      auth: resolvedRequest.auth,
-      url: finalUrl
+      auth: resolvedRequest.auth
     }
   };
 
@@ -132,14 +118,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
           <CodeViewToolbar />
 
           <div className="editor-container">
-            {validateURLWithVars(finalUrl) ? (
+            {isUrlValid ? (
               <CodeView
                 language={selectedLanguage}
                 item={finalItem}
               />
             ) : (
               <div className="error-message">
-                <h1>Invalid URL: {finalUrl}</h1>
+                <h1>Invalid URL: {validationUrl}</h1>
                 <p>Please check the URL and try again</p>
               </div>
             )}

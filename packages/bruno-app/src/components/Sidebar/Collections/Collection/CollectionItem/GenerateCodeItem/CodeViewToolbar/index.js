@@ -92,6 +92,7 @@ const CodeViewToolbar = () => {
           <label className="interpolate-checkbox">
             <input
               type="checkbox"
+              data-testid="interpolate-vars-toggle"
               checked={generateCodePrefs.shouldInterpolate}
               onChange={handleInterpolateChange}
             />

@@ -1,0 +1,22 @@
+meta {
+  name: multipart-with-descriptions
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://example.com/upload
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  @description('''Single-line field desc''')
+  username: alice
+  @description('''
+    Multi-line field desc line one
+    Multi-line field desc line two
+  ''')
+  email: alice@example.com
+  plain-field: no-desc
+}

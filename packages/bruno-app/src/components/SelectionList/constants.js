@@ -1,0 +1,2 @@
+export const SELECTION_LIST_MAX_WIDTH = '720px';
+export const IMPORT_COLLECTION_SELECTION_WIDTH = '600px';

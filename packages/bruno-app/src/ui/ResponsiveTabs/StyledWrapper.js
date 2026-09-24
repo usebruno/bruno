@@ -33,6 +33,7 @@ const StyledWrapper = styled.div`
       white-space: nowrap;
       vertical-align: middle;
       flex-shrink: 0;
+      font-size: ${(props) => props.theme.font.size.sm};
 
       &:focus,
       &:active,
@@ -55,6 +56,20 @@ const StyledWrapper = styled.div`
 
       .content-indicator {
         color: ${(props) => props.theme.text};
+      }
+
+      .tab-count {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        padding: 0 5px;
+        background: ${(props) => props.theme.colors.text.muted}20;
+        color: ${(props) => props.theme.colors.text.muted};
       }
 
       sup {

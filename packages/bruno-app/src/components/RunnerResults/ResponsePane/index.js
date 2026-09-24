@@ -13,12 +13,16 @@ import SkippedRequest from 'components/ResponsePane/SkippedRequest';
 import RunnerTimeline from 'components/ResponsePane/RunnerTimeline';
 import ScriptError from 'components/ResponsePane/ScriptError';
 import ScriptErrorIcon from 'components/ResponsePane/ScriptErrorIcon';
+import useStoredRunnerExchange from 'hooks/useStoredRunnerExchange';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const { requestSent, responseReceived, testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
+  const { testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
+
+  const { requestSent, responseReceived: exchangeResponse } = useStoredRunnerExchange(item);
+  const responseReceived = exchangeResponse ?? {};
 
   useEffect(() => {
     if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
@@ -26,10 +30,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
-  const headers = get(item, 'responseReceived.headers', []);
-  const status = get(item, 'responseReceived.status', 0);
-  const size = get(item, 'responseReceived.size', 0);
-  const duration = get(item, 'responseReceived.duration', 0);
+  const headers = get(responseReceived, 'headers', []);
+  const status = get(responseReceived, 'status', 0);
+  const size = get(responseReceived, 'size', 0);
+  const duration = get(responseReceived, 'duration', 0);
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
 
@@ -120,6 +124,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className="flex flex-grow justify-end items-center">
           {hasScriptError && !showScriptErrorCard && (
             <ScriptErrorIcon
+              className="mr-2"
               itemUid={item.uid}
               onClick={() => setShowScriptErrorCard(true)}
             />
@@ -134,6 +139,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
           />
         )}
         <div className="flex-1">

@@ -103,13 +103,14 @@ const RequestBodyMode = ({ item, collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer body-mode-selector">
+      <div className="inline-flex items-center cursor-pointer body-mode-selector" data-testid="request-body-mode-selector">
         <MenuDropdown
           items={menuItems}
           placement="bottom-end"
           selectedItemId={bodyMode}
           showGroupDividers={false}
           groupStyle="select"
+          data-testid="request-body-mode-label"
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
             {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />

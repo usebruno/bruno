@@ -1,4 +1,5 @@
 import { mockDataFunctions } from '@usebruno/common';
+import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
 
 const CodeMirror = require('codemirror');
 
@@ -35,7 +36,30 @@ const STATIC_API_HINTS = {
     'req.getPathParams()',
     'req.getTags()',
     'req.disableParsingResponseJson()',
-    'req.onFail(function(err) {})'
+    'req.onFail(function(err) {})',
+    'req.headerList',
+    'req.headerList.get(name)',
+    'req.headerList.one(name)',
+    'req.headerList.all()',
+    'req.headerList.count()',
+    'req.headerList.has(name)',
+    'req.headerList.has(name, value)',
+    'req.headerList.find(fn)',
+    'req.headerList.filter(fn)',
+    'req.headerList.indexOf(item)',
+    'req.headerList.each(fn)',
+    'req.headerList.map(fn)',
+    'req.headerList.reduce(fn, initialValue)',
+    'req.headerList.toObject()',
+    'req.headerList.toString()',
+    'req.headerList.toJSON()',
+    'req.headerList.add(headerObj)',
+    'req.headerList.upsert(headerObj)',
+    'req.headerList.remove(predicate)',
+    'req.headerList.clear()',
+    'req.headerList.populate(items)',
+    'req.headerList.repopulate(items)',
+    'req.headerList.assimilate(source, prune)'
   ],
   res: [
     'res',
@@ -56,7 +80,23 @@ const STATIC_API_HINTS = {
     'res.getSize().header',
     'res.getSize().body',
     'res.getSize().total',
-    'res.getUrl()'
+    'res.getUrl()',
+    'res.headerList',
+    'res.headerList.get(name)',
+    'res.headerList.one(name)',
+    'res.headerList.all()',
+    'res.headerList.count()',
+    'res.headerList.has(name)',
+    'res.headerList.has(name, value)',
+    'res.headerList.find(fn)',
+    'res.headerList.filter(fn)',
+    'res.headerList.indexOf(item)',
+    'res.headerList.each(fn)',
+    'res.headerList.map(fn)',
+    'res.headerList.reduce(fn, initialValue)',
+    'res.headerList.toObject()',
+    'res.headerList.toString()',
+    'res.headerList.toJSON()'
   ],
   bru: [
     'bru',
@@ -73,7 +113,6 @@ const STATIC_API_HINTS = {
     'bru.deleteAllCollectionVars()',
     'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
-    'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
     'bru.getAllEnvVars()',
     'bru.deleteAllEnvVars()',
@@ -94,6 +133,7 @@ const STATIC_API_HINTS = {
     'bru.getCollectionName()',
     'bru.isSafeMode()',
     'bru.getOauth2CredentialVar(key)',
+    'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     'bru.deleteGlobalEnvVar(key)',
@@ -105,6 +145,26 @@ const STATIC_API_HINTS = {
     'bru.runner.stopExecution()',
     'bru.interpolate(str)',
     'bru.cookies',
+    'bru.cookies.get(name)',
+    'bru.cookies.has(name)',
+    'bru.cookies.has(name, value)',
+    'bru.cookies.one(name)',
+    'bru.cookies.all()',
+    'bru.cookies.count()',
+    'bru.cookies.idx(index)',
+    'bru.cookies.indexOf(item)',
+    'bru.cookies.find(fn)',
+    'bru.cookies.filter(fn)',
+    'bru.cookies.each(fn)',
+    'bru.cookies.map(fn)',
+    'bru.cookies.reduce(fn, initialValue)',
+    'bru.cookies.toObject()',
+    'bru.cookies.toString()',
+    'bru.cookies.add(cookieObj)',
+    'bru.cookies.upsert(cookieObj)',
+    'bru.cookies.remove(name)',
+    'bru.cookies.delete(name)',
+    'bru.cookies.clear()',
     'bru.cookies.jar()',
     'bru.cookies.jar().getCookie(url, name, callback)',
     'bru.cookies.jar().getCookies(url, callback)',
@@ -114,17 +174,28 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().clear(callback)',
     'bru.cookies.jar().deleteCookies(url, callback)',
     'bru.cookies.jar().deleteCookie(url, name, callback)',
+    'bru.cookies.jar().hasCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)'
-  ]
+    'bru.utils.minifyXml(xml)',
+    'bru.resetOauth2Credential(credentialId)'
+  ],
+  ...GRPC_API_HINTS
 };
+
+// The values `showHintsFor` accepts.
+const HINT_GROUPS = Object.keys(STATIC_API_HINTS);
+
+// The globals every hint starts with.
+const HINT_ROOTS = ['bru', 'req', 'res'];
 
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
-// Constants for word pattern matching
-const WORD_PATTERN = /[\w.$-/]/;
+// Constants for word pattern matching.
+// `-` is placed last so it is a literal hyphen, not a range operator — `$-/`
+// would otherwise match `( ) % & ' * + ,`
+const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
@@ -181,14 +252,12 @@ const transformVariablesToHints = (allVariables = {}) => {
 /**
  * Add API hints to categorized hints based on showHintsFor configuration
  * @param {Set} apiHints - Set to add API hints to
- * @param {string[]} showHintsFor - Array of hint types to show
+ * @param {string[]} showHintsFor - Array of hint groups to show
  */
 const addApiHintsToSet = (apiHints, showHintsFor) => {
-  const apiTypes = ['req', 'res', 'bru'];
-
-  apiTypes.forEach((apiType) => {
-    if (showHintsFor.includes(apiType)) {
-      STATIC_API_HINTS[apiType].forEach((hint) => {
+  HINT_GROUPS.forEach((group) => {
+    if (showHintsFor.includes(group)) {
+      STATIC_API_HINTS[group].forEach((hint) => {
         generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
       });
     }
@@ -315,7 +384,7 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+  const isApiHint = HINT_ROOTS.some(
     (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
   );
 
@@ -477,7 +546,7 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+    const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
@@ -551,7 +620,7 @@ const createStandardHintList = (filteredHints, from, to) => {
 /**
  * Show root-level API hints when the editor is empty
  * @param {Object} cm - CodeMirror instance
- * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
+ * @param {string[]} showHintsFor - Array of hint groups to show (e.g., ['req', 'res', 'bru'])
  * @returns {boolean} True if hints were shown, false otherwise
  */
 export const showRootHints = (cm, showHintsFor = []) => {
@@ -562,7 +631,7 @@ export const showRootHints = (cm, showHintsFor = []) => {
     return false;
   }
 
-  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+  const hints = HINT_ROOTS.filter((root) => showHintsFor.includes(root));
 
   if (hints.length === 0) return false;
 
@@ -633,7 +702,7 @@ const handleClickForAutocomplete = (cm, options) => {
   let allHints = [];
 
   // Add API hints if enabled
-  const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+  const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
   if (hasApiHints) {
     allHints = [...allHints, ...categorizedHints.api];
   }
@@ -738,7 +807,7 @@ export const setupAutoComplete = (editor, options = {}) => {
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions };
+export { extractNextSegmentSuggestions, WORD_PATTERN };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

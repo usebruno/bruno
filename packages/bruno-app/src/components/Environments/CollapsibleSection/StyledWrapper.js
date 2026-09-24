@@ -55,6 +55,7 @@ const StyledWrapper = styled.div`
     }
 
     .section-title {
+      padding-right: 4px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;

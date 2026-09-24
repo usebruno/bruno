@@ -1,0 +1,5 @@
+name: Test
+
+variables:
+  - name: host
+    value: http://127.0.0.1

@@ -1,9 +1,14 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
+import ScriptError, { hasScriptError } from '../ScriptError';
+import ScriptErrorIcon from '../ScriptErrorIcon';
+import GrpcTestResults, { buildGrpcTestSections, countGrpcTestResults } from './GrpcTestResults';
+import GrpcTestResultsLabel from './GrpcTestResultsLabel';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
 import GrpcStatusCode from './GrpcStatusCode';
 import ResponseTime from '../ResponseTime/index';
@@ -22,6 +27,14 @@ const GrpcResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const itemHasScriptError = hasScriptError(item);
+
+  useEffect(() => {
+    if (itemHasScriptError) {
+      setShowScriptErrorCard(true);
+    }
+  }, [itemHasScriptError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -41,6 +54,9 @@ const GrpcResponsePane = ({ item, collection }) => {
   const metadataCount = Array.isArray(response.metadata) ? response.metadata.length : 0;
   const trailersCount = Array.isArray(response.trailers) ? response.trailers.length : 0;
   const responsesCount = Array.isArray(response.responses) ? response.responses.length : 0;
+
+  const testSections = buildGrpcTestSections(item);
+  const hasTestResults = countGrpcTestResults(testSections) > 0;
 
   const allTabs = [
     {
@@ -67,6 +83,11 @@ const GrpcResponsePane = ({ item, collection }) => {
       key: 'timeline',
       label: 'Timeline',
       indicator: null
+    },
+    {
+      key: 'tests',
+      label: <GrpcTestResultsLabel sections={testSections} />,
+      indicator: null
     }
   ];
 
@@ -82,7 +103,10 @@ const GrpcResponsePane = ({ item, collection }) => {
         return <ResponseTrailers trailers={response.trailers} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
+      }
+      case 'tests': {
+        return <GrpcTestResults key={item.uid} item={item} sections={testSections} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -90,19 +114,36 @@ const GrpcResponsePane = ({ item, collection }) => {
     }
   };
 
+  const scriptErrorCard = itemHasScriptError && showScriptErrorCard ? (
+    <ScriptError item={item} collection={collection} onClose={() => setShowScriptErrorCard(false)} />
+  ) : null;
+
+  const scriptErrorIcon = itemHasScriptError && !showScriptErrorCard ? (
+    <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
+  ) : null;
+
+  const standaloneScriptError = itemHasScriptError ? (
+    <div className="px-4 pt-2">
+      {scriptErrorCard}
+      {scriptErrorIcon ? <div className="flex justify-end">{scriptErrorIcon}</div> : null}
+    </div>
+  ) : null;
+
   if (isLoading && !item.response) {
     return (
       <StyledWrapper className="flex flex-col h-full relative">
+        {standaloneScriptError}
         <Overlay item={item} collection={collection} />
       </StyledWrapper>
     );
   }
 
-  if (!item.response && !requestTimeline?.length) {
+  if (!item.response && !requestTimeline?.length && !hasTestResults) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <HeightBoundContainer>
+        {standaloneScriptError}
         <Placeholder />
-      </StyledWrapper>
+      </HeightBoundContainer>
     );
   }
 
@@ -117,6 +158,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
+      {scriptErrorIcon}
       {focusedTab?.responsePaneTab === 'timeline' ? (
         <>
           <ResponseLayoutToggle />
@@ -148,15 +190,20 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="flex flex-col flex-grow px-4 h-0 mt-4">
+      <section className={`response-pane-content ${scriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {!item?.response ? (
-          focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} />
-          ) : null
-        ) : (
-          <>{getTabPanel(focusedTab.responsePaneTab)}</>
-        )}
+        {scriptErrorCard}
+        <div className="response-tab-content">
+          {!item?.response ? (
+            focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
+              <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
+            ) : focusedTab?.responsePaneTab === 'tests' ? (
+              <GrpcTestResults key={item.uid} item={item} sections={testSections} />
+            ) : null
+          ) : (
+            <>{getTabPanel(focusedTab.responsePaneTab)}</>
+          )}
+        </div>
       </section>
     </StyledWrapper>
   );

@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/draft-isolation-test",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

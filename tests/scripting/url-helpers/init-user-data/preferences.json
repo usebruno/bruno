@@ -2,5 +2,11 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{collectionPath}}/url_helpers_test"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

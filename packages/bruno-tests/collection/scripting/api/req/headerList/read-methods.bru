@@ -1,0 +1,50 @@
+meta {
+  name: read-methods
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+  x-custom: test-value
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.headerList.get(name)", function() {
+    expect(req.headerList.get('bruno')).to.equal('is-awesome');
+    expect(req.headerList.get('della')).to.equal('is-beautiful');
+    expect(req.headerList.get('nonexistent')).to.be.undefined;
+  });
+
+  test("req.headerList.one(name)", function() {
+    const header = req.headerList.one('bruno');
+    expect(header).to.eql({ key: 'bruno', value: 'is-awesome' });
+    expect(req.headerList.one('nonexistent')).to.be.undefined;
+  });
+
+  test("req.headerList.all()", function() {
+    const all = req.headerList.all();
+    expect(all).to.be.an('array');
+    expect(all.length).to.be.at.least(3);
+    const keys = all.map(h => h.key);
+    expect(keys).to.include('bruno');
+    expect(keys).to.include('della');
+    expect(keys).to.include('x-custom');
+  });
+
+  test("req.headerList.count()", function() {
+    expect(req.headerList.count()).to.be.at.least(3);
+  });
+}

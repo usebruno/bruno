@@ -1,5 +1,29 @@
-const { isLargeFile } = require('../../src/utils/filesystem');
+const { isLargeFile, isSafeFileName } = require('../../src/utils/filesystem');
 const fs = require('fs-extra');
+
+describe('isSafeFileName', () => {
+  it('accepts a bare file name', () => {
+    expect(isSafeFileName('prod')).toBe(true);
+    expect(isSafeFileName('Staging 2')).toBe(true);
+    expect(isSafeFileName('env.local')).toBe(true);
+  });
+
+  it('rejects path traversal and separators', () => {
+    expect(isSafeFileName('../secret')).toBe(false);
+    expect(isSafeFileName('a/b')).toBe(false);
+    expect(isSafeFileName('a\\b')).toBe(false);
+    expect(isSafeFileName('/etc/passwd')).toBe(false);
+    expect(isSafeFileName('..')).toBe(false);
+    expect(isSafeFileName('.')).toBe(false);
+  });
+
+  it('rejects empty or non-string values', () => {
+    expect(isSafeFileName('')).toBe(false);
+    expect(isSafeFileName(undefined)).toBe(false);
+    expect(isSafeFileName(null)).toBe(false);
+    expect(isSafeFileName(42)).toBe(false);
+  });
+});
 
 describe('isLargeFile', () => {
   let existsSyncSpy;

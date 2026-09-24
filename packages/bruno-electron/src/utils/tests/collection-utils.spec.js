@@ -20,6 +20,7 @@ describe('transformRequestToSaveToFilesystem', () => {
             name: 'param1',
             value: 'value1',
             description: 'Test parameter',
+            annotations: [{ name: 'note', value: 'param annotation' }],
             type: 'text',
             enabled: true
           }
@@ -30,6 +31,7 @@ describe('transformRequestToSaveToFilesystem', () => {
             name: 'Content-Type',
             value: 'application/json',
             description: 'Request content type',
+            annotations: [{ name: 'note', value: 'header annotation' }],
             enabled: true
           }
         ],
@@ -54,14 +56,14 @@ describe('transformRequestToSaveToFilesystem', () => {
             uid: 'assert-uid-1',
             name: 'Status Code',
             operator: 'equals',
-            expected: '200'
+            expected: 200
           }
         ],
         tests: [
           {
             uid: 'test-uid-1',
             name: 'Test Response',
-            code: 'expect(response.status).toBe(200);'
+            code: 'expect(response.status).toEqual(200);'
           }
         ],
         docs: 'This is a test request documentation'
@@ -101,6 +103,7 @@ describe('transformRequestToSaveToFilesystem', () => {
       name: 'param1',
       value: 'value1',
       description: 'Test parameter',
+      annotations: [{ name: 'note', value: 'param annotation' }],
       type: 'text',
       enabled: true
     });
@@ -112,6 +115,7 @@ describe('transformRequestToSaveToFilesystem', () => {
       name: 'Content-Type',
       value: 'application/json',
       description: 'Request content type',
+      annotations: [{ name: 'note', value: 'header annotation' }],
       enabled: true
     });
   });

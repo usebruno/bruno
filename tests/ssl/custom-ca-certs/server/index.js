@@ -2,6 +2,7 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
+const http = require('node:http');
 const https = require('node:https');
 const WebSocket = require('ws');
 const { killProcessOnPort } = require('./helpers/platform');
@@ -79,6 +80,21 @@ function createServer(certsDir, port = 8090) {
   });
 }
 
+function createHttpRedirectServer(httpsPort, httpPort = 8091) {
+  const server = http.createServer((req, res) => {
+    const redirectUrl = `https://localhost:${httpsPort}${req.url}`;
+    res.writeHead(301, { Location: redirectUrl });
+    res.end();
+  });
+
+  return new Promise((resolve, reject) => {
+    server.listen(httpPort, (error) => {
+      if (error) reject(error);
+      else resolve(server);
+    });
+  });
+}
+
 function shutdownServer(server, cleanup) {
   const shutdown = (signal) => {
     console.log(`🛑 Received ${signal}, shutting down`);
@@ -104,11 +120,16 @@ async function startServer() {
 
   try {
     killProcessOnPort(port);
+    killProcessOnPort(8091);
 
     console.log(`🌐 Creating server on port ${port}`);
     const server = await createServer(certsDir, port);
 
+    console.log(`🌐 Creating HTTP redirect server on port 8091 → ${port}`);
+    const httpRedirectServer = await createHttpRedirectServer(port);
+
     shutdownServer(server, () => {
+      httpRedirectServer.close();
       console.log('✨ Server cleanup completed');
     });
   } catch (error) {

@@ -1,0 +1,34 @@
+name: 'Run OAuth1 CLI Tests - Windows'
+description: 'Run OAuth1 CLI tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run BRU format CLI tests
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+
+        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+
+        # navigate to BRU test collection directory
+        Set-Location tests\auth\oauth1\fixtures\collections\bru
+
+        Write-Host "=== BRU Format Collection Run ==="
+        $process = Start-Process -FilePath "node" -ArgumentList "$BRU_CLI run --env Local --output junit-bru.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        if ($process.ExitCode -ne 0) { exit 1 }
+
+    - name: Run YML format CLI tests
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+
+        $BRU_CLI = "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+
+        # navigate to YML test collection directory
+        Set-Location tests\auth\oauth1\fixtures\collections\yml
+
+        Write-Host "=== YML Format Collection Run ==="
+        $process = Start-Process -FilePath "node" -ArgumentList "$BRU_CLI run --env Local --output junit-yml.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        if ($process.ExitCode -ne 0) { exit 1 }

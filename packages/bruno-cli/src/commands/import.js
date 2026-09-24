@@ -10,6 +10,8 @@ const { createCollectionFromBrunoObject } = require('../utils/collection');
 const command = 'import <type>';
 const desc = 'Import a collection from other formats';
 
+const COLLECTION_FORMATS = ['bru', 'opencollection'];
+
 const builder = (yargs) => {
   yargs
     .positional('type', {
@@ -40,6 +42,12 @@ const builder = (yargs) => {
       describe: 'Name for the imported collection',
       type: 'string'
     })
+    .option('collection-format', {
+      describe: 'Format of the imported collection (bru or opencollection). If not specified, the default is `opencollection`',
+      type: 'string',
+      choices: COLLECTION_FORMATS,
+      default: 'opencollection'
+    })
     .option('insecure', {
       type: 'boolean',
       describe: 'Skip SSL certificate verification when fetching from URLs',
@@ -66,7 +74,8 @@ const builder = (yargs) => {
 
 const isUrl = (str) => {
   try {
-    return Boolean(new URL(str));
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
   } catch (error) {
     return false;
   }
@@ -199,7 +208,7 @@ const readWSDLFile = async (source, options = {}) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, outputFile, collectionName, insecure, groupBy } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy } = argv;
 
     if (!type || !['openapi', 'wsdl'].includes(type)) {
       console.error(chalk.red('Only OpenAPI and WSDL imports are supported currently'));
@@ -296,7 +305,9 @@ const handler = async (argv) => {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      await createCollectionFromBrunoObject(brunoCollection, outputDir);
+      await createCollectionFromBrunoObject(brunoCollection, outputDir, {
+        format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
+      });
       console.log(chalk.green(`Bruno collection created at ${outputDir}`));
     }
   } catch (error) {

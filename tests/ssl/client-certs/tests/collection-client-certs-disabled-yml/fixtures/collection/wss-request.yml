@@ -1,0 +1,17 @@
+info:
+  name: wss-request
+  type: websocket
+  seq: 3
+
+websocket:
+  url: wss://localhost:9443/ws
+  message:
+    - title: message 1
+      message:
+        type: json
+        data: |-
+          {
+            "ping": true
+          }
+  auth:
+    type: none

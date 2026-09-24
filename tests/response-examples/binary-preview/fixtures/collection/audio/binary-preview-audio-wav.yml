@@ -1,0 +1,18 @@
+info:
+  name: binary-preview-audio-wav
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "audio/wav",
+        "contentBase64": "UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAAAA"
+      }

@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/global-env-var-persistence-typed-test",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

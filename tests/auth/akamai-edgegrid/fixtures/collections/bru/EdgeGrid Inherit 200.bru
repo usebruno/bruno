@@ -1,0 +1,16 @@
+meta {
+  name: EdgeGrid Inherit 200
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{localhost}}/api/auth/edgegrid/resource
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: eq true
+}

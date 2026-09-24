@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import path from 'utils/common/path';
 import { browseDirectory, createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
@@ -18,13 +19,13 @@ import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 import Button from 'ui/Button';
 
-const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => {
+const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initialCollectionName = '' }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
   const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
   const [isEditing, toggleEditing] = useState(false);
-  const [showFileFormat, setShowFileFormat] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
 
   const dropdownTippyRef = useRef();
@@ -32,35 +33,36 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   const activeWorkspace = workspaces.find((w) => w.uid === workspaceUid);
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
-  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultCollectionLocation', '') : (activeWorkspace?.pathname ? `${activeWorkspace.pathname}/collections` : '');
+  const defaultLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
-      collectionFolderName: '',
+      collectionName: initialCollectionName,
+      collectionFolderName: initialCollectionName ? sanitizeName(initialCollectionName) : '',
       collectionLocation: defaultLocation || '',
       format: DEFAULT_COLLECTION_FORMAT
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
-        .required('collection name is required'),
+        .trim()
+        .min(1, 'Collection name can\'t be empty')
+        .max(255, 'Must be 255 characters or less')
+        .required('Collection name is required'),
       collectionFolderName: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(255, 'must be 255 characters or less')
+        .min(1, 'Must be at least 1 character')
+        .max(255, 'Must be 255 characters or less')
         .test('is-valid-collection-name', function (value) {
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .required('folder name is required'),
-      collectionLocation: Yup.string().min(1, 'location is required').required('location is required'),
-      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('format is required')
+        .required('Folder name is required'),
+      collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required'),
+      format: Yup.string().oneOf(['bru', 'yml'], 'invalid format').required('Format is required')
     }),
     onSubmit: async (values) => {
       try {
-        await dispatch(createCollection(values.collectionName,
+        await dispatch(createCollection(values.collectionName.trim(),
           values.collectionFolderName,
           values.collectionLocation,
           { format: values.format }));
@@ -86,9 +88,13 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
   };
 
   useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
+    const timer = setTimeout(() => {
+      if (inputRef && inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
   }, [inputRef]);
 
   const AdvancedOptions = forwardRef((props, ref) => {
@@ -121,8 +127,17 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 ref={inputRef}
                 className="block textbox mt-2 w-full"
                 onChange={(e) => {
+                  const collectionName = e.target.value;
+                  if (!isEditing) {
+                    formik.setValues((values) => ({
+                      ...values,
+                      collectionName,
+                      collectionFolderName: sanitizeName(collectionName)
+                    }));
+                    return;
+                  }
+
                   formik.handleChange(e);
-                  !isEditing && formik.setFieldValue('collectionFolderName', sanitizeName(e.target.value));
                 }}
                 autoComplete="off"
                 autoCorrect="off"
@@ -228,7 +243,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 </div>
               )}
 
-              {showFileFormat && (
+              {showAdvancedOptions && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
                     File Format
@@ -265,13 +280,14 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation }) => 
                 <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
                   <div
                     className="dropdown-item"
-                    key="show-file-format"
+                    key="show-advanced-options"
+                    data-testid="show-advanced-options-toggle"
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
-                      setShowFileFormat(!showFileFormat);
+                      setShowAdvancedOptions(!showAdvancedOptions);
                     }}
                   >
-                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                    {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
                   </div>
                 </Dropdown>
               </div>

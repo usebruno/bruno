@@ -1,0 +1,15 @@
+info:
+  name: xml-nested-error
+  type: http
+  seq: 19
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": { "content-type": "application/xml" },
+        "content": "<response><status>failed</status><errors><error><code>Unauthorized</code><message>The credentials provided are incorrect</message></error></errors></response>"
+      }

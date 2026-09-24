@@ -1,0 +1,70 @@
+{
+  "info": {
+    "_postman_id": "test-many-import-issues-001",
+    "name": "Many Import Issues Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Valid GET Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "https://api.example.com/users", "protocol": "https", "host": ["api", "example", "com"], "path": ["users"] }
+      }
+    },
+    { "name": "Bad Method 1", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-1", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-1"] } } },
+    { "name": "Bad Method 2", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-2", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-2"] } } },
+    { "name": "Bad Method 3", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-3", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-3"] } } },
+    { "name": "Bad Method 4", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-4", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-4"] } } },
+    { "name": "Bad Method 5", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-5", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-5"] } } },
+    { "name": "Bad Method 6", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-6", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-6"] } } },
+    { "name": "Bad Method 7", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-7", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-7"] } } },
+    { "name": "Bad Method 8", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-8", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-8"] } } },
+    { "name": "Bad Method 9", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-9", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-9"] } } },
+    { "name": "Bad Method 10", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/bad-10", "protocol": "https", "host": ["api", "example", "com"], "path": ["bad-10"] } } },
+    { "name": "Empty Method 1", "request": { "method": "", "header": [], "url": { "raw": "https://api.example.com/empty-1", "protocol": "https", "host": ["api", "example", "com"], "path": ["empty-1"] } } },
+    { "name": "Empty Method 2", "request": { "method": "", "header": [], "url": { "raw": "https://api.example.com/empty-2", "protocol": "https", "host": ["api", "example", "com"], "path": ["empty-2"] } } },
+    { "name": "Empty Method 3", "request": { "method": "", "header": [], "url": { "raw": "https://api.example.com/empty-3", "protocol": "https", "host": ["api", "example", "com"], "path": ["empty-3"] } } },
+    { "name": "Empty Method 4", "request": { "method": "", "header": [], "url": { "raw": "https://api.example.com/empty-4", "protocol": "https", "host": ["api", "example", "com"], "path": ["empty-4"] } } },
+    { "name": "Empty Method 5", "request": { "method": "", "header": [], "url": { "raw": "https://api.example.com/empty-5", "protocol": "https", "host": ["api", "example", "com"], "path": ["empty-5"] } } },
+    {
+      "name": "Valid POST Request",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\": \"test\"}" },
+        "url": { "raw": "https://api.example.com/users", "protocol": "https", "host": ["api", "example", "com"], "path": ["users"] }
+      }
+    },
+    { "name": "Whitespace Method 1", "request": { "method": "   ", "header": [], "url": { "raw": "https://api.example.com/ws-1", "protocol": "https", "host": ["api", "example", "com"], "path": ["ws-1"] } } },
+    { "name": "Whitespace Method 2", "request": { "method": "   ", "header": [], "url": { "raw": "https://api.example.com/ws-2", "protocol": "https", "host": ["api", "example", "com"], "path": ["ws-2"] } } },
+    { "name": "Whitespace Method 3", "request": { "method": "   ", "header": [], "url": { "raw": "https://api.example.com/ws-3", "protocol": "https", "host": ["api", "example", "com"], "path": ["ws-3"] } } },
+    { "name": "Whitespace Method 4", "request": { "method": "   ", "header": [], "url": { "raw": "https://api.example.com/ws-4", "protocol": "https", "host": ["api", "example", "com"], "path": ["ws-4"] } } },
+    { "name": "Whitespace Method 5", "request": { "method": "   ", "header": [], "url": { "raw": "https://api.example.com/ws-5", "protocol": "https", "host": ["api", "example", "com"], "path": ["ws-5"] } } },
+    { "name": "Missing Method 1", "request": { "header": [], "url": { "raw": "https://api.example.com/miss-1", "protocol": "https", "host": ["api", "example", "com"], "path": ["miss-1"] } } },
+    { "name": "Missing Method 2", "request": { "header": [], "url": { "raw": "https://api.example.com/miss-2", "protocol": "https", "host": ["api", "example", "com"], "path": ["miss-2"] } } },
+    { "name": "Missing Method 3", "request": { "header": [], "url": { "raw": "https://api.example.com/miss-3", "protocol": "https", "host": ["api", "example", "com"], "path": ["miss-3"] } } },
+    { "name": "Missing Method 4", "request": { "header": [], "url": { "raw": "https://api.example.com/miss-4", "protocol": "https", "host": ["api", "example", "com"], "path": ["miss-4"] } } },
+    { "name": "Missing Method 5", "request": { "header": [], "url": { "raw": "https://api.example.com/miss-5", "protocol": "https", "host": ["api", "example", "com"], "path": ["miss-5"] } } },
+    {
+      "name": "API Folder",
+      "item": [
+        { "name": "Nested Bad 1", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/nested-bad-1", "protocol": "https", "host": ["api", "example", "com"], "path": ["nested-bad-1"] } } },
+        { "name": "Nested Bad 2", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/nested-bad-2", "protocol": "https", "host": ["api", "example", "com"], "path": ["nested-bad-2"] } } },
+        { "name": "Nested Bad 3", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/nested-bad-3", "protocol": "https", "host": ["api", "example", "com"], "path": ["nested-bad-3"] } } },
+        { "name": "Nested Bad 4", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/nested-bad-4", "protocol": "https", "host": ["api", "example", "com"], "path": ["nested-bad-4"] } } },
+        { "name": "Nested Bad 5", "request": { "method": null, "header": [], "url": { "raw": "https://api.example.com/nested-bad-5", "protocol": "https", "host": ["api", "example", "com"], "path": ["nested-bad-5"] } } }
+      ]
+    },
+    {
+      "name": "Valid PUT Request",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\": \"updated\"}" },
+        "url": { "raw": "https://api.example.com/users/1", "protocol": "https", "host": ["api", "example", "com"], "path": ["users", "1"] }
+      }
+    }
+  ]
+}

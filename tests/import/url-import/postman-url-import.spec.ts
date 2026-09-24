@@ -8,6 +8,11 @@ test.describe('Postman URL Import', () => {
   });
 
   test('Postman URL import', async ({ page, createTmpDir }) => {
+    // Fetches a fixture over the network; the main-process axios timeout is 30s,
+    // equal to the default test budget, so a slow fetch is killed before it can
+    // fail or succeed. Give the test more room than the fetch it waits on.
+    test.setTimeout(60_000);
+
     const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/refs/heads/main/tests/import/postman/fixtures/postman-v21.json';
 
     await page.getByTestId('collections-header-add-menu').click();

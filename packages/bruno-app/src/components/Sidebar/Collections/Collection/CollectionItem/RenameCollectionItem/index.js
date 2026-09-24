@@ -2,8 +2,9 @@ import React, { useRef, useEffect, useState, forwardRef } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
+import { getItemTypeLabel } from 'utils/collections';
 import { renameItem, saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'utils/common/path';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
@@ -18,11 +19,13 @@ import Button from 'ui/Button';
 
 const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
+  const itemTypeLabel = getItemTypeLabel(item);
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -105,14 +108,14 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal
           size="md"
-          title={`Rename ${isFolder ? 'Folder' : 'Request'}`}
+          title={`Rename ${itemTypeLabel}`}
           handleCancel={onClose}
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div className="flex flex-col mt-2">
               <label htmlFor="name" className="block font-medium">
-                {isFolder ? 'Folder' : 'Request'} Name
+                {itemTypeLabel} Name
               </label>
               <input
                 id="collection-item-name"
@@ -130,7 +133,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 }}
                 value={formik.values.name || ''}
               />
-              {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
+              {formik.touched.name && formik.errors.name ? <div className="text-red-500" data-testid="form-error">{formik.errors.name}</div> : null}
             </div>
 
             {showFilesystemName && (
@@ -168,6 +171,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       size={16}
                       strokeWidth={1.5}
                       onClick={() => toggleEditing(true)}
+                      data-testid="rename-request-edit-icon"
                     />
                   )}
                 </div>
@@ -186,7 +190,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                       onChange={formik.handleChange}
                       value={formik.values.filename || ''}
                     />
-                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.bru</span>}
+                    {itemType !== 'folder' && <span className="absolute right-2 top-4 flex justify-center items-center file-extension">.{collection?.format || 'bru'}</span>}
                   </div>
                 ) : (
                   <div className="relative flex flex-row gap-1 items-center justify-between">
@@ -196,7 +200,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
+                  <div className="text-red-500" data-testid="form-error">{formik.errors.filename}</div>
                 ) : null}
               </div>
             )}
@@ -219,7 +223,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" data-testid="rename-item-button">
                   Rename
                 </Button>
               </div>

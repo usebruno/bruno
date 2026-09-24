@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .bruno-modal-card.modal-sm {
+    width: 500px;
+  }
+
   .save-request-form {
     display: flex;
     flex-direction: column;
@@ -54,6 +58,7 @@ const StyledWrapper = styled.div`
     font-size: 14px;
     margin-bottom: 12px;
     color: ${(props) => props.theme.colors.text.muted};
+    min-width: 0;
   }
 
   .collection-name-clickable {
@@ -66,6 +71,49 @@ const StyledWrapper = styled.div`
 
   .collection-name-chevron {
     margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .breadcrumb-collection-name,
+  .breadcrumb-last {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 40px;
+    flex: 0 1 auto;
+  }
+
+  .breadcrumb-ellipsis-btn {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    flex-shrink: 0;
+    color: ${(props) => props.theme.colors.text.yellow};
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+  }
+
+  .breadcrumb-dropdown {
+    min-width: 120px;
+    max-width: 250px;
+
+    .dropdown-item {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .search-container {
@@ -114,10 +162,19 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   .folder-item-name {
     color: ${(props) => props.theme.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .folder-empty-state {
@@ -157,6 +214,7 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.sm};
     user-select: none;
     border: 1px solid ${(props) => props.theme.border.border1};
+    overflow: hidden;
 
     &:hover {
       background-color: ${(props) => props.theme.plainGrid.hoverBg};
@@ -168,11 +226,20 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   .collection-item-name {
     color: ${(props) => props.theme.text};
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .collection-empty-state {
@@ -204,7 +271,7 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0px;
+    padding: 16px 0px 0px 0px;
     background-color: ${(props) => props.theme.modal.body.bg};
     border-top: 1px solid ${(props) => props.theme.border.border0};
     border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
@@ -369,6 +436,98 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.danger};
     font-size: 12px;
     margin-top: 4px;
+  }
+
+  /* New Collection Input Styles */
+  .new-collection-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-top: 1px solid ${(props) => props.theme.border.border1};
+    margin-top: 4px;
+
+    &:first-child {
+      border-top: none;
+      margin-top: 0;
+    }
+  }
+
+  .new-collection-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .new-collection-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+  }
+
+  .new-collection-input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    font-size: 14px;
+    transition: border-color ease-in-out 0.1s;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    &.cursor-pointer {
+      cursor: pointer;
+    }
+  }
+
+  .new-collection-location-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .new-collection-select {
+    width: 100%;
+    padding: 8px 10px;
+    padding-right: 28px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color ease-in-out 0.1s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
+  }
+
+  .new-collection-actions-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .collection-empty-state-subtitle {
+    font-size: 12px;
+    margin-top: 4px;
+    opacity: 0.8;
   }
 `;
 

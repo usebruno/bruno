@@ -1,0 +1,14 @@
+name: 'Start Test Server - Windows'
+description: 'Start the bruno-tests mock server for OAuth1 CLI tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Start test server
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+
+        Set-Location packages\bruno-tests
+
+        Write-Host "starting test server in background"
+        Start-Process -FilePath "node" -ArgumentList "src\index.js" -PassThru -WindowStyle Hidden

@@ -18,8 +18,9 @@ test.describe('Environment Variables Focus Retention', () => {
     await page.keyboard.type('apiKey');
     await expect(nameInput).toBeFocused();
 
-    await page.keyboard.press('Control+s');
-    await expect(page.getByText('Changes saved successfully').last()).toBeVisible({ timeout: 5000 });
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await expect(page.getByText(/(^Environment changed to)/).last()).toBeVisible({ timeout: 5000 });
 
     // intentionally wait a few seconds because the focus is lost after a while
     await page.waitForTimeout(1000);

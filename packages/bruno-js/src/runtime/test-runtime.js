@@ -7,6 +7,8 @@ const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
+const { SANDBOX } = require('../utils/sandbox');
+const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
 
 class TestRuntime {
   constructor(props) {
@@ -27,27 +29,46 @@ class TestRuntime {
     collectionName
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
     const promptVariables = request?.promptVariables || {};
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
-    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, {}, collectionName, promptVariables, certsAndProxyConfig);
+    const scriptPath = request?.pathname;
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionPath,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      collectionName,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url
+    });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
         request,
-        envVariables,
-        runtimeVariables,
-        globalEnvironmentVariables,
+        envVariables: null,
+        runtimeVariables: null,
+        collectionVariables: null,
+        globalEnvironmentVariables: null,
         results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -59,7 +80,8 @@ class TestRuntime {
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
-      jwt: jsonwebtoken
+      jwt: jsonwebtoken,
+      __bruSetScope: createScopeSetter(bru)
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -77,40 +99,48 @@ class TestRuntime {
       };
     }
 
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
+    bindRunRequest(bru, runRequestByItemPathname);
 
     let scriptError = null;
 
-    try {
-      if (this.runtime === 'nodevm') {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
           script: testsFile,
           context,
           collectionPath,
-          scriptingConfig
+          scriptingConfig,
+          scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
+      } catch (error) {
+        scriptError = error;
+      }
+      await waitForPendingTests();
+    } else {
+      // default runtime is `quickjs`
+      try {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
-          collectionPath
+          collectionPath,
+          scriptPath
         });
+      } catch (error) {
+        scriptError = error;
       }
-    } catch (error) {
-      scriptError = error;
     }
 
     const result = {
       request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
+      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      stopExecution: bru.stopExecution,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     };
 
     if (scriptError) {

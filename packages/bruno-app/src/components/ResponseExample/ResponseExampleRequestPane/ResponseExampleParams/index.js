@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
 import { moveResponseExampleParam, setResponseExampleParams } from 'providers/ReduxStore/slices/collections';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
 import BulkEditor from 'components/BulkEditor';
@@ -12,7 +13,18 @@ import StyledWrapper from './StyledWrapper';
 const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const exampleQueryParamsWidths = focusedTab?.tableColumnWidths?.['example-query-params'] || {};
+  const examplePathParamsWidths = focusedTab?.tableColumnWidths?.['example-path-params'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const params = useMemo(() => {
     return item.draft
@@ -185,6 +197,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
     <StyledWrapper className="w-full mt-4">
       <div className="mb-3 title text-xs font-bold">Query parameters</div>
       <EditableTable
+        tableId="example-query-params"
         columns={queryColumns}
         rows={queryParams || []}
         onChange={handleQueryParamsChange}
@@ -194,6 +207,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
         showAddRow={editMode}
         showDelete={editMode}
         disableCheckbox={!editMode}
+        columnWidths={exampleQueryParamsWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-query-params', widths)}
       />
       {editMode && (
         <div className="flex justify-end mt-2">
@@ -221,6 +236,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
             </InfoTip>
           </div>
           <EditableTable
+            tableId="example-path-params"
             columns={pathColumns}
             rows={pathParams}
             onChange={handlePathParamsChange}
@@ -229,6 +245,8 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
             showDelete={false}
             showAddRow={false}
             reorderable={false}
+            columnWidths={examplePathParamsWidths}
+            onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-path-params', widths)}
           />
         </>
       )}

@@ -46,6 +46,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     let proxyEnabled = false;
     let proxyServer: string | null = null;
     let proxyOverride: string | null = null;
+    let autoConfigURL: string | null = null;
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -68,6 +69,19 @@ export class WindowsProxyResolver implements ProxyResolver {
         const match = trimmedLine.match(/ProxyOverride\s+REG_SZ\s+(.+)/);
         if (match) proxyOverride = match[1].trim();
       }
+
+      if (trimmedLine.includes('AutoConfigURL') && trimmedLine.includes('REG_SZ')) {
+        const match = trimmedLine.match(/AutoConfigURL\s+REG_SZ\s+(.+)/);
+        if (match) autoConfigURL = match[1].trim();
+      }
+    }
+
+    // PAC URL takes precedence — return it even without a manual proxy
+    if (autoConfigURL) {
+      const config = proxyEnabled && proxyServer
+        ? this.parseProxyString(proxyServer, proxyOverride)
+        : { http_proxy: null, https_proxy: null, no_proxy: null, source: 'windows-system' };
+      return { ...config, pac_url: autoConfigURL };
     }
 
     if (proxyEnabled && proxyServer) {
@@ -130,7 +144,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     if (http_proxy || https_proxy) {
       return {
         http_proxy: http_proxy ? normalizeProxyUrl(http_proxy) : null,
-        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy, 'https') : null,
+        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy) : null,
         no_proxy: no_proxy ? normalizeNoProxy(no_proxy) : null,
         source: 'windows-system'
       };
@@ -171,7 +185,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     if (http_proxy || https_proxy) {
       return {
         http_proxy: http_proxy ? normalizeProxyUrl(http_proxy) : null,
-        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy, 'https') : null,
+        https_proxy: https_proxy ? normalizeProxyUrl(https_proxy) : null,
         no_proxy: no_proxy ? normalizeNoProxy(no_proxy) : null,
         source: 'windows-system'
       };
@@ -193,7 +207,7 @@ export class WindowsProxyResolver implements ProxyResolver {
         if (proto === 'http') {
           http_proxy = normalizeProxyUrl(server);
         } else if (proto === 'https') {
-          https_proxy = normalizeProxyUrl(server, 'https');
+          https_proxy = normalizeProxyUrl(server);
         }
       }
     } else {

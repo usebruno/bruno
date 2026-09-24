@@ -1,0 +1,15 @@
+meta:
+  name: invalid-tags-yml-request
+  type: http
+  seq: 1
+  tags: smoke
+
+info:
+  name: invalid-tags-yml-request
+  type: http
+  seq: 1
+  tags: smoke
+
+http:
+  method: GET
+  url: https://httpbin.org/get

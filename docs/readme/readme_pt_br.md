@@ -28,6 +28,7 @@
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
 | [ქართული](./readme_ka.md)
+| [हिन्दी](./readme_hi.md)
 
 Bruno é um novo e inovador cliente de API, com o objetivo de revolucionar o status quo representado por ferramentas como o Postman e outras semelhantes.
 
@@ -88,22 +89,6 @@ sudo apt update && sudo apt install bruno
 Ou qualquer sistema de controle de versão de sua escolha.
 
 ![bruno](../../assets/images/version-control.png) <br /><br />
-
-### Apoiadores
-
-#### Apoiadores Gold
-
-<img src="../../assets/images/sponsors/samagata.png" width="150"/>
-
-#### Apoiadores Silver
-
-<img src="../../assets/images/sponsors/commit-company.png" width="70"/>
-
-#### Apoiadores Bronze
-
-<a href="https://zuplo.link/bruno">
-    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
-</a>
 
 ### Links Importantes 📌
 

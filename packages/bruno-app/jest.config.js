@@ -7,6 +7,7 @@ module.exports = {
     '/node_modules/(?!strip-json-comments|nanoid|xml-formatter)/'
   ],
   moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': '<rootDir>/jest.cssMock.js',
     '^assets/(.*)$': '<rootDir>/src/assets/$1',
     '^components/(.*)$': '<rootDir>/src/components/$1',
     '^hooks/(.*)$': '<rootDir>/src/hooks/$1',
@@ -25,6 +26,7 @@ module.exports = {
     '<rootDir>/jest.setup.js'
   ],
   testMatch: [
-    '<rootDir>/src/**/*.spec.[jt]s?(x)'
+    '<rootDir>/src/**/*.spec.[jt]s?(x)',
+    '<rootDir>/plugins/**/*.spec.[jt]s?(x)'
   ]
 };

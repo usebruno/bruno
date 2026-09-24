@@ -1,4 +1,10 @@
 {
-  "maximized": true,
-  "lastOpenedCollections": ["{{projectRoot}}/packages/bruno-tests/collection"]
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/packages/bruno-tests/collection"],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

@@ -1,0 +1,18 @@
+info:
+  name: ws-single-msg
+  type: websocket
+  seq: 2
+
+websocket:
+  url: ws://localhost:8081/ws/echo
+  message:
+    type: json
+    data: |-
+      {
+        "foo": "bar"
+      }
+  auth: inherit
+
+settings:
+  timeout: 0
+  keepAliveInterval: 0

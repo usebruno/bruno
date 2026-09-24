@@ -15,13 +15,17 @@ test.describe('Default JavaScript Sandbox Mode', () => {
     // Click on sandbox mode selector to open security settings
     await sandboxLocators.sandboxModeSelector().click();
 
-    // Change to developer mode
-    const developerRadio = sandboxLocators.developerModeRadio();
-    await developerRadio.check();
+    // Safe mode should be selected by default
+    await expect(sandboxLocators.safeModeRadio()).toHaveAttribute('aria-checked', 'true');
 
-    // For developer mode, check if safe mode is currently selected
-    const safeModeChecked = await sandboxLocators.safeModeRadio().isChecked().catch(() => false);
-    await expect(safeModeChecked).toBe(false);
+    // Change to developer mode. The option is a menuitemradio whose checked
+    // state flips only after the async save dispatch resolves
+    const developerRadio = sandboxLocators.developerModeRadio();
+    await developerRadio.click();
+    await expect(developerRadio).toHaveAttribute('aria-checked', 'true');
+
+    // Safe mode should no longer be selected
+    await expect(sandboxLocators.safeModeRadio()).toHaveAttribute('aria-checked', 'false');
 
     await page.keyboard.press('Escape');
   });

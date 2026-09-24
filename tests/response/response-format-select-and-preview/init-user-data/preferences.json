@@ -2,5 +2,11 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/response/response-format-select-and-preview/fixtures/collection"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

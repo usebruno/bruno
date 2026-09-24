@@ -1,0 +1,15 @@
+meta {
+  name: chip-tooltip
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.example.com/upload
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  files: @file(alpha.txt)
+}

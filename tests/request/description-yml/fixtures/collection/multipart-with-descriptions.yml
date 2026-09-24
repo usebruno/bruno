@@ -1,0 +1,30 @@
+info:
+  name: multipart-with-descriptions
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: https://example.com/upload
+  body:
+    type: multipart-form
+    data:
+      - name: username
+        type: text
+        value: alice
+        description: Single-line field desc
+      - name: email
+        type: text
+        value: alice@example.com
+        description: |-
+          Multi-line field desc line one
+          Multi-line field desc line two
+      - name: plain-field
+        type: text
+        value: no-desc
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

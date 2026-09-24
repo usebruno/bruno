@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
+import HeightBoundContainer from 'ui/HeightBoundContainer';
 import WSStatusCode from './WSStatusCode';
 import ResponseTime from '../ResponseTime/index';
 import Timeline from '../Timeline';
@@ -15,8 +16,8 @@ import ResponsiveTabs from 'ui/ResponsiveTabs';
 import WSMessagesList from './WSMessagesList';
 import WSResponseHeaders from './WSResponseHeaders';
 
-const WSResult = ({ response }) => {
-  return <WSMessagesList messages={response.responses || []} />;
+const WSResult = ({ response, item, collection }) => {
+  return <WSMessagesList messages={response.responses || []} item={item} collection={collection} />;
 };
 
 const WSResponsePane = ({ item, collection }) => {
@@ -65,13 +66,13 @@ const WSResponsePane = ({ item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        return <WSResult response={response} />;
+        return <WSResult response={response} item={item} collection={collection} />;
       }
       case 'headers': {
         return <WSResponseHeaders response={response} />;
       }
       case 'timeline': {
-        return <Timeline collection={collection} item={item} />;
+        return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -89,9 +90,9 @@ const WSResponsePane = ({ item, collection }) => {
 
   if (!item.response && !requestTimeline?.length) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <HeightBoundContainer>
         <Placeholder />
-      </StyledWrapper>
+      </HeightBoundContainer>
     );
   }
 
@@ -141,7 +142,7 @@ const WSResponsePane = ({ item, collection }) => {
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {!item?.response ? (
           focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
-            <Timeline collection={collection} item={item} />
+            <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
           ) : null
         ) : (
           <>{getTabPanel(focusedTab.responsePaneTab)}</>
