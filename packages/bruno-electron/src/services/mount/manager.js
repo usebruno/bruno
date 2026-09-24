@@ -227,7 +227,7 @@ class MountManager {
   }
 
   #getIndex() {
-    if (!this.#index) this.#index = new FileIndex({});
+    if (!this.#index) this.#index = new FileIndex();
     return this.#index;
   }
 }
