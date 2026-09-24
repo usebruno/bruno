@@ -1,9 +1,6 @@
-import { Page, expect, test } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { Page, test } from '../../../../playwright';
+import { buildCommonLocators } from '../locators';
 
-/**
- * Builds locators for collection sidebar actions (remove modal, success toast).
- */
 export const buildCollectionLocators = (page: Page) => {
   const removeModal = () => page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
 
@@ -17,9 +14,6 @@ export const buildCollectionLocators = (page: Page) => {
   };
 };
 
-/**
- * Hover a collection row and open its actions (three-dots) menu.
- */
 export const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
   await test.step(`Open actions menu for collection "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
@@ -28,9 +22,6 @@ export const openCollectionActionsMenu = async (page: Page, collectionName: stri
   });
 };
 
-/**
- * Click Remove in the open collection actions menu and wait for the confirmation modal.
- */
 export const clickRemoveInCollectionMenu = async (page: Page) => {
   const locators = buildCommonLocators(page);
   const collectionLocators = buildCollectionLocators(page);
@@ -38,9 +29,6 @@ export const clickRemoveInCollectionMenu = async (page: Page) => {
   await collectionLocators.removeModal().waitFor({ state: 'visible', timeout: 5000 });
 };
 
-/**
- * Confirm removal in the Remove Collection modal (handles drafts modal when present).
- */
 export const confirmRemoveCollection = async (
   page: Page,
   options: { forceDiscard?: boolean } = {}
