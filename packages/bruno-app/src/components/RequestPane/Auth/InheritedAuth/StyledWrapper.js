@@ -4,9 +4,7 @@ const Wrapper = styled.div`
   &.inherited-auth-source {
     display: flex;
     justify-content: flex-start;
-    min-width: 0;
     max-width: 100%;
-    flex: 1 1 0;
   }
 
   .inherited-auth-source-row {

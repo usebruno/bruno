@@ -16,8 +16,8 @@ const StyledWrapper = styled.div`
       padding: 0 0.5rem;
 
     .caret {
-      color: rgb(140, 140, 140);
-      fill: rgb(140, 140, 140);
+      color: ${(props) => props.theme.colors.text.muted};
+      fill: ${(props) => props.theme.colors.text.muted};
     }
   }
 }
