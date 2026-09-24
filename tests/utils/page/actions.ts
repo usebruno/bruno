@@ -2438,7 +2438,10 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
 const switchWorkspace = async (page: Page, workspaceName: string) => {
   await test.step(`Switch to workspace "${workspaceName}"`, async () => {
     await page.locator('.workspace-name-container').click();
-    await page.locator('.workspace-item, .dropdown-item').filter({ hasText: workspaceName }).click();
+    await page
+      .locator('.workspace-item, .dropdown-item')
+      .filter({ has: page.getByText(workspaceName, { exact: true }) })
+      .click();
     await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
   });
 };

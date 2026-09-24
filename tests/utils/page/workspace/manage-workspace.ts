@@ -6,13 +6,14 @@ import { buildRenameWorkspaceModalLocators } from './rename-workspace-modal';
 type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
 
 export const buildManageWorkspaceLocators = (page: Page) => {
-  const workspaceItem = (workspaceName: string) => page.getByTestId(`workspace-item-${workspaceName}`);
+  const workspaceItem = (workspaceName: string) =>
+    page.getByTestId(/^workspace-item-/).filter({ has: page.getByText(workspaceName, { exact: true }) });
 
   return {
     title: () => page.getByTestId('manage-workspace-title'),
     backButton: () => page.getByTestId('manage-workspace-back-btn'),
     createWorkspaceButton: () => page.getByTestId('manage-workspace-create'),
-    // Every row's testid carries its workspace name, so the prefix matches them all.
+    // Every row's testid carries its workspace uid, so the prefix matches them all.
     workspaceItems: () => page.getByTestId(/^workspace-item-/),
     workspaceItem,
     workspaceName: (workspaceName: string) => workspaceItem(workspaceName).getByTestId('workspace-row-name'),
