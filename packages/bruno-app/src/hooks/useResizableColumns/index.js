@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { suppressTrailingClickOnce } from 'utils/suppressTrailingClick';
 
 /**
  * Drag-to-resize behavior for a multi-column grid.
  *
- * Columns always sum to the container width (no horizontal scroll).
+ * Columns sum to the container width minus `reservedWidth` (no horizontal scroll).
  * Dragging a separator adjusts only the two adjacent columns (zero-sum).
  * Either column hitting minColWidth causes a hard stop.
  *
@@ -22,7 +23,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  *   resizingIdx: number | null,
  *   handleResizeStart: (e: MouseEvent, separatorIdx: number) => void
  * }}
+ *
+ * `gridTemplateColumns` covers only the managed columns. `separatorPositions` are relative to the
+ * first managed column's left edge.
  */
+
+// Added to <body> while a column is dragged. globalStyles.js forces the col-resize cursor on every
+// element under it, so the cursor doesn't flip to pointer/text over headers or other parts of the app.
+export const COLUMN_RESIZE_CURSOR_CLASS = 'column-resize-cursor';
 
 const getGridTemplate = (widths) => widths.map((w) => `${w}px`).join(' ');
 
@@ -169,6 +177,7 @@ export function useResizableColumns({
 
     observer.observe(node);
     observerRef.current = observer;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options are read once when the container attaches
   }, []);
 
   const handleResizeStart = useCallback((e, separatorIdx) => {
@@ -181,6 +190,7 @@ export function useResizableColumns({
     const startWidths = [...colWidths];
 
     setResizingIdx(separatorIdx);
+    document.body.classList.add(COLUMN_RESIZE_CURSOR_CLASS);
 
     const onMouseMove = (moveE) => {
       const delta = moveE.clientX - startX;
@@ -204,12 +214,15 @@ export function useResizableColumns({
     const cleanup = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      document.body.classList.remove(COLUMN_RESIZE_CURSOR_CLASS);
       dragCleanupRef.current = null;
     };
 
     const onMouseUp = () => {
       setResizingIdx(null);
       cleanup();
+      // Prevent a resize gesture from triggering a click when the release lands on a clickable element.
+      suppressTrailingClickOnce();
       // Capture final widths for persistence — read directly from state via functional update
       if (onResizeEnd) {
         setColWidths((current) => {

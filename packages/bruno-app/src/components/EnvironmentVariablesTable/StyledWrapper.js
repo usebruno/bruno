@@ -10,7 +10,6 @@ const Wrapper = styled.div`
   overflow: hidden;
 
   &.is-resizing {
-    cursor: col-resize !important;
     user-select: none;
   }
 
@@ -69,7 +68,7 @@ const Wrapper = styled.div`
           position: absolute;
           right: 0;
           top: 0;
-          width: 2px;
+          width: 3px;
           cursor: col-resize;
           background: transparent;
           z-index: 100;

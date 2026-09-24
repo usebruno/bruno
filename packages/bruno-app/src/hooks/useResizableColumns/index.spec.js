@@ -1,7 +1,7 @@
 const { describe, it, expect, jest, beforeEach } = require('@jest/globals');
 import { render, act } from '@testing-library/react';
 import React from 'react';
-import { useResizableColumns } from './index';
+import { useResizableColumns, COLUMN_RESIZE_CURSOR_CLASS } from './index';
 
 const CONTAINER_WIDTH = 1000;
 const DEFAULT_WIDTHS = [100, 200, 400, 200, 100]; // sums to CONTAINER_WIDTH
@@ -305,6 +305,57 @@ describe('useResizableColumns', () => {
 
       expect(() => startDrag(0, 100)).not.toThrow();
       expect(hookValue.resizingIdx).toBeNull();
+    });
+
+    it('sets the resize cursor class on body only while dragging', () => {
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+
+      startDrag(1, 500);
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(true);
+
+      fireMouse('mousemove', 550);
+      fireMouse('mouseup', 550);
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+    });
+
+    it('removes the resize cursor class when unmounted mid-drag', () => {
+      const { unmount } = setup();
+
+      startDrag(1, 500);
+      unmount();
+
+      expect(document.body.classList.contains(COLUMN_RESIZE_CURSOR_CLASS)).toBe(false);
+    });
+
+    it('swallows the click that follows a drag, then lets later clicks through', async () => {
+      const onClick = jest.fn();
+      document.body.addEventListener('click', onClick);
+
+      startDrag(1, 500);
+      fireMouse('mousemove', 550);
+      fireMouse('mouseup', 550);
+
+      act(() => { document.body.click(); });
+      expect(onClick).not.toHaveBeenCalled();
+
+      // The suppression is dropped on the next tick
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      act(() => { document.body.click(); });
+      expect(onClick).toHaveBeenCalledTimes(1);
+
+      document.body.removeEventListener('click', onClick);
+    });
+
+    it('swallows the click after a press on the divider without movement', () => {
+      const onClick = jest.fn();
+      document.body.addEventListener('click', onClick);
+
+      startDrag(1, 500);
+      fireMouse('mouseup', 500);
+      act(() => { document.body.click(); });
+
+      expect(onClick).not.toHaveBeenCalled();
+      document.body.removeEventListener('click', onClick);
     });
 
     it('unmounting during an active drag does not throw', () => {

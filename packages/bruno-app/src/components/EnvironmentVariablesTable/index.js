@@ -975,9 +975,7 @@ const EnvironmentVariablesTable = ({
                 data-testid="env-vars-header-name"
                 style={{ width: columnWidths.name }}
                 className="sortable-header"
-                onClick={(e) => {
-                  if (!e.target.closest('.resize-handle')) cycleSortMode();
-                }}
+                onClick={cycleSortMode}
               >
                 <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 <div
