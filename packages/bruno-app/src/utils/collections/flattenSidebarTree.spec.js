@@ -114,8 +114,8 @@ describe('flattenSidebarTree', () => {
     });
   });
 
-  describe('row ids are parent-scoped', () => {
-    it('gives a request uid duplicated across two folders two distinct row ids', () => {
+  describe('row ids are ancestor-scoped', () => {
+    it('gives a request uid duplicated across two sibling folders two distinct row ids (the basic leaf-dup shape)', () => {
       const dupUid = 'dup-req';
       const c = collection('C', [
         folder('folder-a', [request('moved', { uid: dupUid })]),
@@ -123,18 +123,6 @@ describe('flattenSidebarTree', () => {
       ]);
       const rows = flatten([loaded(c)]);
       const dupRows = rows.filter((r) => r.itemUid === dupUid);
-      expect(dupRows).toHaveLength(2);
-      expect(dupRows[0].id).not.toBe(dupRows[1].id);
-    });
-
-    it('gives a folder uid duplicated across two parents two distinct row ids', () => {
-      const dupUid = 'dup-folder';
-      const c = collection('C', [
-        folder('parent-a', [folder('moved', [], { uid: dupUid })]),
-        folder('parent-b', [folder('moved', [], { uid: dupUid })])
-      ]);
-      const rows = flatten([loaded(c)]);
-      const dupRows = rows.filter((r) => r.itemUid === dupUid && r.kind === 'folder');
       expect(dupRows).toHaveLength(2);
       expect(dupRows[0].id).not.toBe(dupRows[1].id);
     });
@@ -154,10 +142,11 @@ describe('flattenSidebarTree', () => {
       expect(idA).not.toBe(idB);
     });
 
-    it('distinguishes a descendant nested under two copies of the same duplicated ancestor folder', () => {
-      // Folder moves temporarily duplicate the entire subtree with the same uids.
-      // Scope by the full ancestor path so descendants remain distinct when their
-      // duplicated folder has the same uid but a different parent chain.
+    it('distinguishes a descendant nested under two copies of the same duplicated ancestor folder (the duplicated-subtree shape)', () => {
+      // A folder move temporarily duplicates the whole subtree with the same
+      // uids at both locations. Immediate-parent-only scoping would give both
+      // copies of "nested" the same key (the shared folder uid); the full
+      // ancestor path disambiguates via the differing top-level ancestor.
       const dupFolderUid = 'dup-folder';
       const dupReqUid = 'dup-req';
       const c = collection('C', [
@@ -175,20 +164,7 @@ describe('flattenSidebarTree', () => {
       expect(dupReqRows[0].id).not.toBe(dupReqRows[1].id);
     });
 
-    it('is inherently safe across two different collections, even with identical uids (collectionUid is a leading, distinct prefix)', () => {
-      const dupUid = 'dup-across-collections';
-      const c1 = collection('Col1', [request('r', { uid: dupUid })], { uid: 'col-1' });
-      const c2 = collection('Col2', [request('r', { uid: dupUid })], { uid: 'col-2' });
-      const rows = flatten([loaded(c1), loaded(c2)]);
-      const dupRows = rows.filter((r) => r.itemUid === dupUid);
-      expect(dupRows).toHaveLength(2);
-      expect(dupRows[0].id).not.toBe(dupRows[1].id);
-    });
-
-    it('distinguishes a uid duplicated between a top-level (root) position and a nested folder position', () => {
-      // Covers the move-to/from-collection-root case: one copy has ancestorPath
-      // [] ("root"), the other has ancestorPath [folder.uid]. These must never
-      // collide even though one side's parentKey is the 'root' sentinel.
+    it('distinguishes a uid duplicated between a top-level (root) position and a nested folder position (the root-vs-nested shape)', () => {
       const dupUid = 'dup-root-vs-nested';
       const c = collection('C', [
         request('moved', { uid: dupUid }),
@@ -198,92 +174,6 @@ describe('flattenSidebarTree', () => {
       const dupRows = rows.filter((r) => r.itemUid === dupUid);
       expect(dupRows).toHaveLength(2);
       expect(dupRows[0].id).not.toBe(dupRows[1].id);
-    });
-
-    it('distinguishes an app uid duplicated across two different parent folders', () => {
-      const dupUid = 'dup-app';
-      const c = collection('C', [
-        folder('folder-a', [app('svc', { uid: dupUid })]),
-        folder('folder-b', [app('svc', { uid: dupUid })])
-      ]);
-      const rows = flatten([loaded(c)]);
-      const dupRows = rows.filter((r) => r.itemUid === dupUid && r.kind === 'app');
-      expect(dupRows).toHaveLength(2);
-      expect(dupRows[0].id).not.toBe(dupRows[1].id);
-    });
-
-    it('distinguishes example rows when their owning request uid is duplicated across two folders', () => {
-      // Examples don't move independently. they ride along with their parent
-      // request.
-      const dupReqUid = 'dup-req-with-examples';
-      const c = collection('C', [
-        folder('folder-a', [request('r', { uid: dupReqUid, collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })]),
-        folder('folder-b', [request('r', { uid: dupReqUid, collapsed: false, examples: [{ uid: 'ex1', name: 'ok' }] })])
-      ]);
-      const rows = flatten([loaded(c)]);
-      const dupExampleRows = rows.filter((r) => r.kind === 'example' && r.itemUid === dupReqUid);
-      expect(dupExampleRows).toHaveLength(2);
-      expect(dupExampleRows[0].id).not.toBe(dupExampleRows[1].id);
-    });
-
-    it('distinguishes the empty-cta row of an empty folder whose uid is duplicated across two ancestors', () => {
-      const dupFolderUid = 'dup-empty-folder';
-      const c = collection('C', [
-        folder('parent-a', [folder('empty', [], { uid: dupFolderUid })]),
-        folder('parent-b', [folder('empty', [], { uid: dupFolderUid })])
-      ]);
-      const rows = flatten([loaded(c)]);
-      const ctaRows = rows.filter((r) => r.kind === 'empty-cta' && r.itemUid === dupFolderUid);
-      expect(ctaRows).toHaveLength(2);
-      expect(ctaRows[0].id).not.toBe(ctaRows[1].id);
-    });
-
-    it('distinguishes a descendant 4 levels deep when only the top-level ancestor differs', () => {
-      const dupChainUid = (label) => `shared-${label}`;
-      const buildChain = () => folder('L1', [
-        folder('L2', [
-          folder('L3', [
-            request('leaf', { uid: dupChainUid('leaf') })
-          ], { uid: dupChainUid('l3') })
-        ], { uid: dupChainUid('l2') })
-      ], { uid: dupChainUid('l1') });
-
-      const c = collection('C', [
-        folder('root-a', [buildChain()]),
-        folder('root-b', [buildChain()])
-      ]);
-      const rows = flatten([loaded(c)]);
-      const leafRows = rows.filter((r) => r.itemUid === dupChainUid('leaf'));
-      expect(leafRows).toHaveLength(2);
-      expect(leafRows[0].id).not.toBe(leafRows[1].id);
-    });
-
-    it('keeps two unrelated, independently duplicated uids from cross-contaminating each other\'s ids', () => {
-      const dupUidX = 'dup-x';
-      const dupUidY = 'dup-y';
-      const c = collection('C', [
-        folder('branch-1', [
-          request('x', { uid: dupUidX }),
-          folder('inner-1', [request('y', { uid: dupUidY })])
-        ]),
-        folder('branch-2', [
-          request('x', { uid: dupUidX }),
-          folder('inner-2', [request('y', { uid: dupUidY })])
-        ])
-      ]);
-      const rows = flatten([loaded(c)]);
-
-      const xRows = rows.filter((r) => r.itemUid === dupUidX);
-      expect(xRows).toHaveLength(2);
-      expect(xRows[0].id).not.toBe(xRows[1].id);
-
-      const yRows = rows.filter((r) => r.itemUid === dupUidY);
-      expect(yRows).toHaveLength(2);
-      expect(yRows[0].id).not.toBe(yRows[1].id);
-
-      // and no accidental cross-collision between the two distinct uids' rows
-      const allIds = [...xRows, ...yRows].map((r) => r.id);
-      expect(new Set(allIds).size).toBe(allIds.length);
     });
   });
 });

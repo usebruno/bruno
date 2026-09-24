@@ -52,10 +52,10 @@ const walkChildren = (
     addItemToIndex
   } = collectionContext;
 
-  // Scope row ids by the full ancestor path, not just the immediate parent uid.
-  // During transient Redux races, the same item can temporarily exist in multiple
-  // locations. The full path keeps duplicated subtrees distinct at their point of divergence.
-  const parentKey = ancestorPath.length ? ancestorPath.join('/') : 'root';
+  // Scope row ids by the full ancestor uid chain so duplicated subtrees remain
+  // distinct even when they share the same item uids.
+  // JSON-encode the path to avoid delimiter collisions since uids are opaque strings.
+  const ancestorKey = JSON.stringify(ancestorPath);
 
   let visibleChildCount = 0;
 
@@ -69,7 +69,7 @@ const walkChildren = (
     visibleChildCount++;
 
     appendRow({
-      id: `${collectionUid}:${parentKey}:${folder.uid}`,
+      id: `${collectionUid}:${ancestorKey}:${folder.uid}`,
       kind: 'folder',
       depth,
       collectionUid,
@@ -96,7 +96,7 @@ const walkChildren = (
 
     if (!hasSearch && childCount === 0) {
       appendRow({
-        id: `${collectionUid}:${parentKey}:${folder.uid}:cta`,
+        id: `${collectionUid}:${ancestorKey}:${folder.uid}:cta`,
         kind: 'empty-cta',
         depth: depth + 1,
         collectionUid,
@@ -114,7 +114,7 @@ const walkChildren = (
       visibleChildCount++;
 
       appendRow({
-        id: `${collectionUid}:${parentKey}:${app.uid}`,
+        id: `${collectionUid}:${ancestorKey}:${app.uid}`,
         kind: 'app',
         depth,
         collectionUid,
@@ -137,7 +137,7 @@ const walkChildren = (
     visibleChildCount++;
 
     appendRow({
-      id: `${collectionUid}:${parentKey}:${request.uid}`,
+      id: `${collectionUid}:${ancestorKey}:${request.uid}`,
       kind: 'request',
       depth,
       collectionUid,
@@ -156,7 +156,7 @@ const walkChildren = (
     if (hasExamples && (hasSearch || !isCollectionItemCollapsed(request))) {
       request.examples.forEach((example, index) => {
         appendRow({
-          id: `${collectionUid}:${parentKey}:${request.uid}:ex:${example.uid || index}`,
+          id: `${collectionUid}:${ancestorKey}:${request.uid}:ex:${example.uid || index}`,
           kind: 'example',
           depth: depth + 1,
           collectionUid,
@@ -228,8 +228,7 @@ const flattenCollection = ({
   const visibleChildCount = walkChildren(collectionContext, {
     collectionItems: collection.items,
     depth: 1,
-    parentName: null,
-    ancestorPath: []
+    parentName: null
   });
 
   // Append the collection-root empty-state CTA row.
