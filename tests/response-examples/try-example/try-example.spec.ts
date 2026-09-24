@@ -53,7 +53,7 @@ test.describe('Try Response Example', () => {
     });
 
     await test.step('Verify the request was sent with interpolated param and header', async () => {
-      await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
+      await expect(locators.response.statusCode()).toContainText('200');
       await expectResponseContains(page, ['"version": "v1"', `"x-api-token": "${API_TOKEN}"`]);
     });
 
