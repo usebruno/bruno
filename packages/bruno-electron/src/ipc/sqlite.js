@@ -28,7 +28,7 @@ class SqliteEventModel {
   constructor(window) {
     this._window = window;
     const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
-      pragmas: { journal_mode: 'WAL' },
+      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' },
       onMutation: (event) => {
         this._window?.webContents?.send(SQLITE_MUTATION_CHANNEL, event);
       }
@@ -55,6 +55,35 @@ class SqliteEventModel {
       this._window = null;
     }
   }
+
+  async reclaimDiskSpace({
+    pagesBatchSize = 500,
+    pagesBatchDelayMs = 30,
+    maxReclaimDurationMs = 4000,
+    busyTimeoutMs = 500
+  } = {}) {
+    const raw = this._db?._db;
+    if (!raw) return;
+
+    try {
+      raw.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+
+      if (raw.prepare('PRAGMA auto_vacuum').get().auto_vacuum !== 2) {
+        raw.exec('VACUUM');
+      }
+
+      const start = Date.now();
+      while (Date.now() - start < maxReclaimDurationMs) {
+        if (raw.prepare('PRAGMA freelist_count').get().freelist_count === 0) break;
+        try {
+          raw.exec(`PRAGMA incremental_vacuum(${pagesBatchSize})`);
+        } catch (err) { }
+        await new Promise((resolve) => setTimeout(resolve, pagesBatchDelayMs));
+      }
+    } catch (err) {
+      console.warn('failed to reclaim disk space: ', err);
+    }
+  }
 }
 
 const registerSqliteIpc = (window) => {
@@ -73,4 +102,6 @@ const getStatements = () => (ipc ? ipc.statements : null);
 
 const getDatabase = () => (ipc ? ipc.db : null);
 
-module.exports = { registerSqliteIpc, shutdown, getStatements, getDatabase };
+const reclaimDiskSpace = (options) => (ipc ? ipc.reclaimDiskSpace(options) : Promise.resolve());
+
+module.exports = { registerSqliteIpc, shutdown, getStatements, getDatabase, reclaimDiskSpace };

@@ -558,6 +558,8 @@ app.on('before-quit', (event) => {
 
     try { await require('./ipc/mount').shutdown(); } catch { }
 
+    try { await require('./ipc/sqlite').reclaimDiskSpace(); } catch {}
+
     try { require('./ipc/sqlite').shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {

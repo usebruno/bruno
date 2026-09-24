@@ -23,7 +23,6 @@ const Cache = () => {
   const fileCacheSize = fileCacheSizeRow?.bytes ?? null;
 
   const clearFileCache = useSqliteMutation('file_index_clear');
-  const reclaimDiskSpace = useSqliteMutation('reclaim_disk_space');
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -52,7 +51,6 @@ const Cache = () => {
   const handleClearFileCache = async () => {
     try {
       await clearFileCache.mutateAsync({});
-      await reclaimDiskSpace.mutateAsync({});
       toast.success('File cache cleared');
     } catch (error) {
       toast.error('Failed to clear file cache');
