@@ -72,8 +72,8 @@ const transformCollection = async (collection, type) => {
       return processOpenCollection(collection);
     }
     case 'wsdl': {
-      const { wsdlToBruno } = await import('@usebruno/converters');
-      return wsdlToBruno(collection);
+      const { convertWsdlToBruno } = await import('utils/importers/wsdl-collection');
+      return convertWsdlToBruno(collection);
     }
     default:
       throw new Error(`Unsupported collection type: ${type}`);

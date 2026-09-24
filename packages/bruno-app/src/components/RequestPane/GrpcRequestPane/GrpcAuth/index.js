@@ -8,10 +8,9 @@ import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import OAuth2 from '../../Auth/OAuth2/index';
 import WsseAuth from '../../Auth/WsseAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
 import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
@@ -27,10 +26,6 @@ const GrpcAuth = ({ item, collection }) => {
     () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
     [authMode, item, collection]
   );
-
-  const save = () => {
-    return saveRequest(item.uid, collection.uid);
-  };
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
@@ -51,40 +46,29 @@ const GrpcAuth = ({ item, collection }) => {
         return <div>No Auth</div>;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'wsse': {
-        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'inherit': {
-        // Only show inherited auth if it's one of the supported types
-        if (inheritedSource && AUTH_MODES_GRPC.includes(inheritedSource.auth?.mode)) {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Auth inherited from {inheritedSource.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(inheritedSource.auth?.mode)}</div>
-              </div>
-            </>
-          );
-        } else {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
-              </div>
-            </>
-          );
-        }
+        return (
+          <InheritedAuth
+            collection={collection}
+            item={item}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+          />
+        );
       }
       default: {
         return null;
@@ -94,6 +78,17 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
+      <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
+        <GrpcAuthMode item={item} collection={collection} />
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel
+            collection={collection}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+            protocolLabel="gRPC"
+          />
+        ) : null}
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );

@@ -15,7 +15,9 @@ export class Statements {
     for (const def of statementDefs) {
       this._defs.set(def.name, def);
       try {
-        this._prepared.set(def.name, db.prepare(def.sql));
+        const prepared = db.prepare(def.sql);
+        if (def.readBigInts) prepared.setReadBigInts(true);
+        this._prepared.set(def.name, prepared);
       } catch (err) {
         console.error(`failed to prepare the statement "${def.name}": `, err);
       }

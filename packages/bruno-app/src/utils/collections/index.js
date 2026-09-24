@@ -3,7 +3,14 @@ import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import {
+  isRequestTagsIncluded,
+  getEffectiveTags,
+  getFolderTags,
+  getOwnTags,
+  getInheritedTagsFromTreePath,
+  getInheritedTagSourcesFromTreePath
+} from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
   doesRequestMatchSearchText,
@@ -18,20 +25,6 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   }
 
   return str.replaceAll('\t', ' '.repeat(numSpaces));
-};
-
-export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
-      i.depth = initialDepth;
-
-      if (i.items && i.items.length) {
-        depth(i.items, initialDepth + 1);
-      }
-    });
-  };
-
-  depth(items, 1);
 };
 
 const setCollapsedRecursively = (items, collapsed) => {
@@ -593,6 +586,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.root.meta = {};
           di.root.meta.name = meta?.name;
           di.root.meta.seq = meta?.seq;
+          if (meta?.tags?.length) {
+            di.root.meta.tags = meta.tags;
+          }
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
@@ -863,10 +859,12 @@ export const transformCollectionRootToSave = (collection) => {
 
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
+  const tags = getFolderTags(folder);
   const folderRootToSave = {
     meta: {
       name: folder.name,
-      seq: folder.seq
+      seq: folder.seq,
+      ...(tags.length ? { tags } : {})
     },
     docs: _folder.docs,
     request: {
@@ -878,7 +876,7 @@ export const transformFolderRootToSave = (folder) => {
     }
   };
 
-  each(_folder.request.headers, (header) => {
+  each(_folder?.request?.headers, (header) => {
     folderRootToSave.request.headers.push({
       uid: header.uid,
       name: header.name,
@@ -1437,6 +1435,8 @@ export const maskInputValue = (value) => {
 };
 
 export const getTreePathFromCollectionToItem = (collection, _item) => {
+  if (!_item?.uid) return [];
+
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -1638,6 +1638,10 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
         const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
+      if (isItemAFolder(item)) {
+        const tags = includeDrafts ? getFolderTags(item) : get(item, 'root.meta.tags', []);
+        tags.forEach((tag) => allTags.add(tag));
+      }
       if (item.items) {
         getTags(item.items);
       }
@@ -1647,32 +1651,71 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
   return Array.from(allTags).sort();
 };
 
-export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
-  let requestItems = [];
+/** Tags an item inherits from the folders above it, each paired with the folder it came from. */
+export const getInheritedTagSourcesForItem = (collection, item) =>
+  getInheritedTagSourcesFromTreePath(getTreePathFromCollectionToItem(collection, item));
 
-  if (recursive) {
-    requestItems = flattenItems(items);
-  } else {
-    each(items, (item) => {
-      if (item.request) {
-        requestItems.push(item);
-      }
-    });
-  }
+export const getInheritedTagsForItem = (collection, item) =>
+  getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item));
+
+/** The tag set an item is filtered and reported by: its own tags plus its parent folders'. */
+export const getEffectiveTagsForItem = (collection, item) =>
+  getEffectiveTags(getOwnTags(item), getInheritedTagsForItem(collection, item));
+
+/**
+ * Pairs every request with the tags it inherits from the folders it sits in.
+ * `inheritedTags` is the effective tags of the folder the run starts at.
+ */
+const collectRequestsWithInheritedTags = ({ recursive, items, inheritedTags }) => {
+  const collected = [];
+
+  each(items, (item) => {
+    if (!isItemAFolder(item)) {
+      collected.push({ item, inheritedTags });
+      return;
+    }
+    if (recursive) {
+      collected.push(
+        ...collectRequestsWithInheritedTags({
+          recursive,
+          items: item.items,
+          inheritedTags: getEffectiveTags(getFolderTags(item), inheritedTags)
+        })
+      );
+    }
+  });
+
+  return collected;
+};
+
+/**
+ * Effective tags for every request in the tree, keyed by uid, resolved in a single walk — for
+ * callers that need them for a whole list at once rather than one item at a time.
+ */
+export const getEffectiveTagsByItemUid = (items = [], inheritedTags = []) =>
+  Object.fromEntries(
+    collectRequestsWithInheritedTags({ recursive: true, items, inheritedTags }).map(({ item, inheritedTags: inherited }) => [
+      item.uid,
+      getEffectiveTags(getOwnTags(item), inherited)
+    ])
+  );
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags, inheritedTags = [] }) => {
+  let requestItems = collectRequestsWithInheritedTags({ recursive, items, inheritedTags });
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
+  requestItems = requestItems.filter(({ item }) => requestTypes.includes(item.type) && !item.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
-      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    requestItems = requestItems.filter(({ item, inheritedTags: inherited }) => {
+      const effectiveTags = getEffectiveTags(getOwnTags(item), inherited);
+      return isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
     });
   }
 
-  return requestItems;
+  return requestItems.map(({ item }) => item);
 };
 
 export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
