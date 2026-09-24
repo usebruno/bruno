@@ -1,11 +1,12 @@
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { rmSync } from 'node:fs';
 import { DB, DatabaseOptions, isDatabaseMigrationError } from './db';
 import { Statements, OnMutation } from './statements';
 import { migrations } from '../generated/node/migrations';
 
 export { DB, DatabaseMigrationError, isDatabaseMigrationError } from './db';
 export type { DatabaseOptions } from './db';
+export { passthroughCodec } from './codec';
+export type { Codec } from './codec';
 export { Statements } from './statements';
 export type { OnMutation } from './statements';
 export { registerSQLiteIpc } from './ipc';
