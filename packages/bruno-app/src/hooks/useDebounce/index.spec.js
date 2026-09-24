@@ -61,9 +61,9 @@ describe('useDebounce', () => {
     expect(result.current).toBe('abc');
   });
 
-  describe('skipDebounce', () => {
+  describe('shouldSkipDebounce', () => {
     it('applies a matching value without waiting for the delay', () => {
-      const { result, rerender } = renderDebounce('abc', { skipDebounce: isEmpty });
+      const { result, rerender } = renderDebounce('abc', { shouldSkipDebounce: isEmpty });
 
       act(() => {
         jest.advanceTimersByTime(DELAY);
@@ -75,7 +75,7 @@ describe('useDebounce', () => {
     });
 
     it('does not resurface the cleared value when a new one is typed inside the delay', () => {
-      const { result, rerender } = renderDebounce('abc', { skipDebounce: isEmpty });
+      const { result, rerender } = renderDebounce('abc', { shouldSkipDebounce: isEmpty });
 
       act(() => {
         jest.advanceTimersByTime(DELAY);
@@ -100,7 +100,7 @@ describe('useDebounce', () => {
     });
 
     it('leaves non-matching values on the trailing edge', () => {
-      const { result, rerender } = renderDebounce('abc', { skipDebounce: isEmpty });
+      const { result, rerender } = renderDebounce('abc', { shouldSkipDebounce: isEmpty });
 
       rerender({ value: 'abcd' });
       expect(result.current).toBe('abc');
