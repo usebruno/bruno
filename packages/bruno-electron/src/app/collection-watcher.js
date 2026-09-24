@@ -820,6 +820,10 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
+    if (brunoConfig) {
+      setBrunoConfig(collectionUid, brunoConfig);
+    }
+
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];

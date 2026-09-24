@@ -1,4 +1,5 @@
 import { isEqual } from 'lodash';
+import { parseToRgb } from 'polished';
 import { uuid } from './common/index';
 import { INVALID_VARIABLE_NAMES_ERROR_PREFIX } from './common/variables';
 
@@ -167,6 +168,28 @@ export const getDuplicateSecretNames = (variables) => {
     }
   });
   return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
+};
+
+export const coerceEnvName = (name) => {
+  if (typeof name === 'string') {
+    return name.trim() === '' ? null : name;
+  }
+  if (typeof name === 'number' && Number.isFinite(name)) {
+    return String(name);
+  }
+  return null;
+};
+
+export const coerceEnvColor = (color) => {
+  if (typeof color !== 'string' || color.trim() === '') {
+    return undefined;
+  }
+  try {
+    parseToRgb(color);
+    return color;
+  } catch {
+    return undefined;
+  }
 };
 
 export const normalizeEnvName = (name) => (name || '').toLowerCase().trim();

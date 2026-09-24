@@ -171,8 +171,6 @@ function makeAxiosInstance({
       delete config.lookup;
     }
 
-    config.headers['request-start-time'] = Date.now();
-
     // Omit listed defaults and script-deleted headers. set(null) so Axios
     // does not put User-Agent / Accept-Encoding back.
     const { omitConnection } = applyOmitHeaders(config.headers, {

@@ -237,6 +237,39 @@ test.describe('Import environment - mixed format and invalid file handling', () 
 
       await modal.closeButton().click();
     });
+
+    test('a name that is not text never costs the batch the files imported alongside it', async ({ page, createTmpDir }) => {
+      const { environment } = buildCommonLocators(page);
+      await createCollection(page, 'multi-format-bad-names', await createTmpDir('multi-format-bad-names'));
+
+      await openImportReviewFromEmpty(
+        page,
+        'collection',
+        fixture('bruno-env.json'),
+        fixture('numeric-name-env.json'),
+        fixture('object-name-env.json')
+      );
+
+      await test.step('The review step opens with the numeric name read as text and the object name refused', async () => {
+        await expect(environment.importTotalCount()).toHaveText('3');
+        await expect(environment.importNewCount()).toHaveText('2');
+        await expect(environment.importReviewItem('Bruno Env')).toBeVisible();
+        await expect(environment.importReviewItem('123')).toBeVisible();
+
+        await expect(environment.importInvalidCount()).toHaveText('1');
+        const invalidItem = environment.importInvalidItem('object-name-env.json');
+        await expect(invalidItem).toBeVisible();
+        await expect(invalidItem).toContainText('missing or invalid name');
+      });
+
+      await environment.importSubmitButton('collection').click();
+
+      await test.step('Both usable environments land, the refused one does not', async () => {
+        await expect(environment.sidebarListItemExact('collection', 'Bruno Env')).toBeVisible();
+        await expect(environment.sidebarListItemExact('collection', '123')).toBeVisible();
+        await expect(environment.sidebarListItemExact('collection', 'object-name-env.json')).toBeHidden();
+      });
+    });
   });
 
   test.describe('global scope', () => {

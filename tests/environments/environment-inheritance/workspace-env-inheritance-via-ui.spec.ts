@@ -553,24 +553,50 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
     await closeEnvironmentPanel(page, SCOPE);
   });
 
-  test('an inherited workspace variable is read-only in the variable tooltip', async ({ page, createTmpDir }) => {
+  test('an inherited workspace variable is read-only in the variable tooltip, and goes to definition in the environment it came from', async ({
+    page,
+    createTmpDir
+  }) => {
     const collectionName = 'Workspace Inherited Tooltip';
-    const { varInfoPopup } = buildCommonLocators(page);
+    const { environment, varInfoPopup } = buildCommonLocators(page);
 
-    await createCollectionWithEnvironments(page, collectionName, await createTmpDir('workspace-inherited-tooltip'), [
-      BASE,
-      DEV
-    ]);
-    await createRequestForUrl(page, collectionName, PING_REQUEST);
-    await selectEnvironment(page, DEV.name, SCOPE);
+    await test.step(`Create the chain, a request on an inherited variable, and select "${DEV.name}"`, async () => {
+      await createCollectionWithEnvironments(page, collectionName, await createTmpDir('workspace-inherited-tooltip'), [
+        BASE,
+        DEV
+      ]);
+      await createRequestForUrl(page, collectionName, PING_REQUEST);
+      await selectEnvironment(page, DEV.name, SCOPE);
+    });
 
     const tooltip = await openUrlVarTooltip(page, BASE.variables.host.name);
 
-    await expect(varInfoPopup.name(tooltip)).toHaveText(BASE.variables.host.name);
-    await expect(varInfoPopup.scopeBadge(tooltip)).toHaveText('Global');
-    await expect(varInfoPopup.valueDisplay(tooltip)).toContainText(BASE.variables.host.value);
-    await expect(varInfoPopup.readonlyNote(tooltip)).toHaveText(`Inherited from ${BASE.name} (read-only)`);
-    await expect(varInfoPopup.editableValue(tooltip)).toHaveCount(0);
+    await test.step('The tooltip shows the inherited workspace variable as read-only', async () => {
+      await expect(varInfoPopup.name(tooltip)).toHaveText(BASE.variables.host.name);
+      await expect(varInfoPopup.scopeBadge(tooltip)).toHaveText('Global');
+      await expect(varInfoPopup.valueDisplay(tooltip)).toContainText(BASE.variables.host.value);
+      await expect(varInfoPopup.readonlyNote(tooltip)).toHaveText(`Inherited from ${BASE.name} (read-only)`);
+      await expect(varInfoPopup.editableValue(tooltip)).toHaveCount(0);
+    });
+
+    await test.step(`Going to definition opens "${BASE.name}", where the row is its own`, async () => {
+      await varInfoPopup.name(tooltip).click();
+
+      // The tooltip closes immediately once navigation happens.
+      await expect(varInfoPopup.all()).toHaveCount(0);
+
+      await expect(environment.globalEnvTab()).toBeVisible();
+      await expect(environment.detailsTitle()).toHaveText(BASE.name);
+      await expect(environment.variablesTab()).toHaveClass(/active/);
+      await expect(environment.varRowLine(BASE.variables.host.name)).toHaveText(BASE.variables.host.value);
+      await expect(environment.inheritedVarRow(BASE.variables.host.name)).toHaveCount(0);
+    });
+
+    await test.step(`Viewing the ancestor leaves "${DEV.name}" selected`, async () => {
+      await expect(environment.currentEnvironment()).toContainText(DEV.name);
+
+      await closeEnvironmentPanel(page, SCOPE);
+    });
   });
 
   test('a collection run interpolates the workspace variables the environment inherits', async ({
