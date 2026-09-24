@@ -316,7 +316,7 @@ export default function RunnerResults({ collection }) {
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
-      <div ref={toolbarRef} className="runner-toolbar flex items-center justify-between mb-4 pt-[14px] gap-4 min-w-0">
+      <div ref={toolbarRef} className="runner-toolbar flex items-center justify-between mb-4 pt-[14px] gap-4 min-w-0" data-testid="runner-toolbar">
         <RunnerFilter
           filters={filterOptions}
           activeFilter={activeFilter}

@@ -3882,6 +3882,22 @@ const clickOutsideModal = async (page: Page) => {
 const getAppWebviewHtml = async (page: Page, electronApp: ElectronApplication): Promise<string> => {
   await waitForAppGuestReady(page, electronApp);
   return (await evalInActiveAppGuest(page, electronApp, 'document.documentElement.outerHTML')) as string;
+
+}
+
+/**
+ * Resizes the main window's content area and waits until the renderer reports the new width.
+ * @param app - The Electron app owning the window
+ * @param page - The Playwright page object
+ * @param size - The content width and height to resize to
+ * @returns void
+ */
+const setWindowContentSize = async (app: ElectronApplication, page: Page, size: { width: number; height: number }) => {
+  await app.evaluate(({ BrowserWindow }, { width, height }) => {
+    BrowserWindow.getAllWindows()[0].setContentSize(width, height);
+  }, size);
+
+  await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(size.width);
 };
 
 export {
@@ -4066,7 +4082,8 @@ export {
   setTextBody,
   saveTransientRequestAs,
   openImportReview,
-  clickOutsideModal
+  clickOutsideModal,
+  setWindowContentSize
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, ScriptSubTab };
