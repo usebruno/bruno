@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import { render, act } from '@testing-library/react';
 import useOverflowCollapse from './index';
 
-// The global mock in jest.setup.js never fires its callback; these tests need to drive
-// resizes by hand, so they install a controllable observer instead.
 let observers = [];
 let disconnectCount = 0;
 
@@ -179,7 +177,6 @@ describe('useOverflowCollapse', () => {
     const { applied, setActions } = setup({ actions: 1 });
     expect(applied()).toBe('');
 
-    // Eight more buttons: nothing resized, but the row now wants far more room.
     await setActions(9);
 
     expect(applied()).toBe('compact tiny');
@@ -198,12 +195,18 @@ describe('useOverflowCollapse', () => {
     const { applied, setCount } = setup({ actions: 1, count: '0' });
     expect(applied()).toBe('');
 
-    // The runner's filter counts tick up as requests finish. React rewrites the existing
-    // text node rather than replacing it, so nothing arrives or leaves the subtree — but
-    // the row is wider than the widths cached at mount, and has to be re-measured.
     await setCount('12345678');
 
     expect(applied()).toBe('compact');
+  });
+
+  it('skips re-measuring when a text rewrite keeps its length', async () => {
+    const { calibrations, setCount } = setup({ actions: 1, count: '10' });
+    const afterMount = calibrations();
+
+    await setCount('11');
+
+    expect(calibrations()).toBe(afterMount);
   });
 
   it('never re-measures to resize', () => {
@@ -214,7 +217,6 @@ describe('useOverflowCollapse', () => {
     resizeTo(100);
     resizeTo(1000);
 
-    // Laying the row out again per frame is what restarts the buttons' transition.
     expect(calibrations()).toBe(afterMount);
   });
 
@@ -266,7 +268,6 @@ describe('useOverflowCollapse', () => {
     forceRender(1);
 
     expect(applied()).toBe('compact tiny');
-    // A re-render must not detach and re-attach the observer.
     expect(observers).toHaveLength(1);
   });
 
