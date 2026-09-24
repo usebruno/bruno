@@ -1,135 +1,152 @@
-## What's New in Bruno v4.1.0
+## What's New in Bruno v4.2.0
 
-Bruno v4.1.0 brings major improvements to everyday API development, with Google Cloud Secret Manager support, enhanced Git workflows, global client certificates, richer Docs editing with syntax highlighting, and one-click BRU to YAML migration. It also improves collection management, security, CLI workflows, import/export and overall app reliability.
+This release expands Bruno across scripting, Git workflows, environments, and migration.
 
-### Richer Docs Editing and Reading
+Highlights include **gRPC scripting**, **raising pull requests directly from Bruno**, **environment inheritance**, and stronger **Postman migration compatibility**. It also brings control over runtime headers, sidebar multi-select, lower Runner memory usage, richer reporting, and more capable generated documentation.
 
-Docs can now be written in a rich text editor with a formatting toolbar, so you no longer need to know Markdown syntax. The editor supports headings, text styles, lists, tables, code blocks, checkboxes, quotes and more.
+Mock Servers, the BRU to YAML migration, Apps and AI, response viewing, and imports all get reliability and usability fixes.
 
-Code blocks support syntax highlighting with automatic language detection and a language selector.
+<h3>Scripting for gRPC Requests <span class="badge">Beta</span></h3>
 
-![The Rich Docs editor in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.1.0/rich-text-editor.png)
+You can now add scripts to gRPC requests across the call lifecycle:
+
+* Before the call starts
+* Before each message is sent
+* After each message is received
+* After the call ends
+
+Scripts read request and response data through `bru.grpc.*`, and `test()` and `expect()` results show up in the Tests tab as usual.
+
+![Scripting for gRPC requests in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.2.0/grcp-scripting.png)
+
+[Read Docs →](https://link.usebruno.com/docs/grpc-scripting?version=4.2.0)
+
+### Raise Pull Requests Without Leaving Bruno
+
+You can now open a pull request from Bruno after pushing a branch, with the title and description editable inline.
+
+Other Git changes in this release:
+
+* Bruno notifies you when another branch has upstream updates
+* Branch names are no longer capped at 50 characters
+* Stash Apply, Drop, and Delete errors now show a readable toast
+* The Git UI handles 5000+ changed files
+* Long paths wrap in the diff view
+* Cancelling a credential prompt no longer leaves the operation hanging
+* Remotely-deleted branches no longer appear in the pull and push dropdowns
+
+![Opening a pull request from Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.2.0/create-pr.png)
+
+[Read Docs →](https://link.usebruno.com/docs/pull-requests?version=4.2.0)
+
+### Environment Inheritance
+
+An environment can now inherit from another one. Pick a parent from your existing environments and it brings in that environment's variables, so shared values are defined once instead of copied into every environment.
+
+Inherited variables and secrets show up as read-only rows that tell you which environment they came from, and anything you set yourself takes precedence. Chains work too, so STG-GW can inherit from STG, which inherits from your base environment.
+
+![Environment inheritance in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.2.0/env-inheritance.png)
+
+[Read Docs →](https://link.usebruno.com/docs/environment-inheritance?version=4.2.0)
+
+### Importing Environments
+
+Importing several environment files at once no longer fails as a whole when one of them is bad. Each file is imported on its own. You can also select different environment file formats together.
+
+If an environment you are importing has the same name as one you already have, Bruno asks whether to replace it, import it again, or skip it. This works for both collection and global environments.
 
 
-[Read Docs →](https://link.usebruno.com/docs/editor?version=4.1.0)
+### Variable Management
 
-### Google Cloud Secret Manager Support
+Undefined `{{variables}}` can be created inline from the tooltip with scope selection (global, collection, folder, or request environment), resolving immediately. 
 
-External Secrets now support Google Cloud Secret Manager. Bruno can work with secrets stored in:
+The variables tab itself has been redesigned, so it now looks and behaves like the requests and environments tables. It keeps rows expanded when you switch tabs, and you can copy a value straight from its row.
 
-* AWS Secrets Manager
-* Azure Key Vault
-* HashiCorp Vault
-* Google Cloud Secret Manager
+### Postman Migration Parity
 
-Authenticate with a GCP service account key, fetch secrets from a selected project, and use them across requests, scripts, and environments exactly as with the other providers.
+Several real-world import failures are closed out.
 
-Secret handling is also more reliable this release: autocomplete no longer suggests invalid references or lists external secrets twice, secret previews show the correct scope, and duplicate secret names are handled properly.
+* `pm.sendRequest()` promise chains (`.then` / `.catch`) are translated, so async scripts run after import without manual edits
+* Legacy `postman.*` global variable APIs map to their Bruno equivalents
+* A request with `maxRedirects` above 50 no longer aborts the entire collection
+* Environment variables that omit the `enabled` field import correctly
 
-![GCP Secret Manager Integration in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.1.0/gcp.png)
+### NTLM Over HTTPS
 
-[Read Docs →](https://link.usebruno.com/docs/secret-managers/gcp/overview?version=4.1.0)
+NTLM requests now honour Bruno's TLS configuration. Servers presenting self-signed or internal-CA certificates authenticate instead of failing with `unable to get local issuer certificate`, either with SSL verification disabled or a matching CA configured. NTLM auth blocks that omit the optional domain field also parse correctly.
 
-### Git Workflow Improvements
+This clears a confirmed Postman migration gap that previously had no workaround in Bruno, unblocking corporate and internal services that rely on NTLM over HTTPS.
 
-Git work in v4.1.0 covers both new capability and enterprise network support.
+### Runtime Headers
 
-* **Choose a branch for Pull and Push.** Pull and Push are no longer limited to `main`. You can pick a remote and a branch inline, and retry an operation that fails.
-* **A prompt before you edit main.** The first time you edit a synced collection while on the default branch, Bruno offers to create a branch for you.
-* **Proxy and certificate support for Git.** Git operations and GitHub provider calls now respect Bruno's proxy mode, no-proxy list, and custom CA certificates. This unblocks users behind a corporate proxy and users on GitHub Enterprise Server with an internal or self-signed certificate.
-* **Workspace submodule tracking.** Fetch now detects new commits in linked collection repositories instead of reporting no changes.
-* **Fixes.** The remotes modal no longer reappears on every visit to the Git screen, the provider API URL field saves the correct value, and Git operations on migrated YAML collections no longer throw.
+The headers panel now lists the runtime headers Bruno adds for you (`User-Agent`, `Accept`, `Accept-Encoding`, `Host`, `Connection`) alongside the ones you set on the request, and you can turn any of them off from the UI when a request needs it.
 
-### Global Client Certificates
+The Timeline and Network tabs and the Runner reports reflect the same headers, including any added or changed by scripts.
 
-Client certificates can now be configured once at the app level instead of being duplicated in every collection.
+[Read Docs →](https://link.usebruno.com/docs/runtime-headers?version=4.2.0)
 
-* Define global certificates in Preferences and let collections inherit them
-* Enable or disable each certificate individually
-* Collection certificates still take precedence for matching domains
-* Works across HTTPS, gRPC, and WebSocket requests
-* Supported in CLI certificate config flows
+### Sidebar Multi-Select
 
-![Global Client Certs in Bruno](https://d3icksk7srk4uh.cloudfront.net/v4.1.0/client-cert.png)
+You can now pick several items in the sidebar and act on them together: collapse or expand them, or remove and delete them in one go. Cmd/Ctrl + Click adds items one at a time, Shift + Click selects a range, and right-click opens the actions for whatever you have selected.
 
-[Read Docs →](https://link.usebruno.com/docs/client-certificates?version=4.1.0)
+### Naming Collisions
 
-### Generated Docs Playground
+Duplicate display names are now allowed for collections, folders, and requests. Clone and copy/paste consistently use `<source> copy`, and Bruno resolves filesystem collisions silently with numeric suffixes, so no more toast errors.
 
-* Inherited auth from folders and parent requests now resolves correctly
-* Variable hover cards support highlighting and inline editing
-* Field descriptions show in the params, headers, and variables tables
-* The method dropdown includes TRACE, CONNECT, and Add Custom
-* Response actions for copy, download, and clear, plus a response format selector and layout options
-* Copying an example as a code snippet works again
+### Scripting Reliability
 
-### BRU to YAML Migration
+Safe Mode no longer crashes when a script reads a large response body after you restart the app, or when a Post Response variable uses an async expression. CLI runs in Safe Mode now exit properly after `bru.sendRequest()` instead of hanging.
 
-You can migrate existing .bru collections to the OpenCollection YAML format in one click from the collection overview, making it easier to move off the deprecated .bru format.
+Scripts also behave the way you would expect in a few more places: values you set in `req.onFail()` carry over to later requests, `__dirname` and `__filename` are available in Developer Mode, and async `test()` callbacks are waited for instead of being dropped from your test results.
 
-[Read Docs →](https://link.usebruno.com/docs/opencollection?version=4.1.0)
+### Runner Performance
 
-### Open Multiple Collections at Once
+Large collection runs use less memory in the app, and CLI runs are back to the memory footprint they had in 3.0.3.
 
-Opening a folder now scans nested folders for Bruno collections, so a monorepo holding several collections can be brought in as one step instead of importing each collection individually.
+### Reporting
 
-### Default Environment for Collections
+* JUnit and HTML reporters now represent skipped and bailed requests accurately, so CI tooling can tell what ran, what was skipped, and why
+* Iteration-data variables used in Assertion Builder values resolve to their per-iteration value before evaluation
+* Runner report download is limited to Ultimate plans, in line with the pricing page
 
-You can now store a default environment with a collection. Bruno selects it automatically the first time the collection is opened or imported. The default travels with the collection and is preserved on exports.
+### Response Viewing
 
-### Editor and Navigation
+* XML responses whose root element is `<error>` render as a collapsible tree instead of crashing the response pane
+* Saved Response Examples preserve image and PDF previews
+* The elapsed-time counter survives navigating away from and back to an in-progress streaming request
+* Click a URL in a response to open it as a new request in the collection.
 
-* **Search and Replace.** Bruno now has its own replace UI with Replace and Replace All. Use Cmd/Ctrl + F for search and Cmd + Option + F or Ctrl + H for replace.
-* **Sort and reorder variables.** Sort variables by name, drag & drop to reorder them.
-* **Search the environment selector.** Filter environments by name in the selector dropdown instead of scrolling a long list.
-* **Ignore a folder from the sidebar.** Right-click a folder and choose Ignore folder, with no config file editing required.
-* **Sidebar state persists** across restarts, including expand state and width.
+### Mock Servers
 
-### Security Fixes
+Mock Servers gets a round of fixes.
 
-* **Authorization headers on redirects.** A new Forward Authorization on Redirect toggle in request Settings decides whether auth headers follow a redirect to a different origin.
-* **File operations stay inside open collections.** Bruno now blocks writes, renames, moves, and deletes outside a collection you have open.
+* Mock Servers is on by default, and can still be turned off under Preferences > Beta
+* Creating a mock server from a collection or API spec generates its routes right away, instead of needing a separate Sync
+* The Create modal offers Collection, API spec, and Standalone as explicit choices
+* Port accepts 1–65535 and shows a proper validation error
+* Delay (ms) is locked while the server is running
+* Query Parameters opens with its Name and Value columns visible
+* Servers without responses are no longer indented under the server above them
+* Mock Servers links to its documentation
 
-### CLI
+### BRU to YAML Migration Hardening
 
-* New `--global-env-var key=value` flag to override global environment variables at runtime. `bru.getGlobalEnvVar()` now returns the override.
-* Client certificate configuration flows work in the CLI.
-* OpenAPI import no longer produces `..bru` filenames when an operation summary ends with a period.
+Unsaved changes are now preserved through the migration rather than silently discarded. Closing the app mid-migration leaves a recoverable state with the Migrate CTA visible on restart, and migrated collections keep `bru.runRequest()` working.
 
-### Scripting
+### Apps and AI
 
-* `res.getHeader()` is now case-insensitive.
-* `bru.runner.stopExecution()` now stops a collection run when called from a test
-* npm modules resolve correctly from `additionalContextRoots` node_modules again
+* The Apps entry surfaces consistently in the collection sidebar rather than behind an overflow menu, and opening the collection-level Apps view no longer auto-creates a placeholder App. New collections get a short description, a Learn more button, and a Create App action.
+* The chat sidebar, ghost text, Generate popovers, and AI Preferences all look and behave the same now. Scrolling during generation is fixed, and JS snippets no longer sneak into script autocomplete suggestions.
 
-### Import, Export, and Interoperability
+### Collection Docs
 
-* Postman import preserves scripts, auth, NTLM config, binary bodies, and descriptions, and there is a new preserve scripts option for import and export
-* Postman export retains OAuth2, AWS, Digest, and OAuth1 auth settings
-* OpenAPI import keeps collection-level and tag-level descriptions and populates the Docs tab
-* OpenAPI export retains scheme-less request URLs
-* OpenCollection export keeps environment variable descriptions and post-response variables at collection and folder level
-* cURL import handles `--data-binary` with inline JSON instead of crashing
-* `flow: sequential` is honoured for YAML collections and included in Single File YAML export
+Generated documentation now covers far more of what Bruno can do.
 
-### Networking
-
-* System and PAC proxy mode no longer adds latency per request on firewalled networks
-* Proxy refresh now reflects current content
-
-### Other Fixes
-
-* WebSocket duplicate connections when sending mid-reconnect, and message bodies not expanding with File Cache on
-* Transient requests failing to create when WebSocket is the request type in collection Presets
-* Runner cancellation and iteration stability, including folder runs with iterations, the loader continuing after cancel, Run Again for iterative runs, and the app refreshing on Enter in the iteration count field
-* Workspace Home now notifies you when a collection fails to open
-* Request timeout set to Inherit in Settings now saves as `inherit` for YAML requests instead of resetting to 0
-* Environment autosave, and duplicate names in collection secrets
-* OpenAPI Spec Viewer `$ref` resolver errors and the broken error state
-* Response Visualizer handles invalid data formats instead of crashing
-* Folder sequencing when moving a folder to the bottom of the list
-* Ctrl + W closes tabs for newly saved transient requests and JS files
-* Long tokens overflowing the Security tab input, GraphQL tooltip font size, DevTools window overlapping the environment button, truncated URLs in docs, missing outlines on bulk edit search bars, and Network panel filter options at small window sizes
+* **More request types.** Read-only pages render GraphQL and gRPC requests with their schema, messages, and metadata. Previously this was HTTP only.
+* **Playground authentication parity.** The Playground now supports Digest Auth.
+* **Playground scripting parity.** A wider safe-mode `bru.*` API and the bundled desktop script library set mean pre-request and post-response scripts behave much closer to how they do in the app.
+* **Authoring and sharing.** Tag filters exclude requests from generated docs and drive docs search, code snippets are available directly from examples and from the Playground URL bar, and Try it loads an example into the Playground in one click.
+* **Docs from the CLI.** `bru docs generate` produces the HTML documentation from the command line, so docs can be built in CI and published automatically.
 
 ---
 
