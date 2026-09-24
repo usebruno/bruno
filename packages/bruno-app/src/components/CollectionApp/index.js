@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import cloneDeep from 'lodash/cloneDeep';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { sendNetworkRequest } from 'utils/network/index';
 import {
   findEnvironmentInCollection,
@@ -24,15 +25,15 @@ import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
+import AppWebviewPane from 'components/AppWebviewPane';
 import EmptyAppState from 'components/EmptyAppState';
 import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
-  wrapHtml,
-  toDataUrl,
   serializeTimeline,
   projectResponse,
-  useAppWebview
+  useAppWebview,
+  useAppDocumentUrl
 } from '../AppView/webview-bridge';
 
 /*
@@ -184,16 +185,19 @@ const CollectionApp = ({ item, collection }) => {
   );
 
   const code = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+  const savedCode = get(item, 'app.code', '');
 
-  // Preview HTML is keyed on the *saved* code so typing doesn't reload the guest
-  // on every keystroke. The user toggles to Preview after saving to see updates.
-  const src = useMemo(
-    () => toDataUrl(wrapHtml(COLLECTION_CTX_BOOTSTRAP, code || '')),
-    [code]
-  );
+  // The document is keyed on the *saved* code so typing doesn't re-register it
+  // (an IPC round-trip) on every keystroke — `code` stays draft-aware for the
+  // editor. The user saves and toggles to Preview to see updates.
+  const { url: src, error: appDocumentError } = useAppDocumentUrl(`collection-app:${item.uid}`, COLLECTION_CTX_BOOTSTRAP, savedCode);
 
   const environment = useMemo(
-    () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
+    () =>
+      resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: findEnvironmentInCollection(collection, collection.activeEnvironmentUid)
+      }),
     [collection]
   );
   const variables = useMemo(() => buildVariables(collection), [collection]);
@@ -388,20 +392,14 @@ const CollectionApp = ({ item, collection }) => {
             mode="htmlmixed"
           />
         </div>
-      ) : code && code.trim().length ? (
+      ) : savedCode && savedCode.trim().length ? (
         <div className="app-pane app-webview-container" data-testid="collection-app-preview">
-          <webview
-            ref={webviewRef}
-            src={src}
-            partition="persist:bruno-app-view"
-            webpreferences="disableDialogs=true, javascript=yes"
-            className="app-webview"
-          />
+          <AppWebviewPane src={src} error={appDocumentError} webviewRef={webviewRef} />
         </div>
       ) : (
         <div className="app-pane" data-testid="collection-app-preview">
           <EmptyAppState
-            hint="Add HTML/JS in the Code view to render a custom UI for this app."
+            hint="Add HTML/JS in the Code view and save to render a custom UI for this app."
             onAddCode={() => setView('code')}
           />
         </div>

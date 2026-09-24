@@ -1,5 +1,4 @@
-import React, { useCallback, useRef, useMemo } from 'react';
-import { TableVirtuoso } from 'react-virtuoso';
+import React, { useCallback } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -9,9 +8,9 @@ import {
 } from 'providers/ReduxStore/slices/global-environments';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '', variableType = 'variables' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, inheritedEnvironmentVariables, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
-  const { globalEnvironmentDraft } = useSelector((state) => state.globalEnvironments);
+  const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
 
   const hasDraftForThisEnv = globalEnvironmentDraft?.environmentUid === environment.uid;
 
@@ -42,6 +41,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
     <EnvironmentVariablesTable
       key={environment?.uid}
       environment={environment}
+      inheritedEnvironmentVariables={inheritedEnvironmentVariables}
       collection={collection}
       onSave={handleSave}
       draft={hasDraftForThisEnv ? globalEnvironmentDraft : null}

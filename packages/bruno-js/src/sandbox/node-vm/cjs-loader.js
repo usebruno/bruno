@@ -2,8 +2,214 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
 const nodeModule = require('node:module');
+const { AsyncLocalStorage } = require('node:async_hooks');
 
 const { isBuiltinModule, isPathWithinAllowedRoots } = require('./utils');
+const { safeGlobals } = require('./constants');
+const { mixinTypedArrays } = require('../mixins/typed-arrays');
+
+// Shared npm context (once per process) so modules aren't re-eval'd per script. #9074
+const activeScriptContext = new AsyncLocalStorage();
+const npmModuleEval = new AsyncLocalStorage();
+const sharedNpmModuleCache = new Map();
+const contextBoundModulePaths = new Set();
+// path -> paths required while that module was evaluating (for context-bound eviction)
+const moduleRequireGraph = new Map();
+let sharedNpmSandbox = null;
+let sharedNpmContext = null;
+
+const BRUNO_CONTEXT_KEYS = [
+  'bru',
+  'req',
+  'res',
+  'test',
+  'expect',
+  'assert',
+  '__brunoTestResults',
+  '__bruSetScope',
+  'jwt',
+  'console',
+  'scriptingConfig'
+];
+
+const facades = new Map();
+
+const RUN_LOADER_STATE = Symbol('brunoRunLoaderState');
+
+function attachRunLoaderState(scriptContext, { localModuleCache, vmContext }) {
+  scriptContext[RUN_LOADER_STATE] = { localModuleCache, vmContext };
+}
+
+function getRunLoaderState(store) {
+  return store?.[RUN_LOADER_STATE];
+}
+
+/**
+ * Late-bound facade for a Bruno global in the shared npm context.
+ * @param {string} key - The Bruno global's name
+ * @param {boolean} callable - Whether the current value is a function
+ */
+function facadeFor(key, callable) {
+  const cacheKey = `${key}:${callable ? 'fn' : 'obj'}`;
+  if (facades.has(cacheKey)) {
+    return facades.get(cacheKey);
+  }
+  const current = () => activeScriptContext.getStore()?.[key];
+  const isMissing = (value) => value === undefined || value === null;
+  const target = callable ? () => {} : {};
+
+  // Cache wrappers so `bru.setVar === bru.setVar` remains true.
+  const methods = new Map();
+  const lateBoundMethod = (prop) => {
+    if (!methods.has(prop)) {
+      methods.set(prop, (...args) => {
+        const value = current();
+        const member = isMissing(value) ? undefined : value[prop];
+        if (typeof member !== 'function') {
+          throw new TypeError(`${key}.${String(prop)} is not available outside of a script execution`);
+        }
+        return Reflect.apply(member, value, args);
+      });
+    }
+    return methods.get(prop);
+  };
+  const facade = new Proxy(target, {
+    get: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable && !targetDescriptor.writable) {
+        return targetDescriptor.value;
+      }
+      const value = current();
+      if (isMissing(value)) {
+        return undefined;
+      }
+      const member = value[prop];
+      return typeof member === 'function' ? lateBoundMethod(prop) : member;
+    },
+    set: (_, prop, newValue) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable && !targetDescriptor.writable) {
+        return Object.is(targetDescriptor.value, newValue);
+      }
+      const value = current();
+      if (isMissing(value)) {
+        return false;
+      }
+      value[prop] = newValue;
+      return true;
+    },
+    has: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable) {
+        return true;
+      }
+      if (!Object.isExtensible(target)) {
+        return false;
+      }
+      const value = current();
+      return !isMissing(value) && prop in Object(value);
+    },
+    ownKeys: () => {
+      // Once freeze/preventExtensions runs, only report keys on the inert target
+      // or Proxy throws and the poisoned facade breaks every later script.
+      if (!Object.isExtensible(target)) {
+        return Reflect.ownKeys(target);
+      }
+      const value = current();
+      const currentKeys = isMissing(value) ? [] : Reflect.ownKeys(Object(value));
+      return [...new Set([...Reflect.ownKeys(target), ...currentKeys])];
+    },
+    getOwnPropertyDescriptor: (_, prop) => {
+      const targetDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (targetDescriptor && !targetDescriptor.configurable) {
+        return targetDescriptor;
+      }
+      if (!Object.isExtensible(target)) {
+        return undefined;
+      }
+      const value = current();
+      const descriptor = isMissing(value) ? undefined : Object.getOwnPropertyDescriptor(Object(value), prop);
+      return descriptor ? { ...descriptor, configurable: true } : undefined;
+    },
+    getPrototypeOf: () => {
+      const value = current();
+      return isMissing(value) ? null : Object.getPrototypeOf(Object(value));
+    },
+    apply: (_, thisArg, args) => {
+      const value = current();
+      if (typeof value !== 'function') {
+        throw new TypeError(`${key} is not available outside of a script execution`);
+      }
+      return Reflect.apply(value, thisArg, args);
+    }
+  });
+  facades.set(cacheKey, facade);
+  return facade;
+}
+
+function defineDynamicGlobal(key) {
+  if (Object.prototype.hasOwnProperty.call(sharedNpmSandbox, key)) {
+    return;
+  }
+  Object.defineProperty(sharedNpmSandbox, key, {
+    enumerable: true,
+    configurable: true,
+    get: () => {
+      const evalStore = npmModuleEval.getStore();
+      if (evalStore) {
+        evalStore.touched.add(key);
+      }
+      const value = activeScriptContext.getStore()?.[key];
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      if (typeof value !== 'object' && typeof value !== 'function') {
+        return value;
+      }
+      // Custom script globals (arrays, plain data, callbacks, require) stay raw so
+      // Array.isArray / identity work. Bruno APIs need facades for late-binding.
+      if (!BRUNO_CONTEXT_KEYS.includes(key)) {
+        return value;
+      }
+      return facadeFor(key, typeof value === 'function');
+    }
+  });
+}
+
+function getSharedNpmContext() {
+  if (!sharedNpmContext) {
+    sharedNpmSandbox = Object.fromEntries(
+      safeGlobals
+        .filter((key) => global[key] !== undefined)
+        .map((key) => [key, global[key]])
+    );
+    mixinTypedArrays(sharedNpmSandbox);
+    sharedNpmContext = vm.createContext(sharedNpmSandbox);
+    sharedNpmSandbox.global = sharedNpmSandbox;
+    sharedNpmSandbox.globalThis = sharedNpmSandbox;
+    BRUNO_CONTEXT_KEYS.forEach(defineDynamicGlobal);
+  }
+  return sharedNpmContext;
+}
+
+/**
+ * Runs `fn` with `scriptContext` as the currently executing script context, so
+ * npm modules called from it (or from async work it starts) resolve `bru`,
+ * `req`, `res`, ... to it. Safe for interleaved executions; nested executions
+ * (`bru.runRequest`) see their own context.
+ * @param {Object} scriptContext - The script's vm global object
+ * @param {Function} fn - The execution, typically `() => script.runInContext(...)`
+ * @returns {*} Whatever `fn` returns
+ */
+function runWithScriptContext(scriptContext, fn) {
+  getSharedNpmContext();
+  for (const key of Object.keys(scriptContext)) {
+    if (key !== 'global' && key !== 'globalThis') {
+      defineDynamicGlobal(key);
+    }
+  }
+  return activeScriptContext.run(scriptContext, fn);
+}
 
 /**
  * Resolve a local module path, handling files and directories
@@ -74,7 +280,8 @@ function createCustomRequire({
   isolatedContext,
   currentModuleDir = collectionPath,
   localModuleCache = new Map(),
-  additionalContextRootsAbsolute = []
+  additionalContextRootsAbsolute = [],
+  cacheModules = false
 }) {
   return (moduleName) => {
     const normalizedModuleName = moduleName.replace(/\\/g, '/');
@@ -87,7 +294,8 @@ function createCustomRequire({
         isolatedContext,
         localModuleCache,
         currentModuleDir,
-        additionalContextRootsAbsolute
+        additionalContextRootsAbsolute,
+        cacheModules
       });
     }
 
@@ -100,7 +308,8 @@ function createCustomRequire({
         isolatedContext,
         localModuleCache,
         currentModuleDir,
-        additionalContextRootsAbsolute
+        additionalContextRootsAbsolute,
+        cacheModules
       });
     }
 
@@ -117,7 +326,8 @@ function createCustomRequire({
       collectionPath,
       currentModuleDir,
       isolatedContext,
-      localModuleCache
+      localModuleCache,
+      cacheModules
     });
   };
 }
@@ -134,7 +344,8 @@ function loadLocalModule({
   isolatedContext,
   localModuleCache,
   currentModuleDir,
-  additionalContextRootsAbsolute = []
+  additionalContextRootsAbsolute = [],
+  cacheModules = false
 }) {
   // Validate the raw module name doesn't try to escape allowed roots
   const preliminaryPath = path.resolve(currentModuleDir, moduleName);
@@ -182,7 +393,8 @@ function loadLocalModule({
     isolatedContext,
     currentModuleDir: moduleDir,
     localModuleCache,
-    additionalContextRootsAbsolute
+    additionalContextRootsAbsolute,
+    cacheModules
   });
 
   try {
@@ -199,6 +411,38 @@ function loadLocalModule({
   }
 }
 
+function recordRequireEdge(resolvedPath) {
+  const parent = npmModuleEval.getStore();
+  if (!parent?.resolvedPath) {
+    return;
+  }
+  if (!moduleRequireGraph.has(parent.resolvedPath)) {
+    moduleRequireGraph.set(parent.resolvedPath, new Set());
+  }
+  moduleRequireGraph.get(parent.resolvedPath).add(resolvedPath);
+}
+
+function evictContextBoundGraph(rootPath, rootModuleObj, localModuleCache) {
+  const stack = [rootPath];
+  const visited = new Set();
+  while (stack.length) {
+    const modulePath = stack.pop();
+    if (visited.has(modulePath)) {
+      continue;
+    }
+    visited.add(modulePath);
+    contextBoundModulePaths.add(modulePath);
+    const moduleObj = modulePath === rootPath ? rootModuleObj : sharedNpmModuleCache.get(modulePath);
+    sharedNpmModuleCache.delete(modulePath);
+    if (moduleObj) {
+      localModuleCache.set(modulePath, moduleObj);
+    }
+    for (const dep of moduleRequireGraph.get(modulePath) || []) {
+      stack.push(dep);
+    }
+  }
+}
+
 /**
  * Executes a module in the VM context with caching and special file handling
  * @param {Object} options - Configuration options
@@ -208,22 +452,82 @@ function loadLocalModule({
 function executeModuleInVmContext({
   resolvedPath,
   moduleName,
-  isolatedContext,
   collectionPath,
-  localModuleCache
+  isolatedContext,
+  localModuleCache,
+  cacheModules = false
 }) {
-  // Check cache - we cache moduleObj, return its exports
-  if (localModuleCache.has(resolvedPath)) {
-    return localModuleCache.get(resolvedPath).exports;
+  if (cacheModules) {
+    recordRequireEdge(resolvedPath);
   }
 
+  if (!cacheModules) {
+    if (localModuleCache.has(resolvedPath)) {
+      return localModuleCache.get(resolvedPath).exports;
+    }
+    return evaluateNpmModule({
+      resolvedPath,
+      moduleName,
+      collectionPath,
+      isolatedContext,
+      localModuleCache,
+      useSharedContext: false,
+      cacheModules: false
+    });
+  }
+
+  const isContextBound = contextBoundModulePaths.has(resolvedPath);
+
+  if (isContextBound) {
+    if (localModuleCache?.has(resolvedPath)) {
+      return localModuleCache.get(resolvedPath).exports;
+    }
+    return evaluateNpmModule({
+      resolvedPath,
+      moduleName,
+      collectionPath,
+      isolatedContext,
+      localModuleCache,
+      useSharedContext: false,
+      cacheModules: true
+    });
+  }
+
+  if (sharedNpmModuleCache.has(resolvedPath)) {
+    return sharedNpmModuleCache.get(resolvedPath).exports;
+  }
+
+  return evaluateNpmModule({
+    resolvedPath,
+    moduleName,
+    collectionPath,
+    isolatedContext,
+    localModuleCache,
+    useSharedContext: true,
+    cacheModules: true
+  });
+}
+
+function evaluateNpmModule({
+  resolvedPath,
+  moduleName,
+  collectionPath,
+  isolatedContext,
+  localModuleCache,
+  useSharedContext,
+  cacheModules = false
+}) {
   // Native modules (.node files) - fall back to host require
   // Note: This bypasses VM isolation for native addons.
   // This is intentional - [`developer` mode] node-vm isolation need not be strict for native modules.
   if (resolvedPath.endsWith('.node')) {
     const result = require(resolvedPath);
-    // Wrap in moduleObj format for consistent cache retrieval
-    localModuleCache.set(resolvedPath, { exports: result });
+    const moduleObj = { exports: result };
+    if (useSharedContext) {
+      sharedNpmModuleCache.set(resolvedPath, moduleObj);
+    } else {
+      localModuleCache.set(resolvedPath, moduleObj);
+    }
     return result;
   }
 
@@ -231,37 +535,50 @@ function executeModuleInVmContext({
   if (resolvedPath.endsWith('.json')) {
     const jsonContent = fs.readFileSync(resolvedPath, 'utf8');
     const result = JSON.parse(jsonContent);
-    // Wrap in moduleObj format for consistent cache retrieval
-    localModuleCache.set(resolvedPath, { exports: result });
+    const moduleObj = { exports: result };
+    if (useSharedContext) {
+      sharedNpmModuleCache.set(resolvedPath, moduleObj);
+    } else {
+      localModuleCache.set(resolvedPath, moduleObj);
+    }
     return result;
   }
 
-  // JavaScript files
   const moduleSource = fs.readFileSync(resolvedPath, 'utf8');
   const moduleDir = path.dirname(resolvedPath);
   const moduleObj = { exports: {} };
+  const moduleCache = useSharedContext ? sharedNpmModuleCache : localModuleCache;
 
-  // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
-  // This allows re-entrant requires to get partial exports (Node.js behavior)
-  // We cache moduleObj (not moduleObj.exports) so that module.exports reassignment works
-  localModuleCache.set(resolvedPath, moduleObj);
+  moduleCache.set(resolvedPath, moduleObj);
 
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
-    isolatedContext,
     currentModuleDir: moduleDir,
-    localModuleCache
+    isolatedContext,
+    localModuleCache,
+    cacheModules
   });
 
+  const vmContext = useSharedContext ? getSharedNpmContext() : isolatedContext;
+  const evalStore = { resolvedPath, touched: new Set() };
+
   try {
-    // Wrap module code in a function that receives CJS parameters
     const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
     const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
-    const moduleFunction = compiledScript.runInContext(isolatedContext);
-    moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
+    const moduleFunction = compiledScript.runInContext(vmContext);
+    const runModule = () => {
+      moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
+    };
+    if (cacheModules && useSharedContext) {
+      npmModuleEval.run(evalStore, runModule);
+      if (evalStore.touched.size > 0) {
+        evictContextBoundGraph(resolvedPath, moduleObj, localModuleCache);
+      }
+    } else {
+      runModule();
+    }
   } catch (error) {
-    // Remove failed module from cache to allow retry
-    localModuleCache.delete(resolvedPath);
+    moduleCache.delete(resolvedPath);
     const stack = error.stack || '';
     throw new Error(`Error loading module ${moduleName}: ${error.message}\nStack: ${stack}`);
   }
@@ -286,7 +603,8 @@ function loadNpmModule({
   collectionPath,
   currentModuleDir,
   isolatedContext,
-  localModuleCache
+  localModuleCache,
+  cacheModules = false
 }) {
   let resolvedPath;
 
@@ -323,9 +641,10 @@ function loadNpmModule({
   return executeModuleInVmContext({
     resolvedPath,
     moduleName,
-    isolatedContext,
     collectionPath,
-    localModuleCache
+    isolatedContext,
+    localModuleCache,
+    cacheModules
   });
 }
 
@@ -338,25 +657,43 @@ function loadNpmModule({
  * @param {Object} options - Configuration options
  * @returns {Function} Custom require function for npm module dependencies
  */
+function markParentContextBoundIfNeeded(resolvedPath) {
+  const evalStore = npmModuleEval.getStore();
+  if (evalStore && contextBoundModulePaths.has(resolvedPath)) {
+    evalStore.touched.add('*');
+  }
+}
+
 function createNpmModuleRequire({
   collectionPath,
-  isolatedContext,
   currentModuleDir,
-  localModuleCache
+  isolatedContext,
+  localModuleCache,
+  cacheModules = false
 }) {
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
   return (moduleName) => {
+    // Shared parents keep this require for the process lifetime; always prefer the
+    // active script run's cache/context so lazy context-bound leaves re-eval.
+    const store = cacheModules ? activeScriptContext.getStore() : null;
+    const runState = getRunLoaderState(store);
+    const runLocalCache = runState?.localModuleCache ?? localModuleCache;
+    const runContext = runState?.vmContext ?? isolatedContext;
+
     // Handle relative imports within npm module
     if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
       const resolvedPath = moduleRequire.resolve(moduleName);
-      return executeModuleInVmContext({
+      const exports = executeModuleInVmContext({
         resolvedPath,
         moduleName,
-        isolatedContext,
         collectionPath,
-        localModuleCache
+        isolatedContext: runContext,
+        localModuleCache: runLocalCache,
+        cacheModules
       });
+      markParentContextBoundIfNeeded(resolvedPath);
+      return exports;
     }
 
     // Handle builtins
@@ -368,16 +705,30 @@ function createNpmModuleRequire({
 
     // Handle npm dependencies - resolve from current module's directory
     const resolvedPath = moduleRequire.resolve(moduleName);
-    return executeModuleInVmContext({
+    const exports = executeModuleInVmContext({
       resolvedPath,
       moduleName,
-      isolatedContext,
       collectionPath,
-      localModuleCache
+      isolatedContext: runContext,
+      localModuleCache: runLocalCache,
+      cacheModules
     });
+    markParentContextBoundIfNeeded(resolvedPath);
+    return exports;
   };
 }
 
 module.exports = {
-  createCustomRequire
+  createCustomRequire,
+  runWithScriptContext,
+  getSharedNpmContext,
+  attachRunLoaderState,
+  __resetNpmModuleStateForTests: () => {
+    sharedNpmModuleCache.clear();
+    contextBoundModulePaths.clear();
+    moduleRequireGraph.clear();
+    facades.clear();
+    sharedNpmSandbox = null;
+    sharedNpmContext = null;
+  }
 };

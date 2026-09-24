@@ -28,6 +28,8 @@ import { getDocsUrlWithVersion } from 'utils/url';
  *   - label       (required) short name shown next to the checkbox.
  *   - description (required) one-line explanation shown under the label.
  *   - docsUrl     (optional) URL to the documentation for the feature.
+ *   - defaultEnabled (optional) value used when the preference has never been saved. Must match the
+ *                 default in the electron preferences store, otherwise the toggle lies about the state.
  *   - action      (optional) object with { label, tab } to render a button that navigates to a specific preferences tab. The label is the button text, and the tab is the tab key (e.g. 'ai', 'cache').
  *
  * To add a beta feature:
@@ -66,6 +68,7 @@ const BETA_FEATURES = [
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
     toggle: true,
+    defaultEnabled: true,
     docsUrl: 'https://link.usebruno.com/docs/mock-server'
   },
   {
@@ -93,7 +96,7 @@ const Beta = ({ close }) => {
   const generateInitialValues = () => {
     const initialValues = {};
     BETA_FEATURES.forEach((feature) => {
-      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, false);
+      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
     });
     return initialValues;
   };

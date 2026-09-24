@@ -1,0 +1,15 @@
+meta {
+  name: cookie-header-special-chars
+  type: http
+  seq: 56
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: session=abc+def/ghi==
+}

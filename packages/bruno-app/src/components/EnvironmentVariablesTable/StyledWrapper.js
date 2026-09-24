@@ -18,6 +18,10 @@ const Wrapper = styled.div`
     transition: height 75ms cubic-bezier(0,1.12,.84,.64);
   }
 
+  &.is-measuring .table-container {
+    transition: none;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -84,6 +88,11 @@ const Wrapper = styled.div`
     }
 
     tbody {
+      tr.section-header-row td {
+        border-right: none;
+        padding: 0;
+      }
+
       tr {
         transition: background 0.1s ease;
 
@@ -101,6 +110,26 @@ const Wrapper = styled.div`
         }
       }
     }
+  }
+
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+
+    .section-count {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-row {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .tooltip-mod {

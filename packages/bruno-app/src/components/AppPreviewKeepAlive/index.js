@@ -46,6 +46,8 @@ const AppPreviewKeepAlive = () => {
       for (const collection of draft) {
         collection.globalEnvironmentVariables = globalEnvironmentVariables;
         collection.globalEnvSecrets = globalEnvSecrets;
+        collection.globalEnvironments = globalEnvironments;
+        collection.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
       }
     });
   }, [_collections, globalEnvironments, activeGlobalEnvironmentUid]);

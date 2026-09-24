@@ -1,0 +1,66 @@
+info:
+  name: echo
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: '{{host}}/api/echo/everything'
+  body:
+    type: json
+    data: |-
+      {
+        "api_url": "{{api_url}}",
+        "base_only": "{{base_only}}",
+        "dev_only": "{{dev_only}}",
+        "disabled_in_base": "{{disabled_in_base}}",
+        "shadowed_by_disabled": "{{shadowed_by_disabled}}",
+        "base_number": {{base_number}},
+        "base_boolean": {{base_boolean}},
+        "base_object": {{base_object}},
+        "typed_override": "{{typed_override}}",
+        "base_token": "{{base_token}}",
+        "api_key": "{{api_key}}",
+        "overridden_plain": "{{overridden_plain}}",
+        "overridden_secret": "{{overridden_secret}}"
+      }
+  auth: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        // The echo endpoint hands the request body back as a raw string.
+        const sent = () => JSON.parse(res.getBody().body);
+
+        test("every kind of row the environment inherits resolves under dev", function() {
+          expect(sent()).to.eql({
+            api_url: "https://dev.example.com",
+            base_only: "base_only_value",
+            dev_only: "dev_only_value",
+            // Disabled in `base`, so it is never inherited and stays uninterpolated.
+            disabled_in_base: "{{disabled_in_base}}",
+            // `dev` declares this one too, but disabled, so the inherited row still applies.
+            shadowed_by_disabled: "from_base",
+            api_key: "plain_api_key",
+            // The body interpolates the typed rows unquoted, so they only parse back as a number,
+            // boolean and object if the data type survived the merge.
+            base_number: 42,
+            base_boolean: true,
+            base_object: { region: "eu" },
+            // An own row replaces the data type it inherited, not just the value.
+            typed_override: "overridden_in_dev",
+            // A secret carries no value on disk, so both runners give it one before the request
+            // goes out: the app through its secret store, `bru run` through --env-var.
+            base_token: "token-from-base",
+            // `dev` redeclares the inherited plain `overridden_plain` as a secret, and the
+            // inherited secret `overridden_secret` as plain. Both ancestor rows survive, and in
+            // each pair the secret is the one that reaches the request — never the plain row's
+            // `plain_from_base` or `plain_wins_in_dev`.
+            overridden_plain: "secret-from-dev",
+            overridden_secret: "secret-from-base"
+          });
+        });
+
+settings:
+  encodeUrl: true
