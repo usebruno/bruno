@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   &.inherited-auth-source {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     min-width: 0;
     max-width: 100%;
     flex: 1 1 0;
@@ -13,7 +13,7 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 0.5rem;
     min-width: 0;
     width: 100%;
