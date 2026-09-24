@@ -394,7 +394,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         id={`default-header-info-hint-${row.uid}`}
         text={row.omittable
           ? 'Automatically added at runtime'
-          : 'Required by HTTP, cannot be omitted'}
+          : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
         className="default-header-info"
         testId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
