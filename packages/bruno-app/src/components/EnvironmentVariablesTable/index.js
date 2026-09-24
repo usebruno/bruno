@@ -17,7 +17,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import SecretEyeButton from 'components/MultiLineEditor/SecretEyeButton';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper, { CHECKBOX_COLUMN_WIDTH, ACTIONS_COLUMN_WIDTH } from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -37,6 +37,7 @@ import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import { useResizableColumns } from 'hooks/useResizableColumns';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 import InheritedVariableRow from './InheritedVariableRow';
@@ -123,6 +124,10 @@ const TableRow = React.memo(
 );
 
 const columns = ['name', 'value', 'description'];
+const DEFAULT_COLUMN_WIDTHS = [20, 45, 35];
+const RESERVED_COLUMNS_WIDTH = CHECKBOX_COLUMN_WIDTH + ACTIONS_COLUMN_WIDTH;
+
+const UNMEASURED_COLUMN_WIDTHS = { name: 'auto', value: 'auto', description: 'auto' };
 
 const matchesSearchQuery = (variable, query) => {
   const valueText = ['string', 'number', 'boolean'].includes(typeof variable.value) ? String(variable.value) : '';
@@ -283,16 +288,35 @@ const EnvironmentVariablesTable = ({
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
 
-  // Get column widths from Redux - derived value (not state)
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
   const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
 
-  // Local state initialized from Redux (computed once on mount/environment change via key)
-  const [columnWidths, setColumnWidths] = useState(() => {
-    return storedColumnWidths || { name: '20%', value: 'auto', description: '35%' };
+  const {
+    containerRef: columnsContainerRef,
+    colWidths,
+    resizingIdx,
+    handleResizeStart
+  } = useResizableColumns({
+    defaultWidths: DEFAULT_COLUMN_WIDTHS,
+    initialWidths: Array.isArray(storedColumnWidths) && storedColumnWidths.length === columns.length
+      ? storedColumnWidths
+      : null,
+    minColWidth: MIN_COLUMN_WIDTH,
+    reservedWidth: RESERVED_COLUMNS_WIDTH,
+    onResizeEnd: (widths) => dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }))
   });
 
-  const [resizing, setResizing] = useState(null);
+  const columnWidths = useMemo(() => {
+    if (!colWidths) return UNMEASURED_COLUMN_WIDTHS;
+    const [name, value, description] = colWidths;
+    return { name, value, description };
+  }, [colWidths]);
+
+  const handleScrollerRef = useCallback((el) => {
+    setScrollerEl(el);
+    columnsContainerRef(el);
+  }, [columnsContainerRef]);
+
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
   const isSearchActive = !!searchQuery?.trim();
 
@@ -303,60 +327,6 @@ const EnvironmentVariablesTable = ({
   const secretsSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::secrets` });
   const { sortMode, cycleSortMode, SortIcon, sortLabel } = isSecretTab ? secretsSort : variablesSort;
   const dragEnabled = sortMode === 'default' && !isSearchActive;
-
-  const handleColumnWidthsChange = (id, widths) => {
-    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
-  };
-
-  // Store column widths in ref for access in event handlers
-  const columnWidthsRef = useRef(columnWidths);
-  columnWidthsRef.current = columnWidths;
-
-  const handleResizeStart = useCallback((e, columnKey) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const currentCell = e.target.closest('td');
-    const nextCell = currentCell?.nextElementSibling;
-    if (!currentCell || !nextCell) return;
-
-    const startX = e.clientX;
-    const startWidth = currentCell.offsetWidth;
-
-    const columnIndex = columns.indexOf(columnKey);
-    if (columnIndex < 0) return;
-
-    const nextColumnKey = columns[columnIndex + 1];
-    if (!nextColumnKey) return;
-
-    const nextColumnStartWidth = nextCell.offsetWidth;
-
-    setResizing(columnKey);
-
-    const handleMouseMove = (moveEvent) => {
-      const diff = moveEvent.clientX - startX;
-      const maxGrow = nextColumnStartWidth - MIN_COLUMN_WIDTH;
-      const maxShrink = startWidth - MIN_COLUMN_WIDTH;
-      const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
-
-      const newWidths = {
-        [columnKey]: `${startWidth + clampedDiff}px`,
-        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      };
-      setColumnWidths(newWidths);
-    };
-
-    const handleMouseUp = () => {
-      setResizing(null);
-      // Save to Redux after resize ends using ref for latest values
-      handleColumnWidthsChange(tableId, columnWidthsRef.current);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(Math.max(h, MIN_H));
@@ -979,7 +949,9 @@ const EnvironmentVariablesTable = ({
 
   return (
     <StyledWrapper
-      className={`${resizing ? 'is-resizing' : ''} ${hasMeasuredTableListHeight ? '' : 'is-measuring'} has-description-column`.trim()}
+      data-testid="env-vars-table"
+      data-columns-measured={colWidths ? 'true' : 'false'}
+      className={`${resizingIdx !== null ? 'is-resizing' : ''} ${hasMeasuredTableListHeight ? '' : 'is-measuring'} has-description-column`.trim()}
     >
       {isSearchActive && displayedVariables.length === 0 && inheritedVariableRows.length === 0 ? (
         <div className="no-results" data-testid="env-vars-no-results">
@@ -989,7 +961,7 @@ const EnvironmentVariablesTable = ({
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
-          scrollerRef={setScrollerEl}
+          scrollerRef={handleScrollerRef}
           initialTopMostItemIndex={initialTopMostItemIndex}
           overscan={Math.min(30, variableRows.length)}
           components={{ TableRow }}
@@ -1000,28 +972,29 @@ const EnvironmentVariablesTable = ({
             <tr>
               <td className="text-center"></td>
               <td
+                data-testid="env-vars-header-name"
                 style={{ width: columnWidths.name }}
                 className="sortable-header"
-                onClick={(e) => {
-                  if (!e.target.closest('.resize-handle')) cycleSortMode();
-                }}
+                onClick={cycleSortMode}
               >
                 <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 <div
-                  className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
+                  data-testid="env-vars-resize-handle-name"
+                  className={`resize-handle ${resizingIdx === 0 ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'name')}
+                  onMouseDown={(e) => handleResizeStart(e, 0)}
                 />
               </td>
-              <td style={{ width: columnWidths.value }}>
+              <td data-testid="env-vars-header-value" style={{ width: columnWidths.value }}>
                 Value
                 <div
-                  className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
+                  data-testid="env-vars-resize-handle-value"
+                  className={`resize-handle ${resizingIdx === 1 ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'value')}
+                  onMouseDown={(e) => handleResizeStart(e, 1)}
                 />
               </td>
-              <td style={{ width: columnWidths.description }}>Description</td>
+              <td data-testid="env-vars-header-description" style={{ width: columnWidths.description }}>Description</td>
               <td className="actions-column"></td>
             </tr>
           )}
