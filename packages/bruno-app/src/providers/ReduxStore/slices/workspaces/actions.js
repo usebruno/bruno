@@ -599,6 +599,10 @@ export const switchWorkspace = (workspaceUid) => {
         return;
       }
 
+      if (workspace.pathname) {
+        ipcRenderer.invoke('renderer:set-active-workspace', workspace.pathname).catch(() => {});
+      }
+
       const fullSnapshot = await ipcRenderer.invoke('renderer:snapshot:get').catch(() => null);
       const snapshotLookups = hydrateSnapshotLookups(fullSnapshot || {});
       const workspaceSnapshot = workspace.pathname

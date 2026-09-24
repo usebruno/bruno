@@ -7,6 +7,7 @@ export { default as Checkbox } from './Checkbox';
 export { default as CountBadge } from './CountBadge';
 export { default as ErrorBanner } from './ErrorBanner';
 export { default as HeightBoundContainer } from './HeightBoundContainer';
+export { default as IndeterminateProgressBar } from './IndeterminateProgressBar';
 export { default as MenuDropdown } from './MenuDropdown';
 export { default as MethodBadge } from './MethodBadge';
 export { default as ResponsiveTabs } from './ResponsiveTabs';

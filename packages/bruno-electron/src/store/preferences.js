@@ -79,6 +79,10 @@ const defaultPreferences = {
     },
     file: {
       enabled: false
+    },
+    searchIndex: {
+      enabled: false,
+      buildTrigger: 'app-start'
     }
   },
   ai: {
@@ -201,6 +205,10 @@ const preferencesSchema = Yup.object().shape({
     }),
     file: Yup.object({
       enabled: Yup.boolean()
+    }),
+    searchIndex: Yup.object({
+      enabled: Yup.boolean(),
+      buildTrigger: Yup.string().oneOf(['app-start', 'on-search'])
     })
   }).optional(),
   ai: Yup.object({
@@ -445,6 +453,12 @@ const preferencesUtil = {
   },
   isFileCacheEnabled: () => {
     return get(getPreferences(), 'cache.file.enabled', false);
+  },
+  isSearchIndexEnabled: () => {
+    return get(getPreferences(), 'cache.searchIndex.enabled', false);
+  },
+  getSearchIndexBuildTrigger: () => {
+    return get(getPreferences(), 'cache.searchIndex.buildTrigger', 'app-start');
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

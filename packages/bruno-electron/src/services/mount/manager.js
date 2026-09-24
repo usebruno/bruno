@@ -5,6 +5,10 @@ const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
+const { SearchIndex } = require('../search-index');
+const { indexCollection } = require('../search-index/indexer');
+const { buildFolderTree } = require('../search-index/build-tree');
+const { preferencesUtil } = require('../../store/preferences');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -68,9 +72,11 @@ const ensureTransientDirectory = () => {
 
 class MountManager {
   #index = null;
+  #searchIndex = null;
   #mounts = new Map();
+  #activeIndexingCount = 0;
 
-  async mount({ win, collectionPath, collectionUid, brunoConfig, emit }) {
+  async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
     collectionPath = path.resolve(collectionPath);
 
     if (this.#mounts.has(collectionUid)) {
@@ -98,19 +104,41 @@ class MountManager {
     this.#mounts.set(collectionUid, entry);
 
     entry.emit.loading(true);
+    const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
+    if (searchIndexEnabled) this.#beginIndexingSession();
+    let indexingHandedOff = false;
     try {
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
+      const resolvedWorkspacePath = searchIndexEnabled
+        ? await this.#resolveWorkspacePath(collectionPath, workspacePath)
+        : null;
+
+      if (searchIndexEnabled) {
+        indexingHandedOff = true;
+        indexCollection(this.#getSearchIndex(), {
+          collectionPath,
+          collectionName: path.basename(collectionPath),
+          workspacePath: resolvedWorkspacePath,
+          fileIndex: this.#getIndex()
+        })
+          .catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err))
+          .finally(() => this.#endIndexingSession());
+      }
+
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
-        fileIndex: this.#getIndex()
+        fileIndex: this.#getIndex(),
+        searchIndex: searchIndexEnabled ? this.#getSearchIndex() : null,
+        workspacePathname: resolvedWorkspacePath
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
+      if (searchIndexEnabled && !indexingHandedOff) this.#endIndexingSession();
       this.#mounts.delete(collectionUid);
       throw err;
     } finally {
@@ -142,6 +170,10 @@ class MountManager {
       this.#index.close();
       this.#index = null;
     }
+    if (this.#searchIndex) {
+      this.#searchIndex.close();
+      this.#searchIndex = null;
+    }
   }
 
   getCacheSize() {
@@ -153,12 +185,114 @@ class MountManager {
     }
   }
 
+  getSearchIndexSize() {
+    try {
+      return fs.statSync(this.#getSearchIndex().dbPath).size;
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return 0;
+      throw err;
+    }
+  }
+
   clearCache() {
     this.#getIndex().clear();
   }
 
+  clearSearchIndex() {
+    this.#getSearchIndex().clear();
+  }
+
+  searchIndex(term, options = {}) {
+    return this.#getSearchIndex().search(term, options);
+  }
+
+  async searchIndexTrees(term, workspacePath) {
+    const matches = this.searchIndex(term, { scope: 'request', workspacePath });
+    const byCollection = new Map();
+    for (const row of matches) {
+      if (!byCollection.has(row.collectionPath)) byCollection.set(row.collectionPath, []);
+      byCollection.get(row.collectionPath).push(row);
+    }
+
+    const trees = {};
+    for (const [collectionPath, rows] of byCollection) {
+      trees[collectionPath] = buildFolderTree(collectionPath, rows);
+    }
+    return trees;
+  }
+
+  async getIndexTree({ collectionPath, collectionName }) {
+    const root = path.resolve(collectionPath);
+    await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
+    const rows = this.#getSearchIndex().rowsForCollection(root);
+    return { items: buildFolderTree(root, rows) };
+  }
+
+  sweepRemovedCollections(validPaths) {
+    const valid = new Set(validPaths.map((p) => path.resolve(p)));
+    const known = new Set([...this.#getIndex().collectionPaths(), ...this.#getSearchIndex().collectionPaths()]);
+    for (const collectionPath of known) {
+      if (valid.has(collectionPath)) continue;
+      this.#getIndex().clearCollection(collectionPath);
+      this.#getSearchIndex().clearCollection(collectionPath);
+    }
+  }
+
+  async indexCollectionInBackground({ collectionPath, collectionName, workspacePath }) {
+    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    const root = path.resolve(collectionPath);
+    const alreadyMounted = Array.from(this.#mounts.values()).some((entry) => entry.collectionPath === root);
+    if (alreadyMounted) return;
+    const resolvedWorkspacePath = await this.#resolveWorkspacePath(root, workspacePath);
+    await this.#runIndexCollection(this.#getSearchIndex(), {
+      collectionPath: root,
+      collectionName,
+      workspacePath: resolvedWorkspacePath,
+      fileIndex: preferencesUtil.isFileCacheEnabled() ? this.#getIndex() : null
+    });
+  }
+
+  async indexManyCollectionsInBackground(collections, workspacePath) {
+    if (!preferencesUtil.isSearchIndexEnabled()) return;
+    if (preferencesUtil.getSearchIndexBuildTrigger() !== 'app-start') return;
+    const fileCacheEnabled = preferencesUtil.isFileCacheEnabled();
+    this.#beginIndexingSession();
+    try {
+      const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
+      const fileCachePaths = fileCacheEnabled ? new Set(this.#getIndex().collectionPaths()) : new Set();
+      const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
+        root: path.resolve(collectionPath),
+        collectionName
+      }));
+      const isFast = (c) => priorPaths.has(c.root) || fileCachePaths.has(c.root);
+      const ordered = [
+        ...resolved.filter(isFast),
+        ...resolved.filter((c) => !isFast(c))
+      ];
+
+      for (const { root, collectionName } of ordered) {
+        await indexCollection(this.#getSearchIndex(), {
+          collectionPath: root,
+          collectionName,
+          workspacePath,
+          fileIndex: fileCacheEnabled ? this.#getIndex() : null
+        }).catch(() => {});
+      }
+    } finally {
+      this.#endIndexingSession();
+    }
+  }
+
+  getIndexingStatus() {
+    return {
+      isIndexing: this.#activeIndexingCount > 0
+    };
+  }
+
   clearCollectionIndex(collectionPath) {
-    this.#getIndex().clearCollection(path.resolve(collectionPath));
+    const root = path.resolve(collectionPath);
+    this.#getIndex().clearCollection(root);
+    this.#getSearchIndex().clearCollection(root);
   }
 
   async #reconcile(entry) {
@@ -229,6 +363,44 @@ class MountManager {
   #getIndex() {
     if (!this.#index) this.#index = new FileIndex({});
     return this.#index;
+  }
+
+  #getSearchIndex() {
+    if (!this.#searchIndex) this.#searchIndex = new SearchIndex({});
+    return this.#searchIndex;
+  }
+
+  async #resolveWorkspacePath(collectionPath, workspacePath) {
+    if (workspacePath) return path.resolve(workspacePath);
+    const { findWorkspacePathForCollection } = require('../../utils/workspace-collections');
+    return findWorkspacePathForCollection(collectionPath).catch(() => null);
+  }
+
+  async #runIndexCollection(...args) {
+    this.#beginIndexingSession();
+    try {
+      await indexCollection(...args);
+    } finally {
+      this.#endIndexingSession();
+    }
+  }
+
+  #beginIndexingSession() {
+    this.#activeIndexingCount++;
+    if (this.#activeIndexingCount === 1) this.#broadcastIndexingStatus();
+  }
+
+  #endIndexingSession() {
+    this.#activeIndexingCount--;
+    if (this.#activeIndexingCount === 0) this.#broadcastIndexingStatus();
+  }
+
+  #broadcastIndexingStatus() {
+    const { BrowserWindow } = require('electron');
+    const status = this.getIndexingStatus();
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('main:search-index-status', status);
+    }
   }
 }
 

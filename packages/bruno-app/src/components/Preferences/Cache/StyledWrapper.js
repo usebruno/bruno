@@ -28,6 +28,20 @@ const StyledWrapper = styled.div`
     border-bottom: 1px solid ${(props) => props.theme.border.border1};
   }
 
+  .cache-item-build-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    gap: 1rem;
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
+  }
+
+  .cache-item-build-trigger-label {
+    font-size: ${(props) => props.theme.font.size.base};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .cache-item-title-group {
     display: flex;
     align-items: center;
@@ -59,6 +73,12 @@ const StyledWrapper = styled.div`
     gap: 1.25rem;
   }
 
+  .cache-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
   .cache-item-body-text {
     flex: 1;
     min-width: 0;
@@ -82,6 +102,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     margin-left: 0.25rem;
   }
+
 `;
 
 export default StyledWrapper;

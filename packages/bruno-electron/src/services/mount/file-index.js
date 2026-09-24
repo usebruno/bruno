@@ -112,6 +112,12 @@ class FileIndex {
     this.#db.run('DELETE FROM file_index_entries WHERE collection_path = ?', root);
   }
 
+  collectionPaths() {
+    return this.#db
+      .all('SELECT DISTINCT collection_path AS collectionPath FROM file_index_entries')
+      .map((row) => row.collectionPath);
+  }
+
   get dbPath() {
     return this.#dbPath;
   }
@@ -119,12 +125,12 @@ class FileIndex {
   entries(collectionPath) {
     const root = normalize(collectionPath);
     const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, data, raw FROM file_index_entries WHERE collection_path = ?',
+      'SELECT relative_path AS relativePath, mtime, hash, data, raw FROM file_index_entries WHERE collection_path = ?',
       root
     );
     const map = new Map();
     for (const row of rows) {
-      map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
+      map.set(row.relativePath, { mtime: row.mtime, hash: row.hash, data: JSON.parse(row.data), raw: row.raw });
     }
     return map;
   }
