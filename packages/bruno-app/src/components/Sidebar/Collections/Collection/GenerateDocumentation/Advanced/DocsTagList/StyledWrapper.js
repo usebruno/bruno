@@ -26,7 +26,7 @@ export const StyledWrapper = styled.div`
     }
 
     &:focus {
-      border-color: ${(props) => props.theme.colors.text.subtext0};
+      border-color: ${(props) => props.theme.input.focusBorder};
     }
   }
 

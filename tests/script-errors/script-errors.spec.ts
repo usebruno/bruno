@@ -1,6 +1,6 @@
 import { test, expect, Page } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest } from '../utils/page/actions';
+import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest, getScrollMetrics } from '../utils/page/actions';
 import { setSandboxMode, runCollection } from '../utils/page/runner';
 
 for (const mode of ['safe', 'developer'] as const) {
@@ -411,6 +411,88 @@ for (const mode of ['safe', 'developer'] as const) {
         await expect(activeTab).toContainText('test-script-error');
         const testsTab = commonLocators.paneTabs.responsiveTab('tests');
         await expect(testsTab).toHaveClass(/active/);
+      });
+    });
+
+    test('18. Long error body scrolls when collapsed and fits the pane when expanded', async ({ pageWithUserData: page }) => {
+      const scrollMetrics = () => getScrollMetrics(scriptErrorLocators.body(scriptErrorLocators.card()));
+
+      await test.step('Open large-error request and send', async () => {
+        await openRequest(page, 'script-errors-test', 'large-error-message');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Show stack trace so the body overflows its collapsed height', async () => {
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.stackToggle(card).click();
+        await expect(scriptErrorLocators.stack(card)).toBeVisible();
+      });
+
+      await test.step('Collapsed body is scrollable', async () => {
+        const body = scriptErrorLocators.body(scriptErrorLocators.card());
+        await expect.poll(async () => {
+          const { scrollHeight, clientHeight } = await scrollMetrics();
+          return scrollHeight > clientHeight;
+        }).toBe(true);
+
+        await body.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+        await expect.poll(async () => (await scrollMetrics()).scrollTop).toBeGreaterThan(0);
+      });
+
+      let collapsedHeight = 0;
+
+      await test.step('Expand the card', async () => {
+        const card = scriptErrorLocators.card();
+        collapsedHeight = (await scrollMetrics()).clientHeight;
+
+        await scriptErrorLocators.expandToggle(card).click();
+        await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'true');
+
+        await expect.poll(async () => (await scrollMetrics()).clientHeight).toBeGreaterThan(collapsedHeight);
+      });
+
+      await test.step('Expanded body scrolls all the way to the stack trace at the bottom', async () => {
+        const card = scriptErrorLocators.card();
+        const stack = scriptErrorLocators.stack(card);
+
+        await expect(stack).toBeVisible();
+
+        // Scroll positions can be fractional, so allow a 1px rounding difference
+        const roundingTolerance = 1;
+
+        await expect.poll(async () => {
+          const { scrollHeight, clientHeight, scrollTop } = await scrollMetrics();
+          const visibleBottom = scrollTop + clientHeight;
+          const hiddenContentBelow = scrollHeight - visibleBottom;
+          return hiddenContentBelow;
+        }).toBeLessThanOrEqual(roundingTolerance);
+      });
+
+      await test.step('Collapse restores the capped height', async () => {
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.expandToggle(card).click();
+        await expect(scriptErrorLocators.expandToggle(card)).toHaveAttribute('aria-expanded', 'false');
+
+        await expect.poll(async () => (await scrollMetrics()).clientHeight).toBe(collapsedHeight);
+      });
+    });
+
+    test('19. Copy button copies file path, error message and stack trace', async ({ pageWithUserData: page, installFakeClipboard }) => {
+      await test.step('Open request and trigger error', async () => {
+        await openRequest(page, 'script-errors-test', 'large-error-message');
+        await sendAndWaitForErrorCard(page);
+      });
+
+      await test.step('Copy the error details', async () => {
+        const clipboard = await installFakeClipboard(page);
+        const card = scriptErrorLocators.card();
+        await scriptErrorLocators.copyButton(card).click();
+        await expect(scriptErrorLocators.copyButton(card)).toHaveAttribute('title', 'Copied');
+
+        const copied = await clipboard.copiedText();
+        expect(copied).toMatch(/^File: large-error-message\.bru:\d+\n\n/);
+        expect(copied).toContain(`Error: ${'X'.repeat(10 * 1024)}`);
+        expect(copied).toContain('Stack trace:');
       });
     });
   });

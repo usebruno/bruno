@@ -17,7 +17,7 @@ import { useApp } from 'providers/App';
 import useCollectionGitRemoteUrl from 'hooks/useCollectionGitRemoteUrl';
 import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts, getCollectionVersion, getUniqueTagsFromItems } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
-import { generateApiDocsHtml, getApiDocsFileName } from '@usebruno/common';
+import { generateApiDocsHtml, getApiDocsFileName, filterRequestItemsByTags } from '@usebruno/common';
 
 const FEATURES = [
   'Standalone HTML file - no server required',
@@ -50,11 +50,6 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   );
 
   const currentVersion = getCollectionVersion(collection);
-
-  const { folderCount, requestCount } = useMemo(
-    () => getCollectionItemCounts(collection?.items),
-    [collection?.items]
-  );
 
   const environments = useMemo(() => collection?.environments || [], [collection?.environments]);
 
@@ -89,6 +84,19 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   const [filterByTags, setFilterByTags] = useState(false);
   const [docTags, setDocTags] = useState({ include: [], exclude: [] });
   const [includeGitLink, setIncludeGitLink] = useState(true);
+
+  const activeTags = useMemo(
+    () => (filterByTags ? docTags : { include: [], exclude: [] }),
+    [filterByTags, docTags]
+  );
+
+  const { folderCount, requestCount } = useMemo(
+    () => getCollectionItemCounts(
+      filterRequestItemsByTags(sortItemsBySidebarOrder(collection?.items || []), activeTags.include, activeTags.exclude)
+    ),
+    [collection?.items, activeTags]
+  );
+
   const { gitCollectionUrl, isResolved: gitUrlLoaded } = useCollectionGitRemoteUrl(collection?.pathname);
   const hasGitUrl = gitUrlLoaded && Boolean(gitCollectionUrl);
 
@@ -107,7 +115,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       const htmlContent = generateApiDocsHtml(
         transformedCollection,
         {
-          tags: filterByTags ? docTags : { include: [], exclude: [] },
+          tags: activeTags,
           gitCollectionUrl: includeGitLink ? gitCollectionUrl : undefined,
           collectionVersion: currentVersion,
           exportedAt: new Date().toISOString(),
@@ -125,7 +133,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       console.error('Error generating documentation:', error);
       toast.error('Failed to generate documentation');
     }
-  }, [collection, version, onClose, currentVersion, selectedEnvUidsSet, filterByTags, docTags, includeGitLink, gitCollectionUrl]);
+  }, [collection, version, onClose, currentVersion, selectedEnvUidsSet, activeTags, includeGitLink, gitCollectionUrl]);
 
   if (!collection) {
     return <CollectionNotFound onClose={onClose} />;
@@ -174,7 +182,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
                     <div className="card-divider" />
                     <div className="env-section">
                       <EnvironmentSelectionList
-                        title="Environments to include"
+                        title="Environments To Include"
                         environments={environments}
                         selectedUids={selectedEnvUids}
                         onToggle={toggleEnv}

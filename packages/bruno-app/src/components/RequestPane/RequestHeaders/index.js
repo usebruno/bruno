@@ -80,14 +80,6 @@ const getDefaultHeaderValue = (header, requestUrl) => {
     return getBrunoRuntimeUserAgent(appVersion);
   }
 
-  if (header.name === 'Host') {
-    try {
-      return new URL(requestUrl).host || header.previewValue;
-    } catch {
-      return header.previewValue;
-    }
-  }
-
   return header.previewValue || '';
 };
 
@@ -211,7 +203,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         uid: 'inherited-headers-section',
         rowType: ROW_TYPE.SECTION,
         section: ROW_TYPE.INHERITED,
-        label: 'Inherited Headers',
+        label: 'Inherited & Runtime Headers',
         count: allInheritedHeaders.length,
         expanded: isInheritedHeadersExpanded
       },
@@ -580,8 +572,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                 : <IconEye size={16} strokeWidth={1.5} />}
               <span>
                 {showInheritedHeaders
-                  ? 'Hide Inherited Headers'
-                  : `Show Inherited Headers (${allInheritedHeaders.length})`}
+                  ? 'Hide Additional Headers'
+                  : `Show Additional Headers (${allInheritedHeaders.length})`}
               </span>
             </button>
           )}
