@@ -11,6 +11,9 @@ import {
 } from '../../utils/page';
 
 test.describe('Open collection sanity testcases', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
   test('TC-2614: Verify user able to Remove the Opened collection from the sidebar', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'remove-test-collection';
     const collectionLocation = await createTmpDir(collectionName);
