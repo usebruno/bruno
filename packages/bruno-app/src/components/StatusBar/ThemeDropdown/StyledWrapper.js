@@ -108,6 +108,8 @@ const StyledWrapper = styled.div`
     min-width: 180px;
     min-height: 0;
     padding-top: 8px;
+    max-height: 250px;
+    overflow-y: auto;
   }
 
   .theme-list-label {
@@ -116,7 +118,11 @@ const StyledWrapper = styled.div`
     gap: 8px;
     font-size: 12px;
     color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => props.theme.dropdown.bg};
     margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .theme-list-items {
