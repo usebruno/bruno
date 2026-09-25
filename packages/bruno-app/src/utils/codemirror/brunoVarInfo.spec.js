@@ -255,6 +255,24 @@ describe('extractVariableInfo', () => {
         variableValue: undefined
       });
     });
+
+    it('should only use the part before an escaped colon as the variable name', () => {
+      const result = extractVariableInfo('/:id\\:reactivate', mockVariables);
+
+      expect(result).toEqual({
+        variableName: 'id',
+        variableValue: 'user-123'
+      });
+    });
+
+    it('should return undefined for an escaped colon with no param name before it', () => {
+      const result = extractVariableInfo('/:\\:reactivate', mockVariables);
+
+      expect(result).toEqual({
+        variableName: undefined,
+        variableValue: undefined
+      });
+    });
   });
 
   describe('direct variable format', () => {
