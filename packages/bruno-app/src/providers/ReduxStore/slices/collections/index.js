@@ -4297,6 +4297,7 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  expandCollectionItem,
   collapseCollection,
   expandItem,
   collapseItem,
