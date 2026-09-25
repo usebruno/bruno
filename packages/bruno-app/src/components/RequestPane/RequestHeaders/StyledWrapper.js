@@ -58,17 +58,8 @@ const Wrapper = styled.div`
   }
 
   .default-header-row {
-    .default-header-value {
-      display: block;
-      overflow-x: auto;
-      white-space: nowrap;
-      text-overflow: clip;
-      scrollbar-width: none;
+    .CodeMirror-line {
       color: ${(props) => props.theme.colors.text.muted};
-
-      &::-webkit-scrollbar {
-        display: none;
-      }
     }
   }
 

@@ -444,16 +444,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Name',
       width: '20%',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return (
             <div className="header-name-cell">
               {renderInheritedValue(value)}
             </div>
           );
-        }
-
-        if (row.rowType === ROW_TYPE.DEFAULT) {
-          return <span className="default-header-value">{value}</span>;
         }
 
         return (
@@ -476,25 +472,23 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       name: 'Value',
       placeholder: 'Value',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return renderInheritedValue(value);
         }
 
-        return row.rowType === ROW_TYPE.DEFAULT
-          ? <span className="default-header-value">{value}</span>
-          : (
-              <SingleLineEditor
-                value={value || ''}
-                theme={storedTheme}
-                onSave={onSave}
-                onChange={onChange}
-                onRun={handleRun}
-                autocomplete={MimeTypes}
-                collection={collection}
-                item={item}
-                placeholder={!value ? 'Value' : ''}
-              />
-            );
+        return (
+          <SingleLineEditor
+            value={value || ''}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={onChange}
+            onRun={handleRun}
+            autocomplete={MimeTypes}
+            collection={collection}
+            item={item}
+            placeholder={!value ? 'Value' : ''}
+          />
+        );
       }
     },
     {
