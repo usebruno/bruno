@@ -302,8 +302,9 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: Ax
 /**
  * Check if a token is expired
  */
-const isTokenExpired = (credentials: any): boolean => {
-  if (!credentials?.access_token) {
+const isTokenExpired = (credentials: any, tokenSource: 'access_token' | 'id_token' = 'access_token'): boolean => {
+  const tokenKey = tokenSource === 'id_token' ? 'id_token' : 'access_token';
+  if (!credentials?.[tokenKey]) {
     return true;
   }
   if (!credentials?.expires_in || !credentials.created_at) {
@@ -346,7 +347,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
 
   if (existingToken) {
     // Check if token is expired
-    if (!isTokenExpired(existingToken)) {
+    if (!isTokenExpired(existingToken, tokenSource)) {
       // Token is valid, use it
       return tokenSource === 'id_token' ? existingToken.id_token : existingToken.access_token;
     } else {
@@ -382,8 +383,9 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     throw new Error(JSON.stringify(tokenResponse));
   }
 
-  if (!tokenResponse || !tokenResponse.access_token) {
-    throw new Error('No access token received from server');
+  const tokenKey = tokenSource === 'id_token' ? 'id_token' : 'access_token';
+  if (!tokenResponse || !tokenResponse[tokenKey]) {
+    throw new Error(`No ${tokenKey.replace('_', ' ')} received from server`);
   }
 
   if (tokenResponse.expires_in && tokenResponse.created_at) {
@@ -395,5 +397,5 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     console.warn('OAuth2: Failed to save token to store, but proceeding with token');
   }
 
-  return tokenSource === 'id_token' ? tokenResponse.id_token : tokenResponse.access_token;
+  return tokenResponse[tokenKey];
 };

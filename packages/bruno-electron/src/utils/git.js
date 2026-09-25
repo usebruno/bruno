@@ -711,15 +711,22 @@ const getCollectionGitData = async (gitRootPath, collectionPath) => {
 
 const cloneGitRepository = async (win, data) => {
   return new Promise((resolve, reject) => {
-    const { url, path, processUid, branch } = data;
-    const git = getSimpleGitInstanceForPath(path);
+    const { url, path: clonePath, processUid, branch } = data;
+    const git = simpleGit({
+      baseDir: os.tmpdir(),
+      config: []
+    });
     const cloneOptions = branch ? ['--progress', '--branch', branch] : ['--progress'];
 
+    git.env({ ...process.env });
     git.outputHandler(handleGitOutput({ win, processUid, sendStdout: true }));
-    git.clone(url, path, cloneOptions, (err, res) => {
+    git.clone(url, clonePath, cloneOptions, (err, res) => {
       if (err) {
         reject(err);
         return;
+      }
+      if (simpleGitInstances.has(clonePath)) {
+        simpleGitInstances.delete(clonePath);
       }
       resolve(res);
     });
