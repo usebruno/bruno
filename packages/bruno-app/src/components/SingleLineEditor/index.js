@@ -7,8 +7,34 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
+import { debounce } from 'lodash';
+import {
+  applyEditorState,
+  captureEditorState,
+  readPersistedEditorState,
+  writePersistedEditorState
+} from 'components/CodeEditor/state-persistence';
 
 const CodeMirror = require('codemirror');
+
+const snapshotAncestorScrolls = (node) => {
+  const snapshots = [];
+  let el = node?.parentElement;
+  while (el && el !== document.documentElement) {
+    const style = window.getComputedStyle(el);
+    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+      snapshots.push({ el, top: el.scrollTop });
+    }
+    el = el.parentElement;
+  }
+  return snapshots;
+};
+
+const restoreAncestorScrolls = (snapshots) => {
+  snapshots.forEach(({ el, top }) => {
+    if (el.scrollTop !== top) el.scrollTop = top;
+  });
+};
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -25,6 +51,66 @@ class SingleLineEditor extends Component {
       maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
     };
   }
+
+  _applyPersistedViewState = () => {
+    if (!this.editor || !this._currentDocKey) return;
+
+    const wrapper = this.editor.getWrapperElement();
+    const ancestorScrolls = snapshotAncestorScrolls(wrapper);
+    applyEditorState(
+      this.editor,
+      readPersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey }),
+      this.cachedValue
+    );
+    restoreAncestorScrolls(ancestorScrolls);
+    // CodeMirror/browser may adjust ancestors on a later frame after scrollTo.
+    if (this._restoreAncestorRaf) cancelAnimationFrame(this._restoreAncestorRaf);
+    this._restoreAncestorRaf = requestAnimationFrame(() => {
+      this._restoreAncestorRaf = null;
+      restoreAncestorScrolls(ancestorScrolls);
+    });
+  };
+
+  _setupViewPersistence = () => {
+    if (!this.editor || !this.props.docKey) return;
+
+    this._currentDocKey = this.props.docKey;
+    this._applyPersistedViewState();
+
+    this._persistViewStateDebounced = debounce(() => {
+      if (!this.editor || !this._currentDocKey) return;
+      writePersistedEditorState({
+        scope: this.props.persistenceScope,
+        key: this._currentDocKey,
+        state: captureEditorState(this.editor)
+      });
+    }, 250);
+
+    this.editor.on('fold', this._persistViewStateDebounced);
+    this.editor.on('unfold', this._persistViewStateDebounced);
+    this.editor.on('scroll', this._persistViewStateDebounced);
+  };
+
+  _teardownViewPersistence = () => {
+    if (this._restoreAncestorRaf) {
+      cancelAnimationFrame(this._restoreAncestorRaf);
+      this._restoreAncestorRaf = null;
+    }
+    if (this.editor && this._currentDocKey) {
+      writePersistedEditorState({
+        scope: this.props.persistenceScope,
+        key: this._currentDocKey,
+        state: captureEditorState(this.editor)
+      });
+    }
+    if (this.editor && this._persistViewStateDebounced) {
+      this.editor.off('fold', this._persistViewStateDebounced);
+      this.editor.off('unfold', this._persistViewStateDebounced);
+      this.editor.off('scroll', this._persistViewStateDebounced);
+      this._persistViewStateDebounced.cancel?.();
+    }
+    this._persistViewStateDebounced = null;
+  };
 
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
@@ -103,6 +189,7 @@ class SingleLineEditor extends Component {
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
+    this._setupViewPersistence();
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
 
@@ -183,11 +270,18 @@ class SingleLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+    if (this.props.docKey !== prevProps.docKey && this.editor) {
+      this._teardownViewPersistence();
+      this._setupViewPersistence();
+    }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       const cursor = this.editor.getCursor();
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
       this.editor.setCursor(cursor);
+      if (this._currentDocKey) {
+        this._applyPersistedViewState();
+      }
       // Re-apply masking after setValue() since it destroys all CodeMirror marks
       if (this.maskedEditor && this.maskedEditor.isEnabled()) {
         this.maskedEditor.update();
@@ -217,6 +311,7 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
+    this._teardownViewPersistence();
     if (this.editor) {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();

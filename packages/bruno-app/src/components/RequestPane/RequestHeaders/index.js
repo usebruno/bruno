@@ -466,6 +466,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
+            docKey={`${item.uid}:header:${row.uid}:name`}
             placeholder={!value ? 'Name' : ''}
           />
         );
@@ -492,6 +493,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
                 autocomplete={MimeTypes}
                 collection={collection}
                 item={item}
+                docKey={`${item.uid}:header:${row.uid}:value`}
                 placeholder={!value ? 'Value' : ''}
               />
             );
