@@ -12,6 +12,10 @@ const Wrapper = styled.div`
   &.text-error {
     color: ${(props) => props.theme.requestTabPanel.responseError};
   }
+
+  &.text-warning {
+    color: ${(props) => props.theme.requestTabPanel.responseWarning || props.theme.colors.text.warning || 'orange'};
+  }
 `;
 
 export default Wrapper;
