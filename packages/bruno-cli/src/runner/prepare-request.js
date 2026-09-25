@@ -8,10 +8,7 @@ const fs = require('node:fs');
 const { mergeHeaders, mergeScripts, mergeVars, mergeAuth, getTreePathFromCollectionToItem } = require('../utils/collection');
 const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
-const { isLargeFile } = require('../utils/filesystem');
 const { getFormattedOauth2Credentials } = require('../utils/oauth2');
-
-const STREAMING_FILE_SIZE_THRESHOLD = 20 * 1024 * 1024; // 20MB
 
 const prepareRequest = async (item = {}, collection = {}) => {
   const request = item?.request;
@@ -397,7 +394,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
 
   if (request.body.mode === 'file') {
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/octet-stream'; // Default headers for binary file uploads
+      axiosRequest.headers['content-type'] = 'application/octet-stream';
     }
 
     const bodyFile = find(request.body.file, (param) => param.selected);
@@ -405,23 +402,32 @@ const prepareRequest = async (item = {}, collection = {}) => {
       let { filePath, contentType } = bodyFile;
 
       axiosRequest.headers['content-type'] = contentType;
-
       if (filePath) {
         if (!path.isAbsolute(filePath)) {
           filePath = path.join(collectionPath, filePath);
         }
 
         try {
-          // Large files can cause "JavaScript heap out of memory" errors when loaded entirely into memory.
-          if (isLargeFile(filePath, STREAMING_FILE_SIZE_THRESHOLD)) {
-            // For large files: Use streaming to avoid memory issues
-            axiosRequest.data = fs.createReadStream(filePath);
-          } else {
-            // For smaller files: Use synchronous read for better performance
-            axiosRequest.data = fs.readFileSync(filePath);
-          }
+          const stats = fs.statSync(filePath);
+          const stream = fs.createReadStream(filePath, {
+            highWaterMark: 64 * 1024,
+            autoClose: true
+          });
+
+          stream.on('error', (error) => {
+            console.error(`Stream error for ${path.basename(filePath)}:`, error.message);
+          });
+
+          axiosRequest.data = stream;
+          axiosRequest.headers['content-length'] = stats.size;
+
+          // Prevent axios from buffering/limiting large file uploads
+          axiosRequest.maxContentLength = Infinity;
+          axiosRequest.maxBodyLength = Infinity;
+          axiosRequest.timeout = 0;
         } catch (error) {
-          console.error('Error reading file:', error);
+          console.error(`Error preparing file upload:`, error.message);
+          throw new Error(`Failed to prepare file upload for ${path.basename(filePath)}: ${error.message}`);
         }
       }
     }
