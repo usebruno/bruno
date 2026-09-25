@@ -1,5 +1,5 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
+import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
@@ -61,6 +61,7 @@ import {
   updateActiveConnections,
   saveRequest as _saveRequest,
   saveEnvironment as _saveEnvironment,
+  saveEnvironmentExtends as _saveEnvironmentExtends,
   updateEnvironmentColor as _updateEnvironmentColor,
   saveCollectionDraft,
   saveFolderDraft,
@@ -475,7 +476,10 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid)
+    });
 
     _sendCollectionOauth2Request(collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
@@ -516,7 +520,10 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
 
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
 
     // WS connect does not run user scripts — no baseline to clear.
 
@@ -648,7 +655,10 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       })
     );
 
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const isGrpcRequest = itemCopy.type === 'grpc-request';
     const isWsRequest = itemCopy.type === 'ws-request';
     if (isGrpcRequest) {
@@ -768,7 +778,10 @@ export const runCollectionFolder
         return reject(new Error('Folder not found'));
       }
 
-      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      const environment = resolveEnvironmentInheritance({
+        environments: collectionCopy.environments,
+        targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+      });
 
       dispatch(
         resetRunResults({
@@ -1140,8 +1153,7 @@ export const handleMultipleCollectionItemsDrop
 
       // cache of directories by uid -> items array
       const directoryCache = new Map();
-      const getDirectoryItems = (coll, itemUid) => {
-        const dir = findParentItemInCollection(coll, itemUid) || coll;
+      const getDirectoryItems = (dir) => {
         if (!directoryCache.has(dir.uid)) {
           directoryCache.set(dir.uid, cloneDeep(dir.items));
         }
@@ -1311,7 +1323,7 @@ export const handleMultipleCollectionItemsDrop
               continue;
             }
 
-            const currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
+            const currentSourceItems = getDirectoryItems(draggedItemDirectory);
             const currentTargetItems = directoryCache.get(targetDir.uid) || [];
 
             if (newPathname !== draggedItemPathname) {
@@ -1916,7 +1928,10 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const runtimeVariables = collectionCopy.runtimeVariables;
 
     try {
@@ -1962,7 +1977,10 @@ export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, 
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
-    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    const environment = resolveEnvironmentInheritance({
+      environments: collectionCopy.environments,
+      targetEnvironment: findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid)
+    });
     const runtimeVariables = collectionCopy.runtimeVariables;
 
     const { ipcRenderer } = window;
@@ -2000,7 +2018,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const importEnvironment = ({ name, variables, color, collectionUid }) => (dispatch, getState) => {
+export const importEnvironment = ({ name, variables, color, extends: inheritedEnvironmentName, collectionUid }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2012,7 +2030,7 @@ export const importEnvironment = ({ name, variables, color, collectionUid }) => 
 
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variables, color, inheritedEnvironmentName)
       .then(
         dispatch(
           updateLastAction({
@@ -2049,7 +2067,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     const variablesToCopy = baseEnv.variables || [];
 
     ipcRenderer
-      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
+      .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy, undefined, baseEnv.extends)
       .then(
         dispatch(
           updateLastAction({
@@ -2176,6 +2194,30 @@ export const updateEnvironmentColor = (environmentUid, color, collectionUid) => 
     ipcRenderer.invoke('renderer:update-environment-color', collection.pathname, environment.name, color)
       .then(() => {
         dispatch(_updateEnvironmentColor({ environmentUid, color, collectionUid }));
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
+export const saveEnvironmentExtends = ({ environmentUid, inheritedEnvironmentName, collectionUid }) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const environment = findEnvironmentInCollection(collection, environmentUid);
+    if (!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:save-environment-extends', collection.pathname, environment.name, inheritedEnvironmentName)
+      .then(() => {
+        dispatch(_saveEnvironmentExtends({ environmentUid, collectionUid, extends: inheritedEnvironmentName }));
         resolve();
       })
       .catch(reject);
@@ -3520,6 +3562,11 @@ export const cloneGitRepository = (data) => (dispatch, getState) => {
         reject();
       });
   });
+};
+
+export const fetchBranchesForRepositoryUrl = (url) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:list-remote-branches-for-url', { url });
 };
 
 export const scanForBrunoFiles = (dir) => (dispatch, getState) => {

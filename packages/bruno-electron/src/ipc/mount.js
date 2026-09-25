@@ -5,13 +5,6 @@ const { MountManager } = require('../services/mount');
 const manager = new MountManager();
 
 const registerMountIpc = () => {
-  ipcMain.handle('renderer:get-file-cache-size', () => manager.getCacheSize());
-
-  ipcMain.handle('renderer:clear-file-cache', () => {
-    manager.clearCache();
-    return manager.getCacheSize();
-  });
-
   ipcMain.handle('renderer:reload-collection', async (event, { collectionUid, collectionPathname }) => {
     const resolvedPath = path.resolve(collectionPathname);
 
@@ -43,7 +36,7 @@ const registerMountIpc = () => {
 };
 
 const unmount = (collectionUid) => manager.unmount(collectionUid);
-const shutdown = () => manager.shutdown();
+const shutdown = (opts) => manager.shutdown(opts);
 const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
 module.exports = { registerMountIpc, unmount, shutdown, clearCollectionIndex };

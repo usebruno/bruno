@@ -74,6 +74,8 @@ const actionsToIntercept = [
   'collections/updateFolderAuth',
   'collections/updateFolderAuthMode',
   'collections/updateFolderDocs',
+  'collections/addFolderTag',
+  'collections/deleteFolderTag',
 
   // Collection-level actions
   'collections/addCollectionHeader',

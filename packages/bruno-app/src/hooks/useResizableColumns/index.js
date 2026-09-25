@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { suppressTrailingClickOnce } from 'utils/suppressTrailingClick';
 
 /**
  * Drag-to-resize behavior for a multi-column grid.
  *
- * Columns always sum to the container width (no horizontal scroll).
+ * Columns sum to the container width minus `reservedWidth` (no horizontal scroll).
  * Dragging a separator adjusts only the two adjacent columns (zero-sum).
  * Either column hitting minColWidth causes a hard stop.
  *
@@ -11,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  * @param {number[]}      options.defaultWidths  - Default px width for each column (used as proportions)
  * @param {number[]|null} [options.initialWidths] - Persisted widths to restore; falls back to defaultWidths
  * @param {number}        [options.minColWidth]   - Minimum column width in px (default: 60)
+ * @param {number}        [options.reservedWidth] - Total width in px reserved for non resizable columns
  * @param {function}      [options.onResizeEnd]   - Called with final colWidths array after a drag ends
  *
  * @returns {{
@@ -21,7 +23,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  *   resizingIdx: number | null,
  *   handleResizeStart: (e: MouseEvent, separatorIdx: number) => void
  * }}
+ *
+ * `gridTemplateColumns` covers only the managed columns. `separatorPositions` are relative to the
+ * first managed column's left edge.
  */
+
+// Added to <body> while a column is dragged. globalStyles.js forces the col-resize cursor on every
+// element under it, so the cursor doesn't flip to pointer/text over headers or other parts of the app.
+export const COLUMN_RESIZE_CURSOR_CLASS = 'column-resize-cursor';
 
 const getGridTemplate = (widths) => widths.map((w) => `${w}px`).join(' ');
 
@@ -112,7 +121,13 @@ const scaleWidthsToTotal = (widths, targetTotal, minColWidth) => {
   return result;
 };
 
-export function useResizableColumns({ defaultWidths, initialWidths = null, minColWidth = 60, onResizeEnd = null }) {
+export function useResizableColumns({
+  defaultWidths,
+  initialWidths = null,
+  minColWidth = 60,
+  reservedWidth = 0,
+  onResizeEnd = null
+}) {
   const [colWidths, setColWidths] = useState(null);
   const [resizingIdx, setResizingIdx] = useState(null);
   const dragCleanupRef = useRef(null);
@@ -144,8 +159,11 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
     if (!node) return;
 
     const observer = new ResizeObserver((entries) => {
-      const newWidth = Math.floor(entries[0].contentRect.width);
-      if (!newWidth) return;
+      const measuredWidth = Math.floor(entries[0].contentRect.width);
+      if (!measuredWidth) return;
+
+      const newWidth = measuredWidth - reservedWidth;
+      if (newWidth <= 0) return;
 
       setColWidths((prev) => {
         if (!prev) {
@@ -159,16 +177,20 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
 
     observer.observe(node);
     observerRef.current = observer;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options are read once when the container attaches
   }, []);
 
   const handleResizeStart = useCallback((e, separatorIdx) => {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!colWidths) return;
+
     const startX = e.clientX;
     const startWidths = [...colWidths];
 
     setResizingIdx(separatorIdx);
+    document.body.classList.add(COLUMN_RESIZE_CURSOR_CLASS);
 
     const onMouseMove = (moveE) => {
       const delta = moveE.clientX - startX;
@@ -192,10 +214,12 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
     const cleanup = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onWindowBlur);
+      document.body.classList.remove(COLUMN_RESIZE_CURSOR_CLASS);
       dragCleanupRef.current = null;
     };
 
-    const onMouseUp = () => {
+    const endResize = () => {
       setResizingIdx(null);
       cleanup();
       // Capture final widths for persistence — read directly from state via functional update
@@ -207,8 +231,19 @@ export function useResizableColumns({ defaultWidths, initialWidths = null, minCo
       }
     };
 
+    const onMouseUp = () => {
+      endResize();
+      // Prevent a resize gesture from triggering a click when the release lands on a clickable element.
+      suppressTrailingClickOnce();
+    };
+
+    const onWindowBlur = () => {
+      endResize();
+    };
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('blur', onWindowBlur);
     dragCleanupRef.current = cleanup;
   }, [colWidths, minColWidth]);
 

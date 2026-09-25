@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { runScriptInNodeVm } = require('@usebruno/js');
-const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts } = require('../../src/utils/collection');
+const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, getEffectiveTagsByUid } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -745,5 +745,149 @@ describe('mergeScripts and runScriptInNodeVm integration', () => {
     expect(testsBru.setVar).toHaveBeenCalledWith('folder_test_dir', folderPath);
     expect(testsBru.setVar).toHaveBeenCalledWith('req_test_dir', folderPath);
     expect(testsBru.setVar).toHaveBeenCalledWith('req_test_file', requestPath);
+  });
+});
+
+describe('getEffectiveTagsByUid', () => {
+  const request = (uid, tags) => ({
+    uid,
+    name: uid,
+    type: 'http-request',
+    ...(tags !== undefined ? { tags } : {})
+  });
+
+  const folder = (uid, tags, items = []) => ({
+    uid,
+    name: uid,
+    type: 'folder',
+    root: { meta: { name: uid, tags } },
+    items
+  });
+
+  test('returns an empty map for a collection with no items', () => {
+    expect(getEffectiveTagsByUid({ items: [] }).size).toBe(0);
+  });
+
+  test('keeps a request without tags at an empty list', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [request('req-1')] });
+
+    expect(tagsByUid.get('req-1')).toEqual([]);
+  });
+
+  test('maps a root-level request to its own tags', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [request('req-1', ['smoke', 'fast'])] });
+
+    expect(tagsByUid.get('req-1')).toEqual(['smoke', 'fast']);
+  });
+
+  test('cascades folder tags to requests inside the folder', () => {
+    const collection = {
+      items: [folder('folder-auth', ['auth'], [request('req-login', ['smoke'])])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['auth']);
+    expect(tagsByUid.get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('accumulates tags down a nested folder chain', () => {
+    const collection = {
+      items: [folder('folder-api', ['api'], [folder('folder-v2', ['v2'], [request('req-users', ['smoke'])])])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-api')).toEqual(['api']);
+    expect(tagsByUid.get('folder-v2')).toEqual(['v2', 'api']);
+    expect(tagsByUid.get('req-users')).toEqual(['smoke', 'v2', 'api']);
+  });
+
+  test('does not leak tags across sibling folders', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['auth'], [request('req-login')]),
+        folder('folder-billing', ['billing'], [request('req-invoice')]),
+        request('req-standalone', ['root'])
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('req-login')).toEqual(['auth']);
+    expect(tagsByUid.get('req-invoice')).toEqual(['billing']);
+    expect(tagsByUid.get('req-standalone')).toEqual(['root']);
+  });
+
+  test('de-duplicates a tag a request repeats from its folder', () => {
+    const collection = {
+      items: [folder('folder-auth', ['auth', 'smoke'], [request('req-login', ['smoke'])])]
+    };
+
+    expect(getEffectiveTagsByUid(collection).get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('prefers a folder draft over its saved tags', () => {
+    const collection = {
+      items: [
+        {
+          ...folder('folder-auth', ['saved'], [request('req-login')]),
+          draft: { meta: { tags: ['drafted'] } }
+        }
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['drafted']);
+    expect(tagsByUid.get('req-login')).toEqual(['drafted']);
+  });
+
+  test('prefers a request draft over its saved tags', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['auth'], [
+          {
+            ...request('req-login', ['saved']),
+            draft: { tags: ['drafted'] }
+          }
+        ])
+      ]
+    };
+
+    expect(getEffectiveTagsByUid(collection).get('req-login')).toEqual(['drafted', 'auth']);
+  });
+
+  test('normalizes malformed tags - trims, drops non-strings and de-duplicates', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['  auth  ', 'auth', 42, null, ''], [
+          request('req-login', [' smoke', { name: 'nope' }, undefined])
+        ])
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['auth']);
+    expect(tagsByUid.get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('treats non-array tags as no tags', () => {
+    const collection = {
+      items: [folder('folder-auth', 'auth', [request('req-login', 'smoke')])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual([]);
+    expect(tagsByUid.get('req-login')).toEqual([]);
+  });
+
+  test('maps an empty folder without adding child entries', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [folder('folder-empty', ['empty'])] });
+
+    expect(tagsByUid.size).toBe(1);
+    expect(tagsByUid.get('folder-empty')).toEqual(['empty']);
   });
 });

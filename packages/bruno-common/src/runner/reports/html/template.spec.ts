@@ -44,7 +44,7 @@ describe('htmlTemplateString', () => {
   it('renders skipped requests off the request status, naming bail as the reason', () => {
     const template = htmlTemplateString('');
 
-    expect(template).toContain('result.status === \'skipped\'');
+    expect(template).toContain('result.response.status === \'skipped\'');
     expect(template).toContain('result.skipReason === \'bail\' ? \'Request skipped due to bail\'');
   });
 });
@@ -57,7 +57,7 @@ describe('generateHtmlReport', () => {
       skipped: true,
       skipReason: 'bail',
       request: { method: 'POST', url: 'https://api.example.com/users' },
-      response: { status: '-', responseTime: 0 },
+      response: { status: 'skipped', responseTime: 0 },
       runDuration: 0
     };
 
@@ -70,7 +70,7 @@ describe('generateHtmlReport', () => {
       status: 'skipped',
       skipReason: 'bail',
       request: { method: 'POST', url: 'https://api.example.com/users' },
-      response: { status: '-' }
+      response: { status: 'skipped' }
     });
   });
 });

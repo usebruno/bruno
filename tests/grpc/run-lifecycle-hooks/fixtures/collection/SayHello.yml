@@ -19,7 +19,7 @@ runtime:
     - type: grpc:before-call-start
       code: |-
         bru.setVar('greeting', 'set-by-hook');
-        bru.setVar('capturedReply', '');
+        bru.deleteVar('capturedReply');
     - type: grpc:after-call-end
       code: |-
         test('the hook sees the message the unary call sent', () => {
@@ -28,3 +28,7 @@ runtime:
         });
 
         bru.setVar('capturedReply', bru.grpc.response.messages.get(0).data.reply);
+
+        // Deleted once the assertion above has read it: the two sandbox modes share this
+        // collection, so a value left behind would let the next mode pass without the hook running.
+        bru.deleteVar('greeting');

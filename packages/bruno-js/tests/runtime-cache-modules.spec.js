@@ -1,0 +1,800 @@
+const { describe, it, expect, beforeAll } = require('@jest/globals');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const TestRuntime = require('../src/runtime/test-runtime');
+const ScriptRuntime = require('../src/runtime/script-runtime');
+const AssertRuntime = require('../src/runtime/assert-runtime');
+const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
+const { makeNpmModule } = require('./utils/helpers');
+
+const scriptingConfig = { cacheModules: true };
+
+describe('runtime (cacheModules)', () => {
+  describe('test-runtime', () => {
+    const baseRequest = {
+      method: 'GET',
+      url: 'http://localhost:3000/',
+      headers: {},
+      data: undefined
+    };
+    const baseResponse = {
+      status: 200,
+      statusText: 'OK',
+      data: [
+        {
+          id: 1
+        },
+        {
+          id: 2
+        },
+        {
+          id: 3
+        }
+      ]
+    };
+
+    it('should wait async tests', async () => {
+      const testFile = `
+                await test('async test', ()=> {
+                    return new Promise((resolve)=> {
+                        setTimeout(()=> {resolve()},200)
+                    })
+                })
+            `;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env,
+        scriptingConfig
+      );
+      expect(result.results.map((el) => ({ description: el.description, status: el.status }))).toEqual([
+        { description: 'async test', status: 'pass' }
+      ]);
+    });
+
+    it('should have ajv and ajv-formats dependencies available', async () => {
+      const testFile = `
+                const Ajv = require('ajv');
+                const addFormats = require("ajv-formats");
+                const ajv = new Ajv();
+                addFormats(ajv);
+                
+                const schema = {
+                  type: 'string',
+                  format: 'date-time'
+                };
+                
+                const validate = ajv.compile(schema)
+                
+                test('format valid', () => {
+                  const valid = validate(new Date().toISOString())
+                  expect(valid).to.be.true;
+                })
+            `;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env,
+        scriptingConfig
+      );
+      expect(result.results.map((el) => ({ description: el.description, status: el.status }))).toEqual([
+        { description: 'format valid', status: 'pass' }
+      ]);
+    });
+
+    it('should expose test and jwt through a cached npm module', async () => {
+      const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+      try {
+        makeNpmModule(collectionPath, 'test-runtime-reader', `
+          module.exports = {
+            read: () => typeof test + ':' + typeof jwt.sign
+          };
+        `);
+
+        const runtime = new TestRuntime({ runtime: 'nodevm' });
+        const result = await runtime.runTests(
+          `
+            test('cached runtime globals', () => {
+              expect(require('test-runtime-reader').read()).to.equal('function:function');
+            });
+          `,
+          { ...baseRequest },
+          { ...baseResponse },
+          {},
+          {},
+          collectionPath,
+          null,
+          process.env,
+          scriptingConfig
+        );
+
+        expect(result.results).toEqual([
+          expect.objectContaining({ description: 'cached runtime globals', status: 'pass' })
+        ]);
+      } finally {
+        fs.rmSync(collectionPath, { recursive: true, force: true });
+      }
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (nodevm)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env,
+        scriptingConfig
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (quickjs)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        onConsoleLog,
+        process.env,
+        scriptingConfig
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should not set stopExecution when bru.runner.stopExecution() is not called', async () => {
+      const testFile = `test('noop', () => { expect(true).to.be.true; });`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env,
+        scriptingConfig
+      );
+      expect(result.stopExecution).toBeFalsy();
+    });
+  });
+
+  describe('script-runtime', () => {
+    describe('run-request-script', () => {
+      const baseRequest = {
+        method: 'GET',
+        url: 'http://localhost:3000/',
+        headers: {},
+        data: undefined
+      };
+
+      it('should have ajv and ajv-formats dependencies available', async () => {
+        const script = `
+                  const Ajv = require('ajv');
+                  const addFormats = require("ajv-formats");
+                  const ajv = new Ajv();
+                  addFormats(ajv);
+                  
+                  const schema = {
+                    type: 'string',
+                    format: 'date-time'
+                  };
+                  
+                  const validate = ajv.compile(schema)
+                  
+                  bru.setVar('validation', validate(new Date().toISOString()))
+              `;
+
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+        const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env, scriptingConfig);
+        expect(result.runtimeVariables.validation).toBeTruthy();
+      });
+
+      it('should expose the real request runtime through a cached npm module', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'request-runtime-reader', `
+            module.exports = {
+              read: () => req.getMethod() + ':' + req.getUrl()
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const result = await runtime.runRequestScript(
+            `bru.setVar('runtime', require('request-runtime-reader').read());`,
+            {
+              method: 'POST',
+              url: 'http://localhost:3000/runtime',
+              headers: {},
+              data: undefined
+            },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env,
+            scriptingConfig
+          );
+
+          expect(result.runtimeVariables.runtime).toBe('POST:http://localhost:3000/runtime');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
+      });
+
+      it('should expose each request URL to a cached module across sequential runs', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'sequential-request-reader', `
+            const urlAtLoad = req.getUrl();
+            module.exports = {
+              dynamic: () => req.getUrl(),
+              captured: () => urlAtLoad
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const run = (url) => runtime.runRequestScript(
+            `
+              const reader = require('sequential-request-reader');
+              bru.setVar('dynamicUrl', reader.dynamic());
+              bru.setVar('capturedUrl', reader.captured());
+            `,
+            { method: 'GET', url, headers: {}, data: undefined },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env,
+            scriptingConfig
+          );
+
+          const first = await run('https://example.com/first');
+          const second = await run('https://example.com/second');
+
+          expect(first.runtimeVariables.dynamicUrl).toBe('https://example.com/first');
+          expect(second.runtimeVariables.dynamicUrl).toBe('https://example.com/second');
+          expect(first.runtimeVariables.capturedUrl).toBe('https://example.com/first');
+          expect(second.runtimeVariables.capturedUrl).toBe('https://example.com/second');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
+      });
+
+      it('should return variable updates made in req.onFail', async () => {
+        const script = `
+          bru.setVar('runtimeToken', 'before');
+          bru.setEnvVar('environmentToken', 'before');
+          bru.setGlobalEnvVar('globalToken', 'before');
+
+          req.onFail(() => {
+            bru.setVar('runtimeToken', 'after');
+            bru.setEnvVar('environmentToken', 'after');
+            bru.setGlobalEnvVar('globalToken', 'after');
+          });
+        `;
+        const request = { ...baseRequest };
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+        await runtime.runRequestScript(script, request, {}, {}, '.', null, process.env, scriptingConfig);
+        const result = await request.onFailHandler(new Error('Connection failed'));
+
+        expect(result.runtimeVariables.runtimeToken).toBe('after');
+        expect(result.envVariables.environmentToken).toBe('after');
+        expect(result.globalEnvironmentVariables.globalToken).toBe('after');
+      });
+    });
+
+    describe('run-response-script', () => {
+      const baseRequest = {
+        method: 'GET',
+        url: 'http://localhost:3000/',
+        headers: {},
+        data: undefined
+      };
+      const baseResponse = {
+        status: 200,
+        statusText: 'OK',
+        data: [
+          {
+            id: 1
+          },
+          {
+            id: 2
+          },
+          {
+            id: 3
+          }
+        ]
+      };
+
+      it('should have ajv and ajv-formats dependencies available', async () => {
+        const script = `
+                  const Ajv = require('ajv');
+                  const addFormats = require("ajv-formats");
+                  const ajv = new Ajv();
+                  addFormats(ajv);
+                  
+                  const schema = {
+                    type: 'string',
+                    format: 'date-time'
+                  };
+                  
+                  const validate = ajv.compile(schema)
+                  
+                  bru.setVar('validation', validate(new Date().toISOString()))
+              `;
+
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+        const result = await runtime.runResponseScript(
+          script,
+          { ...baseRequest },
+          { ...baseResponse },
+          {},
+          {},
+          '.',
+          null,
+          process.env,
+          scriptingConfig
+        );
+        expect(result.runtimeVariables.validation).toBeTruthy();
+      });
+
+      it('should expose the real response runtime through a cached npm module', async () => {
+        const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-runtime-'));
+        try {
+          makeNpmModule(collectionPath, 'response-runtime-reader', `
+            module.exports = {
+              read: () => res.getStatus() + ':' + res.getHeader('content-type')
+            };
+          `);
+
+          const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+          const result = await runtime.runResponseScript(
+            `bru.setVar('runtime', require('response-runtime-reader').read());`,
+            {
+              method: 'GET',
+              url: 'http://localhost:3000/',
+              headers: {},
+              data: undefined
+            },
+            {
+              status: 201,
+              statusText: 'Created',
+              headers: { 'content-type': 'application/json' },
+              data: {}
+            },
+            {},
+            {},
+            collectionPath,
+            null,
+            process.env,
+            scriptingConfig
+          );
+
+          expect(result.runtimeVariables.runtime).toBe('201:application/json');
+        } finally {
+          fs.rmSync(collectionPath, { recursive: true, force: true });
+        }
+      });
+    });
+  });
+
+  describe('environment variables from scripts', () => {
+    it('should allow any value type', async () => {
+      const script = `
+        bru.setEnvVar('str', 'hello');
+        bru.setEnvVar('number', 42);
+        bru.setEnvVar('boolean', true);
+        bru.setEnvVar('object', {key: 'value'});
+        bru.setEnvVar('array', [1, 2, 3]);
+      `;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env, scriptingConfig);
+
+      expect(result.envVariables.str).toBe('hello');
+      expect(result.envVariables.number).toBe(42);
+      expect(result.envVariables.boolean).toBe(true);
+      expect(result.envVariables.object).toEqual({ key: 'value' });
+      expect(result.envVariables.array).toEqual([1, 2, 3]);
+    });
+
+    it('should preserve typed values through the QuickJS shim', async () => {
+      await quickJsLoader();
+      const script = `
+        bru.setEnvVar('num', 42);
+        bru.setEnvVar('bool', true);
+        bru.setEnvVar('obj', { key: 'value' });
+        bru.setCollectionVar('collNum', 7);
+        bru.setGlobalEnvVar('globalBool', false);
+      `;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env, scriptingConfig);
+
+      expect(typeof result.envVariables.num).toBe('number');
+      expect(result.envVariables.num).toBe(42);
+      expect(typeof result.envVariables.bool).toBe('boolean');
+      expect(result.envVariables.bool).toBe(true);
+      expect(typeof result.envVariables.obj).toBe('object');
+      expect(result.envVariables.obj).toEqual({ key: 'value' });
+      expect(typeof result.collectionVariables.collNum).toBe('number');
+      expect(result.collectionVariables.collNum).toBe(7);
+      expect(typeof result.globalEnvironmentVariables.globalBool).toBe('boolean');
+      expect(result.globalEnvironmentVariables.globalBool).toBe(false);
+    });
+
+    it('should return null for scopes the script did not touch (dirty-flag gating)', async () => {
+      const script = `bru.setEnvVar('only_env', 'val');`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env, scriptingConfig);
+
+      expect(result.envVariables).not.toBeNull();
+      expect(result.envVariables.only_env).toBe('val');
+      expect(result.collectionVariables).toBeNull();
+      expect(result.globalEnvironmentVariables).toBeNull();
+    });
+
+    it('should return null for scopes the script did not touch — QuickJS parity', async () => {
+      await quickJsLoader();
+      const script = `bru.setEnvVar('only_env', 'val');`;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env, scriptingConfig);
+
+      expect(result.envVariables).not.toBeNull();
+      expect(result.envVariables.only_env).toBe('val');
+      expect(result.collectionVariables).toBeNull();
+      expect(result.globalEnvironmentVariables).toBeNull();
+    });
+
+    it('should include collectionVariables in result', async () => {
+      const script = `bru.setCollectionVar('myVar', 'myValue');`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env, scriptingConfig);
+
+      expect(result.collectionVariables).toBeDefined();
+      expect(result.collectionVariables.myVar).toBe('myValue');
+    });
+
+    it('should silently ignore old persist flag as extra argument', async () => {
+      const scriptTrue = `bru.setEnvVar('key1', 'val1', { persist: true });`;
+      const scriptFalse = `bru.setEnvVar('key2', 'val2', { persist: false });`;
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result1 = await runtime.runRequestScript(scriptTrue, {}, {}, {}, '.', null, process.env, scriptingConfig);
+      expect(result1.envVariables.key1).toBe('val1');
+
+      const result2 = await runtime.runRequestScript(scriptFalse, {}, {}, {}, '.', null, process.env, scriptingConfig);
+      expect(result2.envVariables.key2).toBe('val2');
+    });
+
+    it('should silently ignore old persist flag as extra argument — QuickJS parity', async () => {
+      await quickJsLoader();
+      const scriptTrue = `bru.setEnvVar('key1', 'val1', { persist: true });`;
+      const scriptFalse = `bru.setEnvVar('key2', 'val2', { persist: false });`;
+      const runtime = new ScriptRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+
+      const result1 = await runtime.runRequestScript(scriptTrue, {}, {}, {}, '.', onConsoleLog, process.env, scriptingConfig);
+      expect(result1.envVariables.key1).toBe('val1');
+
+      const result2 = await runtime.runRequestScript(scriptFalse, {}, {}, {}, '.', onConsoleLog, process.env, scriptingConfig);
+      expect(result2.envVariables.key2).toBe('val2');
+    });
+  });
+
+  describe('bru.setVar random variable', () => {
+    it('should be able to set random variables as values', async () => {
+      const script = `bru.setVar('title', '{{$randomFirstName}}')`;
+
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env, scriptingConfig);
+
+      expect(result.runtimeVariables.title).toBe('{{$randomFirstName}}');
+    });
+  });
+
+  describe('assert-runtime', () => {
+    beforeAll(async () => {
+      await quickJsLoader();
+    });
+
+    const baseRequest = {
+      method: 'GET',
+      url: 'http://localhost:3000/',
+      headers: {},
+      data: undefined
+    };
+
+    const makeResponse = (data) => ({
+      status: 200,
+      statusText: 'OK',
+      data,
+      headers: {}
+    });
+
+    const runAssertions = (assertions, response, runtime = 'nodevm', runtimeVariables = {}) => {
+      const assertRuntime = new AssertRuntime({ runtime });
+      return assertRuntime.runAssertions(assertions, { ...baseRequest }, response, {}, runtimeVariables, process.env);
+    };
+
+    describe('quickjs context isolation across iterations', () => {
+      const ITERATION_COUNT = 350;
+
+      it('should return correct res.status on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const status = 200 + i;
+          const results = runAssertions(
+            [{ name: 'res.status', value: `eq ${status}`, enabled: true }],
+            { status, statusText: 'OK', data: {}, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should return correct res.body values on every iteration', () => {
+        for (let i = 0; i < ITERATION_COUNT; i++) {
+          const results = runAssertions(
+            [{ name: 'res.body.id', value: `eq ${i}`, enabled: true }],
+            { status: 200, statusText: 'OK', data: { id: i }, headers: {} },
+            'quickjs'
+          );
+          expect(results[0].status).toBe('pass');
+        }
+      });
+
+      it('should not return stale data from a previous iteration', () => {
+        runAssertions(
+          [{ name: 'res.status', value: 'eq 200', enabled: true }],
+          { status: 200, statusText: 'OK', data: { token: 'bearer_abc' }, headers: { authorization: 'bearer xyz' } },
+          'quickjs'
+        );
+
+        const results = runAssertions(
+          [
+            { name: 'res.status', value: 'eq 404', enabled: true },
+            { name: 'res.body.error', value: 'eq not_found', enabled: true }
+          ],
+          { status: 404, statusText: 'Not Found', data: { error: 'not_found' }, headers: {} },
+          'quickjs'
+        );
+
+        expect(results[0].status).toBe('pass');
+        expect(results[1].status).toBe('pass');
+      });
+
+      it('should not persist runtime variables from a previous call', () => {
+        const results1 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs',
+          { token: 'one' }
+        );
+        expect(results1[0].status).toBe('pass');
+
+        const results2 = runAssertions(
+          [{ name: 'token', value: 'eq one', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} },
+          'quickjs'
+        );
+        expect(results2[0].status).toBe('fail');
+      });
+    });
+
+    describe('isJson', () => {
+      it('should pass for a plain object', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse({ id: 1, name: 'test' })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for a nested object', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse({ user: { id: 1, tags: ['a', 'b'] } })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for objects from a different realm (e.g. after res.setBody in node-vm)', async () => {
+        const response = makeResponse({ id: 1, name: 'original' });
+
+        const scriptRuntime = new ScriptRuntime({ runtime: 'nodevm' });
+        await scriptRuntime.runResponseScript(
+          `res.setBody({ id: 2, name: 'updated' });`,
+          { ...baseRequest },
+          response,
+          {}, {}, '.', null, process.env, scriptingConfig
+        );
+
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          response
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([1, 2, 3])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of strings', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse(['A55001213ZX0A'])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an empty array', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should pass for an array of objects', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse([{ id: 1 }, { id: 2 }])
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('should fail for a string', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse('hello')
+        );
+        expect(results[0].status).toBe('fail');
+      });
+
+      it('should fail for null', () => {
+        const results = runAssertions(
+          [{ name: 'res.body', value: 'isJson', enabled: true }],
+          makeResponse(null)
+        );
+        expect(results[0].status).toBe('fail');
+      });
+    });
+
+    describe('jsonSchema', () => {
+      const chai = require('chai');
+
+      it('should pass when body matches a valid schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
+      });
+
+      it('should fail when body has a type mismatch', () => {
+        const body = { name: 'John', age: 'thirty' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should fail when a required field is missing', () => {
+        const body = { name: 'John' };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/validation errors/);
+      });
+
+      it('should pass with custom ajvOptions', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema, { allErrors: false });
+      });
+
+      it('should support negation with .not', () => {
+        const body = { name: 'John' };
+        const schema = { type: 'array' };
+        chai.expect(body).to.not.have.jsonSchema(schema);
+      });
+
+      it('should throw a clear error for unsupported Draft 2020-12 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2020-12.*only supports Draft-07/);
+      });
+
+      it('should throw a clear error for unsupported Draft 2019-09 $schema', () => {
+        const body = { name: 'John' };
+        const schema = {
+          $schema: 'https://json-schema.org/draft/2019-09/schema',
+          type: 'object',
+          properties: { name: { type: 'string' } }
+        };
+        expect(() => chai.expect(body).to.have.jsonSchema(schema)).toThrow(/Unsupported JSON Schema version.*2019-09.*only supports Draft-07/);
+      });
+
+      it('should allow explicit Draft-07 $schema', () => {
+        const body = { name: 'John', age: 30 };
+        const schema = {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' }
+          },
+          required: ['name', 'age']
+        };
+        chai.expect(body).to.have.jsonSchema(schema);
+      });
+    });
+  });
+});
