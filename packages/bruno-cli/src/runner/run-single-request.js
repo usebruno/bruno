@@ -674,6 +674,19 @@ const runSingleRequest = async function (
       delete request.oauth2;
     }
 
+    if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+      try {
+        const urlObj = new URL(request.url);
+        const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+        const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+        urlObj.searchParams.set(key, value);
+        request.url = urlObj.toString();
+      } catch (error) {
+        console.error('Error applying API key to URL:', error.message);
+      }
+      delete request.apiKeyAuthValueForQueryParams;
+    }
+
     let response, responseTime;
     try {
       // Set timeout from request settings, default to 0 (no timeout)
