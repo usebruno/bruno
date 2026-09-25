@@ -554,6 +554,86 @@ describe('runtime', () => {
       });
     });
 
+    describe('isTruthy / isFalsy', () => {
+      it('isTruthy should pass for a truthy non-boolean value (status 200)', () => {
+        const results = runAssertions(
+          [{ name: 'res.status', value: 'isTruthy', enabled: true }],
+          { status: 200, statusText: 'OK', data: {}, headers: {} }
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('isTruthy should pass for truthy numbers, strings and objects', () => {
+        const results = runAssertions(
+          [
+            { name: 'res.body.count', value: 'isTruthy', enabled: true },
+            { name: 'res.body.name', value: 'isTruthy', enabled: true },
+            { name: 'res.body.tags', value: 'isTruthy', enabled: true }
+          ],
+          makeResponse({ count: 5, name: 'x', tags: ['a'] })
+        );
+        expect(results[0].status).toBe('pass');
+        expect(results[1].status).toBe('pass');
+        expect(results[2].status).toBe('pass');
+      });
+
+      it('isTruthy should still pass for the boolean true', () => {
+        const results = runAssertions(
+          [{ name: 'res.body.active', value: 'isTruthy', enabled: true }],
+          makeResponse({ active: true })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('isTruthy should fail for falsy values', () => {
+        const results = runAssertions(
+          [
+            { name: 'res.body.zero', value: 'isTruthy', enabled: true },
+            { name: 'res.body.empty', value: 'isTruthy', enabled: true },
+            { name: 'res.body.active', value: 'isTruthy', enabled: true }
+          ],
+          makeResponse({ zero: 0, empty: '', active: false })
+        );
+        expect(results[0].status).toBe('fail');
+        expect(results[1].status).toBe('fail');
+        expect(results[2].status).toBe('fail');
+      });
+
+      it('isFalsy should pass for falsy non-boolean values (0, "", null)', () => {
+        const results = runAssertions(
+          [
+            { name: 'res.body.zero', value: 'isFalsy', enabled: true },
+            { name: 'res.body.empty', value: 'isFalsy', enabled: true },
+            { name: 'res.body.nul', value: 'isFalsy', enabled: true }
+          ],
+          makeResponse({ zero: 0, empty: '', nul: null })
+        );
+        expect(results[0].status).toBe('pass');
+        expect(results[1].status).toBe('pass');
+        expect(results[2].status).toBe('pass');
+      });
+
+      it('isFalsy should still pass for the boolean false', () => {
+        const results = runAssertions(
+          [{ name: 'res.body.active', value: 'isFalsy', enabled: true }],
+          makeResponse({ active: false })
+        );
+        expect(results[0].status).toBe('pass');
+      });
+
+      it('isFalsy should fail for truthy values', () => {
+        const results = runAssertions(
+          [
+            { name: 'res.body.count', value: 'isFalsy', enabled: true },
+            { name: 'res.body.name', value: 'isFalsy', enabled: true }
+          ],
+          makeResponse({ count: 5, name: 'x' })
+        );
+        expect(results[0].status).toBe('fail');
+        expect(results[1].status).toBe('fail');
+      });
+    });
+
     describe('jsonSchema', () => {
       const chai = require('chai');
 
