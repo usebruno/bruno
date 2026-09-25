@@ -1,0 +1,5 @@
+name: staging
+extends: base
+variables:
+  - secret: true
+    name: api_key

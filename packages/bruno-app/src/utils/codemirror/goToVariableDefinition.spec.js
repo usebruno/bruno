@@ -104,6 +104,22 @@ describe('goToVariableDefinition', () => {
     });
   });
 
+  it('pins the tab to the inherited environment, not the active one that borrows the variable', () => {
+    const environment = { uid: 'env-prod', name: 'Prod' };
+    const scopeInfo = {
+      type: 'environment',
+      data: { environment, variable: { name: 'apiKey', secret: false } },
+      inheritedFrom: { uid: 'env-base', name: 'Base' }
+    };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiKey');
+
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-environment-settings',
+      tabState: { envUid: 'env-base', environment: { tab: 'variables' } }
+    });
+  });
+
   it('does not set envUid when scopeInfo has no environment data', () => {
     const scopeInfo = { type: 'environment', data: { variable: { name: 'apiKey', secret: true } } };
 
@@ -147,6 +163,22 @@ describe('goToVariableDefinition', () => {
     expect(updateTabState).toHaveBeenCalledWith({
       uid: 'col-1-global-environment-settings',
       tabState: { envUid: 'genv-1', environment: { tab: 'variables' } }
+    });
+  });
+
+  it('pins the tab to the inherited global environment, not the active one that borrows the variable', () => {
+    store.getState.mockReturnValueOnce({ globalEnvironments: { activeGlobalEnvironmentUid: 'genv-1' } });
+    const scopeInfo = {
+      type: 'global',
+      data: { variable: { name: 'apiToken', secret: true } },
+      inheritedFrom: { uid: 'genv-base', name: 'Base' }
+    };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiToken');
+
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-global-environment-settings',
+      tabState: { envUid: 'genv-base', environment: { tab: 'secrets' } }
     });
   });
 
@@ -196,5 +228,25 @@ describe('goToVariableDefinition', () => {
     goToVariableDefinition(scopeInfo, syntheticCollection, null, 'apiToken');
 
     expect(addTab).toHaveBeenCalledWith(expect.objectContaining({ uid: 'col-1-global-environment-settings' }));
+  });
+
+  it('does not reuse another collection Global Environment Settings tab', () => {
+    store.getState.mockReturnValueOnce({
+      globalEnvironments: { activeGlobalEnvironmentUid: undefined },
+      tabs: {
+        activeTabUid: 'col-2-global-environment-settings',
+        tabs: [
+          { uid: 'col-2-global-environment-settings', collectionUid: 'col-2', type: 'global-environment-settings' }
+        ]
+      }
+    });
+    const scopeInfo = { type: 'global', data: { variable: { name: 'apiToken', secret: false } } };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiToken');
+
+    expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      uid: 'col-1-global-environment-settings',
+      collectionUid: 'col-1'
+    }));
   });
 });

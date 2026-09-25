@@ -19,6 +19,7 @@ const DocsEditor = ({
   onEdit,
   onSave,
   isEditing,
+  item,
   collection,
   collectionPath,
   emptyPreviewContent,
@@ -160,6 +161,7 @@ const DocsEditor = ({
         <div className="relative flex-1 min-h-0">
           <CodeEditor
             collection={collection}
+            item={item}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
             fontSize={get(preferences, 'font.codeFontSize')}

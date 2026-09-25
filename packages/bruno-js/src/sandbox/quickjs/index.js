@@ -2,10 +2,10 @@ const addBruShimToContext = require('./shims/bru');
 const addBrunoRequestShimToContext = require('./shims/bruno-request');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
+const addBrunoGrpcShimToContext = require('./shims/bruno-grpc');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
-const addLocalModuleLoaderShimToContext = require('./shims/local-module');
-const { getRequireCode } = require('./shims/require');
+const { addRequireShimToContext } = require('./shims/require');
 const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
 
 // The engine prints its dispose-abort assertion to stderr on its own. Swallow
@@ -180,20 +180,16 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const bundledCode = getBundledCode?.toString() || '';
 
-    vm.evalCode(
-      `
-        (${bundledCode})()
-        ${getRequireCode()}
-      `
-    );
+    vm.evalCode(`(${bundledCode})()`);
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
+    bru?.grpc && addBrunoGrpcShimToContext(vm, bru.grpc);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    addLocalModuleLoaderShimToContext(vm, collectionPath);
+    addRequireShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 
     await addLibraryShimsToContext(vm);

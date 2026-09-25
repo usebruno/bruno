@@ -30,7 +30,7 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
 import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
@@ -325,7 +325,7 @@ const CollectionsSection = () => {
       </MenuDropdown>
 
       {collectionsToClose.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
+        <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
       )}
     </>
   );

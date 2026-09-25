@@ -10,30 +10,29 @@ const writeFixtureFile = (filePath, content) => {
   fs.writeFileSync(filePath, content);
 };
 
-/** The json reporter writes either a single `{ summary, results }` or an array holding one of
- *  those per iteration. On the array form `report.results` is undefined, so reaching straight
- *  for `report.results[0]` throws instead of failing an assertion. Pick the run first. */
-const readReportedHeaders = (dir) => {
+/**
+ * The json reporter on OSS codebase writes a single `{ summary, results }` object.
+ * While the Enterprise Edition writes an array holding one of those per iteration.
+ * This is causing the tests to fail when running on Enterprise Edition.
+ *
+ * Below is a short term helper that supports both formats so the tests work across OSS and EE.
+ * TODO: Update the OSS codebase to write the array format.
+ */
+const getRequestHeadersFromReport = (dir) => {
   const report = JSON.parse(fs.readFileSync(path.join(dir, 'report.json'), 'utf8'));
-  const run = Array.isArray(report) ? report[0] : report;
+  const iterationReport = Array.isArray(report) ? report[0] : report;
 
-  return run.results[0].request.headers;
+  return iterationReport.results[0].request.headers;
 };
 
-/**
- * The transport headers (Host, Connection, Accept-Encoding, ...) only exist once the request is
- * on the wire, so nothing that runs before the axios interceptors can know about them.
- *
- * These cover the whole path end to end: the response interceptor reads them back off the
- * ClientRequest, the runner folds them into `request.headers`, and from there they have to reach
- * both the json reporter and `req.getHeaders()` inside a post-response script.
- */
-describe('CLI run — headers the request actually sent', () => {
+describe('CLI run — request headers (user-defined and transport headers)', () => {
   let server;
   let receivedHeaders;
   let port;
   let tmpDir;
 
+  // This is a simple http server setup that updates the receivedHeaders local variable with the request headers.
+  // We then use this in the tests to ensure the request headers are passed through to the server.
   beforeAll(async () => {
     server = http.createServer((req, res) => {
       receivedHeaders = req.headers;
@@ -83,17 +82,19 @@ headers {
 }
 ${extra}`;
 
-  it('reports every header that reached the server', async () => {
+  // Verify that every request header has been received by the server.
+  // Also verify that transport headers are sent (Host, Connection, Accept-Encoding, User-Agent).
+  it('should send all request headers to server along with transport headers', async () => {
     stageCollection(httpRequest());
 
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
-    const sent = readReportedHeaders(tmpDir);
-    const reported = Object.keys(sent).map((name) => name.toLowerCase());
+    const requestHeaders = getRequestHeadersFromReport(tmpDir);
+    const requestHeaderNames = Object.keys(requestHeaders).map((name) => name.toLowerCase());
 
-    expect(Object.keys(receivedHeaders).filter((name) => !reported.includes(name))).toEqual([]);
-    expect(sent).toMatchObject({
+    expect(Object.keys(receivedHeaders).filter((name) => !requestHeaderNames.includes(name))).toEqual([]);
+    expect(requestHeaders).toMatchObject({
       'Host': `127.0.0.1:${port}`,
       'Connection': 'keep-alive',
       'Accept-Encoding': 'gzip, compress, deflate, br',
@@ -102,7 +103,7 @@ ${extra}`;
     });
   });
 
-  it('leaves a header the user declared untouched', async () => {
+  it('should not add a default transport header if the user has already declared the same header', async () => {
     stageCollection(
       httpRequest().replace('  my-header-1: my-value-1', '  my-header-1: my-value-1\n  user-agent: mine/1.0')
     );
@@ -110,17 +111,14 @@ ${extra}`;
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
-    const sent = readReportedHeaders(tmpDir);
+    const requestHeaders = getRequestHeadersFromReport(tmpDir);
 
-    expect(sent['user-agent']).toBe('mine/1.0');
-    expect(sent['User-Agent']).toBeUndefined();
+    expect(requestHeaders['user-agent']).toBe('mine/1.0');
+    expect(requestHeaders['User-Agent']).toBeUndefined();
   });
 
-  it('hands the same set to a post-response script', async () => {
+  it('includes transport headers in req.getHeaders() within post-response scripts', async () => {
     stageCollection(
-      /** A bru block keyword only parses at column 0. Indented, the whole file fails to parse,
-       *  the script never runs, and the run still exits 0, so the only symptom is the stdout match
-       *  below coming back null. */
       httpRequest(`
 script:post-response {
   console.log('SENT_HEADERS ' + JSON.stringify(Object.keys(req.getHeaders()).sort()));

@@ -122,7 +122,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
 
     case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
       const environmentTabUid = `${collection.uid}-environment-settings`;
-      const environmentUid = scopeInfo.data?.environment?.uid;
+      const environmentUid = scopeInfo.inheritedFrom?.uid || scopeInfo.data?.environment?.uid;
       dispatch(addTab({ uid: environmentTabUid, collectionUid: collection.uid, type: 'environment-settings' }));
 
       pinEnvironmentTabState(dispatch, environmentTabUid, environmentUid, scopeInfo);
@@ -134,14 +134,14 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
       const tabsState = state.tabs || {};
       const activeTab = (tabsState.tabs || []).find((t) => t.uid === tabsState.activeTabUid);
 
-      // instead of creating a new global environment tab, check if one already exists and reuse it.
-      const existingGlobalTab = activeTab?.type === 'global-environment-settings'
+      const matchesCollection = (tab) => !collection.uid || tab.collectionUid === collection.uid;
+      const existingGlobalTab = activeTab?.type === 'global-environment-settings' && matchesCollection(activeTab)
         ? activeTab
-        : (tabsState.tabs || []).find((t) => t.type === 'global-environment-settings');
+        : (tabsState.tabs || []).find((t) => t.type === 'global-environment-settings' && matchesCollection(t));
 
       const fallbackCollectionUid = collection.uid || activeTab?.collectionUid;
       const globalEnvironmentTabUid = existingGlobalTab?.uid || `${fallbackCollectionUid}-global-environment-settings`;
-      const environmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+      const environmentUid = scopeInfo.inheritedFrom?.uid || state.globalEnvironments?.activeGlobalEnvironmentUid;
 
       dispatch(addTab({
         uid: globalEnvironmentTabUid,

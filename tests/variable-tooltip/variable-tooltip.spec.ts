@@ -331,6 +331,45 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
+  test('should not offer environment as an available Add-to scope after the active environment is deleted', async ({ page, createTmpDir }) => {
+    const collectionName = 'deleted-active-env-scope-test';
+    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
+
+    await test.step('Create a collection environment, activate it, then delete it', async () => {
+      await createCollection(page, collectionName, await createTmpDir('deleted-active-env-scope-collection'));
+
+      await createEnvironment(page, 'Doomed Env', 'collection');
+      await addEnvironmentVariable(page, { name: 'doomedVar', value: 'doomed-value' });
+      await saveEnvironment(page);
+
+      await page.getByTestId('env-delete-action').click();
+      const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+      await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+      await expect(deleteModal).toBeHidden();
+
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Deleted Env Request', collectionName);
+      await sidebar.request('Deleted Env Request').click();
+      await setRequestUrlAndSave(page, 'https://api.example.com');
+    });
+
+    await test.step('Type an undefined variable into the URL', async () => {
+      await request.urlInput().click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('?key={{afterDeleteVar}}');
+    });
+
+    await test.step('The Environment scope is offered as "No Environment", not as available', async () => {
+      const tooltip = await openUrlVarTooltip(page, 'afterDeleteVar', 'invalid');
+      await varInfoPopup.addToToggle(tooltip).click();
+
+      await expect(varInfoPopup.addToOption(tooltip, 'environment')).toHaveCount(0);
+      await expect(varInfoPopup.addToNoEnvNote(tooltip, 'environment')).toBeVisible();
+      await expect(varInfoPopup.addToCreateEnvButton(tooltip, 'environment')).toBeVisible();
+    });
+  });
+
   test('should repoint the scope badge on switch without saving, then save into the newly picked scope', async ({ page, createTmpDir }) => {
     const collectionName = 'add-to-switch-scope-test';
     const { sidebar, request, varInfoPopup, table } = buildCommonLocators(page);
@@ -550,7 +589,7 @@ test.describe('Variable Tooltip', () => {
     });
   });
 
-  test('should create an environment inline via "Create One" and save the variable into it immediately', async ({ page, createTmpDir }) => {
+  test('should create an environment inline via "Create One" and save the variable into it once the tooltip is dismissed', async ({ page, createTmpDir }) => {
     const collectionName = 'add-to-create-env-test';
     const envName = 'Freshly Created Env';
     const { sidebar, request, varInfoPopup, environment } = buildCommonLocators(page);
@@ -587,14 +626,17 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.addToCreateEnvSubmit(tooltip).click();
     });
 
-    await test.step('The variable is saved into the newly created environment immediately', async () => {
+    await test.step('Creating the environment only repoints the pending scope. the value is not saved', async () => {
       const tooltip = varInfoPopup.all().first();
 
       await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Environment');
       await expect(varInfoPopup.editableValue(tooltip)).toContainText('fresh-value');
-      await expect(varInfoPopup.addToSwitcher(tooltip)).toHaveCount(0);
+      await expect(varInfoPopup.addToSwitcher(tooltip)).toBeVisible();
 
-      await dismissVarTooltip(page);
+      // list should be visible after creating the new env.
+      await expect(varInfoPopup.addToList(tooltip)).toBeVisible();
+
+      await sidebar.collectionsContainer().click();
     });
 
     await test.step('Environment now exists with this variable under Variables', async () => {
@@ -655,7 +697,7 @@ test.describe('Variable Tooltip', () => {
       await expect(varInfoPopup.addToCreateEnvNameInput(tooltip)).toBeVisible();
     });
 
-    await test.step('Fixing the name and resubmitting succeeds, saving the pending value', async () => {
+    await test.step('Fixing the name and resubmitting succeeds, repointing the scope', async () => {
       const tooltip = varInfoPopup.all().first();
 
       await varInfoPopup.addToCreateEnvNameInput(tooltip).fill('Recovered Env');
@@ -663,7 +705,16 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Environment');
       await expect(varInfoPopup.editableValue(tooltip)).toContainText('err-value');
-      await expect(varInfoPopup.addToSwitcher(tooltip)).toHaveCount(0);
+      await expect(varInfoPopup.addToSwitcher(tooltip)).toBeVisible();
+      await expect(varInfoPopup.addToList(tooltip)).toBeVisible();
+    });
+
+    await test.step('Dismissing the tooltip saves the pending value into the recovered environment', async () => {
+      await sidebar.collectionsContainer().click();
+
+      const tooltip = await openUrlVarTooltip(page, 'errEnvVar', 'valid');
+      await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Environment');
+      await expect(varInfoPopup.editableValue(tooltip)).toContainText('err-value');
     });
   });
 

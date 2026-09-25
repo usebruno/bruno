@@ -1,12 +1,12 @@
-import React, { Component } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { setupLinkAware } from 'utils/codemirror/linkAware';
 
 const CodeMirror = require('codemirror');
 
@@ -91,6 +91,13 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. Editable fields only mark URLs and let Cmd/Ctrl+Click open
+     * them externally - click-to-open-as-new-request is reserved for response previews.
+     */
+    setupLinkAware(this.editor, { onLinkClick: undefined });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
@@ -103,7 +110,6 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();
@@ -173,6 +179,7 @@ class SingleLineEditor extends Component {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
+
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
@@ -295,6 +302,9 @@ class SingleLineEditor extends Component {
   };
 
   toggleVisibleSecret = () => {
+    if (this.props.readOnly) {
+      return;
+    }
     const isVisible = !this.state.maskInput;
     this.setState({ maskInput: isVisible });
     this._enableMaskedEditor(isVisible);
@@ -306,7 +316,14 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
+      <button
+        type="button"
+        className="mx-2"
+        data-testid="secret-reveal-toggle"
+        disabled={this.props.readOnly}
+        tabIndex={this.props.readOnly ? -1 : 0}
+        onClick={() => this.toggleVisibleSecret()}
+      >
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

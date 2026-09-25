@@ -1,0 +1,18 @@
+info:
+  name: binary-preview-svg
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "image/svg+xml",
+        "content": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\" viewBox=\"0 0 200 100\"><rect width=\"200\" height=\"100\" fill=\"#f5f5f5\"/><circle cx=\"50\" cy=\"50\" r=\"30\" fill=\"#4f46e5\"/><text x=\"95\" y=\"55\" font-family=\"Arial\" font-size=\"16\">Test SVG</text></svg>"
+      }

@@ -1,0 +1,29 @@
+info:
+  name: BrokenAfterMessageReceive
+  type: grpc
+  seq: 19
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/LotsOfReplies
+  methodType: server-streaming
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "receive-hook-throws"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |-
+        // the throw sits off line 1 so the flashed line number the spec asserts is discriminating
+        throw new Error('afterMessageReceive exploded');
+    - type: grpc:after-call-end
+      code: |-
+        // Queued behind ten rejected message hooks, so a poisoned queue would skip this entirely.
+        test('afterCallEnd still runs once every message hook has thrown', () => {
+          expect(bru.grpc.response.messages.count()).to.equal(10);
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

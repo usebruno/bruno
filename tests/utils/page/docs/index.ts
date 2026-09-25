@@ -1,4 +1,4 @@
-import { Page } from '../../../playwright';
+import { Page } from '../../../../playwright';
 
 /**
  * Locators for the request/collection/folder documentation (rich-text docs editor) section.

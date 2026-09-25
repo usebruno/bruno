@@ -19,7 +19,7 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
-import RemoveCollection from 'components/Sidebar/Collections/Collection/RemoveCollection';
+import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections';
 import DeleteCollection from 'components/Sidebar/Collections/Collection/DeleteCollection';
 import ShareCollection from 'components/ShareCollection';
 import Dropdown from 'components/Dropdown';
@@ -282,7 +282,7 @@ const CollectionsList = ({ workspace }) => {
       )}
 
       {removeCollectionModalOpen && selectedCollectionUid && (
-        <RemoveCollection
+        <RemoveCollections
           collectionUid={selectedCollectionUid}
           onClose={() => {
             setRemoveCollectionModalOpen(false);

@@ -92,6 +92,53 @@ body:graphql:vars {
 }
 `;
 
+const grpcBru = `meta {
+  name: gRPC Test
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: grpc://localhost:50051
+  method: /hello.Greeter/SayHello
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "hi"
+    }
+  '''
+}
+
+script:grpc:before-call-start {
+  const startedAt = 1;
+  if (startedAt) {
+    bru.setVar("startedAt", startedAt);
+  }
+}
+
+script:grpc:after-call-end {
+  bru.setVar("endedAt", 2);
+}
+
+script:grpc:before-message-send {
+  bru.setVar("sentAt", bru.grpc.request.message.timestamp);
+}
+
+script:grpc:after-message-receive {
+  bru.setVar("receivedAt", bru.grpc.response.message.timestamp);
+}
+
+tests {
+  test("hook ran", function() {
+    expect(bru.getVar("startedAt")).to.equal(1);
+  });
+}
+`;
+
 const xmlSparqlBru = `meta {
   name: Others
   type: http
@@ -296,6 +343,8 @@ describe('redactLargeBruTextBlocks', () => {
       ['request with bodies, scripts, tests, docs', requestBru],
       ['graphql query + variables', graphqlBru],
       ['xml + sparql bodies', xmlSparqlBru],
+      ['grpc request with lifecycle hooks', grpcBru],
+      ['CRLF grpc request with lifecycle hooks', toCRLF(grpcBru)],
       ['CRLF request', toCRLF(requestBru)],
       ['leading + trailing blank lines in body', blankLinesBru],
       ['CRLF leading + trailing blank lines', toCRLF(blankLinesBru)],
@@ -327,6 +376,17 @@ describe('redactLargeBruTextBlocks', () => {
     const { skeleton, blocks } = redactLargeBruTextBlocks(requestBru);
     expect(blocks.length).toBe(6);
     expect(skeleton.length).toBeLessThan(requestBru.length);
+    blocks.forEach((block) => {
+      expect(skeleton).toContain(block.token);
+      expect(skeleton).not.toContain(block.value);
+    });
+  });
+
+  it('extracts the grpc lifecycle hooks and leaves the dictionary message block in place', () => {
+    const { skeleton, blocks } = redactLargeBruTextBlocks(grpcBru);
+    // all four lifecycle hooks + tests; `body:grpc` is a dictionary and stays in the skeleton
+    expect(blocks.length).toBe(5);
+    expect(skeleton.length).toBeLessThan(grpcBru.length);
     blocks.forEach((block) => {
       expect(skeleton).toContain(block.token);
       expect(skeleton).not.toContain(block.value);

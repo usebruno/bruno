@@ -10,11 +10,12 @@ const createRequest = async ({ dispatch, collection, itemUid, requestType }) => 
   try {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
+    const presets = collection?.draft?.brunoConfig?.presets ?? collection?.brunoConfig?.presets;
 
     const baseParams = {
       requestName: uniqueName,
       filename,
-      requestUrl: '',
+      requestUrl: presets?.requestUrl || '',
       collectionUid: collection.uid,
       itemUid
     };
