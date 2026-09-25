@@ -42,10 +42,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Below the breakpoint the row cannot fit, so it swaps for the dropdown. The
-     toolbar carries the class, the same way ResponsePaneActions keys off the
-     expandable class set by ResponsiveTabs. */
-  .compact &.filter-bar {
+  .runner-toolbar.compact &.filter-bar {
     .filter-buttons {
       display: none;
     }
