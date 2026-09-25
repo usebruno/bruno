@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 
-const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -143,6 +143,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />
@@ -159,6 +160,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />
@@ -176,6 +178,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />
@@ -191,6 +194,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />
@@ -206,6 +210,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />
@@ -221,6 +226,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={disabled}
           isCompact
           enableSingleBraceTrigger={true}
         />

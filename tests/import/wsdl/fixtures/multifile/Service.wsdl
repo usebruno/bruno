@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="MultiFileWSDLService"
+  targetNamespace="http://example.com/service/v4"
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:tns="http://example.com/service/v4"
+  xmlns:msgd="http://example.com/messagedefinition/v4">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/service/v4">
+      <xsd:import namespace="http://example.com/messagedefinition/v4" schemaLocation="messagedefinition/v4/ServiceMsgd.xsd"/>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="SubmitRequestMessage">
+    <wsdl:part name="parameters" element="msgd:SubmitRequest"/>
+  </wsdl:message>
+  <wsdl:portType name="SubmitPortType">
+    <wsdl:operation name="Submit">
+      <wsdl:input message="tns:SubmitRequestMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="SubmitBinding" type="tns:SubmitPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Submit">
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="PartyService">
+    <wsdl:port name="SubmitPort" binding="tns:SubmitBinding">
+      <soap:address location="http://example.com/submit"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

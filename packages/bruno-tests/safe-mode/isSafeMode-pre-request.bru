@@ -1,0 +1,17 @@
+meta {
+  name: isSafeMode pre-request
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  test("bru.isSafeMode() returns true in a pre-request script", function() {
+    expect(bru.isSafeMode()).to.equal(true);
+  });
+}

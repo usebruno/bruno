@@ -1,10 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Database } = require('../storage');
+const { getStatements, getDatabase } = require('../../ipc/sqlite');
 const {
   hashFile,
   hashFileAsync,
-  normalize,
   posixifyPath,
   idForAbsolutePath,
   resolveDenylist,
@@ -12,52 +11,25 @@ const {
   walk
 } = require('../../utils/mount');
 
-const MIGRATIONS = [
-  {
-    version: 1,
-    up: `
-      CREATE TABLE IF NOT EXISTS file_index_entries (
-        collection_path TEXT NOT NULL,
-        relative_path TEXT NOT NULL,
-        id TEXT NOT NULL,
-        mtime INTEGER NOT NULL,
-        hash TEXT NOT NULL,
-        data TEXT NOT NULL,
-        PRIMARY KEY (collection_path, relative_path)
-      ) WITHOUT ROWID;
-      CREATE INDEX IF NOT EXISTS idx_collection_path ON file_index_entries(collection_path);
-    `
-  },
-  {
-    version: 2,
-    up: `
-      ALTER TABLE file_index_entries ADD COLUMN raw TEXT;
-      UPDATE file_index_entries SET mtime = 0, hash = '';
-      ALTER TABLE file_index_entries ADD COLUMN created_at INTEGER;
-      ALTER TABLE file_index_entries ADD COLUMN updated_at INTEGER;
-      UPDATE file_index_entries SET created_at = unixepoch(), updated_at = unixepoch();
-    `
-  }
-];
-
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
 class FileIndex {
+  #statements;
   #db;
-  #dbPath;
+  #applicationVersion;
 
-  constructor({ dbPath } = {}) {
-    this.#dbPath = dbPath || path.join(require('electron').app.getPath('userData'), 'mount-snapshots.db');
-    this.#db = new Database({ path: this.#dbPath, migrations: MIGRATIONS, readBigInts: true });
-  }
-
-  close() {
-    this.#db.close();
+  constructor() {
+    this.#statements = getStatements();
+    this.#db = getDatabase();
+    if (!this.#statements || !this.#db) {
+      throw new Error('the file cache is unavailable: the sqlite database is not open');
+    }
+    this.#applicationVersion = require('electron').app.getVersion();
   }
 
   async status(collectionPath, options = {}) {
-    const root = normalize(collectionPath);
-    const stored = this.#loadStored(root);
+    const root = collectionPath;
+    const metadata = this.#loadMetadata(root);
     const denylist = resolveDenylist(options.denylist);
     const added = [];
     const updated = [];
@@ -68,7 +40,7 @@ class FileIndex {
     const results = await Promise.all(files.map(async ({ relativePath, absolutePath }) => {
       const stat = await fs.promises.stat(absolutePath, { bigint: true });
       const mtime = stat.mtimeNs;
-      const prior = stored.get(relativePath);
+      const prior = metadata.get(relativePath);
 
       if (!prior) {
         const hash = await hashFileAsync(absolutePath);
@@ -92,7 +64,7 @@ class FileIndex {
       }
     }
 
-    for (const [relativePath, row] of stored) {
+    for (const [relativePath, row] of metadata) {
       if (seen.has(relativePath)) continue;
       if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
@@ -101,27 +73,14 @@ class FileIndex {
     return { added, updated, removed };
   }
 
-  clear() {
-    this.#db.exec('DELETE FROM file_index_entries');
-    // VACUUM so the file actually shrinks after the DELETE
-    this.#db.exec('VACUUM');
-  }
-
   clearCollection(collectionPath) {
-    const root = normalize(collectionPath);
-    this.#db.run('DELETE FROM file_index_entries WHERE collection_path = ?', root);
-  }
-
-  get dbPath() {
-    return this.#dbPath;
+    this.#statements.execute('file_index_clear_collection', { collection_path: collectionPath });
   }
 
   entries(collectionPath) {
-    const root = normalize(collectionPath);
-    const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, data, raw FROM file_index_entries WHERE collection_path = ?',
-      root
-    );
+    const rows = this.#statements.execute('file_index_content_for_collection', {
+      collection_path: collectionPath
+    });
     const map = new Map();
     for (const row of rows) {
       map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
@@ -130,49 +89,35 @@ class FileIndex {
   }
 
   stage(collectionPath, entry) {
-    const root = normalize(collectionPath);
-    const { op, relativePath } = entry;
+    const root = collectionPath;
+    const { op } = entry;
+    const relativePath = entry.relativePath;
 
     if (op === 'remove') {
-      this.#db.run(
-        'DELETE FROM file_index_entries WHERE collection_path = ? AND relative_path = ?',
-        root,
-        relativePath
-      );
+      this.#statements.execute('file_index_delete_entry', { collection_path: root, relative_path: relativePath });
       return;
     }
 
     const { mtime, hash, data, raw } = entry;
-    const id = idForAbsolutePath(path.join(root, relativePath));
-    this.#db.run(
-      `
-      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data, raw, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
-      ON CONFLICT(collection_path, relative_path) DO UPDATE SET
-        mtime = excluded.mtime,
-        hash = excluded.hash,
-        data = excluded.data,
-        raw = excluded.raw,
-        updated_at = unixepoch()
-    `,
-      root,
-      relativePath,
-      id,
+    this.#statements.execute('file_index_upsert', {
+      collection_path: root,
+      relative_path: relativePath,
+      id: idForAbsolutePath(path.join(root, relativePath)),
       mtime,
       hash,
-      JSON.stringify(data),
-      raw ?? null
-    );
+      data: JSON.stringify(data),
+      raw: raw ?? null,
+      application_version: this.#applicationVersion
+    });
   }
 
   stageParsed(collectionPath, absolutePath, data) {
-    const root = normalize(collectionPath);
-    const relativePath = path.relative(root, normalize(absolutePath));
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
+    const target = this.#resolveTarget(collectionPath, absolutePath);
+    if (!target) return;
     const stat = fs.statSync(absolutePath, { bigint: true });
-    this.stage(root, {
+    this.stage(target.root, {
       op: 'add',
-      relativePath,
+      relativePath: target.relativePath,
       mtime: stat.mtimeNs,
       hash: hashFile(absolutePath),
       raw: fs.readFileSync(absolutePath, 'utf8'),
@@ -181,21 +126,27 @@ class FileIndex {
   }
 
   unstagePath(collectionPath, absolutePath) {
-    const root = normalize(collectionPath);
-    const relativePath = path.relative(root, normalize(absolutePath));
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
-    this.stage(root, { op: 'remove', relativePath });
+    const target = this.#resolveTarget(collectionPath, absolutePath);
+    if (!target) return;
+    this.stage(target.root, { op: 'remove', relativePath: target.relativePath });
+  }
+
+  #resolveTarget(collectionPath, absolutePath) {
+    const root = collectionPath;
+    const relativePath = path.relative(root, absolutePath);
+    const escapesRoot = relativePath === '..' || relativePath.startsWith(`..${path.sep}`);
+    if (escapesRoot || path.isAbsolute(relativePath)) return null;
+    return { root, relativePath };
   }
 
   transaction(callback) {
-    return this.#db.transaction(callback);
+    return this.#db._transaction(callback);
   }
 
-  #loadStored(collectionPath) {
-    const rows = this.#db.all(
-      'SELECT relative_path AS relativePath, id, mtime, hash FROM file_index_entries WHERE collection_path = ?',
-      collectionPath
-    );
+  #loadMetadata(collectionPath) {
+    const rows = this.#statements.execute('file_index_metadata_for_collection', {
+      collection_path: collectionPath
+    });
     const map = new Map();
     for (const row of rows) {
       map.set(row.relativePath, row);

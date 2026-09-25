@@ -32,6 +32,8 @@ runs:
           EXTRA_ARGS="--experimental-cache-modules"
         fi
         node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit --sandbox developer $EXTRA_ARGS
+        cd ../safe-mode
+        node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
     - name: Run Local Testbench and CLI Tests - Windows
       if: inputs.shell == 'pwsh'
@@ -55,3 +57,7 @@ runs:
           $bruArgs += "--experimental-cache-modules"
         }
         & node ../../bruno-cli/bin/bru.js @bruArgs
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        cd ../safe-mode
+        & node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
