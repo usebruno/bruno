@@ -2344,6 +2344,22 @@ export const isScratchCollection = (collection, workspaces) => {
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
 };
 
+export const getWorkspaceCollections = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  if (!activeWorkspace) {
+    return [];
+  }
+
+  return collections.filter((collection) => {
+    if (isScratchCollection(collection, workspaces)) {
+      return false;
+    }
+
+    return activeWorkspace.collections?.some(
+      (workspaceCollection) => normalizePath(workspaceCollection.path) === normalizePath(collection.pathname)
+    );
+  });
+};
+
 const SCOPE_CONFIG = [
   {
     type: VARIABLE_ADD_SCOPES.GLOBAL,
