@@ -1,6 +1,7 @@
 import { detectContentTypeFromBase64 } from './index';
 
 const toBase64 = (input) => Buffer.from(input).toString('base64');
+const repeatBytes = (sequence, times = 100) => Array.from({ length: times }, () => sequence).flat();
 
 describe('detectContentTypeFromBase64', () => {
   describe('text detection', () => {
@@ -30,6 +31,13 @@ describe('detectContentTypeFromBase64', () => {
 
       expect(detectContentTypeFromBase64(toBase64(body))).toBe('text/plain');
     });
+
+    it('detects the first and last code points of the restricted UTF-8 ranges as text', () => {
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xE0, 0xA0, 0x80])))).toBe('text/plain'); // U+0800
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xED, 0x9F, 0xBF])))).toBe('text/plain'); // U+D7FF
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF0, 0x90, 0x80, 0x80])))).toBe('text/plain'); // U+10000
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF4, 0x8F, 0xBF, 0xBF])))).toBe('text/plain'); // U+10FFFF
+    });
   });
 
   describe('binary detection', () => {
@@ -58,6 +66,16 @@ describe('detectContentTypeFromBase64', () => {
         bytes.push(0xE6, 0x61);
       }
       expect(detectContentTypeFromBase64(toBase64(bytes))).toBe(null);
+    });
+
+    it('returns null for overlong, surrogate and out-of-range UTF-8 sequences', () => {
+      // Overlong 3- and 4-byte encodings
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xE0, 0x80, 0x80])))).toBe(null);
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF0, 0x80, 0x80, 0x80])))).toBe(null);
+      // A UTF-16 surrogate encoded as UTF-8
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xED, 0xA0, 0x80])))).toBe(null);
+      // A code point above U+10FFFF
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF4, 0x90, 0x80, 0x80])))).toBe(null);
     });
 
     it('returns null for mostly binary data that contains a few UTF-8 characters', () => {

@@ -71,7 +71,7 @@ export const escapeHtml = (text) => {
 
 /**
  * Returns the byte length of the UTF-8 multi-byte character starting at `index`,
- * or 0 if the bytes there are not a complete multi-byte sequence before `end`
+ * or 0 if the bytes there are not a complete, well-formed multi-byte sequence before `end`
  */
 const getUtf8SequenceLength = (buffer, index, end) => {
   const byte = buffer[index];
@@ -87,6 +87,16 @@ const getUtf8SequenceLength = (buffer, index, end) => {
   }
 
   if (index + length > end) return 0;
+
+  // Reject overlong encodings, UTF-16 surrogates and code points above U+10FFFF
+  const secondByte = buffer[index + 1];
+  if ((byte === 0xE0 && secondByte < 0xA0)
+    || (byte === 0xED && secondByte > 0x9F)
+    || (byte === 0xF0 && secondByte < 0x90)
+    || (byte === 0xF4 && secondByte > 0x8F)) {
+    return 0;
+  }
+
   for (let j = 1; j < length; j++) {
     // Continuation bytes are 10xxxxxx
     if ((buffer[index + j] & 0xC0) !== 0x80) return 0;
