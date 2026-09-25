@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTabWidth, clearOpenInEditMode } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTabWidth, clearOpenInEditMode, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, tryResponseExample } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -129,8 +130,14 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (example) => {
-    // TODO: Implement try example functionality
+  const handleTryExample = (exampleToTry) => {
+    // a preview example tab would otherwise be replaced by the new transient request tab
+    dispatch(makeTabPermanent({ uid: example.uid }));
+    dispatch(tryResponseExample({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      exampleUid: exampleToTry?.uid || example.uid
+    })).catch((err) => toast.error(err?.message || 'Failed to try the example'));
   };
 
   // Update width when screen width or sidebar width changes

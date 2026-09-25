@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import IconEdit from 'components/Icons/IconEdit';
-import { IconCode, IconDeviceFloppy } from '@tabler/icons';
+import { IconCode, IconDeviceFloppy, IconPlayerPlay } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import TruncatedText from 'components/TruncatedText';
@@ -17,7 +17,8 @@ const ResponseExampleTopBar = ({
   onEditToggle,
   onSave,
   onCancel,
-  onGenerateCode
+  onGenerateCode,
+  onTryExample
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -196,6 +197,17 @@ const ResponseExampleTopBar = ({
               data-testid="response-example-edit-btn"
             >
               Edit Example
+            </Button>
+            <Button
+              color="primary"
+              variant="filled"
+              size="sm"
+              icon={<IconPlayerPlay size={16} />}
+              onClick={() => onTryExample?.(example)}
+              title="Open this example as a new request and send it"
+              data-testid="response-example-try-btn"
+            >
+              Try
             </Button>
           </div>
         </div>
