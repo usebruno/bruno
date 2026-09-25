@@ -11,15 +11,17 @@ export const buildSidebarLocators = (page: Page) => {
     page.locator('.item-name').and(page.getByTitle(name, { exact: true }));
 
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
-  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
+  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
+  const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    item,
+    folder: item,
+    request: item,
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });

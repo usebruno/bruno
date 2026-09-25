@@ -40,7 +40,7 @@ const groupCollectionItems = (collectionItems) => {
  */
 const walkChildren = (
   collectionContext,
-  { collectionItems = [], depth, parentName }
+  { collectionItems = [], depth, parentName, ancestorPath = [] }
 ) => {
   const {
     collectionUid,
@@ -51,6 +51,11 @@ const walkChildren = (
     appendRow,
     addItemToIndex
   } = collectionContext;
+
+  // Scope row ids by the full ancestor uid chain so duplicated subtrees remain
+  // distinct even when they share the same item uids.
+  // JSON-encode the path to avoid delimiter collisions since uids are opaque strings.
+  const ancestorKey = JSON.stringify(ancestorPath);
 
   let visibleChildCount = 0;
 
@@ -64,7 +69,7 @@ const walkChildren = (
     visibleChildCount++;
 
     appendRow({
-      id: `${collectionUid}:${folder.uid}`,
+      id: `${collectionUid}:${ancestorKey}:${folder.uid}`,
       kind: 'folder',
       depth,
       collectionUid,
@@ -85,12 +90,13 @@ const walkChildren = (
     const childCount = walkChildren(collectionContext, {
       collectionItems: folder.items,
       depth: depth + 1,
-      parentName: folder.name || null
+      parentName: folder.name || null,
+      ancestorPath: [...ancestorPath, folder.uid]
     });
 
     if (!hasSearch && childCount === 0) {
       appendRow({
-        id: `${collectionUid}:${folder.uid}:cta`,
+        id: `${collectionUid}:${ancestorKey}:${folder.uid}:cta`,
         kind: 'empty-cta',
         depth: depth + 1,
         collectionUid,
@@ -108,7 +114,7 @@ const walkChildren = (
       visibleChildCount++;
 
       appendRow({
-        id: `${collectionUid}:${app.uid}`,
+        id: `${collectionUid}:${ancestorKey}:${app.uid}`,
         kind: 'app',
         depth,
         collectionUid,
@@ -131,7 +137,7 @@ const walkChildren = (
     visibleChildCount++;
 
     appendRow({
-      id: `${collectionUid}:${request.uid}`,
+      id: `${collectionUid}:${ancestorKey}:${request.uid}`,
       kind: 'request',
       depth,
       collectionUid,
@@ -150,7 +156,7 @@ const walkChildren = (
     if (hasExamples && (hasSearch || !isCollectionItemCollapsed(request))) {
       request.examples.forEach((example, index) => {
         appendRow({
-          id: `${collectionUid}:${request.uid}:ex:${example.uid || index}`,
+          id: `${collectionUid}:${ancestorKey}:${request.uid}:ex:${example.uid || index}`,
           kind: 'example',
           depth: depth + 1,
           collectionUid,

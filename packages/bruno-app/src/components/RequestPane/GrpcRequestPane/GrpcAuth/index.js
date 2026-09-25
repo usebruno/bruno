@@ -78,7 +78,7 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
-      <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
+      <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
         <GrpcAuthMode item={item} collection={collection} />
         {authMode === 'inherit' && inheritedSource ? (
           <InheritedAuthSourceLabel

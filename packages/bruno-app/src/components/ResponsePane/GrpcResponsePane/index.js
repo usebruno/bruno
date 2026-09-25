@@ -27,12 +27,12 @@ const GrpcResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
-  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [showErrorCards, setShowErrorCards] = useState(false);
   const itemHasScriptError = hasScriptError(item);
 
   useEffect(() => {
     if (itemHasScriptError) {
-      setShowScriptErrorCard(true);
+      setShowErrorCards(true);
     }
   }, [itemHasScriptError]);
 
@@ -114,12 +114,12 @@ const GrpcResponsePane = ({ item, collection }) => {
     }
   };
 
-  const scriptErrorCard = itemHasScriptError && showScriptErrorCard ? (
-    <ScriptError item={item} collection={collection} onClose={() => setShowScriptErrorCard(false)} />
+  const scriptErrorCard = itemHasScriptError && showErrorCards ? (
+    <ScriptError item={item} collection={collection} onClose={() => setShowErrorCards(false)} />
   ) : null;
 
-  const scriptErrorIcon = itemHasScriptError && !showScriptErrorCard ? (
-    <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
+  const scriptErrorIcon = itemHasScriptError && !showErrorCards ? (
+    <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowErrorCards(true)} />
   ) : null;
 
   const standaloneScriptError = itemHasScriptError ? (
