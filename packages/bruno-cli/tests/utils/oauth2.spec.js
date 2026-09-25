@@ -45,7 +45,8 @@ describe('oauth2: getOAuth2Token', () => {
       ['a token endpoint network failure', codedError('connect ECONNREFUSED 127.0.0.1:443', { code: 'ECONNREFUSED' })],
       ['a token endpoint server error', new Error('Request failed with status code 503')],
       ['a callback listener failure', new Error('Could not listen for the OAuth2 callback on http://localhost:8765: listen EADDRINUSE')],
-      ['a transient IdP error', denied('temporarily_unavailable')]
+      ['a transient IdP error', denied('temporarily_unavailable')],
+      ['a callback with an unverified state', new Error('OAuth2 state mismatch: the returned state does not match the issued state.')]
     ])('retries after %s', async (_label, error) => {
       sharedGetOAuth2Token.mockRejectedValueOnce(error).mockResolvedValueOnce('token');
       const config = authCodeConfig(`https://retryable.example.com/${encodeURIComponent(error.message)}`);

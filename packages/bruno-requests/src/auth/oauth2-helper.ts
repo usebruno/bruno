@@ -405,9 +405,9 @@ const getCallbackParam = (url: URL, name: string): string | null =>
   url.searchParams.get(name) ?? (url.hash ? new URLSearchParams(url.hash.substring(1)).get(name) : null);
 
 /**
- * Extracts the authorization code from the URL the IdP redirected to. Fails closed: a URL that is
- * not the configured callback (origin and path), an IdP error, a missing or mismatched state, or a
- * missing code all reject the callback.
+ * Extracts the authorization code from the URL the IdP redirected to. Fails closed, checking in
+ * order: the configured callback target (origin and path), the state, then an IdP error or a
+ * missing code.
  */
 export const getAuthorizationCodeFromCallback = (callbackResponseUrl: string, expectedState: string, callbackUrl: string): string => {
   let url: URL;
@@ -422,6 +422,13 @@ export const getAuthorizationCodeFromCallback = (callbackResponseUrl: string, ex
     throw new Error(`Invalid OAuth2 callback: expected a redirect to ${expectedCallback.origin}${expectedCallback.pathname}`);
   }
 
+  // State comes first: until it matches, neither an `error` nor a `code` can be attributed to this
+  // attempt, and an unverified error must not be reported (or cached) as a real IdP denial.
+  // RFC 6749 (4.1.2.1) requires the IdP to echo the state on error responses too.
+  if (!expectedState || getCallbackParam(url, 'state') !== expectedState) {
+    throw new Error('OAuth2 state mismatch: the returned state does not match the issued state.');
+  }
+
   const error = getCallbackParam(url, 'error');
   if (error) {
     const errorDescription = getCallbackParam(url, 'error_description');
@@ -430,10 +437,6 @@ export const getAuthorizationCodeFromCallback = (callbackResponseUrl: string, ex
       `OAuth2 authorization failed: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`,
       { oauth2Error: error }
     );
-  }
-
-  if (!expectedState || getCallbackParam(url, 'state') !== expectedState) {
-    throw new Error('OAuth2 state mismatch: the returned state does not match the issued state.');
   }
 
   const code = url.searchParams.get('code');

@@ -62,7 +62,8 @@ const readBody = (req) =>
 /**
  * A minimal IdP plus protected API: /authorize redirects to the callback with a one-time code
  * (or `access_denied` for the `denied-app` client), /token redeems it with PKCE, /quote requires the token.
- * For the `flaky-app` client, the first token request fails with a 503.
+ * For the `flaky-app` client, the first token request fails with a 503. For `forged-error-app`, the
+ * callback carries `access_denied` without the state, as a forged callback would.
  */
 const createMockProvider = () => {
   const stats = { authorizations: 0, tokenRequests: 0, apiRequests: 0 };
@@ -75,8 +76,10 @@ const createMockProvider = () => {
     if (url.pathname === '/authorize') {
       stats.authorizations++;
       const redirect = new URL(url.searchParams.get('redirect_uri'));
-      redirect.searchParams.set('state', url.searchParams.get('state'));
-      if (url.searchParams.get('client_id') === 'denied-app') {
+      if (url.searchParams.get('client_id') !== 'forged-error-app') {
+        redirect.searchParams.set('state', url.searchParams.get('state'));
+      }
+      if (['denied-app', 'forged-error-app'].includes(url.searchParams.get('client_id'))) {
         redirect.searchParams.set('error', 'access_denied');
       } else {
         const code = crypto.randomBytes(8).toString('hex');
@@ -190,6 +193,23 @@ describe('CLI run — OAuth2 authorization code inherited from a folder (#9356)'
       expect(provider.stats.authorizations - before.authorizations).toBe(1);
       expect(provider.stats.tokenRequests - before.tokenRequests).toBe(0);
       expect(errorSpy).toHaveBeenCalledWith('OAuth2 token fetch error:', 'OAuth2 authorization failed: access_denied');
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('does not let an error callback without the issued state block later sign-ins', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const before = { ...provider.stats };
+
+    try {
+      const statuses = await runQuoteRequests({ clientId: 'forged-error-app', credentialsId: 'forged-error' });
+
+      // Each request rejects the unverified callback and tries again, rather than caching a fake denial
+      expect(statuses).toEqual([401, 401]);
+      expect(provider.stats.authorizations - before.authorizations).toBe(2);
+      expect(errorSpy).toHaveBeenCalledWith('OAuth2 token fetch error:', expect.stringContaining('OAuth2 state mismatch'));
+      expect(errorSpy).not.toHaveBeenCalledWith('OAuth2 token fetch error:', expect.stringContaining('access_denied'));
     } finally {
       errorSpy.mockRestore();
     }

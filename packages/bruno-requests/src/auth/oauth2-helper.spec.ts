@@ -805,12 +805,29 @@ describe('OAuth2 Helper - Authorization Code Grant', () => {
       });
     });
 
-    test('should reject a callback whose state does not match', async () => {
+    test('should reject a code callback whose state does not match', async () => {
       await rejectsWithoutTokenRequest(() => 'code=abc&state=forged', 'OAuth2 state mismatch');
     });
 
-    test('should reject a callback without state', async () => {
+    test('should reject a code callback without state', async () => {
       await rejectsWithoutTokenRequest(() => 'code=abc', 'OAuth2 state mismatch');
+    });
+
+    // An error callback is only an IdP denial once its state proves it answers this attempt; otherwise
+    // anything that can reach the callback could fake a denial
+    test.each([
+      ['without state', () => 'error=access_denied'],
+      ['with a wrong state', () => 'error=access_denied&state=forged']
+    ])('should treat an error callback %s as a state mismatch, not a denial', async (_label, callbackQuery) => {
+      const { adapter, requests } = tokenEndpoint();
+      axios.defaults.adapter = adapter;
+      const authorize = jest.fn(async (_authorizeUrl: string, { callbackUrl }: { callbackUrl: string }) => `${callbackUrl}?${callbackQuery()}`);
+
+      const rejection = getOAuth2Token(authCodeConfig(), createMockTokenStore(), '', undefined, { authorize });
+
+      await expect(rejection).rejects.toThrow('OAuth2 state mismatch');
+      await expect(rejection).rejects.not.toMatchObject({ code: OAUTH2_ERROR_CODES.AUTHORIZATION_DENIED });
+      expect(requests).toHaveLength(0);
     });
 
     test('should reject a callback without a code', async () => {
