@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } from './form-data';
+import { buildFormUrlEncodedPayload, isFormUrlEncodedContentType, isFormData, extractBoundaryFromContentType } from './form-data';
 import FormData from 'form-data';
 
 describe('buildFormUrlEncodedPayload', () => {
@@ -109,6 +109,32 @@ describe('buildFormUrlEncodedPayload', () => {
     const expected = 'item1=a&item2=b&item3=&=empty_name&valid=c';
     const result = buildFormUrlEncodedPayload(requestObj);
     expect(result).toEqual(expected);
+  });
+});
+
+describe('isFormUrlEncodedContentType', () => {
+  it('should return true for exact form url encoded content type', () => {
+    expect(isFormUrlEncodedContentType('application/x-www-form-urlencoded')).toBe(true);
+  });
+
+  it('should return true when parameters are present', () => {
+    expect(isFormUrlEncodedContentType('application/x-www-form-urlencoded;charset=UTF-8')).toBe(true);
+    expect(isFormUrlEncodedContentType('application/x-www-form-urlencoded; charset=UTF-8')).toBe(true);
+  });
+
+  it('should ignore casing and surrounding whitespace in the media type', () => {
+    expect(isFormUrlEncodedContentType(' Application/X-WWW-Form-Urlencoded ; charset=UTF-8')).toBe(true);
+  });
+
+  it('should return false for other content types', () => {
+    expect(isFormUrlEncodedContentType('application/json')).toBe(false);
+    expect(isFormUrlEncodedContentType('multipart/form-data')).toBe(false);
+  });
+
+  it('should return false for non-string input', () => {
+    expect(isFormUrlEncodedContentType(null)).toBe(false);
+    expect(isFormUrlEncodedContentType(undefined)).toBe(false);
+    expect(isFormUrlEncodedContentType(false)).toBe(false);
   });
 });
 

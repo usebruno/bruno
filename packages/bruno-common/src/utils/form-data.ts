@@ -32,6 +32,14 @@ export const buildFormUrlEncodedPayload = (params: Array<{ name: string; value: 
   return resultParams.toString();
 };
 
+export const isFormUrlEncodedContentType = (contentType: unknown): boolean => {
+  if (typeof contentType !== 'string') {
+    return false;
+  }
+
+  return contentType.split(';')[0].trim().toLowerCase() === 'application/x-www-form-urlencoded';
+};
+
 /**
  * Determines if the given object is a FormData instance.
  * Supports native FormData (Node 18+, browser) and the 'form-data' npm package.
