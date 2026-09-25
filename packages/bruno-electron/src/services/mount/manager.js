@@ -254,7 +254,6 @@ class MountManager {
 
   async indexManyCollectionsInBackground(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
-    if (preferencesUtil.getSearchIndexBuildTrigger() !== 'app-start') return;
     const fileCacheEnabled = preferencesUtil.isFileCacheEnabled();
     this.#beginIndexingSession();
     try {

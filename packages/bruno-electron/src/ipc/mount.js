@@ -1,6 +1,5 @@
 const { ipcMain, BrowserWindow } = require('electron');
 const { MountManager } = require('../services/mount');
-const { getWorkspaceCollections } = require('../utils/workspace-config');
 
 const manager = new MountManager();
 
@@ -31,15 +30,14 @@ const registerMountIpc = () => {
     return manager.searchIndexTrees(term, workspacePath);
   });
 
-  ipcMain.handle('renderer:clear-search-index', async (_, workspacePath) => {
+  ipcMain.handle('renderer:clear-search-index', async () => {
     manager.clearSearchIndex();
-    const sizes = { fileCacheSize: manager.getCacheSize(), searchIndexSize: manager.getSearchIndexSize() };
-    if (workspacePath) {
-      const collections = getWorkspaceCollections(workspacePath).filter((c) => !c.notFoundLocally);
-      indexWorkspaceCollections(collections, workspacePath).catch(() => {});
-    }
-    return sizes;
+    return { fileCacheSize: manager.getCacheSize(), searchIndexSize: manager.getSearchIndexSize() };
   });
+
+  ipcMain.handle('renderer:index-collections', (_, collections, workspacePath) =>
+    manager.indexManyCollectionsInBackground(collections, workspacePath)
+  );
 
   ipcMain.handle(
     'renderer:mount-collection-v2',

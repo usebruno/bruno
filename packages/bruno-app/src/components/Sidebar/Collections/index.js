@@ -2,7 +2,7 @@ import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { fetchCollectionTreeFromIndex, mountUnmountedActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, mountUnmountedActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
@@ -34,6 +34,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
   const hasMountedForSearchRef = useRef(false);
+  const pendingTreeFetchUidsRef = useRef(new Set());
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -52,36 +53,35 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
   // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
   const [indexTreesByUid, setIndexTreesByUid] = useState({});
+  const [searchTreesByPath, setSearchTreesByPath] = useState({});
+  const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
 
   useEffect(() => {
     const toFetch = sidebarEntries.filter((entry) =>
       entry.kind === 'loaded'
       && entry.collection.mountStatus !== 'mounted'
       && !entry.collection.collapsed
-      && !(entry.collection.uid in indexTreesByUid));
-
-    if (!toFetch.length) return;
+      && !(entry.collection.uid in indexTreesByUid)
+      && !pendingTreeFetchUidsRef.current.has(entry.collection.uid));
 
     toFetch.forEach((entry) => {
       const { collection } = entry;
+      pendingTreeFetchUidsRef.current.add(collection.uid);
       dispatch(fetchCollectionTreeFromIndex({
         collectionPath: collection.pathname,
         collectionName: collection.name
       }))
         .then(({ items }) => {
+          pendingTreeFetchUidsRef.current.delete(collection.uid);
           setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
         })
         .catch(() => {
+          pendingTreeFetchUidsRef.current.delete(collection.uid);
           setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
         });
     });
-  }, [sidebarEntries, indexTreesByUid, dispatch]);
 
-  const [searchTreesByPath, setSearchTreesByPath] = useState({});
-  const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
-
-  useEffect(() => {
-    if (!debouncedSearchText) {
+    if (!searchText.trim()) {
       setSearchTreesByPath({});
       setIsSearchIndexPending(false);
       hasMountedForSearchRef.current = false;
@@ -91,7 +91,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     if (searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
       dispatch(mountUnmountedActiveWorkspaceCollections());
+      dispatch(indexActiveWorkspaceCollections());
     }
+
+    if (searchText !== debouncedSearchText) return;
 
     let cancelled = false;
     setIsSearchIndexPending(true);
@@ -112,7 +115,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       });
 
     return () => { cancelled = true; };
-  }, [debouncedSearchText, dispatch, activeWorkspace, searchIndexEnabled, searchIndexBuildTrigger]);
+  }, [sidebarEntries, indexTreesByUid, searchText, debouncedSearchText, dispatch, activeWorkspace, searchIndexEnabled, searchIndexBuildTrigger]);
 
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
@@ -128,7 +131,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   );
 
   const isSearchPending = searchText !== debouncedSearchText || isSearchIndexPending;
-  const showIndexingText = searchIndexBuilding;
+  const showIndexingText = searchIndexBuilding && isSearchPending;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {

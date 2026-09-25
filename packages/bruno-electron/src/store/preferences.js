@@ -82,7 +82,7 @@ const defaultPreferences = {
     },
     searchIndex: {
       enabled: false,
-      buildTrigger: 'app-start'
+      buildTrigger: 'on-search'
     }
   },
   ai: {
@@ -458,7 +458,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'cache.searchIndex.enabled', false);
   },
   getSearchIndexBuildTrigger: () => {
-    return get(getPreferences(), 'cache.searchIndex.buildTrigger', 'app-start');
+    return get(getPreferences(), 'cache.searchIndex.buildTrigger', 'on-search');
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

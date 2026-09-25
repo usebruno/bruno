@@ -3437,6 +3437,24 @@ export const mountUnmountedActiveWorkspaceCollections = () => (dispatch, getStat
     });
 };
 
+export const indexActiveWorkspaceCollections = () => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  if (!activeWorkspace) return Promise.resolve();
+
+  const workspacePaths = new Set((activeWorkspace.collections || []).map((wc) => normalizePath(wc.path)));
+  const activeCollections = collections
+    .filter((c) => workspacePaths.has(normalizePath(c.pathname)))
+    .map((c) => ({ path: c.pathname, name: c.name }));
+  if (!activeCollections.length) return Promise.resolve();
+
+  return window.ipcRenderer
+    .invoke('renderer:index-collections', activeCollections, activeWorkspace.pathname)
+    .catch(() => {});
+};
+
 export const fetchCollectionTreeFromIndex
   = ({ collectionPath, collectionName }) =>
     async () => {

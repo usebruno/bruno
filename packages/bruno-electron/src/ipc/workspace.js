@@ -13,6 +13,7 @@ const { globalEnvironmentsManager } = require('../store/workspace-environments')
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { resolveLastOpenedWorkspacePaths, normalizeWorkspacePathname } = require('../utils/workspace-startup');
 const snapshotManager = require('../services/snapshot');
+const { preferencesUtil } = require('../store/preferences');
 
 const {
   createWorkspaceConfig,
@@ -276,6 +277,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:set-active-workspace', async (event, workspacePath) => {
     if (!workspacePath) return;
+    if (preferencesUtil.getSearchIndexBuildTrigger() !== 'app-start') return;
     const collections = getWorkspaceCollections(workspacePath).filter((c) => !c.notFoundLocally);
     require('./mount').indexWorkspaceCollections(collections, workspacePath).catch(() => {});
   });
@@ -768,7 +770,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
 
     const activeWorkspacePath = resolveActiveWorkspacePath(defaultWorkspacePath, validWorkspaces);
-    if (activeWorkspacePath) {
+    if (activeWorkspacePath && preferencesUtil.getSearchIndexBuildTrigger() === 'app-start') {
       const activeCollections = getWorkspaceCollections(activeWorkspacePath).filter((c) => !c.notFoundLocally);
       require('./mount').indexWorkspaceCollections(activeCollections, activeWorkspacePath).catch(() => {});
     }

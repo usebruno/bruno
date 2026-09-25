@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons';
 import path from 'path';
 import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, mountUnmountedActiveWorkspaceCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { indexActiveWorkspaceCollections, mountCollection, mountUnmountedActiveWorkspaceCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
@@ -346,6 +346,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     if (query.trim() && searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
       dispatch(mountUnmountedActiveWorkspaceCollections());
+      dispatch(indexActiveWorkspaceCollections());
     }
 
     if (!query.trim()) {

@@ -29,7 +29,7 @@ const Cache = () => {
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
-  const searchIndexBuildTrigger = get(preferences, 'cache.searchIndex.buildTrigger', 'app-start');
+  const searchIndexBuildTrigger = get(preferences, 'cache.searchIndex.buildTrigger', 'on-search');
 
   const [fileCacheSize, setFileCacheSize] = useState(null);
   const [searchIndexSize, setSearchIndexSize] = useState(null);
