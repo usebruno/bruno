@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -8,10 +8,11 @@ import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
-import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
+import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
+import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
@@ -22,10 +23,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
-  const lastScrolledTabUidRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
@@ -83,20 +82,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [selectionInfo]);
 
-  const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
-
-  // Resolve the active tab's row index (item rows first, then collection headers).
-  const rowIndex = rowIndexByItemUid.get(activeTabUid);
-  const activeRowIndex = activeTabUid !== null
-    ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
-    : null;
-
-  useEffect(() => {
-    if (activeRowIndex === null) return;
-    if (lastScrolledTabUidRef.current === activeTabUid) return;
-    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
-    lastScrolledTabUidRef.current = activeTabUid;
-  }, [activeTabUid, activeRowIndex]);
+  useSidebarAutoReveal({ rows, collectionsByUid, virtuosoRef });
 
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.

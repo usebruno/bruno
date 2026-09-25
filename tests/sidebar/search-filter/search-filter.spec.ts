@@ -67,6 +67,20 @@ test.describe('Sidebar search filtering', () => {
         }
       });
 
+      await test.step('Opening a filtered match keeps its folder expanded after the search clears', async () => {
+        await searchInput.fill('login');
+        await expect(row('login')).toBeVisible();
+
+        await row('login').click();
+        await expect(locators.tabs.activeRequestTab()).toContainText('login');
+
+        await searchInput.fill('');
+        // Unlike the render-time override above, opening the match reveals it in the sidebar,
+        // which expands `auth` for real so the active request stays visible.
+        await expect(row('login')).toBeVisible();
+        await expect(row('logout')).toBeVisible();
+      });
+
       await test.step('A folder the user expanded stays expanded across a search', async () => {
         await expandFolder(page, 'auth');
         await expect(row('login')).toBeVisible();
