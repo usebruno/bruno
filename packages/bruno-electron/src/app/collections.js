@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
+const { isDirectory, getCollectionStats, normalizeAndResolvePath, isWSLMountPath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
@@ -97,7 +97,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent, isWsl: isWSLMountPath(collectionPath) });
       return {
         path: collectionPath,
         opened: true,
@@ -133,7 +133,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     brunoConfig.size = size;
     brunoConfig.filesCount = filesCount;
 
-    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent });
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, { silent: !!options.silent, isWsl: isWSLMountPath(collectionPath) });
     ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
     return {
       path: collectionPath,
