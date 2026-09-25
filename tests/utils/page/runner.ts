@@ -122,6 +122,27 @@ export const getRunnerResultCounts = async (page: Page) => {
 };
 
 /**
+ * Reads the "N of M selected" indicator from the runner configuration counter
+ * @param page - The Playwright page object
+ * @returns An object with selected count (N) and enabled (selectable) count (M)
+ */
+export const getRunnerSelectionCounters = async (page: Page) => {
+  const locators = buildRunnerLocators(page);
+  const counterText = await locators.configCounter().innerText();
+
+  // Parse "N of M selected" format
+  const match = counterText.match(/(\d+)\s+of\s+(\d+)\s+selected/);
+  if (!match) {
+    throw new Error(`Unable to parse counter text: "${counterText}"`);
+  }
+
+  return {
+    selected: parseInt(match[1]),
+    total: parseInt(match[2])
+  };
+};
+
+/**
  * Opens the runner tab for a collection without starting a run
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection to open the runner for
@@ -245,33 +266,24 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
 };
 
 /**
- * Opens a folder's run modal without starting a run: walks the sidebar to the folder, expanding
- * the collection and any parent folders on the way, then picks "Run" from its context menu.
- * The modal reports how many requests each run mode would cover, so a spec can assert the effect
- * of the tag filters without executing anything.
+ * Navigates to a folder in the sidebar and clicks "Run" from its context menu
  * @param page - The Playwright page object
  * @param collectionName - The name of the collection containing the folder
- * @param folderPath - Array of folder names forming the path (e.g. ['scripting', 'api', 'bru', 'cookies'])
- * @returns The modal locator, to pass to `folderRunButton` / `folderRunCount`
+ * @param folderPath - Array of folder names forming the path, (e.g. ['scripting', 'api', 'bru', 'cookies'])
  */
-export const openFolderRunModal = async (page: Page, collectionName: string, folderPath: string[]): Promise<Locator> => {
-  return await test.step(`Open the run modal for folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    const targetRow = await revealFolderRow(page, collectionName, folderPath);
+const openFolderRunMenu = async (page: Page, collectionName: string, folderPath: string[]) => {
+  const targetRow = await revealFolderRow(page, collectionName, folderPath);
+  await targetRow.hover();
 
-    // The row's menu icon is revealed by CSS :hover.
-    await targetRow.hover();
-    const menuIcon = targetRow.locator('.menu-icon');
-    await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
-    await menuIcon.click();
+  // Click the menu icon
+  const menuIcon = targetRow.locator('.menu-icon');
+  await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
+  await menuIcon.click();
 
-    const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
-    await runMenuItem.waitFor({ state: 'visible' });
-    await runMenuItem.click();
-
-    const modal = page.locator('.bruno-modal');
-    await expect(modal).toBeVisible();
-    return modal;
-  });
+  // Click "Run" in the dropdown
+  const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
+  await runMenuItem.waitFor({ state: 'visible' });
+  await runMenuItem.click();
 };
 
 /**
@@ -413,4 +425,58 @@ export const validateRunnerResults = async (page: Page,
 
   // Validate that passed + failed + skipped = totalRequests
   await expect(passed).toBe(totalRequests - skipped - failed);
+};
+
+/**
+ * Opens the folder run modal without executing a run
+ * Navigates to a folder in the sidebar and clicks "Run" from its context menu
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection containing the folder
+ * @param folderPath - Array of folder names forming the path
+ */
+export const openFolderRunModal = async (page: Page, collectionName: string, folderPath: string[]) => {
+  return await test.step(`Open folder run modal for "${folderPath.join('/')}"`, async () => {
+    await openFolderRunMenu(page, collectionName, folderPath);
+
+    // Wait for modal to appear
+    const modal = page.locator('.bruno-modal-card').filter({ hasText: /Collection Runner/i });
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Wait for request items to load
+    await expect.poll(
+      async () => {
+        const items = await page.locator('[data-testid="runner-request-item"]').count();
+        return items > 0;
+      },
+      { timeout: 10000 }
+    ).toBeTruthy();
+
+    return modal;
+  });
+};
+
+/**
+ * Gets all request item locators visible in the folder run modal
+ * @param page - The Playwright page object
+ * @returns Locator for all request items
+ */
+export const getRequestItemsInFolderModal = (page: Page) => {
+  return page.locator('[data-testid="runner-request-item"]');
+};
+
+/**
+ * Clicks the "Run X Request(s)" button to execute selected requests in folder modal
+ * @param page - The Playwright page object
+ */
+export const runSelectedRequestsInFolder = async (page: Page) => {
+  await test.step('Run selected requests from folder modal', async () => {
+    const runButton = page.locator('button').filter({ hasText: /Run \d+ Request/ }).first();
+    await runButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(runButton).toBeEnabled();
+    await runButton.click();
+
+    // Wait for the runner results to display
+    const runnerLocators = buildRunnerLocators(page);
+    await runnerLocators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
 };
