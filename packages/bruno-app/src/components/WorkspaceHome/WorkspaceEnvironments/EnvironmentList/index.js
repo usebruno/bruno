@@ -593,9 +593,7 @@ const EnvironmentList = ({
         visible={bulkSelection.menuVisible}
         position={bulkSelection.menuPosition}
         selectedCount={bulkSelection.actionTargetUids.length}
-        onSelect={() => bulkSelection.selectEnvs(bulkSelection.actionTargetUids)}
         onSelectAll={bulkSelection.selectAllEnvs}
-        hasSelection={bulkSelection.hasSelection}
         isAllSelected={bulkSelection.isAllSelected}
         onExport={bulkSelection.openExportModal}
         onRename={bulkSelection.handleRenameSelected}
@@ -746,9 +744,7 @@ const EnvironmentList = ({
                             <div className="environment-actions">
                               {!isEnvMultiSelected && (
                                 <RowActionsMenu
-                                  onSelect={() => bulkSelection.selectEnvs([env.uid])}
                                   onSelectAll={bulkSelection.selectAllEnvs}
-                                  hasSelection={bulkSelection.hasSelection}
                                   isAllSelected={bulkSelection.isAllSelected}
                                   onExport={() => bulkSelection.startExportForEnv(env)}
                                   onRename={() => bulkSelection.startRenameForEnv(env)}

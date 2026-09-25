@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import ContextMenu from 'ui/ContextMenu';
-import { IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
-import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
+import { IconUpload, IconEdit, IconCopy, IconTrash, IconChecks } from '@tabler/icons';
+import { SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
 
 const SelectionContextMenu = ({
   visible,
@@ -11,9 +11,7 @@ const SelectionContextMenu = ({
   onRename,
   onDuplicate,
   onDelete,
-  onSelect,
   onSelectAll,
-  hasSelection,
   isAllSelected,
   onClose
 }) => {
@@ -48,16 +46,6 @@ const SelectionContextMenu = ({
       );
     }
 
-    if (!hasSelection) {
-      items.push({
-        id: 'select',
-        label: 'Select',
-        leftSection: IconCheck,
-        rightSection: <SelectShortcutHint />,
-        onClick: onSelect
-      });
-    }
-
     items.push(
       {
         id: 'select-all',
@@ -78,7 +66,7 @@ const SelectionContextMenu = ({
     );
 
     return items;
-  }, [isSingleSelection, selectedCount, onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected]);
+  }, [isSingleSelection, selectedCount, onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected]);
 
   return (
     <ContextMenu

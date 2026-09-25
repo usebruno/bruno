@@ -30,7 +30,14 @@ const Wrapper = styled.div`
     }
 
     &.env-action-menu {
-      min-width: 220px;
+      .dropdown-item {
+        &:hover:not(:disabled):not(.disabled),
+        &.selected-focused:not(:disabled):not(.disabled),
+        &.dropdown-item-focused,
+        &:focus-visible:not(:disabled):not(.disabled) {
+          background-color: ${(props) => props.theme.background.surface0};
+        }
+      }
     }
   }
 

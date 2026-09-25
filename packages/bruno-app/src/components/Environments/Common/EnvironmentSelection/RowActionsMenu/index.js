@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
-import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash, IconCheck, IconChecks } from '@tabler/icons';
-import { SelectShortcutHint, SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
+import { IconDots, IconUpload, IconEdit, IconCopy, IconTrash, IconChecks } from '@tabler/icons';
+import { SelectAllShortcutHint, DeleteShortcutHint } from '../ShortcutHints';
 
-const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected }) => {
+const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected }) => {
   const menuItems = useMemo(() => {
     const items = [
       {
@@ -25,20 +25,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         leftSection: IconCopy,
         onClick: onDuplicate
       },
-      { id: 'divider-2', type: 'divider' }
-    ];
-
-    if (!hasSelection) {
-      items.push({
-        id: 'select',
-        label: 'Select',
-        leftSection: IconCheck,
-        rightSection: <SelectShortcutHint />,
-        onClick: onSelect
-      });
-    }
-
-    items.push(
+      { id: 'divider-2', type: 'divider' },
       {
         id: 'select-all',
         label: isAllSelected ? 'Unselect all' : 'Select all',
@@ -55,10 +42,10 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelect, o
         className: 'delete-item',
         onClick: onDelete
       }
-    );
+    ];
 
     return items;
-  }, [onExport, onRename, onDuplicate, onDelete, onSelect, onSelectAll, hasSelection, isAllSelected]);
+  }, [onExport, onRename, onDuplicate, onDelete, onSelectAll, isAllSelected]);
 
   return (
     <div

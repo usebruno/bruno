@@ -238,16 +238,20 @@ const StyledWrapper = styled.div`
     }
 
     &:hover {
-      background: ${(props) => props.theme.background.surface0};
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
     &.active {
-      background: ${(props) => props.theme.background.surface1};
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
       color: ${(props) => props.theme.text};
     }
 
     &.is-selected {
-      background: ${(props) => props.theme.background.surface1};
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+
+      &:hover {
+        background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+      }
     }
 
     &.renaming,
