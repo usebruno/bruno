@@ -1,18 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators } from '../../utils/page/locators';
+import { test, expect } from '../../../playwright';
+import { buildCommonLocators, reloadCollection } from '../../utils/page';
 
 const COLLECTION_NAME = 'ReloadTest';
-
-const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
-  const { sidebar } = buildCommonLocators(page);
-  const menu = sidebar.rowMenu(collectionName, 'collection');
-  await sidebar.collectionRow(collectionName).hover();
-  const trigger = menu.trigger();
-  await trigger.waitFor({ state: 'visible' });
-  await trigger.click();
-};
 
 test.describe('Reload Collection', () => {
   test('picks up a new request added on disk after reload', async ({
@@ -44,13 +35,9 @@ test.describe('Reload Collection', () => {
       fs.writeFileSync(path.join(collectionPath, 'added-externally.yml'), newRequestYml);
     });
 
-    await test.step('Reload collection from the context menu', async () => {
-      await openCollectionActionsMenu(page, COLLECTION_NAME);
-      await page.getByTestId('collection-actions-reload').click();
-    });
+    await reloadCollection(page, COLLECTION_NAME);
 
     await test.step('Verify the new request appears after reload', async () => {
-      await expect(page.getByText('Collection reloaded')).toBeVisible({ timeout: 10000 });
       await expect(locators.sidebar.request('ping')).toBeVisible({ timeout: 10000 });
       await expect(locators.sidebar.request('hello')).toBeVisible({ timeout: 10000 });
       await expect(locators.sidebar.request('added-externally')).toBeVisible({ timeout: 10000 });

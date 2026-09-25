@@ -3805,6 +3805,15 @@ const openCloneCollectionModal = async (page: Page, collectionName: string) => {
   await modal.byTitle('Clone Collection').waitFor({ state: 'visible' });
 };
 
+const reloadCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Reload collection "${collectionName}"`, async () => {
+    const { dropdown, toast } = buildCommonLocators(page);
+    await openCollectionActionsMenu(page, collectionName);
+    await dropdown.item('Reload').click();
+    await toast.byMessage('Collection reloaded').first().waitFor({ state: 'visible' });
+  });
+};
+
 const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
   const { sidebar } = buildCommonLocators(page);
   await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
@@ -4062,6 +4071,7 @@ export {
   openNewFolderModal,
   createFolderViaModal,
   openCloneCollectionModal,
+  reloadCollection,
   chooseCloneLocation,
   setTextBody,
   saveTransientRequestAs,
