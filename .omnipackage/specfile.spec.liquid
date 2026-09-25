@@ -1,0 +1,50 @@
+Name:       {{ package_name }}
+Version:    {{ version }}
+Release:    1%{?dist}
+Summary:    {{ description }}
+License:    MIT
+URL:        {{ homepage }}
+Source0:    {{ source_folder_name }}.tar.gz
+Vendor:     Bruno
+
+BuildRequires: {{ build_dependencies | join: ' ' }}
+{% if runtime_dependencies.size > 0 %}
+Requires: {{ runtime_dependencies | join: ', ' }}
+{% endif %}
+
+# Electron's prebuilt binaries break if stripped or given build-ids; the bundled
+# unversioned sonames (libffmpeg.so, libEGL.so, …) have no provider, so exclude
+# them from auto-Requires. Parens double-escaped — the spec parser eats one \.
+%global __os_install_post %{nil}
+%define debug_package %{nil}
+%define _build_id_links none
+%global __requires_exclude ^.+\\.so\\(\\)\\(64bit\\)$
+
+%description
+{{ description }}
+
+%prep
+%setup -q
+
+%build
+
+%install
+.omnipackage/install.sh %{buildroot} %{name}
+
+%files
+/usr/bin/%{name}
+/usr/lib/%{name}/
+%attr(4755, root, root) /usr/lib/%{name}/chrome-sandbox
+/usr/share/applications/%{name}.desktop
+/usr/share/icons/hicolor/16x16/apps/%{name}.png
+/usr/share/icons/hicolor/24x24/apps/%{name}.png
+/usr/share/icons/hicolor/32x32/apps/%{name}.png
+/usr/share/icons/hicolor/48x48/apps/%{name}.png
+/usr/share/icons/hicolor/64x64/apps/%{name}.png
+/usr/share/icons/hicolor/128x128/apps/%{name}.png
+/usr/share/icons/hicolor/256x256/apps/%{name}.png
+/usr/share/icons/hicolor/512x512/apps/%{name}.png
+
+%changelog
+* Wed Jun 10 2026 {{ maintainer }}
+- Initial package release
