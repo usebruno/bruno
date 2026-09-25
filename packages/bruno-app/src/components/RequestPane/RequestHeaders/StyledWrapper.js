@@ -52,13 +52,23 @@ const Wrapper = styled.div`
 
   .default-header-row,
   .inherited-header-row {
-    .default-header-value {
-      font-style: italic;
-      color: ${(props) => props.theme.colors.text.muted};
-    }
-
     input[type='checkbox']:disabled {
       opacity: 0.55;
+    }
+  }
+
+  .default-header-row {
+    .default-header-value {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+      text-overflow: clip;
+      scrollbar-width: none;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
   }
 
