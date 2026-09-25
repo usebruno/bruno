@@ -11,6 +11,13 @@ const Wrapper = styled.div`
     border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
   }
 
+  .tls-toggle {
+    background: transparent;
+    border-left: ${(props) => props.theme.requestTabPanel.url.border};
+    border-right: ${(props) => props.theme.requestTabPanel.url.border};
+    cursor: pointer;
+  }
+
   .input-container {
     background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     border-top-right-radius: ${(props) => props.theme.border.radius.base};
