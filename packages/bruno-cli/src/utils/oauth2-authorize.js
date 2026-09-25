@@ -5,7 +5,24 @@ const { spawn } = require('node:child_process');
 // Matches the Bruno app's system-browser authorization timeout
 const AUTHORIZATION_TIMEOUT_MS = 5 * 60 * 1000;
 
-const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1'];
+// Error codes for sign-ins that ended without a callback, so callers need not parse messages
+const AUTHORIZATION_ERROR_CODES = {
+  CANCELLED: 'OAUTH2_AUTHORIZATION_CANCELLED',
+  TIMED_OUT: 'OAUTH2_AUTHORIZATION_TIMED_OUT'
+};
+
+const createAuthorizationError = (code, message) => Object.assign(new Error(message), { code });
+
+// Loopback addresses to listen on per callback hostname. Browsers may resolve `localhost` to either
+// family, so both are bound; ::1 is optional because not every host has IPv6 loopback.
+const LOOPBACK_ADDRESSES = {
+  'localhost': [{ address: '127.0.0.1' }, { address: '::1', optional: true }],
+  '127.0.0.1': [{ address: '127.0.0.1' }],
+  '[::1]': [{ address: '::1' }]
+};
+
+// Bind failures meaning the platform lacks that address family, as opposed to a port already in use
+const UNAVAILABLE_ADDRESS_ERRORS = ['EADDRNOTAVAIL', 'EAFNOSUPPORT'];
 
 const NON_INTERACTIVE_MESSAGE = 'OAuth2 authorization code flow needs an interactive terminal to sign in through a browser. '
   + 'For non-interactive runs such as CI, pass a pre-fetched access token (for example with --env-var) '
@@ -32,11 +49,12 @@ const getLoopbackCallback = (callbackUrl) => {
     return null;
   }
 
-  if (url.protocol !== 'http:' || !LOOPBACK_HOSTNAMES.includes(url.hostname)) {
+  const addresses = LOOPBACK_ADDRESSES[url.hostname];
+  if (url.protocol !== 'http:' || !addresses) {
     return null;
   }
 
-  return { url, port: url.port === '' ? 80 : Number(url.port) };
+  return { url, port: url.port === '' ? 80 : Number(url.port), addresses };
 };
 
 const getBrowserCommand = (url, platform) => {
@@ -76,10 +94,11 @@ const openBrowser = (url, { platform = process.platform, spawnProcess = spawn } 
 };
 
 /**
- * Starts a one-shot listener for the configured loopback callback. `ready` resolves once it is
- * listening; `callback` resolves with the full redirect URL. The server is closed on every outcome.
+ * Starts a one-shot listener for the configured loopback callback, on each of its loopback
+ * addresses (never a public interface). `ready` resolves with the bound addresses; `callback`
+ * resolves with the first valid redirect URL. Every server is closed on every outcome.
  */
-const listenForLoopbackCallback = ({ url, port }, { timeoutMs = AUTHORIZATION_TIMEOUT_MS } = {}) => {
+const listenForLoopbackCallback = ({ url, port, addresses }, { timeoutMs = AUTHORIZATION_TIMEOUT_MS } = {}) => {
   let resolveCallback;
   let rejectCallback;
   const callback = new Promise((resolve, reject) => {
@@ -90,8 +109,7 @@ const listenForLoopbackCallback = ({ url, port }, { timeoutMs = AUTHORIZATION_TI
   let settled = false;
   let callbackReceived = false;
   let timer;
-
-  const server = http.createServer();
+  const servers = [];
 
   const finish = (error, callbackResponseUrl) => {
     if (settled) {
@@ -99,10 +117,12 @@ const listenForLoopbackCallback = ({ url, port }, { timeoutMs = AUTHORIZATION_TI
     }
     settled = true;
     clearTimeout(timer);
-    if (server.listening) {
-      server.close();
-      server.closeAllConnections();
-    }
+    servers.forEach((server) => {
+      if (server.listening) {
+        server.close();
+        server.closeAllConnections();
+      }
+    });
     if (error) {
       rejectCallback(error);
     } else {
@@ -110,7 +130,7 @@ const listenForLoopbackCallback = ({ url, port }, { timeoutMs = AUTHORIZATION_TI
     }
   };
 
-  server.on('request', (req, res) => {
+  const handleRequest = (req, res) => {
     // Resolve against the configured callback, never the Host header
     const requestUrl = new URL(req.url, url);
     const isOAuthResponse = requestUrl.searchParams.has('code') || requestUrl.searchParams.has('error');
@@ -121,25 +141,40 @@ const listenForLoopbackCallback = ({ url, port }, { timeoutMs = AUTHORIZATION_TI
       return;
     }
 
-    // Only the first callback is accepted; the listener shuts down once the page has been sent
+    // Only the first callback on any address is accepted; every listener shuts down once the page has been sent
     callbackReceived = true;
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Connection': 'close' });
     res.end(CALLBACK_RESPONSE_HTML, () => finish(null, requestUrl.toString()));
+  };
+
+  // Resolves null when an optional address family is unavailable on this host
+  const listenOn = ({ address, optional = false }) => new Promise((resolve, reject) => {
+    const server = http.createServer(handleRequest);
+    servers.push(server);
+    server.once('error', (error) => {
+      if (optional && UNAVAILABLE_ADDRESS_ERRORS.includes(error.code)) {
+        return resolve(null);
+      }
+      reject(new Error(`Could not listen for the OAuth2 callback on ${url.origin}: ${error.message}`));
+    });
+    server.listen(port, address, () => resolve(server.address()));
   });
 
-  const ready = new Promise((resolve, reject) => {
-    server.once('error', (error) => {
-      const listenError = new Error(`Could not listen for the OAuth2 callback on ${url.origin}: ${error.message}`);
-      finish(listenError);
-      reject(listenError);
-    });
+  // allSettled rather than all, so no bind is still pending when a failure closes the others
+  const ready = Promise.allSettled(addresses.map(listenOn)).then((results) => {
+    const failure = results.find((result) => result.status === 'rejected');
+    if (failure) {
+      finish(failure.reason);
+      throw failure.reason;
+    }
 
-    server.listen(port, '127.0.0.1', () => {
-      timer = setTimeout(() => {
-        finish(new Error(`Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the OAuth2 authorization callback`));
-      }, timeoutMs);
-      resolve(server.address());
-    });
+    timer = setTimeout(() => {
+      finish(createAuthorizationError(
+        AUTHORIZATION_ERROR_CODES.TIMED_OUT,
+        `Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the OAuth2 authorization callback`
+      ));
+    }, timeoutMs);
+    return results.map((result) => result.value).filter(Boolean);
   });
 
   // Callers await `ready` first; this keeps an early listen failure from surfacing as an unhandled rejection
@@ -158,7 +193,10 @@ const promptForCallbackUrl = (callbackUrl, { input = process.stdin, output = pro
     let settled = false;
 
     const timer = setTimeout(() => {
-      settle(new Error(`Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the OAuth2 callback URL`));
+      settle(createAuthorizationError(
+        AUTHORIZATION_ERROR_CODES.TIMED_OUT,
+        `Timed out after ${Math.round(timeoutMs / 1000)}s waiting for the OAuth2 callback URL`
+      ));
     }, timeoutMs);
 
     // rl.close() emits 'close' synchronously, so every outcome settles once here
@@ -190,7 +228,7 @@ const promptForCallbackUrl = (callbackUrl, { input = process.stdin, output = pro
     });
 
     rl.once('close', () => {
-      settle(new Error('OAuth2 authorization cancelled: no callback URL was entered'));
+      settle(createAuthorizationError(AUTHORIZATION_ERROR_CODES.CANCELLED, 'OAuth2 authorization cancelled: no callback URL was entered'));
     });
   });
 };
@@ -229,6 +267,7 @@ const createCliAuthorizer = ({
 };
 
 module.exports = {
+  AUTHORIZATION_ERROR_CODES,
   isInteractiveSession,
   getLoopbackCallback,
   getBrowserCommand,

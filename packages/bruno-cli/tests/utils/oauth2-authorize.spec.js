@@ -4,6 +4,7 @@ const net = require('node:net');
 const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
 const {
+  AUTHORIZATION_ERROR_CODES,
   isInteractiveSession,
   getLoopbackCallback,
   getBrowserCommand,
@@ -68,9 +69,13 @@ describe('oauth2-authorize', () => {
   });
 
   describe('getLoopbackCallback', () => {
-    it('accepts http callbacks on localhost and 127.0.0.1', () => {
-      expect(getLoopbackCallback('http://localhost:8765/callback')).toMatchObject({ port: 8765 });
-      expect(getLoopbackCallback('http://127.0.0.1:9000/oauth/cb')).toMatchObject({ port: 9000 });
+    it('listens on both loopback families for localhost, and only the named one otherwise', () => {
+      expect(getLoopbackCallback('http://localhost:8765/callback')).toMatchObject({
+        port: 8765,
+        addresses: [{ address: '127.0.0.1' }, { address: '::1', optional: true }]
+      });
+      expect(getLoopbackCallback('http://127.0.0.1:9000/oauth/cb')).toMatchObject({ port: 9000, addresses: [{ address: '127.0.0.1' }] });
+      expect(getLoopbackCallback('http://[::1]:9001/cb')).toMatchObject({ port: 9001, addresses: [{ address: '::1' }] });
     });
 
     it('rejects callbacks the CLI cannot receive', () => {
@@ -114,7 +119,7 @@ describe('oauth2-authorize', () => {
   describe('listenForLoopbackCallback', () => {
     const startListener = async (options) => {
       const listener = listenForLoopbackCallback(getLoopbackCallback('http://127.0.0.1:0/callback'), options);
-      const address = await listener.ready;
+      const [address] = await listener.ready;
       return { ...listener, address, baseUrl: `http://127.0.0.1:${address.port}` };
     };
 
@@ -124,6 +129,80 @@ describe('oauth2-authorize', () => {
       expect(address.address).toBe('127.0.0.1');
       await httpGet(`${baseUrl}/callback?code=x&state=y`);
       await callback;
+    });
+
+    describe('localhost', () => {
+      // localhost binds two sockets that must share the configured port, so a fixed free port is used
+      const startLocalhostListener = async () => {
+        const port = await getFreePort();
+        const listener = listenForLoopbackCallback(getLoopbackCallback(`http://localhost:${port}/callback`));
+        return { ...listener, addresses: await listener.ready, port };
+      };
+
+      it('listens on IPv4 and IPv6 loopback only', async () => {
+        const { addresses, port, callback } = await startLocalhostListener();
+
+        expect(addresses.map(({ address }) => address).sort()).toEqual(['127.0.0.1', '::1']);
+        await httpGet(`http://127.0.0.1:${port}/callback?code=x&state=y`);
+        await callback;
+      });
+
+      it('accepts a browser that resolves localhost to ::1, then closes both listeners', async () => {
+        const { port, callback } = await startLocalhostListener();
+
+        await httpGet(`http://[::1]:${port}/callback?code=from-ipv6&state=s`);
+
+        expect(new URL(await callback).searchParams.get('code')).toBe('from-ipv6');
+        await expect(httpGet(`http://[::1]:${port}/callback?code=again`)).rejects.toThrow(/ECONNREFUSED/);
+        await expect(httpGet(`http://127.0.0.1:${port}/callback?code=again`)).rejects.toThrow(/ECONNREFUSED/);
+      });
+
+      it('accepts a browser that resolves localhost to 127.0.0.1', async () => {
+        const { port, callback } = await startLocalhostListener();
+
+        await httpGet(`http://127.0.0.1:${port}/callback?code=from-ipv4&state=s`);
+
+        expect(new URL(await callback).searchParams.get('code')).toBe('from-ipv4');
+      });
+
+      it('still listens on IPv4 when IPv6 loopback is unavailable', async () => {
+        const port = await getFreePort();
+        // ::2 is never assigned locally, so binding it fails the way a host without IPv6 loopback does
+        const listener = listenForLoopbackCallback({
+          url: new URL(`http://localhost:${port}/callback`),
+          port,
+          addresses: [{ address: '127.0.0.1' }, { address: '::2', optional: true }]
+        });
+
+        expect((await listener.ready).map(({ address }) => address)).toEqual(['127.0.0.1']);
+        await httpGet(`http://127.0.0.1:${port}/callback?code=x&state=s`);
+        await listener.callback;
+      });
+
+      it('fails when another process already holds the port on ::1', async () => {
+        const port = await getFreePort();
+        const blocker = http.createServer();
+        await new Promise((resolve) => blocker.listen(port, '::1', resolve));
+
+        try {
+          const listener = listenForLoopbackCallback(getLoopbackCallback(`http://localhost:${port}/callback`));
+          await expect(listener.ready).rejects.toThrow(`Could not listen for the OAuth2 callback on http://localhost:${port}`);
+          // The IPv4 socket that did bind is closed again
+          await expect(httpGet(`http://127.0.0.1:${port}/callback?code=x`)).rejects.toThrow(/ECONNREFUSED/);
+        } finally {
+          blocker.close();
+        }
+      });
+    });
+
+    it('binds only IPv6 loopback for an explicit [::1] callback', async () => {
+      const port = await getFreePort();
+      const listener = listenForLoopbackCallback(getLoopbackCallback(`http://[::1]:${port}/callback`));
+
+      expect((await listener.ready).map(({ address }) => address)).toEqual(['::1']);
+      await expect(httpGet(`http://127.0.0.1:${port}/callback?code=x`)).rejects.toThrow(/ECONNREFUSED/);
+      await httpGet(`http://[::1]:${port}/callback?code=x&state=s`);
+      await listener.callback;
     });
 
     it('captures the callback on the configured path, then closes', async () => {
@@ -163,7 +242,7 @@ describe('oauth2-authorize', () => {
     it('times out and closes the listener', async () => {
       const { baseUrl, callback } = await startListener({ timeoutMs: 50 });
 
-      await expect(callback).rejects.toThrow('Timed out');
+      await expect(callback).rejects.toMatchObject({ code: AUTHORIZATION_ERROR_CODES.TIMED_OUT, message: expect.stringContaining('Timed out') });
       await expect(httpGet(`${baseUrl}/callback?code=late`)).rejects.toThrow(/ECONNREFUSED/);
     });
 
@@ -208,11 +287,11 @@ describe('oauth2-authorize', () => {
       const { result, input } = prompt();
       input.end();
 
-      await expect(result).rejects.toThrow('no callback URL was entered');
+      await expect(result).rejects.toMatchObject({ code: AUTHORIZATION_ERROR_CODES.CANCELLED, message: expect.stringContaining('no callback URL was entered') });
     });
 
     it('times out', async () => {
-      await expect(prompt(undefined, { timeoutMs: 50 }).result).rejects.toThrow('Timed out');
+      await expect(prompt(undefined, { timeoutMs: 50 }).result).rejects.toMatchObject({ code: AUTHORIZATION_ERROR_CODES.TIMED_OUT });
     });
   });
 

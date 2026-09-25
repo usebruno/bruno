@@ -19,8 +19,22 @@ export interface AdditionalParameter {
   sendIn: 'headers' | 'queryparams' | 'body';
 }
 
+/**
+ * Codes set on errors callers need to tell apart without parsing messages.
+ * - UNSUPPORTED_GRANT: the config can never produce a token here, so the request must not be sent.
+ * - AUTHORIZATION_DENIED: the IdP answered the authorization request with an `error` (see `oauth2Error`).
+ */
+export const OAUTH2_ERROR_CODES = {
+  UNSUPPORTED_GRANT: 'OAUTH2_UNSUPPORTED_GRANT',
+  AUTHORIZATION_DENIED: 'OAUTH2_AUTHORIZATION_DENIED'
+} as const;
+
+const createOAuth2Error = (code: string, message: string, details: Record<string, unknown> = {}) =>
+  Object.assign(new Error(message), { code, ...details });
+
 export interface OAuth2Config {
-  grantType: 'client_credentials' | 'password' | 'authorization_code';
+  // `implicit` is accepted so collections using it are rejected clearly instead of silently skipped
+  grantType: 'client_credentials' | 'password' | 'authorization_code' | 'implicit';
   accessTokenUrl: string;
   refreshTokenUrl?: string;
   authorizationUrl?: string;
@@ -411,7 +425,11 @@ export const getAuthorizationCodeFromCallback = (callbackResponseUrl: string, ex
   const error = getCallbackParam(url, 'error');
   if (error) {
     const errorDescription = getCallbackParam(url, 'error_description');
-    throw new Error(`OAuth2 authorization failed: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
+    throw createOAuth2Error(
+      OAUTH2_ERROR_CODES.AUTHORIZATION_DENIED,
+      `OAuth2 authorization failed: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`,
+      { oauth2Error: error }
+    );
   }
 
   if (!expectedState || getCallbackParam(url, 'state') !== expectedState) {
@@ -601,20 +619,22 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     debug.enable('oauth2');
   }
 
+  // Checked before the token URL: grants such as implicit have no token URL, and callers must learn
+  // the config can never be honored rather than send the request unauthenticated
   if (!grantType) {
-    throw new Error('Grant type is required for OAuth2');
-  }
-
-  if (!accessTokenUrl) {
-    throw new Error('Access token URL is required for OAuth2');
+    throw createOAuth2Error(OAUTH2_ERROR_CODES.UNSUPPORTED_GRANT, 'Grant type is required for OAuth2');
   }
 
   if (!['client_credentials', 'password', 'authorization_code'].includes(grantType)) {
     // Implicit returns tokens in the URL fragment, which only the Bruno app's browser window can read
     if (grantType === 'implicit') {
-      throw new Error(`Interactive OAuth2 grant type '${grantType}' is not supported in this runtime. Supported grant types are authorization_code, client_credentials and password. Use the Bruno app for implicit authorization, or provide a pre-fetched access token.`);
+      throw createOAuth2Error(OAUTH2_ERROR_CODES.UNSUPPORTED_GRANT, `Interactive OAuth2 grant type '${grantType}' is not supported in this runtime. Supported grant types are authorization_code, client_credentials and password. Use the Bruno app for implicit authorization, or provide a pre-fetched access token.`);
     }
-    throw new Error(`Unsupported grant type: ${grantType}. Supported types: authorization_code, client_credentials, password`);
+    throw createOAuth2Error(OAUTH2_ERROR_CODES.UNSUPPORTED_GRANT, `Unsupported grant type: ${grantType}. Supported types: authorization_code, client_credentials, password`);
+  }
+
+  if (!accessTokenUrl) {
+    throw new Error('Access token URL is required for OAuth2');
   }
 
   let tokenResponse;

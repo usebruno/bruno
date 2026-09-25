@@ -1,6 +1,6 @@
 import axios from 'axios';
 import crypto from 'node:crypto';
-import { getOAuth2Token, TokenStore, OAuth2Config } from './oauth2-helper';
+import { getOAuth2Token, TokenStore, OAuth2Config, OAUTH2_ERROR_CODES } from './oauth2-helper';
 
 /**
  * Creates a mock token store for testing purposes.
@@ -486,21 +486,24 @@ describe('OAuth2 Helper - Interactive grant types', () => {
     axios.defaults.adapter = originalAdapter;
   });
 
-  // Callers such as the CLI pass grant types straight from the collection, so the config
-  // can hold grants outside the typed union
-  test('should reject implicit without requesting a token', async () => {
+  // Implicit configs usually have no token URL; the grant must still be rejected, not skipped
+  test.each([
+    ['with', 'https://auth.example.com/token'],
+    ['without', undefined]
+  ])('should reject implicit %s an access token URL, without requesting a token', async (_label, accessTokenUrl) => {
     const { adapter, getCapturedConfig } = createMockAdapter();
     axios.defaults.adapter = adapter;
 
-    const config = {
+    const config: OAuth2Config = {
       grantType: 'implicit',
-      accessTokenUrl: 'https://auth.example.com/token',
+      accessTokenUrl: accessTokenUrl as string,
       clientId: 'my-client-id'
-    } as unknown as OAuth2Config;
+    };
 
-    await expect(getOAuth2Token(config, createMockTokenStore(), '')).rejects.toThrow(
-      'Interactive OAuth2 grant type \'implicit\' is not supported in this runtime'
-    );
+    await expect(getOAuth2Token(config, createMockTokenStore(), '')).rejects.toMatchObject({
+      code: OAUTH2_ERROR_CODES.UNSUPPORTED_GRANT,
+      message: expect.stringContaining('Interactive OAuth2 grant type \'implicit\' is not supported in this runtime')
+    });
     expect(getCapturedConfig()).toBeNull();
   });
 });
@@ -790,6 +793,16 @@ describe('OAuth2 Helper - Authorization Code Grant', () => {
         (state) => `error=access_denied&error_description=User%20denied&state=${state}`,
         'OAuth2 authorization failed: access_denied - User denied'
       );
+    });
+
+    test('should tag an IdP error response with its code so callers need not parse messages', async () => {
+      const authorize = jest.fn(async (authorizeUrl: string, { callbackUrl }: { callbackUrl: string }) =>
+        `${callbackUrl}?error=access_denied&state=${new URL(authorizeUrl).searchParams.get('state')}`);
+
+      await expect(getOAuth2Token(authCodeConfig(), createMockTokenStore(), '', undefined, { authorize })).rejects.toMatchObject({
+        code: OAUTH2_ERROR_CODES.AUTHORIZATION_DENIED,
+        oauth2Error: 'access_denied'
+      });
     });
 
     test('should reject a callback whose state does not match', async () => {

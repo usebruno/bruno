@@ -62,10 +62,12 @@ const readBody = (req) =>
 /**
  * A minimal IdP plus protected API: /authorize redirects to the callback with a one-time code
  * (or `access_denied` for the `denied-app` client), /token redeems it with PKCE, /quote requires the token.
+ * For the `flaky-app` client, the first token request fails with a 503.
  */
 const createMockProvider = () => {
-  const stats = { authorizations: 0, tokenRequests: 0 };
+  const stats = { authorizations: 0, tokenRequests: 0, apiRequests: 0 };
   const issuedCodes = new Map();
+  let flakyTokenFailed = false;
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
@@ -78,7 +80,7 @@ const createMockProvider = () => {
         redirect.searchParams.set('error', 'access_denied');
       } else {
         const code = crypto.randomBytes(8).toString('hex');
-        issuedCodes.set(code, { challenge: url.searchParams.get('code_challenge'), redirectUri: url.searchParams.get('redirect_uri') });
+        issuedCodes.set(code, { challenge: url.searchParams.get('code_challenge'), redirectUri: url.searchParams.get('redirect_uri'), clientId: url.searchParams.get('client_id') });
         redirect.searchParams.set('code', code);
       }
       res.writeHead(302, { Location: redirect.toString() });
@@ -90,6 +92,11 @@ const createMockProvider = () => {
       const body = await readBody(req);
       const issued = issuedCodes.get(body.code);
       issuedCodes.delete(body.code);
+      if (issued?.clientId === 'flaky-app' && !flakyTokenFailed) {
+        flakyTokenFailed = true;
+        res.writeHead(503);
+        return res.end();
+      }
       const verifierMatches = issued && crypto.createHash('sha256').update(body.code_verifier || '').digest('base64url') === issued.challenge;
       if (body.grant_type !== 'authorization_code' || !verifierMatches || body.redirect_uri !== issued.redirectUri) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -100,6 +107,7 @@ const createMockProvider = () => {
     }
 
     if (url.pathname === '/quote') {
+      stats.apiRequests++;
       const authorized = req.headers.authorization === `Bearer ${ACCESS_TOKEN}`;
       res.writeHead(authorized ? 200 : 401, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ authorized }));
@@ -128,14 +136,20 @@ describe('CLI run — OAuth2 authorization code inherited from a folder (#9356)'
     await new Promise((resolve) => provider.server.close(resolve));
   });
 
-  const runQuoteRequests = async (envVariables) => {
+  // `withAuth` lets a test swap the inherited folder auth for a request-level config
+  const runQuoteRequests = async (envVariables, { withAuth, withErrors = false } = {}) => {
     const collection = createCollectionJsonFromPathname(FIXTURE_COLLECTION);
     const scenarioGroup = collection.items[0].items[0];
     const statuses = [];
+    const errors = [];
 
     for (const item of scenarioGroup.items) {
+      const requestItem = structuredClone(item);
+      if (withAuth) {
+        requestItem.request.auth = withAuth;
+      }
       const result = await runSingleRequest(
-        structuredClone(item),
+        requestItem,
         FIXTURE_COLLECTION,
         {},
         { idp: baseUrl, api: baseUrl, callbackPort: String(callbackPort), ...envVariables },
@@ -149,9 +163,10 @@ describe('CLI run — OAuth2 authorization code inherited from a folder (#9356)'
         {}
       );
       statuses.push(result.response.status);
+      errors.push(result.error);
     }
 
-    return statuses;
+    return withErrors ? { statuses, errors } : statuses;
   };
 
   it('signs in once and reuses the token for every inheriting request', async () => {
@@ -178,5 +193,37 @@ describe('CLI run — OAuth2 authorization code inherited from a folder (#9356)'
     } finally {
       errorSpy.mockRestore();
     }
+  });
+
+  it('signs in again after a transient token endpoint failure instead of giving up for the run', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const before = { ...provider.stats };
+
+    try {
+      const statuses = await runQuoteRequests({ clientId: 'flaky-app', credentialsId: 'flaky' });
+
+      // The first request's token exchange hits the 503 and goes out unauthenticated, as before;
+      // the second retries sign-in and succeeds
+      expect(statuses).toEqual([401, 200]);
+      expect(provider.stats.authorizations - before.authorizations).toBe(2);
+      expect(provider.stats.tokenRequests - before.tokenRequests).toBe(2);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('rejects an implicit grant without a token URL before sending the protected request', async () => {
+    const before = { ...provider.stats };
+    const implicitAuth = {
+      mode: 'oauth2',
+      oauth2: { grantType: 'implicit', authorizationUrl: `${baseUrl}/authorize`, callbackUrl: `http://localhost:${callbackPort}/callback`, clientId: 'quote-app' }
+    };
+
+    const { statuses, errors } = await runQuoteRequests({}, { withAuth: implicitAuth, withErrors: true });
+
+    expect(statuses).toEqual(['error', 'error']);
+    errors.forEach((error) => expect(error).toContain('Interactive OAuth2 grant type \'implicit\' is not supported'));
+    expect(provider.stats.apiRequests - before.apiRequests).toBe(0);
+    expect(provider.stats.authorizations - before.authorizations).toBe(0);
   });
 });
