@@ -21,7 +21,7 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, OAUTH2_ERROR_CODES } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -613,7 +613,7 @@ const runSingleRequest = async function (
         const refreshTokenUrl = request.oauth2.refreshTokenUrl ? interpolateString(request.oauth2.refreshTokenUrl, oauth2InterpolationOptions) : undefined;
         const oauth2RequestUrl = accessTokenUrl || refreshTokenUrl;
 
-        let token;
+        let oauth2AxiosInstance;
         if (oauth2RequestUrl) {
           const oauth2ConfigOptions = {
             noproxy: options.noproxy,
@@ -639,15 +639,16 @@ const runSingleRequest = async function (
             systemProxyConfig
           });
 
-          const oauth2AxiosInstance = makeAxiosInstanceForOauth2({
+          oauth2AxiosInstance = makeAxiosInstanceForOauth2({
             requestMaxRedirects: requestMaxRedirects,
             disableCookies: options.disableCookies,
             httpAgent: oauth2HttpAgent,
             httpsAgent: oauth2HttpsAgent
           });
-
-          token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
         }
+
+        // Called even without a token URL (implicit configs have none) so an unsupported grant is reported
+        const token = await getOAuth2Token(request.oauth2, oauth2AxiosInstance);
 
         if (token) {
           const { tokenPlacement = 'header', tokenHeaderPrefix = '', tokenQueryKey = 'access_token' } = request.oauth2;
@@ -665,7 +666,42 @@ const runSingleRequest = async function (
           }
         }
       } catch (error) {
-        console.error('OAuth2 token fetch error:', error.message);
+        // A grant the CLI can never fetch a token for would always go out unauthenticated, so it is
+        // reported as a request error instead of being sent. Other token errors keep the request going.
+        if (error.code !== OAUTH2_ERROR_CODES.UNSUPPORTED_GRANT) {
+          console.error('OAuth2 token fetch error:', error.message);
+        } else {
+          console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${error.message})`));
+          return {
+            test: {
+              filename: relativeItemPathname
+            },
+            request: {
+              method: request.method,
+              url: request.url,
+              headers: request.headers,
+              data: request.data
+            },
+            response: {
+              status: 'error',
+              statusText: null,
+              headers: null,
+              data: null,
+              url: null,
+              responseTime: 0,
+              duration: 0,
+              size: 0
+            },
+            error: error.message,
+            status: 'error',
+            assertionResults: [],
+            testResults: [],
+            preRequestTestResults,
+            postResponseTestResults,
+            nextRequestName: nextRequestName,
+            shouldStopRunnerExecution
+          };
+        }
       }
 
       request.oauth2CredentialVariables = getFormattedOauth2Credentials();

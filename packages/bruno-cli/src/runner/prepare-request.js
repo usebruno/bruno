@@ -147,6 +147,35 @@ const prepareRequest = async (item = {}, collection = {}) => {
           autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
           additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
         };
+      } else if (grantType === 'authorization_code') {
+        axiosRequest.oauth2 = {
+          grantType,
+          callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+          authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl'),
+          clientId: get(collectionAuth, 'oauth2.clientId'),
+          clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+          scope: get(collectionAuth, 'oauth2.scope'),
+          state: get(collectionAuth, 'oauth2.state'),
+          pkce: get(collectionAuth, 'oauth2.pkce'),
+          credentialsPlacement: get(collectionAuth, 'oauth2.credentialsPlacement'),
+          credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+          tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(collectionAuth, 'oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(collectionAuth, 'oauth2.tokenQueryKey'),
+          tokenSource: get(collectionAuth, 'oauth2.tokenSource'),
+          autoFetchToken: get(collectionAuth, 'oauth2.autoFetchToken'),
+          autoRefreshToken: get(collectionAuth, 'oauth2.autoRefreshToken'),
+          additionalParameters: get(collectionAuth, 'oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      } else {
+        // Forwarded so getOAuth2Token reports the unsupported grant instead of the request silently going out unauthenticated
+        axiosRequest.oauth2 = {
+          grantType,
+          accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(collectionAuth, 'oauth2.refreshTokenUrl')
+        };
       }
     }
     if (collectionAuth.mode === 'awsv4') {
@@ -321,6 +350,35 @@ const prepareRequest = async (item = {}, collection = {}) => {
           autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
           autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
           additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      } else if (grantType === 'authorization_code') {
+        axiosRequest.oauth2 = {
+          grantType: grantType,
+          callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
+          authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl'),
+          clientId: get(request, 'auth.oauth2.clientId'),
+          clientSecret: get(request, 'auth.oauth2.clientSecret'),
+          scope: get(request, 'auth.oauth2.scope'),
+          state: get(request, 'auth.oauth2.state'),
+          pkce: get(request, 'auth.oauth2.pkce'),
+          credentialsPlacement: get(request, 'auth.oauth2.credentialsPlacement'),
+          credentialsId: get(request, 'auth.oauth2.credentialsId'),
+          tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+          tokenHeaderPrefix: get(request, 'auth.oauth2.tokenHeaderPrefix'),
+          tokenQueryKey: get(request, 'auth.oauth2.tokenQueryKey'),
+          tokenSource: get(request, 'auth.oauth2.tokenSource'),
+          autoFetchToken: get(request, 'auth.oauth2.autoFetchToken'),
+          autoRefreshToken: get(request, 'auth.oauth2.autoRefreshToken'),
+          additionalParameters: get(request, 'auth.oauth2.additionalParameters', { authorization: [], token: [], refresh: [] })
+        };
+      } else {
+        // Forwarded so getOAuth2Token reports the unsupported grant instead of the request silently going out unauthenticated
+        axiosRequest.oauth2 = {
+          grantType: grantType,
+          accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+          refreshTokenUrl: get(request, 'auth.oauth2.refreshTokenUrl')
         };
       }
     }

@@ -248,6 +248,21 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
         request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
         break;
+      case 'authorization_code':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
+        request.oauth2.refreshTokenUrl = _interpolate(request.oauth2.refreshTokenUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
+        request.oauth2.credentialsPlacement = _interpolate(request.oauth2.credentialsPlacement) || '';
+        request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
+        request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
+        request.oauth2.tokenHeaderPrefix = _interpolate(request.oauth2.tokenHeaderPrefix) || '';
+        request.oauth2.tokenQueryKey = _interpolate(request.oauth2.tokenQueryKey) || '';
+        break;
       default:
         break;
     }
