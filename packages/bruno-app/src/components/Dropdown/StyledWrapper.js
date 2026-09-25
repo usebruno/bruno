@@ -28,6 +28,17 @@ const Wrapper = styled.div`
     &:focus-visible {
       outline: none;
     }
+
+    &.env-action-menu {
+      .dropdown-item {
+        &:hover:not(:disabled):not(.disabled),
+        &.selected-focused:not(:disabled):not(.disabled),
+        &.dropdown-item-focused,
+        &:focus-visible:not(:disabled):not(.disabled) {
+          background-color: ${(props) => props.theme.background.surface0};
+        }
+      }
+    }
   }
 
   &.hide-on-reference-clipped[data-reference-hidden],
@@ -91,6 +102,24 @@ const Wrapper = styled.div`
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .shortcut {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: ${(props) => props.theme.dropdown.mutedText};
+    }
+
+    .keycap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 12px;
+      height: 15px;
+      font-size: 12px;
+      line-height: 1;
+      color: ${(props) => props.theme.dropdown.mutedText};
     }
 
     .dropdown-tab-count {
