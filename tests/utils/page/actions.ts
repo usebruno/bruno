@@ -2053,6 +2053,18 @@ const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: stri
   }, filePaths);
 };
 
+type OpenFilesDialogOptions = {
+  canceled: boolean;
+  filePaths: string[];
+};
+
+const stubOpenFilesDialog = async (app: ElectronApplication, options: OpenFilesDialogOptions) => {
+  await app.evaluate(({ dialog }, { canceled, filePaths }) => {
+    (dialog as { showOpenDialog: typeof dialog.showOpenDialog }).showOpenDialog = () =>
+      Promise.resolve({ canceled, filePaths });
+  }, options);
+};
+
 const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
@@ -3960,6 +3972,7 @@ export {
   selectResponsePaneTab,
   selectResponsePaneTabViaOverflow,
   mockBrowseFiles,
+  stubOpenFilesDialog,
   addMultipartFileToLastRow,
   removeFirstMultipartFile,
   sendRequestAndWaitForResponse,
