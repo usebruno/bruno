@@ -31,6 +31,9 @@ let detectedPort = null;
 
 // Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/")
 const portRegex = /Local:\s+http:\/\/localhost:(\d+)/;
+// rsbuild colorizes its output with ANSI escape codes, which sit between "Local:" and the URL
+// and break portRegex if left in; strip them before matching.
+const ansiRegex = /\x1b\[[0-9;]*m/g;
 
 console.log(`\n${colors.bright}${colors.yellow}🚀 Starting Bruno development environment...${colors.reset}\n`);
 
@@ -47,7 +50,7 @@ webProcess.stdout.on('data', (data) => {
 
   // Try to detect the port from rsbuild output
   if (!detectedPort) {
-    const match = output.match(portRegex);
+    const match = output.replace(ansiRegex, '').match(portRegex);
     if (match) {
       detectedPort = match[1];
       log.success(`Detected dev server on port ${colors.bright}${detectedPort}${colors.reset}`);
