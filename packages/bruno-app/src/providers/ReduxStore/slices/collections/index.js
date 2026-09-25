@@ -294,6 +294,14 @@ export const collectionsSlice = createSlice({
         collection.isLoading = action.payload.isLoading;
       }
     },
+    resetCollectionForReload: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection.items = [];
+      collection.environments = [];
+      collection.allTags = [];
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -3788,6 +3796,7 @@ export const collectionsSlice = createSlice({
         };
         annotateTransient(collection.items);
       }
+      collection.allTags = getUniqueTagsFromItems(collection.items);
     },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
       const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
@@ -4251,6 +4260,7 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  resetCollectionForReload,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
   updateCollectionVersion,
