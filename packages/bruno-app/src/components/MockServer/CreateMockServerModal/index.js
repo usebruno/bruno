@@ -37,6 +37,7 @@ import {
   toMockServerDelayInputValue,
   blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
+import { resolveInitialSourceType } from './resolveInitialSourceType';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
   if (!editingInstance?.specPath) {
@@ -164,7 +165,8 @@ const CreateMockServerModal = ({
   onDelete,
   editingInstance = null,
   defaultCollectionUid = null,
-  defaultSourceType = 'collection'
+  defaultSourceType = 'collection',
+  defaultApiSpecUid = null
 }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
@@ -223,31 +225,24 @@ const CreateMockServerModal = ({
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
+  // Defaults are resolved against the built options first: a uid the workspace
+  // cannot resolve would leave the form on that source with an empty uid and refuse submit.
+  const defaultSpecUid = defaultApiSpecUid && specSelectOptions.some((option) => option.uid === defaultApiSpecUid)
+    ? defaultApiSpecUid
+    : '';
   const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
     ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
-    : '';
+    : defaultSpecUid;
 
-  const initialSourceType = (() => {
-    if (editingInstance) {
-      return editingInstance.sourceType || 'manual';
-    }
-    // defaultCollection instead of defaultCollectionUid: a uid the workspace can't
-    // resolve would leave the form on Collection with an empty uid and refuse submit.
-    if (defaultCollection) {
-      return 'collection';
-    }
-    if (defaultSourceType === 'spec' && hasSpecOptions) {
-      return 'spec';
-    }
-    if (hasCollectionOptions) {
-      return 'collection';
-    }
-    if (hasSpecOptions) {
-      return 'spec';
-    }
-    return 'manual';
-  })();
+  const initialSourceType = resolveInitialSourceType({
+    editingInstance,
+    hasDefaultCollection: Boolean(defaultCollection),
+    hasDefaultSpec: Boolean(defaultSpecUid),
+    defaultSourceType,
+    hasCollectionOptions,
+    hasSpecOptions
+  });
 
   const requiresPortField = showAdvancedPort || isEditing;
 

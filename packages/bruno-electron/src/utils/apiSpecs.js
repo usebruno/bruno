@@ -68,4 +68,10 @@ const resolveExternalApiSpecRefs = async (json, apiSpecPath) => {
   }
 };
 
-module.exports = { parseApiSpecContent, resolveExternalApiSpecRefs };
+const getApiSpecDisplayName = (apiSpecContent, apiSpecPath) => {
+  const rawTitle = apiSpecContent?.info?.title;
+  const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+  return title || path.basename(apiSpecPath, path.extname(apiSpecPath));
+};
+
+module.exports = { parseApiSpecContent, resolveExternalApiSpecRefs, getApiSpecDisplayName };

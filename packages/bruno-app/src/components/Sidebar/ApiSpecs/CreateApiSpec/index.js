@@ -5,11 +5,12 @@ import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
-import { createApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
+import { createApiSpecFile, openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
+import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
 import { useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { exportApiSpec } from 'utils/exporters/openapi-spec';
-import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
+import path from 'utils/common/path';
 import { validateName, validateNameError } from 'utils/common/regex';
 import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariables } from 'utils/common/apiSpec';
 
@@ -19,24 +20,9 @@ const CreateApiSpec = ({ onClose }) => {
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
-  const [defaultApiSpecLocation, setDefaultApiSpecLocation] = React.useState('');
+  const { location: defaultApiSpecLocation } = useDefaultApiSpecLocation();
 
   const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
-
-  React.useEffect(() => {
-    const getDefaultLocation = async () => {
-      if (activeWorkspace && activeWorkspace.pathname && activeWorkspace.type !== 'default') {
-        try {
-          const { ipcRenderer } = window;
-          const apiSpecPath = await ipcRenderer.invoke('renderer:ensure-apispec-folder', activeWorkspace.pathname);
-          setDefaultApiSpecLocation(apiSpecPath);
-        } catch (error) {
-          console.error('Error getting apispec folder:', error);
-        }
-      }
-    };
-    getDefaultLocation();
-  }, [activeWorkspace]);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -94,11 +80,11 @@ const CreateApiSpec = ({ onClose }) => {
         }
       }
 
-      dispatch(createApiSpecFile(`${values.apiSpecName}.yaml`, values.apiSpecLocation, yamlContent))
+      const filename = `${values.apiSpecName}.yaml`;
+
+      dispatch(createApiSpecFile(filename, values.apiSpecLocation, yamlContent))
         .then(() => {
-          setTimeout(() => {
-            dispatch(showApiSpecPage());
-          }, 200);
+          dispatch(openApiSpecTab({ pathname: path.join(values.apiSpecLocation, filename), filename }));
           toast.success('ApiSpec created');
           if (exportWarnings.length) {
             toast(buildExportWarningsMessage(exportWarnings), { icon: '⚠️' });
