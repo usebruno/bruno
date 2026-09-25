@@ -1,4 +1,4 @@
-import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconEye, IconEyeOff, IconX } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
@@ -16,13 +16,14 @@ class SingleLineEditor extends Component {
     // Keep a cached version of the value, this cache will be updated when the
     // editor is updated, which can later be used to protect the editor from
     // unnecessary updates during the update lifecycle.
-    this.cachedValue = props.value || '';
+    this.cachedValue = props.value != null ? String(props.value) : '';
     this.editorRef = React.createRef();
     this.variables = {};
     this.readOnly = props.readOnly || false;
 
     this.state = {
-      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+      maskInput: props.isSecret || false, // Always mask the input by default (if it's a secret)
+      hasValue: this.cachedValue !== ''
     };
   }
 
@@ -143,6 +144,7 @@ class SingleLineEditor extends Component {
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
+      this.setState({ hasValue: this.cachedValue !== '' });
       if (this.props.onChange && (this.props.value !== this.cachedValue)) {
         this.props.onChange(this.cachedValue);
       }
@@ -185,9 +187,11 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       const cursor = this.editor.getCursor();
-      this.cachedValue = String(this.props.value);
-      this.editor.setValue(String(this.props.value) || '');
+      const normalizedValue = this.props.value != null ? String(this.props.value) : '';
+      this.cachedValue = normalizedValue;
+      this.editor.setValue(normalizedValue);
       this.editor.setCursor(cursor);
+      this.setState({ hasValue: normalizedValue !== '' });
       // Re-apply masking after setValue() since it destroys all CodeMirror marks
       if (this.maskedEditor && this.maskedEditor.isEnabled()) {
         this.maskedEditor.update();
@@ -310,26 +314,46 @@ class SingleLineEditor extends Component {
     this._enableMaskedEditor(isVisible);
   };
 
+  clearField = () => {
+    if (!this.editor) return;
+    this.ignoreChangeEvent = true;
+    this.cachedValue = '';
+    this.editor.setValue('');
+    this.ignoreChangeEvent = false;
+    this.setState({ hasValue: false });
+    if (this.props.onChange) {
+      this.props.onChange('');
+    }
+    this.editor.focus();
+  };
+
   /**
-   * @brief Eye icon to show/hide the secret value
-   * @returns ReactComponent The eye icon
+   * @brief Eye icon and clear button for secret fields
+   * @returns ReactComponent
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button
-        type="button"
-        className="mx-2"
-        data-testid="secret-reveal-toggle"
-        disabled={this.props.readOnly}
-        tabIndex={this.props.readOnly ? -1 : 0}
-        onClick={() => this.toggleVisibleSecret()}
-      >
-        {this.state.maskInput === true ? (
-          <IconEyeOff size={18} strokeWidth={2} />
-        ) : (
-          <IconEye size={18} strokeWidth={2} />
+      <>
+        {this.state.hasValue && !this.props.readOnly && (
+          <button type="button" className="mx-1" aria-label="Clear secret field" data-testid="secret-clear" onClick={this.clearField}>
+            <IconX size={14} strokeWidth={2} />
+          </button>
         )}
-      </button>
+        <button
+          type="button"
+          className="mx-2"
+          data-testid="secret-reveal-toggle"
+          disabled={this.props.readOnly}
+          tabIndex={this.props.readOnly ? -1 : 0}
+          onClick={() => this.toggleVisibleSecret()}
+        >
+          {this.state.maskInput === true ? (
+            <IconEyeOff size={18} strokeWidth={2} />
+          ) : (
+            <IconEye size={18} strokeWidth={2} />
+          )}
+        </button>
+      </>
     ) : null;
   };
 
