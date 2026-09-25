@@ -1,0 +1,31 @@
+info:
+  name: 02-oom-trap
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:8081/api/large-payload?size=3145728
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = res.getBody();
+        let blob = body;
+        for (let i = 0; i < 8; i++) {
+          blob = blob + blob;
+        }
+        bru.setVar('len', blob.length);
+    - type: tests
+      code: |-
+        test("multi-MB body processed without killing the app", function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

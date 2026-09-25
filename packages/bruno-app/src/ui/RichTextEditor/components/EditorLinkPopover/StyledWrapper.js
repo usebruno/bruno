@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  position: absolute;
+  position: fixed;
   z-index: 9999;
   font-size: ${(props) => props.theme.font.size.sm};
   color: ${(props) => props.theme.dropdown.color};
@@ -9,6 +9,32 @@ const StyledWrapper = styled.div`
   border: 1px solid ${(props) => props.theme.dropdown.border};
   border-radius: ${(props) => props.theme.border.radius.base};
   box-shadow: ${(props) => props.theme.dropdown.shadow || 'none'};
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  &[data-popper-placement^='top']::before {
+    bottom: -4px;
+  }
+
+  &[data-popper-placement^='bottom']::before {
+    top: -4px;
+  }
+
+  &[data-popper-reference-hidden] {
+    visibility: hidden;
+    pointer-events: none;
+
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
+    }
+  }
 
   .hover-link-view {
     display: flex;

@@ -1,0 +1,5 @@
+name: Local
+color: "#CE4F3B"
+variables:
+  - name: host
+    value: http://localhost:8081

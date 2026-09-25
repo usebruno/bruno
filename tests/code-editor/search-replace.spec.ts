@@ -12,12 +12,14 @@ import {
   setCodeEditorCursor,
   setCodeEditorSelection,
   scrollCodeEditorToLine,
+  focusCodeEditor,
   getCodeEditorScrollTop,
   appendTextToCodeEditor
 } from '../utils/page';
 import process from 'node:process';
 
 const cmdKey = process.platform === 'darwin' ? 'Meta' : 'Control';
+const replaceKey = process.platform === 'darwin' ? 'Meta+Alt+f' : 'Control+h';
 const EDITOR_ID = 'pre-request-script-editor';
 const COLLECTION = 'search-replace-test';
 const REQUEST = 'SearchRequest';
@@ -54,7 +56,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
     await closeAllCollections(page);
   });
 
-  // Dismiss any leftover search bar and restore the full document before each test.
+  // Reset the shared editor to a known state.
   test.beforeEach(async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openPreRequestScriptEditor(page, EDITOR_ID);
@@ -63,6 +65,8 @@ test.describe.serial('CodeEditor Search/Replace', () => {
       await loc.searchBar().waitFor({ state: 'hidden' });
     }
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+    await setCodeEditorCursor(page, EDITOR_ID, { line: 0, ch: 0 }, true);
+    await scrollCodeEditorToLine(page, EDITOR_ID, 0);
   });
 
   test('Cmd+F opens the search bar', async ({ page }) => {
@@ -242,6 +246,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
       await closeCodeEditorSearchBar(page, EDITOR_ID);
     });
     await test.step('Reopen — text is preserved and match resumes from Section 3', async () => {
+      await focusCodeEditor(page, EDITOR_ID);
       await page.keyboard.press(`${cmdKey}+f`);
       await loc.searchBar().waitFor({ state: 'visible' });
       await expect(loc.searchInput()).toHaveValue('Section');
@@ -282,6 +287,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
     });
     const scrollBefore = await getCodeEditorScrollTop(page, EDITOR_ID);
     await test.step('Reopen — scroll position is preserved', async () => {
+      await focusCodeEditor(page, EDITOR_ID);
       await page.keyboard.press(`${cmdKey}+f`);
       await loc.searchBar().waitFor({ state: 'visible' });
       const scrollAfter = await getCodeEditorScrollTop(page, EDITOR_ID);
@@ -353,6 +359,100 @@ test.describe.serial('CodeEditor Search/Replace', () => {
     await test.step('Append " foo" to the document — match count updates to 2', async () => {
       await appendTextToCodeEditor(page, EDITOR_ID, ' foo');
       await expectMatchCount(page, '1 / 2');
+    });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
+
+  test('replace shortcut with text selected pre-fills the search input', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    await test.step('Select "foo" in the editor and open the replace bar via shortcut', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
+      await setCodeEditorSelection(page, EDITOR_ID, { line: 0, ch: 0 }, { line: 0, ch: 3 });
+      await page.keyboard.press(replaceKey);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await loc.replaceInput().waitFor({ state: 'visible' });
+    });
+    await test.step('Search input is pre-filled with the selection and anchored to it', async () => {
+      await expect(loc.searchInput()).toHaveValue('foo');
+      await expectMatchCount(page, '1 / 3');
+    });
+    await test.step('Replace input holds focus so a replacement can be typed straight away', async () => {
+      await expect(loc.replaceInput()).toBeFocused();
+    });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
+
+  test('Cmd+F with a multi-line selection keeps the previous search text', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    await test.step('Search for "foo" across three lines, then close the bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar\nbaz foo\nqux foo');
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Select across two lines and reopen with Cmd+F', async () => {
+      await setCodeEditorSelection(page, EDITOR_ID, { line: 0, ch: 0 }, { line: 1, ch: 3 });
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
+    });
+    await test.step('Search input is untouched — a multi-line selection is not a search term', async () => {
+      await expect(loc.searchInput()).toHaveValue('foo');
+      await expectMatchCount(page, '1 / 3');
+    });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
+
+  test('replace shortcut with a multi-line selection keeps the previous search text', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    await test.step('Search for "foo" across three lines, then close the bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar\nbaz foo\nqux foo');
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Select across two lines and open the replace bar', async () => {
+      await setCodeEditorSelection(page, EDITOR_ID, { line: 0, ch: 0 }, { line: 1, ch: 3 });
+      await page.keyboard.press(replaceKey);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await loc.replaceInput().waitFor({ state: 'visible' });
+    });
+    await test.step('Search input is untouched and the replace row is open and focused', async () => {
+      await expect(loc.searchInput()).toHaveValue('foo');
+      await expectMatchCount(page, '1 / 3');
+      await expect(loc.replaceInput()).toBeFocused();
+    });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
+
+  test('replace shortcut with no selection keeps the previous term and anchors at the cursor', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    await test.step('Search for "foo" across three lines, then close the bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar\nbaz foo\nqux foo');
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Move the cursor to line 2 with nothing selected, then open the replace bar', async () => {
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 2, ch: 0 }, true);
+      await page.keyboard.press(replaceKey);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await loc.replaceInput().waitFor({ state: 'visible' });
+    });
+    await test.step('Previous term is kept and the match anchors to the cursor, not back to the first', async () => {
+      await expect(loc.searchInput()).toHaveValue('foo');
+      await expectMatchCount(page, '3 / 3');
+      await expect(loc.replaceInput()).toBeFocused();
     });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);

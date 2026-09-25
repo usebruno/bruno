@@ -242,9 +242,11 @@ const stripOrigin = (url: string): string => {
 
 /**
  * Normalize a Bruno request URL to a mock-server route path.
- * Strips scheme/host, leading `{{var}}`, query strings; turns remaining `{{var}}` into `:var`.
+ * Strips scheme/host, leading `{{var}}`, query strings; turns remaining `{{var}}` into `:var`
+ * so it matches Express-style route params. Callers that persist or display the user-typed URL
+ * pass `preserveTemplateVars: true` to keep `{{var}}` intact.
  */
-const extractMockRoutePath = (rawUrl: unknown): string => {
+const extractMockRoutePath = (rawUrl: unknown, { preserveTemplateVars = false } = {}): string => {
   if (!rawUrl) {
     return '/';
   }
@@ -286,7 +288,11 @@ const extractMockRoutePath = (rawUrl: unknown): string => {
     }
   }
 
-  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
+  if (preserveTemplateVars) {
+    cleaned = cleaned.replace(/%7B%7B([^%]+)%7D%7D/gi, '{{$1}}');
+  } else {
+    cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
+  }
 
   if (!cleaned.startsWith('/')) {
     cleaned = `/${cleaned}`;

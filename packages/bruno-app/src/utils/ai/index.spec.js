@@ -183,6 +183,32 @@ describe('utils/ai', () => {
       expect(gs).toEqual({ name: 'GLOBAL_SECRET', value: '<redacted>', scope: 'global', secret: true });
     });
 
+    it('redacts a secret inherited from a parent environment', () => {
+      const collectionWithInheritance = {
+        activeEnvironmentUid: 'env-child',
+        environments: [
+          {
+            uid: 'env-parent',
+            name: 'Base',
+            variables: [{ name: 'PARENT_PIN', value: 'parent-pin', enabled: true, secret: true }]
+          },
+          { uid: 'env-child', name: 'Staging', extends: 'Base', variables: [] }
+        ],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: {}
+      };
+
+      const result = buildAiVariablesPayload(collectionWithInheritance, null);
+
+      expect(result.find((v) => v.name === 'PARENT_PIN')).toEqual({
+        name: 'PARENT_PIN',
+        value: '<redacted>',
+        scope: 'env',
+        secret: true
+      });
+    });
+
     it('drops disabled environment variables', () => {
       const result = buildAiVariablesPayload(variablesCollection, null);
       expect(result.find((v) => v.name === 'DISABLED')).toBeUndefined();

@@ -1,65 +1,111 @@
-import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
-import Collection from './Collection';
-import GitRemoteCollectionRow from './GitRemoteCollectionRow';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
-import path, { normalizePath } from 'utils/common/path';
-import { isScratchCollection } from 'utils/collections';
+import SidebarRow from './SidebarRow';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import useDebounce from 'hooks/useDebounce';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-
-const getSidebarEntryName = (entry) => {
-  if (entry.kind === 'loaded') {
-    return entry.collection?.name || '';
-  }
-
-  return entry.entry?.name || path.basename(entry.entry?.path || '');
-};
+const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const { collections, collectionSortOrder } = useSelector((state) => state.collections);
+  const trimmedSearchText = searchText.trim();
+  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
+  const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const dispatch = useDispatch();
+  const virtuosoRef = useRef(null);
+  const lastScrolledTabUidRef = useRef(null);
+
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
-  const isDefaultWorkspace = activeWorkspace?.type === 'default';
 
   // Build the sidebar list in workspace.yml order. Each entry is either a fully
   // loaded collection (rendered via <Collection />) or, for non-default workspaces,
   // a "ghost" git-backed entry whose local folder is missing (rendered via
   // <GitRemoteCollectionRow /> so the user can click to clone it).
-  const sidebarEntries = useMemo(() => {
-    if (!activeWorkspace?.collections?.length) return [];
+  const sidebarEntries = useMemo(
+    () => buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder }),
+    [activeWorkspace, collections, workspaces, collectionSortOrder]
+  );
 
-    const loadedByPath = new Map();
-    for (const c of collections) {
-      if (isScratchCollection(c, workspaces)) continue;
-      if (c.pathname) loadedByPath.set(normalizePath(c.pathname), c);
-    }
+  // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
+  const { rows, itemsByUid, collectionsByUid } = useMemo(
+    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
+    [sidebarEntries, debouncedSearchText]
+  );
 
-    const entries = [];
-    for (const wc of activeWorkspace.collections) {
-      if (!wc.path) continue;
-      const loaded = loadedByPath.get(normalizePath(wc.path));
-      if (loaded) {
-        entries.push({ kind: 'loaded', collection: loaded, key: loaded.uid });
-      } else if (wc.remote && !isDefaultWorkspace) {
-        entries.push({ kind: 'ghost', entry: wc, key: `ghost:${wc.path}` });
-      }
+  // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
+  const ghostsByPath = useMemo(() => {
+    const map = new Map();
+    for (const entry of sidebarEntries) {
+      if (entry.kind === 'ghost' && entry.entry?.path) map.set(entry.entry.path, entry.entry);
     }
-    if (collectionSortOrder === 'alphabetical') {
-      return [...entries].sort((a, b) => collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
-    }
+    return map;
+  }, [sidebarEntries]);
 
-    if (collectionSortOrder === 'reverseAlphabetical') {
-      return [...entries].sort((a, b) => -collator.compare(getSidebarEntryName(a), getSidebarEntryName(b)));
-    }
+  // Multi-select drag context, computed once for the whole list and threaded to rows via SidebarRow.
+  const selectionInfo = useMemo(
+    () => (selectedSidebarUids.length > 1 ? getSelectionInfo({ collections, selectedUids: selectedSidebarUids }) : null),
+    [collections, selectedSidebarUids]
+  );
 
-    return entries;
-  }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
+  // A collection can't be dragged together with folders/requests/apps from inside it.
+  const hasMixedCollectionSelection = Boolean(
+    selectionInfo?.hasCollection
+    && (selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp)
+  );
+
+  // Whether a selected collection row can be dragged as part of the multi-selection.
+  const isCollectionMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || hasMixedCollectionSelection);
+
+  // Whether a selected folder/request/app row can be dragged as part of the multi-selection.
+  const isItemMultiDragDisabled = !!selectionInfo && (selectionInfo.hasExample || selectionInfo.hasCollection);
+
+  const multiDragCollections = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasFolder || selectionInfo.hasRequest || selectionInfo.hasApp || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.filter((entry) => entry.type === 'collection').map((entry) => entry.collection);
+  }, [selectionInfo]);
+
+  const multiDragItems = useMemo(() => {
+    if (!selectionInfo || selectionInfo.hasCollection || selectionInfo.hasExample) return null;
+    return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [selectionInfo]);
+
+  const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
+
+  // Resolve the active tab's row index (item rows first, then collection headers).
+  const rowIndex = rowIndexByItemUid.get(activeTabUid);
+  const activeRowIndex = activeTabUid !== null
+    ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
+    : null;
+
+  useEffect(() => {
+    if (activeRowIndex === null) return;
+    if (lastScrolledTabUidRef.current === activeTabUid) return;
+    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
+    lastScrolledTabUidRef.current = activeTabUid;
+  }, [activeTabUid, activeRowIndex]);
+
+  // Clear multi-selection only when clicking the bare scroller background.
+  // The `contains` guard ignores events propagated from portaled menus/modals in <body>.
+  // The `[data-sidebar-row]` check covers all row types and inline menus/modals rendered within a row.
+  const handleContainerClick = (e) => {
+    if (!e.currentTarget.contains(e.target)) return;
+    if (e.target.closest('[data-sidebar-row]')) return;
+    dispatch(clearSidebarSelection());
+  };
 
   if (!sidebarEntries.length) {
     return (
@@ -82,21 +128,44 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className="collections-list">
-        {isCreatingCollection && (
-          <InlineCollectionCreator
-            onComplete={onDismissCreate}
-            onCancel={onDismissCreate}
-            onOpenAdvanced={onOpenAdvancedCreate}
-          />
-        )}
-        {sidebarEntries.map((entry) => {
-          if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
-          }
-          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
-        })}
+      {isCreatingCollection && (
+        <InlineCollectionCreator
+          onComplete={onDismissCreate}
+          onCancel={onDismissCreate}
+          onOpenAdvanced={onOpenAdvancedCreate}
+        />
+      )}
+
+      <div
+        className="collections-list flex flex-col flex-1 overflow-hidden"
+        onClick={handleContainerClick}
+      >
+        <Virtuoso
+          ref={virtuosoRef}
+          data-testid="sidebar-collections-scroller"
+          style={{ height: '100%' }}
+          data={rows}
+          computeItemKey={(_, row) => row.id}
+          defaultItemHeight={26}
+          increaseViewportBy={{ top: 400, bottom: 600 }}
+          itemContent={(_, row) => (
+            <SidebarRow
+              row={row}
+              searchText={debouncedSearchText}
+              openBulkMenu={openBulkMenu}
+              itemsByUid={itemsByUid}
+              collectionsByUid={collectionsByUid}
+              ghostsByPath={ghostsByPath}
+              isCollectionMultiDragDisabled={isCollectionMultiDragDisabled}
+              isItemMultiDragDisabled={isItemMultiDragDisabled}
+              multiDragCollections={multiDragCollections}
+              multiDragItems={multiDragItems}
+            />
+          )}
+        />
       </div>
+      <CollectionItemDragPreview />
+      <BulkActionsMenu menuProps={menuProps} />
     </StyledWrapper>
   );
 };

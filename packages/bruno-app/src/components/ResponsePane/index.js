@@ -33,7 +33,7 @@ const ResponsePane = ({ item, collection }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
-  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const [showErrorCards, setShowErrorCards] = useState(false);
   const rightContentRef = useRef(null);
 
   const response = item.response || {};
@@ -87,7 +87,7 @@ const ResponsePane = ({ item, collection }) => {
 
   useEffect(() => {
     if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
-      setShowScriptErrorCard(true);
+      setShowErrorCards(true);
     }
   }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
@@ -155,7 +155,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} />;
+          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
         }
         return (
           <QueryResult
@@ -233,10 +233,10 @@ const ResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
-      {hasScriptError && !showScriptErrorCard && (
+      {hasScriptError && !showErrorCards && (
         <ScriptErrorIcon
           itemUid={item.uid}
-          onClick={() => setShowScriptErrorCard(true)}
+          onClick={() => setShowErrorCards(true)}
         />
       )}
       {focusedTab?.responsePaneTab === 'response' && item?.response && !(item.response?.stream ?? false) ? (
@@ -259,10 +259,10 @@ const ResponsePane = ({ item, collection }) => {
           </div>
         </>
       ) : null}
-      <div className="flex items-center response-pane-status">
+      <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
         {item.response?.stream?.running
-          ? <ResponseStopWatch startMillis={response.duration} />
+          ? <ResponseStopWatch startTimestamp={item.requestSent?.timestamp} />
           : <ResponseTime duration={response.duration} />}
         <ResponseSize size={responseSize} />
       </div>
@@ -297,12 +297,12 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
+      <section className={`response-pane-content ${hasScriptError && showErrorCards ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showScriptErrorCard && (
+        {hasScriptError && showErrorCards && (
           <ScriptError
             item={item}
-            onClose={() => setShowScriptErrorCard(false)}
+            onClose={() => setShowErrorCards(false)}
             collection={collection}
           />
         )}

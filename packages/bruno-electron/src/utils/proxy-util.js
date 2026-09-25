@@ -97,6 +97,9 @@ async function setupProxyAgents({
 
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
+  // keepAlive defaults to true; pass false to omit Connection.
+  const keepAlive = httpsAgentRequestFields?.keepAlive !== false;
+
   // Ensure TLS options are properly set
   const tlsOptions = {
     ...httpsAgentRequestFields,
@@ -105,8 +108,7 @@ async function setupProxyAgents({
     // Allow Node.js to choose the protocol
     minVersion: 'TLSv1',
     rejectUnauthorized: httpsAgentRequestFields.rejectUnauthorized !== undefined ? httpsAgentRequestFields.rejectUnauthorized : true,
-    // Enable keepAlive for connection reuse
-    keepAlive: true
+    keepAlive
   };
 
   const parsedUrl = parseUrl(requestConfig.url);
@@ -135,7 +137,7 @@ async function setupProxyAgents({
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
-      const httpProxyAgentOptions = isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+      const httpProxyAgentOptions = isHttpsProxy ? { keepAlive, ...tlsOptions } : { keepAlive };
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -177,7 +179,7 @@ async function setupProxyAgents({
           if (http_proxy?.length && !isHttpsRequest) {
             const parsedHttpProxy = new URL(http_proxy);
             const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive, ...tlsOptions } : { keepAlive };
             if (timeline) {
               timeline.push({
                 timestamp: new Date(),
@@ -230,7 +232,7 @@ async function setupProxyAgents({
     if (isHttpsRequest) {
       requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: https.Agent, options: tlsOptions, proxyUri: null, timeline, disableCache, hostname });
     } else {
-      requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive: true }, proxyUri: null, timeline, disableCache, hostname });
+      requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: http.Agent, options: { keepAlive }, proxyUri: null, timeline, disableCache, hostname });
     }
   }
 }

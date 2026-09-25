@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { IconTag } from '@tabler/icons';
+import { utils } from '@usebruno/common';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
@@ -14,7 +15,7 @@ import Tags from './Tags/index';
 const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
-  maxRedirects: 5,
+  maxRedirects: utils.DEFAULT_MAX_REDIRECTS,
   timeout: 'inherit',
   forwardAuthorizationHeader: true
 };
@@ -114,7 +115,7 @@ const Settings = ({ item, collection }) => {
       <div className="text-xs mb-4 text-muted">Configure request settings for this item.</div>
       <div className="bruno-form">
         <div className="mb-6">
-          <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1 mb-4">
+          <h3 className="text-xs font-medium flex items-center gap-1 mb-4">
             <IconTag size={16} />
             Tags
           </h3>

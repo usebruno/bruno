@@ -8,6 +8,7 @@ const ColorBadge = ({ color, size = 10 }) => {
   return (
     <div
       className="flex-shrink-0 rounded-full"
+      data-testid="color-badge"
       style={{
         width: sizeValue,
         height: sizeValue,

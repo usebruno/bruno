@@ -56,7 +56,7 @@ class ScriptRuntime {
     const req = new BrunoRequest(request);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -101,6 +101,18 @@ class ScriptRuntime {
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
+    const attachScriptResultToOnFailHandler = () => {
+      if (typeof request.onFailHandler !== 'function') {
+        return;
+      }
+
+      const onFailHandler = request.onFailHandler;
+      request.onFailHandler = async (error) => {
+        await onFailHandler(error);
+        return buildRequestScriptResult();
+      };
+    };
+
     // Track script errors to attach partial results before re-throwing
     // This ensures that any test() calls that passed before the error are preserved
     // Similar pattern to test-runtime.js which already handles this correctly
@@ -118,6 +130,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)
@@ -126,6 +139,7 @@ class ScriptRuntime {
         throw scriptError;
       }
 
+      attachScriptResultToOnFailHandler();
       return buildRequestScriptResult();
     }
 
@@ -146,6 +160,7 @@ class ScriptRuntime {
       throw scriptError;
     }
 
+    attachScriptResultToOnFailHandler();
     return buildRequestScriptResult();
   }
 
@@ -191,7 +206,7 @@ class ScriptRuntime {
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -254,6 +269,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)

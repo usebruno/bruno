@@ -11,6 +11,7 @@ const SearchInput = React.forwardRef(({
   iconSize = 16,
   leftIconClassName = '',
   onChange,
+  'data-testid': dataTestId,
   ...props
 }, ref) => {
   const handleChange = (e) => {
@@ -41,12 +42,14 @@ const SearchInput = React.forwardRef(({
         value={searchText}
         autoFocus
         onChange={handleChange}
+        data-testid={dataTestId}
         {...props}
       />
       {searchText !== '' && (
         <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
           <span
             className="close-icon"
+            data-testid={dataTestId ? `${dataTestId}-clear` : 'search-input-clear'}
             onClick={() => {
               setSearchText('');
             }}

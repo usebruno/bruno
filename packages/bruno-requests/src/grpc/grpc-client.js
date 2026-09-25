@@ -580,6 +580,9 @@ class GrpcClient {
    * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
    * @param {Object} [params.proxyConfig] - HTTP proxy configuration
    * @param {string} params.proxyConfig.proxyUrl - The HTTP proxy URL
+   * @param {Function} [params.onBeforeMessageSend] - Awaited once, immediately before a unary or
+   *   server-streaming call puts its message on the wire, with `{ data }`.
+   *   Throwing aborts the call before anything is dispatched.
    */
   async startConnection({
     request,
@@ -592,7 +595,8 @@ class GrpcClient {
     verifyOptions,
     channelOptions = {},
     includeDirs = [],
-    proxyConfig
+    proxyConfig,
+    onBeforeMessageSend
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -685,6 +689,18 @@ class GrpcClient {
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
     });
+
+    // Runs before the message is dispatched, so a hook that throws
+    // means the call never opens.
+    const methodType = this.#getMethodType(method);
+    if (methodType === 'unary' || methodType === 'server-streaming') {
+      try {
+        await onBeforeMessageSend?.({ data: messages[0] });
+      } catch (error) {
+        client.close();
+        throw error;
+      }
+    }
 
     this.#handleConnection({
       client,

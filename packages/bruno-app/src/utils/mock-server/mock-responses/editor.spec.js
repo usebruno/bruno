@@ -58,4 +58,26 @@ describe('mock response editor utils', () => {
     expect(mockResponse.rules.operator).toBe('OR');
     expect(mockResponse.copiedFrom.exampleName).toBe('Users');
   });
+
+  it('drops the rules table row ids so they never reach the saved mock response', () => {
+    const item = buildMockResponseEditorItem(sampleMockResponse);
+
+    const mockResponse = mockResponseFromEditorItem(
+      item,
+      'response-1',
+      {
+        operator: 'AND',
+        conditions: [
+          { uid: 'row-1', target: 'header', key: 'x-api-key', operator: 'equals', value: 'abc' },
+          { uid: 'row-2', target: 'query', key: 'page', operator: 'contains', value: '2' }
+        ]
+      },
+      sampleMockResponse
+    );
+
+    expect(mockResponse.rules.conditions).toEqual([
+      { target: 'header', key: 'x-api-key', operator: 'equals', value: 'abc' },
+      { target: 'query', key: 'page', operator: 'contains', value: '2' }
+    ]);
+  });
 });

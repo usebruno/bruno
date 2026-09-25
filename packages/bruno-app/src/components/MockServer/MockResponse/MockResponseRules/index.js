@@ -1,11 +1,12 @@
-import React from 'react';
-import { IconPlus, IconTrash } from '@tabler/icons';
+import React, { useEffect, useMemo, useRef } from 'react';
+import EditableTable from 'components/EditableTable';
+import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const TARGET_OPTIONS = [
   { value: 'header', label: 'Header' },
   { value: 'query', label: 'Query' },
-  { value: 'body', label: 'Body (JSON path)' }
+  { value: 'body', label: 'Body' }
 ];
 
 const OPERATOR_OPTIONS = [
@@ -15,120 +16,186 @@ const OPERATOR_OPTIONS = [
   { value: 'matches', label: 'matches' }
 ];
 
-const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
+const DEFAULT_CONDITION = {
+  target: 'header',
+  key: '',
+  operator: 'equals',
+  value: ''
+};
+
+const KEY_PLACEHOLDERS = {
+  body: '$.user.type',
+  query: 'page',
+  header: 'x-api-key'
+};
+
+const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
   const conditions = rules?.conditions || [];
   const operator = rules?.operator === 'OR' ? 'OR' : 'AND';
+  const rowUidsRef = useRef([]);
+  const wrapperRef = useRef(null);
+  const focusAddRowPendingRef = useRef(false);
 
-  const updateRules = (nextRules) => {
-    onChange(nextRules);
+  const handleAddRule = () => {
+    focusAddRowPendingRef.current = true;
+    onAddRule();
   };
 
-  const updateCondition = (index, patch) => {
-    const nextConditions = conditions.map((condition, conditionIndex) => (
-      conditionIndex === index ? { ...condition, ...patch } : condition
-    ));
-    updateRules({ operator, conditions: nextConditions });
-  };
+  useEffect(() => {
+    if (!editMode || !focusAddRowPendingRef.current) {
+      return;
+    }
 
-  const addCondition = () => {
-    updateRules({
+    focusAddRowPendingRef.current = false;
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts += 1;
+      const keyInput = wrapperRef.current
+        ?.querySelector('tbody tr:last-child [data-testid="column-key"] input');
+
+      if (keyInput) {
+        keyInput.focus();
+        clearInterval(interval);
+      } else if (attempts >= 20) {
+        clearInterval(interval);
+      }
+    }, 25);
+
+    return () => clearInterval(interval);
+  }, [editMode]);
+
+  const rows = useMemo(() => conditions.map((condition, index) => {
+    if (condition.uid) {
+      return condition;
+    }
+
+    rowUidsRef.current[index] = rowUidsRef.current[index] || uuid();
+    return { ...condition, uid: rowUidsRef.current[index] };
+  }), [conditions]);
+
+  const handleRowsChange = (updatedRows) => {
+    onChange({
       operator,
-      conditions: [
-        ...conditions,
-        {
-          target: 'header',
-          key: '',
-          operator: 'equals',
-          value: ''
-        }
-      ]
+      conditions: updatedRows.map((row) => ({
+        uid: row.uid,
+        target: row.target || DEFAULT_CONDITION.target,
+        key: row.key || '',
+        operator: row.operator || DEFAULT_CONDITION.operator,
+        value: row.value || ''
+      }))
     });
   };
 
-  const removeCondition = (index) => {
-    updateRules({
-      operator,
-      conditions: conditions.filter((_, conditionIndex) => conditionIndex !== index)
-    });
-  };
+  const columns = [
+    {
+      key: 'target',
+      name: 'Target',
+      width: '20%',
+      render: ({ value, onChange: onCellChange }) => (
+        <select
+          value={value || DEFAULT_CONDITION.target}
+          disabled={!editMode}
+          onChange={(event) => onCellChange(event.target.value)}
+          aria-label="Rule target"
+        >
+          {TARGET_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )
+    },
+    {
+      key: 'key',
+      name: 'Key',
+      isKeyField: true,
+      width: '27%',
+      readOnly: !editMode,
+      placeholder: KEY_PLACEHOLDERS.header,
+      render: ({ row, value, onChange: onCellChange }) => (
+        <input
+          type="text"
+          autoComplete="off"
+          spellCheck="false"
+          className="mousetrap"
+          value={value || ''}
+          readOnly={!editMode}
+          placeholder={KEY_PLACEHOLDERS[row.target] || KEY_PLACEHOLDERS.header}
+          onChange={(event) => onCellChange(event.target.value)}
+        />
+      )
+    },
+    {
+      key: 'operator',
+      name: 'Operator',
+      width: '22%',
+      render: ({ value, onChange: onCellChange }) => (
+        <select
+          value={value === 'regex' ? 'matches' : (value || DEFAULT_CONDITION.operator)}
+          disabled={!editMode}
+          onChange={(event) => onCellChange(event.target.value)}
+          aria-label="Rule operator"
+        >
+          {OPERATOR_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )
+    },
+    {
+      key: 'value',
+      name: 'Value',
+      width: '31%',
+      readOnly: !editMode,
+      placeholder: 'Value'
+    }
+  ];
 
   return (
-    <StyledWrapper className={embedded ? 'rules-panel embedded' : 'rules-panel'}>
-      <div className={`flex items-center mb-3 ${embedded ? 'justify-end' : 'justify-between'}`}>
-        {!embedded ? <div className="font-medium text-sm">Response rules</div> : null}
-        <div className="flex items-center gap-2 text-xs">
-          <label htmlFor="mock-response-rule-operator">Match</label>
+    <StyledWrapper ref={wrapperRef}>
+      <div className="flex items-center justify-between mb-3 text-xs">
+        <div className="flex items-center gap-2">
+          <label htmlFor="mock-response-rule-operator" className="font-medium">Match</label>
           <select
             id="mock-response-rule-operator"
             className="rule-operator"
             value={operator}
             disabled={!editMode}
-            onChange={(event) => updateRules({ operator: event.target.value, conditions })}
+            onChange={(event) => onChange({ operator: event.target.value, conditions })}
           >
-            <option value="AND">ALL (AND)</option>
-            <option value="OR">ANY (OR)</option>
+            <option value="AND">All rules (AND)</option>
+            <option value="OR">Any rule (OR)</option>
           </select>
         </div>
+        {!editMode ? (
+          <button
+            type="button"
+            className="add-rule-link"
+            onClick={handleAddRule}
+            data-testid="mock-response-add-rule-btn"
+          >
+            + Add Rule
+          </button>
+        ) : null}
       </div>
 
-      {conditions.length === 0 ? (
-        <div className="text-xs opacity-70 mb-3">
-          No rules. This response matches every request on the route.
+      {rows.length === 0 && !editMode ? (
+        <div className="text-xs opacity-70">
+          No rules - every request on this route gets this response.
         </div>
-      ) : null}
-
-      {conditions.map((condition, index) => (
-        <div className="rule-row" key={`rule-${index}`}>
-          <select
-            value={condition.target || 'header'}
-            disabled={!editMode}
-            onChange={(event) => updateCondition(index, { target: event.target.value })}
-          >
-            {TARGET_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            placeholder={condition.target === 'body' ? '$.user.type' : 'name'}
-            value={condition.key || ''}
-            disabled={!editMode}
-            onChange={(event) => updateCondition(index, { key: event.target.value })}
-          />
-
-          <select
-            value={condition.operator === 'regex' ? 'matches' : (condition.operator || 'equals')}
-            disabled={!editMode}
-            onChange={(event) => updateCondition(index, { operator: event.target.value })}
-          >
-            {OPERATOR_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            placeholder="value"
-            value={condition.value || ''}
-            disabled={!editMode}
-            onChange={(event) => updateCondition(index, { value: event.target.value })}
-          />
-
-          {editMode ? (
-            <button type="button" className="action-btn" onClick={() => removeCondition(index)} title="Remove rule">
-              <IconTrash size={14} />
-            </button>
-          ) : null}
-        </div>
-      ))}
-
-      {editMode ? (
-        <button type="button" className="add-rule-btn mt-2" onClick={addCondition}>
-          <IconPlus size={14} className="mr-1" />
-          Add rule
-        </button>
-      ) : null}
+      ) : (
+        <EditableTable
+          tableId="mock-response-rules"
+          columns={columns}
+          rows={rows}
+          onChange={handleRowsChange}
+          defaultRow={DEFAULT_CONDITION}
+          showCheckbox={false}
+          showAddRow={editMode}
+          showDelete={editMode}
+          testId="mock-response-rules-table"
+        />
+      )}
     </StyledWrapper>
   );
 };

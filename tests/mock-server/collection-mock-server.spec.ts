@@ -54,6 +54,23 @@ test.describe.serial('Mock Server', () => {
     await expect(ms.tabLog()).toBeVisible();
   });
 
+  test('should keep the Routes tab count after visiting Request Log while stopped', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+
+    await test.step('Routes tab shows the synced route count while stopped', async () => {
+      await expect(ms.statusText()).toHaveText('Stopped');
+      await expect(ms.tabRoutesCount()).toHaveText('3');
+    });
+
+    await test.step('Count survives a trip to the Request Log tab', async () => {
+      await ms.tabLog().click();
+      await expect(ms.logEmptyState()).toBeVisible();
+      await expect(ms.tabRoutesCount()).toBeVisible();
+      await expect(ms.tabRoutesCount()).toHaveText('3');
+    });
+  });
+
   test('should start mock server and show running status', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
@@ -323,34 +340,44 @@ test.describe.serial('Mock Server', () => {
     await expect(ms.logCount()).not.toBeVisible();
   });
 
+  test('should disable delay input while server is running', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await expect(ms.statusText()).toContainText('Running on port');
+    await expect(ms.delayInput()).toBeDisabled();
+  });
+
   test('should apply global delay to matched responses', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
+    await stopMockServer(page);
     await ms.delayInput().fill('500');
     await ms.delayInput().blur();
+    currentMockPort = await startMockServer(page);
 
     const start = Date.now();
     await mockFetch('/health');
     const elapsed = Date.now() - start;
     expect(elapsed).toBeGreaterThanOrEqual(400);
-
-    await ms.delayInput().fill('0');
-    await ms.delayInput().blur();
   });
 
   test('should not delay 404 responses', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
+    await stopMockServer(page);
     await ms.delayInput().fill('1000');
     await ms.delayInput().blur();
+    currentMockPort = await startMockServer(page);
 
     const start = Date.now();
     await mockFetch('/nonexistent');
     const elapsed = Date.now() - start;
     expect(elapsed).toBeLessThan(500);
 
+    await stopMockServer(page);
     await ms.delayInput().fill('0');
     await ms.delayInput().blur();
+    currentMockPort = await startMockServer(page);
   });
 
   test('should show refresh toast with correct route count', async ({ pageWithUserData: page }) => {
