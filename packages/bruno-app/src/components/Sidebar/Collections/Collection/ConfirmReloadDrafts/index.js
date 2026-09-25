@@ -7,7 +7,7 @@ import {
   saveMultipleFolders,
   reloadCollection
 } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { deleteRequestDraft, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, getCollectionDrafts } from 'utils/collections/index';
 import { pluralizeWord } from 'utils/common';
 import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
@@ -79,6 +79,9 @@ const ConfirmReloadDrafts = ({ onClose, collectionUid }) => {
         collectionUid: draft.collectionUid,
         itemUid: draft.uid
       }));
+    });
+    currentCollectionDrafts.forEach((draft) => {
+      dispatch(deleteCollectionDraft({ collectionUid: draft.collectionUid }));
     });
 
     handleReload();
