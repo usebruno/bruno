@@ -43,6 +43,31 @@ describe('transformUrl', () => {
     });
   });
 
+  it('should handle URL with environment variables, path variables, and query parameters without appending queries to path', () => {
+    const url = '{{baseUrl}}/{{username}}/api/resource/:id?limit=10&offset=20';
+    const params = [
+      { name: 'id', value: '123', type: 'path' },
+      { name: 'limit', value: '10', type: 'query' },
+      { name: 'offset', value: '20', type: 'query' }
+    ];
+
+    const result = transformUrl(url, params);
+
+    expect(result).toEqual({
+      raw: '{{baseUrl}}/{{username}}/api/resource/:id?limit=10&offset=20',
+      protocol: '',
+      host: ['{{baseUrl}}'],
+      path: ['{{username}}', 'api', 'resource', ':id'],
+      query: [
+        { key: 'limit', value: '10' },
+        { key: 'offset', value: '20' }
+      ],
+      variable: [
+        { key: 'id', value: '123' }
+      ]
+    });
+  });
+
   it('should handle URL without protocol', () => {
     const url = 'example.com/api/resource';
     const params = [];
