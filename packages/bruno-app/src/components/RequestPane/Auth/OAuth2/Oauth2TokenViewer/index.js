@@ -12,12 +12,15 @@ const TokenSection = ({ title, token }) => {
   const [decodedToken, setDecodedToken] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  const base64Decode = base64EncodedString =>
+    new TextDecoder().decode(Uint8Array.from(atob(base64EncodedString), m => m.charCodeAt(0)));
+
   useEffect(() => {
     if (token) {
       try {
         const parts = token.split('.');
         if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1]));
+          const payload = JSON.parse(base64Decode(parts[1]));
           setDecodedToken(payload);
         }
       } catch (err) {
