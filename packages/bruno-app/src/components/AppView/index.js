@@ -221,7 +221,7 @@ const AppView = ({ item, collection, code }) => {
               statusText: result.statusText,
               headers: result.headers,
               data: result.data,
-              dataBuffer: result.dataBuffer,
+              bodyRef: result.bodyRef || null,
               size: result.size,
               duration: result.duration,
               timeline: serializeTimeline(result.timeline)

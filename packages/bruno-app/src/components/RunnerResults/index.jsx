@@ -214,11 +214,7 @@ export default function RunnerResults({ collection }) {
   const resetRunner = () => {
     isReRunningRef.current = false;
     clearStoredRunnerExchanges();
-    dispatch(
-      resetCollectionRunner({
-        collectionUid: collection.uid
-      })
-    );
+    dispatch(resetCollectionRunner({ collectionUid: collection.uid }));
     setDelay(null);
   };
 

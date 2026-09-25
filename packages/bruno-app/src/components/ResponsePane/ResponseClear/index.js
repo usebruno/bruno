@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { IconEraser } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { responseCleared } from 'providers/ReduxStore/slices/collections/index';
+import { responseCleared } from 'providers/ReduxStore/slices/collections';
 import ActionIcon from 'ui/ActionIcon/index';
 
 // Hook to get clear response function

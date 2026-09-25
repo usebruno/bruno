@@ -37,7 +37,7 @@ const MenuIcon = forwardRef((props, ref) => (
 
 MenuIcon.displayName = 'MenuIcon';
 
-const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
+const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data }) => {
   const { orientation } = useResponseLayoutToggle();
 
   // Refs to access child component imperative handles (click, isDisabled)
@@ -160,7 +160,6 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
           selectedFormat={selectedFormat}
           selectedTab={selectedTab}
           data={data}
-          dataBuffer={dataBuffer}
         />
         {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
         <ResponseDownload ref={downloadButtonRef} item={item} />

@@ -34,7 +34,6 @@ import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 import { callIpc } from 'utils/common/ipc';
 import brunoClipboard from 'utils/bruno-clipboard';
-
 import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
@@ -50,6 +49,9 @@ import {
   requestCancelled,
   resetRunResults,
   responseReceived,
+  responseCleared,
+  clearRequestTimeline,
+  resetCollectionRunner,
   updateLastAction,
   setCollectionSecurityConfig,
   updateCollectionVersion as _updateCollectionVersion,
@@ -676,7 +678,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         });
     } else {
       sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
-        .then((response) => {
+        .then(async (response) => {
           const { requestSent, ...responseData } = response;
           // Ensure any timestamps in the response are converted to numbers
           const serializedResponse = {

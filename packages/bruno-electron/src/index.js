@@ -17,6 +17,7 @@ if (isDev) {
 const { format } = require('url');
 const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
+const { createResponseBodyService } = require('./services/response-body');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
   console.debug('`ELECTRON_USER_DATA_PATH` found, modifying `userData` path: \n'
@@ -515,6 +516,10 @@ app.on('ready', async () => {
       isRunningInRosetta: getIsRunningInRosetta()
     });
   });
+
+  // Response body store (spill / range-read) — before network IPC uses it
+  const responseBodyService = createResponseBodyService();
+  responseBodyService.registerIpc(mainWindow);
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
