@@ -594,6 +594,12 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // or encoding runs. The returned `unhash` lets the caller restore originals at the end.
   let working = shouldInterpolate ? interpolateRequest(input.request, variables) : cloneDeep(input.request);
 
+  // HTTPSnippet copies the method, so a lowercase verb — which
+  // `.bru` examples and hand-edited `.yml` still deliver — renders an unrunnable
+  // `curl --request post`. Methods are case-sensitive tokens (RFC 9110).
+  // `String()` guards the plain-JS call site, where `method?: string` isn't enforced.
+  const method = String(working.method || 'GET').toUpperCase();
+
   // The hashers operate at the URL-string layer specifically. Headers/body
   // /auth/params with `{{var}}` would only render in the snippet text;
   // those callers that don't want them resolved can pre-hash before calling
@@ -652,7 +658,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // Step 5 — Auth → headers. Append to request headers. Request-signing auth (EdgeGrid) must
   // sign the same `encodedUrl` the snippet transmits, or the signature won't cover the sent bytes.
   const authHeaders = await authToHeaders(working.auth, variables, input.oauth2Credentials, input.collectionUid, {
-    method: working.method || 'GET',
+    method,
     url: encodedUrl,
     headers: working.headers,
     bodyText: buildPostData(working.body)?.text
@@ -691,7 +697,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
 
   // Step 9 — Assemble.
   const har: HarRequest = {
-    method: working.method || 'GET',
+    method,
     url: harUrl,
     httpVersion: 'HTTP/1.1',
     cookies: [],
