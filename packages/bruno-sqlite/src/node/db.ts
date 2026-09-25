@@ -4,6 +4,8 @@ import type { Migration } from '../shared/types';
 
 export type DatabaseOptions = DatabaseSyncOptions;
 
+export type DatabasePragmas = Record<string, string | number>;
+
 const MIGRATION_ERROR = Symbol.for('@usebruno/sqlite:migration-error');
 
 export class DatabaseMigrationError extends Error {
@@ -34,10 +36,20 @@ export class DB {
     down_hash TEXT NOT NULL
   )`;
 
-  constructor(path: string, migrations: Migration[], options: DatabaseOptions = {}) {
+  constructor(path: string, migrations: Migration[], options: DatabaseOptions = {}, pragmas: DatabasePragmas = {}) {
     try {
       this._db = new DatabaseSync(path, options);
     } catch (err) {
+      this._db = undefined;
+      throw err;
+    }
+
+    try {
+      for (const [key, value] of Object.entries(pragmas)) {
+        this._db.exec(`PRAGMA ${key} = ${value};`);
+      }
+    } catch (err) {
+      this._db.close();
       this._db = undefined;
       throw err;
     }
