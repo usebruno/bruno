@@ -100,6 +100,15 @@ describe('prepareGqlIntrospectionRequest', () => {
     expect(result.headers['Content-Type']).toBe('application/json');
   });
 
+  it('should request deprecated GraphQL input values during introspection', () => {
+    const setup = createBasicSetup();
+    const result = prepareGqlIntrospectionRequest(setup.endpoint, {}, setup.request, setup.collectionRoot);
+    const { query } = JSON.parse(result.data);
+
+    expect(query).toContain('inputFields(includeDeprecated: true)');
+    expect(query).toContain('args(includeDeprecated: true)');
+  });
+
   it('should handle process.env variables in endpoint URL', () => {
     const setup = createBasicSetup();
     setup.endpoint = 'https://{{process.env.API_HOST}}/graphql';
