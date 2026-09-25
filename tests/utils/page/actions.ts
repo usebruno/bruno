@@ -1428,6 +1428,49 @@ const deleteAllGlobalEnvironments = async (page: Page) => {
 };
 
 /**
+ * Read the rendered widths of the resizable columns in the environment variables table.
+ * Waits until the table reports its column widths as measured.
+ * @param page - The page object
+ * @returns Width in px of the Name, Value and Description columns
+ */
+const getEnvironmentColumnWidths = async (page: Page) => {
+  const { environment } = buildCommonLocators(page);
+  const columns = ['name', 'value', 'description'] as const;
+
+  await expect(environment.variablesTable()).toHaveAttribute('data-columns-measured', 'true');
+
+  const [name, value, description] = await Promise.all(
+    columns.map(async (column) => (await environment.columnHeader(column).boundingBox())?.width ?? 0)
+  );
+  return { name, value, description };
+};
+
+/**
+ * Drag a column divider in the environment variables table horizontally.
+ * @param page - The page object
+ * @param column - The column whose right-edge divider is dragged ('name' or 'value')
+ * @param deltaX - Horizontal distance in px; positive widens the column
+ * @returns void
+ */
+const dragEnvironmentColumnDivider = async (page: Page, column: 'name' | 'value', deltaX: number) => {
+  await test.step(`Drag the ${column} column divider by ${deltaX}px`, async () => {
+    const handle = buildCommonLocators(page).environment.columnResizeHandle(column);
+    await handle.hover();
+
+    const box = await handle.boundingBox();
+    if (!box) throw new Error(`Resize handle for the ${column} column is not rendered`);
+
+    // Grab near the top so the pointer stays within the header row
+    const startX = box.x + box.width / 2;
+    const startY = box.y + 10;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + deltaX, startY, { steps: 10 });
+    await page.mouse.up();
+  });
+};
+
+/**
  * Save the current environment settings
  * @param page - The page object
  * @returns void
@@ -3878,6 +3921,8 @@ export {
   createEnvironment,
   renameEnvironment,
   openEnvironmentInSettings,
+  getEnvironmentColumnWidths,
+  dragEnvironmentColumnDivider,
   setEnvironmentInheritance,
   copyEnvironment,
   deleteEnvironment,
