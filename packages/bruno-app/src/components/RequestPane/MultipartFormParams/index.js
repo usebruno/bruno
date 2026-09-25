@@ -68,7 +68,7 @@ const MultipartFormParams = ({ item, collection }) => {
         if (!Array.isArray(filePaths) || filePaths.length === 0) return;
 
         const processedPaths = filePaths.map((filePath) => {
-          return getRelativePathWithinBasePath(collection.pathname, filePath);
+          return getRelativePathWithinBasePath(collection.pathname, filePath, true);
         });
 
         const currentParams = item.draft
