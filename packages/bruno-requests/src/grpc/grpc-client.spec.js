@@ -715,4 +715,58 @@ describe('GrpcClient', () => {
       expect(capturedHost).toBe('myserver:50051');
     });
   });
+
+  describe('generateGrpcurlCommand port preservation', () => {
+    const buildCommand = (url) =>
+      grpcClient.generateGrpcurlCommand({
+        request: {
+          url,
+          method: '/pkg.svc/M',
+          methodType: 'unary',
+          body: { grpc: [] },
+          headers: {},
+          protoPath: ''
+        },
+        collectionPath: ''
+      });
+
+    test('should preserve an explicit default http port (:80) in the target', () => {
+      const cmd = buildCommand('http://x.mydomain.com:80');
+      expect(cmd).toContain('x.mydomain.com:80');
+    });
+
+    test('should preserve an explicit default https port (:443) in the target', () => {
+      const cmd = buildCommand('https://x.mydomain.com:443');
+      expect(cmd).toContain('x.mydomain.com:443');
+    });
+
+    test('should not append a port when none was specified', () => {
+      const cmd = buildCommand('http://x.mydomain.com');
+      expect(cmd).toContain('x.mydomain.com');
+      expect(cmd).not.toMatch(/x\.mydomain\.com:\d+/);
+    });
+
+    test('should not scrape a bogus port from an IPv6 host without an explicit port (http)', () => {
+      const cmd = buildCommand('http://[::1]');
+      expect(cmd).toContain('[::1]');
+      expect(cmd).not.toMatch(/\[::1\]:\d+/);
+    });
+
+    test('should not scrape a bogus port from an IPv6 host without an explicit port (grpcs)', () => {
+      const cmd = buildCommand('grpcs://[2001:db8::1]');
+      expect(cmd).toContain('[2001:db8::1]');
+      expect(cmd).not.toMatch(/\[2001:db8::1\]:\d+/);
+    });
+
+    test('should preserve an explicit port on an IPv6 host', () => {
+      const cmd = buildCommand('https://[2001:db8::1]:443');
+      expect(cmd).toContain('[2001:db8::1]:443');
+    });
+
+    test('should not scrape a port from userinfo when no host port is present', () => {
+      const cmd = buildCommand('http://user:80@host');
+      expect(cmd).toContain('host');
+      expect(cmd).not.toMatch(/host:\d+/);
+    });
+  });
 });
