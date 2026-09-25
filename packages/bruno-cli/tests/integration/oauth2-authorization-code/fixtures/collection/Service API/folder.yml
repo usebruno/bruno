@@ -1,0 +1,23 @@
+info:
+  name: Service API
+  type: folder
+request:
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{idp}}/authorize"
+    accessTokenUrl: "{{idp}}/token"
+    callbackUrl: "http://localhost:{{callbackPort}}/callback"
+    credentials:
+      clientId: "{{clientId}}"
+      placement: body
+    scope: quotes
+    pkce: {}
+    tokenConfig:
+      id: "{{credentialsId}}"
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: true

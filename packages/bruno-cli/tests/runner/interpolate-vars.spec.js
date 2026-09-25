@@ -134,3 +134,61 @@ describe('interpolate-vars: digest auth', () => {
     expect(request.digestConfig).toEqual({ username: 'user', password: 'passwd' });
   });
 });
+
+describe('interpolate-vars: oauth2 authorization code', () => {
+  it('interpolates every authorization code field and additional parameter', () => {
+    const request = {
+      headers: {},
+      oauth2: {
+        grantType: 'authorization_code',
+        authorizationUrl: '{{idp}}/authorize',
+        accessTokenUrl: '{{idp}}/token',
+        refreshTokenUrl: '{{idp}}/refresh',
+        callbackUrl: 'http://localhost:{{port}}/callback',
+        clientId: '{{clientId}}',
+        clientSecret: '{{clientSecret}}',
+        scope: '{{scope}}',
+        state: '{{state}}',
+        pkce: true,
+        credentialsPlacement: 'body',
+        credentialsId: '{{credentialsId}}',
+        tokenPlacement: 'header',
+        tokenHeaderPrefix: '{{prefix}}',
+        tokenQueryKey: 'access_token',
+        additionalParameters: {
+          authorization: [{ name: 'audience', value: '{{audience}}', enabled: true, sendIn: 'queryparams' }],
+          token: [],
+          refresh: []
+        }
+      }
+    };
+    const envVariables = {
+      idp: 'https://auth.example.com',
+      port: '8765',
+      clientId: 'my-client',
+      clientSecret: 'my-secret',
+      scope: 'openid',
+      state: 'my-state',
+      credentialsId: 'creds',
+      prefix: 'Bearer',
+      audience: 'api://default'
+    };
+
+    interpolateVars(request, envVariables, {}, {});
+
+    expect(request.oauth2).toMatchObject({
+      authorizationUrl: 'https://auth.example.com/authorize',
+      accessTokenUrl: 'https://auth.example.com/token',
+      refreshTokenUrl: 'https://auth.example.com/refresh',
+      callbackUrl: 'http://localhost:8765/callback',
+      clientId: 'my-client',
+      clientSecret: 'my-secret',
+      scope: 'openid',
+      state: 'my-state',
+      pkce: true,
+      credentialsId: 'creds',
+      tokenHeaderPrefix: 'Bearer'
+    });
+    expect(request.oauth2.additionalParameters.authorization[0].value).toBe('api://default');
+  });
+});
