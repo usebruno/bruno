@@ -57,12 +57,7 @@ const Wrapper = styled.div`
     }
   }
 
-  .default-header-row {
-    .CodeMirror-line {
-      color: ${(props) => props.theme.colors.text.muted};
-    }
-  }
-
+  .default-header-row,
   .inherited-header-row {
     .CodeMirror-line {
       font-style: italic;
