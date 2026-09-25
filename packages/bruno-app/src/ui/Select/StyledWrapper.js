@@ -117,6 +117,54 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
+  .select-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .select-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background: ${(props) => props.theme.dropdown.hoverBg};
+    max-width: 100%;
+  }
+
+  .select-tag-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .select-tag-remove {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .select-option-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+
 `;
 
 export default StyledWrapper;

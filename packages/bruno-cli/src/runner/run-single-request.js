@@ -24,7 +24,7 @@ const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAx
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, parsePromptVariable, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -187,7 +187,7 @@ const runSingleRequest = async function (
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
 
     if (promptVars.length > 0) {
-      const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.join(', ')}`;
+      const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.map((p) => parsePromptVariable(p).label).join(', ')}`;
       console.log(chalk.yellow(stripExtension(relativeItemPathname) + ' Skipped:') + chalk.dim(` (${errorMsg})`));
       return {
         test: {

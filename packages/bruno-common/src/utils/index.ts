@@ -26,7 +26,8 @@ export {
   PROMPT_VARIABLE_TEXT_PATTERN,
   PROMPT_VARIABLE_TEMPLATE_PATTERN,
   extractPromptVariables,
-  extractPromptVariablesFromString
+  extractPromptVariablesFromString,
+  parsePromptVariable
 } from './prompt-variables';
 
 export {
