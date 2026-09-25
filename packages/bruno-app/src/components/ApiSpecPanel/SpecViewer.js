@@ -45,16 +45,26 @@ const MIN_RIGHT_PANE_WIDTH = 450;
  *  - onSave                (fn)      Called with current editor content on save (editable mode only)
  *  - leftPaneWidth         (number|null) Persisted left pane width in px; null = use 50/50 default
  *  - onLeftPaneWidthChange (fn)      Persist the new width (called on mouseup / double-click / resize-clamp)
+ *  - draftContent          (string|null) Unsaved content owned by the caller, so the caller can read
+ *                          whether there are unsaved edits (tab indicator, save shortcut, close
+ *                          confirmation). Falls back to `content` when there is no draft.
+ *  - onDraftChange         (fn)      Receives every edit. Required unless `readOnly`, because the
+ *                          editor holds no content of its own.
  */
-const SpecViewer = ({ content, resolvedSpec, readOnly, onSave, leftPaneWidth, onLeftPaneWidthChange }) => {
+const SpecViewer = ({
+  content,
+  resolvedSpec,
+  readOnly,
+  onSave,
+  leftPaneWidth,
+  onLeftPaneWidthChange,
+  draftContent,
+  onDraftChange
+}) => {
   const { displayedTheme, theme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const [editorContent, setEditorContent] = useState(content);
-
-  useEffect(() => {
-    setEditorContent(content);
-  }, [content]);
+  const editorContent = draftContent ?? content;
 
   const hasChanges = !readOnly && editorContent !== content;
 
@@ -104,8 +114,6 @@ const SpecViewer = ({ content, resolvedSpec, readOnly, onSave, leftPaneWidth, on
   }, [content]);
 
   const handleSwaggerComplete = useCallback(() => {
-    // Double rAF: wait for one full paint cycle so Swagger is actually on screen
-    // before hiding the loader — avoids a flash of unrendered content.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         clearTimeout(previewTimeoutRef.current);
@@ -127,8 +135,7 @@ const SpecViewer = ({ content, resolvedSpec, readOnly, onSave, leftPaneWidth, on
           theme={displayedTheme}
           value={readOnly ? content : editorContent}
           readOnly={readOnly ? 'nocursor' : false}
-          onEdit={readOnly ? undefined : (val) => setEditorContent(val)}
-          onSave={readOnly ? undefined : handleSave}
+          onEdit={readOnly ? undefined : onDraftChange}
           mode="yaml"
           font={get(preferences, 'font.codeFont', 'default')}
         />

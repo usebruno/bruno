@@ -78,6 +78,11 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
+
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
     }
   }
 
@@ -96,7 +101,12 @@ export default class CodeEditor extends React.Component {
   componentWillUnmount() {
     if (this.editor) {
       this.editor.off('change', this._onEdit);
+      const editorElement = this.editor.getWrapperElement();
+      if (editorElement && editorElement.parentNode) {
+        editorElement.parentNode.removeChild(editorElement);
+      }
       this.editor = null;
+      this._node = null;
     }
   }
 
