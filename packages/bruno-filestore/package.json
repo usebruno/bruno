@@ -44,12 +44,12 @@
     "rollup": "3.30.0"
   },
   "dependencies": {
-    "@types/nanoid": "^2.1.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/lang": "0.12.0",
     "nanoid": "3.3.18",
     "ajv": "^8.18.0",
     "lodash": "4.18.1",
+    "nanoid": "3.3.18",
     "yaml": "2.3.4"
   }
 }
