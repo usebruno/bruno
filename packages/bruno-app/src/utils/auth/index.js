@@ -26,12 +26,12 @@ export const resolveInheritedAuth = (item, collection) => {
   const collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
 
-  // Walk ancestor folders from deepest up; pick the first one with a concrete auth mode (skip 'none'/'inherit').
+  // Walk ancestor folders from deepest up; pick the first one with a concrete auth mode (skip 'inherit').
   for (let idx = requestTreePath.length - 1; idx >= 0; idx--) {
     const i = requestTreePath[idx];
     if (i.type === 'folder') {
       const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'inherit') {
         effectiveAuth = folderAuth;
         break;
       }
