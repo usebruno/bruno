@@ -7,7 +7,9 @@ type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
 
 export const buildManageWorkspaceLocators = (page: Page) => {
   const workspaceItem = (workspaceName: string) =>
-    page.getByTestId(/^workspace-item-/).filter({ has: page.getByText(workspaceName, { exact: true }) });
+    page.getByTestId(/^workspace-item-/).filter({
+      has: page.getByTestId('workspace-row-name').and(page.getByText(workspaceName, { exact: true }))
+    });
 
   return {
     title: () => page.getByTestId('manage-workspace-title'),

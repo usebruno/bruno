@@ -5,7 +5,7 @@ const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const isDev = require('electron-is-dev');
-const { createDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
+const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
@@ -65,16 +65,13 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         const desiredPath = path.join(workspaceLocation, workspaceFolderName);
 
         let dirPath;
-        if (fs.existsSync(desiredPath)) {
-          const isEmpty = fs.readdirSync(desiredPath).length === 0;
-          if (isEmpty) {
-            dirPath = desiredPath;
-          } else {
-            ({ pathname: dirPath } = await mkdirUnique(workspaceLocation, workspaceFolderName));
-          }
-        } else {
+        if (!fs.existsSync(desiredPath)) {
           dirPath = desiredPath;
           await createDirectory(dirPath);
+        } else if (isDirectory(desiredPath) && fs.readdirSync(desiredPath).length === 0) {
+          dirPath = desiredPath;
+        } else {
+          ({ pathname: dirPath } = await mkdirUnique(workspaceLocation, workspaceFolderName));
         }
 
         await createDirectory(path.join(dirPath, 'collections'));

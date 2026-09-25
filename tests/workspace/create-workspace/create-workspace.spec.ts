@@ -3,6 +3,10 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../utils/page';
+import {
+  buildCreateWorkspaceModalLocators,
+  openCreateWorkspaceModal
+} from '../../utils/page/workspace/create-workspace-modal';
 
 type WorkspaceConfig = {
   opencollection?: string;
@@ -432,22 +436,17 @@ test.describe('Create Workspace', () => {
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
       const page = await waitForReadyPage(app);
 
-      await test.step('Open the advanced modal and submit a name whose folder is taken', async () => {
-        await page.locator('.workspace-name-container').click();
-        await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
-        await expect(page.locator('.workspace-name-input')).toBeVisible({ timeout: 5000 });
-        await page.locator('.cog-btn').click();
+      await test.step('Submit a name whose folder is taken', async () => {
+        const createWorkspaceModal = buildCreateWorkspaceModalLocators(page);
 
-        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
-        await modal.waitFor({ state: 'visible', timeout: 5000 });
-        await modal.locator('#workspace-name').fill('Occupied WS');
-        await expect(modal.locator('.name-container')).toHaveText('Occupied WS');
-        await modal.getByRole('button', { name: 'Create Workspace' }).click();
+        await openCreateWorkspaceModal(page);
+        await createWorkspaceModal.nameInput().fill('Occupied WS');
+        await expect(createWorkspaceModal.folderNamePreview()).toHaveText('Occupied WS');
+        await createWorkspaceModal.submitButton().click();
       });
 
       await test.step('Verify the workspace is created without an error', async () => {
         await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
-        await expect(page.getByText('An error occurred while creating the workspace')).not.toBeVisible();
         await expect(page.getByTestId('workspace-name')).toHaveText('Occupied WS', { timeout: 5000 });
       });
 
@@ -462,6 +461,39 @@ test.describe('Create Workspace', () => {
 
         expect(fs.readFileSync(path.join(occupiedDir, 'notes.txt'), 'utf8')).toBe('pre-existing');
         expect(fs.existsSync(path.join(occupiedDir, 'workspace.yml'))).toBe(false);
+      });
+
+      await closeElectronApp(app);
+    });
+
+    test('should suffix the directory when a file already occupies the target name', async ({ launchElectronApp, createTmpDir }) => {
+      const wsLocation = await createTmpDir('ws-location-file-collision');
+      const occupyingFile = path.join(wsLocation, 'Blocked WS');
+      fs.writeFileSync(occupyingFile, 'not a directory');
+
+      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+      const page = await waitForReadyPage(app);
+
+      await test.step('Submit a name a file already occupies', async () => {
+        const createWorkspaceModal = buildCreateWorkspaceModalLocators(page);
+
+        await openCreateWorkspaceModal(page);
+        await createWorkspaceModal.nameInput().fill('Blocked WS');
+        await expect(createWorkspaceModal.folderNamePreview()).toHaveText('Blocked WS');
+        await createWorkspaceModal.submitButton().click();
+      });
+
+      await test.step('Verify the workspace is created instead of failing with ENOTDIR', async () => {
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('workspace-name')).toHaveText('Blocked WS', { timeout: 5000 });
+      });
+
+      await test.step('Verify it landed beside the file and left the file untouched', async () => {
+        const wsDirs = findCreatedWorkspaceDirs(wsLocation);
+        expect(wsDirs).toEqual(['Blocked WS 1']);
+
+        expect(fs.statSync(occupyingFile).isFile()).toBe(true);
+        expect(fs.readFileSync(occupyingFile, 'utf8')).toBe('not a directory');
       });
 
       await closeElectronApp(app);
