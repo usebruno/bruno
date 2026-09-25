@@ -11,4 +11,4 @@ runtime:
   scripts:
     - type: before-request
       code: |-
-        await bru.sleep(5000);
+        await bru.sleep(10000);
