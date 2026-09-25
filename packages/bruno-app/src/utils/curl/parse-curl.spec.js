@@ -410,11 +410,31 @@ describe('parseCurlCommand', () => {
       expect(result).toEqual({
         method: 'post',
         multipartUploads: [
-          { name: 'file', value: '/path/to/file.txt', type: 'file', enabled: true }
+          { name: 'file', value: ['/path/to/file.txt'], type: 'file', enabled: true }
         ],
         url: 'https://api.example.com/upload',
         urlWithoutQuery: 'https://api.example.com/upload'
       });
+    });
+
+    it('should parse the quoted form data postman generates', () => {
+      const result = parseCurlCommand(
+        'curl --location \'https://api.example.com/upload\' --form \'name="John"\' --form \'email="john@example.com"\' --form \'file=@"/path/to/file.txt"\''
+      );
+
+      expect(result.multipartUploads).toEqual([
+        { name: 'name', value: 'John', type: 'text', enabled: true },
+        { name: 'email', value: 'john@example.com', type: 'text', enabled: true },
+        { name: 'file', value: ['/path/to/file.txt'], type: 'file', enabled: true }
+      ]);
+    });
+
+    it('should skip form fields without a name=value pair', () => {
+      const result = parseCurlCommand(`
+        curl --form "invalid" https://api.example.com/upload
+      `);
+
+      expect(result.multipartUploads).toEqual([]);
     });
   });
 

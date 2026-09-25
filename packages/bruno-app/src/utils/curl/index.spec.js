@@ -20,4 +20,16 @@ describe('getRequestFromCurlCommand', () => {
     expect(Array.isArray(request.body.file)).toBe(true);
     expect(request.body.file[0].filePath).toBe('/path/to/payload.json');
   });
+
+  it('should map postman form-data into a multipart body', () => {
+    const curl = 'curl --location \'https://example.com/upload\' --form \'name="John"\' --form \'file=@"/path/to/file.txt"\'';
+
+    const request = getRequestFromCurlCommand(curl);
+
+    expect(request.body.mode).toBe('multipartForm');
+    expect(request.body.multipartForm).toEqual([
+      { uid: expect.any(String), name: 'name', value: 'John', type: 'text', enabled: true },
+      { uid: expect.any(String), name: 'file', value: ['/path/to/file.txt'], type: 'file', enabled: true }
+    ]);
+  });
 });

@@ -321,19 +321,29 @@ const setFormData = (request, value) => {
 /**
  * Parse a single form field
  * Handles text fields, quoted values, and file uploads (@path)
+ * Postman quotes every form value, eg: name="john" / file=@"/path/to/file.png"
  */
 const parseFormField = (field) => {
-  const match = field.match(/^([^=]+)=(?:@?"([^"]*)"|@([^@]*)|([^@]*))?$/);
+  if (typeof field !== 'string') return null;
 
-  if (!match) return null;
+  const separatorIndex = field.indexOf('=');
+  if (separatorIndex < 0) return null;
 
-  const fieldName = match[1];
-  const fieldValue = match[2] || match[3] || match[4] || '';
-  const isFile = field.includes('@');
+  const name = field.slice(0, separatorIndex);
+  let value = field.slice(separatorIndex + 1);
+
+  // only a leading `@` marks a file upload, an `@` inside the value (eg an email) does not
+  const isFile = value.startsWith('@');
+  if (isFile) {
+    value = value.slice(1);
+  }
+
+  value = value.replace(/^"([\s\S]*)"$/, '$1');
 
   return {
-    name: fieldName,
-    value: fieldValue,
+    name,
+    // multipart file params hold a list of file paths
+    value: isFile ? [value] : value,
     type: isFile ? 'file' : 'text',
     enabled: true
   };
