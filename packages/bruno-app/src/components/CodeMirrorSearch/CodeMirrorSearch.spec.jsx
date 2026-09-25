@@ -318,6 +318,34 @@ describe('CodeMirrorSearch', () => {
 
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
     });
+
+    it('does not move the cursor/selection when the user edits the document', () => {
+      let changeHandler;
+      const matches = [
+        { from: { line: 0, ch: 0 }, to: { line: 0, ch: 7 } },
+        { from: { line: 1, ch: 0 }, to: { line: 1, ch: 7 } }
+      ];
+      const editor = makeMockEditor(matches);
+      editor.on = jest.fn((event, handler) => { if (event === 'change') changeHandler = handler; });
+      editor.off = jest.fn();
+
+      renderSearch({ editor });
+      typeSearch('console');
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 2');
+
+      // User moves the cursor to line 1 and types there
+      editor.setSelection.mockClear();
+      editor.getCursor.mockReturnValue({ line: 1, ch: 3 });
+
+      act(() => {
+        changeHandler();
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(editor.setSelection).not.toHaveBeenCalled();
+      // Current match follows the cursor instead of resetting to the first match
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('2 / 2');
+    });
   });
 
   describe('replace mode Enter key behavior', () => {
