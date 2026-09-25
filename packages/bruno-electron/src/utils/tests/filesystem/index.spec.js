@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs/promises');
 const os = require('os');
-const { copyPathTo, removePath, getUniqueTargetPath, writeFileUnique } = require('../../filesystem');
+const { copyPathTo, removePath, getUniqueTargetPath, mkdirUnique, writeFileUnique } = require('../../filesystem');
 const { initialCollectionStructure, finalCollectionStructure } = require('../fixtures/filesystem/copypath-removepath');
 
 const moveInto = async (sourcePath, destDir) => {
@@ -99,6 +99,40 @@ describe('File System Operations', () => {
       const dir = path.join(tempDir, 'guard_desc');
       await fs.mkdir(dir, { recursive: true });
       await expect(copyPathTo(dir, path.join(dir, 'sub'))).rejects.toThrow(GUARD_ERR);
+    });
+  });
+
+  describe('mkdirUnique', () => {
+    it('creates the requested directory when the name is free', async () => {
+      const dir = path.join(tempDir, 'mkdir_free');
+      await fs.mkdir(dir, { recursive: true });
+
+      const { pathname, name } = await mkdirUnique(dir, 'Payments');
+
+      expect(name).toBe('Payments');
+      expect(pathname).toBe(path.join(dir, 'Payments'));
+      expect((await fs.stat(pathname)).isDirectory()).toBe(true);
+    });
+
+    it('suffixes each subsequent directory that reuses a taken name', async () => {
+      const dir = path.join(tempDir, 'mkdir_taken');
+      await fs.mkdir(dir, { recursive: true });
+
+      const first = await mkdirUnique(dir, 'Payments');
+      const second = await mkdirUnique(dir, 'Payments');
+      const third = await mkdirUnique(dir, 'Payments');
+
+      expect([first.name, second.name, third.name]).toEqual(['Payments', 'Payments 1', 'Payments 2']);
+      expect(new Set([first.pathname, second.pathname, third.pathname]).size).toBe(3);
+    });
+
+    it('suffixes a dotted directory name without splitting on the dot', async () => {
+      const dir = path.join(tempDir, 'mkdir_dotted');
+      await fs.mkdir(path.join(dir, 'v1.2'), { recursive: true });
+
+      const { name } = await mkdirUnique(dir, 'v1.2');
+
+      expect(name).toBe('v1.2 1');
     });
   });
 

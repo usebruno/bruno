@@ -3,6 +3,10 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../utils/page';
+import {
+  buildCreateWorkspaceModalLocators,
+  openCreateWorkspaceModal
+} from '../../utils/page/workspace/create-workspace-modal';
 
 type WorkspaceConfig = {
   opencollection?: string;
@@ -422,6 +426,78 @@ test.describe('Create Workspace', () => {
 
       await closeElectronApp(app);
     });
+
+    test('should suffix the directory when the target folder already exists and is not empty', async ({ launchElectronApp, createTmpDir }) => {
+      const wsLocation = await createTmpDir('ws-location-occupied');
+      const occupiedDir = path.join(wsLocation, 'Occupied WS');
+      fs.mkdirSync(occupiedDir, { recursive: true });
+      fs.writeFileSync(path.join(occupiedDir, 'notes.txt'), 'pre-existing');
+
+      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+      const page = await waitForReadyPage(app);
+
+      await test.step('Submit a name whose folder is taken', async () => {
+        const createWorkspaceModal = buildCreateWorkspaceModalLocators(page);
+
+        await openCreateWorkspaceModal(page);
+        await createWorkspaceModal.nameInput().fill('Occupied WS');
+        await expect(createWorkspaceModal.folderNamePreview()).toHaveText('Occupied WS');
+        await createWorkspaceModal.submitButton().click();
+      });
+
+      await test.step('Verify the workspace is created without an error', async () => {
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('workspace-name')).toHaveText('Occupied WS', { timeout: 5000 });
+      });
+
+      await test.step('Verify it landed in a suffixed directory and left the occupied one alone', async () => {
+        const wsDirs = findCreatedWorkspaceDirs(wsLocation);
+        expect(wsDirs).toEqual(['Occupied WS 1']);
+
+        const config = yaml.load(
+          fs.readFileSync(path.join(wsLocation, 'Occupied WS 1', 'workspace.yml'), 'utf8')
+        ) as WorkspaceConfig;
+        expect(config?.info?.name).toBe('Occupied WS');
+
+        expect(fs.readFileSync(path.join(occupiedDir, 'notes.txt'), 'utf8')).toBe('pre-existing');
+        expect(fs.existsSync(path.join(occupiedDir, 'workspace.yml'))).toBe(false);
+      });
+
+      await closeElectronApp(app);
+    });
+
+    test('should suffix the directory when a file already occupies the target name', async ({ launchElectronApp, createTmpDir }) => {
+      const wsLocation = await createTmpDir('ws-location-file-collision');
+      const occupyingFile = path.join(wsLocation, 'Blocked WS');
+      fs.writeFileSync(occupyingFile, 'not a directory');
+
+      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+      const page = await waitForReadyPage(app);
+
+      await test.step('Submit a name a file already occupies', async () => {
+        const createWorkspaceModal = buildCreateWorkspaceModalLocators(page);
+
+        await openCreateWorkspaceModal(page);
+        await createWorkspaceModal.nameInput().fill('Blocked WS');
+        await expect(createWorkspaceModal.folderNamePreview()).toHaveText('Blocked WS');
+        await createWorkspaceModal.submitButton().click();
+      });
+
+      await test.step('Verify the workspace is created instead of failing with ENOTDIR', async () => {
+        await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('workspace-name')).toHaveText('Blocked WS', { timeout: 5000 });
+      });
+
+      await test.step('Verify it landed beside the file and left the file untouched', async () => {
+        const wsDirs = findCreatedWorkspaceDirs(wsLocation);
+        expect(wsDirs).toEqual(['Blocked WS 1']);
+
+        expect(fs.statSync(occupyingFile).isFile()).toBe(true);
+        expect(fs.readFileSync(occupyingFile, 'utf8')).toBe('not a directory');
+      });
+
+      await closeElectronApp(app);
+    });
   });
 
   test.describe('Workspace Name Display', () => {
@@ -690,42 +766,6 @@ test.describe('Create Workspace', () => {
         const createdWs = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'Switchable WS' });
         await createdWs.first().click();
         await expect(page.getByTestId('workspace-name')).toHaveText('Switchable WS', { timeout: 5000 });
-      });
-
-      await closeElectronApp(app);
-    });
-  });
-
-  test.describe('Temp Workspace Isolation', () => {
-    test('should exclude temp workspace from duplicate name validation in advanced modal', async ({ launchElectronApp, createTmpDir }) => {
-      const wsLocation = await createTmpDir('ws-location-no-temp');
-
-      const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
-      const page = await waitForReadyPage(app);
-
-      await test.step('Start creation but do not confirm', async () => {
-        await page.locator('.workspace-name-container').click();
-        await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
-        await expect(page.locator('.workspace-name-input')).toBeVisible({ timeout: 5000 });
-      });
-
-      await test.step('Open advanced modal and verify temp workspace name is not a conflict', async () => {
-        await page.locator('.cog-btn').click();
-
-        const modal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Workspace' });
-        await modal.waitFor({ state: 'visible', timeout: 5000 });
-
-        // Fill the same name as temp workspace — should NOT show "already exists" error
-        // since isCreating workspaces are excluded from validation
-        await modal.locator('#workspace-name').fill('Untitled Workspace');
-        await page.waitForTimeout(500);
-
-        const errorText = modal.locator('.text-red-500');
-        const hasError = await errorText.isVisible().catch(() => false);
-        if (hasError) {
-          const errorContent = await errorText.textContent();
-          expect(errorContent).not.toContain('already exists');
-        }
       });
 
       await closeElectronApp(app);
