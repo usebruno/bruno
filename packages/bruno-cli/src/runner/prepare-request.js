@@ -76,14 +76,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
       }
 
       if (collectionAuth.apikey?.placement === 'queryparams') {
-        if (axiosRequest.url && collectionAuth.apikey?.key) {
-          try {
-            const urlObj = new URL(request.url);
-            urlObj.searchParams.set(collectionAuth.apikey?.key, collectionAuth.apikey?.value);
-            axiosRequest.url = urlObj.toString();
-          } catch (error) {
-            console.error('Invalid URL:', request.url, error);
-          }
+        if (collectionAuth.apikey?.key) {
+          axiosRequest.apiKeyAuthValueForQueryParams = collectionAuth.apikey;
         }
       }
     }
@@ -332,14 +326,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
       }
 
       if (request.auth.apikey?.placement === 'queryparams') {
-        if (axiosRequest.url && request.auth.apikey?.key) {
-          try {
-            const urlObj = new URL(request.url);
-            urlObj.searchParams.set(request.auth.apikey?.key, request.auth.apikey?.value);
-            axiosRequest.url = urlObj.toString();
-          } catch (error) {
-            console.error('Invalid URL:', request.url, error);
-          }
+        if (request.auth.apikey?.key) {
+          axiosRequest.apiKeyAuthValueForQueryParams = request.auth.apikey;
         }
       }
     }
