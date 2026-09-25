@@ -463,6 +463,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             collection={collection}
             item={item}
             placeholder={!value ? 'Name' : ''}
+            enableSingleBraceTrigger={true}
           />
         );
       }
@@ -487,6 +488,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             collection={collection}
             item={item}
             placeholder={!value ? 'Value' : ''}
+            enableSingleBraceTrigger={true}
           />
         );
       }

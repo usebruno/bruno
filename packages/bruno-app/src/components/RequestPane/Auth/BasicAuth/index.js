@@ -64,6 +64,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger={true}
         />
       </div>
 
@@ -80,6 +81,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
           isSecret={true}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
       </div>

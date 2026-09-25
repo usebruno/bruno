@@ -82,6 +82,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger={true}
         />
       </div>
 
@@ -98,6 +99,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           isSecret={true}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger={true}
         />
         {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
@@ -114,6 +116,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger={true}
         />
       </div>
     </StyledWrapper>
