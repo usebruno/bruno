@@ -12,6 +12,25 @@ import { SPEC_PREVIEW_ERRORS } from './constants';
 
 const PREVIEW_TIMEOUT_MS = 15000;
 
+const normalizeOpenApiVersionForSwagger = (spec) => {
+  if (!spec) return spec;
+  if (typeof spec === 'string') {
+    return spec.replace(/(['"]?)openapi\1\s*:\s*(['"]?)3\.\d+\.\d+\2/g, (match, q1, q2) => {
+      return match.replace(/3\.\d+\.\d+/, '3.1.0');
+    });
+  }
+  if (typeof spec === 'object' &amp;&amp; spec.openapi &amp;&amp; typeof spec.openapi === 'string') {
+    const version = spec.openapi.trim();
+    if (/^3\.\d+\.\d+$/.test(version)) {
+      const majorMinor = version.split('.').slice(0, 2).join('.');
+      if (majorMinor !== '3.0' &amp;&amp; majorMinor !== '3.1') {
+        return { ...spec, openapi: '3.1.0' };
+      }
+    }
+  }
+  return spec;
+};
+
 const getPreviewParseError = (content) => {
   if (!content || typeof content !== 'string') return null;
   let parsed;
@@ -164,7 +183,7 @@ const SpecViewer = ({ content, resolvedSpec, readOnly, onSave, leftPaneWidth, on
         ) : (
           <>
             <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
-              <Swagger spec={resolvedSpec || content} onComplete={handleSwaggerComplete} />
+              <Swagger spec={normalizeOpenApiVersionForSwagger(resolvedSpec || content)} onComplete={handleSwaggerComplete} />
             </div>
             {!swaggerReady && (
               <div
