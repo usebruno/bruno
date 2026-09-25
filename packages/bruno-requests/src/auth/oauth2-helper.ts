@@ -538,17 +538,17 @@ const fetchTokenAuthorizationCode = async (oauth2Config: OAuth2Config, authorize
   const code = getAuthorizationCodeFromCallback(callbackResponseUrl, expectedState, effectiveCallbackUrl);
 
   const requestConfig = createTokenRequestConfig(accessTokenUrl);
-  const data: Record<string, any> = {
-    grant_type: 'authorization_code',
-    code,
-    redirect_uri: effectiveCallbackUrl
-  };
+  const data: Record<string, any> = {};
   applyClientCredentials(requestConfig, data, oauth2Config);
-  if (codeVerifier) {
-    data.code_verifier = codeVerifier;
-  }
   if (additionalParameters?.token?.length) {
     applyAdditionalParameters(requestConfig, data, additionalParameters.token);
+  }
+  // Set after the additional parameters so a same-named one cannot replace the values this flow generated
+  data.grant_type = 'authorization_code';
+  data.code = code;
+  data.redirect_uri = effectiveCallbackUrl;
+  if (codeVerifier) {
+    data.code_verifier = codeVerifier;
   }
   requestConfig.data = qs.stringify(data);
 
@@ -563,16 +563,16 @@ const refreshAccessToken = async (oauth2Config: OAuth2Config, refreshToken: stri
   const { accessTokenUrl, refreshTokenUrl, additionalParameters } = oauth2Config;
 
   const requestConfig = createTokenRequestConfig(refreshTokenUrl || accessTokenUrl);
-  const data: Record<string, any> = {
-    grant_type: 'refresh_token',
-    refresh_token: refreshToken
-  };
+  const data: Record<string, any> = {};
   applyClientCredentials(requestConfig, data, oauth2Config);
 
   try {
     if (additionalParameters?.refresh?.length) {
       applyAdditionalParameters(requestConfig, data, additionalParameters.refresh);
     }
+    // Set after the additional parameters so a same-named one cannot replace them
+    data.grant_type = 'refresh_token';
+    data.refresh_token = refreshToken;
     requestConfig.data = qs.stringify(data);
 
     const credentials = await sendTokenRequest(requestConfig, axiosInstance);

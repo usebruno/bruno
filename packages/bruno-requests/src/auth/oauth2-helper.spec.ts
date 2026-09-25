@@ -723,6 +723,39 @@ describe('OAuth2 Helper - Authorization Code Grant', () => {
       expect(new URL(requests[0].url).searchParams.get('tenant')).toBe('acme');
     });
 
+    test('should not let additional token parameters replace the generated exchange values', async () => {
+      const { adapter, requests } = tokenEndpoint();
+      axios.defaults.adapter = adapter;
+      const authorize = approvingAuthorizer('real-code');
+
+      const bodyParam = (name: string, value: string) => ({ name, value, enabled: true, sendIn: 'body' as const });
+      const config = authCodeConfig({
+        pkce: true,
+        additionalParameters: {
+          token: [
+            bodyParam('grant_type', 'client_credentials'),
+            bodyParam('code', 'injected-code'),
+            bodyParam('redirect_uri', 'https://evil.example.com/callback'),
+            bodyParam('code_verifier', 'injected-verifier'),
+            bodyParam('audience', 'api://default'),
+            bodyParam('resource', 'https://api.example.com')
+          ]
+        }
+      });
+      await getOAuth2Token(config, createMockTokenStore(), '', undefined, { authorize });
+
+      const body = bodyOf(requests[0]);
+      const codeChallenge = new URL(authorize.mock.calls[0][0]).searchParams.get('code_challenge');
+      expect(body).toMatchObject({
+        grant_type: 'authorization_code',
+        code: 'real-code',
+        redirect_uri: 'http://localhost:8765/callback',
+        audience: 'api://default',
+        resource: 'https://api.example.com'
+      });
+      expect(crypto.createHash('sha256').update(body.code_verifier).digest('base64url')).toBe(codeChallenge);
+    });
+
     test('should surface the IdP error when the token endpoint rejects the code', async () => {
       const { adapter } = createRecordingAdapter(() => ({ status: 400, data: { error: 'invalid_grant', error_description: 'Code expired' } }));
       axios.defaults.adapter = adapter;
@@ -875,6 +908,25 @@ describe('OAuth2 Helper - Authorization Code Grant', () => {
       // The IdP did not rotate the refresh token, so the existing one stays usable
       const stored = await tokenStore.getCredential({ url: 'https://auth.example.com/token', credentialsId: 'default' });
       expect(stored.refresh_token).toBe('refresh-1');
+    });
+
+    test('should not let additional refresh parameters replace the grant or refresh token', async () => {
+      const { adapter, requests } = createRecordingAdapter(() => ({ status: 200, data: { access_token: 'access-2', expires_in: 3600 } }));
+      axios.defaults.adapter = adapter;
+
+      const config = authCodeConfig({
+        autoRefreshToken: true,
+        additionalParameters: {
+          refresh: [
+            { name: 'grant_type', value: 'password', enabled: true, sendIn: 'body' },
+            { name: 'refresh_token', value: 'injected-refresh', enabled: true, sendIn: 'body' },
+            { name: 'audience', value: 'api://default', enabled: true, sendIn: 'body' }
+          ]
+        }
+      });
+      await getOAuth2Token(config, await storeWithExpiredToken(), '', undefined, { authorize: approvingAuthorizer() });
+
+      expect(bodyOf(requests[0])).toMatchObject({ grant_type: 'refresh_token', refresh_token: 'refresh-1', audience: 'api://default' });
     });
 
     test('should sign in again when the refresh fails and autoFetchToken is on', async () => {
