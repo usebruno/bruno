@@ -4,6 +4,10 @@ const {
   setRequestVars,
   setFolderVars,
   setCollectionVars,
+  selectEnvironment,
+  applyDefaultEnvironment,
+  runtimeVariablesUpdateEvent,
+  collectionAddEnvFileEvent,
   updateFile,
   wsResponseReceived,
   toggleSidebarSelection,
@@ -38,6 +42,132 @@ const assertGuardedVars = (vars) => {
   expect(vars[2]).toMatchObject({ name: 'plain', value: 'hello' });
   expect(vars[2].dataType).toBeUndefined();
 };
+
+describe('active environment changes — isolate runtime variables by environment', () => {
+  const makeState = () => ({
+    collections: [
+      {
+        uid: 'col1',
+        activeEnvironmentUid: 'env-a',
+        environments: [
+          { uid: 'env-a', name: 'A' },
+          { uid: 'env-b', name: 'B' }
+        ],
+        runtimeVariables: { title: 'runtime-value' }
+      }
+    ]
+  });
+
+  it('clears runtime variables when the active environment changes', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-b');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('keeps runtime variables when the active environment is selected again', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-a' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-a');
+    expect(next.collections[0].runtimeVariables).toEqual({ title: 'runtime-value' });
+  });
+
+  it('clears runtime variables when no environment is selected', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: null })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBeNull();
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('ignores runtime variable updates from the previously active environment', () => {
+    const switchedState = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+    const next = reducer(
+      switchedState,
+      runtimeVariablesUpdateEvent({
+        collectionUid: 'col1',
+        environmentUid: 'env-a',
+        runtimeVariables: { title: 'stale-runtime-value' }
+      })
+    );
+
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('applies runtime variable updates from the active environment', () => {
+    const switchedState = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+    const next = reducer(
+      switchedState,
+      runtimeVariablesUpdateEvent({
+        collectionUid: 'col1',
+        environmentUid: 'env-b',
+        runtimeVariables: { title: 'current-runtime-value' }
+      })
+    );
+
+    expect(next.collections[0].runtimeVariables).toEqual({ title: 'current-runtime-value' });
+  });
+
+  it('clears runtime variables when the default environment becomes active', () => {
+    const state = makeState();
+    state.collections[0].activeEnvironmentUid = null;
+
+    const next = reducer(
+      state,
+      applyDefaultEnvironment({ collectionUid: 'col1', defaultEnvironmentName: 'B' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-b');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('clears runtime variables when a newly added environment becomes active', () => {
+    const state = makeState();
+    state.collections[0].lastAction = { type: 'ADD_ENVIRONMENT', payload: 'B' };
+
+    const next = reducer(
+      state,
+      collectionAddEnvFileEvent({
+        collectionUid: 'col1',
+        environment: { uid: 'env-c', name: 'B' }
+      })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-c');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('clears runtime variables when a pending default environment file loads', () => {
+    const state = makeState();
+    state.collections[0].activeEnvironmentUid = null;
+    state.collections[0].pendingDefaultEnvironment = 'C';
+
+    const next = reducer(
+      state,
+      collectionAddEnvFileEvent({
+        collectionUid: 'col1',
+        environment: { uid: 'env-c', name: 'C' }
+      })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-c');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+});
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
   it('drops a stray string-dataType on request vars and preserves typed datatypes', () => {
