@@ -3378,6 +3378,11 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
+          const prevEphemeralsByName = new Map(
+            (existingEnv.variables || [])
+              .filter((variable) => variable.ephemeral)
+              .map((variable) => [variable.name, variable])
+          );
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
@@ -3387,12 +3392,20 @@ export const collectionsSlice = createSlice({
           /*
            Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
           */
-          prevEphemerals.forEach((ev) => {
-            const target = existingEnv.variables?.find((v) => v.name === ev.name);
+          const fileVariablesByName = new Map();
+          existingEnv.variables?.forEach((variable) => {
+            // Preserve the original find() behavior if a file contains duplicate variable names.
+            if (!fileVariablesByName.has(variable.name)) {
+              fileVariablesByName.set(variable.name, variable);
+            }
+          });
+
+          prevEphemeralsByName.forEach((ephemeral, name) => {
+            const target = fileVariablesByName.get(name);
             if (target) {
-              if (target.value !== ev.value) {
+              if (target.value !== ephemeral.value) {
                 if (target.persistedValue === undefined) target.persistedValue = target.value;
-                target.value = ev.value;
+                target.value = ephemeral.value;
               }
               target.ephemeral = true;
             }

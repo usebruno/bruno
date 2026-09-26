@@ -429,10 +429,21 @@ export const restoreGlobalEnvironmentDraftFromSession = () => (dispatch, getStat
 
   const state = getState();
   const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
-  const environment = globalEnvironments.find((env) =>
-    env.uid === persistedDraft.environmentUid
-    || (persistedDraft.environmentName && env.name === persistedDraft.environmentName)
-  );
+  const environmentsByUid = new Map();
+  const environmentsByName = new Map();
+
+  globalEnvironments.forEach((environment) => {
+    // Preserve find() semantics if malformed data contains duplicate IDs or names.
+    if (!environmentsByUid.has(environment.uid)) {
+      environmentsByUid.set(environment.uid, environment);
+    }
+    if (!environmentsByName.has(environment.name)) {
+      environmentsByName.set(environment.name, environment);
+    }
+  });
+
+  const environment = environmentsByUid.get(persistedDraft.environmentUid)
+    || (persistedDraft.environmentName && environmentsByName.get(persistedDraft.environmentName));
 
   if (!environment) {
     return;

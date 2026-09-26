@@ -1,4 +1,4 @@
-import { flattenItems, findEnvironmentInCollection, hasRequestChanges, isItemAFolder, isItemARequest } from 'utils/collections';
+import { flattenItems, hasRequestChanges, isItemAFolder, isItemARequest } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 
 const STORAGE_KEY = 'bruno.appCloseDraftSession.v1';
@@ -28,7 +28,13 @@ const getCollectionEnvironmentDraft = (collection) => {
     return null;
   }
 
-  const environment = findEnvironmentInCollection(collection, collection.environmentsDraft.environmentUid);
+  const environmentsByUid = new Map();
+  (collection.environments || []).forEach((environment) => {
+    if (!environmentsByUid.has(environment.uid)) {
+      environmentsByUid.set(environment.uid, environment);
+    }
+  });
+  const environment = environmentsByUid.get(collection.environmentsDraft.environmentUid);
 
   return {
     environmentUid: collection.environmentsDraft.environmentUid,
@@ -43,7 +49,13 @@ const getGlobalEnvironmentDraft = (state) => {
     return null;
   }
 
-  const environment = state?.globalEnvironments?.globalEnvironments?.find((env) => env.uid === draft.environmentUid);
+  const environmentsByUid = new Map();
+  (state?.globalEnvironments?.globalEnvironments || []).forEach((environment) => {
+    if (!environmentsByUid.has(environment.uid)) {
+      environmentsByUid.set(environment.uid, environment);
+    }
+  });
+  const environment = environmentsByUid.get(draft.environmentUid);
 
   return {
     environmentUid: draft.environmentUid,
@@ -57,8 +69,8 @@ const getCollectionDraftSession = (collection) => {
     return null;
   }
 
-  const requestDrafts = {};
-  const folderDrafts = {};
+  const requestDraftsByPath = new Map();
+  const folderDraftsByPath = new Map();
   const items = flattenItems(collection.items || []);
 
   items.forEach((item) => {
@@ -69,18 +81,18 @@ const getCollectionDraftSession = (collection) => {
     const normalizedPath = normalizePath(item.pathname);
 
     if (isItemARequest(item) && hasRequestChanges(item)) {
-      requestDrafts[normalizedPath] = item.draft;
+      requestDraftsByPath.set(normalizedPath, item.draft);
       return;
     }
 
     if (isItemAFolder(item)) {
-      folderDrafts[normalizedPath] = item.draft;
+      folderDraftsByPath.set(normalizedPath, item.draft);
     }
   });
 
   const environmentsDraft = getCollectionEnvironmentDraft(collection);
-  const hasRequestDrafts = Object.keys(requestDrafts).length > 0;
-  const hasFolderDrafts = Object.keys(folderDrafts).length > 0;
+  const hasRequestDrafts = requestDraftsByPath.size > 0;
+  const hasFolderDrafts = folderDraftsByPath.size > 0;
   const hasCollectionDraft = !!collection.draft;
   const hasEnvironmentDraft = !!environmentsDraft;
 
@@ -91,8 +103,8 @@ const getCollectionDraftSession = (collection) => {
   return {
     pathname: normalizePath(collection.pathname),
     collectionDraft: collection.draft || null,
-    requestDrafts,
-    folderDrafts,
+    requestDrafts: Object.fromEntries(requestDraftsByPath),
+    folderDrafts: Object.fromEntries(folderDraftsByPath),
     environmentsDraft
   };
 };
@@ -115,7 +127,8 @@ export const getPersistedCollectionDraftSession = (pathname) => {
   }
 
   const session = getPersistedDraftSession();
-  return session?.collections?.[normalizePath(pathname)] || null;
+  const collectionDraftSessionsByPath = new Map(Object.entries(session?.collections || {}));
+  return collectionDraftSessionsByPath.get(normalizePath(pathname)) || null;
 };
 
 export const persistDraftSession = (state) => {
@@ -124,20 +137,22 @@ export const persistDraftSession = (state) => {
   }
 
   const collections = state?.collections?.collections || [];
+  const collectionDraftSessionsByPath = collections.reduce((sessionsByPath, collection) => {
+    const collectionDraftSession = getCollectionDraftSession(collection);
+
+    if (collectionDraftSession) {
+      sessionsByPath.set(collectionDraftSession.pathname, collectionDraftSession);
+    }
+
+    return sessionsByPath;
+  }, new Map());
   const snapshot = {
     version: 1,
-    collections: {},
+    collections: Object.fromEntries(collectionDraftSessionsByPath),
     globalEnvironmentDraft: getGlobalEnvironmentDraft(state)
   };
 
-  collections.forEach((collection) => {
-    const collectionDraftSession = getCollectionDraftSession(collection);
-    if (collectionDraftSession) {
-      snapshot.collections[collectionDraftSession.pathname] = collectionDraftSession;
-    }
-  });
-
-  const hasCollectionDrafts = Object.keys(snapshot.collections).length > 0;
+  const hasCollectionDrafts = collectionDraftSessionsByPath.size > 0;
   const hasGlobalDraft = !!snapshot.globalEnvironmentDraft;
 
   if (!hasCollectionDrafts && !hasGlobalDraft) {
