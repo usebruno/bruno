@@ -19,6 +19,7 @@
 | [Português (BR)](./readme_pt_br.md)
 | [한국어](./readme_kr.md)
 | **বাংলা**
+| [हिन्दी](./readme_hi.md)
 | [Español](./readme_es.md)
 | [Italiano](./readme_it.md)
 | [Română](./readme_ro.md)
