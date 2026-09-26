@@ -2,6 +2,7 @@ import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export type EnvironmentScope = 'collection' | 'global';
+export type EnvironmentTableColumn = 'name' | 'value' | 'description';
 
 // The workspace-home "Environments" tab renders the same global-scoped editor as the
 // standalone "Global Environments" tab and shares its label, so both are located by
@@ -45,6 +46,11 @@ export const buildEnvironmentLocators = (page: Page) => ({
   varRowNameInput: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-name-input'),
   // Name column's sort-cycle button (Variables tab only).
   sortToggle: () => page.getByTestId('column-sort-toggle'),
+  variablesTable: () => page.getByTestId('env-vars-table'),
+  columnHeader: (column: EnvironmentTableColumn) => page.getByTestId(`env-vars-header-${column}`),
+  // Divider on the right edge of a column header. dragging it resizes that column and the next one.
+  columnResizeHandle: (column: Exclude<EnvironmentTableColumn, 'description'>) =>
+    page.getByTestId(`env-vars-resize-handle-${column}`),
   // Present only when dragging is enabled for this row.
   dragHandle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('drag-handle'),
   // Every visible row's Name input, in on-screen order.
