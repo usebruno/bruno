@@ -6,6 +6,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCachedSystemProxy } = require('../../store/system-proxy');
 const { interpolateString, interpolateObject } = require('./interpolate-string');
+const { normalizeClientCertificate } = require('@usebruno/common/utils');
 
 /**
  * Gets certificates and proxy configuration for a request
@@ -70,22 +71,22 @@ const getCertsAndProxyConfig = async ({
   const globalCerts = preferencesUtil.getGlobalClientCertificates();
   const clientCertConfig = [...collectionCerts, ...globalCerts];
 
-  for (let clientCert of clientCertConfig) {
-    if (clientCert?.disabled) {
+  for (const rawClientCert of clientCertConfig) {
+    const clientCert = normalizeClientCertificate(rawClientCert);
+    if (!clientCert || clientCert.disabled) {
       continue;
     }
-    const domain = interpolateString(clientCert?.domain, interpolationOptions);
-    const type = clientCert?.type || 'cert';
+    const domain = interpolateString(clientCert.domain, interpolationOptions);
     if (domain) {
       const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|ws:\\/\\/|wss:\\/\\/)?'
         + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       const requestUrl = interpolateString(request.url, interpolationOptions);
       if (requestUrl && requestUrl.match(hostRegex)) {
-        if (type === 'cert') {
+        if (clientCert.type === 'pem') {
           try {
-            let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+            let certFilePath = interpolateString(clientCert.certificateFilePath, interpolationOptions);
             certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
-            let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+            let keyFilePath = interpolateString(clientCert.privateKeyFilePath, interpolationOptions);
             keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
 
             httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
@@ -94,14 +95,14 @@ const getCertsAndProxyConfig = async ({
             console.error('Error reading cert/key file', err);
             throw new Error('Error reading cert/key file' + err);
           }
-        } else if (type === 'pfx') {
+        } else {
           try {
-            let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
-            pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
-            httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+            let pkcs12FilePath = interpolateString(clientCert.pkcs12FilePath, interpolationOptions);
+            pkcs12FilePath = path.isAbsolute(pkcs12FilePath) ? pkcs12FilePath : path.join(collectionPath, pkcs12FilePath);
+            httpsAgentRequestFields['pfx'] = fs.readFileSync(pkcs12FilePath);
           } catch (err) {
-            console.error('Error reading pfx file', err);
-            throw new Error('Error reading pfx file' + err);
+            console.error('Error reading pkcs12 file', err);
+            throw new Error('Error reading pkcs12 file' + err);
           }
         }
         httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);

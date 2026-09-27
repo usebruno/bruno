@@ -70,6 +70,7 @@ export type { Environment } from '@opencollection/types/config/environments';
 export type { CollectionConfig } from '@opencollection/types/config/collection';
 export type { Protobuf, ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/config/protobuf';
 export type { Proxy, ProxyConnectionConfig, ProxyConnectionAuth } from '@opencollection/types/config/proxy';
+import type { ClientCertificate } from '@opencollection/types/config/certificates';
 export type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 
 // OpenCollection common types
@@ -202,15 +203,7 @@ export interface BrunoConfig {
     };
   };
   clientCertificates?: {
-    certs?: Array<{
-      domain?: string;
-      type?: 'cert' | 'pfx';
-      certFilePath?: string;
-      keyFilePath?: string;
-      pfxFilePath?: string;
-      passphrase?: string;
-      disabled?: boolean;
-    }>;
+    certs?: ClientCertificate[];
   };
   scripts?: {
     additionalContextRoots?: string[];

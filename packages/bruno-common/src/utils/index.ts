@@ -111,3 +111,17 @@ export const parseMaxRedirects = (value: unknown): number | undefined => {
 };
 
 export const toMaxRedirects = (value: unknown): number => parseMaxRedirects(value) ?? DEFAULT_MAX_REDIRECTS;
+
+export {
+  normalizeClientCertificate,
+  normalizeClientCertificates,
+  toLegacyClientCertificate,
+  toLegacyClientCertificates,
+  toOpenCollectionClientCertificates
+} from './client-certificates';
+export type {
+  ClientCertificate,
+  PemClientCertificate,
+  Pkcs12ClientCertificate,
+  LegacyClientCertificate
+} from './client-certificates';

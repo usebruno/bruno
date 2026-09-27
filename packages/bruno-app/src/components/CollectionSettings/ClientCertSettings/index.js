@@ -83,19 +83,19 @@ const ClientCertSettings = ({ collection }) => {
   const clientCertConfig = collection.draft?.brunoConfig
     ? get(collection, 'draft.brunoConfig.clientCertificates.certs', [])
     : get(collection, 'brunoConfig.clientCertificates.certs', []);
-  const certFilePathInputRef = useRef();
-  const keyFilePathInputRef = useRef();
-  const pfxFilePathInputRef = useRef();
+  const certificateFilePathInputRef = useRef();
+  const privateKeyFilePathInputRef = useRef();
+  const pkcs12FilePathInputRef = useRef();
   const theme = useTheme();
   const { storedTheme } = theme;
 
   const formik = useFormik({
     initialValues: {
       domain: '',
-      type: 'cert',
-      certFilePath: '',
-      keyFilePath: '',
-      pfxFilePath: '',
+      type: 'pem',
+      certificateFilePath: '',
+      privateKeyFilePath: '',
+      pkcs12FilePath: '',
       passphrase: ''
     },
     validationSchema: Yup.object({
@@ -103,36 +103,36 @@ const ClientCertSettings = ({ collection }) => {
         .required()
         .trim()
         .test('not-empty-after-trim', 'Domain is required', (value) => value && value.trim().length > 0),
-      type: Yup.string().required().oneOf(['cert', 'pfx']),
-      certFilePath: Yup.string().when('type', {
-        is: (type) => type == 'cert',
-        then: Yup.string().min(1, 'certFilePath is a required field').required()
+      type: Yup.string().required().oneOf(['pem', 'pkcs12']),
+      certificateFilePath: Yup.string().when('type', {
+        is: (type) => type == 'pem',
+        then: Yup.string().min(1, 'certificateFilePath is a required field').required()
       }),
-      keyFilePath: Yup.string().when('type', {
-        is: (type) => type == 'cert',
-        then: Yup.string().min(1, 'keyFilePath is a required field').required()
+      privateKeyFilePath: Yup.string().when('type', {
+        is: (type) => type == 'pem',
+        then: Yup.string().min(1, 'privateKeyFilePath is a required field').required()
       }),
-      pfxFilePath: Yup.string().when('type', {
-        is: (type) => type == 'pfx',
-        then: Yup.string().min(1, 'pfxFilePath is a required field').required()
+      pkcs12FilePath: Yup.string().when('type', {
+        is: (type) => type == 'pkcs12',
+        then: Yup.string().min(1, 'pkcs12FilePath is a required field').required()
       }),
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
       let relevantValues = {};
-      if (values.type === 'cert') {
+      if (values.type === 'pem') {
         relevantValues = {
           domain: values.domain?.trim(),
           type: values.type,
-          certFilePath: values.certFilePath,
-          keyFilePath: values.keyFilePath,
+          certificateFilePath: values.certificateFilePath,
+          privateKeyFilePath: values.privateKeyFilePath,
           passphrase: values.passphrase
         };
       } else {
         relevantValues = {
           domain: values.domain?.trim(),
           type: values.type,
-          pfxFilePath: values.pfxFilePath,
+          pkcs12FilePath: values.pkcs12FilePath,
           passphrase: values.passphrase
         };
       }
@@ -167,27 +167,27 @@ const ClientCertSettings = ({ collection }) => {
   };
 
   const resetFileInputFields = () => {
-    if (certFilePathInputRef.current) {
-      certFilePathInputRef.current.value = '';
+    if (certificateFilePathInputRef.current) {
+      certificateFilePathInputRef.current.value = '';
     }
-    if (keyFilePathInputRef.current) {
-      keyFilePathInputRef.current.value = '';
+    if (privateKeyFilePathInputRef.current) {
+      privateKeyFilePathInputRef.current.value = '';
     }
-    if (pfxFilePathInputRef.current) {
-      pfxFilePathInputRef.current.value = '';
+    if (pkcs12FilePathInputRef.current) {
+      pkcs12FilePathInputRef.current.value = '';
     }
   };
 
   const handleTypeChange = (type) => {
     formik.setFieldValue('type', type);
-    if (type === 'cert') {
-      formik.setFieldValue('pfxFilePath', '');
-      if (pfxFilePathInputRef.current) pfxFilePathInputRef.current.value = '';
+    if (type === 'pem') {
+      formik.setFieldValue('pkcs12FilePath', '');
+      if (pkcs12FilePathInputRef.current) pkcs12FilePathInputRef.current.value = '';
     } else {
-      formik.setFieldValue('certFilePath', '');
-      if (certFilePathInputRef.current) certFilePathInputRef.current.value = '';
-      formik.setFieldValue('keyFilePath', '');
-      if (keyFilePathInputRef.current) keyFilePathInputRef.current.value = '';
+      formik.setFieldValue('certificateFilePath', '');
+      if (certificateFilePathInputRef.current) certificateFilePathInputRef.current.value = '';
+      formik.setFieldValue('privateKeyFilePath', '');
+      if (privateKeyFilePathInputRef.current) privateKeyFilePathInputRef.current.value = '';
     }
   };
 
@@ -291,12 +291,12 @@ const ClientCertSettings = ({ collection }) => {
             )}
           >
             <CertField label="Host" value={clientCert.domain} title={clientCert.domain} />
-            {clientCert.type === 'pfx' ? (
-              <CertField label="PFX File" value={path.basename(clientCert.pfxFilePath || '')} title={clientCert.pfxFilePath} />
+            {clientCert.type === 'pkcs12' ? (
+              <CertField label="PFX File" value={path.basename(clientCert.pkcs12FilePath || '')} title={clientCert.pkcs12FilePath} />
             ) : (
               <>
-                <CertField label="Cert File" value={path.basename(clientCert.certFilePath || '')} title={clientCert.certFilePath} />
-                <CertField label="Key File" value={path.basename(clientCert.keyFilePath || '')} title={clientCert.keyFilePath} />
+                <CertField label="Cert File" value={path.basename(clientCert.certificateFilePath || '')} title={clientCert.certificateFilePath} />
+                <CertField label="Key File" value={path.basename(clientCert.privateKeyFilePath || '')} title={clientCert.privateKeyFilePath} />
               </>
             )}
             {clientCert.passphrase ? (
@@ -373,58 +373,58 @@ const ClientCertSettings = ({ collection }) => {
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={formik.values.type === 'cert'}
-                  className={`type-option ${formik.values.type === 'cert' ? 'active' : ''}`}
-                  onClick={() => handleTypeChange('cert')}
+                  aria-checked={formik.values.type === 'pem'}
+                  className={`type-option ${formik.values.type === 'pem' ? 'active' : ''}`}
+                  onClick={() => handleTypeChange('pem')}
                 >
                   Cert &amp; Key
                 </button>
                 <button
                   type="button"
                   role="radio"
-                  aria-checked={formik.values.type === 'pfx'}
-                  className={`type-option ${formik.values.type === 'pfx' ? 'active' : ''}`}
-                  onClick={() => handleTypeChange('pfx')}
+                  aria-checked={formik.values.type === 'pkcs12'}
+                  className={`type-option ${formik.values.type === 'pkcs12' ? 'active' : ''}`}
+                  onClick={() => handleTypeChange('pkcs12')}
                 >
                   PFX
                 </button>
               </div>
             </div>
-            {formik.values.type === 'cert' ? (
+            {formik.values.type === 'pem' ? (
               <>
                 <CertFileInput
                   label="Cert file"
-                  name="certFilePath"
-                  value={formik.values.certFilePath}
-                  inputRef={certFilePathInputRef}
+                  name="certificateFilePath"
+                  value={formik.values.certificateFilePath}
+                  inputRef={certificateFilePathInputRef}
                   onSelect={getFile}
-                  onClear={() => clearFileField('certFilePath', certFilePathInputRef)}
-                  error={formik.errors.certFilePath}
-                  touched={formik.touched.certFilePath}
+                  onClear={() => clearFileField('certificateFilePath', certificateFilePathInputRef)}
+                  error={formik.errors.certificateFilePath}
+                  touched={formik.touched.certificateFilePath}
                   dangerColor={theme.colors.text.danger}
                 />
                 <CertFileInput
                   label="Key file"
-                  name="keyFilePath"
-                  value={formik.values.keyFilePath}
-                  inputRef={keyFilePathInputRef}
+                  name="privateKeyFilePath"
+                  value={formik.values.privateKeyFilePath}
+                  inputRef={privateKeyFilePathInputRef}
                   onSelect={getFile}
-                  onClear={() => clearFileField('keyFilePath', keyFilePathInputRef)}
-                  error={formik.errors.keyFilePath}
-                  touched={formik.touched.keyFilePath}
+                  onClear={() => clearFileField('privateKeyFilePath', privateKeyFilePathInputRef)}
+                  error={formik.errors.privateKeyFilePath}
+                  touched={formik.touched.privateKeyFilePath}
                   dangerColor={theme.colors.text.danger}
                 />
               </>
             ) : (
               <CertFileInput
                 label="PFX file"
-                name="pfxFilePath"
-                value={formik.values.pfxFilePath}
-                inputRef={pfxFilePathInputRef}
+                name="pkcs12FilePath"
+                value={formik.values.pkcs12FilePath}
+                inputRef={pkcs12FilePathInputRef}
                 onSelect={getFile}
-                onClear={() => clearFileField('pfxFilePath', pfxFilePathInputRef)}
-                error={formik.errors.pfxFilePath}
-                touched={formik.touched.pfxFilePath}
+                onClear={() => clearFileField('pkcs12FilePath', pkcs12FilePathInputRef)}
+                error={formik.errors.pkcs12FilePath}
+                touched={formik.touched.pkcs12FilePath}
                 dangerColor={theme.colors.text.danger}
               />
             )}

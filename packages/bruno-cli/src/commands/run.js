@@ -6,6 +6,7 @@ const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { isRequestTagsIncluded } = require('@usebruno/common');
+const { normalizeClientCertificates } = require('@usebruno/common/utils');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
@@ -356,10 +357,11 @@ const handler = async function (argv) {
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
+          const certs = normalizeClientCertificates(clientCertConfigJson.certs);
           if (brunoConfig.clientCertificates) {
-            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
+            brunoConfig.clientCertificates.certs.push(...certs);
           } else {
-            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
+            brunoConfig.clientCertificates = { certs };
           }
           console.log(chalk.green(`Client certificates has been added`));
         } else {

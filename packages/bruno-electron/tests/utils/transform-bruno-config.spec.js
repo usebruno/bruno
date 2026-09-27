@@ -568,3 +568,35 @@ describe('BrunoConfig Proxy Transform', () => {
     });
   });
 });
+
+describe('BrunoConfig client certificate shape', () => {
+  const legacyCerts = [
+    { domain: 'localhost', type: 'cert', certFilePath: './c.pem', keyFilePath: './k.pem', passphrase: '' },
+    { domain: 'example.com', type: 'pfx', pfxFilePath: './c.pfx', passphrase: 'x', disabled: true }
+  ];
+  const specCerts = [
+    { domain: 'localhost', type: 'pem', certificateFilePath: './c.pem', privateKeyFilePath: './k.pem', passphrase: '' },
+    { domain: 'example.com', type: 'pkcs12', pkcs12FilePath: './c.pfx', passphrase: 'x', disabled: true }
+  ];
+
+  test('transformBrunoConfigAfterRead upgrades bruno.json certs to the OpenCollection shape', async () => {
+    const result = await transformBrunoConfigAfterRead({ name: 'c', clientCertificates: { certs: legacyCerts } }, '/test/path');
+    expect(result.clientCertificates.certs).toEqual(specCerts);
+  });
+
+  test('transformBrunoConfigBeforeSave writes bruno.json certs in the legacy shape', () => {
+    const result = transformBrunoConfigBeforeSave({ name: 'c', clientCertificates: { certs: specCerts } });
+    expect(result.clientCertificates.certs).toEqual(legacyCerts);
+  });
+
+  test('transformBrunoConfigBeforeSave leaves opencollection.yml certs in the OpenCollection shape', () => {
+    const result = transformBrunoConfigBeforeSave({ name: 'c', opencollection: '1.0.0', clientCertificates: { certs: specCerts } });
+    expect(result.clientCertificates.certs).toEqual(specCerts);
+  });
+
+  test('a legacy bruno.json round-trips byte-for-byte through read and save', async () => {
+    const read = await transformBrunoConfigAfterRead({ name: 'c', clientCertificates: { certs: legacyCerts } }, '/test/path');
+    const saved = transformBrunoConfigBeforeSave(read);
+    expect(saved.clientCertificates.certs).toEqual(legacyCerts);
+  });
+});

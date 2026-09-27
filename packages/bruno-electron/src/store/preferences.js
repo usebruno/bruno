@@ -106,6 +106,8 @@ const defaultPreferences = {
   }
 };
 
+const { normalizeClientCertificates, toLegacyClientCertificates } = require('@usebruno/common/utils');
+
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
@@ -249,6 +251,10 @@ class PreferencesStore {
   getPreferences() {
     const preferences = this.store.get('preferences', {});
 
+    if (preferences.request?.clientCertificates?.certs) {
+      preferences.request.clientCertificates.certs = normalizeClientCertificates(preferences.request.clientCertificates.certs);
+    }
+
     // Handle existing users without proxy settings
     // They should get disabled proxy by default, not inherit from system
     // New users (empty preferences) will get defaultPreferences.proxy via merge
@@ -390,6 +396,19 @@ const getPreferences = () => {
 };
 
 const savePreferences = async (newPreferences) => {
+  // The preferences file keeps the legacy cert/pfx shape so an older Bruno can still read it
+  if (newPreferences?.request?.clientCertificates?.certs) {
+    newPreferences = {
+      ...newPreferences,
+      request: {
+        ...newPreferences.request,
+        clientCertificates: {
+          ...newPreferences.request.clientCertificates,
+          certs: toLegacyClientCertificates(newPreferences.request.clientCertificates.certs)
+        }
+      }
+    };
+  }
   return new Promise((resolve, reject) => {
     preferencesSchema
       .validate(newPreferences, { abortEarly: true })

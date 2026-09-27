@@ -1,12 +1,13 @@
 import { OpenCollection } from "@opencollection/types";
 import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets } from "./types";
 import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
 import { fromOpenCollectionEnvironments } from "./environment";
 import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
+import { normalizeClientCertificates } from '@usebruno/common/utils';
 
 const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
@@ -80,30 +81,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
 
   if (config.clientCertificates?.length) {
     brunoConfig.clientCertificates = {
-      certs: config.clientCertificates.map((cert) => {
-        const disabled = cert.disabled === true;
-        if (cert.type === 'pem') {
-          const pemCert = cert as PemCertificate;
-          return {
-            domain: pemCert.domain || '',
-            type: 'cert' as const,
-            certFilePath: pemCert.certificateFilePath || '',
-            keyFilePath: pemCert.privateKeyFilePath || '',
-            passphrase: pemCert.passphrase || '',
-            ...(disabled && { disabled: true })
-          };
-        } else if (cert.type === 'pkcs12') {
-          const pkcs12Cert = cert as Pkcs12Certificate;
-          return {
-            domain: pkcs12Cert.domain || '',
-            type: 'pfx' as const,
-            pfxFilePath: pkcs12Cert.pkcs12FilePath || '',
-            passphrase: pkcs12Cert.passphrase || '',
-            ...(disabled && { disabled: true })
-          };
-        }
-        return null;
-      }).filter((cert): cert is NonNullable<typeof cert> => cert !== null)
+      certs: normalizeClientCertificates(config.clientCertificates)
     };
   }
 

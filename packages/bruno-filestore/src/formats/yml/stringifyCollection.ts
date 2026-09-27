@@ -1,11 +1,11 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { ProtoFileItem, ProtoFileImportPath } from '@opencollection/types/config/protobuf';
 import type { HttpRequestHeader } from '@opencollection/types/requests/http';
-import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@opencollection/types/config/certificates';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
+import { toOpenCollectionClientCertificates } from '@usebruno/common/utils';
 import { stringifyYml } from './utils';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
@@ -143,33 +143,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
 
       // client certificates
       if (brunoConfig.clientCertificates?.certs?.length) {
-        oc.config.clientCertificates = brunoConfig.clientCertificates.certs
-          .map((cert: any): ClientCertificate | null => {
-            if (cert.type === 'cert') {
-              const pemCert: PemCertificate = {
-                domain: cert.domain,
-                type: 'pem',
-                certificateFilePath: cert.certFilePath,
-                privateKeyFilePath: cert.keyFilePath,
-                ...(cert.passphrase && { passphrase: cert.passphrase }),
-                ...(cert.disabled === true && { disabled: true })
-              };
-              return pemCert;
-            } else if (cert.type === 'pfx') {
-              const pkcs12Cert: Pkcs12Certificate = {
-                domain: cert.domain,
-                type: 'pkcs12',
-                pkcs12FilePath: cert.pfxFilePath,
-                ...(cert.passphrase && { passphrase: cert.passphrase }),
-                ...(cert.disabled === true && { disabled: true })
-              };
-              return pkcs12Cert;
-            } else {
-              // Unsupported certificate type - ignore silently
-              return null;
-            }
-          })
-          .filter((cert: ClientCertificate | null): cert is ClientCertificate => cert !== null);
+        oc.config.clientCertificates = toOpenCollectionClientCertificates(brunoConfig.clientCertificates.certs);
       }
     }
 

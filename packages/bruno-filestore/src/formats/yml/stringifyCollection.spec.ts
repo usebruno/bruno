@@ -95,7 +95,29 @@ describe('stringifyCollection — client certificates', () => {
     docs: null
   } as any;
 
-  it('round-trips cert/pfx certificates', () => {
+  it('round-trips pem and pkcs12 certificates', () => {
+    const certs = [
+      {
+        domain: 'localhost',
+        type: 'pem',
+        certificateFilePath: './certs/client-cert.pem',
+        privateKeyFilePath: './certs/client-key.pem',
+        passphrase: 'secret'
+      },
+      {
+        domain: 'example.com',
+        type: 'pkcs12',
+        pkcs12FilePath: './certs/client.pfx'
+      }
+    ];
+
+    const yml = stringifyCollection(baseRoot, { name: 'c', clientCertificates: { certs } });
+    const { brunoConfig: reparsed } = parseCollection(yml);
+
+    expect(reparsed.clientCertificates.certs).toEqual(certs);
+  });
+
+  it('writes the legacy cert/pfx shape as pem/pkcs12', () => {
     const brunoConfig = {
       name: 'c',
       clientCertificates: {
@@ -105,7 +127,7 @@ describe('stringifyCollection — client certificates', () => {
             type: 'cert',
             certFilePath: './certs/client-cert.pem',
             keyFilePath: './certs/client-key.pem',
-            passphrase: 'secret'
+            passphrase: ''
           },
           {
             domain: 'example.com',
@@ -118,21 +140,21 @@ describe('stringifyCollection — client certificates', () => {
     };
 
     const yml = stringifyCollection(baseRoot, brunoConfig);
-    const { brunoConfig: reparsed } = parseCollection(yml);
 
+    expect(yml).not.toMatch(/certFilePath|keyFilePath|pfxFilePath|passphrase/);
+
+    const { brunoConfig: reparsed } = parseCollection(yml);
     expect(reparsed.clientCertificates.certs).toEqual([
       {
         domain: 'localhost',
-        type: 'cert',
-        certFilePath: './certs/client-cert.pem',
-        keyFilePath: './certs/client-key.pem',
-        passphrase: 'secret'
+        type: 'pem',
+        certificateFilePath: './certs/client-cert.pem',
+        privateKeyFilePath: './certs/client-key.pem'
       },
       {
         domain: 'example.com',
-        type: 'pfx',
-        pfxFilePath: './certs/client.pfx',
-        passphrase: ''
+        type: 'pkcs12',
+        pkcs12FilePath: './certs/client.pfx'
       }
     ]);
   });
@@ -144,17 +166,16 @@ describe('stringifyCollection — client certificates', () => {
         certs: [
           {
             domain: 'localhost',
-            type: 'cert',
-            certFilePath: './certs/client-cert.pem',
-            keyFilePath: './certs/client-key.pem',
+            type: 'pem',
+            certificateFilePath: './certs/client-cert.pem',
+            privateKeyFilePath: './certs/client-key.pem',
             passphrase: 'secret',
             disabled: true
           },
           {
             domain: 'example.com',
-            type: 'pfx',
-            pfxFilePath: './certs/client.pfx',
-            passphrase: '',
+            type: 'pkcs12',
+            pkcs12FilePath: './certs/client.pfx',
             disabled: true
           }
         ]
@@ -177,9 +198,10 @@ describe('stringifyCollection — client certificates', () => {
         certs: [
           {
             domain: 'example.com',
-            type: 'pfx',
-            pfxFilePath: './certs/client.pfx',
-            passphrase: ''
+            type: 'pkcs12',
+            pkcs12FilePath: './certs/client.pfx',
+            passphrase: '',
+            disabled: false
           }
         ]
       }

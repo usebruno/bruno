@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { ipcMain } = require('electron');
+const { toLegacyClientCertificates } = require('@usebruno/common/utils');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
@@ -115,6 +116,9 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
       bruJsonConfig.collectionVersion = brunoConfig.version;
     } else {
       delete bruJsonConfig.collectionVersion;
+    }
+    if (bruJsonConfig.clientCertificates?.certs) {
+      bruJsonConfig.clientCertificates = { ...bruJsonConfig.clientCertificates, certs: toLegacyClientCertificates(bruJsonConfig.clientCertificates.certs) };
     }
     const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);

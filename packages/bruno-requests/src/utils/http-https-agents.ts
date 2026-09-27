@@ -9,6 +9,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { isEmpty, get, isUndefined, isNull } from 'lodash';
+import { normalizeClientCertificate, type ClientCertificate } from '@usebruno/common/utils';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
@@ -50,16 +51,6 @@ type SystemProxyConfig = {
   https_proxy?: string;
   no_proxy?: string;
   pac_url?: string | null;
-};
-
-type ClientCertificate = {
-  domain?: string;
-  type?: 'cert' | 'pfx';
-  certFilePath?: string;
-  keyFilePath?: string;
-  pfxFilePath?: string;
-  passphrase?: string;
-  disabled?: boolean;
 };
 
 type CACertificatesCount = {
@@ -266,27 +257,27 @@ const getCertsAndProxyConfig = ({
   }
 
   // client certificate config
-  const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
+  const clientCertConfig = get(clientCertificates, 'certs', []) as unknown[];
 
-  for (const clientCert of clientCertConfig) {
-    if (clientCert?.disabled) {
+  for (const rawClientCert of clientCertConfig) {
+    const clientCert = normalizeClientCertificate(rawClientCert);
+    if (!clientCert || clientCert.disabled) {
       continue;
     }
-    const domain = clientCert?.domain;
-    const type = clientCert?.type || 'cert';
+    const domain = clientCert.domain;
     if (domain) {
       const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)?' + domain.replace(/\./g, '\\.').replace(/\*/g, '.*');
       if (requestUrl && requestUrl.match(hostRegex)) {
-        if (type === 'cert') {
+        if (clientCert.type === 'pem') {
           try {
-            let certFilePath = clientCert?.certFilePath;
+            let certFilePath = clientCert.certificateFilePath;
             if (!certFilePath) {
-              throw new Error('certFilePath is required for cert type');
+              throw new Error('certificateFilePath is required for pem type');
             }
             certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
-            let keyFilePath = clientCert?.keyFilePath;
+            let keyFilePath = clientCert.privateKeyFilePath;
             if (!keyFilePath) {
-              throw new Error('keyFilePath is required for cert type');
+              throw new Error('privateKeyFilePath is required for pem type');
             }
             keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
 
@@ -296,17 +287,17 @@ const getCertsAndProxyConfig = ({
             console.error('Error reading cert/key file', err);
             throw new Error(`Error reading cert/key file: ${err.message}`);
           }
-        } else if (type === 'pfx') {
+        } else {
           try {
-            let pfxFilePath = clientCert?.pfxFilePath;
-            if (!pfxFilePath) {
-              throw new Error('pfxFilePath is required for pfx type');
+            let pkcs12FilePath = clientCert.pkcs12FilePath;
+            if (!pkcs12FilePath) {
+              throw new Error('pkcs12FilePath is required for pkcs12 type');
             }
-            pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
-            certsConfig.pfx = fs.readFileSync(pfxFilePath);
+            pkcs12FilePath = path.isAbsolute(pkcs12FilePath) ? pkcs12FilePath : path.join(collectionPath, pkcs12FilePath);
+            certsConfig.pfx = fs.readFileSync(pkcs12FilePath);
           } catch (err: any) {
-            console.error('Error reading pfx file', err);
-            throw new Error(`Error reading pfx file: ${err.message}`);
+            console.error('Error reading pkcs12 file', err);
+            throw new Error(`Error reading pkcs12 file: ${err.message}`);
           }
         }
         certsConfig.passphrase = clientCert.passphrase;

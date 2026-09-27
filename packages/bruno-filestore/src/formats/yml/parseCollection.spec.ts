@@ -99,7 +99,7 @@ extensions:
 });
 
 describe('parseCollection — client certificates', () => {
-  it('maps pem and pkcs12 certs to Bruno cert/pfx shapes', () => {
+  it('reads pem and pkcs12 certs in the OpenCollection shape', () => {
     const yml = `opencollection: "1.0.0"
 info:
   name: c
@@ -119,16 +119,15 @@ config:
     expect(brunoConfig.clientCertificates.certs).toEqual([
       {
         domain: 'localhost',
-        type: 'cert',
-        certFilePath: './certs/client-cert.pem',
-        keyFilePath: './certs/client-key.pem',
+        type: 'pem',
+        certificateFilePath: './certs/client-cert.pem',
+        privateKeyFilePath: './certs/client-key.pem',
         passphrase: 'secret'
       },
       {
         domain: 'example.com',
-        type: 'pfx',
-        pfxFilePath: './certs/client.pfx',
-        passphrase: ''
+        type: 'pkcs12',
+        pkcs12FilePath: './certs/client.pfx'
       }
     ]);
   });

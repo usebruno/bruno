@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { normalizeClientCertificates } = require('@usebruno/common/utils');
 const fsExtra = require('fs-extra');
 const { ipcMain, app } = require('electron');
 const {
@@ -566,6 +567,9 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
       throw new Error('Collection is already in YML format');
     }
     brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+    if (brunoConfig.clientCertificates?.certs) {
+      brunoConfig.clientCertificates.certs = normalizeClientCertificates(brunoConfig.clientCertificates.certs);
+    }
   } catch (error) {
     try {
       await openCollection(mainWindow, watcher, collectionPathname);

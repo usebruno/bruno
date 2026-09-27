@@ -1,6 +1,7 @@
 const path = require('path');
 const { isFile, isDirectory } = require('./filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
+const { normalizeClientCertificates, toLegacyClientCertificates } = require('@usebruno/common/utils');
 
 function transformBrunoConfigBeforeSave(brunoConfig) {
   if (brunoConfig && !brunoConfig.opencollection) {
@@ -10,6 +11,11 @@ function transformBrunoConfigBeforeSave(brunoConfig) {
       brunoConfig.collectionVersion = userVersion;
     } else {
       delete brunoConfig.collectionVersion;
+    }
+
+    // bruno.json keeps the legacy cert/pfx shape so older Bruno versions can still read it
+    if (brunoConfig.clientCertificates?.certs) {
+      brunoConfig.clientCertificates.certs = toLegacyClientCertificates(brunoConfig.clientCertificates.certs);
     }
   }
 
@@ -96,6 +102,10 @@ async function transformBrunoConfigAfterRead(brunoConfig, collectionPathname) {
   // Migrate proxy configuration from old format to new format
   if (brunoConfig.proxy) {
     brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
+  }
+
+  if (brunoConfig.clientCertificates?.certs) {
+    brunoConfig.clientCertificates.certs = normalizeClientCertificates(brunoConfig.clientCertificates.certs);
   }
 
   return brunoConfig;

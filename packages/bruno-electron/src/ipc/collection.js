@@ -21,7 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
-const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
+const { resolveEnvironmentInheritance, toLegacyClientCertificates } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -1529,6 +1529,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const bruJsonConfig = { ...brunoConfig, version: '1' };
           if (brunoConfig.version) {
             bruJsonConfig.collectionVersion = brunoConfig.version;
+          }
+          if (bruJsonConfig.clientCertificates?.certs) {
+            bruJsonConfig.clientCertificates = { ...bruJsonConfig.clientCertificates, certs: toLegacyClientCertificates(bruJsonConfig.clientCertificates.certs) };
           }
           const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
           await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);

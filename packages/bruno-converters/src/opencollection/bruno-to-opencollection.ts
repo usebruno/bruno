@@ -3,8 +3,9 @@ import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders,
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
-import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
+import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, CollectionConfig, OpenCollection, Protobuf } from "./types";
 import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
+import { toOpenCollectionClientCertificates } from '@usebruno/common/utils';
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -43,39 +44,7 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
   }
 
   if (brunoConfig.clientCertificates?.certs?.length) {
-    config.clientCertificates = brunoConfig.clientCertificates.certs
-      .map((cert): ClientCertificate | null => {
-        if (cert.type === 'cert') {
-          const pemCert: PemCertificate = {
-            domain: cert.domain || '',
-            type: 'pem',
-            certificateFilePath: cert.certFilePath || '',
-            privateKeyFilePath: cert.keyFilePath || ''
-          };
-          if (cert.passphrase) {
-            pemCert.passphrase = cert.passphrase;
-          }
-          if (cert.disabled === true) {
-            pemCert.disabled = true;
-          }
-          return pemCert;
-        } else if (cert.type === 'pfx') {
-          const pkcs12Cert: Pkcs12Certificate = {
-            domain: cert.domain || '',
-            type: 'pkcs12',
-            pkcs12FilePath: cert.pfxFilePath || ''
-          };
-          if (cert.passphrase) {
-            pkcs12Cert.passphrase = cert.passphrase;
-          }
-          if (cert.disabled === true) {
-            pkcs12Cert.disabled = true;
-          }
-          return pkcs12Cert;
-        }
-        return null;
-      })
-      .filter((cert): cert is ClientCertificate => cert !== null);
+    config.clientCertificates = toOpenCollectionClientCertificates(brunoConfig.clientCertificates.certs);
   }
 
   return Object.keys(config).length > 0 ? config : undefined;

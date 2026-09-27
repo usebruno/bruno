@@ -24,7 +24,7 @@ const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAx
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS, normalizeClientCertificate } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -421,33 +421,33 @@ const runSingleRequest = async function (
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-    for (let clientCert of clientCertConfig) {
-      if (clientCert?.disabled) {
+    for (const rawClientCert of clientCertConfig) {
+      const clientCert = normalizeClientCertificate(rawClientCert);
+      if (!clientCert || clientCert.disabled) {
         continue;
       }
-      const domain = interpolateString(clientCert?.domain, interpolationOptions);
-      const type = clientCert?.type || 'cert';
+      const domain = interpolateString(clientCert.domain, interpolationOptions);
       if (domain) {
         const hostRegex = getCACertHostRegex(domain);
         if (request.url.match(hostRegex)) {
-          if (type === 'cert') {
+          if (clientCert.type === 'pem') {
             try {
-              let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              let certFilePath = interpolateString(clientCert.certificateFilePath, interpolationOptions);
               certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
-              let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              let keyFilePath = interpolateString(clientCert.privateKeyFilePath, interpolationOptions);
               keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
               httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
               httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
             } catch (err) {
               console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
             }
-          } else if (type === 'pfx') {
+          } else {
             try {
-              let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
-              pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
-              httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+              let pkcs12FilePath = interpolateString(clientCert.pkcs12FilePath, interpolationOptions);
+              pkcs12FilePath = path.isAbsolute(pkcs12FilePath) ? pkcs12FilePath : path.join(collectionPath, pkcs12FilePath);
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(pkcs12FilePath);
             } catch (err) {
-              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
+              console.log(chalk.red('Error reading pkcs12 file'), chalk.red(err?.message));
             }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);

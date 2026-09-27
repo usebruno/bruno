@@ -133,19 +133,19 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
 
     // Select cert file using file picker (using grpcbin.proto as a dummy file)
     const certFileChooserPromise = page.waitForEvent('filechooser');
-    await chooseFileButton('certFilePath').click();
+    await chooseFileButton('certificateFilePath').click();
     const certFileChooser = await certFileChooserPromise;
     await certFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Select key file using file picker (using grpcbin.proto as a dummy file)
     const keyFileChooserPromise = page.waitForEvent('filechooser');
-    await chooseFileButton('keyFilePath').click();
+    await chooseFileButton('privateKeyFilePath').click();
     const keyFileChooser = await keyFileChooserPromise;
     await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Both file paths must land in the form before submitting, else validation blocks the add
-    await expect(fileChip('certFilePath')).toHaveText(/grpcbin\.proto/);
-    await expect(fileChip('keyFilePath')).toHaveText(/grpcbin\.proto/);
+    await expect(fileChip('certificateFilePath')).toHaveText(/grpcbin\.proto/);
+    await expect(fileChip('privateKeyFilePath')).toHaveText(/grpcbin\.proto/);
 
     // Add the certificate
     await page.getByTestId('add-client-cert-modal-submit-btn').click();

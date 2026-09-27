@@ -6,6 +6,7 @@ const { sanitizeName } = require('./filesystem');
 const { getEffectiveTags, getFolderTags, getOwnTags } = require('@usebruno/common');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { sortByNameThenSequence } = require('@usebruno/common');
+const { normalizeClientCertificates, toLegacyClientCertificates } = require('@usebruno/common/utils');
 const constants = require('../constants');
 const chalk = require('chalk');
 
@@ -28,6 +29,9 @@ const getCollectionConfig = (collectionPath, format) => {
     return { brunoConfig: parsed.brunoConfig, collectionRoot: parsed.collectionRoot || {} };
   }
   const brunoConfig = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
+  if (brunoConfig.clientCertificates?.certs) {
+    brunoConfig.clientCertificates.certs = normalizeClientCertificates(brunoConfig.clientCertificates.certs);
+  }
   const collectionBruPath = path.join(collectionPath, 'collection.bru');
   const collectionRoot = fs.existsSync(collectionBruPath)
     ? parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' })
@@ -622,9 +626,13 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
   const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
 
   if (format === 'bru') {
+    // bruno.json keeps the legacy cert/pfx shape so older Bruno versions can still read it
+    const brunoJsonConfig = brunoConfig.clientCertificates?.certs
+      ? { ...brunoConfig, clientCertificates: { ...brunoConfig.clientCertificates, certs: toLegacyClientCertificates(brunoConfig.clientCertificates.certs) } }
+      : brunoConfig;
     fs.writeFileSync(
       path.join(dirPath, 'bruno.json'),
-      JSON.stringify(brunoConfig, null, 2)
+      JSON.stringify(brunoJsonConfig, null, 2)
     );
   }
 

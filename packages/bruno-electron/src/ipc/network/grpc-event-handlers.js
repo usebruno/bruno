@@ -3,6 +3,7 @@ const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
+const { normalizeClientCertificate } = require('@usebruno/common/utils');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
@@ -556,20 +557,20 @@ const registerGrpcEventHandlers = (window) => {
       const globalCerts = preferencesUtil.getGlobalClientCertificates();
       const clientCertConfig = [...collectionCerts, ...globalCerts];
 
-      for (const clientCert of clientCertConfig) {
-        if (clientCert?.disabled) {
+      for (const rawClientCert of clientCertConfig) {
+        const clientCert = normalizeClientCertificate(rawClientCert);
+        if (!clientCert || clientCert.disabled) {
           continue;
         }
-        const domain = interpolateString(clientCert?.domain, interpolationOptions);
-        const type = clientCert?.type || 'cert';
+        const domain = interpolateString(clientCert.domain, interpolationOptions);
         if (domain) {
           const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
           const requestUrl = interpolateString(preparedRequest.url, interpolationOptions);
           if (requestUrl.match(hostRegex)) {
-            if (type === 'cert') {
-              certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+            if (clientCert.type === 'pem') {
+              certFilePath = interpolateString(clientCert.certificateFilePath, interpolationOptions);
               certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collection.pathname, certFilePath);
-              keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = interpolateString(clientCert.privateKeyFilePath, interpolationOptions);
               keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collection.pathname, keyFilePath);
             }
             // collection certs precede global ones, so the first match wins

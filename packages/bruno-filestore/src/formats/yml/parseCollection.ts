@@ -1,6 +1,7 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
 import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
+import { normalizeClientCertificates } from '@usebruno/common/utils';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
@@ -142,27 +143,7 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // client certificates
     if (oc.config?.clientCertificates?.length) {
       brunoConfig.clientCertificates = {
-        certs: oc.config.clientCertificates.map((cert: any) => {
-          if (cert.type === 'pem') {
-            return {
-              domain: cert.domain,
-              type: 'cert',
-              certFilePath: cert.certificateFilePath,
-              keyFilePath: cert.privateKeyFilePath,
-              passphrase: cert.passphrase || '',
-              ...(cert.disabled === true && { disabled: true })
-            };
-          } else if (cert.type === 'pkcs12') {
-            return {
-              domain: cert.domain,
-              type: 'pfx',
-              pfxFilePath: cert.pkcs12FilePath,
-              passphrase: cert.passphrase || '',
-              ...(cert.disabled === true && { disabled: true })
-            };
-          }
-          return null;
-        }).filter((cert: any) => cert !== null)
+        certs: normalizeClientCertificates(oc.config.clientCertificates)
       };
     }
 
