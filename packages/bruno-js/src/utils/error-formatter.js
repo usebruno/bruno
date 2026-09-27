@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
+const { SCRIPT_TYPES } = require('@usebruno/common');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
@@ -11,17 +12,15 @@ const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
 const isAllowedSourceFile = (filePath) =>
   typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
 
-const SCRIPT_TYPES = Object.freeze({
-  PRE_REQUEST: 'pre-request',
-  POST_RESPONSE: 'post-response',
-  TEST: 'test'
-});
-
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
-  [SCRIPT_TYPES.TEST]: 'tests'
+  [SCRIPT_TYPES.TEST]: 'tests',
+  [SCRIPT_TYPES.BEFORE_CALL_START]: 'grpc:before-call-start',
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: 'grpc:before-message-send',
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: 'grpc:after-message-receive',
+  [SCRIPT_TYPES.AFTER_CALL_END]: 'grpc:after-call-end'
 };
 
 const readFile = (filePath, cache = null) => {
@@ -38,7 +37,11 @@ const readFile = (filePath, cache = null) => {
 const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
-  [SCRIPT_TYPES.TEST]: /^tests\s*\{/
+  [SCRIPT_TYPES.TEST]: /^tests\s*\{/,
+  [SCRIPT_TYPES.BEFORE_CALL_START]: /^script:grpc:before-call-start\s*\{/,
+  [SCRIPT_TYPES.BEFORE_MESSAGE_SEND]: /^script:grpc:before-message-send\s*\{/,
+  [SCRIPT_TYPES.AFTER_MESSAGE_RECEIVE]: /^script:grpc:after-message-receive\s*\{/,
+  [SCRIPT_TYPES.AFTER_CALL_END]: /^script:grpc:after-call-end\s*\{/
 };
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */

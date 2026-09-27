@@ -3,7 +3,7 @@ const path = require('node:path');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { parseApiSpecContent } = require('../utils/apiSpecs');
+const { parseApiSpecContent, resolveExternalApiSpecRefs } = require('../utils/apiSpecs');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
@@ -94,6 +94,8 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     } else {
       const rawContent = fs.readFileSync(apiSpecPath, 'utf8');
       const extension = path.extname(apiSpecPath);
+      const apiSpecContent = parseApiSpecContent(rawContent, extension);
+      const { resolvedJson } = await resolveExternalApiSpecRefs(apiSpecContent, apiSpecPath);
 
       win.webContents.send('main:apispec-tree-updated', 'addFile', {
         pathname: apiSpecPath,
@@ -101,7 +103,8 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
         raw: rawContent,
         name: path.basename(apiSpecPath, path.extname(apiSpecPath)),
         filename: path.basename(apiSpecPath),
-        json: parseApiSpecContent(rawContent, extension)
+        json: apiSpecContent,
+        resolvedJson: resolvedJson
       });
     }
   } catch (err) {

@@ -90,7 +90,7 @@ const PresetsSettings = ({ collection }) => {
             type="text"
             name="requestUrl"
             placeholder="Request URL"
-            className="block textbox preset-input"
+            className="block textbox preset-input mousetrap"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"

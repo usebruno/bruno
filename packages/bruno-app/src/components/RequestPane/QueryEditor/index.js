@@ -70,7 +70,7 @@ export default class QueryEditor extends React.Component {
      * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
      * in request tabs.
      */
-    const runShortcut = () => {};
+    const runShortcut = () => { };
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -161,7 +161,7 @@ export default class QueryEditor extends React.Component {
     }
     this.addOverlay();
 
-    setupLinkAware(editor);
+    setupLinkAware(editor, { onLinkClick: undefined });
     this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
@@ -193,7 +193,7 @@ export default class QueryEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    let variables = getAllVariables(this.props.collection);
+    const variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();

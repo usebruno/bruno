@@ -1,0 +1,41 @@
+info:
+  name: BrokenSendOnBidiStream
+  type: grpc
+  seq: 18
+
+grpc:
+  url: "{{host}}"
+  method: /hello.HelloService/BidiHello
+  methodType: bidi-streaming
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "reject-me"
+        }
+    - title: message 2
+      message: |-
+        {
+          "greeting": "let-me-through"
+        }
+
+runtime:
+  scripts:
+    - type: grpc:before-message-send
+      code: |-
+        if (bru.grpc.request.message.data.greeting === 'reject-me') {
+          throw new Error('this message is not going out');
+        }
+
+        // The stream survives the rejected message, so the next one still reaches the hook.
+        test('the message that follows the rejected one is still streamed', () => {
+          expect(bru.grpc.request.message.data.greeting).to.equal('let-me-through');
+          expect(bru.grpc.request.messages.count()).to.equal(0);
+        });
+    - type: grpc:after-call-end
+      code: |-
+        test('only the message the hook let through was streamed', () => {
+          expect(bru.grpc.request.messages.count()).to.equal(1);
+          expect(bru.grpc.request.messages.get(0).data.greeting).to.equal('let-me-through');
+          expect(bru.grpc.response.messages.count()).to.equal(1);
+        });

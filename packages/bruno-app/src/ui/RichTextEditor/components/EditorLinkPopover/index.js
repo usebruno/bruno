@@ -4,6 +4,7 @@ import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import ToolHint from 'components/ToolHint';
 import { isHttpUrl } from 'utils/url/index';
+import { isMacOS } from 'utils/common/platform';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 import Portal from 'ui/Portal';
@@ -29,7 +30,7 @@ function resolveLinkText(editor, anchorEl) {
   return { text: anchorEl.textContent || '', range: null };
 }
 
-const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
+const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl, onLinkClick }) => {
   // --- Hover View Popover ---
   const [hoverOpen, setHoverOpen] = useState(false);
   const [hoverLink, setHoverLink] = useState({ text: '', url: '' });
@@ -219,6 +220,13 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       // redirect the app itself instead of opening in the system browser.
       const href = anchor.getAttribute('href');
       e.preventDefault();
+
+      const modifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
+      if (typeof onLinkClick === 'function' && !modifierPressed) {
+        onLinkClick(href);
+        return;
+      }
+
       if (isHttpUrl(href)) {
         window.open(href, '_blank', 'noopener,noreferrer');
       }
@@ -234,7 +242,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       dom.removeEventListener('click', handleClick);
       clearTimeout(hoverTimerRef.current);
     };
-  }, [editor, isEditable, editOpen, openHoverForAnchor, closeHover, openEditForAnchor]);
+  }, [editor, isEditable, editOpen, openHoverForAnchor, closeHover, openEditForAnchor, onLinkClick]);
 
   if (!editor) return null;
 

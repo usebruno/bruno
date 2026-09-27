@@ -3,7 +3,7 @@ import { stripEnvVarUid } from 'utils/environments';
 
 const belongsToTab = (variable, isSecret) => (isSecret ? !!variable.secret : !variable.secret);
 
-const useEnvironmentTabs = ({ environment, draft }) =>
+const useEnvironmentTabs = ({ environment, draft, inheritedEnvironmentVariables = [] }) =>
   useMemo(() => {
     const environmentsDraft = draft?.environmentUid === environment?.uid ? draft : null;
 
@@ -16,11 +16,13 @@ const useEnvironmentTabs = ({ environment, draft }) =>
 
     // Reflects the live draft while editing, else the saved values.
     const liveVariables = environmentsDraft?.variables || environment?.variables || [];
-    const countForTab = (isSecret) =>
+    const ownVariablesCountForTab = (isSecret) =>
       liveVariables.filter((v) => belongsToTab(v, isSecret) && v.enabled && v.name && v.name.trim() !== '').length;
 
+    const inheritedVariablesCountForTab = (isSecret) => inheritedEnvironmentVariables.filter((v) => belongsToTab(v, isSecret)).length;
+
     const tabIndicator = (isSecret) => {
-      const count = countForTab(isSecret);
+      const count = ownVariablesCountForTab(isSecret) + inheritedVariablesCountForTab(isSecret);
       if (count === 0) return null;
       return (
         <sup
@@ -36,6 +38,6 @@ const useEnvironmentTabs = ({ environment, draft }) =>
       { key: 'variables', label: 'Variables', indicator: tabIndicator(false) },
       { key: 'secrets', label: 'Secrets', indicator: tabIndicator(true) }
     ];
-  }, [draft, environment?.uid, environment?.variables]);
+  }, [draft, environment, inheritedEnvironmentVariables]);
 
 export default useEnvironmentTabs;

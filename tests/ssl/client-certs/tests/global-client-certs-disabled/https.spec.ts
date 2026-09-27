@@ -1,14 +1,9 @@
 import { test, expect } from '../../../../../playwright';
 import { setSandboxMode, openRequest } from '../../../../utils/page';
 import { buildCommonLocators } from '../../../../utils/page/locators';
+import { TLS_HANDSHAKE_FAILURE } from '../../../../utils/constants';
 
 const COLLECTION = 'global-client-certs-disabled';
-
-// Node surfaces the server's mTLS rejection as an OpenSSL handshake alert (e.g.
-// "tlsv13 alert certificate required" / "sslv3 alert handshake failure"). Match the
-// family of TLS/client-cert failures so an unrelated error (DNS, timeout, script) can't
-// satisfy the test.
-const TLS_HANDSHAKE_FAILURE = /certificate required|handshake failure|bad certificate|tlsv1.*alert|sslv3 alert|SSL alert number|SSL routines/i;
 
 // The global client certificate in Preferences carries `disabled: true`, so Bruno
 // withholds it. The mTLS server rejects the request at the TLS handshake — the error

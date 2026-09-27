@@ -5,7 +5,13 @@ const {
   setFolderVars,
   setCollectionVars,
   updateFile,
-  wsResponseReceived
+  wsResponseReceived,
+  toggleSidebarSelection,
+  setSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
+  collapseItem,
+  expandItem
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -156,5 +162,92 @@ describe('wsResponseReceived — disconnecting', () => {
       status: 'DISCONNECTING',
       statusText: 'DISCONNECTING'
     });
+  });
+});
+
+describe('sidebar selection reducers', () => {
+  const baseState = { selectedSidebarUids: [], lastClickedSidebarUid: null };
+
+  it('toggleSidebarSelection adds then removes a uid', () => {
+    let state = reducer(baseState, toggleSidebarSelection('a'));
+    expect(state.selectedSidebarUids).toEqual(['a']);
+
+    state = reducer(state, toggleSidebarSelection('a'));
+    expect(state.selectedSidebarUids).toEqual([]);
+  });
+
+  it('setSidebarSelection replaces the selection wholesale', () => {
+    const state = reducer(baseState, setSidebarSelection(['a', 'b', 'c']));
+    expect(state.selectedSidebarUids).toEqual(['a', 'b', 'c']);
+  });
+
+  it('clearSidebarSelection empties the selection and the shift-click anchor', () => {
+    const state = reducer(
+      { selectedSidebarUids: ['a', 'b'], lastClickedSidebarUid: 'a' },
+      clearSidebarSelection()
+    );
+    expect(state.selectedSidebarUids).toEqual([]);
+    expect(state.lastClickedSidebarUid).toBeNull();
+  });
+
+  it('setLastClickedSidebarUid sets the shift-click anchor', () => {
+    const state = reducer(baseState, setLastClickedSidebarUid('b'));
+    expect(state.lastClickedSidebarUid).toBe('b');
+  });
+});
+
+describe('collapseItem', () => {
+  it('collapses a folder without affecting nested items', () => {
+    const folder = {
+      uid: 'folder1',
+      type: 'folder',
+      collapsed: false,
+      items: [
+        {
+          uid: 'nested1',
+          type: 'folder',
+          collapsed: false,
+          items: [{ uid: 'req1', type: 'http-request', request: {}, collapsed: false }]
+        }
+      ]
+    };
+
+    const next = reducer(
+      makeStateWith(folder),
+      collapseItem({ collectionUid: 'col1', itemUid: 'folder1' })
+    );
+
+    const [collapsedFolder] = next.collections[0].items;
+    expect(collapsedFolder.collapsed).toBe(true);
+    expect(collapsedFolder.items[0].collapsed).toBe(false);
+    expect(collapsedFolder.items[0].items[0].collapsed).toBe(false);
+  });
+});
+
+describe('expandItem', () => {
+  it('expands a folder without affecting nested items', () => {
+    const folder = {
+      uid: 'folder1',
+      type: 'folder',
+      collapsed: true,
+      items: [
+        {
+          uid: 'nested1',
+          type: 'folder',
+          collapsed: true,
+          items: [{ uid: 'req1', type: 'http-request', request: {}, collapsed: true }]
+        }
+      ]
+    };
+
+    const next = reducer(
+      makeStateWith(folder),
+      expandItem({ collectionUid: 'col1', itemUid: 'folder1' })
+    );
+
+    const [expandedFolder] = next.collections[0].items;
+    expect(expandedFolder.collapsed).toBe(false);
+    expect(expandedFolder.items[0].collapsed).toBe(true);
+    expect(expandedFolder.items[0].items[0].collapsed).toBe(true);
   });
 });

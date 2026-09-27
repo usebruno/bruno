@@ -141,3 +141,28 @@ describe('OpenCollection environment round-trip — variable descriptions', () =
     expect(out).toEqual(ocEnvs);
   });
 });
+
+describe('OpenCollection environment round-trip — inheritance', () => {
+  it('keeps the parent environment when converting OpenCollection to Bruno and back', () => {
+    const ocEnvs = [
+      {
+        name: 'prod',
+        color: undefined,
+        extends: 'base',
+        variables: [{ name: 'host', value: 'prod.example.com' }]
+      }
+    ];
+
+    const [env] = fromOpenCollectionEnvironments(ocEnvs);
+    expect(env.extends).toBe('base');
+
+    expect(toOpenCollectionEnvironments([env])).toEqual(ocEnvs);
+  });
+
+  it('reports no parent for an environment that does not declare one', () => {
+    const [env] = fromOpenCollectionEnvironments([{ name: 'prod', variables: [] }]);
+
+    expect(env.extends).toBeNull();
+    expect(toOpenCollectionEnvironments([env])[0]).not.toHaveProperty('extends');
+  });
+});

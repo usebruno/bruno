@@ -1,6 +1,17 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+const validMigrations = {
+  migrations: [
+    {
+      sequence: 1,
+      name: 'valid',
+      up: 'CREATE TABLE valid (id INTEGER PRIMARY KEY)',
+      down: 'DROP TABLE valid'
+    }
+  ]
+};
 
 const brokenMigrations = {
   migrations: [
@@ -55,6 +66,7 @@ describe('createDatabase', () => {
 
   it('backs up an unusable database file and rebuilds it', () => {
     writeFileSync(dbPath, 'this is not a sqlite database');
+    jest.doMock('../../src/generated/node/migrations', () => validMigrations);
     const { createDatabase } = require('../../src/node/index');
 
     const { db, statements } = createDatabase(dbPath);
@@ -62,7 +74,7 @@ describe('createDatabase', () => {
     expect(db).toBeDefined();
     expect(statements).toBeDefined();
     expect(existsSync(dbPath)).toBe(true);
-    expect(db._db.prepare('SELECT name FROM _migrations').all()).toEqual([]);
+    expect(db._db.prepare('SELECT name FROM _migrations').all()).toEqual([{ name: 'valid' }]);
     db.close();
   });
 

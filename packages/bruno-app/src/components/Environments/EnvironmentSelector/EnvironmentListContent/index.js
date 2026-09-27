@@ -135,7 +135,7 @@ const EnvironmentListContent = ({
           <h3>Ready to get started?</h3>
           <p>{description}</p>
           <div className="space-y-2">
-            <button onClick={onCreateClick} id="create-env">
+            <button onClick={onCreateClick} id="create-env" data-testid="create-env">
               <IconPlus size={16} strokeWidth={1.5} />
               Create
             </button>

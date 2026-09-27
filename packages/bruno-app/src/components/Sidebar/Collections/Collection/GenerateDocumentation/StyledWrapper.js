@@ -1,6 +1,9 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: 40rem;
+  max-width: 100%;
+
   .content {
     .title {
       font-size: ${(props) => props.theme.font.size.base};
@@ -35,6 +38,9 @@ const StyledWrapper = styled.div`
           font-size: ${(props) => props.theme.font.size.base};
           color: ${(props) => props.theme.text};
           min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .version-value {
@@ -42,6 +48,7 @@ const StyledWrapper = styled.div`
           font-size: ${(props) => props.theme.font.size.sm};
           color: ${(props) => props.theme.colors.text.subtext2};
           white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .version-value.unset {
@@ -75,9 +82,9 @@ const StyledWrapper = styled.div`
         padding: 0.75rem;
 
         .env-checkbox {
-          width: 1rem;
-          height: 1rem;
-          margin: 0;
+          width: 0.875rem;
+          height: 0.875rem;
+          margin: 0.1875rem;
           flex-shrink: 0;
           cursor: pointer;
           accent-color: ${(props) => props.theme.primary.solid};
@@ -103,7 +110,7 @@ const StyledWrapper = styled.div`
           align-items: center;
           justify-content: space-between;
           gap: 0.5rem;
-          margin-bottom: 0.15rem;
+          margin-bottom: 0.5rem;
         }
 
         .env-section-heading {
@@ -120,12 +127,19 @@ const StyledWrapper = styled.div`
         }
 
         .env-section-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
           margin: 0;
           font-size: ${(props) => props.theme.font.size.sm};
           font-weight: 600;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: ${(props) => props.theme.colors.text.subtext2};
+          color: ${(props) => props.theme.text};
+        }
+
+        .env-section-icon {
+          margin-left: -2px;
+          color: ${(props) => props.theme.colors.text.subtext0};
+          flex-shrink: 0;
         }
 
         .env-select-all {
@@ -147,18 +161,14 @@ const StyledWrapper = styled.div`
           display: flex;
           align-items: center;
           height: 28px;
+          gap: 0.5rem;
           cursor: pointer;
           margin: 0;
-
-          .env-checkbox {
-            margin-right: 10px;
-          }
 
           .env-name {
             font-size: ${(props) => props.theme.font.size.base};
             color: ${(props) => props.theme.text};
             min-width: 0;
-            margin-left: 6px;
           }
         }
       }

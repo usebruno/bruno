@@ -28,7 +28,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -40,6 +40,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
+const { createRunnerExchangeEmitters } = require('./runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -60,6 +61,7 @@ const saveCookies = (url, headers) => {
   }
 };
 
+// Duplicated as getJsSandboxRuntime in utils/collection.js; keep the two in sync.
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
@@ -157,7 +159,7 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-  let axiosInstance = makeAxiosInstance({
+  const axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
     proxyConfig,
@@ -169,7 +171,8 @@ const configureRequest = async (
   });
 
   if (request.ntlmConfig) {
-    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+    const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+    axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
     delete request.ntlmConfig;
   }
 
@@ -467,6 +470,8 @@ const registerNetworkIpc = (mainWindow) => {
       args
     });
   };
+
+  const { sendRunnerRequestSent, sendRunnerResponseReceived } = createRunnerExchangeEmitters(mainWindow);
 
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
@@ -825,7 +830,8 @@ const registerNetworkIpc = (mainWindow) => {
                     data: res.data,
                     dataBuffer: res.dataBuffer,
                     size: res.size,
-                    duration: res.duration
+                    duration: res.duration,
+                    timeline: res.timeline
                   }
                 : null,
               error: err || (res?.error ? { message: res.error } : null),
@@ -891,6 +897,7 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    scriptingConfig.cacheModules = false;
 
     try {
       request.signal = abortController.signal;
@@ -1422,6 +1429,7 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid, collection);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      scriptingConfig.cacheModules = false;
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
@@ -1520,7 +1528,8 @@ const registerNetworkIpc = (mainWindow) => {
                       data: res.data,
                       dataBuffer: res.dataBuffer,
                       size: res.size,
-                      duration: res.duration
+                      duration: res.duration,
+                      timeline: res.timeline
                     }
                   : null,
                 error: err || (res?.error ? { message: res.error } : null),
@@ -1570,13 +1579,13 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // Filter requests based on tags
-        if (tags && tags.include && tags.exclude) {
-          const includeTags = tags.include ? tags.include : [];
-          const excludeTags = tags.exclude ? tags.exclude : [];
-          folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
-            requestTags = draft?.tags || requestTags || [];
-            return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
-          });
+        const includeTags = tags?.include || [];
+        const excludeTags = tags?.exclude || [];
+        if (includeTags.length || excludeTags.length) {
+          const effectiveTagsByUid = getEffectiveTagsByUid(collection);
+          folderRequests = folderRequests.filter((request) =>
+            isRequestTagsIncluded(effectiveTagsByUid.get(request.uid) || [], includeTags, excludeTags)
+          );
         }
 
         // Filter requests based on selectedRequestUids (for "Configure requests to run")
@@ -1800,11 +1809,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'request-sent',
-              requestSent,
-              ...eventData
-            });
+            sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1893,8 +1898,8 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
+              sendRunnerResponseReceived({
+                requestUid,
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
@@ -1907,7 +1912,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
-                ...eventData
+                eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
@@ -1942,11 +1947,11 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'response-received',
+                sendRunnerResponseReceived({
+                  requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  ...eventData
+                  eventData
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {

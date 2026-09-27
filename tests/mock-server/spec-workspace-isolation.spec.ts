@@ -101,12 +101,12 @@ test.describe('Mock server API spec source is scoped to the active workspace', (
 
       await openCreateMockServerModal(page);
 
-      await test.step('Linking a source is off by default because nothing here can be linked', async () => {
-        await expect(ms.linkSourceCheckbox()).not.toBeChecked();
+      await test.step('Standalone is the default because nothing here can be linked', async () => {
+        await expect(ms.sourceManualRadio()).toBeChecked();
       });
 
-      await test.step('The API Spec source stays unavailable', async () => {
-        await ms.linkSourceCheckbox().check();
+      await test.step('The Collection and API Spec sources stay unavailable', async () => {
+        await expect(ms.sourceCollectionRadio()).toBeDisabled();
         await expect(ms.sourceSpecRadio()).toBeDisabled();
       });
     } finally {

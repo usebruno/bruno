@@ -28,6 +28,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   return (
     <CodeEditor
       collection={collection}
+      item={item}
       value={variables || ''}
       theme={displayedTheme}
       font={get(preferences, 'font.codeFont', 'default')}
