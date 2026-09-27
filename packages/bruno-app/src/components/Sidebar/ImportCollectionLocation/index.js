@@ -9,6 +9,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertAsyncApiToBruno } from 'utils/importers/asyncapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { processOpenCollection } from 'utils/importers/opencollection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
@@ -29,6 +30,8 @@ const getCollectionName = (format, rawData) => {
   switch (format) {
     case 'openapi':
       return rawData.info?.title || 'OpenAPI Collection';
+    case 'asyncapi':
+      return rawData.info?.title || 'AsyncAPI Collection';
     case 'postman':
       return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
     case 'insomnia':
@@ -64,6 +67,9 @@ const convertCollection = async (format, rawData, { groupingType, collectionForm
     switch (format) {
       case 'openapi':
         collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
+        break;
+      case 'asyncapi':
+        collection = convertAsyncApiToBruno(rawData);
         break;
       case 'wsdl':
         collection = await convertWsdlToBruno(rawData, filePath);

@@ -9,6 +9,7 @@ import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
 import { isOpenApiSpec } from './openapi-collection';
+import { isAsyncApiSpec } from './asyncapi-collection';
 import { isPostmanCollection } from './postman-collection';
 import { isInsomniaCollection } from './insomnia-collection';
 import { valueToString } from '@usebruno/common/utils';
@@ -228,12 +229,12 @@ export const hydrateSeqInCollection = (collection) => {
 };
 
 /**
- * Gets the schema type(postman, insomnia, openapi) of the CollectionJSON data
+ * Gets the schema type(postman, insomnia, openapi, asyncapi) of the CollectionJSON data
  * @param {Object} data - The JSON data to get the type of
- * @returns {'openapi' | 'postman' | 'insomnia' | 'unknown'} - The type of the CollectionJSON data
+ * @returns {'openapi' | 'asyncapi' | 'postman' | 'insomnia' | 'unknown'} - The type of the CollectionJSON data
  */
 const getCollectionSpecType = (data) => {
-  return isOpenApiSpec(data) ? 'openapi' : isPostmanCollection(data) ? 'postman' : isInsomniaCollection(data) ? 'insomnia' : 'unknown';
+  return isOpenApiSpec(data) ? 'openapi' : isAsyncApiSpec(data) ? 'asyncapi' : isPostmanCollection(data) ? 'postman' : isInsomniaCollection(data) ? 'insomnia' : 'unknown';
 };
 
 export const fetchAndValidateApiSpecFromUrl = ({ url }) => {
