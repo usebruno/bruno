@@ -16,6 +16,7 @@ const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, ge
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
+const { maskResultsVariableValues } = require('../utils/mask-variable-values');
 const { getSystemProxy } = require('@usebruno/requests');
 const { loadEnvironmentFromFile } = require('../utils/environment');
 const command = 'run [paths...]';
@@ -186,6 +187,11 @@ const builder = async (yargs) => {
       description: 'Skip specific headers from the reporter output',
       default: []
     })
+    .option('reporter-mask-var', {
+      type: 'array',
+      description: 'Mask the resolved values of these variables in the reporter output (JSON, JUnit and HTML). Useful when a CI/CD system injects secrets the environment files do not mark as secret',
+      default: []
+    })
     .option('reporter-skip-request-body', {
       type: 'boolean',
       description: 'Omit request body from the reporter output',
@@ -321,6 +327,7 @@ const handler = async function (argv) {
       bail,
       reporterSkipAllHeaders,
       reporterSkipHeaders,
+      reporterMaskVar,
       reporterSkipRequestBody,
       reporterSkipResponseBody,
       reporterSkipBody,
@@ -813,6 +820,28 @@ const handler = async function (argv) {
         skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
         skipResponseBody: reporterSkipResponseBody || reporterSkipBody
       });
+
+      if (reporterMaskVar?.length) {
+        // The masked value of each named variable is the one it resolved to
+        // during the run: environment, collection, folder, request, runtime
+        // and process sources all merged, in the same precedence the
+        // requests used.
+        const maskableVariables = {
+          ...envVars,
+          ...runtimeVariables,
+          ...globalEnvVars
+        };
+        for (const name of reporterMaskVar) {
+          if (name in processEnvVars) {
+            maskableVariables[name] = processEnvVars[name];
+          }
+        }
+        const variablesToMask = {};
+        for (const name of reporterMaskVar) {
+          variablesToMask[name] = maskableVariables[name];
+        }
+        maskResultsVariableValues(results, variablesToMask);
+      }
 
       // bail if option is set and there is a failure
       if (bail) {
