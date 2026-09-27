@@ -67,6 +67,10 @@ const transformCollection = async (collection, type) => {
       const { convertOpenapiToBruno } = await import('utils/importers/openapi-collection');
       return convertOpenapiToBruno(collection);
     }
+    case 'asyncapi': {
+      const { convertAsyncApiToBruno } = await import('utils/importers/asyncapi-collection');
+      return convertAsyncApiToBruno(collection);
+    }
     case 'opencollection': {
       const { processOpenCollection } = await import('utils/importers/opencollection');
       return processOpenCollection(collection);
