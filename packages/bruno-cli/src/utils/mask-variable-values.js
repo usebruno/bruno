@@ -37,7 +37,9 @@ const maskValue = (data, values) => {
   }
   if (data && typeof data === 'object') {
     if (Buffer.isBuffer(data)) {
-      return data;
+      // Binary bodies can embed the value in their bytes, and the report
+      // serializes the buffer verbatim, so the bytes are replaced wholesale.
+      return MASK;
     }
     const masked = {};
     for (const [key, value] of Object.entries(data)) {
@@ -54,10 +56,21 @@ const maskHeaders = (headers, values) => {
   }
   const masked = {};
   for (const [key, value] of Object.entries(headers)) {
-    masked[key] = typeof value === 'string' ? maskString(value, values) : value;
+    // Headers can hold arrays of strings (e.g. set-cookie): each element that
+    // could carry a value is masked on its own.
+    if (Array.isArray(value)) {
+      masked[key] = value.map((entry) => (typeof entry === 'string' ? maskString(entry, values) : entry));
+    } else {
+      masked[key] = typeof value === 'string' ? maskString(value, values) : value;
+    }
   }
   return masked;
 };
+
+// Fields of a run result that can embed resolved variable values outside the
+// request/response payloads: error messages, assertion and test results (a
+// failed expectation prints the actual value it compared).
+const RESULT_TEXT_FIELDS = ['error', 'assertionResults', 'testResults', 'preRequestTestResults', 'postResponseTestResults'];
 
 const maskResultsVariableValues = (results, variables = {}) => {
   // Longest values first: a longer value that contains a shorter one must be
@@ -89,6 +102,14 @@ const maskResultsVariableValues = (results, variables = {}) => {
       response.headers = maskHeaders(response.headers, values);
       if ('data' in response) {
         response.data = maskValue(response.data, values);
+      }
+      if (typeof response.statusText === 'string') {
+        response.statusText = maskString(response.statusText, values);
+      }
+    }
+    for (const field of RESULT_TEXT_FIELDS) {
+      if (result[field] !== undefined && result[field] !== null) {
+        result[field] = maskValue(result[field], values);
       }
     }
   });

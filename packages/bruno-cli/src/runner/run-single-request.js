@@ -113,7 +113,8 @@ const runSingleRequest = async function (
   collection,
   runSingleRequestByPathname,
   globalEnvVars = {},
-  persistPaths = {}
+  persistPaths = {},
+  variableValueRecorder = null
 ) {
   const syncVariableUpdates = (result, currentRequest) => {
     if (!result) return;
@@ -182,6 +183,24 @@ const runSingleRequest = async function (
 
     // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
     request.globalEnvironmentVariables = globalEnvVars;
+
+    if (variableValueRecorder) {
+      // Record the effective value each tracked variable resolves to for this
+      // request, mirroring the precedence the interpolator applies below:
+      // global < collection < env < folder < request < oauth2 < runtime.
+      // Process env vars are handled by the caller: they only interpolate via
+      // {{process.env.NAME}}, and the caller masks them by bare name too.
+      const effectiveVariables = {
+        ...request.globalEnvironmentVariables,
+        ...request.collectionVariables,
+        ...envVariables,
+        ...request.folderVariables,
+        ...request.requestVariables,
+        ...request.oauth2CredentialVariables,
+        ...runtimeVariables
+      };
+      variableValueRecorder(effectiveVariables);
+    }
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });

@@ -77,6 +77,85 @@ describe('reporter-mask-var', () => {
     expect(results[0].request.headers.authorization).toBe(`Bearer ${MASK}`);
   });
 
+  it('masks each string element of array-valued headers', () => {
+    const results = [createMockResult()];
+    results[0].response.headers = {
+      'set-cookie': ['session=actual-secret', 'tracker=actual-user']
+    };
+
+    maskResultsVariableValues(results, {
+      AffUser: 'actual-user',
+      AffPass: 'actual-secret'
+    });
+
+    expect(results[0].response.headers['set-cookie']).toEqual([
+      `session=${MASK}`,
+      `tracker=${MASK}`
+    ]);
+  });
+
+  it('replaces binary request bodies instead of exposing their bytes', () => {
+    const results = [createMockResult()];
+    results[0].request.data = Buffer.from('token=actual-secret');
+
+    maskResultsVariableValues(results, { AffPass: 'actual-secret' });
+
+    expect(results[0].request.data).toBe(MASK);
+  });
+
+  it('masks values inside error and assertion/test results', () => {
+    const results = [createMockResult()];
+    results[0].error = 'connect ECONNREFUSED for https://api.example.com/login?api_key=actual-secret';
+    results[0].assertionResults = [
+      {
+        uid: 'a1',
+        lhsExpr: 'res.body.token',
+        rhsExpr: 'actual-secret',
+        status: 'fail',
+        error: 'expected actual-secret to equal other'
+      }
+    ];
+    results[0].testResults = [
+      { description: 'token contains actual-secret', status: 'fail' }
+    ];
+
+    maskResultsVariableValues(results, { AffPass: 'actual-secret' });
+
+    expect(results[0].error).not.toContain('actual-secret');
+    expect(JSON.stringify(results[0].assertionResults)).not.toContain('actual-secret');
+    expect(JSON.stringify(results[0].testResults)).not.toContain('actual-secret');
+    expect(results[0].error).toContain(MASK);
+  });
+
+  it('masks bail placeholder URLs that copied a selected value', () => {
+    const results = [createMockResult()];
+    // Placeholder shape pushed by the --bail path: url copied from the
+    // request item without any sanitization.
+    results.push({
+      test: { filename: 'auth/logout.bru' },
+      request: {
+        method: 'POST',
+        url: 'https://api.example.com/logout?api_key=actual-secret',
+        headers: null,
+        data: null
+      },
+      response: {
+        status: 'skipped',
+        statusText: null,
+        data: null,
+        responseTime: 0
+      },
+      status: 'skipped',
+      skipped: true,
+      skipReason: 'bail'
+    });
+
+    maskResultsVariableValues(results, { AffPass: 'actual-secret' });
+
+    expect(results[1].request.url).not.toContain('actual-secret');
+    expect(results[1].request.url).toContain(MASK);
+  });
+
   it('masks the longest value first when one value contains another', () => {
     const results = [createMockResult()];
     results[0].request.data = 'prefix actual-secret-with-suffix suffix';

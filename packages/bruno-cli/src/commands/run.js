@@ -764,7 +764,8 @@ const handler = async function (argv) {
             collection,
             runSingleRequestByPathname,
             globalEnvVars,
-            persistPaths
+            persistPaths,
+            recordVariableValues
           );
           resolve(res?.response);
         }
@@ -775,6 +776,25 @@ const handler = async function (argv) {
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     let bailInfo = null; // populated only if --bail triggers
+
+    // Effective value of each --reporter-mask-var variable as the requests
+    // resolved it, collected per request so every scope (collection, folder,
+    // request, oauth2, runtime, process) is covered with the precedence the
+    // requests used. The last write wins: later requests run with the latest
+    // runtime values.
+    const maskedVariableValues = {};
+    const recordVariableValues = reporterMaskVar?.length
+      ? (effectiveVariables) => {
+          for (const name of reporterMaskVar) {
+            if (name in processEnvVars) {
+              maskedVariableValues[name] = processEnvVars[name];
+            } else if (name in effectiveVariables) {
+              maskedVariableValues[name] = effectiveVariables[name];
+            }
+          }
+        }
+      : null;
+
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -792,7 +812,8 @@ const handler = async function (argv) {
         collection,
         runSingleRequestByPathname,
         globalEnvVars,
-        persistPaths
+        persistPaths,
+        recordVariableValues
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
@@ -820,28 +841,6 @@ const handler = async function (argv) {
         skipRequestBody: reporterSkipRequestBody || reporterSkipBody,
         skipResponseBody: reporterSkipResponseBody || reporterSkipBody
       });
-
-      if (reporterMaskVar?.length) {
-        // The masked value of each named variable is the one it resolved to
-        // during the run: environment, collection, folder, request, runtime
-        // and process sources all merged, in the same precedence the
-        // requests used.
-        const maskableVariables = {
-          ...envVars,
-          ...runtimeVariables,
-          ...globalEnvVars
-        };
-        for (const name of reporterMaskVar) {
-          if (name in processEnvVars) {
-            maskableVariables[name] = processEnvVars[name];
-          }
-        }
-        const variablesToMask = {};
-        for (const name of reporterMaskVar) {
-          variablesToMask[name] = maskableVariables[name];
-        }
-        maskResultsVariableValues(results, variablesToMask);
-      }
 
       // bail if option is set and there is a failure
       if (bail) {
@@ -943,6 +942,13 @@ const handler = async function (argv) {
 
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
+
+    // Mask last, after every result is in place: bail placeholders and skipped
+    // file results copy request URLs that can embed a selected value, and
+    // error/assertion/test fields can print resolved values.
+    if (reporterMaskVar?.length) {
+      maskResultsVariableValues(results, maskedVariableValues);
+    }
 
     const summary = printRunSummary(results);
     const runCompletionTime = new Date().toISOString();
