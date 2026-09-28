@@ -155,7 +155,7 @@ find . -type f -name "package-lock.json" -delete
 
 ### Testing
 
-Add tests along with your changes:
+Please add tests along with your changes:
 
 - **Unit tests** (Jest) for logic changes — place them in the package you're changing.
 - **End-to-end tests** (Playwright) for user-facing changes in the app — see the [Playwright testing guide](docs/playwright-testing-guide.md).
@@ -206,7 +206,7 @@ Please also follow our [coding standards](CODING_STANDARDS.md).
 ### Raising Pull Requests
 
 - Please keep the PR's small and focused on one thing
-- Add unit and/or e2e tests that cover your change where applicable
+- Please add unit and/or e2e tests that cover your change where applicable
 - Please follow the format of creating branches
   - feature/[feature name]: This branch should contain changes for a specific feature
     - Example: feature/dark-mode
