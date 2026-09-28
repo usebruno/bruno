@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariables } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -51,7 +52,8 @@ class TestRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      unresolvedVariables: getUnresolvedVariables(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

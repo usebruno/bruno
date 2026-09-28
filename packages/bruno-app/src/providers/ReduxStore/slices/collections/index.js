@@ -931,6 +931,7 @@ export const collectionsSlice = createSlice({
           item.afterCallEndTestResults = [];
           item.beforeMessageSendTestResults = [];
           item.afterMessageReceiveTestResults = [];
+          item.unresolvedVariables = null;
         }
       }
     },
@@ -3401,6 +3402,7 @@ export const collectionsSlice = createSlice({
       item.afterCallEndTestResults = [];
       item.beforeMessageSendTestResults = [];
       item.afterMessageReceiveTestResults = [];
+      item.unresolvedVariables = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3498,8 +3500,20 @@ export const collectionsSlice = createSlice({
             const { results } = action.payload;
             item.postResponseTestResults = results;
           }
+
+          if (type === 'unresolved-variables') {
+            item.unresolvedVariables = action.payload.unresolvedVariables;
+          }
         }
       }
+    },
+    dismissUnresolvedVariables: (state, action) => {
+      const { collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.unresolvedVariables = null;
     },
     runFolderEvent: (state, action) => {
       const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
@@ -4282,6 +4296,7 @@ export const {
   grpcResponseReceived,
   grpcScriptError,
   grpcTestResults,
+  dismissUnresolvedVariables,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,

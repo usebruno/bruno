@@ -4,6 +4,7 @@ const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
+const { createUnresolvedCollector } = require('./unresolved-variables');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -17,6 +18,8 @@ const assertValidVariableName = (key) => {
 };
 
 class Bru {
+  #onUnresolved;
+
   /**
    * @param {object} options - Single options object (destructured)
    * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
@@ -38,6 +41,7 @@ class Bru {
    * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
    * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
    * @property {string} [options.requestUrl] - The URL of the current request (used for cookie access)
+   * @property {Set<string>} [options.unresolvedVariables] - Receives each variable a script reads or interpolates that is not defined
    */
   constructor({
     runtime,
@@ -53,7 +57,8 @@ class Bru {
     collectionName,
     promptVariables,
     certsAndProxyConfig,
-    requestUrl
+    requestUrl,
+    unresolvedVariables
   }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
@@ -66,6 +71,7 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
+    this.#onUnresolved = createUnresolvedCollector(unresolvedVariables);
     // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
@@ -170,9 +176,18 @@ class Bru {
       }
     };
 
-    const interpolatedStr = _interpolate(strToInterpolate, combinedVars);
+    const interpolatedStr = _interpolate(strToInterpolate, combinedVars, {
+      onUnresolved: this.#onUnresolved
+    });
     return isObj ? JSON.parse(interpolatedStr) : interpolatedStr;
   };
+
+  #readVariable(scope, key) {
+    if (!Object.hasOwn(scope, key)) {
+      this.#onUnresolved?.(key);
+    }
+    return this.interpolate(scope[key]);
+  }
 
   cwd() {
     return this.collectionPath;
@@ -193,6 +208,9 @@ class Bru {
   }
 
   getProcessEnv(key) {
+    if (!Object.hasOwn(this.processEnvVars, key)) {
+      this.#onUnresolved?.(`process.env.${key}`);
+    }
     return this.processEnvVars[key];
   }
 
@@ -201,7 +219,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this.interpolate(this.envVariables[key]);
+    return this.#readVariable(this.envVariables, key);
   }
 
   setEnvVar(key, value) {
@@ -251,7 +269,7 @@ class Bru {
   }
 
   getGlobalEnvVar(key) {
-    return this.interpolate(this.globalEnvironmentVariables[key]);
+    return this.#readVariable(this.globalEnvironmentVariables, key);
   }
 
   setGlobalEnvVar(key, value) {
@@ -288,7 +306,7 @@ class Bru {
   }
 
   getOauth2CredentialVar(key) {
-    return this.interpolate(this.oauth2CredentialVariables[key]);
+    return this.#readVariable(this.oauth2CredentialVariables, key);
   }
 
   resetOauth2Credential(credentialId) {
@@ -329,7 +347,7 @@ class Bru {
   getVar(key) {
     assertValidVariableName(key);
 
-    return this.interpolate(this.runtimeVariables[key]);
+    return this.#readVariable(this.runtimeVariables, key);
   }
 
   deleteVar(key) {
@@ -353,7 +371,7 @@ class Bru {
   }
 
   getCollectionVar(key) {
-    return this.interpolate(this.collectionVariables[key]);
+    return this.#readVariable(this.collectionVariables, key);
   }
 
   setCollectionVar(key, value) {
@@ -394,11 +412,11 @@ class Bru {
   }
 
   getFolderVar(key) {
-    return this.interpolate(this.folderVariables[key]);
+    return this.#readVariable(this.folderVariables, key);
   }
 
   getRequestVar(key) {
-    return this.interpolate(this.requestVariables[key]);
+    return this.#readVariable(this.requestVariables, key);
   }
 
   setNextRequest(nextRequest) {

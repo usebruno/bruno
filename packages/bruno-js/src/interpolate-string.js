@@ -1,8 +1,9 @@
 const { interpolate } = require('@usebruno/common');
+const { createUnresolvedCollector } = require('./unresolved-variables');
 
 const interpolateString = (
   str,
-  { envVariables = {}, runtimeVariables = {}, processEnvVars = {}, collectionVariables = {}, folderVariables = {}, requestVariables = {}, globalEnvironmentVariables = {} }
+  { envVariables = {}, runtimeVariables = {}, processEnvVars = {}, collectionVariables = {}, folderVariables = {}, requestVariables = {}, globalEnvironmentVariables = {}, unresolvedVariables }
 ) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
@@ -22,7 +23,9 @@ const interpolateString = (
     }
   };
 
-  return interpolate(str, combinedVars);
+  return interpolate(str, combinedVars, {
+    onUnresolved: createUnresolvedCollector(unresolvedVariables)
+  });
 };
 
 module.exports = {

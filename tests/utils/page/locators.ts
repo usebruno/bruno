@@ -277,6 +277,7 @@ export const buildCommonLocators = (page: Page) => ({
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
+    cancelRequestButton: () => page.getByRole('button', { name: 'Cancel Request' }),
     pane: () => page.locator('.response-pane'),
     errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
@@ -528,6 +529,15 @@ export const buildScriptErrorLocators = (page: Page) => ({
   stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
   /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
   errorIcon: () => page.getByTestId('script-error-icon')
+});
+
+export const buildUnresolvedVariablesInfoLocators = (page: Page) => ({
+  card: () => page.getByTestId('unresolved-variables-info'),
+  names: () => page.getByTestId('unresolved-variables-names'),
+  count: () => page.getByTestId('unresolved-variables-count'),
+  popoverNames: () => page.getByTestId('unresolved-variables-popover').locator('li'),
+  copyButton: () => page.getByTestId('unresolved-variables-copy'),
+  closeButton: () => page.getByTestId('unresolved-variables-info-close')
 });
 
 /**
