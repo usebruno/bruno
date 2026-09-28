@@ -17,6 +17,7 @@ import collectionMigrationReducer from './slices/collection-migration';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
+import { benchmarkMiddleware } from './middlewares/benchmark/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
@@ -25,6 +26,9 @@ const isDevEnv = () => {
 let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware, snapshotMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
+}
+if (__BRUNO_BENCHMARK__) {
+  middleware = [...middleware, benchmarkMiddleware];
 }
 
 export const store = configureStore({

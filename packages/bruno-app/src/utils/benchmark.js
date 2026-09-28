@@ -16,6 +16,7 @@ const getRendererMemory = () => {
 
 let checkpoint;
 let createSpan;
+let measureReduxDispatch;
 let startBenchmarkFlush;
 let stopBenchmarkFlush;
 let flushEvents;
@@ -95,6 +96,36 @@ if (__BRUNO_BENCHMARK__) {
     };
   };
 
+  measureReduxDispatch = (actionType, run) => {
+    const startMonoMs = performance.now();
+    const before = getRendererMemory();
+
+    try {
+      return run();
+    } finally {
+      const endMonoMs = performance.now();
+      const after = getRendererMemory();
+      const beforeHeap = before.heapUsed;
+      const afterHeap = after.heapUsed;
+
+      pushEvent({
+        v: 1,
+        type: 'redux-dispatch',
+        process: 'renderer',
+        actionType,
+        wallTs: new Date().toISOString(),
+        startMonoMs,
+        endMonoMs,
+        durationMs: endMonoMs - startMonoMs,
+        memory: {
+          before,
+          after,
+          delta: beforeHeap != null && afterHeap != null ? afterHeap - beforeHeap : null
+        }
+      });
+    }
+  };
+
   startBenchmarkFlush = () => {
     if (flushIntervalId) {
       return;
@@ -118,9 +149,17 @@ if (__BRUNO_BENCHMARK__) {
 } else {
   checkpoint = () => {};
   createSpan = () => ({ stop: () => {} });
+  measureReduxDispatch = (_actionType, run) => run();
   startBenchmarkFlush = () => {};
   stopBenchmarkFlush = () => {};
   flushEvents = async () => {};
 }
 
-export { checkpoint, createSpan, startBenchmarkFlush, stopBenchmarkFlush, flushEvents };
+export {
+  checkpoint,
+  createSpan,
+  measureReduxDispatch,
+  startBenchmarkFlush,
+  stopBenchmarkFlush,
+  flushEvents
+};
