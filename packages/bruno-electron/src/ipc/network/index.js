@@ -15,12 +15,17 @@ const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebru
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, addEdgeGridInterceptor, applySentHeadersToRequest } = require('@usebruno/requests');
+const {
+  addDigestInterceptor,
+  addEdgeGridInterceptor,
+  applySentHeadersToRequest,
+  measureResponseTime
+} = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
-const { makeAxiosInstance } = require('./axios-instance');
+const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
 const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -108,14 +113,6 @@ const promisifyStream = async (stream, abortController, closeOnFirst) => {
     stream.on('close', doResolve);
     stream.on('error', (err) => reject(err));
   });
-};
-
-const measureResponseTime = (config, headers, isStream) => {
-  const startTime = config?.headers?.['request-start-time'];
-  if (!isStream && startTime != null) {
-    return Date.now() - startTime;
-  }
-  return Number(headers.get('request-duration')) || 0;
 };
 
 const configureRequest = async (
@@ -1055,10 +1052,9 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
+          completeOpenHop(response.config);
         }
-        responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
-        // Prevents the duration on leaking to the actual result
-        response.headers.delete('request-duration');
+        responseTime = measureResponseTime(response.config.metadata);
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -1078,10 +1074,9 @@ const registerNetworkIpc = (mainWindow) => {
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
+            completeOpenHop(response.config);
           }
-          responseTime = measureResponseTime(response.config, response.headers, isResponseStream);
-          // Prevents the duration on leaking to the actual result
-          response.headers.delete('request-duration');
+          responseTime = measureResponseTime(response.config.metadata);
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
             sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
@@ -1263,6 +1258,8 @@ const registerNetworkIpc = (mainWindow) => {
       };
       if (isResponseStream) {
         axiosDataStream.on('close', () => {
+          completeOpenHop(response.config);
+          response.responseTime = measureResponseTime(response.config.metadata);
           try {
             const { data, dataBuffer } = buildResponseBodyFromStreamChunks(
               sseChunks,
@@ -1647,9 +1644,6 @@ const registerNetworkIpc = (mainWindow) => {
             });
           };
 
-          let timeStart;
-          let timeEnd;
-
           const requestUid = uuid();
 
           mainWindow.webContents.send('main:run-folder-event', {
@@ -1868,7 +1862,6 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            timeStart = Date.now();
             let response, responseTime;
             try {
               if (delay && !Number.isNaN(delay) && delay > 0) {
@@ -1886,13 +1879,12 @@ const registerNetworkIpc = (mainWindow) => {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
-              timeEnd = Date.now();
+              completeOpenHop(response.config);
+              response.responseTime = measureResponseTime(response.config.metadata);
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = measureResponseTime(response.config, response.headers, false);
-              response.headers.delete('request-duration');
 
               // save cookies
               if (preferencesUtil.shouldStoreCookies()) {
@@ -1910,7 +1902,7 @@ const registerNetworkIpc = (mainWindow) => {
                   status: response.status,
                   statusText: response.statusText,
                   headers: response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
@@ -1928,9 +1920,9 @@ const registerNetworkIpc = (mainWindow) => {
 
               if (error?.response) {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
+                completeOpenHop(error.response.config);
+                error.response.responseTime = measureResponseTime(error.response.config.metadata);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
-                error.response.responseTime = measureResponseTime(error.response.config, error.response.headers, false);
-                error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1939,12 +1931,11 @@ const registerNetworkIpc = (mainWindow) => {
                   saveCookies(request.url, error.response.headers);
                 }
 
-                timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: error.response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: error.response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
@@ -2291,4 +2282,3 @@ module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
 module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
 module.exports.promisifyStream = promisifyStream;
 module.exports.hasStreamHeaders = hasStreamHeaders;
-module.exports.measureResponseTime = measureResponseTime;

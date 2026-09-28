@@ -1,4 +1,4 @@
-const { configureRequest, promisifyStream, hasStreamHeaders, measureResponseTime } = require('../../src/ipc/network/index');
+const { configureRequest, promisifyStream, hasStreamHeaders } = require('../../src/ipc/network/index');
 const { Readable } = require('stream');
 
 describe('index: hasStreamHeaders', () => {
@@ -56,38 +56,6 @@ describe('index: promisifyStream', () => {
     const resultPromise = promisifyStream(stream, null, false);
     stream.emit('error', new Error('stream error'));
     await expect(resultPromise).rejects.toThrow('stream error');
-  });
-});
-
-describe('index: measureResponseTime', () => {
-  it('returns elapsed ms from request-start-time for non-stream response', () => {
-    jest.useFakeTimers();
-    try {
-      jest.setSystemTime(1000000);
-      const config = { headers: { 'request-start-time': 1000000 - 150 } };
-      const headers = { get: () => null };
-      expect(measureResponseTime(config, headers, false)).toBe(150);
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
-  it('falls back to Number(request-duration) when request-start-time is absent', () => {
-    const config = {};
-    const headers = { get: (k) => (k === 'request-duration' ? '300' : null) };
-    expect(measureResponseTime(config, headers, false)).toBe(300);
-  });
-
-  it('returns Number(request-duration) for stream (SSE) response', () => {
-    const config = {};
-    const headers = { get: (k) => (k === 'request-duration' ? '50' : null) };
-    expect(measureResponseTime(config, headers, true)).toBe(50);
-  });
-
-  it('returns 0 when both request-start-time and request-duration are absent', () => {
-    const config = {};
-    const headers = { get: () => null };
-    expect(measureResponseTime(config, headers, true)).toBe(0);
   });
 });
 
