@@ -187,6 +187,7 @@ export default function RunnerResults({ collection }) {
 
   const runCollection = async () => {
     shouldAutoScrollRef.current = true;
+    lastScrollTopRef.current = 0;
     const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
     dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
     await clearStoredRunnerExchanges();
@@ -196,6 +197,7 @@ export default function RunnerResults({ collection }) {
   const runAgain = async () => {
     ensureCollectionIsMounted();
     shouldAutoScrollRef.current = true;
+    lastScrollTopRef.current = 0;
     isReRunningRef.current = true;
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
