@@ -14,4 +14,20 @@ describe('sortResponseHeaders', () => {
       ['X-Request-Id', 'request-id']
     ]);
   });
+
+  it('sorts header names without regard to capitalization', () => {
+    const headers = {
+      'x-request-id': 'request-id',
+      'Content-Type': 'application/json',
+      'accept': 'first accept value',
+      'Accept': 'second accept value'
+    };
+
+    expect(sortResponseHeaders(headers)).toEqual([
+      ['accept', 'first accept value'],
+      ['Accept', 'second accept value'],
+      ['Content-Type', 'application/json'],
+      ['x-request-id', 'request-id']
+    ]);
+  });
 });

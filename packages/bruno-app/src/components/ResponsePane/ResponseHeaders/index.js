@@ -4,7 +4,9 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
 export const sortResponseHeaders = (headers) => {
-  return Object.entries(headers).sort(([firstName], [secondName]) => firstName.localeCompare(secondName));
+  return Object.entries(headers).sort(([firstName], [secondName]) =>
+    firstName.toLowerCase().localeCompare(secondName.toLowerCase())
+  );
 };
 
 const ResponseHeaders = ({ headers, item }) => {
