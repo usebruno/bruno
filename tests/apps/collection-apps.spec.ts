@@ -24,7 +24,7 @@ const guestEval = (
     async ({ webContents }, params) => {
       const guests = webContents.getAllWebContents().filter((wc) => {
         try {
-          return wc.getType() === 'webview' && (wc.getURL() || '').startsWith('data:text/html');
+          return wc.getType() === 'webview' && /^bruno-app:\/\//.test(wc.getURL() || '');
         } catch {
           return false;
         }

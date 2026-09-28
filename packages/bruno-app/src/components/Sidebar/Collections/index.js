@@ -11,10 +11,15 @@ import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import useDebounce from 'hooks/useDebounce';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+
+const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
+  const trimmedSearchText = searchText.trim();
+  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -37,8 +42,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText }),
-    [sidebarEntries, searchText]
+    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
+    [sidebarEntries, debouncedSearchText]
   );
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
@@ -146,7 +151,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           itemContent={(_, row) => (
             <SidebarRow
               row={row}
-              searchText={searchText}
+              searchText={debouncedSearchText}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

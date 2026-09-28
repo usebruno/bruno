@@ -6,9 +6,9 @@ import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
-import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
+import { createApiSpecFile, openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
 import { exportApiSpec } from 'utils/exporters/openapi-spec';
+import path from 'utils/common/path';
 import { validateName, validateNameError } from 'utils/common/regex';
 import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariables } from 'utils/common/apiSpec';
 import { getWorkspaceCollections } from 'utils/collections';
@@ -147,11 +147,11 @@ const CreateApiSpec = ({ onClose }) => {
         }
       }
 
-      dispatch(createApiSpecFile(`${values.apiSpecName}${apiSpecExtension}`, values.apiSpecLocation, specContent))
+      const filename = `${values.apiSpecName}${apiSpecExtension}`;
+
+      dispatch(createApiSpecFile(filename, values.apiSpecLocation, specContent))
         .then(() => {
-          setTimeout(() => {
-            dispatch(showApiSpecPage());
-          }, 200);
+          dispatch(openApiSpecTab({ pathname: path.join(values.apiSpecLocation, filename), filename }));
           toast.success('ApiSpec created');
           if (exportWarnings.length) {
             toast(buildExportWarningsMessage(exportWarnings), { icon: '⚠️' });

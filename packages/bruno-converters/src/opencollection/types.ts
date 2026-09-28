@@ -204,7 +204,7 @@ export interface BrunoConfig {
   clientCertificates?: {
     certs?: Array<{
       domain?: string;
-      type?: 'pem' | 'pkcs12';
+      type?: 'cert' | 'pfx';
       certFilePath?: string;
       keyFilePath?: string;
       pfxFilePath?: string;

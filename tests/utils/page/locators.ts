@@ -5,6 +5,7 @@ import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
@@ -37,6 +38,7 @@ export const buildCommonLocators = (page: Page) => ({
   timelineHeaders: buildTimelineHeaderLocators(page),
   devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
+  codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
@@ -115,6 +117,7 @@ export const buildCommonLocators = (page: Page) => ({
       page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
+    itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
     card: () => page.locator('.bruno-modal-card'),
@@ -204,6 +207,7 @@ export const buildCommonLocators = (page: Page) => ({
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {

@@ -1,3 +1,5 @@
+import { suppressTrailingClickOnce } from './suppressTrailingClick';
+
 /**
  * Provides a "not-allowed" cursor when attempting to drag undroppable items (like Examples or blocked multi-selections).
  * Because native HTML5 drag-and-drop cannot customize mid-drag cursors, this module tracks mouse movements manually
@@ -27,18 +29,6 @@ function onMouseMove(e) {
 
   isTrackingDrag = true;
   document.body.classList.add(BLOCKED_CURSOR_CLASS);
-}
-
-// A click only follows mouseup when mousedown and mouseup shared a target, so releasing over a
-// different element never fires one — drop the listener on the next tick instead of waiting
-// indefinitely, or it would go on to swallow the user's next, unrelated click.
-function suppressTrailingClickOnce() {
-  const suppress = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  document.addEventListener('click', suppress, { capture: true, once: true });
-  setTimeout(() => document.removeEventListener('click', suppress, true), 0);
 }
 
 function onMouseUp() {

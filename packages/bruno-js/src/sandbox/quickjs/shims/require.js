@@ -1,56 +1,64 @@
+const { createLocalModuleLoaderHandle } = require('./local-module');
+
 /**
- * Returns JavaScript code that sets up the require() function in the QuickJS VM.
- * This module loader looks up modules from globalThis.requireObject and optionally
- * supports loading local modules if the necessary context (bru.cwd, __brunoLoadLocalModule) is available.
+ * Returns a factory function (as VM source) that installs globalThis.require.
  *
- * @param {Object} options
- * @param {boolean} options.enableLocalModules - Whether to enable local module loading (requires bru context)
- * @returns {string} JavaScript code to eval in the VM
+ * The factory takes the host loader as an argument, so require closes over it and the
+ * loader is never placed on the VM global where user scripts could call it directly.
+ *
+ * @returns {string} JavaScript source of the factory, to eval then call with the loader
  */
-function getRequireCode() {
+function getRequireFactoryCode() {
   return `
-    globalThis.require = (mod) => {
-      let lib = globalThis.requireObject[mod];
-      let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
-      if (lib) {
-        return lib;
-      }
-      else if (isModuleAPath(mod)) {
-        // fetch local module
-        let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
+    (loadLocalModule) => {
+      globalThis.require = (mod) => {
+        let lib = globalThis.requireObject[mod];
+        let isModuleAPath = (module) => (module?.startsWith('.') || (typeof bru !== 'undefined' && module?.startsWith(bru.cwd())))
+        if (lib) {
+          return lib;
+        }
+        else if (isModuleAPath(mod)) {
+          // fetch local module
+          let localModuleCode = loadLocalModule(mod);
 
-        // compile local module as iife
-        (function (){
-          const initModuleExportsCode = "const module = { exports: {} };"
-          const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
-          const patchedRequire = ${`
-            "\\n;" +
-            "let require = (subModule) => isModuleAPath(subModule) ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule)) : globalThis.require(subModule)" +
-            "\\n;"
-          `}
-          eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
-        })();
+          // compile local module. Function compiles it in global scope, so it cannot
+          // reach this closure or loadLocalModule.
+          const module = { exports: {} };
+          let require = (subModule) => isModuleAPath(subModule)
+            ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))
+            : globalThis.require(subModule);
+          new Function('module', 'exports', 'require', localModuleCode)(module, module.exports, require);
+          globalThis.requireObject[mod] = module.exports;
 
-        // resolve module
-        return globalThis.requireObject[mod];
-      }
-      else {
-        throw new Error("Cannot find module " + mod);
+          // resolve module
+          return globalThis.requireObject[mod];
+        }
+        else {
+          throw new Error("Cannot find module " + mod);
+        }
       }
     }
   `;
 }
 
 /**
- * Adds the require() function to a QuickJS VM context
+ * Installs require() into a QuickJS VM context.
  * @param {Object} vm - QuickJS VM context
- * @param {Object} options - Options passed to getRequireCode
+ * @param {string} [collectionPath] - Root local modules must stay within
  */
-function addRequireShimToContext(vm) {
-  vm.evalCode(getRequireCode());
+function addRequireShimToContext(vm, collectionPath) {
+  createLocalModuleLoaderHandle(vm, collectionPath).consume((loadLocalModule) => {
+    const evalCode = vm.evalCodeRetained || vm.evalCode;
+    const fn = vm.unwrapResult(evalCode.call(vm, getRequireFactoryCode()));
+    try {
+      vm.unwrapResult(vm.callFunction(fn, vm.global, loadLocalModule)).dispose();
+    } finally {
+      fn.dispose();
+    }
+  });
 }
 
 module.exports = {
-  getRequireCode,
+  getRequireFactoryCode,
   addRequireShimToContext
 };
