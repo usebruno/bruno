@@ -45,10 +45,17 @@ const serializeItem = (item) => {
 
 const serializeMember = (item) => (item === null || item === undefined ? '' : serializeItem(item));
 
+const queryMemberDelimiter = (style) => {
+  if (style === 'pipeDelimited') return '|';
+  if (style === 'spaceDelimited') return ' ';
+  return ',';
+};
+
 const paramEntriesFromValue = (val, param) => {
   const isQueryParam = param.in === 'query' || param.in === 'querystring';
   const usesFormStyle = isQueryParam && (param.style === undefined || param.style === 'form');
   const explode = typeof param.explode === 'boolean' ? param.explode : usesFormStyle;
+  const delimiter = isQueryParam ? queryMemberDelimiter(param.style) : ',';
 
   if (Array.isArray(val)) {
     if (!val.length) {
@@ -59,7 +66,7 @@ const paramEntriesFromValue = (val, param) => {
 
     return usesFormStyle && explode
       ? members.map((value) => ({ value, enabled: true }))
-      : [{ value: members.join(','), enabled: true }];
+      : [{ value: members.join(delimiter), enabled: true }];
   }
 
   if (val !== null && typeof val === 'object') {
@@ -76,7 +83,7 @@ const paramEntriesFromValue = (val, param) => {
       ? pairs.map(([key, item]) => `${key}=${serializeMember(item)}`)
       : pairs.flatMap(([key, item]) => [key, serializeMember(item)]);
 
-    return [{ value: flattened.join(','), enabled: true }];
+    return [{ value: flattened.join(delimiter), enabled: true }];
   }
 
   const value = serializeItem(val);
@@ -91,7 +98,7 @@ const paramEntriesFromValue = (val, param) => {
  * @param {Object} param - The OpenAPI parameter object
  * @returns {Array} - Array of objects with value and enabled properties
  */
-const getParameterEntries = (param) => {
+const getParameterEntries = (param, fallbackValue) => {
   const schema = param.schema || {};
   const entries = [];
 
@@ -169,7 +176,16 @@ const getParameterEntries = (param) => {
     }
   }
 
-  // Priority 5: Array type handling (items-based fallback)
+  // Priority 5: a value the caller assembled from the schema, used only once every declared
+  // source above has come up empty so a parameter's own example still wins.
+  if (fallbackValue !== undefined) {
+    const fallbackEntries = paramEntriesFromValue(fallbackValue, param);
+    if (fallbackEntries) {
+      return fallbackEntries;
+    }
+  }
+
+  // Priority 6: Array type handling (items-based fallback)
   if (schema.type === 'array' && schema.items) {
     let value;
     if (schema.items.example !== undefined) {
@@ -184,7 +200,7 @@ const getParameterEntries = (param) => {
     return [{ value, enabled: param.required || false }];
   }
 
-  // Priority 6: schema.minimum fallback for numeric types
+  // Priority 7: schema.minimum fallback for numeric types
   if (schema.minimum !== undefined) {
     return [
       {
@@ -194,7 +210,7 @@ const getParameterEntries = (param) => {
     ];
   }
 
-  // Priority 7: Edge cases
+  // Priority 8: Edge cases
   if (schema.nullable === true && !param.required) {
     enabled = false;
   } else if (param.allowEmptyValue === true && !param.required) {
@@ -355,7 +371,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
       });
     } else {
       const entries = isObjectSchema
-        ? paramEntriesFromValue(objectValueFromSchema(param), param) || [{ value: '', enabled: param.required || false }]
+        ? getParameterEntries(param, objectValueFromSchema(param))
         : getParameterEntries(param);
 
       entries.forEach((entry) => {

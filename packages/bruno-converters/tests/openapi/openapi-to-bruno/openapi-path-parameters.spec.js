@@ -1399,6 +1399,42 @@ describe('openapi object parameters at the default styles', () => {
     expect(values(exploded, '/x/{color}')).toEqual(['color=R=100']);
   });
 
+  it('keeps a path object parameter\'s own example ahead of the one built from its properties', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared, example: { R: 1, G: 2, B: 3 } };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,1,G,2,B,3']);
+  });
+
+  it('keeps a header object parameter\'s own example ahead of the one built from its properties', () => {
+    const param = { name: 'X-Color', in: 'header', schema: declared, example: { R: 1, G: 2, B: 3 } };
+    expect(values(param)).toEqual(['X-Color=R,1,G,2,B,3']);
+  });
+
+  it('uses a named example on an object parameter that also declares its properties', () => {
+    const param = {
+      name: 'color',
+      in: 'path',
+      required: true,
+      schema: declared,
+      examples: { muted: { value: { R: 9, G: 8, B: 7 } } }
+    };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,9,G,8,B,7']);
+  });
+
+  it('uses the schema default of an object parameter that also declares its properties', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: { ...declared, default: { R: 5, G: 6, B: 7 } } };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,5,G,6,B,7']);
+  });
+
+  it('still builds the value from the properties when the parameter declares no value of its own', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
+  });
+
+  it('falls back to the properties when the parameter example is an empty object', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared, example: {} };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
+  });
+
   it('leaves an empty object to the later fallbacks rather than writing empty braces', () => {
     const param = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: {} };
     expect(values(param, '/x/{color}')).toEqual(['color=']);
@@ -1425,12 +1461,39 @@ describe('openapi query array styles other than form', () => {
 
   const schema = { type: 'array', items: { type: 'string' }, default: ['a', 'b'] };
 
-  it('keeps a pipe delimited array in a single entry, because it does not explode by default', () => {
-    expect(importValues({ name: 'ids', in: 'query', style: 'pipeDelimited', schema })).toEqual(['a,b']);
+  it('joins a pipe delimited array on pipes, in a single entry because it does not explode', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'pipeDelimited', schema })).toEqual(['a|b']);
   });
 
-  it('keeps a space delimited array in a single entry for the same reason', () => {
-    expect(importValues({ name: 'ids', in: 'query', style: 'spaceDelimited', schema })).toEqual(['a,b']);
+  it('joins a space delimited array on spaces, in a single entry for the same reason', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'spaceDelimited', schema })).toEqual(['a b']);
+  });
+
+  it('joins a pipe delimited object on pipes as well', () => {
+    const object = { type: 'object', default: { R: 100, G: 200 } };
+    expect(importValues({ name: 'color', in: 'query', style: 'pipeDelimited', schema: object })).toEqual(['R|100|G|200']);
+  });
+
+  it('joins a space delimited object on spaces as well', () => {
+    const object = { type: 'object', default: { R: 100, G: 200 } };
+    expect(importValues({ name: 'color', in: 'query', style: 'spaceDelimited', schema: object })).toEqual(['R 100 G 200']);
+  });
+
+  it('leaves a path array on commas even when the spec names a query only style', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 't', version: '1' },
+      paths: {
+        '/x/{ids}': {
+          get: {
+            operationId: 'op',
+            parameters: [{ name: 'ids', in: 'path', required: true, style: 'pipeDelimited', schema }],
+            responses: { 200: { description: 'OK' } }
+          }
+        }
+      }
+    };
+    expect(openApiToBruno(spec).items[0].request.params.map((p) => p.value)).toEqual(['a,b']);
   });
 
   it('still explodes an array when the spec names the form style outright', () => {
