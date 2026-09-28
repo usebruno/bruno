@@ -410,6 +410,7 @@ const CompatEndpointCard = ({
                           onChange={(e) => onUpdateModel(model.id, { apiFormat: e.target.value })}
                           disabled={disabled}
                           aria-label={`API format for ${modelName}`}
+                          data-testid={`ai-endpoint-${endpoint.id}-model-${model.id}-api-format`}
                         >
                           <option value="chat-completions">Chat Completions</option>
                           <option value="responses">Responses API</option>
