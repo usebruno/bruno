@@ -24,6 +24,11 @@ export class Statements {
     }
   }
 
+  isMainOnly(name: string): boolean {
+    const def = this._defs.get(name);
+    return def !== undefined && def.main === true;
+  }
+
   execute(name: string, params: SQLiteParams = {}): unknown {
     const def = this._defs.get(name);
     if (def === undefined) {

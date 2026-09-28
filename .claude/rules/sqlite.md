@@ -120,6 +120,18 @@ INSERT INTO users (name, email) VALUES (@name, @email);
 | `:many` | rows | array | no |
 | `:exec` | write | `{ changes, lastInsertRowid }` | yes, on success |
 
+The command may be followed by flags, in any order: `-- name: insert_file :exec :main`.
+
+| flag | effect |
+|---|---|
+| `:main` | main-process only — left out of the generated web artifact **and** rejected by `registerSQLiteIpc`, so a compromised renderer can't reach it by sending the raw name |
+| `:bigints` | integer columns are read as `BigInt`, for values beyond what a JS number holds exactly |
+
+An unknown flag fails codegen rather than being ignored, so a typo can't silently leave a
+statement renderer-callable. **Mark a statement `:main` whenever the renderer has no business
+calling it directly** — in particular any write behind a main-owned API, where letting the
+renderer set the columns would hand it control of something main later trusts.
+
 - Statement names are **globally unique across all `.sql` files** (a duplicate fails codegen) and
   are the contract between main and renderer — renaming one means updating both call sites.
 - Use `@param` for consistency with the existing statements, even though `node:sqlite` also accepts

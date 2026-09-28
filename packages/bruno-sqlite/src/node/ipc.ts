@@ -8,6 +8,9 @@ export interface IpcMainLike {
 
 export const registerSQLiteIpc = (ipcMain: IpcMainLike, statements: Statements): void => {
   ipcMain.handle(SQLITE_CHANNEL, (_event, request) => {
+    if (statements.isMainOnly(request.name)) {
+      throw new Error(`Statement "${request.name}" is not callable from the renderer`);
+    }
     return statements.execute(request.name, request.params ?? {});
   });
 };

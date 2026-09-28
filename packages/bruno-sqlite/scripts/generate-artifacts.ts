@@ -31,6 +31,7 @@ const main = () => {
   const typeMap: Record<string, string> = {};
   const tableMap: Record<string, string[]> = {};
   for (const statement of statements) {
+    if (statement.main) continue;
     typeMap[statement.name] = statement.type;
     tableMap[statement.name] = statement.tables;
   }

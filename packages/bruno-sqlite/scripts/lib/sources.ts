@@ -71,9 +71,13 @@ const walkSql = (dir: string): string[] => {
   });
 };
 
-// sqlc-style query annotation: `-- name: <Name> :one|:many|:exec`
+// sqlc-style query annotation: `-- name: <Name> :one|:many|:exec [flags]`
+// `:main` for statements the renderer must not call: they are left out of the web artifact and
+// rejected by the IPC handler, so only the main process can execute them
 // `:bigints` for statements whose integer columns exceed what a JS number holds exactly
-const SQLC_NAME_ANNOTATION = /^--\s*name:\s*(\S+)\s+:(\w+)(\s+:bigints)?\s*$/;
+const SQLC_NAME_ANNOTATION = /^--\s*name:\s*(\S+)\s+:(\w+)((?:\s+:\w+)*)\s*$/;
+
+const SQLC_FLAGS = ['main', 'bigints'];
 
 const SQLC_COMMAND_TYPES: Record<string, StatementType> = {
   one: 'one',
@@ -84,9 +88,9 @@ const SQLC_COMMAND_TYPES: Record<string, StatementType> = {
   execlastid: 'exec'
 };
 
-const parseStatementFile = (relative: string, content: string): StatementDef[] => {
+export const parseStatementFile = (relative: string, content: string): StatementDef[] => {
   const defs: StatementDef[] = [];
-  let current: { name: string; type: StatementType; readBigInts: boolean; body: string[] } | null = null;
+  let current: { name: string; type: StatementType; readBigInts: boolean; main: boolean; body: string[] } | null = null;
 
   const flush = () => {
     if (current === null) return;
@@ -94,19 +98,34 @@ const parseStatementFile = (relative: string, content: string): StatementDef[] =
     if (sql === '') {
       throw new Error(`Statement "${current.name}" in ${relative} has no SQL body.`);
     }
-    defs.push({ name: current.name, type: current.type, sql, tables: extractTables(sql), readBigInts: current.readBigInts });
+    defs.push({
+      name: current.name,
+      type: current.type,
+      sql,
+      tables: extractTables(sql),
+      readBigInts: current.readBigInts,
+      main: current.main
+    });
   };
 
   content.split('\n').forEach((line) => {
     const match = line.match(SQLC_NAME_ANNOTATION);
     if (match) {
       flush();
-      const [, name, command, bigints] = match;
+      const [, name, command, trailing] = match;
       const type = SQLC_COMMAND_TYPES[command.toLowerCase()];
       if (type === undefined) {
         throw new Error(`Statement "${name}" in ${relative} uses unsupported command ":${command}". Use :one, :many, or :exec.`);
       }
-      current = { name, type, readBigInts: bigints !== undefined, body: [] };
+      const flags = trailing.trim().split(/\s+/).filter(Boolean).map((flag) => flag.slice(1).toLowerCase());
+      for (const flag of flags) {
+        if (!SQLC_FLAGS.includes(flag)) {
+          throw new Error(
+            `Statement "${name}" in ${relative} uses unsupported flag ":${flag}". Use ${SQLC_FLAGS.map((known) => `:${known}`).join(' or ')}.`
+          );
+        }
+      }
+      current = { name, type, readBigInts: flags.includes('bigints'), main: flags.includes('main'), body: [] };
     } else if (current !== null) {
       current.body.push(line);
     }
