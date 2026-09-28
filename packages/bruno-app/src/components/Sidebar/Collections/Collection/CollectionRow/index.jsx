@@ -569,6 +569,13 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowRenameCollectionModal(true);
+          }
+        }}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
         data-testid="sidebar-collection-row"
         data-selected={isSelected ? 'true' : undefined}
