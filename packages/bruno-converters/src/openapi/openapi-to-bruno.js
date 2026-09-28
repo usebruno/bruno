@@ -31,15 +31,57 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   return '';
 };
 
-// Converts an example or default value into Bruno parameter entries.
-// Respects OAS default serialization: query/cookie default to explode:true (one entry per item),
-// path/header default to explode:false (comma-joined single entry).
-const paramEntriesFromValue = (val, paramIn) => {
-  const explodeByDefault = paramIn === 'query' || paramIn === 'cookie';
-  if (Array.isArray(val) && explodeByDefault) {
-    return val.map((item) => ({ value: String(item), enabled: true }));
+const serializeItem = (item) => {
+  if (item === null || typeof item !== 'object') {
+    return String(item);
   }
-  return [{ value: String(val), enabled: true }];
+
+  try {
+    return JSON.stringify(item);
+  } catch (err) {
+    return String(item);
+  }
+};
+
+const serializeMember = (item) => (item === null || item === undefined ? '' : serializeItem(item));
+
+const paramEntriesFromValue = (val, param) => {
+  const isQueryParam = param.in === 'query' || param.in === 'querystring';
+  const usesFormStyle = isQueryParam && (param.style === undefined || param.style === 'form');
+  const explode = typeof param.explode === 'boolean' ? param.explode : usesFormStyle;
+
+  if (Array.isArray(val)) {
+    if (!val.length) {
+      return null;
+    }
+
+    const members = val.map(serializeMember);
+
+    return usesFormStyle && explode
+      ? members.map((value) => ({ value, enabled: true }))
+      : [{ value: members.join(','), enabled: true }];
+  }
+
+  if (val !== null && typeof val === 'object') {
+    const pairs = Object.entries(val);
+    if (!pairs.length) {
+      return null;
+    }
+
+    if (usesFormStyle && explode) {
+      return pairs.map(([key, item]) => ({ name: key, value: serializeMember(item), enabled: true }));
+    }
+
+    const flattened = explode
+      ? pairs.map(([key, item]) => `${key}=${serializeMember(item)}`)
+      : pairs.flatMap(([key, item]) => [key, serializeMember(item)]);
+
+    return [{ value: flattened.join(','), enabled: true }];
+  }
+
+  const value = serializeItem(val);
+
+  return value === '' ? null : [{ value, enabled: true }];
 };
 
 /**
@@ -79,7 +121,10 @@ const getParameterEntries = (param) => {
 
     // If there's a default at array level, use it
     if (arrayDefault) {
-      return paramEntriesFromValue(arrayDefault, param.in);
+      const defaultEntries = paramEntriesFromValue(arrayDefault, param);
+      if (defaultEntries) {
+        return defaultEntries;
+      }
     }
 
     // Otherwise, create entries for each enum value in items
@@ -97,31 +142,31 @@ const getParameterEntries = (param) => {
     return entries;
   }
 
-  // Priority 1: Top-level param examples (mutually exclusive per spec)
-  if (param.example !== undefined) {
-    return paramEntriesFromValue(param.example, param.in);
-  }
+  // Priority 1-4: declared values, in the precedence the spec gives them. A source that serializes
+  // to nothing is skipped so a later one can still supply a value, but declaring it at all still
+  // marks the parameter as one to send.
+  const firstNamedExample = param.examples ? Object.values(param.examples)[0] : undefined;
+  const valueSources = [
+    param.example,
+    firstNamedExample?.value,
+    schema.default,
+    schema.example,
+    Array.isArray(schema.examples) ? schema.examples[0] : undefined
+  ];
 
-  if (param.examples) {
-    const firstExample = Object.values(param.examples)[0];
-    if (firstExample?.value !== undefined) {
-      return paramEntriesFromValue(firstExample.value, param.in);
+  let enabled = param.required || false;
+
+  for (const source of valueSources) {
+    if (source === undefined) {
+      continue;
     }
-  }
 
-  // Priority 2: schema.default
-  if (schema.default !== undefined) {
-    return paramEntriesFromValue(schema.default, param.in);
-  }
+    enabled = true;
 
-  // Priority 3: schema.example
-  if (schema.example !== undefined) {
-    return paramEntriesFromValue(schema.example, param.in);
-  }
-
-  // Priority 4: schema.examples (OAS 3.1+)
-  if (Array.isArray(schema.examples) && schema.examples.length > 0) {
-    return paramEntriesFromValue(schema.examples[0], param.in);
+    const entries = paramEntriesFromValue(source, param);
+    if (entries) {
+      return entries;
+    }
   }
 
   // Priority 5: Array type handling (items-based fallback)
@@ -150,7 +195,6 @@ const getParameterEntries = (param) => {
   }
 
   // Priority 7: Edge cases
-  let enabled = param.required || false;
   if (schema.nullable === true && !param.required) {
     enabled = false;
   } else if (param.allowEmptyValue === true && !param.required) {
@@ -158,6 +202,24 @@ const getParameterEntries = (param) => {
   }
 
   return [{ value: '', enabled }];
+};
+
+const objectValueFromSchema = (param) => {
+  const schemaExample = param.schema.example || {};
+  const value = {};
+
+  each(param.schema.properties, (prop, propName) => {
+    const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
+      ? { ...prop, example: schemaExample[propName] }
+      : prop;
+    const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+    const [firstEntry] = getParameterEntries({
+      ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
+    });
+    value[propName] = firstEntry ? firstEntry.value : '';
+  });
+
+  return value;
 };
 
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
@@ -241,11 +303,10 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   }
 
   each(_operationObject.parameters || [], (param) => {
-    // Check if parameter schema is an object type with properties
-    // If so, expand the properties into individual parameters
     const isObjectSchema = param.schema && param.schema.properties;
+    const expandsIntoOwnParams = isObjectSchema && (param.in === 'query' || param.in === 'querystring');
 
-    if (isObjectSchema) {
+    if (expandsIntoOwnParams) {
       // Expand object schema properties into individual parameters
       const schemaExample = param.schema.example || {};
 
@@ -293,13 +354,15 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         });
       });
     } else {
-      const entries = getParameterEntries(param);
+      const entries = isObjectSchema
+        ? paramEntriesFromValue(objectValueFromSchema(param), param) || [{ value: '', enabled: param.required || false }]
+        : getParameterEntries(param);
 
       entries.forEach((entry) => {
         if (param.in === 'query' || param.in === 'querystring') {
           brunoRequestItem.request.params.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled,
@@ -308,7 +371,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         } else if (param.in === 'path') {
           brunoRequestItem.request.params.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled,
@@ -317,7 +380,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         } else if (param.in === 'header') {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
-            name: param.name,
+            name: entry.name || param.name,
             value: entry.value,
             description: param.description || '',
             enabled: entry.enabled
