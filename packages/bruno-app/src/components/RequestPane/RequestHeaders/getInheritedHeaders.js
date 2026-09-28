@@ -25,19 +25,11 @@ const getAncestorFoldersForItem = (collection, item) => {
   return findFolders(collection.items, []) ?? [];
 };
 
-// Sources ordered by precedence: nearest folder first, collection last.
+// Display order: collection, then each folder from the outside in.
 export const getInheritedHeaderSources = (collection, item) => {
-  const folders = getAncestorFoldersForItem(collection, item).reverse();
+  const folders = getAncestorFoldersForItem(collection, item);
 
   return [
-    ...folders.map((folder) => ({
-      type: 'folder',
-      uid: folder.uid,
-      name: folder.name,
-      headers: folder.draft
-        ? get(folder, 'draft.request.headers', [])
-        : get(folder, 'root.request.headers', [])
-    })),
     {
       type: 'collection',
       uid: collection.uid,
@@ -45,38 +37,55 @@ export const getInheritedHeaderSources = (collection, item) => {
       headers: collection.draft?.root
         ? get(collection, 'draft.root.request.headers', [])
         : get(collection, 'root.request.headers', [])
-    }
+    },
+    ...folders.map((folder) => ({
+      type: 'folder',
+      uid: folder.uid,
+      name: folder.name,
+      headers: folder.draft
+        ? get(folder, 'draft.request.headers', [])
+        : get(folder, 'root.request.headers', [])
+    }))
   ];
 };
 
-// Nearest enabled value wins. `claimedNames` hides names enabled on the request.
+const collectEffectiveHeaders = (headers, source, claimed) => {
+  const effectiveHeaders = new Map();
+
+  headers.forEach((header) => {
+    const normalizedName = header.name?.toLowerCase();
+    if (!header.enabled || !normalizedName || claimed.has(normalizedName)) {
+      return;
+    }
+
+    effectiveHeaders.set(normalizedName, {
+      ...header,
+      uid: `inherited-${source.type}-${source.uid}-${header.uid}`,
+      sourceRowUid: header.uid,
+      rowType: 'inherited',
+      source
+    });
+  });
+
+  return effectiveHeaders;
+};
+
+// Display collection headers before folder headers.
 export const getInheritedHeaders = (collection, item, claimedNames) => {
   const claimed = new Set(
     claimedNames ? [...claimedNames].map((name) => String(name).toLowerCase()) : []
   );
+  const sources = getInheritedHeaderSources(collection, item);
+  const headersBySource = sources.map(() => new Map());
 
-  return getInheritedHeaderSources(collection, item).flatMap(({ headers, ...source }) => {
-    const effectiveHeaders = new Map();
-
-    headers.forEach((header) => {
-      const normalizedName = header.name?.toLowerCase();
-      if (!header.enabled || !normalizedName || claimed.has(normalizedName)) {
-        return;
-      }
-
-      effectiveHeaders.set(normalizedName, {
-        ...header,
-        uid: `inherited-${source.type}-${source.uid}-${header.uid}`,
-        sourceRowUid: header.uid,
-        rowType: 'inherited',
-        source
-      });
-    });
-
+  for (let index = sources.length - 1; index >= 0; index -= 1) {
+    const { headers, ...source } = sources[index];
+    const effectiveHeaders = collectEffectiveHeaders(headers, source, claimed);
     effectiveHeaders.forEach((_, normalizedName) => claimed.add(normalizedName));
+    headersBySource[index] = effectiveHeaders;
+  }
 
-    return Array.from(effectiveHeaders.values());
-  });
+  return headersBySource.flatMap((effectiveHeaders) => Array.from(effectiveHeaders.values()));
 };
 
 export const filterUnclaimedHeaders = (headers, claimedNames) => {

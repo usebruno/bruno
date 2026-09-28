@@ -191,6 +191,12 @@ const GlobalStyle = createGlobalStyle`
     cursor: not-allowed !important;
   }
 
+  /* Set by useResizableColumns while a column divider is being dragged */
+  body.column-resize-cursor,
+  body.column-resize-cursor * {
+    cursor: col-resize !important;
+  }
+
   .collection-header-dropdown-label {
     max-width: 124px;
     overflow: hidden;
