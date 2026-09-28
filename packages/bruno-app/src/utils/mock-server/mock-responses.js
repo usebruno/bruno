@@ -147,7 +147,11 @@ const demoValueForMatches = (pattern) => {
 
 // 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
 const demoValueForCondition = (condition) => {
-  if (condition.operator === 'not_equals' || condition.operator === 'isNotNull' || condition.operator === 'isNull') {
+  if (condition.operator === 'isNotNull') {
+    return 'value';
+  }
+
+  if (condition.operator === 'not_equals' || condition.operator === 'isNull') {
     return '';
   }
 
