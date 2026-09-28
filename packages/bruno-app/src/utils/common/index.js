@@ -222,6 +222,16 @@ export const formatSize = (bytes) => {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
 };
 
+const ONE_SECOND_MS = 1000;
+
+export const formatDuration = (durationMs) => {
+  const roundedDurationMs = Math.round(durationMs);
+  if (roundedDurationMs < ONE_SECOND_MS) {
+    return `${roundedDurationMs}ms`;
+  }
+  return `${(roundedDurationMs / ONE_SECOND_MS).toFixed(2)}s`;
+};
+
 export { sortByNameThenSequence } from '@usebruno/common';
 
 // Memory threshold to prevent crashes when decoding large buffers
