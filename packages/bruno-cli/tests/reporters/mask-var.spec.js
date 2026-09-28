@@ -189,6 +189,30 @@ describe('reporter-mask-var', () => {
     expect(results[0].response.data).not.toContain('second-secret');
   });
 
+  it('masks numeric variable values in numbers and surrounding text', () => {
+    const results = [createMockResult()];
+    results[0].request.data = JSON.stringify({ pin: 8675309 });
+    results[0].response.data = JSON.stringify({ token: 8675309, id: 1 });
+    results[0].response.statusText = 'OK 8675309';
+
+    maskResultsVariableValues(results, { AffPin: 8675309 });
+
+    // The number becomes the mask inside the serialized JSON body
+    expect(results[0].request.data).toBe('{"pin":********}');
+    expect(results[0].response.data).toBe('{"token":********,"id":1}');
+    expect(results[0].response.statusText).toBe(`OK ${MASK}`);
+  });
+
+  it('leaves unmatched numbers as numbers', () => {
+    const results = [createMockResult()];
+    results[0].response.data = JSON.stringify({ count: 42, id: 1 });
+
+    maskResultsVariableValues(results, { AffPin: 8675309 });
+
+    expect(JSON.parse(results[0].response.data).count).toBe(42);
+    expect(JSON.parse(results[0].response.data).id).toBe(1);
+  });
+
   it('masks in the HTML report output', () => {
     const results = [createMockResult()];
     maskResultsVariableValues(results, {

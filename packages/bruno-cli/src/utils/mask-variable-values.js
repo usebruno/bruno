@@ -33,6 +33,14 @@ const maskValue = (data, values) => {
   if (typeof data === 'string') {
     return maskString(data, values);
   }
+  if (typeof data === 'number') {
+    // A numeric variable value (env vars parsed as numbers by the
+    // interpolator) reaches the report as a JSON number; compare its string
+    // form so the number is masked instead of passing through untouched.
+    const stringified = String(data);
+    const masked = maskString(stringified, values);
+    return masked === stringified ? data : masked;
+  }
   if (Array.isArray(data)) {
     return data.map((entry) => maskValue(entry, values));
   }
@@ -79,6 +87,7 @@ const maskResultsVariableValues = (results, variables = {}) => {
   // maps to one value or to every value it resolved to over the run.
   const values = Object.values(variables)
     .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .map((value) => (typeof value === 'number' ? String(value) : value))
     .filter((value) => typeof value === 'string' && value.length)
     .sort((a, b) => b.length - a.length);
 
