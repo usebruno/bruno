@@ -677,8 +677,14 @@ const runSingleRequest = async function (
     if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
       try {
         const urlObj = new URL(request.url);
-        const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
-        const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+        const apiKeyInterpolationOptions = {
+          ...interpolationOptions,
+          collectionVariables: request.collectionVariables || {},
+          folderVariables: request.folderVariables || {},
+          requestVariables: request.requestVariables || {}
+        };
+        const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, apiKeyInterpolationOptions);
+        const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, apiKeyInterpolationOptions);
         urlObj.searchParams.set(key, value);
         request.url = urlObj.toString();
       } catch (error) {
