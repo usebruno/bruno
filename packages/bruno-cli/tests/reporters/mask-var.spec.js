@@ -177,6 +177,18 @@ describe('reporter-mask-var', () => {
     expect(JSON.stringify(results)).toBe(before);
   });
 
+  it('masks every value a variable resolved to, not only the last one', () => {
+    const results = [createMockResult()];
+    maskResultsVariableValues(results, {
+      AffPass: ['first-secret', 'second-secret']
+    });
+
+    expect(results[0].request.data).not.toContain('first-secret');
+    expect(results[0].request.data).not.toContain('second-secret');
+    expect(results[0].response.data).not.toContain('first-secret');
+    expect(results[0].response.data).not.toContain('second-secret');
+  });
+
   it('masks in the HTML report output', () => {
     const results = [createMockResult()];
     maskResultsVariableValues(results, {

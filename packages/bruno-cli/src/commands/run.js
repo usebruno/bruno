@@ -777,19 +777,21 @@ const handler = async function (argv) {
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     let bailInfo = null; // populated only if --bail triggers
 
-    // Effective value of each --reporter-mask-var variable as the requests
-    // resolved it, collected per request so every scope (collection, folder,
-    // request, oauth2, runtime, process) is covered with the precedence the
-    // requests used. The last write wins: later requests run with the latest
-    // runtime values.
+    // Every value each --reporter-mask-var variable resolved to during the
+    // run. A name can resolve to different values in the same request (bare
+    // variable vs {{process.env.NAME}}) and across requests (a script updates
+    // the variable between requests), and any of them can appear in a report,
+    // so all observed values are kept for masking.
     const maskedVariableValues = {};
     const recordVariableValues = reporterMaskVar?.length
       ? (effectiveVariables) => {
           for (const name of reporterMaskVar) {
+            const values = (maskedVariableValues[name] ??= []);
             if (name in processEnvVars) {
-              maskedVariableValues[name] = processEnvVars[name];
-            } else if (name in effectiveVariables) {
-              maskedVariableValues[name] = effectiveVariables[name];
+              values.push(processEnvVars[name]);
+            }
+            if (name in effectiveVariables) {
+              values.push(effectiveVariables[name]);
             }
           }
         }

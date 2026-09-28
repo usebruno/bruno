@@ -18,7 +18,8 @@ const maskString = (str, values) => {
 /**
  * Mask variable values anywhere they appear in request or response bodies,
  * headers and URLs. `variables` maps a variable name to the value it resolved
- * to during the run; only the values are needed here.
+ * to during the run — a single value, or the list of every value observed
+ * when the variable changed over the run; only the values are needed here.
  *
  * Non-string data (parsed JSON bodies, form arrays) is masked by deep-walking
  * it: every string value is masked on its own, and objects are stringified,
@@ -74,8 +75,10 @@ const RESULT_TEXT_FIELDS = ['error', 'assertionResults', 'testResults', 'preRequ
 
 const maskResultsVariableValues = (results, variables = {}) => {
   // Longest values first: a longer value that contains a shorter one must be
-  // replaced before the shorter one's fragments are left behind.
+  // replaced before the shorter one's fragments are left behind. A variable
+  // maps to one value or to every value it resolved to over the run.
   const values = Object.values(variables)
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
     .filter((value) => typeof value === 'string' && value.length)
     .sort((a, b) => b.length - a.length);
 

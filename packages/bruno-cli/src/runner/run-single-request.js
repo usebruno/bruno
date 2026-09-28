@@ -184,12 +184,15 @@ const runSingleRequest = async function (
     // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
     request.globalEnvironmentVariables = globalEnvVars;
 
-    if (variableValueRecorder) {
-      // Record the effective value each tracked variable resolves to for this
-      // request, mirroring the precedence the interpolator applies below:
-      // global < collection < env < folder < request < oauth2 < runtime.
-      // Process env vars are handled by the caller: they only interpolate via
-      // {{process.env.NAME}}, and the caller masks them by bare name too.
+    // Record the effective value each tracked variable resolves to for this
+    // request, mirroring the precedence the interpolator applies below:
+    // global < collection < env < folder < request < oauth2 < runtime.
+    // Process env vars are handled by the caller: they only interpolate via
+    // {{process.env.NAME}}, and the caller masks them by bare name too.
+    const recordEffectiveVariableValues = () => {
+      if (!variableValueRecorder) {
+        return;
+      }
       const effectiveVariables = {
         ...request.globalEnvironmentVariables,
         ...request.collectionVariables,
@@ -200,7 +203,11 @@ const runSingleRequest = async function (
         ...runtimeVariables
       };
       variableValueRecorder(effectiveVariables);
-    }
+    };
+
+    // First snapshot: the values the request starts with (also the ones
+    // certs/proxy interpolation below consumes).
+    recordEffectiveVariableValues();
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
@@ -292,6 +299,9 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName);
         syncVariableUpdates(result, request);
+        // The request below interpolates with the values the script just set,
+        // so they are recorded before the request goes out.
+        recordEffectiveVariableValues();
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -347,6 +357,10 @@ const runSingleRequest = async function (
 
         // Persist any variable changes the script made before erroring
         syncVariableUpdates(error?.partialResults, request);
+        // The values set before the error can still surface in this request's
+        // error result (assertions that ran, request echo fields), so they are
+        // recorded as well.
+        recordEffectiveVariableValues();
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -874,6 +888,9 @@ const runSingleRequest = async function (
           collectionName
         );
         syncVariableUpdates(result, request);
+        // The request below interpolates with the values the script just set,
+        // so they are recorded before the request goes out.
+        recordEffectiveVariableValues();
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
