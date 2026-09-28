@@ -1796,8 +1796,7 @@ export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (d
 
   const requestType = example.type || item.type;
 
-  // detach from the (frozen) store objects so the new request owns its data
-  const exampleRequest = cloneDeep(example.request || {});
+  const exampleRequest = example.request || {};
   if (!exampleRequest.url) {
     return Promise.reject(new Error('The example has no request URL to try'));
   }
