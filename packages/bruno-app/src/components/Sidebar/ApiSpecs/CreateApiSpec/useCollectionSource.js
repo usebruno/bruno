@@ -7,17 +7,23 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
   const [collectionData, setCollectionData] = useState(null);
   const [environments, setEnvironments] = useState({});
   const [derivedName, setDerivedName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!collectionPathname) {
       setCollectionData(null);
       setEnvironments({});
       setDerivedName('');
+      setIsLoading(false);
       onEnvironmentsLoaded('');
       return;
     }
 
     setDerivedName(sanitizeName(fallbackName || getBasename('', collectionPathname) || ''));
+    setCollectionData(null);
+    setEnvironments({});
+    setIsLoading(true);
+    onEnvironmentsLoaded('');
 
     let cancelled = false;
 
@@ -30,6 +36,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
         }
 
         setCollectionData(collection);
+        setIsLoading(false);
 
         const collectionEnvironments = collection.envVariables || {};
         setEnvironments(collectionEnvironments);
@@ -47,6 +54,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
 
         setCollectionData(null);
         setEnvironments({});
+        setIsLoading(false);
         onEnvironmentsLoaded('');
         toast.error(err?.message || 'Failed to load collection');
       });
@@ -56,7 +64,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
     };
   }, [collectionPathname]);
 
-  return { collectionData, environments, derivedName };
+  return { collectionData, environments, derivedName, isLoading };
 };
 
 export default useCollectionSource;

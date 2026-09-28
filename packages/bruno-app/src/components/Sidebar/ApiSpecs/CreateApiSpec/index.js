@@ -164,7 +164,7 @@ const CreateApiSpec = ({ onClose }) => {
             formik.setFieldError('apiSpecName', API_SPEC_NAME_TAKEN_ERROR);
             return;
           }
-          toast.error(err?.message);
+          toast.error(err?.message || 'Failed to create the API spec');
         });
     }
   });
@@ -182,7 +182,6 @@ const CreateApiSpec = ({ onClose }) => {
 
   const collectionSource = useCollectionSource({
     collectionPathname,
-
     fallbackName: isWorkspaceSource ? selectedWorkspaceCollection?.name : '',
     onEnvironmentsLoaded: (environmentName) => formik.setFieldValue('environment', environmentName),
     onFilesSkipped: (skipped) => toast.error(buildSkippedFilesMessage(skipped))
@@ -317,7 +316,10 @@ const CreateApiSpec = ({ onClose }) => {
           size="md"
           title="Create API Spec"
           confirmText="Create"
-          confirmDisabled={urlSource.isFetching}
+          confirmDisabled={
+            urlSource.isFetching
+            || (formik.values.importFrom === API_SPEC_SOURCE.COLLECTION && collectionSource.isLoading)
+          }
           handleConfirm={onSubmit}
           handleCancel={onClose}
         >
@@ -378,7 +380,7 @@ const CreateApiSpec = ({ onClose }) => {
                   ref={inputRef}
                   className="block textbox mt-2 !pr-11 w-full"
                   onChange={(e) => {
-                    apiSpecNameEditedRef.current = true;
+                    apiSpecNameEditedRef.current = Boolean(e.target.value.trim());
                     formik.handleChange(e);
                   }}
                   autoComplete="off"

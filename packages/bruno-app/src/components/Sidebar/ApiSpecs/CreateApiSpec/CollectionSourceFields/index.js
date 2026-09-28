@@ -29,14 +29,12 @@ const CollectionSourceFields = ({
   const collectionItems = workspaceCollections.map((collection) => ({
     id: collection.uid,
     label: collection.name,
-    testId: `api-spec-collection-option-${collection.uid}`,
     onClick: () => onSelectCollection(collection.uid)
   }));
 
   const environmentItems = environmentNames.map((environmentName) => ({
     id: environmentName,
     label: environmentName,
-    testId: `api-spec-environment-option-${environmentName}`,
     onClick: () => onSelectEnvironment(environmentName)
   }));
 

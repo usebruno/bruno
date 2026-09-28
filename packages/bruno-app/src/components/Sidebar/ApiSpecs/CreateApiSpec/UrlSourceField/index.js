@@ -24,7 +24,7 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
         spellCheck="false"
         value={formik.values.specUrl || ''}
         onChange={(e) => {
-          onUrlChanged();
+          onUrlChanged(e.target.value);
           formik.handleChange(e);
         }}
         onBlur={(e) => {
