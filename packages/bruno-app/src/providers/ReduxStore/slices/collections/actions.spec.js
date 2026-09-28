@@ -99,32 +99,32 @@ describe('collection actions', () => {
     });
   });
 
+  const makeCollection = (overrides = {}) => ({
+    uid: 'collection-uid',
+    collapsed: true,
+    mountStatus: 'mounted',
+    isLoading: false,
+    items: [
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        collapsed: true,
+        items: [
+          {
+            uid: 'folder-b',
+            type: 'folder',
+            collapsed: true,
+            items: [{ uid: 'deep-req', type: 'http-request', request: {}, collapsed: true }]
+          }
+        ]
+      }
+    ],
+    ...overrides
+  });
+
+  const makeGetState = (collection) => () => ({ collections: { collections: [collection] } });
+
   describe('revealItemInSidebar', () => {
-    const makeCollection = (overrides = {}) => ({
-      uid: 'collection-uid',
-      collapsed: true,
-      mountStatus: 'mounted',
-      isLoading: false,
-      items: [
-        {
-          uid: 'folder-a',
-          type: 'folder',
-          collapsed: true,
-          items: [
-            {
-              uid: 'folder-b',
-              type: 'folder',
-              collapsed: true,
-              items: [{ uid: 'deep-req', type: 'http-request', request: {}, collapsed: true }]
-            }
-          ]
-        }
-      ],
-      ...overrides
-    });
-
-    const makeGetState = (collection) => () => ({ collections: { collections: [collection] } });
-
     it('expands the collapsed collection and every ancestor folder, leaving the target alone', () => {
       const dispatch = jest.fn();
       const status = revealItemInSidebar({ collectionUid: 'collection-uid', itemUid: 'deep-req' })(
@@ -205,47 +205,47 @@ describe('collection actions', () => {
       expect(status).toBe('skipped');
       expect(dispatch).not.toHaveBeenCalled();
     });
+  });
 
-    describe('revealTabInSidebar', () => {
-      const makeGetStateWithTabs = (collection, tabs) => () => ({
-        collections: { collections: [collection] },
-        tabs: { tabs }
+  describe('revealTabInSidebar', () => {
+    const makeGetStateWithTabs = (collection, tabs) => () => ({
+      collections: { collections: [collection] },
+      tabs: { tabs }
+    });
+
+    it('reveals the item behind a request tab', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [
+        { uid: 'deep-req', collectionUid: 'collection-uid', type: 'http-request' }
+      ]);
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe('revealed');
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/expandItem',
+        payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' }
       });
+    });
 
-      it('reveals the item behind a request tab', () => {
-        const getState = makeGetStateWithTabs(makeCollection(), [
-          { uid: 'deep-req', collectionUid: 'collection-uid', type: 'http-request' }
-        ]);
-        const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+    it('reveals the parent request behind a response-example tab and expands it', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [
+        { uid: 'example-uid', collectionUid: 'collection-uid', type: 'response-example', itemUid: 'deep-req' }
+      ]);
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
 
-        expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe('revealed');
-        expect(dispatch).toHaveBeenCalledWith({
-          type: 'collections/expandItem',
-          payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' }
-        });
+      revealTabInSidebar('example-uid')(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'collections/expandItem',
+        payload: { collectionUid: 'collection-uid', itemUid: 'deep-req' }
       });
+    });
 
-      it('reveals the parent request behind a response-example tab and expands it', () => {
-        const getState = makeGetStateWithTabs(makeCollection(), [
-          { uid: 'example-uid', collectionUid: 'collection-uid', type: 'response-example', itemUid: 'deep-req' }
-        ]);
-        const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+    it('skips a tab that belongs to no collection', () => {
+      const getState = makeGetStateWithTabs(makeCollection(), [{ uid: 'workspace-overview', type: 'workspaceOverview' }]);
+      const dispatch = jest.fn();
 
-        revealTabInSidebar('example-uid')(dispatch, getState);
-
-        expect(dispatch).toHaveBeenCalledWith({
-          type: 'collections/expandItem',
-          payload: { collectionUid: 'collection-uid', itemUid: 'deep-req' }
-        });
-      });
-
-      it('skips a tab that belongs to no collection', () => {
-        const getState = makeGetStateWithTabs(makeCollection(), [{ uid: 'workspace-overview', type: 'workspaceOverview' }]);
-        const dispatch = jest.fn();
-
-        expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe('skipped');
-        expect(dispatch).not.toHaveBeenCalled();
-      });
+      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe('skipped');
+      expect(dispatch).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,6 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
+import { buildCommonLocators, collapseFolder, createApp, expandFolder, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest, writeBruFolder } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'SearchCol';
@@ -67,7 +67,7 @@ test.describe('Sidebar search filtering', () => {
         }
       });
 
-      await test.step('Opening a filtered match keeps its folder expanded after the search clears', async () => {
+      await test.step('Opening a filtered match reveals it, expanding `auth` for real rather than at render time', async () => {
         await searchInput.fill('login');
         await expect(row('login')).toBeVisible();
 
@@ -75,10 +75,11 @@ test.describe('Sidebar search filtering', () => {
         await expect(locators.tabs.activeRequestTab()).toContainText('login');
 
         await searchInput.fill('');
-        // Unlike the render-time override above, opening the match reveals it in the sidebar,
-        // which expands `auth` for real so the active request stays visible.
         await expect(row('login')).toBeVisible();
         await expect(row('logout')).toBeVisible();
+
+        await collapseFolder(page, 'auth');
+        await expect(row('login')).toHaveCount(0);
       });
 
       await test.step('A folder the user expanded stays expanded across a search', async () => {

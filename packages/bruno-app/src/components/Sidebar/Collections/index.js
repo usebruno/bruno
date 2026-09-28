@@ -82,7 +82,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     return selectionInfo.effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [selectionInfo]);
 
-  useSidebarAutoReveal({ rows, collectionsByUid, virtuosoRef });
+  useSidebarAutoReveal({ rows, sidebarEntries, virtuosoRef });
 
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.

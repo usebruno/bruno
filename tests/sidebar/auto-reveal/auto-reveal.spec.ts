@@ -127,4 +127,55 @@ test.describe('Sidebar auto-reveal', () => {
       await closeElectronApp(app);
     }
   });
+
+  test('a tab activated while a search hides its collection is revealed once the search clears', async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    const collectionDir = path.join(await createTmpDir('auto-reveal-search'), COLLECTION_NAME);
+    buildCollectionOnDisk(collectionDir);
+
+    const app = await launchElectronApp({
+      initUserDataPath: path.join(__dirname, 'init-user-data'),
+      templateVars: { collectionPath: collectionDir.split(path.sep).join('/') }
+    });
+    const page = await waitForReadyPage(app);
+    const locators = buildCommonLocators(page);
+    const row = locators.sidebar.item;
+    const searchInput = page.getByTestId('sidebar-search-input');
+
+    try {
+      await test.step('Open both requests, then collapse the folder holding the nested one', async () => {
+        await locators.sidebar.collectionChevron(COLLECTION_NAME).click();
+        await expect(row('folder-a')).toBeVisible({ timeout: 15000 });
+
+        await expandFolder(page, 'folder-a');
+        await expandFolder(page, 'folder-b');
+        await openRequest(page, COLLECTION_NAME, 'deep-req', { persist: true });
+        await openRequest(page, COLLECTION_NAME, 'top-req', { persist: true });
+
+        await collapseFolder(page, 'folder-a');
+        await expect(row('deep-req')).toHaveCount(0);
+      });
+
+      await test.step('Filter the collection out of the sidebar entirely', async () => {
+        await page.getByTitle('Search requests').click();
+        await searchInput.fill('no-such-request');
+        await expect(locators.sidebar.collection(COLLECTION_NAME)).toHaveCount(0);
+      });
+
+      await test.step('Closing the active tab activates the nested one without a sidebar click', async () => {
+        await locators.tabs.closeTab('top-req').click({ force: true });
+        await expect(locators.tabs.activeRequestTab()).toContainText('deep-req');
+      });
+
+      await test.step('Clearing the search reveals the now-active nested request', async () => {
+        await searchInput.fill('');
+        await expect(row('folder-a')).toBeVisible();
+        await expect(row('deep-req')).toBeVisible();
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
 });
