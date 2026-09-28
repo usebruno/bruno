@@ -42,6 +42,50 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* Small enough to sit inside the modal rather than spilling past its edge. */
+  .api-spec-hint-tooltip {
+    max-width: 200px;
+    padding: 4px 8px;
+    font-size: ${(props) => props.theme.font.size.xs};
+    line-height: 1.3;
+    border-radius: 4px;
+  }
+
+  .collection-source-control {
+    [role='radiogroup'] {
+      height: 30px;
+      padding: 2px;
+      gap: 2px;
+      box-sizing: border-box;
+      border-radius: 6px;
+    }
+
+    .segment {
+      height: 26px;
+      box-sizing: border-box;
+      justify-content: center;
+      padding: 5px 8px;
+      border-radius: 4.95px;
+    }
+
+    .segment-label {
+      line-height: 16px;
+      white-space: nowrap;
+    }
+
+    .segment.active {
+      background: ${(props) => props.theme.modal.body.bg};
+      border: 1px solid ${(props) => props.theme.input.border};
+      box-shadow: none;
+    }
+  }
+
+  .textbox,
+  .collection-select-trigger {
+    height: 2.1rem;
+    box-sizing: border-box;
+  }
+
   .collection-select-trigger {
     box-sizing: border-box;
     gap: 0.5rem;

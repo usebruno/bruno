@@ -1,11 +1,15 @@
 import React from 'react';
+import { Tooltip } from 'react-tooltip';
 import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
 import { IconCaretDown, IconFolder } from '@tabler/icons';
 import { COLLECTION_SOURCE, COLLECTION_SOURCE_ITEMS } from '../apiSpecSources';
 
+const NO_COLLECTIONS_HINT = 'No collections in this workspace';
+
 const CollectionSourceFields = ({
   formik,
+  isWorkspaceSource,
   workspaceCollections,
   selectedWorkspaceCollection,
   environmentNames,
@@ -14,7 +18,13 @@ const CollectionSourceFields = ({
   onSelectEnvironment,
   onBrowseCollection
 }) => {
-  const isWorkspaceSource = formik.values.collectionSource === COLLECTION_SOURCE.WORKSPACE;
+  const hasWorkspaceCollections = workspaceCollections.length > 0;
+
+  const sourceItems = COLLECTION_SOURCE_ITEMS.map((item) => (
+    item.value === COLLECTION_SOURCE.WORKSPACE && !hasWorkspaceCollections
+      ? { ...item, disabled: true, className: 'segment-no-collections' }
+      : item
+  ));
 
   const collectionItems = workspaceCollections.map((collection) => ({
     id: collection.uid,
@@ -32,16 +42,25 @@ const CollectionSourceFields = ({
 
   return (
     <>
-      <div className="mt-2">
+      <div className="mt-2 collection-source-control">
         <SegmentedControl
           ariaLabel="Collection source"
           name="collectionSource"
-          value={formik.values.collectionSource}
+          value={isWorkspaceSource ? COLLECTION_SOURCE.WORKSPACE : COLLECTION_SOURCE.FILESYSTEM}
           onChange={onSelectSource}
-          items={COLLECTION_SOURCE_ITEMS}
+          items={sourceItems}
           size="sm"
           data-testid="api-spec-collection-source"
         />
+        {hasWorkspaceCollections ? null : (
+          <Tooltip
+            anchorSelect=".segment-no-collections"
+            content={NO_COLLECTIONS_HINT}
+            className="api-spec-hint-tooltip"
+            place="top"
+            data-testid="api-spec-no-collections"
+          />
+        )}
       </div>
 
       {isWorkspaceSource ? (
@@ -61,7 +80,7 @@ const CollectionSourceFields = ({
                 <button
                   type="button"
                   id="collection-select"
-                  className="collection-select-trigger flex items-center justify-between cursor-pointer mt-2 w-full"
+                  className="collection-select-trigger flex items-center justify-between cursor-pointer mt-1 w-full"
                   data-testid="api-spec-collection-trigger"
                 >
                   <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
@@ -74,15 +93,11 @@ const CollectionSourceFields = ({
                 <div className="text-red-500">{formik.errors.collectionUid}</div>
               ) : null}
             </>
-          ) : (
-            <div className="text-xs mt-2 opacity-70" data-testid="api-spec-no-collections">
-              No collections in this workspace. Pick "From file system" to choose a collection folder.
-            </div>
-          )}
+          ) : null}
         </>
       ) : (
         <>
-          <div className="relative mt-2">
+          <div className="relative mt-1">
             {formik.values.collectionLocation ? (
               <span className="input-icon">
                 <IconFolder size={14} strokeWidth={1.5} />

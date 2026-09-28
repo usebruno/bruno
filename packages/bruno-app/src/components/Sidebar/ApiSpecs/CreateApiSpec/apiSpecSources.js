@@ -67,6 +67,40 @@ export const deriveApiSpecNameFromUrl = (data, url) => {
   }
 };
 
+export const getFetchErrorMessage = (error, url) => {
+  const raw = String(error?.message || '');
+
+  let host = 'that URL';
+  try {
+    host = new URL(url).host;
+  } catch (parseError) {
+    host = 'that URL';
+  }
+
+  if (raw.includes('ECONNREFUSED')) {
+    return `Nothing is listening at ${host}. Check the URL, or start the server.`;
+  }
+
+  if (raw.includes('ENOTFOUND') || raw.includes('EAI_AGAIN')) {
+    return `Could not find ${host}. Check the address for a typo.`;
+  }
+
+  if (raw.includes('ETIMEDOUT') || raw.includes('ECONNABORTED') || raw.includes('timeout')) {
+    return `${host} took too long to respond.`;
+  }
+
+  if (raw.includes('CERT') || raw.includes('self signed') || raw.includes('DEPTH_ZERO')) {
+    return `The certificate for ${host} could not be verified.`;
+  }
+
+  const status = raw.match(/status code (\d{3})/);
+  if (status) {
+    return `${host} responded with ${status[1]}.`;
+  }
+
+  return `Could not fetch a specification from ${host}.`;
+};
+
 export const isApiSpecNameTaken = ({ apiSpecs = [], apiSpecName, apiSpecLocation }) => {
   if (!apiSpecName || !apiSpecLocation) {
     return false;

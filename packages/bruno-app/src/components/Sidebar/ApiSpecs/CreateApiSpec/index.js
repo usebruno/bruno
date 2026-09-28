@@ -83,14 +83,17 @@ const CreateApiSpec = ({ onClose }) => {
 
       collectionUid: Yup.string().when(['importFrom', 'collectionSource'], {
         is: (importFrom, collectionSource) => (
-          importFrom === API_SPEC_SOURCE.COLLECTION && collectionSource === COLLECTION_SOURCE.WORKSPACE
+          importFrom === API_SPEC_SOURCE.COLLECTION
+          && collectionSource === COLLECTION_SOURCE.WORKSPACE
+          && workspaceCollections.length > 0
         ),
         then: Yup.string().required('Collection is required'),
         otherwise: Yup.string()
       }),
       collectionLocation: Yup.string().when(['importFrom', 'collectionSource'], {
         is: (importFrom, collectionSource) => (
-          importFrom === API_SPEC_SOURCE.COLLECTION && collectionSource === COLLECTION_SOURCE.FILESYSTEM
+          importFrom === API_SPEC_SOURCE.COLLECTION
+          && (collectionSource === COLLECTION_SOURCE.FILESYSTEM || workspaceCollections.length === 0)
         ),
         then: Yup.string().min(1, 'Collection location is required').required('Collection location is required'),
         otherwise: Yup.string()
@@ -166,7 +169,8 @@ const CreateApiSpec = ({ onClose }) => {
     }
   });
 
-  const isWorkspaceSource = formik.values.collectionSource === COLLECTION_SOURCE.WORKSPACE;
+  const isWorkspaceSource = workspaceCollections.length > 0
+    && formik.values.collectionSource === COLLECTION_SOURCE.WORKSPACE;
 
   const selectedWorkspaceCollection = workspaceCollections.find(
     (collection) => collection.uid === formik.values.collectionUid
@@ -301,9 +305,9 @@ const CreateApiSpec = ({ onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   const sourceRadios = [
-    { value: API_SPEC_SOURCE.COLLECTION, label: 'Collection' },
-    { value: API_SPEC_SOURCE.BLANK, label: 'API Spec' },
-    { value: API_SPEC_SOURCE.URL, label: 'From URL' }
+    { value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
+    { value: API_SPEC_SOURCE.BLANK, label: 'Blank Spec' },
+    { value: API_SPEC_SOURCE.URL, label: 'From Spec URL' }
   ];
 
   return (
@@ -342,6 +346,7 @@ const CreateApiSpec = ({ onClose }) => {
               {formik.values.importFrom === API_SPEC_SOURCE.COLLECTION ? (
                 <CollectionSourceFields
                   formik={formik}
+                  isWorkspaceSource={isWorkspaceSource}
                   workspaceCollections={workspaceCollections}
                   selectedWorkspaceCollection={selectedWorkspaceCollection}
                   environmentNames={Object.keys(collectionSource.environments || {})}

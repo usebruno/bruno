@@ -124,7 +124,7 @@ const renderModal = (options) => {
 };
 
 const chooseCollectionSource = async (user) => {
-  await user.click(screen.getByLabelText('Collection'));
+  await user.click(screen.getByLabelText('From Bruno Collection'));
 };
 
 const chooseFileSystemSource = async (user) => {
@@ -160,20 +160,19 @@ describe('CreateApiSpec — collection source', () => {
   it('opens on the Collection source with nothing pre-selected', async () => {
     renderModal();
 
-    expect(screen.getByLabelText('Collection')).toBeChecked();
+    expect(screen.getByLabelText('From Bruno Collection')).toBeChecked();
     expect(screen.getByTestId('api-spec-collection-trigger')).toHaveTextContent('Select a collection');
     expect(screen.getByLabelText('Spec Name')).toHaveValue('');
   });
 
-  it('tells the user when the workspace has no collections, and keeps the file system tab usable', async () => {
+  it('disables the workspace tab when there are no collections, falling through to the file system', async () => {
     const user = userEvent.setup();
     renderModal({ workspaceCollections: [SCRATCH, OTHER_WORKSPACE_COLLECTION] });
     await chooseCollectionSource(user);
 
-    expect(screen.getByTestId('api-spec-no-collections')).toBeInTheDocument();
+    // The tab is disabled, and the file system field is live without a click.
+    expect(screen.getByRole('radio', { name: 'Select from existing' })).toBeDisabled();
     expect(screen.queryByTestId('api-spec-collection-trigger')).not.toBeInTheDocument();
-
-    await chooseFileSystemSource(user);
     expect(screen.getByPlaceholderText('Choose file...')).toBeInTheDocument();
   });
 
@@ -236,11 +235,11 @@ describe('CreateApiSpec — collection source', () => {
     await user.click(screen.getByLabelText('Spec Location'));
     await waitFor(() => expect(screen.getByLabelText('Spec Location')).toHaveValue('/home/dev/Documents/specs'));
 
-    await user.click(screen.getByLabelText('API Spec'));
+    await user.click(screen.getByLabelText('Blank Spec'));
     expect(screen.getByLabelText('Spec Name')).toHaveValue('');
     expect(screen.getByLabelText('Spec Location')).toHaveValue('/home/dev/workspaces/team/apispec');
 
-    await user.click(screen.getByLabelText('Collection'));
+    await user.click(screen.getByLabelText('From Bruno Collection'));
     expect(screen.getByLabelText('Spec Name')).toHaveValue('Petstore');
     expect(screen.getByLabelText('Spec Location')).toHaveValue('/home/dev/Documents/specs');
   });
@@ -301,7 +300,7 @@ describe('CreateApiSpec — collection source', () => {
     createApiSpecFile.mockImplementation(
       () => Promise.reject(new Error('path: /home/dev/workspaces/team/apispec/petstore-v2.yaml already exists'))
     );
-    await user.click(screen.getByLabelText('API Spec'));
+    await user.click(screen.getByLabelText('Blank Spec'));
     await user.type(screen.getByLabelText('Spec Name'), 'petstore-v2');
     await user.click(screen.getByText('Create'));
 
@@ -340,7 +339,7 @@ describe('CreateApiSpec — collection source', () => {
     renderModal({
       apiSpecs: [{ uid: 's1', name: 'petstore', pathname: '/home/dev/workspaces/team/apispec/petstore.yaml' }]
     });
-    await user.click(screen.getByLabelText('API Spec'));
+    await user.click(screen.getByLabelText('Blank Spec'));
 
     await user.type(screen.getByLabelText('Spec Name'), 'petstore');
     await user.click(screen.getByText('Create'));
@@ -361,7 +360,7 @@ describe('CreateApiSpec — collection source', () => {
     await chooseFileSystemSource(user);
     expect(screen.queryByText('Collection location is required')).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('From URL'));
+    await user.click(screen.getByLabelText('From Spec URL'));
     expect(screen.queryByText('Spec URL is required')).not.toBeInTheDocument();
     expect(screen.queryByText('Name is required')).not.toBeInTheDocument();
   });
@@ -407,7 +406,7 @@ describe('CreateApiSpec — collection source', () => {
 
     browseDirectory.mockReturnValue(Promise.resolve(PETSTORE.pathname));
     const { getByPlaceholderText, getByLabelText, getByText, getByRole } = render(withTheme(<CreateApiSpec onClose={jest.fn()} />));
-    await user.click(getByLabelText('Collection'));
+    await user.click(getByLabelText('From Bruno Collection'));
     await user.click(getByRole('radio', { name: 'From file system' }));
     await user.click(getByPlaceholderText('Choose file...'));
     await waitFor(() => expect(getByLabelText('Spec Name')).toHaveValue('petstore'));
@@ -427,7 +426,7 @@ describe('CreateApiSpec — URL source', () => {
   const JSON_SPEC = '{"openapi":"3.1.0","info":{"title":"Hotel Booking API"}}';
 
   const openUrlSource = async (user) => {
-    await user.click(screen.getByLabelText('From URL'));
+    await user.click(screen.getByLabelText('From Spec URL'));
   };
 
   const typeUrlAndBlur = async (user, url = SPEC_URL) => {
@@ -513,16 +512,20 @@ describe('CreateApiSpec — URL source', () => {
     ));
   });
 
-  it('surfaces a failed fetch in the modal', async () => {
+  it('explains a failed fetch instead of showing the raw error', async () => {
     const user = userEvent.setup();
-    fetchAndValidateApiSpecFromUrl.mockImplementation(
-      () => Promise.reject(new Error('Failed to fetch API specification: getaddrinfo ENOTFOUND'))
-    );
+    // What Electron actually throws, wrappers and all.
+    fetchAndValidateApiSpecFromUrl.mockImplementation(() => Promise.reject(new Error(
+      'Failed to fetch API specification: Error invoking remote method \'renderer:fetch-api-spec\': Error: connect ECONNREFUSED 127.0.0.1:8000'
+    )));
     renderModal();
     await openUrlSource(user);
     await typeUrlAndBlur(user);
 
-    await waitFor(() => expect(screen.getByTestId('api-spec-url-error')).toHaveTextContent('ENOTFOUND'));
+    await waitFor(() => expect(screen.getByTestId('api-spec-url-error')).toHaveTextContent(
+      'Nothing is listening at example.com. Check the URL, or start the server.'
+    ));
+    expect(screen.getByTestId('api-spec-url-error')).not.toHaveTextContent('ECONNREFUSED');
   });
 
   it('shows progress and disables Create while fetching', async () => {
@@ -597,11 +600,11 @@ describe('CreateApiSpec — URL source', () => {
     await typeUrlAndBlur(user);
     await waitFor(() => expect(screen.getByText('.json')).toBeInTheDocument());
 
-    await user.click(screen.getByLabelText('API Spec'));
+    await user.click(screen.getByLabelText('Blank Spec'));
     expect(screen.getByText('.yaml')).toBeInTheDocument();
     expect(screen.queryByText('.json')).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('From URL'));
+    await user.click(screen.getByLabelText('From Spec URL'));
     expect(screen.getByText('.json')).toBeInTheDocument();
   });
 
@@ -634,7 +637,7 @@ describe('CreateApiSpec — URL source', () => {
   it('fetches on Create when the URL field was never blurred', async () => {
     renderModal();
 
-    fireEvent.click(screen.getByLabelText('From URL'));
+    fireEvent.click(screen.getByLabelText('From Spec URL'));
     fireEvent.change(screen.getByLabelText('Spec Name'), { target: { value: 'hotel' } });
     fireEvent.change(screen.getByTestId('api-spec-url'), { target: { value: SPEC_URL } });
     fireEvent.click(screen.getByText('Create'));

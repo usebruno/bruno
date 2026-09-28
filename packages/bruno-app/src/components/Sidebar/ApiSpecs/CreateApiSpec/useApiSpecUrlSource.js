@@ -5,7 +5,8 @@ import {
   INVALID_URL_ERROR,
   deriveApiSpecNameFromUrl,
   detectApiSpecExtension,
-  getApiSpecRejectionReason
+  getApiSpecRejectionReason,
+  getFetchErrorMessage
 } from './apiSpecSources';
 
 const useApiSpecUrlSource = () => {
@@ -53,7 +54,7 @@ const useApiSpecUrlSource = () => {
     } catch (err) {
       setFetchedApiSpec(null);
       setDerivedName('');
-      setError(err?.message || 'Failed to fetch the specification');
+      setError(getFetchErrorMessage(err, url));
       return null;
     } finally {
       setIsFetching(false);
