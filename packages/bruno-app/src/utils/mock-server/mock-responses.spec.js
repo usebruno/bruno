@@ -276,16 +276,18 @@ describe('buildDemoRequestFromRules', () => {
     expect(new RegExp('literal').test(demo.params[0].value)).toBe(true);
   });
 
-  it('uses an empty sample for not_equals and skips keyless conditions', () => {
+  it('uses an empty sample for not_equals, isNotNull and isNull and skips keyless conditions', () => {
     const demo = buildDemoRequestFromRules(request, {
       operator: 'OR',
       conditions: [
         { target: 'header', key: 'X-Env', operator: 'not_equals', value: 'prod' },
+        { target: 'header', key: 'X-Null', operator: 'isNull', value: 'null' },
+        { target: 'header', key: 'X-NotNull', operator: 'isNotNull', value: 'not null' },
         { target: 'query', key: '', operator: 'equals', value: 'ignored' }
       ]
     });
 
-    expect(demo.headers).toEqual([{ name: 'X-Env', value: '', enabled: true }]);
+    expect(demo.headers).toEqual([{ name: 'X-Env', value: '', enabled: true }, { name: 'X-Null', value: '', enabled: true }, { name: 'X-NotNull', value: '', enabled: true }]);
     expect(demo.params).toEqual([]);
     expect(demo.body).toBeNull();
   });

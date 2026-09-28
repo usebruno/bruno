@@ -13,7 +13,9 @@ const OPERATOR_OPTIONS = [
   { value: 'equals', label: 'equals' },
   { value: 'not_equals', label: 'not equals' },
   { value: 'contains', label: 'contains' },
-  { value: 'matches', label: 'matches' }
+  { value: 'matches', label: 'matches' },
+  { value: 'isNotNull', label: 'is not null' },
+  { value: 'isNull', label: 'is null' }
 ];
 
 const DEFAULT_CONDITION = {
@@ -147,7 +149,24 @@ const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
       name: 'Value',
       width: '31%',
       readOnly: !editMode,
-      placeholder: 'Value'
+      placeholder: 'Value',
+      render: ({ row, value, onChange: onCellChange }) => {
+        const ignoresValue = row.operator === 'isNotNull' || row.operator === 'isNull';
+
+        return (
+          <input
+            type="text"
+            autoComplete="off"
+            spellCheck="false"
+            className="mousetrap"
+            value={ignoresValue ? '' : (value || '')}
+            readOnly={!editMode}
+            disabled={ignoresValue}
+            placeholder={ignoresValue ? '' : 'Value'}
+            onChange={(event) => onCellChange(event.target.value)}
+          />
+        );
+      }
     }
   ];
 

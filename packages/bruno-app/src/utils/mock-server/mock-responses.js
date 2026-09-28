@@ -147,7 +147,7 @@ const demoValueForMatches = (pattern) => {
 
 // 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
 const demoValueForCondition = (condition) => {
-  if (condition.operator === 'not_equals') {
+  if (condition.operator === 'not_equals' || condition.operator === 'isNotNull' || condition.operator === 'isNull') {
     return '';
   }
 
@@ -163,13 +163,13 @@ const demoValueForCondition = (condition) => {
 // This is what the Demo Request tab shows and what Try sends.
 export const buildDemoRequestFromRules = (request, rules) => {
   const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
-
+  const includeInDemo = (condition) => condition.operator !== 'isNull';
   const headers = conditions
-    .filter((condition) => condition.target === 'header')
+    .filter((condition) => condition.target === 'header' && includeInDemo(condition))
     .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), enabled: true }));
 
   const params = conditions
-    .filter((condition) => condition.target === 'query')
+    .filter((condition) => condition.target === 'query' && includeInDemo(condition))
     .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), type: 'query', enabled: true }));
 
   const bodyConditions = conditions.filter((condition) => condition.target === 'body');
