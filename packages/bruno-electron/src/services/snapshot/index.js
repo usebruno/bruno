@@ -512,7 +512,7 @@ class SnapshotManager {
   }
 
   _normalizeWorkspaceEntry(pathname, workspace = {}) {
-    const collections = this._normalizeCollectionPathList(workspace.collections);
+    const collections = this._normalizePathList(workspace.collections);
 
     return {
       pathname,
@@ -524,7 +524,7 @@ class SnapshotManager {
         ? workspace.activeWorkspaceTabType
         : null,
       sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'default',
-      apiSpecTabs: this._normalizeCollectionPathList(workspace.apiSpecTabs),
+      apiSpecTabs: this._normalizePathList(workspace.apiSpecTabs),
       activeApiSpecTabPathname: typeof workspace.activeApiSpecTabPathname === 'string'
         ? workspace.activeApiSpecTabPathname
         : null,
@@ -532,17 +532,17 @@ class SnapshotManager {
     };
   }
 
-  _normalizeCollectionPathList(collectionPaths) {
-    if (!Array.isArray(collectionPaths)) {
+  _normalizePathList(paths) {
+    if (!Array.isArray(paths)) {
       return [];
     }
 
     const dedupedPaths = new Map();
 
-    collectionPaths.forEach((collectionPath) => {
-      const rawPath = typeof collectionPath === 'string'
-        ? collectionPath
-        : (isObject(collectionPath) && typeof collectionPath.path === 'string' ? collectionPath.path : null);
+    paths.forEach((entry) => {
+      const rawPath = typeof entry === 'string'
+        ? entry
+        : (isObject(entry) && typeof entry.path === 'string' ? entry.path : null);
 
       if (!rawPath) {
         return;
