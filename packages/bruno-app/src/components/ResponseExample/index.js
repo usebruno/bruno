@@ -30,6 +30,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   // JSON examples (default content '{}') or on saved examples with a legitimately empty body.
   const [editMode, setEditMode] = useState(!!openInEditMode);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
+  const [isTryPending, setIsTryPending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
 
@@ -130,14 +131,20 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (exampleToTry) => {
+  const handleTryExample = async () => {
     // a preview example tab would otherwise be replaced by the new transient request tab
     dispatch(makeTabPermanent({ uid: example.uid }));
-    dispatch(tryResponseExample({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      exampleUid: exampleToTry?.uid || example.uid
-    })).catch((err) => toast.error(err?.message || 'Failed to try the example'));
+    setIsTryPending(true);
+    try {
+      await dispatch(tryResponseExample({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        exampleUid: example.uid
+      }));
+    } catch (err) {
+      setIsTryPending(false);
+      toast.error(err?.message || 'Failed to try the example');
+    }
   };
 
   // Update width when screen width or sidebar width changes
@@ -184,6 +191,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
           onCancel={handleCancel}
           onGenerateCode={handleGenerateCode}
           onTryExample={handleTryExample}
+          isTryPending={isTryPending}
         />
         <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
           <section className="request-pane" data-testid="request-pane">

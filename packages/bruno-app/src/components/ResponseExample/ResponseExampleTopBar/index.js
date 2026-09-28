@@ -18,7 +18,8 @@ const ResponseExampleTopBar = ({
   onSave,
   onCancel,
   onGenerateCode,
-  onTryExample
+  onTryExample,
+  isTryPending
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -203,7 +204,8 @@ const ResponseExampleTopBar = ({
               variant="filled"
               size="sm"
               icon={<IconPlayerPlay size={16} />}
-              onClick={() => onTryExample?.(example)}
+              onClick={onTryExample}
+              loading={isTryPending}
               title="Open this example as a new request and send it"
               data-testid="response-example-try-btn"
             >
