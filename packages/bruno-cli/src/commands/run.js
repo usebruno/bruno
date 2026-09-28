@@ -756,6 +756,34 @@ const handler = async function (argv) {
       };
     };
 
+    /**
+     * Halt raised by the run (--bail on a failure, or a script calling bru.runner.stopExecution()).
+     *
+     * @property {string|null} haltedBy - what halted the run: 'bail' | 'stopExecution'
+     * @property {string|null} haltedAtRequest - request that halted it, e.g. 'Get Users'
+     * @property {string|null} haltedReason - e.g. 'test failure' | 'assertion failure' | 'stopExecution'
+     * @property {number|null} remainingRequests - requests that never ran, e.g. 2
+     */
+    const haltState = {
+      haltedBy: null,
+      haltedAtRequest: null,
+      haltedReason: null,
+      remainingRequests: null
+    };
+
+    // Aborted by haltRun; cancels any in-flight request that received its signal.
+    const runAbortController = new AbortController();
+
+    const runAbortSignal = runAbortController.signal;
+
+    const haltRun = (reason, details = {}) => {
+      if (haltState.haltedBy) {
+        return;
+      }
+      Object.assign(haltState, { haltedBy: reason, ...details });
+      runAbortController.abort(reason);
+    };
+
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -777,7 +805,8 @@ const handler = async function (argv) {
             collection,
             runSingleRequestByPathname,
             globalEnvVars,
-            persistPaths
+            persistPaths,
+            runAbortSignal
           );
           resolve(res?.response);
         }
@@ -804,7 +833,8 @@ const handler = async function (argv) {
         collection,
         runSingleRequestByPathname,
         globalEnvVars,
-        persistPaths
+        persistPaths,
+        runAbortSignal
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
@@ -858,6 +888,8 @@ const handler = async function (argv) {
             results.push(createSkippedResult(request, 'bail'));
           }
 
+          haltRun('bail', { haltedAtRequest: name, haltedReason: bailReason, remainingRequests: remainingItems.length });
+
           console.log(
             '\n' + chalk.hex(constants.COLORS.ORANGE)(
               `Bail: Stopping run, ${bailReason} in "${name}". Remaining ${remainingItems.length} request(s) skipped.`
@@ -872,9 +904,17 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
 
       if (result?.shouldStopRunnerExecution) {
-        for (const request of requestItems.slice(currentRequestIndex + 1)) {
+        const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+        for (const request of remainingItems) {
           results.push(createSkippedResult(request, 'stopExecution'));
         }
+
+        haltRun('stopExecution', {
+          haltedAtRequest: name,
+          haltedReason: 'stopExecution',
+          remainingRequests: remainingItems.length
+        });
         break;
       }
 
