@@ -20,43 +20,37 @@ class ControllableResizeObserver {
 }
 
 const LEVELS = ['compact', 'tiny'];
+const MEASURING_CLASS = 'measuring-overflow';
+const DEFAULT_REQUIRED_WIDTH = { '': 400, 'compact': 250, 'compact tiny': 180 };
 
 // jsdom has no layout, so the test supplies one: how wide the toolbar wants to be at each
-// level, plus 100px for every action beyond the first and every character of the count
-// beyond the first. Calibration is the only moment offsetWidth should report a requirement
-// rather than the room available, and it is recognised by the class the hook applies for
-// exactly that window — jsdom's cssstyle rejects `max-content`, so style.width cannot be
-// the tell.
-const REQUIRED_WIDTH = { '': 400, 'compact': 250, 'compact tiny': 180 };
-const ACTION_WIDTH = 100;
-const CHAR_WIDTH = 100;
-
+// level, and the room available otherwise. Calibration is the only moment offsetWidth should
+// report a requirement, and it is recognised by the class the hook applies for exactly that
+// window — jsdom's cssstyle rejects `max-content`, so style.width cannot be the tell.
 const originalResizeObserver = global.ResizeObserver;
 let availableWidth = 1000;
-let calibrations = 0;
-let classWrites = 0;
+let requiredWidth = DEFAULT_REQUIRED_WIDTH;
+let measurements = 0;
+
+// Frames queue until the test flushes them, so coalescing and cancellation are observable.
+let nextFrameId = 1;
+const pending = new Map();
 
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
     configurable: true,
     get() {
-      if (!this.classList.contains('measuring-overflow')) return availableWidth;
-      const applied = LEVELS.filter((level) => this.classList.contains(level)).join(' ');
-      const actions = this.querySelectorAll('button').length;
-      const count = this.querySelector('[data-count]')?.textContent ?? '';
-      return (
-        REQUIRED_WIDTH[applied]
-        + (actions - 1) * ACTION_WIDTH
-        + Math.max(count.length - 1, 0) * CHAR_WIDTH
-      );
+      if (!this.classList.contains(MEASURING_CLASS)) return availableWidth;
+      measurements += 1;
+      return requiredWidth[LEVELS.filter((level) => this.classList.contains(level)).join(' ')];
     }
   });
-  // Run rAF callbacks immediately so a resize lands within the act() that fired it.
   global.requestAnimationFrame = (cb) => {
-    cb();
-    return 1;
+    const id = nextFrameId++;
+    pending.set(id, cb);
+    return id;
   };
-  global.cancelAnimationFrame = () => {};
+  global.cancelAnimationFrame = (id) => pending.delete(id);
 });
 
 afterAll(() => {
@@ -68,16 +62,32 @@ beforeEach(() => {
   observers = [];
   disconnectCount = 0;
   availableWidth = 1000;
-  calibrations = 0;
-  classWrites = 0;
+  requiredWidth = DEFAULT_REQUIRED_WIDTH;
+  measurements = 0;
+  pending.clear();
   global.ResizeObserver = ControllableResizeObserver;
 });
 
-const resizeTo = (width) => {
+const requires = (widths) => {
+  requiredWidth = widths;
+};
+
+const flushFrames = () => act(() => {
+  const due = [...pending.values()];
+  pending.clear();
+  due.forEach((cb) => cb());
+});
+
+const fireResize = (width) => {
   availableWidth = width;
   act(() => {
     observers.forEach((observer) => observer.callback());
   });
+};
+
+const resizeTo = (width) => {
+  fireResize(width);
+  flushFrames();
 };
 
 const setup = ({ actions = 1, count = null } = {}) => {
@@ -106,25 +116,18 @@ const setup = ({ actions = 1, count = null } = {}) => {
   const utils = render(<Probe />);
   const toolbar = utils.getByTestId('toolbar');
 
-  // Count real class mutations: repainting the same answer is what makes buttons wobble.
-  // A calibration is recognisable by the class it adds for the length of the pass.
-  new MutationObserver((records) => {
-    classWrites += 1;
-    if (records.some((r) => r.oldValue?.includes('measuring-overflow'))) calibrations += 1;
-  }).observe(toolbar, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
-
   return {
     toolbar,
     applied: () => LEVELS.filter((level) => toolbar.classList.contains(level)).join(' '),
     renderCount: () => renderCount,
-    classWrites: () => classWrites,
-    calibrations: () => calibrations,
     forceRender: (n) => act(() => forceRender(n)),
     setActions: async (n) => {
       await act(async () => setActions(n));
+      flushFrames();
     },
     setCount: async (label) => {
       await act(async () => setCount(label));
+      flushFrames();
     },
     ...utils
   };
@@ -174,63 +177,93 @@ describe('useOverflowCollapse', () => {
   });
 
   it('re-measures when a child arrives, without being told to', async () => {
-    const { applied, setActions } = setup({ actions: 1 });
+    const { applied, setActions } = setup();
     expect(applied()).toBe('');
 
-    await setActions(9);
+    requires({ '': 1200, 'compact': 1050, 'compact tiny': 980 }); // available is 1000
+    await setActions(2);
 
     expect(applied()).toBe('compact tiny');
   });
 
   it('re-measures when a child leaves', async () => {
-    const { applied, setActions } = setup({ actions: 9 });
+    requires({ '': 1200, 'compact': 1050, 'compact tiny': 980 }); // available is 1000
+    const { applied, setActions } = setup({ actions: 2 });
     expect(applied()).toBe('compact tiny');
 
+    requires(DEFAULT_REQUIRED_WIDTH);
     await setActions(1);
 
     expect(applied()).toBe('');
   });
 
   it('re-measures when a child rewrites its text in place', async () => {
-    const { applied, setCount } = setup({ actions: 1, count: '0' });
+    const { applied, setCount } = setup({ count: '0' });
     expect(applied()).toBe('');
 
+    requires({ '': 1100, 'compact': 950, 'compact tiny': 900 }); // available is 1000
     await setCount('12345678');
 
     expect(applied()).toBe('compact');
   });
 
   it('skips re-measuring when a text rewrite keeps its length', async () => {
-    const { calibrations, setCount } = setup({ actions: 1, count: '10' });
-    const afterMount = calibrations();
+    const { setCount } = setup({ count: '10' });
+    const afterMount = measurements;
 
     await setCount('11');
 
-    expect(calibrations()).toBe(afterMount);
+    expect(measurements).toBe(afterMount);
   });
 
   it('never re-measures to resize', () => {
-    const { calibrations } = setup();
-    const afterMount = calibrations();
+    setup();
+    const afterMount = measurements;
 
     resizeTo(300);
     resizeTo(100);
     resizeTo(1000);
 
-    expect(calibrations()).toBe(afterMount);
+    expect(measurements).toBe(afterMount);
   });
 
   it('does not touch the class list while the answer stays put', () => {
-    const { applied, classWrites } = setup();
+    const { applied, toolbar } = setup();
     resizeTo(300);
-    const writesAfterCollapse = classWrites();
+
+    // takeRecords() reads the queue synchronously: one record per class write.
+    const classWrites = new MutationObserver(() => {});
+    classWrites.observe(toolbar, { attributes: true, attributeFilter: ['class'] });
 
     resizeTo(290);
     resizeTo(280);
     resizeTo(260);
 
     expect(applied()).toBe('compact');
-    expect(classWrites()).toBe(writesAfterCollapse);
+    expect(classWrites.takeRecords()).toHaveLength(0);
+    classWrites.disconnect();
+  });
+
+  it('coalesces a burst of resizes into one frame', () => {
+    const { applied } = setup();
+
+    fireResize(350);
+    fireResize(320);
+    fireResize(300);
+    expect(pending.size).toBe(1);
+
+    flushFrames();
+    expect(applied()).toBe('compact');
+  });
+
+  it('cancels a pending frame when the container detaches', () => {
+    const { unmount } = setup();
+
+    fireResize(300);
+    expect(pending.size).toBe(1);
+
+    unmount();
+    expect(pending.size).toBe(0);
   });
 
   it('keeps the last answer while the container measures zero', () => {
@@ -246,7 +279,7 @@ describe('useOverflowCollapse', () => {
   it('leaves no trace of a calibration behind', () => {
     const { toolbar } = setup();
 
-    expect(toolbar.classList.contains('measuring-overflow')).toBe(false);
+    expect(toolbar.classList.contains(MEASURING_CLASS)).toBe(false);
     expect(toolbar.style.width).toBe('');
   });
 
