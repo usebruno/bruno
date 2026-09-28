@@ -872,6 +872,9 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
 
       if (result?.shouldStopRunnerExecution) {
+        for (const request of requestItems.slice(currentRequestIndex + 1)) {
+          results.push(createSkippedResult(request, 'stopExecution'));
+        }
         break;
       }
 
