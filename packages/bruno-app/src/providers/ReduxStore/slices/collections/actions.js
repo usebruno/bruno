@@ -1398,9 +1398,9 @@ const parseParamsFromUrl = (requestUrl) => {
   });
 
   const pathParams = parsePathParams(requestUrl);
-  each(pathParams, (pathParm) => {
-    pathParm.enabled = true;
-    pathParm.type = 'path';
+  each(pathParams, (pathParam) => {
+    pathParam.enabled = true;
+    pathParam.type = 'path';
   });
 
   return [...queryParams, ...pathParams];
