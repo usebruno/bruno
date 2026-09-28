@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL, fileURLToPath } = require('url');
 const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
@@ -11,6 +12,9 @@ const command = 'import <type>';
 const desc = 'Import a collection from other formats';
 
 const COLLECTION_FORMATS = ['bru', 'opencollection'];
+
+const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
+const WSDL_SCHEMA_EXTENSIONS = ['.xsd', '.wsdl'];
 
 const builder = (yargs) => {
   yargs
@@ -206,6 +210,30 @@ const readWSDLFile = async (source, options = {}) => {
   }
 };
 
+const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
+  const base = path.isAbsolute(baseUri) ? pathToFileURL(baseUri) : new URL(baseUri);
+  const target = new URL(ref, base);
+
+  if (target.protocol !== 'file:' || target.host !== base.host) {
+    throw new Error(`Remote schema references are not supported (${ref})`);
+  }
+
+  const targetPath = fileURLToPath(target);
+  if (!WSDL_SCHEMA_EXTENSIONS.includes(path.extname(targetPath).toLowerCase())) {
+    throw new Error(`Schema references must point at a ${WSDL_SCHEMA_EXTENSIONS.join('/')} file (${ref})`);
+  }
+
+  const stats = fs.statSync(targetPath);
+  if (!stats.isFile()) {
+    throw new Error(`Schema reference is not a file: ${targetPath}`);
+  }
+  if (stats.size > WSDL_MAX_SCHEMA_FILE_SIZE) {
+    throw new Error(`Schema file exceeds the ${WSDL_MAX_SCHEMA_FILE_SIZE / (1024 * 1024)}MB limit: ${targetPath}`);
+  }
+
+  return { text: fs.readFileSync(targetPath, 'utf8'), uri: target.href };
+};
+
 const handler = async (argv) => {
   try {
     const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy } = argv;
@@ -254,7 +282,10 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting WSDL to Bruno format...'));
 
       // Convert WSDL to Bruno format
-      brunoCollection = await wsdlToBruno(wsdlContent);
+      const wsdlImportOptions = isUrl(source)
+        ? {}
+        : { uri: path.resolve(source), resolve: resolveLocalWsdlSchemaRef };
+      brunoCollection = await wsdlToBruno(wsdlContent, wsdlImportOptions);
     }
 
     // Override collection name if provided

@@ -1,17 +1,32 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+
+jest.mock('electron', () => ({
+  app: { getVersion: () => '0.0.0-test' }
+}));
+
+jest.mock('../../ipc/sqlite', () => ({
+  getStatements: jest.fn(),
+  getDatabase: jest.fn()
+}));
+
+const { createDatabase } = require('@usebruno/sqlite');
+const { getStatements, getDatabase } = require('../../ipc/sqlite');
 const { FileIndex } = require('./file-index');
 
 describe('FileIndex denylist', () => {
   let collectionPath;
-  let dbPath;
   let index;
+  let db;
 
   beforeEach(() => {
     collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-file-index-'));
-    dbPath = path.join(collectionPath, 'index.db');
-    index = new FileIndex({ dbPath });
+    const opened = createDatabase(':memory:');
+    db = opened.db;
+    getStatements.mockReturnValue(opened.statements);
+    getDatabase.mockReturnValue(opened.db);
+    index = new FileIndex();
 
     fs.mkdirSync(path.join(collectionPath, 'hidden'));
     fs.writeFileSync(path.join(collectionPath, 'hidden', 'request.bru'), 'hidden');
@@ -21,7 +36,7 @@ describe('FileIndex denylist', () => {
   });
 
   afterEach(() => {
-    index.close();
+    db.close();
     fs.rmSync(collectionPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 

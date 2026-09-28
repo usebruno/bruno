@@ -80,14 +80,6 @@ const getDefaultHeaderValue = (header, requestUrl) => {
     return getBrunoRuntimeUserAgent(appVersion);
   }
 
-  if (header.name === 'Host') {
-    try {
-      return new URL(requestUrl).host || header.previewValue;
-    } catch {
-      return header.previewValue;
-    }
-  }
-
   return header.previewValue || '';
 };
 
@@ -402,7 +394,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         id={`default-header-info-hint-${row.uid}`}
         text={row.omittable
           ? 'Automatically added at runtime'
-          : 'Required by HTTP, cannot be omitted'}
+          : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
         className="default-header-info"
         testId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
@@ -452,16 +444,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Name',
       width: '20%',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return (
             <div className="header-name-cell">
               {renderInheritedValue(value)}
             </div>
           );
-        }
-
-        if (row.rowType === ROW_TYPE.DEFAULT) {
-          return <span className="default-header-value">{value}</span>;
         }
 
         return (
@@ -484,25 +472,23 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       name: 'Value',
       placeholder: 'Value',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return renderInheritedValue(value);
         }
 
-        return row.rowType === ROW_TYPE.DEFAULT
-          ? <span className="default-header-value">{value}</span>
-          : (
-              <SingleLineEditor
-                value={value || ''}
-                theme={storedTheme}
-                onSave={onSave}
-                onChange={onChange}
-                onRun={handleRun}
-                autocomplete={MimeTypes}
-                collection={collection}
-                item={item}
-                placeholder={!value ? 'Value' : ''}
-              />
-            );
+        return (
+          <SingleLineEditor
+            value={value || ''}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={onChange}
+            onRun={handleRun}
+            autocomplete={MimeTypes}
+            collection={collection}
+            item={item}
+            placeholder={!value ? 'Value' : ''}
+          />
+        );
       }
     },
     {

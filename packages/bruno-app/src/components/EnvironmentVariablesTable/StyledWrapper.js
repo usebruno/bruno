@@ -1,5 +1,8 @@
 import styled from 'styled-components';
 
+export const CHECKBOX_COLUMN_WIDTH = 25;
+export const ACTIONS_COLUMN_WIDTH = 40;
+
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -7,7 +10,6 @@ const Wrapper = styled.div`
   overflow: hidden;
 
   &.is-resizing {
-    cursor: col-resize !important;
     user-select: none;
   }
 
@@ -33,20 +35,12 @@ const Wrapper = styled.div`
       padding: 2px 10px;
 
       &:nth-child(1) {
-        width: 25px;
+        width: ${CHECKBOX_COLUMN_WIDTH}px;
         border-right: none;
       }
 
-      &:nth-child(4) {
-        width: 80px;
-      }
-      
       &:nth-child(5) {
-        width: 10%;
-      }
-      
-      &:nth-child(6) {
-        width: 5%;
+        width: ${ACTIONS_COLUMN_WIDTH}px;
       }
     }
 
@@ -74,7 +68,7 @@ const Wrapper = styled.div`
           position: absolute;
           right: 0;
           top: 0;
-          width: 4px;
+          width: 3px;
           cursor: col-resize;
           background: transparent;
           z-index: 100;

@@ -15,12 +15,13 @@ it before non-trivial cross-package or architectural work.
 ## Dependency direction & ownership boundaries
 
 - **Leaf libs — zero internal `@usebruno/*` deps:** bruno-common, bruno-lang, bruno-query,
-  bruno-requests, bruno-graphql-docs, bruno-schema, bruno-schema-types, bruno-toml.
+  bruno-requests, bruno-graphql-docs, bruno-schema, bruno-schema-types, bruno-toml, bruno-sqlite
+  (a leaf, but *not* platform-neutral — see guardrail 6).
 - **Mid consumers:** bruno-js → (common, query); bruno-converters → (common, schema; schema-types
   as devDep); bruno-filestore → (common, lang; schema-types as devDep).
 - **Top consumers (things flow *into* them, never out):** bruno-cli → (common, converters,
   filestore, js, lang, requests); bruno-electron → (common, converters, filestore, js, lang,
-  requests, schema); bruno-app → (common, converters, graphql-docs, schema).
+  requests, schema, sqlite); bruno-app → (common, converters, graphql-docs, schema, sqlite).
 
 Guardrails this enforces:
 
@@ -39,6 +40,10 @@ Guardrails this enforces:
 5. **bruno-schema (Yup) and bruno-schema-types (TS types) are distinct and both live.** app +
    converters use `@usebruno/schema` for runtime validation; filestore + converters use
    `@usebruno/schema-types` for compile-time types. A data-model change usually touches both.
+6. **bruno-sqlite has two entry points and they must not cross.** `@usebruno/sqlite` (= `/node`) is
+   main-process only (`node:sqlite`, `node:fs`, `node:crypto`); `@usebruno/sqlite/web` is renderer
+   only (react + @tanstack/react-query peers). Importing either from the other side breaks the
+   bundle. See `.claude/rules/sqlite.md`.
 
 ## Declared dependencies must match real imports
 
