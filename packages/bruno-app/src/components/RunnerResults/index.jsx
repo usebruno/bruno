@@ -79,6 +79,9 @@ export default function RunnerResults({ collection }) {
   const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
+  // Auto-scroll until the user scrolls up
+  const shouldAutoScrollRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
 
   const clearStoredRunnerExchanges = useClearStoredRunnerExchanges(collection.uid);
 
@@ -127,18 +130,16 @@ export default function RunnerResults({ collection }) {
     return activeFilterConfig.resultFilter(results);
   };
 
-  const autoScrollRunnerBody = () => {
-    if (runnerBodyRef?.current) {
-      const element = runnerBodyRef.current;
-      const scrollThreshold = 100; // pixels from bottom to consider "at bottom"
-      const isNearBottom
-        = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+  const handleRunnerBodyScroll = () => {
+    const { scrollTop, scrollHeight, clientHeight } = runnerBodyRef.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= 15;
+    const isScrollingUp = scrollTop < lastScrollTopRef.current;
+    lastScrollTopRef.current = scrollTop;
 
-      // Only auto-scroll if user is already near the bottom
-      if (isNearBottom) {
-        // mimics the native terminal scroll style
-        element.scrollTo(0, 100000);
-      }
+    if (isAtBottom) {
+      shouldAutoScrollRef.current = true;
+    } else if (isScrollingUp) {
+      shouldAutoScrollRef.current = false;
     }
   };
 
@@ -146,14 +147,14 @@ export default function RunnerResults({ collection }) {
     if (!collection.runnerResult) {
       setSelectedItem(null);
     }
-    autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
 
   useEffect(() => {
-    // Auto-scroll when items are added or updated during execution
-    // Only scrolls if user is already at/near the bottom
-    if (filteredItems.length > 0) {
-      autoScrollRunnerBody();
+    const container = runnerBodyRef.current;
+    if (!container) return;
+
+    if (shouldAutoScrollRef.current) {
+      container.scrollTop = container.scrollHeight;
     }
   }, [filteredItems]);
 
@@ -185,6 +186,7 @@ export default function RunnerResults({ collection }) {
   };
 
   const runCollection = async () => {
+    shouldAutoScrollRef.current = true;
     const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
     dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
     await clearStoredRunnerExchanges();
@@ -193,6 +195,7 @@ export default function RunnerResults({ collection }) {
 
   const runAgain = async () => {
     ensureCollectionIsMounted();
+    shouldAutoScrollRef.current = true;
     isReRunningRef.current = true;
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
@@ -397,7 +400,7 @@ export default function RunnerResults({ collection }) {
             : null}
 
           {/* Items list */}
-          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef}>
+          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef} onScroll={handleRunnerBodyScroll}>
             {filteredItems.map((item) => {
               return (
                 <div key={item.uid}>
