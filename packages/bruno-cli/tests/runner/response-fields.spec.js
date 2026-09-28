@@ -1,4 +1,5 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
+const path = require('node:path');
 
 // Mock all heavy dependencies before requiring the module
 jest.mock('../../src/runner/prepare-request', () => jest.fn());
@@ -249,6 +250,7 @@ describe('runSingleRequest: variable value recorder (issue #9370)', () => {
     });
     makeAxiosInstance.mockReturnValue(mockAxios);
 
+    const collectionPath = path.resolve('test-collection');
     const scriptError = new Error('actual-secret');
     scriptError.partialResults = {
       envVariables: { AffPass: 'actual-secret' },
@@ -260,6 +262,7 @@ describe('runSingleRequest: variable value recorder (issue #9370)', () => {
 
     const item = {
       ...baseItem,
+      pathname: path.join(collectionPath, 'request.bru'),
       request: {
         ...baseItem.request,
         script: { res: 'bru.setEnvVar("AffPass", "actual-secret"); throw new Error("actual-secret");' },
@@ -272,14 +275,14 @@ describe('runSingleRequest: variable value recorder (issue #9370)', () => {
     const envVariables = {};
     const args = [
       item, // item
-      '/test-collection', // collectionPath
+      collectionPath, // collectionPath
       {}, // runtimeVariables
       envVariables, // envVariables
       {}, // processEnvVars
       {}, // brunoConfig
       {}, // collectionRoot
       'vm2', // runtime
-      { items: [], pathname: '/test-collection' }, // collection
+      { items: [], pathname: collectionPath }, // collection
       jest.fn(), // runSingleRequestByPathname
       {}, // globalEnvVars
       {}, // persistPaths
