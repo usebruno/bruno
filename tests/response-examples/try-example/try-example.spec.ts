@@ -20,7 +20,6 @@ const API_TOKEN = 'secret-token-123';
 
 test.describe('Try Response Example', () => {
   test('should open the example as a focused transient request, send it and interpolate variables', async ({ pageWithUserData: page }) => {
-    test.setTimeout(60000);
     const locators = buildCommonLocators(page);
 
     await test.step('Give the secret a value and select the environment', async () => {
