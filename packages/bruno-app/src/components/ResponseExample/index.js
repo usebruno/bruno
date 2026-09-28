@@ -144,6 +144,8 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     } catch (err) {
       setIsTryPending(false);
       toast.error(err?.message || 'Failed to try the example');
+    } finally {
+      setIsTryPending(false);
     }
   };
 
