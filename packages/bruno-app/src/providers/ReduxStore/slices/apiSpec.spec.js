@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import apiSpecReducer, {
   clearApiSpecDraft,
   closeApiSpecFile,
+  openApiSpec,
   openApiSpecTab,
   saveApiSpecTabDraft,
   updateApiSpecDraft
@@ -420,5 +421,65 @@ describe('opening an API spec from the sidebar', () => {
 
     expect(store.getState().tabs.tabs).toHaveLength(0);
     expect(toast.error).toHaveBeenCalled();
+  });
+});
+
+describe('opening an API spec from the file dialog', () => {
+  const WORKSPACE_UID = 'workspace-a';
+
+  const buildWorkspaceStore = () =>
+    configureStore({
+      reducer: { tabs: tabsReducer, apiSpec: apiSpecReducer, workspaces: (state = {}) => state },
+      preloadedState: {
+        workspaces: {
+          activeWorkspaceUid: WORKSPACE_UID,
+          workspaces: [{ uid: WORKSPACE_UID, pathname: '/workspace', scratchCollectionUid: SCRATCH_UID }]
+        },
+        tabs: { tabs: [], activeTabUid: null, recentlyClosedTabs: [] },
+        apiSpec: { apiSpecs: [] }
+      }
+    });
+
+  beforeEach(() => {
+    toast.error.mockClear();
+  });
+
+  it('opens the picked spec as a tab, so the user does not have to find it in the sidebar', async () => {
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(SPEC_PATHNAME) };
+    const store = buildWorkspaceStore();
+
+    await store.dispatch(openApiSpec());
+
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:open-api-spec', '/workspace');
+    expect(store.getState().tabs.tabs).toHaveLength(1);
+    expect(store.getState().tabs.tabs[0].apiSpecPathname).toBe(SPEC_PATHNAME);
+    expect(store.getState().tabs.tabs[0].tabName).toBe('petstore.yaml');
+    expect(store.getState().tabs.activeTabUid).toBe(getApiSpecTabUid(SCRATCH_UID, SPEC_PATHNAME));
+  });
+
+  it('opens no tab when the user closed the dialog without picking a file', async () => {
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(null) };
+    const store = buildWorkspaceStore();
+
+    await store.dispatch(openApiSpec());
+
+    expect(store.getState().tabs.tabs).toHaveLength(0);
+  });
+
+  it('opens no tab when the file was rejected, because the main process reported nothing opened', async () => {
+    window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+    const store = buildWorkspaceStore();
+
+    await store.dispatch(openApiSpec());
+
+    expect(store.getState().tabs.tabs).toHaveLength(0);
+  });
+
+  it('surfaces a failure from the dialog to the caller', async () => {
+    window.ipcRenderer = { invoke: jest.fn().mockRejectedValue(new Error('EACCES: permission denied')) };
+    const store = buildWorkspaceStore();
+
+    await expect(store.dispatch(openApiSpec())).rejects.toThrow('EACCES: permission denied');
+    expect(store.getState().tabs.tabs).toHaveLength(0);
   });
 });

@@ -9,7 +9,7 @@ import {
   hasUnsavedApiSpecChanges,
   isApiSpecTabForPathname
 } from 'utils/api-specs';
-import { normalizePath } from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 
 const initialState = {
   apiSpecs: []
@@ -152,18 +152,22 @@ const closeApiSpecTabs = (collectionUid, pathname) => (dispatch, getState) => {
   }
 };
 
-export const openApiSpec = (workspacePath = null) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
+export const openApiSpec = (workspacePath = null) => async (dispatch, getState) => {
+  const { ipcRenderer } = window;
 
-    if (!workspacePath) {
-      const state = getState();
-      const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-      workspacePath = activeWorkspace?.pathname || null;
-    }
+  if (!workspacePath) {
+    const state = getState();
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    workspacePath = activeWorkspace?.pathname || null;
+  }
 
-    ipcRenderer.invoke('renderer:open-api-spec', workspacePath).then(resolve).catch(reject);
-  });
+  const pathname = await ipcRenderer.invoke('renderer:open-api-spec', workspacePath);
+
+  if (pathname) {
+    await dispatch(openApiSpecTab({ pathname, filename: path.basename(pathname) }));
+  }
+
+  return pathname;
 };
 
 export const saveApiSpecToFile

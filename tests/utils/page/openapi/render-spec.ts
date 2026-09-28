@@ -51,6 +51,33 @@ export const openApiSpecFromDialog = async (
   });
 };
 
+export const createApiSpec = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  name: string,
+  location: string
+): Promise<void> => {
+  await test.step(`Create API spec "${name}" in ${location}`, async () => {
+    await electronApp.evaluate(({ dialog }, location) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [location] });
+    }, location);
+
+    const { addMenuButton } = buildApiSpecPanelLocators(page);
+    await addMenuButton().click();
+    await page.getByTestId('api-specs-header-add-menu-create-api-spec').click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Create API Spec' });
+    await expect(modal).toBeVisible();
+
+    await modal.locator('#api-spec-name').fill(name);
+    await modal.locator('#api-spec-location').click();
+    await expect(modal.locator('#api-spec-location')).toHaveValue(location);
+
+    await modal.getByTestId('modal-submit-btn').click();
+    await expect(modal).toHaveCount(0);
+  });
+};
+
 export const openApiSpecSidebarItem = async (page: Page, name: string): Promise<void> => {
   await test.step(`Open API spec sidebar item "${name}"`, async () => {
     const { sidebarItem } = buildApiSpecPanelLocators(page);

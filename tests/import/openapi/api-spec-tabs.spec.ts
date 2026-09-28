@@ -5,6 +5,7 @@ import { waitForReadyPage, waitForSnapshotApiSpecTabs } from '../../utils/page';
 import {
   openApiSpecFromDialog,
   openApiSpecSidebarItem,
+  createApiSpec,
   buildApiSpecPanelLocators,
   typeIntoApiSpecEditor,
   pressSaveShortcut,
@@ -41,6 +42,48 @@ test.describe('API specs open as workspace tabs', () => {
       dialog.showOpenDialog = (dialog as any).__savedShowOpenDialogForTabs;
       delete (dialog as any).__savedShowOpenDialogForTabs;
     });
+  });
+
+  test('opens the picked spec as a tab straight away, without a trip to the sidebar', async ({
+    page,
+    electronApp
+  }) => {
+    const locators = buildCommonLocators(page);
+    const { sidebarItem } = buildApiSpecPanelLocators(page);
+
+    await openApiSpecFromDialog(page, electronApp, fixture(FIRST_SPEC.file));
+
+    await expect(locators.tabs.requestTab(FIRST_SPEC.file)).toBeVisible();
+    await expect(locators.tabs.activeRequestTab()).toContainText(FIRST_SPEC.file);
+    await expect(sidebarItem(FIRST_SPEC.name)).toHaveClass(/active/);
+  });
+
+  test('opens a newly created spec as a tab straight away', async ({ page, electronApp, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const { sidebarItem, specEditor } = buildApiSpecPanelLocators(page);
+    const specsDir = await createTmpDir('api-spec-create');
+
+    await createApiSpec(page, electronApp, 'created-spec', specsDir);
+
+    await expect(locators.tabs.requestTab('created-spec.yaml')).toBeVisible();
+    await expect(locators.tabs.activeRequestTab()).toContainText('created-spec.yaml');
+    await expect(specEditor()).toHaveCount(1);
+    await expect(sidebarItem('created-spec')).toBeVisible();
+  });
+
+  test('focuses the tab it already opened when the same spec is picked again', async ({
+    page,
+    electronApp
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    await openApiSpecFromDialog(page, electronApp, fixture(FIRST_SPEC.file));
+    await expect(locators.tabs.requestTab(FIRST_SPEC.file)).toHaveCount(1);
+
+    await openApiSpecFromDialog(page, electronApp, fixture(FIRST_SPEC.file));
+
+    await expect(locators.tabs.requestTab(FIRST_SPEC.file)).toHaveCount(1);
+    await expect(locators.tabs.activeRequestTab()).toContainText(FIRST_SPEC.file);
   });
 
   test('opens two specs as two tabs the user can switch between, and closing one keeps the other and the sidebar entry', async ({
