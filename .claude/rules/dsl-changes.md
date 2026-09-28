@@ -156,7 +156,7 @@ Adding a single field tends to span several packages (a `.bru`-centric change la
 - `bruno-schema/src/collections/index.js` — the Yup schema (skip this and it fails on save).
 - `bruno-schema-types/src/collection/item.ts` — the TypeScript type.
 - `bruno-converters` — a **separate field list from `bruno-filestore`**, not the same code path:
-  `src/opencollection/items/{http,graphql,grpc,websocket}.ts` maps the field for the OpenCollection
+  `src/opencollection/items/{http,graphql,grpc,websocket}.ts` maps the field for the OpenCollection schema, might have typescript issues to be consulted with https://github.com/opencollection-dev/opencollection when needed
   export *and* import, and `src/postman/bruno-to-postman.js` for Postman export. A field wired
   through filestore but not here round-trips on disk and is silently lost on export.
 - `bruno-app/src/utils/collections/index.js` — `transformRequestToSaveToFilesystem` and siblings
