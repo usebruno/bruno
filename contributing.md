@@ -15,7 +15,8 @@
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
-| [Dutch](docs/contributing/contributing_nl.md)
+| [Nederlands](docs/contributing/contributing_nl.md)
+| [Slovenčina](docs/contributing/contributing_sk.md)
 | [فارسی](docs/contributing/contributing_fa.md)
 
 ## Let's make Bruno better, together!!
@@ -39,7 +40,31 @@ Libraries we use
 - i18n - i18next
 
 > [!IMPORTANT]
-> You would need [Node v22.x or the latest LTS version](https://nodejs.org/en/). We use npm workspaces in the project
+> You would need [Node v22.x or the latest LTS version](https://nodejs.org/en/) (the exact version is pinned in `.nvmrc`). We use npm workspaces in the project
+
+### Project Structure
+
+All packages live under `packages/`:
+
+| Package | Description |
+| --- | --- |
+| `bruno-app` | React frontend (renderer) |
+| `bruno-electron` | Electron desktop app (main process) |
+| `bruno-cli` | Command line interface to run collections |
+| `bruno-common` | Shared utilities |
+| `bruno-requests` | Request handling (auth, network, etc.) |
+| `bruno-converters` | Import/export converters (Postman, Insomnia, OpenAPI, etc.) |
+| `bruno-filestore` | File storage and parsing of collection files |
+| `bruno-sqlite` | SQLite storage layer |
+| `bruno-lang` | `.bru` language parser |
+| `bruno-toml` | TOML parser |
+| `bruno-schema` / `bruno-schema-types` | Schema validation and shared types |
+| `bruno-js` | Script, test, vars and assert runtimes |
+| `bruno-query` | Query with deep navigation, filter and map support |
+| `bruno-graphql-docs` | GraphQL documentation explorer |
+| `bruno-tests` | Test collection and server used by CLI tests |
+
+End-to-end (Playwright) tests live in the top-level `tests/` directory.
 
 ## Development
 
@@ -47,46 +72,36 @@ Bruno is a desktop app. Below are the instructions to run Bruno.
 
 > Note: We use React for the frontend and rsbuild for build and dev server.
 
-## Install Dependencies
-
-```bash
-# use nodejs 22 version
-nvm use
-
-# install deps
-npm i --legacy-peer-deps
-```
-
 ### Local Development
 
-#### Build packages
-
-##### Option 1
+#### 1. Setup
 
 ```bash
-# build packages
-npm run build:graphql-docs
-npm run build:bruno-query
-npm run build:bruno-common
-npm run build:bruno-converters
-npm run build:bruno-requests
-npm run build:schema-types
-npm run build:bruno-filestore
+# use the node version from .nvmrc
+nvm use
 
-# bundle js sandbox libraries
-npm run sandbox:bundle-libraries --workspace=packages/bruno-js
-```
-
-##### Option 2
-
-```bash
-# install dependencies and setup
+# install dependencies and build all packages
 npm run setup
 ```
 
-#### Run the app
+`npm run setup` does the following for you:
 
-##### Option 1
+- removes existing `node_modules` directories
+- installs dependencies (`npm i --legacy-peer-deps`) and platform-specific native modules
+- builds the shared packages: `graphql-docs`, `bruno-query`, `bruno-common`, `bruno-converters`, `bruno-requests`, `schema-types`, `bruno-filestore` and `bruno-sqlite`
+- bundles the JS sandbox libraries for `bruno-js`
+
+#### 2. Run the app
+
+```bash
+# run electron and react app concurrently
+npm run dev
+
+# or, with hot-reload of the electron main process
+npm run dev:watch
+```
+
+You can also run them separately:
 
 ```bash
 # run react app (terminal 1)
@@ -96,11 +111,20 @@ npm run dev:web
 npm run dev:electron
 ```
 
-##### Option 2
+#### Rebuilding shared packages
+
+`npm run dev` does **not** rebuild the shared packages. If you change one of them (e.g. `bruno-common`, `bruno-requests`, `bruno-filestore`, `bruno-sqlite`), rebuild it so the app picks up your changes:
 
 ```bash
-# run electron and react app concurrently
-npm run dev
+npm run build:bruno-common
+npm run build:bruno-requests
+npm run build:bruno-filestore
+npm run build:bruno-sqlite
+
+# or run a watcher while developing
+npm run watch:common
+npm run watch:requests
+npm run watch:converters
 ```
 
 #### Customize Electron `userData` path
@@ -131,38 +155,58 @@ find . -type f -name "package-lock.json" -delete
 
 ### Testing
 
+Add tests along with your changes:
+
+- **Unit tests** (Jest) for logic changes — place them in the package you're changing.
+- **End-to-end tests** (Playwright) for user-facing changes in the app — see the [Playwright testing guide](docs/playwright-testing-guide.md).
+
+#### Unit tests
+
 ```bash
-# run bruno-schema tests
-npm run test --workspace=packages/bruno-schema
-
-# run bruno-query tests
-npm run test --workspace=packages/bruno-query
-
-# run bruno-common tests
-npm run test --workspace=packages/bruno-common
-
-# run bruno-converters tests
-npm run test --workspace=packages/bruno-converters
-
-# run bruno-app tests
+# run tests for a single package
 npm run test --workspace=packages/bruno-app
-
-# run bruno-electron tests
 npm run test --workspace=packages/bruno-electron
-
-# run bruno-lang tests
+npm run test --workspace=packages/bruno-cli
+npm run test --workspace=packages/bruno-common
+npm run test --workspace=packages/bruno-requests
+npm run test --workspace=packages/bruno-converters
+npm run test --workspace=packages/bruno-filestore
+npm run test --workspace=packages/bruno-sqlite
+npm run test --workspace=packages/bruno-js
 npm run test --workspace=packages/bruno-lang
-
-# run bruno-toml tests
+npm run test --workspace=packages/bruno-schema
+npm run test --workspace=packages/bruno-query
 npm run test --workspace=packages/bruno-toml
+
+# run a single test file
+npm run test --workspace=packages/bruno-app -- path/to/file.spec.js
 
 # run tests over all workspaces
 npm test --workspaces --if-present
 ```
 
+#### End-to-end tests
+
+```bash
+# run the e2e test suite
+npm run test:e2e
+
+# run a single e2e test file
+npx playwright test tests/collection/create-collection.spec.ts --project=default
+```
+
+### Linting
+
+```bash
+npm run lint:fix
+```
+
+Please also follow our [coding standards](CODING_STANDARDS.md).
+
 ### Raising Pull Requests
 
 - Please keep the PR's small and focused on one thing
+- Add unit and/or e2e tests that cover your change where applicable
 - Please follow the format of creating branches
   - feature/[feature name]: This branch should contain changes for a specific feature
     - Example: feature/dark-mode
