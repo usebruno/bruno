@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import MenuDropdown from 'ui/MenuDropdown';
+import ContextMenu from 'ui/ContextMenu';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
@@ -98,15 +98,6 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
 
   const { Icon: CollapseIcon, label: collapseLabel } = getCollapseDisplay(allCollapsed, 'Selected');
 
-  const anchorStyle = {
-    position: 'fixed',
-    left: `${position?.x || 0}px`,
-    top: `${position?.y || 0}px`,
-    width: '1px',
-    height: '1px',
-    pointerEvents: 'none'
-  };
-
   const menuItems = useMemo(() => {
     if (isPureCollectionSelection) {
       const items = [
@@ -165,17 +156,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     onClose
   ]);
 
-  return (
-    <MenuDropdown
-      items={menuItems}
-      placement="right-start"
-      opened={visible}
-      onChange={(isOpen) => !isOpen && onClose()}
-      appendTo={document.body}
-    >
-      <div style={anchorStyle} />
-    </MenuDropdown>
-  );
+  return <ContextMenu visible={visible} position={position} items={menuItems} onClose={onClose} />;
 };
 
 export default BulkActionsDropdown;
