@@ -40,7 +40,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection,
 
   // Extract relevant data from request and response
   const { method, url = '' } = effectiveRequest;
-  const { statusCode, statusText, duration } = response || {};
+  const { statusCode, duration } = response || {};
 
   // Get event-specific icon and class names
   const getEventIcon = () => {
@@ -194,7 +194,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection,
         return (
           <div className="content-status">
             <div className="flex items-center gap-2">
-              <Status statusCode={statusCode} statusText={statusText} />
+              <Status statusCode={statusCode} />
             </div>
 
             {response.statusDescription && (
@@ -227,7 +227,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection,
             </div>
 
             <div className="flex items-center gap-2">
-              <Status statusCode={statusCode} statusText={statusText} />
+              <Status statusCode={statusCode} />
             </div>
 
             {response.trailers && response.trailers.length > 0 && (
@@ -286,7 +286,7 @@ const GrpcTimelineItem = ({ timestamp, request, response, eventType, collection,
         )}
         {eventType === 'status' && (
           <div className="flex items-center gap-2">
-            <Status statusCode={statusCode} statusText={statusText} />
+            <Status statusCode={statusCode} />
           </div>
         )}
         <pre className="event-timestamp">[{new Date(timestamp).toISOString()}]</pre>

@@ -20,7 +20,7 @@ const selectAuthMode = async (page) => {
   await dropdownItem(page, 'OAuth 1.0').click();
 };
 
-test.describe('OAuth 1.0 Authentication', () => {
+test.describe.serial('OAuth 1.0 Authentication', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

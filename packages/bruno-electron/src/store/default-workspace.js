@@ -353,18 +353,25 @@ class DefaultWorkspaceManager {
         }
         const existingEnvs = new Set(existingEnvNames);
 
-        for (const env of globalEnvironments) {
-          if (!env || !env.name || typeof env.name !== 'string') {
-            continue;
-          }
+        const isMigratable = (env) => env && typeof env.name === 'string' && env.name && !existingEnvs.has(env.name);
 
-          // Skip if environment already exists from recovery
-          if (existingEnvs.has(env.name)) {
+        // `extends` is resolved by name against the workspace.
+        const resolvableEnvironmentNames = new Set([
+          ...existingEnvs,
+          ...globalEnvironments.filter(isMigratable).map((env) => env.name)
+        ]);
+
+        for (const env of globalEnvironments) {
+          if (!isMigratable(env)) {
             continue;
           }
 
           const envFilePath = path.join(environmentsDir, `${env.name}.yml`);
-          const environment = { name: env.name, variables: env.variables || [] };
+          const environment = {
+            name: env.name,
+            variables: env.variables || [],
+            extends: resolvableEnvironmentNames.has(env.extends) ? env.extends : undefined
+          };
           const content = stringifyEnvironment(environment, { format: 'yml' });
           await writeFile(envFilePath, content);
 

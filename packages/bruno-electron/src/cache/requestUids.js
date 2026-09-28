@@ -10,6 +10,7 @@
  * lose the request's draft state if the user has made some changes
  */
 
+const path = require('node:path');
 const requestUids = new Map();
 const exampleUids = new Map();
 const { uuid } = require('../utils/common');
@@ -36,6 +37,29 @@ const moveRequestUid = (oldPathname, newPathname) => {
 
 const deleteRequestUid = (pathname) => {
   requestUids.delete(pathname);
+};
+
+/**
+ * Purges every cached uid (request + example) that lives under a collection's
+ * root path. Called on collection removal so a later re add at the same path
+ * (same deterministic collectionUid) starts from a clean slate instead of
+ * inheriting uids tied to files that may no longer exist or mean something else.
+ */
+const clearRequestUidsForCollection = (collectionPath) => {
+  const root = path.resolve(collectionPath);
+  const prefix = root.endsWith(path.sep) ? root : root + path.sep;
+
+  for (const key of requestUids.keys()) {
+    if (key === root || key.startsWith(prefix)) {
+      requestUids.delete(key);
+    }
+  }
+
+  for (const key of exampleUids.keys()) {
+    if (key === root || key.startsWith(prefix)) {
+      exampleUids.delete(key);
+    }
+  }
 };
 
 const getExampleUid = (pathname, index) => {
@@ -77,5 +101,6 @@ module.exports = {
   moveRequestUid,
   deleteRequestUid,
   getExampleUid,
-  syncExampleUidsCache
+  syncExampleUidsCache,
+  clearRequestUidsForCollection
 };

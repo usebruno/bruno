@@ -1,0 +1,16 @@
+meta {
+  name: scheme
+  type: http
+  seq: 1
+}
+
+get {
+  url: localhost:8081/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}

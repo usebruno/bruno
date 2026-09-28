@@ -1,0 +1,69 @@
+meta {
+  name: context-binding
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+  x-custom: test-value
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("each(fn, context) binds this", function() {
+    var ctx = { keys: [] };
+    req.headerList.each(function(h) {
+      this.keys.push(h.key);
+    }, ctx);
+    expect(ctx.keys).to.include('bruno');
+    expect(ctx.keys).to.include('della');
+  });
+
+  test("filter(fn, context) binds this", function() {
+    var ctx = { target: 'bruno' };
+    var result = req.headerList.filter(function(h) {
+      return h.key === this.target;
+    }, ctx);
+    expect(result.length).to.equal(1);
+    expect(result[0].value).to.equal('is-awesome');
+  });
+
+  test("find(fn, context) binds this", function() {
+    var ctx = { target: 'della' };
+    var result = req.headerList.find(function(h) {
+      return h.key === this.target;
+    }, ctx);
+    expect(result).to.not.be.undefined;
+    expect(result.value).to.equal('is-beautiful');
+  });
+
+  test("map(fn, context) binds this", function() {
+    var ctx = { prefix: 'header-' };
+    var result = req.headerList.map(function(h) {
+      return this.prefix + h.key;
+    }, ctx);
+    expect(result).to.include('header-bruno');
+    expect(result).to.include('header-della');
+  });
+
+  test("reduce(fn, accumulator, context) binds this", function() {
+    var ctx = { sep: ', ' };
+    var result = req.headerList.reduce(function(acc, h) {
+      return acc ? acc + this.sep + h.key : h.key;
+    }, '', ctx);
+    expect(result).to.include('bruno');
+    expect(result).to.include('della');
+  });
+}

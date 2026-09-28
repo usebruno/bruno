@@ -33,7 +33,8 @@ const CreateWorkspace = ({ onClose }) => {
     },
     validationSchema: Yup.object({
       workspaceName: Yup.string()
-        .min(1, 'Must be at least 1 character')
+        .trim()
+        .min(1, 'Workspace name can\'t be empty')
         .max(255, 'Must be 255 characters or less')
         .required('Workspace name is required')
         .test('unique-name', 'A workspace with this name already exists', function (value) {
@@ -58,7 +59,7 @@ const CreateWorkspace = ({ onClose }) => {
       try {
         setIsSubmitting(true);
 
-        await dispatch(createWorkspaceAction(values.workspaceName, values.workspaceFolderName, values.workspaceLocation));
+        await dispatch(createWorkspaceAction(values.workspaceName.trim(), values.workspaceFolderName, values.workspaceLocation));
         toast.success('Workspace created!');
         onClose();
       } catch (error) {
@@ -116,10 +117,17 @@ const CreateWorkspace = ({ onClose }) => {
               autoCapitalize="off"
               spellCheck="false"
               onChange={(e) => {
-                formik.handleChange(e);
+                const workspaceName = e.target.value;
                 if (!isEditing) {
-                  formik.setFieldValue('workspaceFolderName', sanitizeName(e.target.value));
+                  formik.setValues((values) => ({
+                    ...values,
+                    workspaceName,
+                    workspaceFolderName: sanitizeName(workspaceName)
+                  }));
+                  return;
                 }
+
+                formik.handleChange(e);
               }}
               value={formik.values.workspaceName || ''}
             />

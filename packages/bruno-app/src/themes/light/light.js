@@ -45,6 +45,7 @@ export const palette = {
     OVERLAY0: '#C0C0C0'
   },
   border: {
+    BORDER3: '#b3b3b3',
     BORDER2: '#cccccc',
     BORDER1: '#e5e5e5',
     BORDER0: '#efefef'
@@ -166,6 +167,7 @@ const lightTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: palette.border.BORDER3,
     border2: palette.border.BORDER2,
     border1: palette.border.BORDER1,
     border0: palette.border.BORDER0
@@ -249,6 +251,12 @@ const lightTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: palette.primary.TEXT
+    }
+  },
+
   request: {
     methods: {
       get: palette.hues.GREEN,
@@ -295,13 +303,11 @@ const lightTheme = {
   notifications: {
     bg: palette.background.BASE,
     list: {
-      bg: palette.background.SURFACE0,
-      borderRight: 'transparent',
-      borderBottom: palette.border.BORDER2,
+      bg: palette.background.BASE,
+      borderBottom: palette.border.BORDER0,
       hoverBg: palette.background.SURFACE1,
       active: {
-        border: palette.hues.BLUE,
-        bg: palette.background.SURFACE1,
+        bg: palette.background.SURFACE0,
         hoverBg: palette.background.SURFACE2
       }
     }

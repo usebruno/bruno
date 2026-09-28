@@ -5,6 +5,7 @@ export interface FileEntry {
   uid: UID;
   filePath?: string | null;
   contentType?: string | null;
+  description?: string | null;
   selected: boolean;
   annotations?: Annotation[];
 }

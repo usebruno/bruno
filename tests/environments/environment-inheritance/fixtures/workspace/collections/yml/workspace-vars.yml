@@ -1,0 +1,66 @@
+info:
+  name: workspace-vars
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: '{{workspace_host}}/api/echo/everything'
+  body:
+    type: json
+    data: |-
+      {
+        "workspace_base_only": "{{workspace_base_only}}",
+        "workspace_overridden": "{{workspace_overridden}}",
+        "workspace_dev_only": "{{workspace_dev_only}}",
+        "workspace_disabled": "{{workspace_disabled}}",
+        "workspace_shadowed_by_disabled": "{{workspace_shadowed_by_disabled}}",
+        "workspace_number": {{workspace_number}},
+        "workspace_boolean": {{workspace_boolean}},
+        "workspace_object": {{workspace_object}},
+        "workspace_typed_override": "{{workspace_typed_override}}",
+        "workspace_token": "{{workspace_token}}",
+        "workspace_api_key": "{{workspace_api_key}}",
+        "workspace_overridden_plain": "{{workspace_overridden_plain}}",
+        "workspace_overridden_secret": "{{workspace_overridden_secret}}"
+      }
+  auth: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        // The echo endpoint hands the request body back as a raw string.
+        const sent = () => JSON.parse(res.getBody().body);
+
+        test("every kind of row the workspace environment inherits resolves under workspace_dev", function() {
+          expect(sent()).to.eql({
+            workspace_base_only: "from_workspace_base",
+            workspace_overridden: "from_workspace_dev",
+            workspace_dev_only: "workspace_dev_only_value",
+            // Disabled in `workspace_base`, so it is never inherited and stays uninterpolated.
+            workspace_disabled: "{{workspace_disabled}}",
+            // `workspace_dev` declares this one too, but disabled, so the inherited row still applies.
+            workspace_shadowed_by_disabled: "shadowed_from_workspace_base",
+            workspace_api_key: "plain_workspace_api_key",
+            // The body interpolates the typed rows unquoted, so they only parse back as a number,
+            // boolean and object if the data type survived the merge.
+            workspace_number: 7,
+            workspace_boolean: true,
+            workspace_object: { tier: "free" },
+            // An own row replaces the data type it inherited, not just the value.
+            workspace_typed_override: "overridden_in_workspace_dev",
+            // A secret carries no value on disk, so both runners give it one before the request
+            // goes out: the app through its secret store, `bru run` through --global-env-var.
+            workspace_token: "token-from-workspace-base",
+            // `workspace_dev` redeclares the inherited plain `workspace_overridden_plain` as a
+            // secret, and the inherited secret `workspace_overridden_secret` as plain. Both ancestor
+            // rows survive, and in each pair the secret is the one that reaches the request — never
+            // the plain row's `plain_from_workspace_base` or `plain_wins_in_workspace_dev`.
+            workspace_overridden_plain: "secret-from-workspace-dev",
+            workspace_overridden_secret: "secret-from-workspace-base"
+          });
+        });
+
+settings:
+  encodeUrl: true

@@ -37,7 +37,7 @@ test.describe('Multiline Variables - Write Test', () => {
     // Use force:true to bypass Playwright's stability check on the CodeMirror click.
     const variableRow = page.locator('tbody tr').filter({ has: page.locator('input[value="multiline_data_json"]') });
     await expect(variableRow).toBeVisible();
-    const codeMirror = variableRow.locator('.CodeMirror');
+    const codeMirror = variableRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
 
     const jsonValue = `{
   "user": {

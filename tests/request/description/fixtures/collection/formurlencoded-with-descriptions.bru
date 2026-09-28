@@ -1,0 +1,22 @@
+meta {
+  name: formurlencoded-with-descriptions
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://example.com/form
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  @description('''Single-line form desc''')
+  username: alice
+  @description('''
+    Multi-line form desc line one
+    Multi-line form desc line two
+  ''')
+  password: secret
+  plain-field: no-desc
+}

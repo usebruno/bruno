@@ -267,14 +267,16 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           uid: result.item.uid,
           collectionUid: result.collectionUid,
           requestPaneTab: getDefaultRequestPaneTab(result.item),
-          type: 'request'
+          type: result.item.type,
+          pathname: result.item.pathname
         }));
       }
     } else if (result.type === SEARCH_TYPES.FOLDER) {
       dispatch(addTab({
         uid: result.item.uid,
         collectionUid: result.collectionUid,
-        type: 'folder-settings'
+        type: 'folder-settings',
+        pathname: result.item.pathname
       }));
     } else if (result.type === SEARCH_TYPES.COLLECTION) {
       dispatch(addTab({

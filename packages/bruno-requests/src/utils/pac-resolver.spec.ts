@@ -9,6 +9,12 @@ describe('pac-resolver (shared)', () => {
     jest.clearAllMocks();
   });
 
+  const expectedPacOptions = expect.objectContaining({
+    sandbox: expect.objectContaining({
+      myIpAddress: expect.any(Function)
+    })
+  });
+
   /** Mock pac-resolver (v7: { createPacResolver }) and quickjs-emscripten */
   const setupPacMocks = (resolverFn: (...args: any[]) => Promise<any> = async () => 'PROXY p.example:8080; DIRECT') => {
     jest.doMock('quickjs-emscripten', () => ({
@@ -64,8 +70,31 @@ describe('pac-resolver (shared)', () => {
 
     const directives = await wrapper.resolve('http://foo.example/');
     expect(directives).toEqual(['PROXY p.example:8080', 'DIRECT']);
-    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript);
+    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript, expectedPacOptions);
     expect(axiosGet).toHaveBeenCalledWith(pacSource, expect.objectContaining({ proxy: false }));
+  });
+
+  test('overrides PAC myIpAddress helper with a local interface lookup', async () => {
+    const os = require('node:os');
+    const networkInterfacesSpy = jest.spyOn(os, 'networkInterfaces').mockReturnValue({
+      lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      eth0: [{ address: '10.24.0.5', family: 'IPv4', internal: false }]
+    } as any);
+
+    mockAxiosSuccess('script');
+    const { createPacResolverMock } = setupPacMocks(async () => 'DIRECT');
+
+    try {
+      const { getPacResolver } = require('./pac-resolver');
+      await getPacResolver({ pacSource: 'http://example.com/proxy.pac' });
+
+      const options = createPacResolverMock.mock.calls[0][2];
+      expect(options).toEqual(expectedPacOptions);
+      expect(options.sandbox.myIpAddress()).toBe('10.24.0.5');
+      expect(networkInterfacesSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      networkInterfacesSpy.mockRestore();
+    }
   });
 
   test('passes TLS options to https.Agent for HTTPS pac URLs', async () => {
@@ -196,7 +225,7 @@ describe('pac-resolver (shared)', () => {
 
     expect(readFile).toHaveBeenCalledWith(expectedPath, 'utf8');
     expect(axiosGetMock).not.toHaveBeenCalled();
-    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript);
+    expect(createPacResolverMock).toHaveBeenCalledWith(expect.any(Object), pacScript, expectedPacOptions);
 
     const directives = await wrapper.resolve('http://foo.example/');
     expect(directives).toEqual(['PROXY p.example:8080']);
@@ -277,5 +306,39 @@ describe('pac-resolver (shared)', () => {
 
     clearPacCache();
     expect(_CACHE.size).toBe(0);
+  });
+
+  test('clearPacCache forces a re-read of updated PAC file content on next resolve', async () => {
+    const scriptV1 = 'function FindProxyForURL() { return "PROXY a.example:8080"; }';
+    const scriptV2 = 'function FindProxyForURL() { return "PROXY b.example:9090"; }';
+    const readFileMock = jest.fn().mockResolvedValueOnce(scriptV1).mockResolvedValueOnce(scriptV2);
+    jest.doMock('fs/promises', () => ({ readFile: readFileMock }));
+    jest.doMock('url', () => ({ fileURLToPath: jest.fn(() => '/Users/test/proxy.pac') }));
+    // resolver returns directives based on the exact script it was compiled from
+    jest.doMock('pac-resolver', () => ({
+      createPacResolver: jest.fn((_qjs: any, script: string) =>
+        async () => (script === scriptV1 ? 'PROXY a.example:8080' : 'PROXY b.example:9090')
+      )
+    }));
+    jest.doMock('quickjs-emscripten', () => ({ getQuickJS: jest.fn(async () => ({})) }));
+
+    const { getPacResolver, clearPacCache } = require('./pac-resolver');
+    const pacSource = 'file:///Users/test/proxy.pac';
+
+    const w1 = await getPacResolver({ pacSource });
+    expect(await w1.resolve('http://foo.example/')).toEqual(['PROXY a.example:8080']);
+    expect(readFileMock).toHaveBeenCalledTimes(1);
+
+    // Without refresh, the cached (stale) content is reused — the file is NOT re-read.
+    const wCached = await getPacResolver({ pacSource });
+    expect(wCached).toBe(w1);
+    expect(readFileMock).toHaveBeenCalledTimes(1);
+
+    // Refresh clears the cache, so the edited file is re-read and new directives take effect.
+    clearPacCache();
+    const w2 = await getPacResolver({ pacSource });
+    expect(w2).not.toBe(w1);
+    expect(readFileMock).toHaveBeenCalledTimes(2);
+    expect(await w2.resolve('http://foo.example/')).toEqual(['PROXY b.example:9090']);
   });
 });

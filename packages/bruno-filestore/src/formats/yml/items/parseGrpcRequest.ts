@@ -1,6 +1,6 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
@@ -20,6 +20,13 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
       value: ensureString(meta.value),
       enabled: meta.disabled !== true
     };
+
+    if (meta.description) {
+      const desc = typeof meta.description === 'string' ? meta.description : (meta.description as any)?.content || '';
+      if (desc.trim().length) {
+        brunoMeta.description = desc;
+      }
+    }
 
     return brunoMeta;
   });
@@ -44,8 +51,10 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
       grpc: []
     },
     script: {
-      req: null,
-      res: null
+      beforeCallStart: null,
+      beforeMessageSend: null,
+      afterMessageReceive: null,
+      afterCallEnd: null
     },
     vars: {
       req: [],
@@ -57,21 +66,33 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  if (isNonEmptyString(grpc?.message)) {
+  const rawMessage = grpc?.message;
+  if (Array.isArray(rawMessage)) {
+    brunoRequest.body.grpc = (rawMessage as GrpcMessageVariant[]).map(({ title, message }, index) => ({
+      name: title || `message ${index + 1}`,
+      content: ensureString(message)
+    }));
+  } else if (isNonEmptyString(rawMessage)) {
     brunoRequest.body.grpc = [{
       name: '',
-      content: grpc?.message as string
+      content: rawMessage as string
     }];
   }
 
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
   if (scripts?.script && brunoRequest.script) {
-    if (scripts.script.req) {
-      brunoRequest.script.req = scripts.script.req;
+    if (scripts.script.beforeCallStart) {
+      brunoRequest.script.beforeCallStart = scripts.script.beforeCallStart;
     }
-    if (scripts.script.res) {
-      brunoRequest.script.res = scripts.script.res;
+    if (scripts.script.beforeMessageSend) {
+      brunoRequest.script.beforeMessageSend = scripts.script.beforeMessageSend;
+    }
+    if (scripts.script.afterMessageReceive) {
+      brunoRequest.script.afterMessageReceive = scripts.script.afterMessageReceive;
+    }
+    if (scripts.script.afterCallEnd) {
+      brunoRequest.script.afterCallEnd = scripts.script.afterCallEnd;
     }
   }
   if (scripts?.tests) {
@@ -109,6 +130,14 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   return brunoItem;
 };

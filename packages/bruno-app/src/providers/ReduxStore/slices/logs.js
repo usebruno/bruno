@@ -1,5 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+export const TABS = {
+  CONSOLE: 'console',
+  NETWORK: 'network',
+  PERFORMANCE: 'performance',
+  TERMINAL: 'terminal'
+};
+
+export const TAB_IDENFIERS = Object.values(TABS);
+
+const MAX_LOGS = 1000;
+const MAX_DEBUG_ERRORS = 500;
+
 const initialState = {
   logs: [],
   debugErrors: [],
@@ -22,9 +34,7 @@ const initialState = {
     OPTIONS: true
   },
   selectedRequest: null,
-  selectedError: null,
-  maxLogs: 1000,
-  maxDebugErrors: 500
+  selectedError: null
 };
 
 export const logsSlice = createSlice({
@@ -43,8 +53,8 @@ export const logsSlice = createSlice({
 
       state.logs.push(newLog);
 
-      if (state.logs.length > state.maxLogs) {
-        state.logs = state.logs.slice(-state.maxLogs);
+      if (state.logs.length > MAX_LOGS) {
+        state.logs = state.logs.slice(-MAX_LOGS);
       }
     },
     addDebugError: (state, action) => {
@@ -62,8 +72,8 @@ export const logsSlice = createSlice({
 
       state.debugErrors.push(newError);
 
-      if (state.debugErrors.length > state.maxDebugErrors) {
-        state.debugErrors = state.debugErrors.slice(-state.maxDebugErrors);
+      if (state.debugErrors.length > MAX_DEBUG_ERRORS) {
+        state.debugErrors = state.debugErrors.slice(-MAX_DEBUG_ERRORS);
       }
     },
     clearLogs: (state) => {
@@ -80,12 +90,6 @@ export const logsSlice = createSlice({
     },
     setActiveTab: (state, action) => {
       state.activeTab = action.payload;
-      if (action.payload !== 'network') {
-        state.selectedRequest = null;
-      }
-      if (action.payload !== 'debug') {
-        state.selectedError = null;
-      }
     },
     updateFilter: (state, action) => {
       const { filterType, enabled } = action.payload;

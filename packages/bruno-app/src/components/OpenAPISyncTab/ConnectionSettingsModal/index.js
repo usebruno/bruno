@@ -101,7 +101,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
                   className="settings-input file-pick-btn"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  {filePath ? filePath.split(/[\\/]/).pop() : 'Choose file...'}
+                  {filePath ? filePath.split(/[\\/]/).pop() : 'Select File'}
                 </button>
               </>
             )}

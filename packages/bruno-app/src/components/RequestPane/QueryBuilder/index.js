@@ -175,6 +175,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
             type="text"
             placeholder="Search operations..."
             value={searchText}
+            className="mousetrap"
             onChange={(e) => setSearchText(e.target.value)}
           />
         </div>

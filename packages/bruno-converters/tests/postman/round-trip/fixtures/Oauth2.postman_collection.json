@@ -1,0 +1,1313 @@
+{
+  "info": {
+    "_postman_id": "bfd86e56-743f-4f19-8c04-d8782454b817",
+    "name": "Oauth2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529",
+    "_collection_link": "https://go.postman.co/collection/56331529-bfd86e56-743f-4f19-8c04-d8782454b817?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Client Creds",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "state",
+              "value": "state",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://stripe.com/authorize",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Implicit",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "client_authentication",
+              "value": "body",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "grant_type",
+              "value": "implicit",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "CustomBearer",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth Code",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "queryParams",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "grant_type",
+              "value": "authorization_code",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "password",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "grant_type",
+              "value": "password_credentials",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "body",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "CustomBearer",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PKCE",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "code_verifier",
+              "value": "asfajhfkasjfjkasfkjsabjkabgjksabgjkasgjlabglajsglba",
+              "type": "string"
+            },
+            {
+              "key": "challengeAlgorithm",
+              "value": "plain",
+              "type": "string"
+            },
+            {
+              "key": "grant_type",
+              "value": "authorization_code_with_pkce",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "queryParams",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Implicit from PKCE",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "grant_type",
+              "value": "implicit",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "queryParams",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Client Creds from PKCE",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "queryParams",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Password from PKCE",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "grant_type",
+              "value": "password_credentials",
+              "type": "string"
+            },
+            {
+              "key": "headerPrefix",
+              "value": "Bearer",
+              "type": "string"
+            },
+            {
+              "key": "addTokenTo",
+              "value": "queryParams",
+              "type": "string"
+            },
+            {
+              "key": "client_authentication",
+              "value": "header",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "string"
+            },
+            {
+              "key": "state",
+              "value": "customState",
+              "type": "string"
+            },
+            {
+              "key": "authUrl",
+              "value": "https://api.example.com/authorize",
+              "type": "string"
+            },
+            {
+              "key": "redirect_uri",
+              "value": "https://api.example.com/callback",
+              "type": "string"
+            },
+            {
+              "key": "refreshTokenUrl",
+              "value": "https://api.example.com/refresh",
+              "type": "string"
+            },
+            {
+              "key": "scope",
+              "value": "scope:scope1,scope:scope2",
+              "type": "string"
+            },
+            {
+              "key": "clientSecret",
+              "value": "{{client_secret}}",
+              "type": "string"
+            },
+            {
+              "key": "clientId",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://api.example.com/access",
+              "type": "string"
+            },
+            {
+              "key": "tokenName",
+              "value": "cc-tname",
+              "type": "string"
+            },
+            {
+              "key": "useBrowser",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "key": "refreshRequestParams",
+              "value": [
+                {
+                  "key": "refreshKey",
+                  "value": "refreshValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "refreshKey1",
+                  "value": "refreshValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "refreshKey2",
+                  "value": "refreshValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "tokenRequestParams",
+              "value": [
+                {
+                  "key": "tokenKey",
+                  "value": "tokenValue",
+                  "enabled": true,
+                  "send_as": "request_body"
+                },
+                {
+                  "key": "tokenKey1",
+                  "value": "tokenValue1",
+                  "enabled": true,
+                  "send_as": "request_url"
+                },
+                {
+                  "key": "tokenKey2",
+                  "value": "tokenValue2",
+                  "enabled": true,
+                  "send_as": "request_header"
+                }
+              ],
+              "type": "any"
+            },
+            {
+              "key": "authRequestParams",
+              "value": [
+                {
+                  "key": "authKey",
+                  "value": "authValue",
+                  "enabled": true,
+                  "send_as": "request_url"
+                }
+              ],
+              "type": "any"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

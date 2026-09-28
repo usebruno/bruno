@@ -12,6 +12,6 @@ runs:
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
-        name: playwright-report-windows
+        name: playwright-report-windows-ssl
         path: playwright-report/
         retention-days: 30

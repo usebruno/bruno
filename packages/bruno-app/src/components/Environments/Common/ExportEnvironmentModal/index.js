@@ -5,6 +5,8 @@ import { exportBrunoEnvironment } from 'utils/exporters/bruno-environment';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
+import { IconAlertTriangle } from '@tabler/icons';
+import { getInheritedEnvironments } from '@usebruno/common/utils';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
@@ -87,6 +89,32 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
   const selectedCount = selectedEnvs.length;
 
+  const unselectedInheritedEnvironmentNamesByUid = useMemo(() => {
+    const namesByUid = {};
+
+    environments.forEach((environment) => {
+      if (!selectedEnvironments[environment.uid]) {
+        namesByUid[environment.uid] = [];
+        return;
+      }
+
+      const { inheritedEnvironments, missingInheritedEnvironmentName } = getInheritedEnvironments({
+        environments,
+        environment
+      });
+
+      const unselectedNames = inheritedEnvironments
+        .filter((inheritedEnvironment) => !selectedEnvironments[inheritedEnvironment.uid])
+        .map((inheritedEnvironment) => inheritedEnvironment.name);
+
+      namesByUid[environment.uid] = missingInheritedEnvironmentName
+        ? [missingInheritedEnvironmentName, ...unselectedNames]
+        : unselectedNames;
+    });
+
+    return namesByUid;
+  }, [environments, selectedEnvironments]);
+
   const exportFormatOptions = useMemo(() => {
     const isMultiple = selectedCount > 1;
 
@@ -159,18 +187,33 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
                     </button>
                   </div>
                   <div className="flex flex-col gap-1 flex-1 overflow-y-auto">
-                    {environments.map((env) => (
-                      <label key={env.uid} className="environment-item">
-                        <input
-                          type="checkbox"
-                          checked={selectedEnvironments[env.uid] || false}
-                          onChange={() => handleEnvironmentToggle(env.uid)}
-                          disabled={isExporting}
-                          className="w-3.5 h-3.5 flex-shrink-0"
-                        />
-                        <span className="environment-name">{truncateEnvName(env.name)}</span>
-                      </label>
-                    ))}
+                    {environments.map((env) => {
+                      const unselectedInheritedEnvironmentNames = unselectedInheritedEnvironmentNamesByUid[env.uid];
+
+                      return (
+                        <div key={env.uid}>
+                          <label className="environment-item">
+                            <input
+                              type="checkbox"
+                              checked={selectedEnvironments[env.uid] || false}
+                              onChange={() => handleEnvironmentToggle(env.uid)}
+                              disabled={isExporting}
+                              className="w-3.5 h-3.5 flex-shrink-0"
+                            />
+                            <span className="environment-name">{truncateEnvName(env.name)}</span>
+                          </label>
+                          {unselectedInheritedEnvironmentNames.length > 0 && (
+                            <div className="inheritance-warning" data-testid="env-export-inheritance-warning">
+                              <IconAlertTriangle size={14} strokeWidth={1.5} className="warning-icon" />
+                              <span>
+                                inherits{' '}
+                                <span className="inherited-name">{unselectedInheritedEnvironmentNames.join(', ')}</span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

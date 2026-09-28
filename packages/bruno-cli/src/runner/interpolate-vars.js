@@ -2,6 +2,26 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 const getContentType = (headers = {}) => {
   let contentType = '';
   forOwn(headers, (value, key) => {
@@ -65,6 +85,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     delete request.headers[key];
     request.headers[_interpolate(key)] = _interpolate(value);
   });
+  if (request.apiKeyHeaderName) {
+    request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);
+  }
 
   const contentType = getContentType(request.headers);
   const isGraphqlRequest = request.mode === 'graphql';
@@ -77,7 +100,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   // Skip body interpolation for GraphQL requests.
   if (!isGraphqlRequest) {
-    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request?.data?.length) {
           request.data = _interpolate(request.data, { escapeJSONStrings: true });
@@ -97,7 +120,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         }));
       }
     } else if (contentType.startsWith('multipart/')) {
-      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+      if (request?.data && typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
@@ -135,7 +160,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
+          if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
           return '/' + existingPathParam.value;
@@ -156,7 +181,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               name = name.replace(/^[('"`]+/, '');
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
+                if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
               }
@@ -270,11 +295,28 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
 
+  // interpolate vars for digest auth
+  if (request.digestConfig) {
+    request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
+    request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
+  }
+
   // interpolate vars for ntlmConfig auth
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for edgegrid auth
+  if (request.edgeGridConfig) {
+    request.edgeGridConfig.accessToken = _interpolate(request.edgeGridConfig.accessToken) || '';
+    request.edgeGridConfig.clientToken = _interpolate(request.edgeGridConfig.clientToken) || '';
+    request.edgeGridConfig.clientSecret = _interpolate(request.edgeGridConfig.clientSecret) || '';
+    request.edgeGridConfig.nonce = _interpolate(request.edgeGridConfig.nonce) || '';
+    request.edgeGridConfig.timestamp = _interpolate(request.edgeGridConfig.timestamp) || '';
+    request.edgeGridConfig.baseURL = _interpolate(request.edgeGridConfig.baseURL) || '';
+    request.edgeGridConfig.headersToSign = _interpolate(request.edgeGridConfig.headersToSign) || '';
   }
 
   // interpolate vars for oauth1config auth

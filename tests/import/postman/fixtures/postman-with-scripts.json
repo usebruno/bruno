@@ -1,0 +1,46 @@
+{
+  "info": {
+    "_postman_id": "b7e2f1a0-1c2d-4e3f-9a8b-scriptscollection",
+    "name": "Scripts Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('token', 'abc');",
+              "console.log('pre');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://example.com/login",
+          "protocol": "https",
+          "host": ["example", "com"],
+          "path": ["login"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

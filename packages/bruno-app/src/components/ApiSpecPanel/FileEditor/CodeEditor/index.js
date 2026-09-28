@@ -59,8 +59,8 @@ export default class CodeEditor extends React.Component {
       extraKeys: {
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-Alt-F': 'replace', // Cmd+Option+F — standard replace shortcut on Mac
+        'Ctrl-H': 'replace', // Ctrl+H — standard replace shortcut on Windows/Linux
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')

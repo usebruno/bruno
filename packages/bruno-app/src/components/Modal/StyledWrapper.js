@@ -66,6 +66,11 @@ const Wrapper = styled.div`
     animation: fade-and-slide-in-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
+  .bruno-modal-header.bruno-modal-header--plain {
+    background-color: transparent;
+    padding: 1rem 1.25rem;
+  }
+
   .bruno-modal-header {
     display: flex;
     justify-content: space-between;
@@ -164,6 +169,7 @@ const Wrapper = styled.div`
     animation: fade-in 0.1s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
+
   .bruno-modal-footer {
     background-color: ${(props) => props.theme.modal.body.bg};
     border-bottom-left-radius: ${(props) => props.theme.border.radius.base};
@@ -208,21 +214,35 @@ const Wrapper = styled.div`
       outline-offset: 2px;
     }
 
-    &:checked {
+    &:checked,
+    &:indeterminate {
       background: ${(props) => props.theme.button2.color.primary.bg};
       border-color: ${(props) => props.theme.button2.color.primary.border};
+    }
 
-      &::after {
-        content: '';
-        position: absolute;
-        left: 4px;
-        top: 1px;
-        width: 5px;
-        height: 9px;
-        border: solid ${(props) => props.theme.button2.color.primary.text};
-        border-width: 0 2px 2px 0;
-        transform: rotate(45deg);
-      }
+    &:checked::after,
+    &:indeterminate::after {
+      content: '';
+      position: absolute;
+    }
+
+    &:checked::after {
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 9px;
+      border: solid ${(props) => props.theme.button2.color.primary.text};
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    &:indeterminate::after {
+      left: 2px;
+      top: 6px;
+      width: 10px;
+      height: 2px;
+      background: ${(props) => props.theme.button2.color.primary.text};
+      border-radius: 2px;
     }
   }
 `;

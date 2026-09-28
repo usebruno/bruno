@@ -11,9 +11,9 @@ const readFile = (files) => {
   });
 };
 
-const postmanToBruno = (collection) => {
+const postmanToBruno = (collection, options = {}) => {
   return new Promise((resolve, reject) => {
-    window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection)
+    window.ipcRenderer.invoke('renderer:convert-postman-to-bruno', collection, options)
       .then((result) => resolve(result))
       .catch((err) => {
         console.error('Error converting Postman to Bruno via Electron:', err);
@@ -23,7 +23,8 @@ const postmanToBruno = (collection) => {
 };
 
 const isPostmanCollection = (data) => {
-  const info = data.info;
+  // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
+  const info = data.info || data?.collection?.info;
   if (!info || typeof info !== 'object') {
     return false;
   }
