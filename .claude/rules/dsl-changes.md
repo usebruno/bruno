@@ -155,7 +155,15 @@ Adding a single field tends to span several packages (a `.bru`-centric change la
 - `bruno-filestore/src/formats/yml` — parse **and** stringify for the `.yml` side.
 - `bruno-schema/src/collections/index.js` — the Yup schema (skip this and it fails on save).
 - `bruno-schema-types/src/collection/item.ts` — the TypeScript type.
-- `bruno-converters`, and the collection utils in `bruno-electron` / `bruno-app` that build the object.
+- `bruno-converters` — a **separate field list from `bruno-filestore`**, not the same code path:
+  `src/opencollection/items/{http,graphql,grpc,websocket}.ts` maps the field for the OpenCollection
+  export *and* import, and `src/postman/bruno-to-postman.js` for Postman export. A field wired
+  through filestore but not here round-trips on disk and is silently lost on export.
+- `bruno-app/src/utils/collections/index.js` — `transformRequestToSaveToFilesystem` and siblings
+  whitelist fields before save; a field missing here never reaches the serializer.
+- `bruno-electron/src/ipc/yml-migration.js` — BRU → YML migration (bru parse → yml stringify, plus
+  `bruno.json` → `opencollection.yml` config transforms); verify the field survives migration.
+- the collection utils in `bruno-electron` / `bruno-app` that build the object.
 - Round-trip specs next to the serializers (`formats/yml/parseItem.spec.ts` + `stringifyItem.spec.ts`).
 
 Find a comparable field already in the code and follow how it's wired before adding yours.
@@ -165,7 +173,10 @@ Find a comparable field already in the code and follow how it's wired before add
 - [ ] Change is genuinely necessary (can't be solved in memory / UI)
 - [ ] New field is optional with a safe default; nothing renamed, removed, or retyped
 - [ ] Handled in both `bru` and `yml`, parse **and** stringify
-- [ ] Types (`bruno-schema-types`), Yup schema (`bruno-schema`), and converters updated
+- [ ] Types (`bruno-schema-types`), Yup schema (`bruno-schema`), and converters updated —
+      "converters" means `bruno-converters/src/opencollection/items/*` in **both** directions,
+      which is a different field list from `bruno-filestore`
+- [ ] Field survives the app save transform and BRU → YML migration (see `feature-parity.md` §2)
 - [ ] Old files still parse — read-time compat shim added if the shape changed
 - [ ] No new `.bru` syntax that older parsers can't read (or a forward-compat path decided)
 - [ ] Any new escaping proven via on-disk reparse + fuzz, escaping single chars not the delimiter

@@ -41,7 +41,8 @@ merge and report their findings.
 2. **Enumerate changed files** — `git diff --name-only main...HEAD` (committed range) or
    `git diff --name-only HEAD` (working tree). Use this to skip any lens whose file scope
    isn't touched (e.g. no `packages/bruno-app/**` change → skip `react.md`; no `tests/**`
-   change → skip `e2e-tests.md`). Never skip the lenses scoped to all files.
+   change → skip `e2e-tests.md`). Never skip the lenses scoped to all files, and never skip
+   `feature-parity.md` for a small diff — a one-file change is exactly the shape it catches.
 3. **Fan out the reviewers in parallel.** In a *single message*, launch one `Agent`
    (subagent_type `Explore` or `general-purpose`) per in-scope reviewer below. Give each
    subagent this exact briefing:
@@ -77,6 +78,7 @@ Each file is a self-contained checklist for one lens:
 | `reviewers/cross-platform.md` | Cross-platform (macOS/Windows/Linux) | all files |
 | `reviewers/security.md` | Security & data safety | all source (excl. `tests/**`) |
 | `reviewers/dsl-changes.md` | On-disk DSL & serialization (backward compat) | `bruno-app`, `bruno-electron`, `bruno-cli`, `bruno-lang`, `bruno-filestore`, `bruno-schema(-types)`, `bruno-converters` |
+| `reviewers/feature-parity.md` | Co-related features & parity (app↔CLI, shim, converter, level, protocol twins) | `packages/**` |
 | `reviewers/e2e-tests.md` | Playwright E2E tests | `tests/**` |
 
 ## Shared reviewer persona & output contract
