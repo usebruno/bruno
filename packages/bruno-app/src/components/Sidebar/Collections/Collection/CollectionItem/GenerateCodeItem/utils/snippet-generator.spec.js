@@ -651,6 +651,68 @@ describe('generateSnippet – cookie header casing', () => {
     expect(result).toContain('b=2');
   });
 
+  it('renames a `cookie` header to `Cookie` so libcurl does not emit CURLOPT_COOKIE twice', async () => {
+    const language = { target: 'c', client: 'libcurl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('"Cookie: cookie1=value1"');
+    expect(result).not.toContain('CURLOPT_COOKIE');
+  });
+
+  // Combines a `Cookie` and `cookie` header pair into one merged header.
+  it('merges a `cookie` header into an existing `Cookie` header for libcurl instead of overwriting it', async () => {
+    const language = { target: 'c', client: 'libcurl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [
+          { name: 'Cookie', value: 'a=1', enabled: true },
+          { name: 'cookie', value: 'b=2', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('"Cookie: a=1; b=2"');
+    expect(result).not.toContain('CURLOPT_COOKIE');
+    expect(result).toContain('a=1');
+    expect(result).toContain('b=2');
+  });
+
   // Leaves the header name untouched for a non-curl target.
   it('does not rename a lowercase `cookie` header for non-curl targets', async () => {
     const language = { target: 'csharp', client: 'httpclient' };

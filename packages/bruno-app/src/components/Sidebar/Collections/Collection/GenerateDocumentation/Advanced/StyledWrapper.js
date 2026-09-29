@@ -56,7 +56,7 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    padding-top: 1.5rem;
+    padding-top: 1rem;
   }
 
   .adv-label {
@@ -67,9 +67,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 600;
     line-height: 1.25rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${(props) => props.theme.colors.text.subtext2};
+    color: ${(props) => props.theme.text};
 
     &.mb-0 {
       margin-bottom: 0;
@@ -80,27 +78,29 @@ const StyledWrapper = styled.div`
     opacity: 0.75;
   }
 
-  .seg-row {
+  .adv-radio-group {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
     margin-left: 1.125rem;
   }
 
-  .seg-row .seg-option {
-    height: 1.75rem;
-    padding: 0.375rem;
-  }
-
-  .seg-with-hint {
+  .adv-radio {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.5rem;
   }
 
-  .seg-hint {
-    position: relative;
-    z-index: 1;
+  .adv-radio-label {
+    margin: 0;
+    cursor: pointer;
+    font-size: ${(props) => props.theme.font.size.sm};
+    line-height: 1.25rem;
+    color: ${(props) => props.theme.text};
+  }
+
+  .adv-radio-hint {
     display: inline-flex;
     align-items: center;
     cursor: help;

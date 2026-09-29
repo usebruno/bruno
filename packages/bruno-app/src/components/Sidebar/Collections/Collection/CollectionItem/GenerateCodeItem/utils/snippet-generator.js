@@ -8,7 +8,7 @@ import { parse } from 'url';
 import { stringify } from 'query-string';
 
 // Folds any `cookie`/`Cookie` header into a single header.
-const mergeCookieHeaders = (headers, isCurl) => {
+const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
   let cookieHeaderIndex = -1;
   const merged = [];
   for (const header of headers) {
@@ -18,8 +18,7 @@ const mergeCookieHeaders = (headers, isCurl) => {
     }
     if (cookieHeaderIndex === -1) {
       cookieHeaderIndex = merged.length;
-      // Rename to 'Cookie' for curl to avoid HTTPSnippet's double-cookie bug
-      merged.push({ ...header, name: isCurl ? 'Cookie' : header.name });
+      merged.push({ ...header, name: capitalizeCookieHeaderName ? 'Cookie' : header.name });
     } else {
       merged[cookieHeaderIndex].value += `; ${header.value}`;
     }
@@ -99,9 +98,10 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     });
 
     const isCurl = language.target === 'shell' && language.client === 'curl';
+    const isLibcurl = language.target === 'c' && language.client === 'libcurl';
 
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl) });
+    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.

@@ -577,6 +577,7 @@ const EnvironmentList = ({
                       handleCreateEnvClick();
                     }}
                     title="Create environment"
+                    data-testid="create-environment"
                   >
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
@@ -707,6 +708,7 @@ const EnvironmentList = ({
                       ref={inputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="env-create-name-input"
                       value={newEnvName}
                       onChange={handleEnvNameChange}
                       onKeyDown={handleEnvNameKeyDown}
@@ -722,6 +724,7 @@ const EnvironmentList = ({
                         onClick={handleSaveNewEnv}
                         onMouseDown={(e) => e.preventDefault()}
                         title="Save"
+                        data-testid="env-create-save"
                       >
                         <IconCheck size={14} strokeWidth={2} />
                       </button>
@@ -768,6 +771,7 @@ const EnvironmentList = ({
                 {dotEnvFiles.map((file) => (
                   <div
                     key={file.filename}
+                    data-testid="dotenv-file-item"
                     className={classnames('environment-item', {
                       active: activeView === 'dotenv' && selectedDotEnvFile === file.filename
                     })}

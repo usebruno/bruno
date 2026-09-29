@@ -12,7 +12,7 @@ const { getOptions } = require('../utils/bru');
 const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const Table = require('cli-table3');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, getEffectiveTagsByPathname, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
@@ -221,11 +221,11 @@ const builder = async (yargs) => {
     })
     .option('tags', {
       type: 'string',
-      description: 'Tags to include in the run'
+      description: 'Tags to include in the run, matched against a request\'s own tags and its folders\' tags'
     })
     .option('exclude-tags', {
       type: 'string',
-      description: 'Tags to exclude from the run'
+      description: 'Tags to exclude from the run, matched against a request\'s own tags and its folders\' tags'
     })
     .option('verbose', {
       type: 'boolean',
@@ -708,9 +708,12 @@ const handler = async function (argv) {
       });
     }
 
-    requestItems = requestItems.filter((item) => {
-      return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
-    });
+    if (includeTags.length || excludeTags.length) {
+      const effectiveTagsByPathname = getEffectiveTagsByPathname(collection);
+      requestItems = requestItems.filter((item) => {
+        return isRequestTagsIncluded(effectiveTagsByPathname.get(item.pathname) || [], includeTags, excludeTags);
+      });
+    }
 
     const runtime = getJsSandboxRuntime(sandbox);
 
@@ -733,6 +736,54 @@ const handler = async function (argv) {
       }
     }
 
+    const createSkippedResult = (requestItem, skipReason) => {
+      const relativePath = path.relative(collectionPath, requestItem.pathname);
+      return {
+        test: { filename: relativePath },
+        request: { method: requestItem.request?.method || null, url: requestItem.request?.url || null, headers: null, data: null },
+        response: { status: 'skipped', statusText: null, data: null, responseTime: 0 },
+        status: 'skipped',
+        skipped: true,
+        skipReason,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        runDuration: 0,
+        suitename: stripExtension(requestItem.pathname),
+        name: requestItem.name,
+        path: relativePath
+      };
+    };
+
+    /**
+     * Halt raised by the run (--bail on a failure, or a script calling bru.runner.stopExecution()).
+     *
+     * @property {string|null} haltedBy - what halted the run: 'bail' | 'stopExecution'
+     * @property {string|null} haltedAtRequest - request that halted it, e.g. 'Get Users'
+     * @property {string|null} haltedReason - e.g. 'test failure' | 'assertion failure' | 'stopExecution'
+     * @property {number|null} remainingRequests - requests that never ran, e.g. 2
+     */
+    const haltState = {
+      haltedBy: null,
+      haltedAtRequest: null,
+      haltedReason: null,
+      remainingRequests: null
+    };
+
+    // Aborted by haltRun; cancels any in-flight request that received its signal.
+    const runAbortController = new AbortController();
+
+    const runAbortSignal = runAbortController.signal;
+
+    const haltRun = (reason, details = {}) => {
+      if (haltState.haltedBy) {
+        return;
+      }
+      Object.assign(haltState, { haltedBy: reason, ...details });
+      runAbortController.abort(reason);
+    };
+
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -754,7 +805,8 @@ const handler = async function (argv) {
             collection,
             runSingleRequestByPathname,
             globalEnvVars,
-            persistPaths
+            persistPaths,
+            runAbortSignal
           );
           resolve(res?.response);
         }
@@ -764,7 +816,6 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
-    let bailInfo = null; // populated only if --bail triggers
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
@@ -782,7 +833,8 @@ const handler = async function (argv) {
         collection,
         runSingleRequestByPathname,
         globalEnvVars,
-        persistPaths
+        persistPaths,
+        runAbortSignal
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;
@@ -832,44 +884,11 @@ const handler = async function (argv) {
           // Synthesize "Skipped (Bail)" placeholder results for the requests that never
           // ran due to bail. These let getRunnerSummary count them as skipped, and the
           // summary table can distinguish them from user-initiated skips via skipReason.
-          for (const ri of remainingItems) {
-            const relativePath = path.relative(collectionPath, ri.pathname);
-            results.push({
-              test: {
-                filename: relativePath
-              },
-              request: {
-                method: ri.request?.method || null,
-                url: ri.request?.url || null,
-                headers: null,
-                data: null
-              },
-              response: {
-                status: 'skipped',
-                statusText: null,
-                data: null,
-                responseTime: 0
-              },
-              status: 'skipped',
-              skipped: true,
-              skipReason: 'bail',
-              testResults: [],
-              assertionResults: [],
-              preRequestTestResults: [],
-              postResponseTestResults: [],
-              runDuration: 0,
-              suitename: stripExtension(ri.pathname),
-              name: ri.name,
-              path: relativePath
-            });
+          for (const request of remainingItems) {
+            results.push(createSkippedResult(request, 'bail'));
           }
 
-          bailInfo = {
-            bailed: true,
-            bailReason,
-            bailedAt: name,
-            skippedByBail: remainingItems.length
-          };
+          haltRun('bail', { haltedAtRequest: name, haltedReason: bailReason, remainingRequests: remainingItems.length });
 
           console.log(
             '\n' + chalk.hex(constants.COLORS.ORANGE)(
@@ -885,6 +904,17 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
 
       if (result?.shouldStopRunnerExecution) {
+        const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+        for (const request of remainingItems) {
+          results.push(createSkippedResult(request, 'stopExecution'));
+        }
+
+        haltRun('stopExecution', {
+          haltedAtRequest: name,
+          haltedReason: 'stopExecution',
+          remainingRequests: remainingItems.length
+        });
         break;
       }
 

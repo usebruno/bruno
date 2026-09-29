@@ -43,19 +43,13 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     // Verify the folder has been moved to the target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).toBeVisible();
 
     // Verify the folder (and its request) is no longer in the source collection.
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).not.toBeVisible();
@@ -98,20 +92,14 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
 
     await expect(page.getByText(/already exists/i)).toHaveCount(0);
     // The folder is moved out of the source collection.
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(0);
 
     // The target now shows two "folder-1" entries (the original and the moved one;
     // the directory name was silently suffixed on disk).
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(2);

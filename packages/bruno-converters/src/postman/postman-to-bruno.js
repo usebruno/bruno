@@ -606,6 +606,18 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           });
         }
 
+        // Handle disabled system headers from Postman's protocolProfileBehavior
+        const disabledSystemHeaders = i.protocolProfileBehavior?.disabledSystemHeaders;
+        if (disabledSystemHeaders && typeof disabledSystemHeaders === 'object') {
+          const omitHeaders = Object.keys(disabledSystemHeaders)
+            .filter((headerName) => disabledSystemHeaders[headerName] === true)
+            .map((headerName) => headerName.trim())
+            .filter((headerName) => headerName.length > 0);
+          if (omitHeaders.length > 0) {
+            settings.omitHeaders = omitHeaders;
+          }
+        }
+
         brunoRequestItem.settings = settings;
 
         if (i.event) {

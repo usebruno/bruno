@@ -52,16 +52,12 @@ const Wrapper = styled.div`
 
   .default-header-row,
   .inherited-header-row {
-    .default-header-value {
-      font-style: italic;
-      color: ${(props) => props.theme.colors.text.muted};
-    }
-
     input[type='checkbox']:disabled {
       opacity: 0.55;
     }
   }
 
+  .default-header-row,
   .inherited-header-row {
     .CodeMirror-line {
       font-style: italic;
@@ -103,7 +99,7 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: center;
     color: ${(props) => props.theme.colors.text.muted};
-    cursor: help;
+    cursor: pointer;
 
     &:hover {
       color: ${(props) => props.theme.colors.text.muted};
