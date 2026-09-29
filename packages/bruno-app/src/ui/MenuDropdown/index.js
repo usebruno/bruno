@@ -51,7 +51,9 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {boolean} props.autoFocusFirstOption - Optional flag to auto-focus first option when dropdown opens (default: false)
  * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
- * @param {React.Ref} ref - Optional ref to expose open/close methods
+ * @param {React.Ref} ref - Optional ref to expose open/close methods. `show(position)` and
+ *   `toggle(position)` accept an optional `{ x, y }` viewport coordinate (e.g. a contextmenu
+ *   event's clientX/clientY) to anchor the menu at that point instead of the trigger element.
  */
 const MenuDropdown = forwardRef(({
   items = [],
@@ -71,12 +73,14 @@ const MenuDropdown = forwardRef(({
   submenuPlacement = 'right',
   'data-testid': testId = 'menu-dropdown',
   menuClassName,
+  getReferenceClientRect,
   ...dropdownProps
 }, ref) => {
   const tippyRef = useRef();
   const selectedItemIdRef = useRef(selectedItemId);
   const autoFocusFirstOptionRef = useRef(autoFocusFirstOption);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const [anchorPosition, setAnchorPosition] = useState(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -107,7 +111,11 @@ const MenuDropdown = forwardRef(({
   }, []);
 
   // Update state (respects controlled vs uncontrolled mode)
-  const updateOpenState = useCallback((newState) => {
+  // `position` anchors the menu at a viewport coordinate; it is dropped on close so the next
+  // open falls back to the trigger element.
+  const updateOpenState = useCallback((newState, position = null) => {
+    setAnchorPosition(newState ? position : null);
+
     if (isControlled) {
       onChange?.(newState);
     } else {
@@ -282,16 +290,27 @@ const MenuDropdown = forwardRef(({
 
   // Expose imperative methods via ref
   useImperativeHandle(ref, () => ({
-    show: () => {
-      updateOpenState(true);
+    show: (position) => {
+      updateOpenState(true, position);
     },
     hide: () => {
       updateOpenState(false);
     },
-    toggle: () => {
-      updateOpenState(!isOpen);
+    toggle: (position) => {
+      updateOpenState(!isOpen, position);
     }
   }), [updateOpenState, isOpen]);
+
+  // A zero-sized rect at the cursor makes Tippy position the menu against that point rather than
+  // the trigger element, which is how right-click menus are expected to behave. Tippy ignores
+  // `undefined` props on update, so the no-anchor case falls back to `null` — its own default —
+  // to be sure a stale cursor rect is dropped once the menu closes.
+  const resolvedReferenceClientRect = useMemo(() => {
+    if (!anchorPosition) return getReferenceClientRect || null;
+
+    const { x, y } = anchorPosition;
+    return () => ({ width: 0, height: 0, top: y, bottom: y, left: x, right: x });
+  }, [anchorPosition, getReferenceClientRect]);
 
   // Setup Tippy instance
   const onDropdownCreate = useCallback((ref) => {
@@ -491,6 +510,7 @@ const MenuDropdown = forwardRef(({
       className={className}
       visible={isOpen}
       onClickOutside={handleClickOutside}
+      getReferenceClientRect={resolvedReferenceClientRect}
       {...dropdownProps}
     >
       <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
