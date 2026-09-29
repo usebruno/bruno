@@ -12,6 +12,7 @@ import {
   getEnvironmentVariables,
   getVisibleSidebarUidsInOrder,
   getSelectionInfo,
+  getBulkActionsSelection,
   getUniqueTagsFromItems,
   getCollectionVersion,
   isCollectionItemCollapsed
@@ -773,6 +774,47 @@ describe('getSelectionInfo', () => {
 
       expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
       expect(info).toMatchObject({ hasCollection: true, hasExample: false });
+    });
+  });
+});
+
+describe('getBulkActionsSelection', () => {
+  it('derives pure-collection menu flags and collapsible entries', () => {
+    const result = getBulkActionsSelection({
+      collections: [buildCollectionA(), buildCollectionB()],
+      workspaces: [],
+      selectedUids: ['colA', 'colB']
+    });
+
+    expect(result).toMatchObject({
+      isPureCollectionSelection: true,
+      canDelete: false,
+      canCollapse: true,
+      allCollapsed: false
+    });
+    expect(result.collapsibleEntries.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+  });
+
+  it('allows delete for app/folder/request selections and excludes scratch collections from resolution', () => {
+    const scratch = { uid: 'scratch', pathname: '/scratch', collapsed: false, items: [] };
+    const result = getBulkActionsSelection({
+      collections: [
+        buildCollectionA({
+          collection: {
+            items: [{ uid: 'app1', type: 'app', pathname: '/colA/app1' }]
+          }
+        }),
+        scratch
+      ],
+      workspaces: [{ scratchCollectionUid: 'scratch' }],
+      selectedUids: ['app1', 'scratch']
+    });
+
+    expect(result.effectiveSelection.map((e) => e.uid)).toEqual(['app1']);
+    expect(result).toMatchObject({
+      isPureCollectionSelection: false,
+      canDelete: true,
+      canCollapse: false
     });
   });
 });
