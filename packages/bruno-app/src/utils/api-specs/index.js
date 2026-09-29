@@ -6,6 +6,8 @@ export const API_SPEC_TAB_TYPE = 'api-spec';
 
 const API_SPEC_TAB_UID_PREFIX = 'api-spec::';
 
+// Paths are compared ignoring letter case on Windows only. specPathKey in bruno-electron
+// (utils/workspace-config) follows the same rule, so change both together.
 export const getApiSpecPathKey = (pathname) => {
   const normalizedPathname = normalizePath(pathname);
   if (!normalizedPathname) return '';

@@ -254,6 +254,16 @@ describe('api spec ipc handlers', () => {
       rm.mockRestore();
     });
 
+    test('stops the watcher under the path it was opened with, even when that path is not in normal form', async () => {
+      const openedPath = [workspacePath, 'a', '.', 'openapi.yaml'].join(path.sep);
+
+      await invoke(openedPath, workspacePath);
+
+      expect(watcher.removeWatcher).toHaveBeenCalledWith(openedPath, mainWindow);
+      expect(fs.existsSync(specPath)).toBe(false);
+      expect(readSpecs(workspacePath)).toEqual([]);
+    });
+
     test('deletes a spec listed by the default workspace', async () => {
       mockOpenedWorkspaces = [];
       mockDefaultWorkspacePath = workspacePath;

@@ -6,6 +6,7 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { isApiSpecTabForPathname } from 'utils/api-specs';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
+import brunoPath from 'utils/common/path';
 import { IconDots } from '@tabler/icons';
 import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -51,7 +52,7 @@ const ApiSpecItem = ({ apiSpec }) => {
   };
 
   const handleReveal = () => {
-    dispatch(showInFolder(apiSpec.pathname)).catch((error) => {
+    dispatch(showInFolder(brunoPath.normalize(apiSpec.pathname))).catch((error) => {
       console.error('Error revealing the API spec', error);
       toast.error('Error revealing the API spec');
     });
@@ -98,11 +99,11 @@ const ApiSpecItem = ({ apiSpec }) => {
         onFocus={() => setIsKeyboardFocused(true)}
         onBlur={() => setIsKeyboardFocused(false)}
         onKeyDown={handleRowKeyDown}
-        onContextMenu={handleRightClick}
       >
         <div
           className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
           onClick={openApiSpec}
+          onContextMenu={handleRightClick}
         >
           <span className="flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden w-full">
             {apiSpec?.name}

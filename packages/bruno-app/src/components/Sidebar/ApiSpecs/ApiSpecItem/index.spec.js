@@ -90,10 +90,18 @@ describe('ApiSpecItem', () => {
   it('opens the actions menu on right-click', () => {
     renderRow(OPENAPI_SPEC);
 
-    const defaultAllowed = fireEvent.contextMenu(screen.getByTestId('sidebar-api-spec-row'));
+    const defaultAllowed = fireEvent.contextMenu(screen.getByText(OPENAPI_SPEC.name));
 
     expect(defaultAllowed).toBe(false);
     expect(mockToggleMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the open menu alone when one of its items is right-clicked', () => {
+    renderRow(OPENAPI_SPEC);
+
+    fireEvent.contextMenu(screen.getByText('reveal'));
+
+    expect(mockToggleMenu).not.toHaveBeenCalled();
   });
 
   it('opens the spec tab with Enter on the focused row', () => {
@@ -142,6 +150,14 @@ describe('ApiSpecItem', () => {
     fireEvent.click(screen.getByText('reveal'));
 
     expect(showInFolder).toHaveBeenCalledWith(OPENAPI_SPEC.pathname);
+  });
+
+  it('reveals the spec under a path in normal form', () => {
+    renderRow({ ...OPENAPI_SPEC, pathname: '/workspace/specs/./petstore.yaml' });
+
+    fireEvent.click(screen.getByText('reveal'));
+
+    expect(showInFolder).toHaveBeenCalledWith('/workspace/specs/petstore.yaml');
   });
 
   it('reports when the spec file cannot be revealed', async () => {

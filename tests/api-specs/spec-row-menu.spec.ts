@@ -123,8 +123,7 @@ test.describe('API spec row context menu', () => {
       await test.step('Menu items appear in the designed order with the divider before Remove', async () => {
         await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
         await expect(menu.menuItems()).toHaveCount(5);
-        const ids = await menu.menuItems().evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-item-id')));
-        expect(ids).toEqual(['generate-collection', 'generate-mock-server', 'reveal', 'remove', 'delete']);
+        expect(await menu.menuItemIds()).toEqual(['generate-collection', 'generate-mock-server', 'reveal', 'remove', 'delete']);
         await expect(menu.menuDivider()).toHaveCount(1);
         await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
         await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
@@ -195,6 +194,17 @@ test.describe('API spec row context menu', () => {
         await expect(render.specTab('comprehensive.yaml')).toBeVisible();
       });
 
+      await test.step('Cancel leaves the spec, its tab, the file and the workspace entry alone', async () => {
+        await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
+        await expect(menu.removeModal()).toBeVisible();
+        await menu.removeCancel().click();
+        await expect(menu.removeModal()).toHaveCount(0);
+        await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        await expect(render.specTab('comprehensive.yaml')).toBeVisible();
+        expect(fs.existsSync(specPath)).toBe(true);
+        expect(readWorkspaceSpecPaths(workspacePath)).toContain('specs/comprehensive.yaml');
+      });
+
       await test.step('Remove from Workspace', async () => {
         await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'remove');
         await expect(menu.removeModal()).toBeVisible();
@@ -248,7 +258,7 @@ test.describe('API spec row context menu', () => {
 
   test('warns before deleting a spec that a collection syncs from', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(60000);
-    const { app, page, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSyncedCollection: true });
+    const { app, page, workspacePath, render, menu } = await launchOnWorkspace(launchElectronApp, createTmpDir, { withSyncedCollection: true });
 
     try {
       await test.step('The spec a collection syncs from shows the warning', async () => {
@@ -264,13 +274,16 @@ test.describe('API spec row context menu', () => {
         await chooseApiSpecRowAction(page, COMPREHENSIVE_TITLE, 'delete');
         await expect(menu.deleteModal()).toBeVisible();
         await expect(menu.connectedCollectionsWarning()).toHaveCount(0);
-        await page.keyboard.press('Escape');
+        await menu.deleteCancel().click();
         await expect(menu.deleteModal()).toHaveCount(0);
       });
 
       await test.step('Closing the dialogs deleted nothing', async () => {
         await expect(render.sidebarRow(EXAMPLES_TITLE)).toBeVisible();
         await expect(render.sidebarRow(COMPREHENSIVE_TITLE)).toBeVisible();
+        expect(fs.existsSync(path.join(workspacePath, 'specs', 'examples.yaml'))).toBe(true);
+        expect(fs.existsSync(path.join(workspacePath, 'specs', 'comprehensive.yaml'))).toBe(true);
+        expect(readWorkspaceSpecPaths(workspacePath)).toEqual(expect.arrayContaining(['specs/examples.yaml', 'specs/comprehensive.yaml']));
       });
     } finally {
       await closeElectronApp(app);

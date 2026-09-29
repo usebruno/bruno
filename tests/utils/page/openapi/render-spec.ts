@@ -26,12 +26,15 @@ export const buildApiSpecRowMenuLocators = (page: Page) => {
 
   return {
     menuItems: () => openMenu().getByRole('menuitem'),
+    menuItemIds: () => openMenu().getByRole('menuitem').evaluateAll((items) => items.map((item) => item.getAttribute('data-item-id'))),
     menuItem: (id: string) => openMenu().getByTestId(`api-spec-actions-${id}`),
     menuDivider: () => openMenu().getByRole('separator'),
     removeModal: () => page.getByTestId('remove-api-spec-modal'),
     removeSubmit: () => page.getByTestId('remove-api-spec-modal-submit-btn'),
+    removeCancel: () => page.getByTestId('remove-api-spec-modal').getByRole('button', { name: 'Cancel', exact: true }),
     deleteModal: () => page.getByTestId('delete-api-spec-modal'),
     deleteSubmit: () => page.getByTestId('delete-api-spec-modal-submit-btn'),
+    deleteCancel: () => page.getByTestId('delete-api-spec-modal').getByRole('button', { name: 'Cancel', exact: true }),
     connectedCollectionsWarning: () => page.getByTestId('api-spec-connected-collections-warning')
   };
 };

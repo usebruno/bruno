@@ -640,6 +640,7 @@ const getWorkspaceApiSpecs = (workspacePath) => {
 
 // Windows ignores letter case in file paths: C:\Specs\API.yaml and c:\specs\api.yaml are
 // the same file, so they must match the same workspace entry.
+// getApiSpecPathKey in bruno-app (utils/api-specs) follows the same rule, so change both together.
 const specPathKey = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
 
 const hasWorkspaceFile = (workspacePath) =>

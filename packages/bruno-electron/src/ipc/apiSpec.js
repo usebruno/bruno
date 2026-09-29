@@ -45,10 +45,10 @@ const assertKnownApiSpec = ({ lastOpenedWorkspaces }, pathname, workspacePath) =
 };
 
 const toDeleteError = (error) => {
-  if (error?.code === 'EBUSY') {
+  if (error.code === 'EBUSY') {
     return new Error('The file is in use by another program. Close it and try again.');
   }
-  if (error?.code === 'EPERM' || error?.code === 'EACCES') {
+  if (error.code === 'EPERM' || error.code === 'EACCES') {
     return new Error('Bruno does not have permission to delete this file.');
   }
   return error;
@@ -56,6 +56,7 @@ const toDeleteError = (error) => {
 
 // The file goes first: if it cannot be deleted, the workspace is untouched. If the entry removal
 // fails after that, the entry points at a missing file and a retry of Delete completes it.
+// The watcher and uid cache are keyed by the path as it was opened, so they get the raw path.
 const deleteApiSpec = async (deps, pathname, workspacePath) => {
   assertKnownApiSpec(deps, pathname, workspacePath);
   const { mainWindow, watcher } = deps;
@@ -67,8 +68,8 @@ const deleteApiSpec = async (deps, pathname, workspacePath) => {
     throw toDeleteError(error);
   }
 
-  watcher.removeWatcher(target, mainWindow);
-  removeApiSpecUid(target);
+  watcher.removeWatcher(pathname, mainWindow);
+  removeApiSpecUid(pathname);
 
   const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
   broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
