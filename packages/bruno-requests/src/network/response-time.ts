@@ -1,7 +1,6 @@
 type HopTiming = {
   /** Set only while a hop is in flight. */
   hopStartTime?: number;
-  lastHopEndTime?: number;
   completedHopsTime?: number;
 };
 
@@ -26,10 +25,8 @@ export const completeHop = (timing: HopTiming): number | undefined => {
   if (timing.hopStartTime === undefined) {
     return undefined;
   }
-  const hopEndTime = readCurrentTime();
-  const hopTime = hopEndTime - timing.hopStartTime;
+  const hopTime = readCurrentTime() - timing.hopStartTime;
   timing.completedHopsTime = (timing.completedHopsTime ?? 0) + hopTime;
-  timing.lastHopEndTime = hopEndTime;
   delete timing.hopStartTime;
   return Math.round(hopTime);
 };

@@ -642,15 +642,14 @@ describe('axios-instance: request preparation', () => {
     expect(timingMessages(response.timeline, 'Request prepared')).toEqual([]);
   });
 
-  test('prepares a followed redirect from the end of the previous hop', async () => {
+  test('measures a followed redirect\'s preparation within its own request interceptor', async () => {
     const instance = makeAxiosInstance({ followRedirects: true });
 
     const response = await instance({ url: START_URL, method: 'get', adapter: timedAdapter });
 
-    // The redirect sets up its proxy once while it's built, and again in the request interceptor.
     expect(timingMessages(response.timeline, 'Request prepared')).toEqual([
       `Request prepared in ${PROXY_SETUP_MS} ms`,
-      `Request prepared in ${2 * PROXY_SETUP_MS} ms`
+      `Request prepared in ${PROXY_SETUP_MS} ms`
     ]);
   });
 

@@ -146,7 +146,7 @@ function makeAxiosInstance({
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     completeOpenHop(config);
-    const preparationStartTime = config.metadata.lastHopEndTime ?? readCurrentTime();
+    const preparationStartTime = readCurrentTime();
     const timeline = config.metadata.timeline || [];
     // Add initial request details to the timeline
     timeline.push({
