@@ -1,15 +1,136 @@
 const { ipcMain } = require('electron');
-const { openApiSpecDialog, openApiSpec, validateApiSpec } = require('../app/apiSpecs');
-const { writeFile, isDirectory } = require('../utils/filesystem');
+const { utils } = require('@usebruno/common');
+const { openApiSpecDialog, openApiSpec, validateApiSpec, broadcastWorkspaceConfig } = require('../app/apiSpecs');
+const { writeFile, isDirectory, sanitizeName, validateName } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
-const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
+const {
+  addApiSpecToWorkspace,
+  removeApiSpecFromWorkspace,
+  renameApiSpecInWorkspace,
+  assertWritableApiSpecName,
+  findApiSpecEntry,
+  hasWorkspaceFile,
+  readWorkspaceConfig
+} = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const { proxySwaggerFetch } = require('./swagger-fetch');
+const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
+const { defaultWorkspaceManager } = require('../store/default-workspace');
 const path = require('path');
 const fs = require('fs');
 
+const isOpenedWorkspace = (lastOpenedWorkspaces, workspacePath) => {
+  if (typeof workspacePath !== 'string' || !workspacePath) {
+    return false;
+  }
+
+  const target = path.normalize(workspacePath);
+
+  return [defaultWorkspaceManager.getDefaultWorkspacePath(), ...lastOpenedWorkspaces.getAll()]
+    .filter(Boolean)
+    .some((openedPath) => path.normalize(openedPath) === target);
+};
+
+// Rename, clone and delete get the file path from the app window, so they only act on a spec
+// that an open workspace lists in its workspace.yml. It does not check that the file is inside
+// the workspace folder: a listed spec can be anywhere on disk.
+const assertKnownApiSpec = ({ lastOpenedWorkspaces }, pathname, workspacePath) => {
+  if (typeof pathname !== 'string' || !pathname) {
+    throw new Error('API spec path is required');
+  }
+  validateApiSpec(pathname);
+
+  if (!isOpenedWorkspace(lastOpenedWorkspaces, workspacePath) || !hasWorkspaceFile(workspacePath)) {
+    throw new Error(`workspace: ${workspacePath} is not an open workspace`);
+  }
+
+  if (!findApiSpecEntry(workspacePath, pathname)) {
+    throw new Error(`api spec: ${pathname} is not listed in this workspace`);
+  }
+};
+
+const renameApiSpec = async (deps, pathname, newName, workspacePath) => {
+  assertKnownApiSpec(deps, pathname, workspacePath);
+  const updatedConfig = await renameApiSpecInWorkspace(workspacePath, pathname, newName);
+  broadcastWorkspaceConfig(deps.mainWindow, workspacePath, updatedConfig);
+};
+
+const cloneApiSpec = async (deps, sourcePathname, newName, targetLocation, workspacePath) => {
+  const { mainWindow, watcher } = deps;
+  const trimmedName = assertWritableApiSpecName(newName);
+  const filename = sanitizeName(trimmedName);
+  if (!filename || !validateName(filename)) {
+    throw new Error(utils.validateNameError(filename));
+  }
+
+  assertKnownApiSpec(deps, sourcePathname, workspacePath);
+  if (!fs.statSync(sourcePathname, { throwIfNoEntry: false })?.isFile()) {
+    throw new Error(`api spec: ${sourcePathname} does not exist`);
+  }
+
+  if (typeof targetLocation !== 'string' || !isDirectory(targetLocation)) {
+    throw new Error(`path: ${targetLocation} is not an existing directory`);
+  }
+
+  const targetPathname = path.join(targetLocation, `${filename}${path.extname(sourcePathname)}`);
+  if (fs.existsSync(targetPathname)) {
+    throw new Error(`path: ${targetPathname} already exists`);
+  }
+
+  await fs.promises.copyFile(sourcePathname, targetPathname, fs.constants.COPYFILE_EXCL);
+
+  // The entry is written before openApiSpec runs, so the copy keeps the typed name instead of
+  // the info.title it shares with the source.
+  try {
+    await addApiSpecToWorkspace(workspacePath, { name: trimmedName, path: targetPathname });
+  } catch (error) {
+    // Report why the clone failed, not why the cleanup failed: on Windows this rm can throw
+    // EBUSY or EPERM, which would otherwise replace the real error.
+    await fs.promises.rm(targetPathname, { force: true }).catch((cleanupError) => {
+      console.error('Failed to remove the cloned API spec after a failed workspace write:', cleanupError);
+    });
+    throw error;
+  }
+  broadcastWorkspaceConfig(mainWindow, workspacePath, readWorkspaceConfig(workspacePath));
+
+  await openApiSpec(mainWindow, watcher, targetPathname, { workspacePath });
+  return targetPathname;
+};
+
+const toDeleteError = (error) => {
+  if (error?.code === 'EBUSY') {
+    return new Error('The file is in use by another program. Close it and try again.');
+  }
+  if (error?.code === 'EPERM' || error?.code === 'EACCES') {
+    return new Error('Bruno does not have permission to delete this file.');
+  }
+  return error;
+};
+
+// The file goes first: if it cannot be deleted, the workspace is untouched. If the entry removal
+// fails after that, the entry points at a missing file and a retry of Delete completes it.
+const deleteApiSpec = async (deps, pathname, workspacePath) => {
+  assertKnownApiSpec(deps, pathname, workspacePath);
+  const { mainWindow, watcher } = deps;
+  const target = path.normalize(pathname);
+
+  try {
+    await fs.promises.rm(target, { force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (error) {
+    throw toDeleteError(error);
+  }
+
+  watcher.removeWatcher(target, mainWindow);
+  removeApiSpecUid(target);
+
+  const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
+  broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {
+  const deps = { mainWindow, watcher, lastOpenedWorkspaces: new LastOpenedWorkspaces() };
+
   ipcMain.handle('renderer:open-api-spec', (event, workspacePath = null) => {
     if (watcher && mainWindow) {
       return openApiSpecDialog(mainWindow, watcher, { workspacePath });
@@ -60,18 +181,23 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
         watcher.removeWatcher(pathname, mainWindow);
         removeApiSpecUid(pathname);
 
-        if (workspacePath) {
-          const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-          if (fs.existsSync(workspaceFilePath)) {
-            await removeApiSpecFromWorkspace(workspacePath, pathname);
-          }
+        if (hasWorkspaceFile(workspacePath)) {
+          await removeApiSpecFromWorkspace(workspacePath, pathname);
         }
       }
     } catch (error) {
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:rename-api-spec', (event, pathname, newName, workspacePath) =>
+    renameApiSpec(deps, pathname, newName, workspacePath));
+
+  ipcMain.handle('renderer:clone-api-spec', (event, sourcePathname, newName, targetLocation, workspacePath) =>
+    cloneApiSpec(deps, sourcePathname, newName, targetLocation, workspacePath));
+
+  ipcMain.handle('renderer:delete-api-spec', (event, pathname, workspacePath) =>
+    deleteApiSpec(deps, pathname, workspacePath));
 
   ipcMain.handle('renderer:fetch-api-spec', async (event, url) => {
     try {

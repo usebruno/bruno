@@ -13,6 +13,14 @@ const OPENCOLLECTION_VERSION = '1.0.0';
 const GITIGNORE_MANAGED_BLOCK_START = '# Bruno managed collection remotes';
 const GITIGNORE_MANAGED_BLOCK_END = '# End Bruno managed collection remotes';
 
+const YAML_NAMED_ESCAPES = {
+  '\\': '\\\\',
+  '"': '\\"',
+  '\n': '\\n',
+  '\r': '\\r',
+  '\t': '\\t'
+};
+
 const quoteYamlValue = (value) => {
   if (typeof value !== 'string') {
     return `"${String(value)}"`;
@@ -22,7 +30,14 @@ const quoteYamlValue = (value) => {
     return '""';
   }
 
-  const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  // Values are written inside double quotes. A raw line break would be read back as a space,
+  // and other raw control characters stop workspace.yml from loading, so each one is written
+  // as an escape code (\n, \t, \x01) instead.
+  const escaped = value.replace(
+    /[\\"\u0000-\u001f\u007f-\u009f]/g,
+    (char) => YAML_NAMED_ESCAPES[char] || `\\x${char.charCodeAt(0).toString(16).padStart(2, '0')}`
+  );
+
   return `"${escaped}"`;
 };
 
@@ -623,6 +638,65 @@ const getWorkspaceApiSpecs = (workspacePath) => {
   });
 };
 
+// Windows ignores letter case in file paths: C:\Specs\API.yaml and c:\specs\api.yaml are
+// the same file, so they must match the same workspace entry.
+const specPathKey = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
+
+const hasWorkspaceFile = (workspacePath) =>
+  Boolean(workspacePath) && fs.existsSync(path.join(workspacePath, 'workspace.yml'));
+
+const isSameApiSpecEntry = (workspacePath, entry, apiSpecPath) => {
+  if (!entry?.path) return false;
+
+  const specPathFromYml = posixifyPath(entry.path);
+  const absoluteSpecPath = path.isAbsolute(specPathFromYml)
+    ? specPathFromYml
+    : path.resolve(workspacePath, specPathFromYml);
+
+  return specPathKey(path.normalize(absoluteSpecPath)) === specPathKey(path.normalize(apiSpecPath));
+};
+
+const findApiSpecEntry = (workspacePath, apiSpecPath) => {
+  const specs = readWorkspaceConfig(workspacePath).specs;
+  return (Array.isArray(specs) ? specs : []).find((a) => isSameApiSpecEntry(workspacePath, a, apiSpecPath)) || null;
+};
+
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/;
+
+// The writer escapes these so the file stays readable either way, but a name the user
+// typed is rejected outright rather than stored as an escape the sidebar renders oddly.
+const assertWritableApiSpecName = (name) => {
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  if (!trimmedName) {
+    throw new Error('API spec name is required');
+  }
+  if (CONTROL_CHARACTERS.test(trimmedName)) {
+    throw new Error('API spec name cannot contain line breaks or control characters');
+  }
+  return trimmedName;
+};
+
+const renameApiSpecInWorkspace = async (workspacePath, apiSpecPath, newName) => {
+  const trimmedName = assertWritableApiSpecName(newName);
+
+  return withLock(getWorkspaceLockKey(workspacePath), async () => {
+    const config = readWorkspaceConfig(workspacePath);
+    const specs = Array.isArray(config.specs) ? config.specs : [];
+    const spec = specs.find((a) => isSameApiSpecEntry(workspacePath, a, apiSpecPath));
+
+    if (!spec) {
+      throw new Error('API spec not found in workspace');
+    }
+
+    spec.name = trimmedName;
+    config.specs = specs;
+
+    const yamlContent = generateYamlContent(config);
+    await writeWorkspaceFileAtomic(workspacePath, yamlContent);
+    return config;
+  });
+};
+
 const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
   if (!isValidSpecEntry(apiSpec)) {
     throw new Error('Invalid API spec: name and path are required');
@@ -640,8 +714,8 @@ const addApiSpecToWorkspace = async (workspacePath, apiSpec) => {
       path: makeRelativePath(workspacePath, apiSpec.path).trim()
     };
 
-    const existingIndex = config.specs.findIndex(
-      (a) => a.name === normalizedSpec.name || (a.path && posixifyPath(a.path) === normalizedSpec.path)
+    const existingIndex = config.specs.findIndex((a) =>
+      isSameApiSpecEntry(workspacePath, a, path.resolve(workspacePath, apiSpec.path))
     );
 
     if (existingIndex >= 0) {
@@ -667,14 +741,7 @@ const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
     let removedApiSpec = null;
 
     config.specs = config.specs.filter((a) => {
-      const specPathFromYml = a.path ? posixifyPath(a.path) : a.path;
-      if (!specPathFromYml) return true;
-
-      const absoluteSpecPath = path.isAbsolute(specPathFromYml)
-        ? specPathFromYml
-        : path.resolve(workspacePath, specPathFromYml);
-
-      if (path.normalize(absoluteSpecPath) === path.normalize(apiSpecPath)) {
+      if (isSameApiSpecEntry(workspacePath, a, apiSpecPath)) {
         removedApiSpec = a;
         return false;
       }
@@ -723,7 +790,11 @@ module.exports = {
   resolveAndFilterWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,
+  renameApiSpecInWorkspace,
+  assertWritableApiSpecName,
   removeApiSpecFromWorkspace,
+  findApiSpecEntry,
+  hasWorkspaceFile,
   generateYamlContent,
   getWorkspaceUid,
   writeWorkspaceFileAtomic,

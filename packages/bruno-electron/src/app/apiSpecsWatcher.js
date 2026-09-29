@@ -4,7 +4,7 @@ const path = require('node:path');
 const chokidar = require('chokidar');
 const { getApiSpecUid } = require('../cache/apiSpecUids');
 const { isDirectory } = require('../utils/filesystem');
-const { parseApiSpecContent, resolveExternalApiSpecRefs } = require('../utils/apiSpecs');
+const { parseApiSpecContent, resolveExternalApiSpecRefs, getApiSpecDisplayName } = require('../utils/apiSpecs');
 
 const hasApiSpecExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
@@ -37,7 +37,7 @@ const add = async (win, pathname, refWatchState) => {
     const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
-    file.name = apiSpecContent?.info?.title || basename.split('.')[0];
+    file.name = getApiSpecDisplayName(apiSpecContent, pathname);
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;
@@ -61,7 +61,7 @@ const change = async (win, pathname, refWatchState) => {
     const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
-    file.name = apiSpecContent?.info?.title || basename.split('.')[0];
+    file.name = getApiSpecDisplayName(apiSpecContent, pathname);
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;
