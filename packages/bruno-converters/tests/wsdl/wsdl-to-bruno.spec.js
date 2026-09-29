@@ -116,5 +116,30 @@ describe('wsdl-to-bruno', () => {
 
       expect(body).toContain('<!--You have a CHOICE of the next 3 items at this level-->');
     });
+
+    it('comments both levels when a choice sits in a sequence branch of another choice', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:sequence>
+                <xsd:element name="swedishId" type="xsd:string"/>
+                <xsd:choice>
+                  <xsd:element name="email" type="xsd:string"/>
+                  <xsd:element name="phone" type="xsd:string"/>
+                </xsd:choice>
+              </xsd:sequence>
+              <xsd:element name="foreignId" type="xsd:string"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<!--You have a CHOICE of the next 2 items at this level--><swedishId>string</swedishId>'
+        + '<!--You have a CHOICE of the next 2 items at this level--><email>string</email><phone>string</phone>'
+        + '<foreignId>string</foreignId>'
+      );
+    });
   });
 });

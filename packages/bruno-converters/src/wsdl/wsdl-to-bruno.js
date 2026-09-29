@@ -268,7 +268,7 @@ class WSDLParser {
    * Parse complex type content (sequence, choice, all, attributes)
    */
   parseComplexTypeContent(complexType, target, prefixMap) {
-    this.parseParticles(complexType, target, prefixMap, null);
+    this.parseParticles(complexType, target, prefixMap, []);
 
     // Parse attributes
     if (complexType['xsd:attribute'] || complexType.attribute) {
@@ -327,25 +327,21 @@ class WSDLParser {
   /**
    * Parse particles of a content model (sequence, choice, all)
    */
-  parseParticles(particle, target, prefixMap, choiceBranch) {
+  parseParticles(particle, target, prefixMap, choicePath) {
     for (const [key, value] of Object.entries(particle)) {
       const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
 
       if (particleName === 'element') {
         for (const element of this.getArray(value)) {
-          this.addElement(element, target, prefixMap, choiceBranch);
+          this.addElement(element, target, prefixMap, choicePath);
         }
       } else if (particleName === 'choice') {
         for (const choice of this.getArray(value)) {
-          if (choiceBranch) {
-            this.parseParticles(choice, target, prefixMap, choiceBranch);
-          } else {
-            this.parseChoiceBranches(choice, target, prefixMap, ++this.choiceGroupCount, 0);
-          }
+          this.parseChoiceBranches(choice, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
         }
       } else if (particleName === 'sequence' || particleName === 'all') {
         for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, choiceBranch);
+          this.parseParticles(nested, target, prefixMap, choicePath);
         }
       }
     }
@@ -354,31 +350,31 @@ class WSDLParser {
   /**
    * Parse the branches of an xs:choice
    */
-  parseChoiceBranches(choice, target, prefixMap, group, branch) {
+  parseChoiceBranches(choice, target, prefixMap, choicePath, group, branch) {
     for (const [key, value] of Object.entries(choice)) {
       const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
 
       if (particleName === 'element') {
         for (const element of this.getArray(value)) {
-          this.addElement(element, target, prefixMap, { group, branch: branch++ });
+          this.addElement(element, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
         }
       } else if (particleName === 'choice') {
         for (const nested of this.getArray(value)) {
-          branch = this.parseChoiceBranches(nested, target, prefixMap, group, branch);
+          branch = this.parseChoiceBranches(nested, target, prefixMap, choicePath, group, branch);
         }
       } else if (particleName === 'sequence' || particleName === 'all') {
         for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, { group, branch: branch++ });
+          this.parseParticles(nested, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
         }
       }
     }
     return branch;
   }
 
-  addElement(element, target, prefixMap, choiceBranch) {
+  addElement(element, target, prefixMap, choicePath) {
     const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
-    if (choiceBranch) {
-      parsedElement.choice = choiceBranch;
+    if (choicePath.length > 0) {
+      parsedElement.choicePath = choicePath;
     }
     target.elements.push(parsedElement);
   }
@@ -801,21 +797,36 @@ class XMLSampleGenerator {
   generateElementList(elements) {
     let xml = '';
     for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-      const group = element.choice ? element.choice.group : null;
-      const previousGroup = i > 0 && elements[i - 1].choice ? elements[i - 1].choice.group : null;
-      if (group !== null && group !== previousGroup) {
-        xml += `<!--You have a CHOICE of the next ${this.countChoiceBranches(elements, i, group)} items at this level-->`;
-      }
-      xml += this.generateElementSample(element);
+      xml += this.generateChoiceComments(elements, i);
+      xml += this.generateElementSample(elements[i]);
     }
     return xml;
   }
 
-  countChoiceBranches(elements, start, group) {
+  generateChoiceComments(elements, index) {
+    const choicePath = elements[index].choicePath || [];
+    const previousPath = (index > 0 && elements[index - 1].choicePath) || [];
+    let xml = '';
+
+    for (let depth = 0; depth < choicePath.length; depth++) {
+      const previous = previousPath[depth];
+      if (previous && previous.group === choicePath[depth].group) {
+        continue;
+      }
+      const count = this.countChoiceBranches(elements, index, depth, choicePath[depth].group);
+      xml += `<!--You have a CHOICE of the next ${count} items at this level-->`;
+    }
+    return xml;
+  }
+
+  countChoiceBranches(elements, start, depth, group) {
     const seenBranches = new Set();
-    for (let i = start; i < elements.length && elements[i].choice && elements[i].choice.group === group; i++) {
-      seenBranches.add(elements[i].choice.branch);
+    for (let i = start; i < elements.length; i++) {
+      const step = (elements[i].choicePath || [])[depth];
+      if (!step || step.group !== group) {
+        break;
+      }
+      seenBranches.add(step.branch);
     }
     return seenBranches.size;
   }
