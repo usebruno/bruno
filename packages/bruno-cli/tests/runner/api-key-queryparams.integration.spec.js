@@ -1,4 +1,5 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
+const path = require('path');
 
 jest.mock('../../src/utils/axios-instance', () => ({
   makeAxiosInstance: jest.fn()
@@ -6,6 +7,9 @@ jest.mock('../../src/utils/axios-instance', () => ({
 
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
 const { runSingleRequest } = require('../../src/runner/run-single-request');
+
+const collectionPath = path.join(path.sep, 'test-collection');
+const requestPath = path.join(collectionPath, 'request.bru');
 
 describe('runSingleRequest: inherited API key query parameters', () => {
   beforeEach(() => {
@@ -16,7 +20,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
     const item = {
       type: 'http-request',
       name: 'Request',
-      pathname: '/test-collection/request.bru',
+      pathname: requestPath,
       request: {
         method: 'GET',
         url: '{{baseUrl}}/echo',
@@ -29,7 +33,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
       }
     };
     const collection = {
-      pathname: '/test-collection',
+      pathname: collectionPath,
       root: {
         request: {
           auth: {
@@ -59,7 +63,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
 
     const result = await runSingleRequest(
       item,
-      '/test-collection',
+      collectionPath,
       {},
       { baseUrl: 'https://example.com', apiKey: 'secret' },
       {},
@@ -81,7 +85,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
     const item = {
       type: 'http-request',
       name: 'Request',
-      pathname: '/test-collection/request.bru',
+      pathname: requestPath,
       request: {
         method: 'GET',
         url: '{{baseUrl}}/echo',
@@ -101,7 +105,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
       }
     };
     const collection = {
-      pathname: '/test-collection',
+      pathname: collectionPath,
       root: { request: { auth: { mode: 'none' } } },
       items: [item]
     };
@@ -120,7 +124,7 @@ describe('runSingleRequest: inherited API key query parameters', () => {
 
     const result = await runSingleRequest(
       item,
-      '/test-collection',
+      collectionPath,
       {},
       { baseUrl: 'https://example.com', apiKey: 'secret' },
       {},
