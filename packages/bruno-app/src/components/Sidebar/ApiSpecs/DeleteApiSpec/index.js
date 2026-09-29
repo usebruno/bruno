@@ -6,7 +6,7 @@ import { countCollectionsSyncingFromSpec } from 'utils/api-specs';
 import { formatIpcError } from 'utils/common/error';
 import ConfirmApiSpecAction from 'components/Sidebar/ApiSpecs/ConfirmApiSpecAction';
 
-const connectedCollectionsMessage = (count) =>
+const formatConnectedCollectionsMessage = (count) =>
   count === 1
     ? '1 collection syncs from this spec. Deleting it will stop that collection from getting updates.'
     : `${count} collections sync from this spec. Deleting it will stop them from getting updates.`;
@@ -27,7 +27,7 @@ const DeleteApiSpec = ({ onClose, apiSpec }) => {
       .catch((err) => toast.error(formatIpcError(err) || 'An error occurred while deleting the API Spec'));
 
   const warnings = connectedCollectionsCount > 0
-    ? [{ testId: 'api-spec-connected-collections-warning', message: connectedCollectionsMessage(connectedCollectionsCount) }]
+    ? [{ testId: 'api-spec-connected-collections-warning', message: formatConnectedCollectionsMessage(connectedCollectionsCount) }]
     : [];
 
   return (
