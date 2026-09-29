@@ -5,6 +5,7 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
+const { isBenchmarkEnabled } = require('./utils/benchmark');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -31,6 +32,10 @@ if (os.platform() === 'linux') {
   // to address https://github.com/usebruno/bruno/issues/5471
   // Runtime sets the default version to 3, refs https://github.com/electron/electron/pull/44426
   app.commandLine.appendSwitch('xdg-portal-required-version', '4');
+}
+
+if (isBenchmarkEnabled()) {
+  app.commandLine.appendSwitch('enable-precise-memory-info');
 }
 
 const menuTemplate = require('./app/menu-template');
