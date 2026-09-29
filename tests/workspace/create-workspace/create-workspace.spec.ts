@@ -427,6 +427,41 @@ test.describe('Create Workspace', () => {
       await closeElectronApp(app);
     });
 
+test('should allow a second workspace with the same display name', async ({ launchElectronApp, createTmpDir }) => {
+  const wsLocation = await createTmpDir('ws-location-dup-name');
+
+  const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+  const page = await waitForReadyPage(app);
+
+  const createOnce = async () => {
+    const modal = buildCreateWorkspaceModalLocators(page);
+    await openCreateWorkspaceModal(page);
+    await modal.nameInput().fill('Dup WS');
+    await modal.submitButton().click();
+    await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+  };
+
+  await test.step('Create the same display name twice', async () => {
+    await createOnce();
+    await createOnce();
+  });
+
+  await test.step('Verify two folders and one display name', async () => {
+    const wsDirs = findCreatedWorkspaceDirs(wsLocation).sort();
+    expect(wsDirs).toEqual(['Dup WS', 'Dup WS 1']);
+
+    for (const dir of wsDirs) {
+      const config = yaml.load(
+        fs.readFileSync(path.join(wsLocation, dir, 'workspace.yml'), 'utf8')
+      ) as WorkspaceConfig;
+      expect(config?.info?.name).toBe('Dup WS');
+    }
+  });
+
+  await closeElectronApp(app);
+});
+
+
     test('should suffix the directory when the target folder already exists and is not empty', async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-occupied');
       const occupiedDir = path.join(wsLocation, 'Occupied WS');
