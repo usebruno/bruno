@@ -37,7 +37,7 @@ const General = () => {
       .test('isNumber', 'Request Timeout must be a number', (value) => {
         return value === undefined || !isNaN(value);
       })
-      .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
+      .test('isValidTimeout', 'Request Timeout must be greater than or equal to 0', (value) => {
         return value === undefined || Number(value) >= 0;
       }),
     autoSave: Yup.object({
