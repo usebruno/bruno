@@ -94,7 +94,7 @@
     "lint:fix": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint --fix",
     "prepare": "husky",
     "version:bump":"npx lerna version --exact --since=$(git describe --tags $(git rev-list --tags --max-count=1)) --dry-run",
-    "version:since:last":"npx lerna from-package --dry-run"
+    "version:since:last":"npx lerna publish from-package --dry-run"
   },
   "nano-staged": {
     "*.{js,ts,jsx}": [
