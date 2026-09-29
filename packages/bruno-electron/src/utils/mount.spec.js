@@ -21,11 +21,17 @@ describe('mount denylist', () => {
     expect(isDenied('hidden-other/request.bru', denylist)).toBe(false);
   });
 
-  test('a glob that matches a directory denies files beneath it', () => {
+  test('a glob denies the path it matches and not files beneath that directory', () => {
     const denylist = resolveDenylist(['**/hidden']);
 
     expect(isDenied('nested/hidden', denylist)).toBe(true);
-    expect(isDenied('nested/hidden/request.bru', denylist)).toBe(true);
+    expect(isDenied('nested/hidden/request.bru', denylist)).toBe(false);
     expect(isDenied('nested/visible/request.bru', denylist)).toBe(false);
+  });
+
+  test('a trailing slash on a glob does not match every path', () => {
+    expect(isDenied('foo/bar.bru', resolveDenylist(['**/']))).toBe(false);
+    expect(isDenied('visible.bru', resolveDenylist(['*/']))).toBe(false);
+    expect(isDenied('dir/file.bru', resolveDenylist(['*/']))).toBe(false);
   });
 });

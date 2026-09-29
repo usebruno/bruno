@@ -52,7 +52,13 @@ describe('FileIndex denylist', () => {
     expect([...entries.keys()]).toEqual(['visible.bru']);
   });
 
-  test('does not return rows under a glob-denied directory', () => {
+  test('does not return a row whose path matches a glob', () => {
+    const entries = index.entries(collectionPath, { denylist: ['hidden/**'] });
+
+    expect([...entries.keys()]).toEqual(['visible.bru']);
+  });
+
+  test('returns a cached file when only an ancestor directory matches the glob', () => {
     const nestedHidden = path.join(collectionPath, 'nested', 'hidden');
     fs.mkdirSync(nestedHidden, { recursive: true });
     fs.writeFileSync(path.join(nestedHidden, 'request.bru'), 'nested-hidden');
@@ -60,7 +66,19 @@ describe('FileIndex denylist', () => {
 
     const entries = index.entries(collectionPath, { denylist: ['**/hidden'] });
 
-    expect([...entries.keys()]).toEqual(['visible.bru']);
+    expect([...entries.keys()].sort()).toEqual([
+      'visible.bru',
+      path.join('hidden', 'request.bru'),
+      path.join('nested', 'hidden', 'request.bru')
+    ].sort());
+  });
+
+  test('does not remove cached rows for a trailing-slash glob', async () => {
+    const { removed } = await index.status(collectionPath, { denylist: ['**/'] });
+    const removedPaths = removed.map(({ relativePath }) => relativePath);
+
+    expect(removedPaths).not.toContain('visible.bru');
+    expect(removedPaths).not.toContain(path.join('hidden', 'request.bru'));
   });
 
   test('marks previously cached denied rows for removal', async () => {

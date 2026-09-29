@@ -16,23 +16,25 @@ const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])]
 
 const GLOB_METACHAR = /[*?[\]{}]/;
 
-const isDenied = (relativePathPosix, patterns) => {
+// Plain folder names are prefixes, same as the watcher. Globs stay path.matchesGlob
+// on the path itself: stripping a trailing slash turns `**/` into `**`.
+const matchesPlainPrefix = (relativePathPosix, patterns) => {
   for (const pattern of patterns) {
-    const normalizedPattern = posixifyPath(pattern).replace(/\/+$/, '');
-    if (!normalizedPattern) continue;
-    if (
-      relativePathPosix === normalizedPattern
-      || relativePathPosix.startsWith(`${normalizedPattern}/`)
-      || path.matchesGlob(relativePathPosix, normalizedPattern)
-    ) return true;
+    const raw = posixifyPath(pattern);
+    if (!raw || GLOB_METACHAR.test(raw)) continue;
+    const folder = raw.replace(/\/+$/, '');
+    if (!folder) continue;
+    if (relativePathPosix === folder || relativePathPosix.startsWith(`${folder}/`)) return true;
+  }
+  return false;
+};
 
-    if (!GLOB_METACHAR.test(normalizedPattern)) continue;
-    const segments = relativePathPosix.split('/');
-    let ancestor = '';
-    for (let i = 0; i < segments.length - 1; i++) {
-      ancestor = ancestor ? `${ancestor}/${segments[i]}` : segments[i];
-      if (path.matchesGlob(ancestor, normalizedPattern)) return true;
-    }
+const isDenied = (relativePathPosix, patterns) => {
+  if (matchesPlainPrefix(relativePathPosix, patterns)) return true;
+  for (const pattern of patterns) {
+    const raw = posixifyPath(pattern);
+    if (!raw || !GLOB_METACHAR.test(raw)) continue;
+    if (path.matchesGlob(relativePathPosix, raw)) return true;
   }
   return false;
 };
@@ -70,7 +72,7 @@ const walk = (root, denylist) => {
 
       if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
-        if (isDenied(posixifyPath(childRel), denylist)) continue;
+        if (matchesPlainPrefix(posixifyPath(childRel), denylist)) continue;
         visit(childAbs, childRel);
       } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;
