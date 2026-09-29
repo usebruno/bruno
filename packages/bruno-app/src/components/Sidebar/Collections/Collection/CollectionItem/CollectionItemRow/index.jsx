@@ -70,6 +70,7 @@ import useKeybinding from 'hooks/useKeybinding';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
+import useKeybindings, { Key, Modifier, createKeybinding } from 'hooks/useKeybindings';
 
 const CollectionItemRow = ({
   item,
@@ -421,12 +422,15 @@ const CollectionItemRow = ({
           id: 'new-request',
           leftSection: IconFilePlus,
           label: 'New Request',
+          keyBinding: Key.N,
           onClick: () => setNewRequestModalOpen(true)
         },
         {
           id: 'new-folder',
           leftSection: IconFolderPlus,
           label: 'New Folder',
+          keyBinding: Key.F,
+          modifiers: [Modifier.Shift],
           onClick: () => setNewFolderModalOpen(true)
         },
         {
@@ -439,6 +443,7 @@ const CollectionItemRow = ({
           id: 'run',
           leftSection: IconPlayerPlay,
           label: 'Run',
+          keyBinding: Key.X,
           onClick: () => setRunCollectionModalOpen(true)
         }
       );
@@ -449,6 +454,8 @@ const CollectionItemRow = ({
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
+        keyBinding: Key.D,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handleCloneItem
       });
     }
@@ -457,6 +464,8 @@ const CollectionItemRow = ({
       id: 'copy',
       leftSection: IconCopy,
       label: 'Copy',
+      keyBinding: Key.C,
+      modifiers: [Modifier.CmdOrCtrl],
       onClick: handleCopyItem
     });
 
@@ -465,6 +474,8 @@ const CollectionItemRow = ({
         id: 'paste',
         leftSection: IconClipboard,
         label: 'Paste',
+        keyBinding: Key.V,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handlePasteItem
       });
     }
@@ -474,6 +485,7 @@ const CollectionItemRow = ({
         id: 'rename',
         leftSection: IconEdit,
         label: 'Rename',
+        keyBinding: [Key.R, Key.Enter],
         onClick: () => setRenameItemModalOpen(true)
       }
     );
@@ -482,6 +494,7 @@ const CollectionItemRow = ({
         id: 'run',
         leftSection: IconPlayerPlay,
         label: 'Run',
+        keyBinding: Key.X,
         onClick: () => {
           handleRun();
         }
@@ -493,6 +506,7 @@ const CollectionItemRow = ({
         id: 'generate-code',
         leftSection: IconCode,
         label: 'Generate Code',
+        keyBinding: Key.G,
         onClick: handleGenerateCode
       });
     }
@@ -502,6 +516,8 @@ const CollectionItemRow = ({
         id: 'create-example',
         leftSection: ExampleIcon,
         label: 'Create Example',
+        keyBinding: Key.E,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: () => setCreateExampleModalOpen(true)
       });
     }
@@ -511,6 +527,8 @@ const CollectionItemRow = ({
         id: 'show-in-folder',
         leftSection: IconFolder,
         label: getRevealInFolderLabel(),
+        keyBinding: Key.Period,
+        modifiers: [Modifier.CmdOrCtrl],
         onClick: handleShowInFolder
       }
     );
@@ -530,6 +548,7 @@ const CollectionItemRow = ({
       id: 'info',
       leftSection: IconInfoCircle,
       label: 'Info',
+      keyBinding: Key.I,
       onClick: () => setItemInfoModalOpen(true)
     });
 
@@ -539,12 +558,14 @@ const CollectionItemRow = ({
           id: 'settings',
           leftSection: IconSettings,
           label: 'Settings',
+          keyBinding: Key.S,
           onClick: viewFolderSettings
         },
         {
           id: 'open-terminal',
           leftSection: IconTerminal2,
           label: 'Open in Terminal',
+          keyBinding: Key.T,
           onClick: async () => {
             const folderCwd = item.pathname || collectionPathname;
             await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
@@ -558,6 +579,7 @@ const CollectionItemRow = ({
       leftSection: IconTrash,
       label: 'Delete',
       className: 'delete-item',
+      keyBinding: [Key.Delete, Key.Backspace],
       onClick: () => setDeleteItemModalOpen(true)
     });
 
@@ -567,18 +589,6 @@ const CollectionItemRow = ({
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
   });
-
-  if (searchText && searchText.length) {
-    if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
-        return null;
-      }
-    } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
-        return null;
-      }
-    }
-  }
 
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
@@ -706,6 +716,34 @@ const CollectionItemRow = ({
     dispatch(setFocusedSidebarPath(null));
   };
 
+  const menuItems = buildMenuItems();
+  const keybindings = useKeybindings(Object.entries(menuItems).reduce((acc, [_, item]) => {
+    const keyBindings = Array.isArray(item.keyBinding) ? item.keyBinding : [item.keyBinding];
+    if (item.keyBinding) {
+      keyBindings.forEach((keyBinding) => {
+        acc[keyBinding] = createKeybinding({
+          actionFn: item.onClick,
+          modifiers: item.modifiers || [],
+          alias: item.id,
+          description: item.label
+        });
+      });
+    }
+    return acc;
+  }, {}), { preventDefault: true, stopPropagation: true });
+
+  if (searchText && searchText.length) {
+    if (isItemARequest(item)) {
+      if (!doesRequestMatchSearchText(item, searchText)) {
+        return null;
+      }
+    } else {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+        return null;
+      }
+    }
+  }
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && (
@@ -749,6 +787,7 @@ const CollectionItemRow = ({
         className={itemRowClassName}
         ref={ref}
         tabIndex={0}
+        onKeyDown={keybindings.handleKeyPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
@@ -814,7 +853,7 @@ const CollectionItemRow = ({
             <div className="pr-2 collection-actions">
               <MenuDropdown
                 ref={menuDropdownRef}
-                items={buildMenuItems()}
+                items={menuItems}
                 placement="bottom-start"
                 data-testid="collection-item-menu"
                 popperOptions={{ strategy: 'fixed' }}

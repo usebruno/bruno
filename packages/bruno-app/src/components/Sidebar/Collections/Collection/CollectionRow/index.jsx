@@ -58,6 +58,8 @@ import StatusBadge from 'ui/StatusBadge';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
+import useKeybindings, { createKeybinding, Key, Modifier, getKeybindingTooltip } from 'hooks/useKeybindings';
+import usePlatform from 'hooks/usePlatform';
 
 const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
@@ -78,6 +80,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
 
+  const platform = usePlatform();
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
@@ -367,12 +370,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   drag(drop(collectionRef));
   dragPreview(getEmptyImage(), { captureDraggingState: true });
 
-  if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
-      return null;
-    }
-  }
-
   const collectionRowClassName = classnames(
     'flex py-1 collection-name items-center relative',
     {
@@ -388,6 +385,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const menuItems = [
     {
       id: 'new-request',
+      keyBinding: Key.N,
       leftSection: IconFilePlus,
       label: 'New Request',
       onClick: () => {
@@ -397,6 +395,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'new-folder',
+      keyBinding: Key.N,
+      modifiers: [Modifier.Shift],
       leftSection: IconFolderPlus,
       label: 'New Folder',
       onClick: () => {
@@ -417,6 +417,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       id: 'run',
       leftSection: IconPlayerPlay,
       label: 'Run',
+      keyBinding: Key.X,
       onClick: () => {
         ensureCollectionIsMounted();
         handleRun();
@@ -425,6 +426,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'clone',
       leftSection: IconCopy,
+      keyBinding: Key.C,
+      modifiers: [Modifier.CmdOrCtrl],
       label: 'Clone',
       testId: 'clone-collection',
       onClick: () => {
@@ -441,6 +444,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       ? [
           {
             id: 'paste',
+            keyBinding: Key.V,
+            modifiers: [Modifier.CmdOrCtrl],
             leftSection: IconClipboard,
             label: 'Paste',
             onClick: handlePasteItem
@@ -449,6 +454,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       : []),
     {
       id: 'rename',
+      keyBinding: Key.R,
       leftSection: IconEdit,
       label: 'Rename',
       onClick: () => {
@@ -466,6 +472,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'generate-docs',
+      keyBinding: Key.D,
       leftSection: IconBook,
       label: 'Generate Docs',
       onClick: () => {
@@ -475,14 +482,17 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'collapse',
+      keyBinding: Key.H,
       leftSection: IconFoldDown,
       label: 'Collapse',
       onClick: handleCollapseFullCollection
     },
     {
       id: 'show-in-folder',
+      keyBinding: Key.Period,
+      modifiers: [Modifier.CmdOrCtrl],
       leftSection: IconFolder,
-      label: getRevealInFolderLabel(),
+      label: 'Show in Folder',
       onClick: handleShowInFolder
     },
     ...(isMockServerEnabled ? [{
@@ -505,6 +515,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'terminal',
       leftSection: IconTerminal2,
+      keyBinding: Key.T,
       label: 'Open in Terminal',
       onClick: async () => {
         const collectionCwd = collection.pathname;
@@ -527,12 +538,36 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'remove',
       leftSection: IconX,
+      keyBinding: [Key.Delete, Key.Backspace],
       label: 'Remove',
       onClick: () => {
         setShowRemoveCollectionModal(true);
       }
     }
   ];
+
+  const collectionKeybindings = useKeybindings(
+    Object.entries(menuItems).reduce((acc, [_, item]) => {
+      const keyBindings = Array.isArray(item.keyBinding) ? item.keyBinding : [item.keyBinding];
+      if (item.keyBinding) {
+        keyBindings.forEach((keyBinding) => {
+          acc[keyBinding] = createKeybinding({
+            actionFn: item.onClick,
+            modifiers: item.modifiers || [],
+            alias: item.id,
+            description: item.label
+          });
+        });
+      }
+      return acc;
+    }, {}),
+    { preventDefault: true, stopPropagation: true });
+
+  if (searchText && searchText.length) {
+    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
+      return null;
+    }
+  }
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -567,6 +602,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         className={collectionRowClassName}
         ref={collectionRef}
         tabIndex={0}
+        onKeyDown={collectionKeybindings.handleKeyPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}
