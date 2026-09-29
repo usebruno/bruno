@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -17,7 +17,7 @@ import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
 import StyledWrapper from './StyledWrapper';
 import CollectionSourceFields from './CollectionSourceFields';
 import UrlSourceField from './UrlSourceField';
-import AdvancedSettings from './AdvancedSettings';
+import SpecLocationField from './SpecLocationField';
 import useApiSpecUrlSource from './useApiSpecUrlSource';
 import useCollectionSource from './useCollectionSource';
 import {
@@ -39,8 +39,6 @@ const CreateApiSpec = ({ onClose }) => {
 
   const sourceMemoryRef = useRef({});
 
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-
   const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
@@ -61,7 +59,7 @@ const CreateApiSpec = ({ onClose }) => {
 
   const formik = useFormik({
     initialValues: {
-      importFrom: API_SPEC_SOURCE.COLLECTION,
+      importFrom: API_SPEC_SOURCE.BLANK,
       specUrl: '',
       collectionSource: COLLECTION_SOURCE.WORKSPACE,
       collectionUid: '',
@@ -298,14 +296,11 @@ const CreateApiSpec = ({ onClose }) => {
     formik.setFieldValue('apiSpecName', derivedName);
   }, [formik.values.importFrom, collectionSource.derivedName, urlSource.derivedName]);
 
-  const isAdvancedSettingsOpen = showAdvancedSettings
-    || Boolean(formik.touched.apiSpecLocation && formik.errors.apiSpecLocation);
-
   const onSubmit = () => formik.handleSubmit();
 
   const sourceRadios = [
-    { value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
     { value: API_SPEC_SOURCE.BLANK, label: 'Blank Spec' },
+    { value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
     { value: API_SPEC_SOURCE.URL, label: 'From Spec URL' }
   ];
 
@@ -323,15 +318,15 @@ const CreateApiSpec = ({ onClose }) => {
           handleConfirm={onSubmit}
           handleCancel={onClose}
         >
-          <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+          <form className="bruno-form w-[500px] max-w-full" onSubmit={(e) => e.preventDefault()}>
             <div>
               <label className="block font-semibold mb-2">Source</label>
-              <div className="flex items-center">
-                {sourceRadios.map(({ value, label }, index) => (
-                  <React.Fragment key={value}>
+              <div className="flex items-center gap-[28px]">
+                {sourceRadios.map(({ value, label }) => (
+                  <div key={value} className="flex items-center">
                     <input
                       id={value}
-                      className={`cursor-pointer ${index ? 'ml-4' : ''}`}
+                      className="cursor-pointer w-[18px] h-[18px]"
                       type="radio"
                       name="importFrom"
                       value={value}
@@ -341,7 +336,7 @@ const CreateApiSpec = ({ onClose }) => {
                     <label htmlFor={value} className="ml-1 cursor-pointer select-none">
                       {label}
                     </label>
-                  </React.Fragment>
+                  </div>
                 ))}
               </div>
 
@@ -352,6 +347,7 @@ const CreateApiSpec = ({ onClose }) => {
                   workspaceCollections={workspaceCollections}
                   selectedWorkspaceCollection={selectedWorkspaceCollection}
                   environmentNames={Object.keys(collectionSource.environments || {})}
+                  loadError={collectionSource.loadError}
                   onSelectSource={selectCollectionSource}
                   onSelectCollection={(collectionUid) => formik.setFieldValue('collectionUid', collectionUid)}
                   onSelectEnvironment={(environmentName) => formik.setFieldValue('environment', environmentName)}
@@ -369,8 +365,8 @@ const CreateApiSpec = ({ onClose }) => {
                 />
               ) : null}
 
-              <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
-                Spec Name
+              <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-5">
+                Name
               </label>
               <div className="relative">
                 <input
@@ -378,7 +374,7 @@ const CreateApiSpec = ({ onClose }) => {
                   type="text"
                   name="apiSpecName"
                   ref={inputRef}
-                  className="block textbox mt-2 !pr-11 w-full"
+                  className="block textbox mt-1 !pr-11 w-full"
                   onChange={(e) => {
                     apiSpecNameEditedRef.current = Boolean(e.target.value.trim());
                     formik.handleChange(e);
@@ -394,15 +390,10 @@ const CreateApiSpec = ({ onClose }) => {
                 </div>
               </div>
               {formik.touched.apiSpecName && formik.errors.apiSpecName ? (
-                <div className="text-red-500">{formik.errors.apiSpecName}</div>
+                <div className="text-red-500 break-words">{formik.errors.apiSpecName}</div>
               ) : null}
 
-              <AdvancedSettings
-                formik={formik}
-                isOpen={isAdvancedSettingsOpen}
-                onToggle={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                onBrowse={browse}
-              />
+              <SpecLocationField formik={formik} onBrowse={browse} />
             </div>
           </form>
         </Modal>

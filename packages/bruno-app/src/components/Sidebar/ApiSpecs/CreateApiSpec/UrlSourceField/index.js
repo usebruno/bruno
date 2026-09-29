@@ -3,9 +3,6 @@ import { IconLink } from '@tabler/icons';
 
 const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl }) => (
   <>
-    <label htmlFor="spec-url" className="block font-semibold mt-3">
-      Spec URL
-    </label>
     <div className="relative mt-2">
       {formik.values.specUrl ? (
         <span className="input-icon">
@@ -16,8 +13,8 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
         id="spec-url"
         type="text"
         name="specUrl"
-        className={`block textbox w-full ${formik.values.specUrl ? '!pl-9' : ''}`}
-        placeholder="https://example.com/openapi.yaml"
+        className={`mt-4 block textbox w-full ${formik.values.specUrl ? '!pl-9' : ''}`}
+        placeholder="https://api.example.com/openapi.json"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
@@ -53,10 +50,10 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
       </div>
     ) : null}
     {error ? (
-      <div className="text-red-500" data-testid="api-spec-url-error">{error}</div>
+      <div className="text-red-500 break-words" data-testid="api-spec-url-error">{error}</div>
     ) : null}
     {!isFetching && !error && formik.touched.specUrl && formik.errors.specUrl ? (
-      <div className="text-red-500">{formik.errors.specUrl}</div>
+      <div className="text-red-500 break-words">{formik.errors.specUrl}</div>
     ) : null}
   </>
 );

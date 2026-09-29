@@ -1,9 +1,6 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  && .bruno-modal-card {
-    width: 610px;
-  }
 
   .api-spec-file-extension {
     color: ${(props) => props.theme.colors.text.darkOrange};
@@ -29,19 +26,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .advanced-settings-toggle {
-    color: ${(props) => props.theme.textLink};
-    font-weight: 600;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
   /* Small enough to sit inside the modal rather than spilling past its edge. */
   .api-spec-hint-tooltip {
     max-width: 200px;
@@ -58,6 +42,7 @@ const StyledWrapper = styled.div`
       gap: 2px;
       box-sizing: border-box;
       border-radius: 6px;
+      margin-top: 18px;
     }
 
     .segment {

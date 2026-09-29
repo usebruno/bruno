@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import { sanitizeName } from 'utils/common/regex';
 import { getBasename } from 'utils/common/path';
+import { formatIpcError } from 'utils/common/error';
 
 const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsLoaded, onFilesSkipped }) => {
   const [collectionData, setCollectionData] = useState(null);
   const [environments, setEnvironments] = useState({});
   const [derivedName, setDerivedName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (!collectionPathname) {
@@ -15,6 +16,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
       setEnvironments({});
       setDerivedName('');
       setIsLoading(false);
+      setLoadError('');
       onEnvironmentsLoaded('');
       return;
     }
@@ -23,6 +25,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
     setCollectionData(null);
     setEnvironments({});
     setIsLoading(true);
+    setLoadError('');
     onEnvironmentsLoaded('');
 
     let cancelled = false;
@@ -56,7 +59,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
         setEnvironments({});
         setIsLoading(false);
         onEnvironmentsLoaded('');
-        toast.error(err?.message || 'Failed to load collection');
+        setLoadError(formatIpcError(err) || 'Failed to load collection');
       });
 
     return () => {
@@ -64,7 +67,7 @@ const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsL
     };
   }, [collectionPathname]);
 
-  return { collectionData, environments, derivedName, isLoading };
+  return { collectionData, environments, derivedName, isLoading, loadError };
 };
 
 export default useCollectionSource;

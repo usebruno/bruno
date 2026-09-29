@@ -71,7 +71,6 @@ export const createApiSpec = async (
 
     await modal.getByLabel('Blank Spec').check();
     await modal.locator('#api-spec-name').fill(name);
-    await modal.getByTestId('api-spec-advanced-settings-toggle').click();
     await modal.locator('#api-spec-location').click();
     await expect(modal.locator('#api-spec-location')).toHaveValue(location);
 

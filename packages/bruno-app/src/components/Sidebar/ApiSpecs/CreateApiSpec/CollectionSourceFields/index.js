@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip } from 'react-tooltip';
 import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
-import { IconCaretDown, IconFolder } from '@tabler/icons';
+import { IconChevronDown, IconFolder } from '@tabler/icons';
 import { COLLECTION_SOURCE, COLLECTION_SOURCE_ITEMS } from '../apiSpecSources';
 
 const NO_COLLECTIONS_HINT = 'No collections in this workspace';
@@ -13,6 +13,7 @@ const CollectionSourceFields = ({
   workspaceCollections,
   selectedWorkspaceCollection,
   environmentNames,
+  loadError,
   onSelectSource,
   onSelectCollection,
   onSelectEnvironment,
@@ -40,7 +41,7 @@ const CollectionSourceFields = ({
 
   return (
     <>
-      <div className="mt-2 collection-source-control">
+      <div className="collection-source-control">
         <SegmentedControl
           ariaLabel="Collection source"
           name="collectionSource"
@@ -84,11 +85,11 @@ const CollectionSourceFields = ({
                   <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
                     {selectedWorkspaceCollection?.name || 'Select a collection'}
                   </span>
-                  <IconCaretDown className="caret" size={14} strokeWidth={2} />
+                  <IconChevronDown className="caret" size={14} strokeWidth={2} />
                 </button>
               </MenuDropdown>
-              {formik.touched.collectionUid && formik.errors.collectionUid ? (
-                <div className="text-red-500">{formik.errors.collectionUid}</div>
+              {loadError || (formik.touched.collectionUid && formik.errors.collectionUid) ? (
+                <div className="text-red-500 break-words">{loadError || formik.errors.collectionUid}</div>
               ) : null}
             </>
           ) : null}
@@ -117,8 +118,8 @@ const CollectionSourceFields = ({
               onClick={onBrowseCollection}
             />
           </div>
-          {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
-            <div className="text-red-500">{formik.errors.collectionLocation}</div>
+          {loadError || (formik.touched.collectionLocation && formik.errors.collectionLocation) ? (
+            <div className="text-red-500 break-words">{loadError || formik.errors.collectionLocation}</div>
           ) : null}
 
           {formik.values.collectionLocation ? (
@@ -153,7 +154,7 @@ const CollectionSourceFields = ({
               data-testid="api-spec-environment-trigger"
             >
               <span className="truncate">{formik.values.environment}</span>
-              <IconCaretDown className="caret" size={14} strokeWidth={2} />
+              <IconChevronDown className="caret" size={14} strokeWidth={2} />
             </button>
           </MenuDropdown>
         </>

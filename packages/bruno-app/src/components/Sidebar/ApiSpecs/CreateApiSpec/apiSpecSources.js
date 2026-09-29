@@ -13,7 +13,7 @@ export const COLLECTION_SOURCE = {
 };
 
 export const COLLECTION_SOURCE_ITEMS = [
-  { value: COLLECTION_SOURCE.WORKSPACE, label: 'Select from existing' },
+  { value: COLLECTION_SOURCE.WORKSPACE, label: 'From workspace' },
   { value: COLLECTION_SOURCE.FILESYSTEM, label: 'From file system' }
 ];
 
