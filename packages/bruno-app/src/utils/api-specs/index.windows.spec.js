@@ -4,7 +4,7 @@ jest.mock('platform', () => ({
   }
 }));
 
-import { findApiSpecByPathname, getApiSpecTabUid, isApiSpecTabForPathname } from './index';
+import { countCollectionsSyncingFromSpec, findApiSpecByPathname, getApiSpecTabUid, isApiSpecTabForPathname } from './index';
 
 const SCRATCH_UID = 'scratch-a';
 
@@ -29,5 +29,14 @@ describe('API spec identity on Windows, where file paths ignore case', () => {
     const tab = { type: 'api-spec', apiSpecPathname: 'C:\\Workspace\\Petstore.yaml' };
 
     expect(isApiSpecTabForPathname(tab, 'c:/workspace/petstore.yaml')).toBe(true);
+  });
+});
+
+describe('countCollectionsSyncingFromSpec on Windows', () => {
+  it('matches a backslash relative sync source to the spec regardless of case', () => {
+    const workspace = { collections: [{ path: 'C:\\Work\\orders' }] };
+    const collections = [{ pathname: 'C:\\Work\\orders', brunoConfig: { openapi: [{ sourceUrl: '..\\specs\\Orders.yaml' }] } }];
+
+    expect(countCollectionsSyncingFromSpec(collections, workspace, 'c:/work/specs/orders.yaml')).toBe(1);
   });
 });

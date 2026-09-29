@@ -1,0 +1,26 @@
+import styled from 'styled-components';
+
+const StyledWrapper = styled.div`
+  .api-spec-info-card {
+    background-color: ${(props) => props.theme.modal.title.bg};
+    border-radius: 4px;
+    padding: 12px;
+  }
+
+  .api-spec-name {
+    font-weight: 500;
+    color: ${(props) => props.theme.text};
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .api-spec-path {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+    word-break: break-all;
+  }
+`;
+
+export default StyledWrapper;

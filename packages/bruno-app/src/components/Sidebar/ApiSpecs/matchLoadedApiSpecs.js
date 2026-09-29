@@ -13,6 +13,9 @@ import { getApiSpecPathKey } from 'utils/api-specs';
  *
  * @param {Array} workspaceApiSpecs - spec entries from the active workspace (each has `path`)
  * @param {Array} allApiSpecs - loaded specs in redux (each has `pathname`)
+ * The returned spec carries the workspace entry's name, which the user can rename, and
+ * falls back to the watcher's name only when the entry has none.
+ *
  * @returns {Array} loaded specs that correspond to the workspace entries
  */
 export const matchLoadedApiSpecs = (workspaceApiSpecs, allApiSpecs) => {
@@ -23,7 +26,9 @@ export const matchLoadedApiSpecs = (workspaceApiSpecs, allApiSpecs) => {
     .map((ws) => {
       const wsPathKey = getApiSpecPathKey(ws?.path);
       if (!wsPathKey) return undefined;
-      return loadedApiSpecs.find((apiSpec) => getApiSpecPathKey(apiSpec?.pathname) === wsPathKey);
+      const loadedSpec = loadedApiSpecs.find((apiSpec) => getApiSpecPathKey(apiSpec?.pathname) === wsPathKey);
+      if (!loadedSpec) return undefined;
+      return { ...loadedSpec, name: ws.name || loadedSpec.name };
     })
     .filter(Boolean);
 };
