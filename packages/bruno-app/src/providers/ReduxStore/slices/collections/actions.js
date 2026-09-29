@@ -77,6 +77,8 @@ import {
   addSaveTransientRequestModal,
   updatePathParam,
   toggleCollection,
+  expandCollection,
+  expandItem,
   setSidebarSelection
 } from './index';
 
@@ -97,7 +99,8 @@ import {
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
   mergeHeaders,
-  isPathOrDescendant
+  isPathOrDescendant,
+  isCollectionItemCollapsed
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
@@ -3565,6 +3568,48 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
         reject();
       });
   });
+};
+
+export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) {
+    return 'skipped';
+  }
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) {
+    return collection.mountStatus === 'mounted' && !collection.isLoading ? 'skipped' : 'pending';
+  }
+
+  if (collection.collapsed) {
+    dispatch(expandCollection(collection.uid));
+  }
+
+  const treePath = getTreePathFromCollectionToItem(collection, item);
+  const nodes = expandTarget ? treePath : treePath.slice(0, -1);
+
+  nodes.forEach((node) => {
+    if (isCollectionItemCollapsed(node)) {
+      dispatch(expandItem({ collectionUid, itemUid: node.uid }));
+    }
+  });
+
+  return 'revealed';
+};
+
+export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
+  const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
+  if (!tab?.collectionUid) {
+    return 'skipped';
+  }
+
+  const isExampleTab = tab.type === 'response-example';
+
+  return dispatch(revealItemInSidebar({
+    collectionUid: tab.collectionUid,
+    itemUid: isExampleTab ? tab.itemUid : tab.uid,
+    expandTarget: isExampleTab
+  }));
 };
 
 /**

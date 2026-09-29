@@ -10,8 +10,8 @@ import {
 } from '@tabler/icons';
 import { flattenItems, isItemARequest, isItemAFolder, findParentItemInCollection } from 'utils/collections';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { toggleCollectionItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { expandCollection } from 'providers/ReduxStore/slices/collections';
+import { mountCollection, revealItemInSidebar } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
@@ -179,19 +179,16 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     ensureCollectionIsMounted(collection);
 
     if (collection.collapsed) {
-      dispatch(toggleCollection(collection.uid));
+      dispatch(expandCollection(collection.uid));
     }
 
-    let currentItem = result.type === SEARCH_TYPES.FOLDER
-      ? result.item
-      : findParentItemInCollection(collection, result.item.uid);
+    if (result.type === SEARCH_TYPES.COLLECTION) return;
 
-    while (currentItem?.type === 'folder') {
-      if (currentItem.collapsed) {
-        dispatch(toggleCollectionItem({ collectionUid: collection.uid, itemUid: currentItem.uid }));
-      }
-      currentItem = findParentItemInCollection(collection, currentItem.uid);
-    }
+    dispatch(revealItemInSidebar({
+      collectionUid: collection.uid,
+      itemUid: result.item.uid,
+      expandTarget: result.type === SEARCH_TYPES.FOLDER
+    }));
   };
 
   const ensureCollectionIsMounted = (collection) => {
