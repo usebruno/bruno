@@ -307,12 +307,12 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Petstore'));
 
     window.ipcRenderer.invoke = jest.fn(() => Promise.reject(new Error(
-      'Error invoking remote method \'renderer:get-collection-json\': Error: No bruno.json or opencollection.yml found at this location'
+      `Error invoking remote method 'renderer:get-collection-json': Error: No bruno.json or opencollection.yml found in ${BILLING.pathname}`
     )));
     jest.spyOn(console, 'error').mockImplementation(() => {});
     await user.click(screen.getByTestId(`api-spec-collection-dropdown-${BILLING.uid}`));
     await waitFor(() => expect(
-      screen.getByText('No bruno.json or opencollection.yml found at this location')
+      screen.getByText(`No bruno.json or opencollection.yml found in ${BILLING.pathname}`)
     ).toBeInTheDocument());
     expect(toast.error).not.toHaveBeenCalled();
 

@@ -93,7 +93,7 @@ const CreateApiSpec = ({ onClose }) => {
           importFrom === API_SPEC_SOURCE.COLLECTION
           && (collectionSource === COLLECTION_SOURCE.FILESYSTEM || workspaceCollections.length === 0)
         ),
-        then: Yup.string().min(1, 'Collection location is required').required('Collection location is required'),
+        then: Yup.string().required('Collection location is required'),
         otherwise: Yup.string()
       }),
       environment: Yup.string(),
@@ -118,7 +118,7 @@ const CreateApiSpec = ({ onClose }) => {
       let specContent = '';
       let apiSpecExtension = DEFAULT_API_SPEC_EXTENSION;
 
-      if (values?.importFrom === API_SPEC_SOURCE.URL) {
+      if (values.importFrom === API_SPEC_SOURCE.URL) {
         const apiSpec = await urlSource.resolve(values.specUrl);
         if (!apiSpec) {
           return;
@@ -128,7 +128,7 @@ const CreateApiSpec = ({ onClose }) => {
       }
 
       let exportWarnings = [];
-      if (values?.importFrom === API_SPEC_SOURCE.COLLECTION) {
+      if (values.importFrom === API_SPEC_SOURCE.COLLECTION) {
         if (!collectionSource.collectionData?.configFile) {
           toast.error('Could not load that collection. Pick a folder that contains a bruno.json or opencollection.yml.');
           return;
@@ -191,7 +191,7 @@ const CreateApiSpec = ({ onClose }) => {
     const variables = buildSpecVariables({
       collectionVariables,
       envVariables,
-      environment: values?.environment,
+      environment: values.environment,
       processEnvVariables,
       workspaceProcessEnvVariables: activeWorkspace?.processEnvVariables
     });
@@ -202,7 +202,7 @@ const CreateApiSpec = ({ onClose }) => {
     }));
 
     const exported = exportApiSpec({
-      name: values?.apiSpecName,
+      name: values.apiSpecName,
       variables,
       items: requests,
       environments: environmentsList

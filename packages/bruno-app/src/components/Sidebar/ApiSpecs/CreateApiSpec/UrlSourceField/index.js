@@ -30,14 +30,10 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
             onResolveUrl(e.target.value);
           }
         }}
-
-        onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-
             e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
             onResolveUrl(e.target.value);
           }
         }}

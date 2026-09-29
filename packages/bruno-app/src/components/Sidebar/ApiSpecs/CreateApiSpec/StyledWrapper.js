@@ -1,15 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-
   .api-spec-file-extension {
     color: ${(props) => props.theme.colors.text.darkOrange};
-  }
-  select {
-    background: ${(props) => props.theme.bg};
-  }
-  option {
-    background: ${(props) => props.theme.bg};
   }
 
   .input-icon {
@@ -17,7 +10,7 @@ const StyledWrapper = styled.div`
     left: 0.5rem;
     top: 0;
     bottom: 0;
-    width: 16px;
+    width: 1rem;
     height: 100%;
     display: flex;
     align-items: center;
@@ -28,39 +21,39 @@ const StyledWrapper = styled.div`
 
   /* Small enough to sit inside the modal rather than spilling past its edge. */
   .api-spec-hint-tooltip {
-    max-width: 200px;
-    padding: 4px 8px;
+    max-width: 12.5rem;
+    padding: 0.25rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.3;
-    border-radius: 4px;
+    border-radius: 0.25rem;
   }
 
   .collection-source-control {
     [role='radiogroup'] {
-      height: 30px;
-      padding: 2px;
-      gap: 2px;
+      height: 1.875rem;
+      padding: 0.125rem;
+      gap: 0.125rem;
       box-sizing: border-box;
-      border-radius: 6px;
-      margin-top: 18px;
+      border-radius: 0.375rem;
+      margin-top: 1.125rem;
     }
 
     .segment {
-      height: 26px;
+      height: 1.625rem;
       box-sizing: border-box;
       justify-content: center;
-      padding: 5px 8px;
-      border-radius: 4.95px;
+      padding: 0.3125rem 0.5rem;
+      border-radius: 0.309375rem;
     }
 
     .segment-label {
-      line-height: 16px;
+      line-height: 1rem;
       white-space: nowrap;
     }
 
     .segment.active {
       background: ${(props) => props.theme.modal.body.bg};
-      border: 1px solid ${(props) => props.theme.input.border};
+      border: 0.0625rem solid ${(props) => props.theme.input.border};
       box-shadow: none;
     }
   }
@@ -72,12 +65,11 @@ const StyledWrapper = styled.div`
   }
 
   .collection-select-trigger {
-    box-sizing: border-box;
     gap: 0.5rem;
     padding: 0.3rem 0.6rem;
-    border-radius: 3px;
+    border-radius: 0.1875rem;
     background-color: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
+    border: 0.0625rem solid ${(props) => props.theme.input.border};
     color: ${(props) => props.theme.text};
     transition: border-color ease-in-out 0.1s;
     font: inherit;

@@ -64,34 +64,30 @@ const CollectionSourceFields = ({
 
       {isWorkspaceSource ? (
         <>
-          {workspaceCollections.length ? (
-            <>
-              <MenuDropdown
-                items={collectionItems}
-                selectedItemId={formik.values.collectionUid}
-                data-testid="api-spec-collection-dropdown"
-                menuClassName="max-h-64 overflow-y-auto"
-                placement="bottom-start"
-                appendTo={() => document.body}
-                popperOptions={{ strategy: 'fixed' }}
-                sameWidth
-              >
-                <button
-                  type="button"
-                  id="collection-select"
-                  className="collection-select-trigger flex items-center justify-between cursor-pointer mt-1 w-full"
-                  data-testid="api-spec-collection-trigger"
-                >
-                  <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
-                    {selectedWorkspaceCollection?.name || 'Select a collection'}
-                  </span>
-                  <IconChevronDown className="caret" size={14} strokeWidth={2} />
-                </button>
-              </MenuDropdown>
-              {loadError || (formik.touched.collectionUid && formik.errors.collectionUid) ? (
-                <div className="text-red-500 break-words">{loadError || formik.errors.collectionUid}</div>
-              ) : null}
-            </>
+          <MenuDropdown
+            items={collectionItems}
+            selectedItemId={formik.values.collectionUid}
+            data-testid="api-spec-collection-dropdown"
+            menuClassName="max-h-64 overflow-y-auto"
+            placement="bottom-start"
+            appendTo={() => document.body}
+            popperOptions={{ strategy: 'fixed' }}
+            sameWidth
+          >
+            <button
+              type="button"
+              id="collection-select"
+              className="collection-select-trigger flex items-center justify-between cursor-pointer mt-1 w-full"
+              data-testid="api-spec-collection-trigger"
+            >
+              <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
+                {selectedWorkspaceCollection?.name || 'Select a collection'}
+              </span>
+              <IconChevronDown className="caret" size={14} strokeWidth={2} />
+            </button>
+          </MenuDropdown>
+          {loadError || (formik.touched.collectionUid && formik.errors.collectionUid) ? (
+            <div className="text-red-500 break-words">{loadError || formik.errors.collectionUid}</div>
           ) : null}
         </>
       ) : (
