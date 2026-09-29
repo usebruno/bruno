@@ -23,7 +23,7 @@ const convertFileToObject = async (file) => {
       return JSON.parse(text);
     }
 
-    const parsed = jsyaml.load(text);
+    const parsed = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error();
     }
@@ -170,6 +170,9 @@ const FileTab = ({
         const filePath = window.ipcRenderer.getFilePath(file);
         const rawContent = await file.text();
         await handleSubmit({ rawData: data, type, filePath, rawContent });
+      } else if (type === 'wsdl') {
+        const filePath = window.ipcRenderer.getFilePath(file);
+        await handleSubmit({ rawData: data, type, filePath });
       } else {
         await handleSubmit({ rawData: data, type });
       }
@@ -271,7 +274,7 @@ const FileTab = ({
             </button>
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI v3, WSDL, and ZIP formats
+            Supports Bruno, OpenCollection, Postman, Insomnia, OpenAPI 3.x / Swagger 2.0, WSDL, and ZIP formats
           </p>
         </div>
       </div>

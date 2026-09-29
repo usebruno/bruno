@@ -1,0 +1,13 @@
+name: WithDescriptions
+
+variables:
+  - name: host
+    value: http://localhost:3000
+    description: Single-line desc
+  - name: token
+    value: abc123
+    description: |-
+      Line one
+      Line two
+  - name: plain
+    value: no-description

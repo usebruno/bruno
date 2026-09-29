@@ -29,8 +29,6 @@ const StyledWrapper = styled.div`
     position: relative;
   }
 
-  // Todo: dark mode temporary fix
-  // Clean this
   .CodeMirror.cm-s-monokai {
     .CodeMirror-overlayscroll-horizontal div,
     .CodeMirror-overlayscroll-vertical div {
@@ -60,6 +58,17 @@ const StyledWrapper = styled.div`
   }
   .cm-variable-invalid {
     color: ${(props) => props.theme.codemirror.variable.invalid};
+  }
+
+  .CodeMirror-matchingbracket {
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
   }
 `;
 

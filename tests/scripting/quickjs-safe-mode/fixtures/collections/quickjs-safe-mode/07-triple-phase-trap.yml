@@ -1,0 +1,37 @@
+info:
+  name: 07-triple-phase-trap
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: http://localhost:8081/api/large-payload?size=3145728
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const r = await bru.sendRequest({ url: 'http://localhost:8081/api/large-payload?size=3145728', method: 'GET' });
+        let preBlob = r.data;
+        for (let i = 0; i < 8; i++) {
+          preBlob = preBlob + preBlob;
+        }
+        bru.setVar('preLen', preBlob.length);
+    - type: after-response
+      code: |-
+        let postBlob = res.getBody();
+        for (let i = 0; i < 8; i++) {
+          postBlob = postBlob + postBlob;
+        }
+        bru.setVar('postLen', postBlob.length);
+    - type: tests
+      code: |-
+        test('all three phases ran despite each trapping its engine', function() {
+          let testBlob = res.getBody();
+          for (let i = 0; i < 8; i++) {
+            testBlob = testBlob + testBlob;
+          }
+          expect(testBlob.length).to.be.above(100000000);
+          expect(bru.getVar('preLen')).to.be.above(100000000);
+          expect(bru.getVar('postLen')).to.be.above(100000000);
+        });

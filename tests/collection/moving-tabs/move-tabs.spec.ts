@@ -1,5 +1,7 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { closeAllCollections, createCollection, createFolder, createRequest } from '../../utils/page';
+
+const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 
 test.describe('Move tabs', () => {
   test.afterEach(async ({ page }) => {
@@ -8,45 +10,17 @@ test.describe('Move tabs', () => {
   });
 
   test('Verify tab move by drag and drop', async ({ page, createTmpDir }) => {
-    // Create a collection
     await createCollection(page, 'source-collection-drag-drop', await createTmpDir('source-collection-drag-drop'));
-
-    // Create a folder in the collection
-    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-drag-drop' });
-    await sourceCollection.hover();
-    await sourceCollection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-
-    // Fill folder name in the modal
-    await expect(page.locator('#folder-name')).toBeVisible();
-    await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // Wait for the folder to be created and appear in the sidebar
-    await page.waitForTimeout(2000);
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
+    await createFolder(page, 'test-folder', 'source-collection-drag-drop');
 
     // Open the folder tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
-    // Add a request to the collection
-    await sourceCollection.hover();
-    await sourceCollection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-    await page.getByPlaceholder('Request Name').fill('test-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // Wait for the request to be created
-    await page.waitForTimeout(1000);
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
+    await createRequest(page, 'test-request', 'source-collection-drag-drop', { url: 'https://echo.usebruno.com' });
 
     // Open the request tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-request' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Verify order of tabs before move
@@ -86,45 +60,17 @@ test.describe('Move tabs', () => {
   });
 
   test('Verify tab move by keyboard shortcut', async ({ page, createTmpDir }) => {
-    // Create a collection
     await createCollection(page, 'source-collection-keyboard-shortcut', await createTmpDir('source-collection-keyboard-shortcut'));
-
-    // Create a folder in the collection
-    const sourceCollection = page.locator('.collection-name').filter({ hasText: 'source-collection-keyboard-shortcut' });
-    await sourceCollection.hover();
-    await sourceCollection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-
-    // Fill folder name in the modal
-    await expect(page.locator('#folder-name')).toBeVisible();
-    await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // Wait for the folder to be created and appear in the sidebar
-    await page.waitForTimeout(2000);
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
+    await createFolder(page, 'test-folder', 'source-collection-keyboard-shortcut');
 
     // Open the folder tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-folder' })).toBeVisible();
 
-    // Add a request to the collection
-    await sourceCollection.hover();
-    await sourceCollection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-    await page.getByPlaceholder('Request Name').fill('test-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('#new-request-url textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    // Wait for the request to be created
-    await page.waitForTimeout(1000);
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-request' })).toBeVisible();
+    await createRequest(page, 'test-request', 'source-collection-keyboard-shortcut', { url: 'https://echo.usebruno.com' });
 
     // Open the request tab
     await page.locator('.collection-item-name').filter({ hasText: 'test-request' }).dblclick();
-    await page.waitForTimeout(500);
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' })).toBeVisible();
 
     // Verify order of tabs before move
@@ -135,8 +81,7 @@ test.describe('Move tabs', () => {
     // Move the request tab before the folder tab using keyboard shortcut
     const source = page.locator('.request-tab .tab-label').filter({ hasText: 'test-request' });
     await source.click();
-    await page.keyboard.press('ControlOrMeta+Shift+PageUp');
-    await page.waitForTimeout(500);
+    await page.keyboard.press(`${modifier}+BracketLeft`);
 
     // Verify order of tabs after move
     await expect(tabs.nth(0)).toHaveText('GETtest-request');
@@ -144,8 +89,7 @@ test.describe('Move tabs', () => {
 
     // Move the request tab back to its original position using keyboard shortcut
     await source.click();
-    await page.keyboard.press('ControlOrMeta+Shift+PageDown');
-    await page.waitForTimeout(500);
+    await page.keyboard.press(`${modifier}+BracketRight`);
 
     // Verify order of tabs after move
     await expect(tabs.nth(0)).toHaveText('test-folder');

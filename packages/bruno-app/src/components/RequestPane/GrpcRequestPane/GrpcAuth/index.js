@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import GrpcAuthMode from './GrpcAuthMode';
@@ -8,33 +8,28 @@ import ApiKeyAuth from '../../Auth/ApiKeyAuth';
 import OAuth2 from '../../Auth/OAuth2/index';
 import WsseAuth from '../../Auth/WsseAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections';
-import { getTreePathFromCollectionToItem } from 'utils/collections/index';
+import InheritedAuth, { InheritedAuthSourceLabel } from '../../Auth/InheritedAuth';
+import { getEffectiveAuthSource } from 'utils/auth';
 import { updateRequestAuthMode, updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
-// List of auth modes supported by gRPC
-// Note: Only header-based auth modes work with gRPC
-// Complex auth modes like AWS Sig v4, Digest, and NTLM require axios interceptors
-// and cannot be supported in gRPC requests as of now
-const supportedGrpcAuthModes = ['basic', 'bearer', 'apikey', 'oauth2', 'wsse', 'none', 'inherit'];
+import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
 const GrpcAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
 
   const request = item.draft
     ? get(item, 'draft.request', {})
     : get(item, 'request', {});
 
-  const save = () => {
-    return saveRequest(item.uid, collection.uid);
-  };
+  const inheritedSource = useMemo(
+    () => (authMode === 'inherit' ? getEffectiveAuthSource(collection, item) : null),
+    [authMode, item, collection]
+  );
 
   // Reset to 'none' if current auth mode is not supported by gRPC
   useEffect(() => {
-    if (authMode && !supportedGrpcAuthModes.includes(authMode)) {
+    if (authMode && !AUTH_MODES_GRPC.includes(authMode)) {
       dispatch(
         updateRequestAuthMode({
           itemUid: item.uid,
@@ -45,77 +40,35 @@ const GrpcAuth = ({ item, collection }) => {
     }
   }, [authMode, collection.uid, dispatch, item.uid]);
 
-  const getEffectiveAuthSource = () => {
-    if (authMode !== 'inherit') return null;
-
-    const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const collectionAuth = get(collectionRoot, 'request.auth');
-    let effectiveSource = {
-      type: 'collection',
-      name: 'Collection',
-      auth: collectionAuth
-    };
-
-    // Check folders in reverse to find the closest auth configuration
-    for (let i of [...requestTreePath].reverse()) {
-      if (i.type === 'folder') {
-        const folderAuth = get(i, 'root.request.auth');
-        if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
-          effectiveSource = {
-            type: 'folder',
-            name: i.name,
-            auth: folderAuth
-          };
-          break;
-        }
-      }
-    }
-
-    return effectiveSource;
-  };
-
   const getAuthView = () => {
     switch (authMode) {
       case 'none': {
         return <div>No Auth</div>;
       }
       case 'basic': {
-        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BasicAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'bearer': {
-        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <BearerAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'apikey': {
-        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <ApiKeyAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'oauth2': {
-        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <OAuth2 collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'wsse': {
-        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} save={save} />;
+        return <WsseAuth collection={collection} item={item} updateAuth={updateAuth} request={request} />;
       }
       case 'inherit': {
-        const source = getEffectiveAuthSource();
-
-        // Only show inherited auth if it's one of the supported types
-        if (source && supportedGrpcAuthModes.includes(source.auth?.mode)) {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Auth inherited from {source.name}: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(source.auth?.mode)}</div>
-              </div>
-            </>
-          );
-        } else {
-          return (
-            <>
-              <div className="flex flex-row w-full gap-2">
-                <div>Inherited auth not supported by gRPC. Using no auth instead.</div>
-              </div>
-            </>
-          );
-        }
+        return (
+          <InheritedAuth
+            collection={collection}
+            item={item}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+          />
+        );
       }
       default: {
         return null;
@@ -125,6 +78,17 @@ const GrpcAuth = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full overflow-y-scroll">
+      <div className="flex flex-col items-start gap-2 mb-4 min-w-0">
+        <GrpcAuthMode item={item} collection={collection} />
+        {authMode === 'inherit' && inheritedSource ? (
+          <InheritedAuthSourceLabel
+            collection={collection}
+            inheritedSource={inheritedSource}
+            supportedModes={AUTH_MODES_GRPC}
+            protocolLabel="gRPC"
+          />
+        ) : null}
+      </div>
       {getAuthView()}
     </StyledWrapper>
   );

@@ -13,12 +13,15 @@ const QueryResponse = ({
   disableRunEventListener,
   headers,
   error,
-  hideResultTypeSelector
+  hideResultTypeSelector,
+  docKey
 }) => {
   const { initialFormat, initialTab } = useInitialResponseFormat(dataBuffer, headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(dataBuffer, headers);
   const [selectedFormat, setSelectedFormat] = useState('raw');
   const [selectedTab, setSelectedTab] = useState('editor');
+  const [filter, setFilter] = useState('');
+  const [filterExpanded, setFilterExpanded] = useState(false);
 
   useEffect(() => {
     if (initialFormat !== null && initialTab !== null) {
@@ -56,6 +59,11 @@ const QueryResponse = ({
           error={error}
           selectedFormat={selectedFormat}
           selectedTab={selectedTab}
+          filter={filter}
+          filterExpanded={filterExpanded}
+          onFilterChange={setFilter}
+          onFilterExpandChange={setFilterExpanded}
+          docKey={docKey}
         />
       </div>
     </StyledWrapper>

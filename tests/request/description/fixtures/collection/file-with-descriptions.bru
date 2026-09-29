@@ -1,0 +1,22 @@
+meta {
+  name: file-with-descriptions
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://example.com/upload
+  body: file
+  auth: none
+}
+
+body:file {
+  @description('''Single-line file desc''')
+  file: @file(/tmp/readme.pdf) @contentType(application/pdf)
+  @description('''
+    Multi-line file desc line one
+    Multi-line file desc line two
+  ''')
+  ~file: @file(/tmp/other.bin) @contentType(application/octet-stream)
+  file: @file(/tmp/plain.bin) @contentType(application/octet-stream)
+}

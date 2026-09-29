@@ -23,6 +23,9 @@ const defaultPreferences = {
     timeout: 0,
     oauth2: {
       useSystemBrowser: false
+    },
+    clientCertificates: {
+      certs: []
     }
   },
   font: {
@@ -30,7 +33,8 @@ const defaultPreferences = {
     codeFontSize: 13
   },
   proxy: {
-    inherit: true,
+    source: 'inherit',
+    pac: { source: '' },
     config: {
       protocol: 'http',
       hostname: '',
@@ -45,12 +49,18 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
+  mockServer: {
+    mode: 'isolated',
+    instances: []
+  },
   beta: {
-    'openapi-sync': false
+    'openapi-sync': false,
+    'mock-server': true
   },
   onboarding: {
     hasLaunchedBefore: false,
-    hasSeenWelcomeModal: true
+    hasSeenWelcomeModal: true,
+    lastSeenVersion: null
   },
   general: {
     defaultLocation: '',
@@ -66,6 +76,32 @@ const defaultPreferences = {
   cache: {
     sslSession: {
       enabled: false
+    },
+    file: {
+      enabled: false
+    }
+  },
+  ai: {
+    enabled: false,
+    providers: {
+      openai: { enabled: false },
+      anthropic: { enabled: false }
+    },
+    models: {},
+    defaultModel: '',
+    openaiCompatibleEndpoints: [],
+    autocomplete: {
+      enabled: true,
+      model: '',
+      triggerMode: 'debounced'
+    },
+    security: {
+      redactHeaders: true,
+      redactBody: true,
+      redactVariables: true,
+      redactResponse: true,
+      customRedactedHeaders: [],
+      customRedactedVariables: []
     }
   }
 };
@@ -85,7 +121,20 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number(),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
-    })
+    }),
+    clientCertificates: Yup.object({
+      certs: Yup.array().of(
+        Yup.object({
+          domain: Yup.string().max(1024),
+          type: Yup.string().oneOf(['cert', 'pfx']),
+          certFilePath: Yup.string().nullable(),
+          keyFilePath: Yup.string().nullable(),
+          pfxFilePath: Yup.string().nullable(),
+          passphrase: Yup.string().nullable(),
+          disabled: Yup.boolean()
+        })
+      )
+    }).optional()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
@@ -93,7 +142,10 @@ const preferencesSchema = Yup.object().shape({
   }),
   proxy: Yup.object({
     disabled: Yup.boolean().optional(),
-    inherit: Yup.boolean().required(),
+    source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
+    pac: Yup.object({
+      source: Yup.string().optional().max(2048).nullable()
+    }).optional(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
@@ -109,12 +161,28 @@ const preferencesSchema = Yup.object().shape({
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
+  mockServer: Yup.object({
+    instances: Yup.array().of(Yup.object({
+      uid: Yup.string().required(),
+      name: Yup.string().required(),
+      sourceType: Yup.string().oneOf(['collection', 'spec', 'manual']).required(),
+      collectionUid: Yup.string().nullable(),
+      specUid: Yup.string().nullable(),
+      specPath: Yup.string().nullable(),
+      specName: Yup.string().nullable(),
+      port: Yup.number().min(1).max(65535).required(),
+      globalDelay: Yup.number().min(0).required(),
+      workspaceUid: Yup.string().required()
+    })).optional()
+  }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean()
+    'openapi-sync': Yup.boolean(),
+    'mock-server': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
-    hasSeenWelcomeModal: Yup.boolean()
+    hasSeenWelcomeModal: Yup.boolean(),
+    lastSeenVersion: Yup.string().nullable()
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
@@ -130,7 +198,43 @@ const preferencesSchema = Yup.object().shape({
   cache: Yup.object({
     sslSession: Yup.object({
       enabled: Yup.boolean()
+    }),
+    file: Yup.object({
+      enabled: Yup.boolean()
     })
+  }).optional(),
+  ai: Yup.object({
+    enabled: Yup.boolean(),
+    providers: Yup.object().optional(),
+    models: Yup.object().optional(),
+    defaultModel: Yup.string().max(200).nullable(),
+    openaiCompatibleEndpoints: Yup.array().of(
+      Yup.object({
+        id: Yup.string().required(),
+        name: Yup.string().max(120).nullable(),
+        baseURL: Yup.string().max(2048).nullable(),
+        models: Yup.array().of(
+          Yup.object({
+            id: Yup.string().required(),
+            label: Yup.string().max(120).nullable(),
+            modelId: Yup.string().max(200).nullable()
+          })
+        )
+      })
+    ).optional(),
+    autocomplete: Yup.object({
+      enabled: Yup.boolean(),
+      model: Yup.string().max(200).nullable(),
+      triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+    }).optional(),
+    security: Yup.object({
+      redactHeaders: Yup.boolean(),
+      redactBody: Yup.boolean(),
+      redactVariables: Yup.boolean(),
+      redactResponse: Yup.boolean(),
+      customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
+      customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
+    }).optional()
   }).optional()
 });
 
@@ -143,14 +247,14 @@ class PreferencesStore {
   }
 
   getPreferences() {
-    let preferences = this.store.get('preferences', {});
+    const preferences = this.store.get('preferences', {});
 
     // Handle existing users without proxy settings
     // They should get disabled proxy by default, not inherit from system
     // New users (empty preferences) will get defaultPreferences.proxy via merge
     if (Object.keys(preferences).length > 0 && !preferences.proxy) {
       preferences.proxy = {
-        inherit: false,
+        source: 'manual',
         disabled: true,
         config: {
           protocol: 'http',
@@ -172,8 +276,9 @@ class PreferencesStore {
       const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
-        let newProxy = {
-          inherit: true,
+        const newProxy = {
+          source: 'inherit',
+          pac: { source: '' },
           config: {
             protocol: proxy.protocol || 'http',
             hostname: proxy.hostname || '',
@@ -188,19 +293,17 @@ class PreferencesStore {
 
         // Handle old format 1: enabled (boolean)
         if (proxy.hasOwnProperty('enabled') && typeof proxy.enabled === 'boolean') {
+          newProxy.source = 'manual';
           newProxy.disabled = !proxy.enabled;
-          newProxy.inherit = false;
         } else if (proxy.hasOwnProperty('mode')) {
           // Handle old format 2: mode ('off' | 'on' | 'system')
           if (proxy.mode === 'off') {
+            newProxy.source = 'manual';
             newProxy.disabled = true;
-            newProxy.inherit = false;
           } else if (proxy.mode === 'on') {
-            newProxy.disabled = false;
-            newProxy.inherit = false;
+            newProxy.source = 'manual';
           } else if (proxy.mode === 'system') {
-            newProxy.disabled = false;
-            newProxy.inherit = true;
+            newProxy.source = 'inherit';
           }
         }
 
@@ -208,7 +311,6 @@ class PreferencesStore {
         if (get(proxy, 'auth.enabled') === false) {
           newProxy.config.auth.disabled = true;
         }
-        // If auth.enabled is true or undefined, omit disabled (defaults to false)
 
         // Omit disabled: false at top level (optional field)
         if (newProxy.disabled === false) {
@@ -220,6 +322,18 @@ class PreferencesStore {
         }
 
         preferences.proxy = newProxy;
+        this.store.set('preferences', preferences);
+      }
+
+      // Migrate intermediate format: inherit boolean → source string
+      if (!hasOldFormat && proxy.hasOwnProperty('inherit')) {
+        if (proxy.inherit === true) {
+          preferences.proxy.source = 'inherit';
+        } else if (!proxy.source) {
+          preferences.proxy.source = 'manual';
+        }
+        delete preferences.proxy.inherit;
+        this.store.set('preferences', preferences);
       }
     }
 
@@ -243,6 +357,14 @@ class PreferencesStore {
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
+    }
+
+    const hasExistingPreferences = Object.keys(preferences).length > 0;
+    const mockServerDefaultApplied = get(preferences, '_migrations.mockServerBetaOnByDefault', false);
+    if (hasExistingPreferences && !mockServerDefaultApplied) {
+      preferences.beta = { ...preferences.beta, 'mock-server': true };
+      preferences._migrations = { ...preferences._migrations, mockServerBetaOnByDefault: true };
+      this.store.set('preferences', preferences);
     }
 
     // Migrate from defaultCollectionLocation to defaultLocation
@@ -321,8 +443,14 @@ const preferencesUtil = {
   isSslSessionCachingEnabled: () => {
     return get(getPreferences(), 'cache.sslSession.enabled', false);
   },
+  isFileCacheEnabled: () => {
+    return get(getPreferences(), 'cache.file.enabled', false);
+  },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  getGlobalClientCertificates: () => {
+    return get(getPreferences(), 'request.clientCertificates.certs', []);
   },
   markAsLaunched: async () => {
     const preferences = getPreferences();

@@ -18,6 +18,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
   const requestName = 'Echo Request';
 
   test.beforeAll(async ({ page, createTmpDir }) => {
+    await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 20000 });
     const collectionPath = await createTmpDir('response-pane-collection');
     await createCollection(page, collectionName, collectionPath);
     await createRequest(page, requestName, collectionName, { url: echoUrl, method: 'POST' });

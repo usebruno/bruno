@@ -41,6 +41,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.placement - Tippy placement (default: 'bottom-end')
  * @param {string} props.className - Optional className for the dropdown
  * @param {string} props.selectedItemId - Optional ID of the selected/active item to focus on open
+ * @param {Array<string>} props.activeItemIds - Optional IDs of active items to highlight (supports multiple)
  * @param {boolean} props.opened - Controlled open state (when provided, component is controlled)
  * @param {function} props.onChange - Callback when dropdown state changes: (opened: boolean) => void
  * @param {ReactNode} props.header - Optional header content to render above menu items
@@ -59,6 +60,7 @@ const MenuDropdown = forwardRef(({
   placement = 'bottom-end',
   className,
   selectedItemId,
+  activeItemIds,
   opened,
   onChange,
   header,
@@ -69,6 +71,7 @@ const MenuDropdown = forwardRef(({
   autoFocusFirstOption = false,
   submenuPlacement = 'right',
   'data-testid': testId = 'menu-dropdown',
+  menuClassName,
   ...dropdownProps
 }, ref) => {
   const tippyRef = useRef();
@@ -157,6 +160,7 @@ const MenuDropdown = forwardRef(({
             rightSection: option.rightSection,
             ariaLabel: option.ariaLabel,
             title: option.title,
+            submenu: option.submenu,
             groupStyle: groupStyle
           });
         });
@@ -358,7 +362,7 @@ const MenuDropdown = forwardRef(({
   // Get common props for menu items (shared between regular items and submenu triggers)
   const getMenuItemProps = (item, extraProps = {}) => {
     const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
-    const isActive = item.id === selectedItemId;
+    const isActive = item.id === selectedItemId || activeItemIds?.includes(item.id);
     const activeClass = isActive ? 'dropdown-item-active' : '';
 
     // Destructure className from extraProps to avoid it being overwritten by spread
@@ -400,6 +404,8 @@ const MenuDropdown = forwardRef(({
         <SubMenuItem
           key={item.id}
           item={item}
+          selectedItemId={selectedItemId}
+          showTickMark={showTickMark}
           onRootClose={() => updateOpenState(false)}
           submenuPlacement={submenuPlacement}
           getMenuItemProps={getMenuItemProps}
@@ -478,7 +484,9 @@ const MenuDropdown = forwardRef(({
           handleTriggerClick();
         },
         'aria-expanded': isOpen,
-        'data-testid': testId
+        // Preserve a trigger's own `data-testid` (e.g. a semantically named
+        // toolbar button) instead of clobbering it with the dropdown's testId.
+        'data-testid': children.props['data-testid'] || testId
       })
     : <div onClick={handleTriggerClick} aria-expanded={isOpen} data-testid={testId}>{children}</div>;
 
@@ -494,12 +502,12 @@ const MenuDropdown = forwardRef(({
     >
       <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (
-          <div className="dropdown-header-container" onClick={handleClickOutside}>
+          <div className="dropdown-header-container">
             {header}
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} className={menuClassName}>
           {renderMenuContent()}
         </div>
         {footer && (

@@ -1,0 +1,32 @@
+{
+  "id": "mixed-enabled-env-id",
+  "name": "Mixed Enabled Env",
+  "values": [
+    {
+      "key": "enabledVar",
+      "value": "value1",
+      "enabled": true,
+      "type": "text"
+    },
+    {
+      "key": "disabledVar",
+      "value": "value2",
+      "enabled": false,
+      "type": "text"
+    },
+    {
+      "key": "defaultEnabledVar",
+      "value": "value3",
+      "type": "text"
+    },
+    {
+      "key": "nullEnabledVar",
+      "value": "value4",
+      "enabled": null,
+      "type": "text"
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-01-01T00:00:00.000Z",
+  "_postman_exported_using": "Postman/10.0.0"
+}

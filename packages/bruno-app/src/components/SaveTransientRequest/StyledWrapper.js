@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  .bruno-modal-card.modal-sm {
+    width: 500px;
+  }
+
   .save-request-form {
     display: flex;
     flex-direction: column;
@@ -54,6 +58,7 @@ const StyledWrapper = styled.div`
     font-size: 14px;
     margin-bottom: 12px;
     color: ${(props) => props.theme.colors.text.muted};
+    min-width: 0;
   }
 
   .collection-name-clickable {
@@ -66,6 +71,49 @@ const StyledWrapper = styled.div`
 
   .collection-name-chevron {
     margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .breadcrumb-collection-name,
+  .breadcrumb-last {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 40px;
+    flex: 0 1 auto;
+  }
+
+  .breadcrumb-ellipsis-btn {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    flex-shrink: 0;
+    color: ${(props) => props.theme.colors.text.yellow};
+
+    &:hover {
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+  }
+
+  .breadcrumb-dropdown {
+    min-width: 120px;
+    max-width: 250px;
+
+    .dropdown-item {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .search-container {
@@ -114,10 +162,19 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   .folder-item-name {
     color: ${(props) => props.theme.text};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .folder-empty-state {
@@ -157,6 +214,7 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.sm};
     user-select: none;
     border: 1px solid ${(props) => props.theme.border.border1};
+    overflow: hidden;
 
     &:hover {
       background-color: ${(props) => props.theme.plainGrid.hoverBg};
@@ -168,11 +226,20 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   .collection-item-name {
     color: ${(props) => props.theme.text};
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .collection-empty-state {

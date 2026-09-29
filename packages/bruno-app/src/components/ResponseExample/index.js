@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTabWidth, clearOpenInEditMode, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, tryResponseExample } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
 const MIN_TOP_PANE_HEIGHT = 150;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
-const ResponseExample = ({ item, collection, example }) => {
+const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const screenWidth = useSelector((state) => state.app.screenWidth);
@@ -24,10 +25,21 @@ const ResponseExample = ({ item, collection, example }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  // `openInEditMode` is an explicit "just created" signal from the OPEN_EXAMPLE task queue
+  // (see taskMiddleware.js), not inferred from body content, so it doesn't misfire on
+  // JSON examples (default content '{}') or on saved examples with a legitimately empty body.
+  const [editMode, setEditMode] = useState(!!openInEditMode);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
+  const [isTryPending, setIsTryPending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
+
+  // Consume the one-shot flag so remounts (tab switch) don't re-enter edit mode.
+  useEffect(() => {
+    if (openInEditMode && example?.uid) {
+      dispatch(clearOpenInEditMode({ uid: example.uid }));
+    }
+  }, []);
 
   const handleMouseMove = (e) => {
     if (dragging && mainSectionRef.current) {
@@ -119,8 +131,21 @@ const ResponseExample = ({ item, collection, example }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (example) => {
-    // TODO: Implement try example functionality
+  const handleTryExample = async () => {
+    // a preview example tab would otherwise be replaced by the new transient request tab
+    dispatch(makeTabPermanent({ uid: example.uid }));
+    setIsTryPending(true);
+    try {
+      await dispatch(tryResponseExample({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        exampleUid: example.uid
+      }));
+    } catch (err) {
+      toast.error(err?.message || 'Failed to try example');
+    } finally {
+      setIsTryPending(false);
+    }
   };
 
   // Update width when screen width or sidebar width changes
@@ -167,9 +192,10 @@ const ResponseExample = ({ item, collection, example }) => {
           onCancel={handleCancel}
           onGenerateCode={handleGenerateCode}
           onTryExample={handleTryExample}
+          isTryPending={isTryPending}
         />
         <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
-          <section className="request-pane">
+          <section className="request-pane" data-testid="request-pane">
             <div
               className="px-4 h-full"
               style={isVerticalLayout ? {
@@ -195,7 +221,7 @@ const ResponseExample = ({ item, collection, example }) => {
             <div className="dragbar-handle" />
           </div>
 
-          <section className="response-pane flex-grow overflow-x-auto">
+          <section className="response-pane flex-grow overflow-x-auto" data-testid="response-pane">
             <ResponseExampleResponsePane
               item={item}
               collection={collection}

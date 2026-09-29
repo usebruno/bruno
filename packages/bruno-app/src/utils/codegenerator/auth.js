@@ -46,6 +46,10 @@ export const getAuthHeaders = (requestAuth, collection = null, item = null) => {
         ];
       }
       return [];
+    case 'oauth1':
+      // OAuth1 requires runtime signing (nonce, timestamp, signature) that
+      // cannot be pre-computed for a static code snippet.
+      return [];
     case 'oauth2': {
       const oauth2Config = get(requestAuth, 'oauth2', {});
       const tokenPlacement = get(oauth2Config, 'tokenPlacement', 'header');

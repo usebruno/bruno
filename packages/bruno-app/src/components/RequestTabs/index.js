@@ -149,6 +149,7 @@ const RequestTabs = () => {
                             }));
                           }}
                           className={getTabClassname(tab, index)}
+                          active={tab.uid === activeTabUid}
                           onClick={() => handleClick(tab)}
                         >
                           <RequestTab

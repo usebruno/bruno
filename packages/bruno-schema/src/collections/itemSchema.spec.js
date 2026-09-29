@@ -15,38 +15,25 @@ describe('Item Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
-  it('item schema must validate tag regex rules', async () => {
+  it('item schema accepts arbitrary non-empty tag strings (opencollection allows any chars)', async () => {
     const validItem = {
       uid: uuid(),
       name: 'A Folder',
       type: 'folder',
-      tags: ['tag_1', 'Äiti-123 test']
+      tags: ['tag_1', 'Äiti-123 test', 'Pets & Dogs', 'R&D', '&', 'tag🔥name']
     };
 
     const isValid = await itemSchema.validate(validItem);
     expect(isValid).toBeTruthy();
 
-    let invalidItem = {
+    const invalidItem = {
       uid: uuid(),
       name: 'A Folder',
       type: 'folder',
-      tags: [' invalid-tag']
+      tags: ['']
     };
 
-    await expect(itemSchema.validate(invalidItem)).rejects.toThrow(
-      'tag must contain only letters, numbers, spaces, hyphens, or underscores'
-    );
-
-    invalidItem = {
-      uid: uuid(),
-      name: 'A Folder',
-      type: 'folder',
-      tags: ['tag🔥name']
-    };
-
-    await expect(itemSchema.validate(invalidItem)).rejects.toThrow(
-      'tag must contain only letters, numbers, spaces, hyphens, or underscores'
-    );
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow('tag must not be empty');
   });
 
   it('item schema must throw an error if name is missing', async () => {
@@ -100,5 +87,107 @@ describe('Item Schema Validation', () => {
         validationErrorWithMessages('request is required when item-type is request')
       )
     ]);
+  });
+
+  describe('settings.maxRedirects', () => {
+    const itemWithMaxRedirects = (maxRedirects) => ({
+      uid: uuid(),
+      name: 'Get Users',
+      type: 'http-request',
+      request: {
+        url: 'https://restcountries.com/v2/alpha/in',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: { mode: 'none' }
+      },
+      settings: { maxRedirects }
+    });
+
+    it.each([0, 50, 51, 1000, Number.MAX_SAFE_INTEGER, 1e21, 9.999999999998865e21])(
+      'item schema must accept a maxRedirects of %p',
+      async (maxRedirects) => {
+        const validated = await itemSchema.validate(itemWithMaxRedirects(maxRedirects));
+        expect(validated.settings.maxRedirects).toBe(maxRedirects);
+      }
+    );
+
+    it('item schema must accept a null maxRedirects', async () => {
+      const validated = await itemSchema.validate(itemWithMaxRedirects(null));
+      expect(validated.settings.maxRedirects).toBeNull();
+    });
+
+    it('item schema must accept an undefined maxRedirects', async () => {
+      const validated = await itemSchema.validate(itemWithMaxRedirects(undefined));
+      expect(validated.settings.maxRedirects).toBeUndefined();
+    });
+
+    it('item schema must throw an error if maxRedirects is negative', async () => {
+      await expect(itemSchema.validate(itemWithMaxRedirects(-1))).rejects.toMatchObject({
+        path: 'settings.maxRedirects',
+        type: 'min'
+      });
+    });
+
+    it.each([3.5, Infinity])('item schema must throw an error if maxRedirects is %p', async (maxRedirects) => {
+      await expect(itemSchema.validate(itemWithMaxRedirects(maxRedirects))).rejects.toMatchObject({
+        path: 'settings.maxRedirects',
+        type: 'integer'
+      });
+    });
+
+    it.each(['100', 'abc'])('item schema must throw an error if maxRedirects is the string %p', async (maxRedirects) => {
+      await expect(itemSchema.validate(itemWithMaxRedirects(maxRedirects))).rejects.toMatchObject({
+        path: 'settings.maxRedirects',
+        type: 'typeError'
+      });
+    });
+  });
+
+  it('item schema accepts settings.omitHeaders for http-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Omit defaults',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none'
+        }
+      },
+      settings: {
+        encodeUrl: true,
+        timeout: 0,
+        omitHeaders: ['User-Agent', 'Accept-Encoding']
+      }
+    };
+
+    const isValid = await itemSchema.validate(item);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('item schema rejects empty strings in settings.omitHeaders', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Omit defaults',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none'
+        }
+      },
+      settings: {
+        omitHeaders: ['']
+      }
+    };
+
+    await expect(itemSchema.validate(item)).rejects.toBeTruthy();
   });
 });

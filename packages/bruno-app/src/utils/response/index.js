@@ -1,5 +1,5 @@
 // Normalize & extract MIME type from full header
-const extractMimeType = (contentType = '') => {
+export const extractMimeType = (contentType = '') => {
   const cleaned = String(contentType).trim().toLowerCase();
   const match = cleaned.match(/^[^;]+/); // strip "; charset=utf-8"
   return match ? match[0] : cleaned;
@@ -274,5 +274,28 @@ export const detectContentTypeFromBase64 = (base64) => {
 
   if (isLikelyText(textHead)) return 'text/plain';
 
+  return null;
+};
+
+/**
+ * Maps a mime type to the binary preview it can render (image, pdf, audio, video),
+ * or null when the type has no visual preview and should be shown as raw text.
+ */
+export const getBinaryPreviewType = (mime) => {
+  if (typeof mime !== 'string') {
+    return null;
+  }
+  if (mime === 'application/pdf') {
+    return 'pdf';
+  }
+  if (mime.startsWith('image/') && !mime.endsWith('+xml')) {
+    return 'image';
+  }
+  if (mime.startsWith('audio/')) {
+    return 'audio';
+  }
+  if (mime.startsWith('video/')) {
+    return 'video';
+  }
   return null;
 };

@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 
   .overview-layout {
     display: flex;

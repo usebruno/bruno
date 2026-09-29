@@ -1,7 +1,7 @@
 const { shell } = require('electron');
 const { registerOauth2AuthorizationRequest, rejectOauth2AuthorizationRequest } = require('../../utils/oauth2-protocol-handler');
 
-const authorizeUserInSystemBrowser = ({ authorizeUrl, callbackUrl, grantType = 'authorization_code' }) => {
+const authorizeUserInSystemBrowser = ({ authorizeUrl, callbackUrl, grantType = 'authorization_code', expectedState = null }) => {
   return new Promise((resolve, reject) => {
     // Replace callback URL in authorization URL
     const authorizationUrlObj = new URL(authorizeUrl);
@@ -51,7 +51,7 @@ const authorizeUserInSystemBrowser = ({ authorizeUrl, callbackUrl, grantType = '
       reject(error);
     };
 
-    registerOauth2AuthorizationRequest(wrappedResolve, wrappedReject, debugInfo);
+    registerOauth2AuthorizationRequest(wrappedResolve, wrappedReject, debugInfo, expectedState);
 
     // Open system browser
     shell.openExternal(modifiedAuthorizeUrl).catch((error) => {

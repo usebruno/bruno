@@ -1,0 +1,94 @@
+meta {
+  name: directIteration
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{localhost}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+  const jar = bru.cookies.jar()
+
+  const host = bru.getEnvVar('localhost');
+  await jar.setCookies(host, [
+    {
+      key: 'x',
+      value: '10',
+      path: '/'
+    },
+    {
+      key: 'y',
+      value: '20',
+      path: '/'
+    }
+  ]);
+}
+
+tests {
+  test("each() should iterate over all cookies", function() {
+    const keys = [];
+    bru.cookies.each(function(cookie) {
+      keys.push(cookie.key);
+    });
+    expect(keys).to.include('x');
+    expect(keys).to.include('y');
+  });
+
+  test("find() should return matching cookie", function() {
+    const cookie = bru.cookies.find(function(c) { return c.key === 'x'; });
+    expect(cookie).to.have.property('value', '10');
+  });
+
+  test("find() should return undefined when no match", function() {
+    const cookie = bru.cookies.find(function(c) { return c.key === 'zzz'; });
+    expect(cookie).to.be.undefined;
+  });
+
+  test("filter() should return array of matching cookies", function() {
+    const result = bru.cookies.filter(function(c) { return c.key === 'y'; });
+    expect(result).to.be.an('array');
+    expect(result.length).to.equal(1);
+    expect(result[0]).to.have.property('value', '20');
+  });
+
+  test("map() should transform cookies", function() {
+    const keys = bru.cookies.map(function(c) { return c.key; });
+    expect(keys).to.be.an('array');
+    expect(keys).to.include('x');
+    expect(keys).to.include('y');
+  });
+
+  test("reduce() should accumulate over cookies", function() {
+    const result = bru.cookies.reduce(function(acc, c) { return acc + c.key + ','; }, '');
+    expect(result).to.be.a('string');
+    expect(result).to.contain('x,');
+    expect(result).to.contain('y,');
+  });
+
+  test("indexOf() should find a cookie by structural equality", function() {
+    const cookie = bru.cookies.one('x');
+    const idx = bru.cookies.indexOf(cookie);
+    expect(idx).to.be.at.least(0);
+  });
+
+  test("indexOf() should return -1 for non-existent cookie", function() {
+    const idx = bru.cookies.indexOf({ key: 'nonexistent', value: 'nope' });
+    expect(idx).to.equal(-1);
+  });
+
+  test("idx() out-of-bounds should return undefined", function() {
+    const result = bru.cookies.idx(999);
+    expect(result).to.be.undefined;
+  });
+
+  const jar = bru.cookies.jar()
+  await jar.clear()
+}
+
+settings {
+  encodeUrl: true
+}

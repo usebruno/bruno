@@ -12,16 +12,15 @@ describe('postmanTranslations - comment handling', () => {
     expect(result).toContain('const data = bru.getEnvVar(\'key\');');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  test.skip('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
+  test('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
     const inputScript = 'pm.collectionVariables.set(\'key\', data);';
     const expectedOutput = 'bru.setCollectionVar(\'key\', data);';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
-  test('should comment non-translated pm commands', () => {
+  test('should leave non-translated pm commands as-is', () => {
     const inputScript = 'pm.test(\'random test\', () => pm.vault.get(secretPath));';
-    const expectedOutput = '// test(\'random test\', () => pm.vault.get(secretPath));';
+    const expectedOutput = 'test(\'random test\', () => pm.vault.get(secretPath));';
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 

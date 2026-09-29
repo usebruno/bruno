@@ -1,0 +1,30 @@
+info:
+  name: file-with-descriptions
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://example.com/upload
+  body:
+    type: file
+    data:
+      - filePath: /tmp/readme.pdf
+        contentType: application/pdf
+        selected: true
+        description: Single-line file desc
+      - filePath: /tmp/other.bin
+        contentType: application/octet-stream
+        selected: false
+        description: |-
+          Multi-line file desc line one
+          Multi-line file desc line two
+      - filePath: /tmp/plain.bin
+        contentType: application/octet-stream
+        selected: false
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

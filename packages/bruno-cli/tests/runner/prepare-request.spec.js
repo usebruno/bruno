@@ -72,6 +72,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in header and request has existing headers', async () => {
@@ -88,6 +89,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item, collection);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If collection auth is apikey in query parameters', async () => {
@@ -106,6 +108,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item, collection);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 
@@ -355,6 +358,7 @@ describe('prepare-request: prepareRequest', () => {
 
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in header and request has existing headers', async () => {
@@ -371,6 +375,7 @@ describe('prepare-request: prepareRequest', () => {
         const result = await prepareRequest(item);
         expect(result.headers).toHaveProperty('Content-Type', 'application/json');
         expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+        expect(result.apiKeyHeaderName).toEqual('x-api-key');
       });
 
       it('If request auth is apikey in query parameters', async () => {
@@ -389,6 +394,7 @@ describe('prepare-request: prepareRequest', () => {
         const expected = urlObj.toString();
         const result = await prepareRequest(item);
         expect(result.url).toEqual(expected);
+        expect(result.apiKeyHeaderName).toBeUndefined();
       });
     });
 
@@ -598,6 +604,159 @@ describe('prepare-request: prepareRequest', () => {
       expect(result.data).toBe(mockStream);
       expect(createReadStreamSpy).toHaveBeenCalled();
       expect(readFileSyncSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Header filtering', () => {
+    it('skips headers with empty name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: 'ghost', enabled: true },
+            { name: 'X-Valid', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('');
+      expect(result.headers).toHaveProperty('X-Valid', 'yes');
+    });
+
+    it('skips disabled headers regardless of name', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-Disabled', value: 'nope', enabled: false },
+            { name: 'X-Enabled', value: 'yes', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).not.toHaveProperty('X-Disabled');
+      expect(result.headers).toHaveProperty('X-Enabled', 'yes');
+    });
+
+    it('includes all valid enabled headers', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: 'X-One', value: '1', enabled: true },
+            { name: 'X-Two', value: '2', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(result.headers).toHaveProperty('X-One', '1');
+      expect(result.headers).toHaveProperty('X-Two', '2');
+    });
+
+    it('produces no headers when all have empty names', async () => {
+      const item = {
+        request: {
+          method: 'GET',
+          url: 'https://example.com',
+          headers: [
+            { name: '', value: '', enabled: true },
+            { name: '', value: 'some-value', enabled: true }
+          ]
+        }
+      };
+      const result = await prepareRequest(item);
+      expect(Object.keys(result.headers).filter((k) => k === '')).toHaveLength(0);
+    });
+  });
+
+  describe('Effective tags', () => {
+    // prepareRequest resolves tags against the tree, so the item must be reachable in collection.items
+    const httpRequest = (pathname, tags) => ({
+      type: 'http-request',
+      name: pathname.split('/').pop(),
+      pathname: `/collection/${pathname}.bru`,
+      ...(tags !== undefined ? { tags } : {}),
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        script: {},
+        vars: {}
+      }
+    });
+
+    const folder = (pathname, tags, items) => ({
+      type: 'folder',
+      name: pathname.split('/').pop(),
+      pathname: `/collection/${pathname}`,
+      root: { meta: { name: pathname.split('/').pop(), tags } },
+      items
+    });
+
+    const collectionWith = (items) => ({ pathname: '/collection', root: {}, items });
+
+    it('carries the request own tags when it sits at the collection root', async () => {
+      const item = httpRequest('login', ['smoke', 'fast']);
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual(['smoke', 'fast']);
+    });
+
+    it('is an empty list when neither request nor folders carry tags', async () => {
+      const item = httpRequest('login');
+      const result = await prepareRequest(item, collectionWith([item]));
+
+      expect(result.tags).toEqual([]);
+    });
+
+    it('inherits the tags of the folder holding the request', async () => {
+      const item = httpRequest('auth/login', ['smoke']);
+      const result = await prepareRequest(item, collectionWith([folder('auth', ['auth'], [item])]));
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('accumulates tags from every folder above the request', async () => {
+      const item = httpRequest('api/v2/users', ['smoke']);
+      const collection = collectionWith([folder('api', ['api'], [folder('api/v2', ['v2'], [item])])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'api', 'v2']);
+    });
+
+    it('does not pick up tags from a sibling folder', async () => {
+      const item = httpRequest('auth/login');
+      const collection = collectionWith([
+        folder('auth', ['auth'], [item]),
+        folder('billing', ['billing'], [httpRequest('billing/invoice')])
+      ]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['auth']);
+    });
+
+    it('de-duplicates a tag the request repeats from its folder', async () => {
+      const item = httpRequest('auth/login', ['smoke']);
+      const collection = collectionWith([folder('auth', ['auth', 'smoke'], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
+    });
+
+    it('normalizes malformed tags on the request and its folders', async () => {
+      const item = httpRequest('auth/login', [' smoke ', 'smoke', 42, null]);
+      const collection = collectionWith([folder('auth', ['  auth  ', '', undefined], [item])]);
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.tags).toEqual(['smoke', 'auth']);
     });
   });
 

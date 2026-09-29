@@ -25,7 +25,11 @@ const WSRequestBodyMode = ({ mode, onModeChange }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
+      <div
+        ref={ref}
+        className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode"
+        data-testid="ws-body-mode-label"
+      >
         {humanizeRequestBodyMode(mode)}
         {' '}
         <IconCaretDown className="caret ml-2" size={14} strokeWidth={2} />
@@ -35,12 +39,18 @@ const WSRequestBodyMode = ({ mode, onModeChange }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-flex items-center cursor-pointer body-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+      <div className="inline-flex items-center cursor-pointer body-mode-selector" data-testid="ws-body-mode-selector">
+        <Dropdown
+          onCreate={onDropdownCreate}
+          icon={<Icon />}
+          placement="bottom-end"
+          appendTo={() => document.body}
+        >
           <div className="label-item font-medium">Raw</div>
           {RAW_MODES.map((d) => (
             <div
               className="dropdown-item"
+              data-testid={`ws-body-mode-item-${d.key}`}
               key={d.key}
               onClick={() => {
                 dropdownTippyRef.current.hide();

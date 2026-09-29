@@ -1,0 +1,6 @@
+{
+  "name": "Staging",
+  "variables": [
+    { "name": "api_url", "value": "https://staging.example.com", "enabled": true, "secret": false }
+  ]
+}

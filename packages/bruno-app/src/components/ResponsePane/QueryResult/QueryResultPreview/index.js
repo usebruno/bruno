@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
-import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateResponsePaneScrollPosition } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -16,6 +15,7 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 
 const QueryResultPreview = ({
   selectedTab,
@@ -28,14 +28,13 @@ const QueryResultPreview = ({
   codeMirrorMode,
   previewMode,
   disableRunEventListener,
-  displayedTheme
+  displayedTheme,
+  docKey
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-
   const dispatch = useDispatch();
+  const editorRef = useRef(null);
+  const [responseScroll, setResponseScroll] = usePersistedState({ key: `response-body-scroll-${item.uid}`, default: 0 });
 
   const [numPages, setNumPages] = useState(null);
   function onDocumentLoadSuccess({ numPages }) {
@@ -52,28 +51,28 @@ const QueryResultPreview = ({
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const onScroll = (event) => {
-    dispatch(
-      updateResponsePaneScrollPosition({
-        uid: focusedTab.uid,
-        scrollY: event.doc.scrollTop
-      })
-    );
-  };
+  // Same type as the request this response belongs to (HTTP -> HTTP, GraphQL -> GraphQL).
+  const handleResponseLinkClick = useMemo(
+    () => resolveLinkClickHandler(item, collection),
+    [item, collection]
+  );
 
   if (selectedTab === 'editor') {
     return (
       <CodeEditor
+        ref={editorRef}
         collection={collection}
+        docKey={docKey || 'response:editor'}
         font={get(preferences, 'font.codeFont', 'default')}
         fontSize={get(preferences, 'font.codeFontSize')}
         theme={displayedTheme}
         onRun={onRun}
         onSave={onSave}
-        onScroll={onScroll}
         value={formattedData}
         mode={codeMirrorMode}
-        initialScroll={focusedTab.responsePaneScrollPosition || 0}
+        initialScroll={responseScroll}
+        onScroll={setResponseScroll}
+        onLinkClick={handleResponseLinkClick}
         readOnly
       />
     );
@@ -107,15 +106,15 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
+      return <JsonPreview data={data} displayedTheme={displayedTheme} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-text': {
-      return <TextPreview data={data} />;
+      return <TextPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-xml': {
-      return <XmlPreview data={data} />;
+      return <XmlPreview data={data} onLinkClick={handleResponseLinkClick} />;
     }
 
     default:

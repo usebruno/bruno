@@ -1,19 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import path from 'utils/common/path';
 import { useDispatch } from 'react-redux';
-import { get, cloneDeep } from 'lodash';
+import useClearStoredRunnerExchanges from 'hooks/useClearStoredRunnerExchanges';
+import { get } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner, updateRunnerTagsDetails } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getRequestItemsForCollectionRun } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
+import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading, getEffectiveTagsByItemUid } from 'utils/collections';
+import { IconRefresh, IconPlayerStop, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink, IconReload } from '@tabler/icons';
+import useOverflowCollapse from 'hooks/useOverflowCollapse';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
+import RunnerFilter from './RunnerFilter';
 import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
 
+const TOOLBAR_LEVELS = ['compact', 'tiny'];
+
 const getDisplayName = (fullPath, pathname, name = '') => {
-  let relativePath = path.relative(fullPath, pathname);
+  const relativePath = path.relative(fullPath, pathname);
   const { dir = '' } = path.parse(relativePath);
   return path.join(dir, name);
 };
@@ -64,44 +69,35 @@ const FILTERS = {
   }
 };
 
-// === Reusable filter button ===
-const FilterButton = ({ label, count, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`filter-button ${active ? 'active' : ''}`}
-  >
-    {label}
-    <span className="filter-count">{count}</span>
-  </button>
-);
-
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedRequestItems, setSelectedRequestItems] = useState([]);
-  const [configureMode, setConfigureMode] = useState(false);
+  const toolbarRef = useOverflowCollapse(TOOLBAR_LEVELS);
+  const isReRunningRef = useRef(false);
   // ref for the runner output body
   const runnerBodyRef = useRef();
+  // Auto-scroll until the user scrolls up
+  const shouldAutoScrollRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
 
-  const collectionCopy = cloneDeep(collection);
+  const clearStoredRunnerExchanges = useClearStoredRunnerExchanges(collection.uid);
+
+  const collectionCopy = collection;
   const runnerInfo = get(collection, 'runnerResult.info', {});
 
   // tags for the collection run
   const tags = get(collection, 'runnerTags', { include: [], exclude: [] });
 
-  // have tags been enabled for the collection run
-  const tagsEnabled = get(collection, 'runnerTagsEnabled', false);
-
   // have tags been added for the collection run
   const areTagsAdded = tags.include.length > 0 || tags.exclude.length > 0;
 
-  const requestItemsForCollectionRun = getRequestItemsForCollectionRun({ recursive: true, tags, items: collection.items });
-  const totalRequestItemsCountForCollectionRun = requestItemsForCollectionRun.length;
-  const shouldDisableCollectionRun = totalRequestItemsCountForCollectionRun <= 0;
+  // resolved for the whole tree in one walk, rather than once per result row
+  const effectiveTagsByUid = useMemo(() => getEffectiveTagsByItemUid(collection.items), [collection.items]);
 
-  const items = cloneDeep(get(collection, 'runnerResult.items', []))
+  const items = get(collection, 'runnerResult.items', [])
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
       if (!info) {
@@ -114,7 +110,7 @@ export default function RunnerResults({ collection }) {
         filename: info.filename,
         pathname: info.pathname,
         displayName: getDisplayName(collection.pathname, info.pathname, info.name),
-        tags: [...(info.request?.tags || [])].sort()
+        tags: (effectiveTagsByUid[info.uid] || []).sort()
       };
       if (newItem.status !== 'error' && newItem.status !== 'skipped' && newItem.status !== 'running') {
         newItem.testStatus = getTestStatus(newItem.testResults);
@@ -134,18 +130,16 @@ export default function RunnerResults({ collection }) {
     return activeFilterConfig.resultFilter(results);
   };
 
-  const autoScrollRunnerBody = () => {
-    if (runnerBodyRef?.current) {
-      const element = runnerBodyRef.current;
-      const scrollThreshold = 100; // pixels from bottom to consider "at bottom"
-      const isNearBottom
-        = element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold;
+  const handleRunnerBodyScroll = () => {
+    const { scrollTop, scrollHeight, clientHeight } = runnerBodyRef.current;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= 15;
+    const isScrollingUp = scrollTop < lastScrollTopRef.current;
+    lastScrollTopRef.current = scrollTop;
 
-      // Only auto-scroll if user is already near the bottom
-      if (isNearBottom) {
-        // mimics the native terminal scroll style
-        element.scrollTo(0, 100000);
-      }
+    if (isAtBottom) {
+      shouldAutoScrollRef.current = true;
+    } else if (isScrollingUp) {
+      shouldAutoScrollRef.current = false;
     }
   };
 
@@ -153,35 +147,32 @@ export default function RunnerResults({ collection }) {
     if (!collection.runnerResult) {
       setSelectedItem(null);
     }
-    autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
 
   useEffect(() => {
-    // Auto-scroll when items are added or updated during execution
-    // Only scrolls if user is already at/near the bottom
-    if (filteredItems.length > 0) {
-      autoScrollRunnerBody();
+    const container = runnerBodyRef.current;
+    if (!container) return;
+
+    if (shouldAutoScrollRef.current) {
+      container.scrollTop = container.scrollHeight;
     }
   }, [filteredItems]);
 
   useEffect(() => {
-    const runnerInfo = get(collection, 'runnerResult.info', {});
-    if (runnerInfo.status === 'running') {
-      setConfigureMode(false);
-    }
-  }, [collection.runnerResult]);
-
-  useEffect(() => {
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     if (savedConfiguration) {
-      if (savedConfiguration.selectedRequestItems && configureMode) {
-        setSelectedRequestItems(savedConfiguration.selectedRequestItems);
-      }
       if (savedConfiguration.delay !== undefined && delay === null) {
         setDelay(savedConfiguration.delay);
       }
     }
-  }, [collection.runnerConfiguration, configureMode, delay]);
+  }, [collection.runnerConfiguration, delay]);
+
+  useEffect(() => {
+    if (isReRunningRef.current
+      && (items?.length > 0 || runnerInfo?.status === 'ended' || runnerInfo?.status === 'cancelled')) {
+      isReRunningRef.current = false;
+    }
+  }, [items, runnerInfo?.status]);
 
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'mounted') {
@@ -194,59 +185,51 @@ export default function RunnerResults({ collection }) {
     }));
   };
 
-  const runCollection = () => {
-    if (configureMode && selectedRequestItems.length > 0) {
-      dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, selectedRequestItems, delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags, selectedRequestItems));
-    } else {
-      dispatch(updateRunnerConfiguration(collection.uid, [], [], delay));
-      dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
-    }
+  const runCollection = async () => {
+    shouldAutoScrollRef.current = true;
+    lastScrollTopRef.current = 0;
+    const savedOrder = get(collection, 'runnerConfiguration.requestItemsOrder', selectedRequestItems);
+    dispatch(updateRunnerConfiguration(collection.uid, selectedRequestItems, savedOrder, delay));
+    await clearStoredRunnerExchanges();
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tags, selectedRequestItems));
   };
 
-  const runAgain = () => {
+  const runAgain = async () => {
     ensureCollectionIsMounted();
+    shouldAutoScrollRef.current = true;
+    lastScrollTopRef.current = 0;
+    isReRunningRef.current = true;
     // Get the saved configuration to determine what to run
     const savedConfiguration = get(collection, 'runnerConfiguration', null);
     const savedSelectedItems = savedConfiguration?.selectedRequestItems || [];
     const savedDelay = savedConfiguration?.delay !== undefined ? savedConfiguration.delay : delay;
+    await clearStoredRunnerExchanges();
     dispatch(
       runCollectionFolder(
         collection.uid,
         runnerInfo.folderUid,
         true,
         Number(savedDelay),
-        tagsEnabled && tags,
+        tags,
         savedSelectedItems
       )
     );
   };
 
   const resetRunner = () => {
+    isReRunningRef.current = false;
+    clearStoredRunnerExchanges();
     dispatch(
       resetCollectionRunner({
         collectionUid: collection.uid
       })
     );
-    setSelectedRequestItems([]);
-    setConfigureMode(false);
     setDelay(null);
   };
 
   const cancelExecution = () => {
     dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
   };
-
-  const toggleConfigureMode = () => {
-    dispatch(updateRunnerTagsDetails({ collectionUid: collection.uid, tagsEnabled: false }));
-    setConfigureMode(!configureMode);
-  };
-
-  useEffect(() => {
-    if (tagsEnabled) {
-      setConfigureMode(false);
-    }
-  }, [tagsEnabled]);
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const filterCounts = {
@@ -255,19 +238,24 @@ export default function RunnerResults({ collection }) {
     failed: items.filter(anyTestFailed).length,
     skipped: items.filter((i) => i.status === 'skipped').length
   };
+  const filterOptions = Object.entries(FILTERS).map(([key, { label }]) => ({
+    key,
+    label,
+    count: filterCounts[key]
+  }));
 
-  let isCollectionLoading = areItemsLoading(collection);
-  if (!items || !items.length) {
+  const isCollectionLoading = areItemsLoading(collection);
+  if ((!items || !items.length) && !isReRunningRef.current) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
         <div className="flex overflow-hidden max-h-full h-full">
-          <div className={`${configureMode ? 'w-1/2 pr-4' : 'w-full'}`}>
+          <div className="w-1/2 pr-4">
             <div className="font-medium mt-6 title flex items-center">
+              <IconRun size={20} strokeWidth={1.5} className="mr-2" />
               Runner
-              <IconRun size={20} strokeWidth={1.5} className="ml-2" />
             </div>
-            <div className="mt-6">
-              You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+            <div className="mt-2">
+              You have <span className="font-medium text-xs">{totalRequestsInCollection}</span> {totalRequestsInCollection === 1 ? 'request' : 'requests'} in this collection.
               {isCollectionLoading && (
                 <span className="ml-2 text-muted">
                   (Loading...)
@@ -275,47 +263,40 @@ export default function RunnerResults({ collection }) {
               )}
             </div>
             {isCollectionLoading ? <div className="my-1 danger">Requests in this collection are still loading.</div> : null}
-            <div className="mt-6">
-              <label>Delay (in ms)</label>
+
+            {/* Timings */}
+            <div className="runner-section-title mt-6">Timings</div>
+            <div className="runner-section mt-2">
+              <label>Delay between requests (ms)</label>
               <input
                 type="number"
-                className="block textbox mt-2 py-5"
+                className="block textbox w-full mt-2"
+                placeholder="e.g. 5"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                data-testid="runner-delay-input"
                 value={delay}
                 onChange={(e) => setDelay(e.target.value)}
               />
             </div>
 
-            {/* Tags for the collection run */}
-            <RunnerTags collectionUid={collection.uid} className="mb-6" />
-
-            {/* Configure requests option */}
-            <div className="run-config-option flex flex-col border-b pb-6 mb-6">
-              <div className="flex gap-2">
-                <input
-                  className="cursor-pointer"
-                  id="filter-config"
-                  type="radio"
-                  name="filterMode"
-                  checked={configureMode}
-                  onChange={toggleConfigureMode}
-                />
-                <label htmlFor="filter-config" className="block font-medium">Configure requests to run</label>
-              </div>
+            {/* Filters */}
+            <div className="runner-section-title mt-6">Filters</div>
+            <div className="runner-section mt-2 mb-6">
+              {/* Tags for the collection run */}
+              <RunnerTags collectionUid={collection.uid} />
             </div>
 
             <div className="flex flex-row gap-2">
               <Button
                 type="submit"
-                disabled={shouldDisableCollectionRun || (configureMode && selectedRequestItems.length === 0) || isCollectionLoading}
+                data-testid="runner-run-button"
+                disabled={selectedRequestItems.length === 0 || isCollectionLoading}
                 onClick={runCollection}
               >
-                {configureMode && selectedRequestItems.length > 0
-                  ? `Run ${selectedRequestItems.length} Selected Request${selectedRequestItems.length > 1 ? 's' : ''}`
-                  : 'Run Collection'}
+                Run {selectedRequestItems.length} Request{selectedRequestItems.length !== 1 ? 's' : ''}
               </Button>
 
               <Button type="button" variant="ghost" onClick={resetRunner}>
@@ -324,15 +305,14 @@ export default function RunnerResults({ collection }) {
             </div>
           </div>
 
-          {configureMode && (
-            <div className="run-config-panel w-1/2 border-l">
-              <RunConfigurationPanel
-                collection={collection}
-                selectedItems={selectedRequestItems}
-                setSelectedItems={setSelectedRequestItems}
-              />
-            </div>
-          )}
+          <div className="run-config-panel w-1/2 border-l">
+            <RunConfigurationPanel
+              collection={collection}
+              selectedItems={selectedRequestItems}
+              setSelectedItems={setSelectedRequestItems}
+              tags={tags}
+            />
+          </div>
         </div>
       </StyledWrapper>
     );
@@ -341,44 +321,41 @@ export default function RunnerResults({ collection }) {
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative overflow-auto">
       {/* Filter Bar and Actions */}
-      <div className="flex items-center justify-between mb-4 pt-[14px] gap-4">
-        <div className="filter-bar">
-          <div className="filter-label">
-            <span>Filter by:</span>
-          </div>
-          <div className="filter-buttons">
-            {Object.entries(FILTERS).map(([key, { label }]) => (
-              <FilterButton
-                key={key}
-                label={label}
-                count={filterCounts[key]}
-                active={activeFilter === key}
-                onClick={() => setActiveFilter(key)}
-              />
-            ))}
-          </div>
-        </div>
+      <div ref={toolbarRef} className="runner-toolbar flex items-center justify-between mb-4 pt-[14px] gap-4 min-w-0" data-testid="runner-toolbar">
+        <RunnerFilter
+          filters={filterOptions}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
 
         {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid ? (
-          <div className="flex items-center flex-shrink-0">
+          <div className="runner-actions flex items-center flex-shrink-0">
             <Button
               type="button"
               onClick={cancelExecution}
               size="sm"
               variant="filled"
               color="danger"
+              icon={<IconPlayerStop />}
+              title="Cancel Execution"
+              aria-label="Cancel Execution"
+              data-testid="runner-cancel-button"
             >
               Cancel Execution
             </Button>
           </div>
         ) : runnerInfo.status === 'ended' ? (
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="runner-actions flex items-center gap-3 flex-shrink-0">
             <Button
               type="button"
               onClick={runAgain}
               size="sm"
               variant="filled"
               color="secondary"
+              icon={<IconRefresh />}
+              title="Run Again"
+              aria-label="Run Again"
+              data-testid="runner-run-again-button"
             >
               Run Again
             </Button>
@@ -388,6 +365,10 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="secondary"
+              icon={<IconReload />}
+              title="Reset"
+              aria-label="Reset"
+              data-testid="runner-reset-button"
             >
               Reset
             </Button>
@@ -399,7 +380,7 @@ export default function RunnerResults({ collection }) {
         <div
           className="flex flex-col w-1/2"
         >
-          {tagsEnabled && areTagsAdded && (
+          {areTagsAdded && (
             <div className="pb-2 text-xs flex flex-row gap-1">
               Tags:
               <div className="flex flex-row items-center gap-x-2">
@@ -421,11 +402,11 @@ export default function RunnerResults({ collection }) {
             : null}
 
           {/* Items list */}
-          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef}>
+          <div className="overflow-y-auto flex-1 " ref={runnerBodyRef} onScroll={handleRunnerBodyScroll}>
             {filteredItems.map((item) => {
               return (
                 <div key={item.uid}>
-                  <div className="item-path mt-2">
+                  <div className="item-path mt-2" data-testid="runner-result-item">
                     <div className="flex items-center">
                       <span>
                         {allTestsPassed(item)
@@ -457,17 +438,17 @@ export default function RunnerResults({ collection }) {
                         </span>
                       )}
                     </div>
-                    {tagsEnabled && areTagsAdded && item?.tags?.length > 0 && (
+                    {tags.include.length > 0 && item?.tags?.some((t) => tags.include.includes(t)) && (
                       <div className="pl-7 text-xs text-muted">
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
-                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
+                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs" data-testid="runner-iteration-status-label">{item.error}</div> : null}
 
                     <ul className="pl-8">
                       {item.preRequestTestResults
                         ? filterTestResults(item.preRequestTestResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -487,7 +468,7 @@ export default function RunnerResults({ collection }) {
                         : null}
                       {item.postResponseTestResults
                         ? filterTestResults(item.postResponseTestResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -507,7 +488,7 @@ export default function RunnerResults({ collection }) {
                         : null}
                       {item.testResults
                         ? filterTestResults(item.testResults).map((result) => (
-                            <li key={result.uid}>
+                            <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                               {result.status === 'pass' ? (
                                 <span className="test-success flex items-center">
                                   <IconCheck size={18} strokeWidth={2} className="mr-2" />
@@ -526,7 +507,7 @@ export default function RunnerResults({ collection }) {
                           ))
                         : null}
                       {filterTestResults(item.assertionResults).map((result) => (
-                        <li key={result.uid}>
+                        <li key={result.uid} data-testid={result.status === 'pass' ? 'runner-test-row-passed' : 'runner-test-row-failed'}>
                           {result.status === 'pass' ? (
                             <span className="test-success flex items-center">
                               <IconCheck size={18} strokeWidth={2} className="mr-2" />

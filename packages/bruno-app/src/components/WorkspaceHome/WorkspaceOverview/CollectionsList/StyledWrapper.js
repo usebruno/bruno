@@ -84,6 +84,28 @@ const StyledWrapper = styled.div`
     text-overflow: ellipsis;
   }
 
+  .collection-remote {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.muted};
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    svg {
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+  }
+
   .collection-menu {
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};

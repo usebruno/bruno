@@ -1,14 +1,18 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { createCollection, openCollection, selectRequestPaneTab } from '../../utils/page';
+import { createCollection, openCollection, selectRequestPaneTab, waitForReadyPage } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
+  // Two full app launches plus a restart; waitForReadyPage alone allows 45s each,
+  // so the 30s default budget is too small on a slow or loaded CI runner.
+  test.setTimeout(120_000);
+
   const userDataPath = await createTmpDir('newlines-persistence-userdata');
   const collectionPath = await createTmpDir('newlines-persistence-collection');
 
   // Create collection and request
   const app1 = await launchElectronApp({ userDataPath });
-  const page = await app1.firstWindow();
+  const page = await waitForReadyPage(app1);
 
   await createCollection(page, 'newlines-persistence', collectionPath);
 
@@ -58,7 +62,7 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify persistence after restart
   const app2 = await launchElectronApp({ userDataPath });
-  const page2 = await app2.firstWindow();
+  const page2 = await waitForReadyPage(app2);
 
   await page2.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();

@@ -1,0 +1,14 @@
+services:
+  bruno-cli:
+    image: usebruno/cli:latest
+    container_name: bruno-cli-runner
+    volumes:
+      - ./collection:/bruno
+      - ./reports:/reports
+    command:
+      run echo
+      -r
+      --env Prod
+      --reporter-json /reports/results.json
+      --reporter-junit /reports/results.xml
+      --reporter-html /reports/results.html
