@@ -18,6 +18,7 @@ import {
   isCollectionItemCollapsed,
   getWorkspaceCollections
 } from './index';
+import * as platformUtils from 'utils/common/platform';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -982,5 +983,31 @@ describe('getWorkspaceCollections', () => {
 
     expect(getWorkspaceCollections({ collections, workspaces, activeWorkspace: null })).toEqual([]);
     expect(getWorkspaceCollections({ collections, workspaces: [emptyWorkspace], activeWorkspace: emptyWorkspace })).toEqual([]);
+  });
+
+  describe('path case', () => {
+    const mixedCaseWorkspace = { uid: 'w5', collections: [{ path: 'C:\\Users\\Dev\\Collections\\One' }] };
+    const lowerCaseCollection = { uid: 'c5', name: 'One', pathname: 'c:/users/dev/collections/one' };
+    const listFor = () => getWorkspaceCollections({
+      collections: [lowerCaseCollection],
+      workspaces: [mixedCaseWorkspace],
+      activeWorkspace: mixedCaseWorkspace
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('matches paths that differ only in case on Windows, like the sidebar does', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(true);
+
+      expect(listFor()).toEqual([lowerCaseCollection]);
+    });
+
+    it('keeps paths that differ in case apart on case-sensitive platforms', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(false);
+
+      expect(listFor()).toEqual([]);
+    });
   });
 });

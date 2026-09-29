@@ -2349,13 +2349,18 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
     return [];
   }
 
+  const toPathKey = (pathname) => {
+    const key = normalizePath(pathname);
+    return isWindowsOS() ? key.toLowerCase() : key;
+  };
+
   return collections.filter((collection) => {
     if (isScratchCollection(collection, workspaces)) {
       return false;
     }
 
     return activeWorkspace.collections?.some(
-      (workspaceCollection) => normalizePath(workspaceCollection.path) === normalizePath(collection.pathname)
+      (workspaceCollection) => toPathKey(workspaceCollection.path) === toPathKey(collection.pathname)
     );
   });
 };
