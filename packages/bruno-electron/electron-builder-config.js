@@ -92,6 +92,10 @@ const config = {
       'libasound2' // #1036
     ]
   },
+  // Bundle git so Snap/sandbox installs can find it (#5667)
+  snap: {
+    stagePackages: ['default', 'git']
+  },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/win/icon.ico',
