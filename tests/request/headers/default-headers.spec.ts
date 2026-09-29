@@ -211,6 +211,24 @@ test('shows the runtime-default explanation through ToolHint', async ({ page, cr
   });
 });
 
+test('scrolls a long default header value horizontally', async ({ page, createTmpDir }) => {
+  await createCollection(page, 'default-headers-scroll', await createTmpDir('default-headers-scroll'));
+  await createRequest(page, 'request-1', 'default-headers-scroll', { url: 'https://example.com' });
+  await selectRequestPaneTab(page, 'Headers');
+  const headers = await showInheritedHeaders(page);
+  const acceptValue = headers.defaultValueScroller('Accept');
+
+  await test.step('Overflow the value cell', async () => {
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  });
+
+  await test.step('Scroll the value with a horizontal wheel', async () => {
+    await acceptValue.hover();
+    await page.mouse.wheel(200, 0);
+    await expect.poll(() => acceptValue.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  });
+});
+
 test('shows an angle-bracket Host placeholder before the host is known', async ({ page, createTmpDir }) => {
   await createCollection(page, 'default-headers-host-placeholder', await createTmpDir('default-headers-host-placeholder'));
   await createRequest(page, 'request-1', 'default-headers-host-placeholder', { url: '{{host}}/path' });
