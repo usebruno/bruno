@@ -80,6 +80,53 @@ Params are always an **object** keyed by the named parameters (no positional/arr
 
 The package does not expose statements to a renderer. The host application registers its own IPC handler for each statement it wants to expose.
 
+## Files
+
+Rows are a poor home for a large payload, so the package ships a `files` table with a store in front
+of it. Each entry is kept in whichever shape fits its size:
+
+| size | stored as |
+|---|---|
+| up to 1MB | a `BLOB` on the row |
+| over 1MB | a file next to the database, with the row pointing at it |
+
+`createDatabase` returns the store alongside the statements:
+
+```js
+const { db, statements, files } = createDatabase('/path/to/bruno.db');
+
+const entry = await files.write(buffer, { contentType: 'image/png' });  // { id, size, inline, contentType }
+const bytes = await files.read(entry.id, { offset: 0, length: 4096 });   // Uint8Array, or null
+const text  = await files.readText(entry.id);
+files.stat(entry.id);
+await files.remove(entry.id);
+```
+
+Offsets and lengths are **bytes**. A range read never materialises the whole payload: inline rows are
+sliced inside sqlite with `substr()`, spilled ones are read at a position.
+
+The files directory defaults to `<database path minus extension>-files`; pass `filesDir` to place it
+elsewhere, and `inlineMaxBytes` to move the threshold.
+
+### Lifetime
+
+A file lives for as long as some row points at it. Declare that with a foreign key:
+
+```sql
+ALTER TABLE runner_responses ADD COLUMN body_file_id INTEGER REFERENCES files(id);
+```
+
+`files.collect()` reads the foreign keys back off the schema, deletes every row no table references,
+removes the files they own, and sweeps files on disk that no row names. Nothing has to be registered
+with the store — adding the column is enough. Call it at startup.
+
+As a safety rule, when *no* table references `files` the store leaves rows alone: with no referrers
+every row would look unreferenced. The disk sweep still runs.
+
+### Reading files from the renderer
+
+The package exposes no renderer API for files, just as for statements. Writes are main-process only; to let the renderer read a file, the host registers its own IPC handler for that read.
+
 ## Development
 
 ```bash

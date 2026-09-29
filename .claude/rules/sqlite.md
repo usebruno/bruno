@@ -134,7 +134,8 @@ INSERT INTO users (name, email) VALUES (@name, @email);
 ## Main process
 
 `packages/bruno-electron/src/services/sqlite/index.js` owns the single database instance:
-`openDatabase()` calls `createDatabase` on `bruno.db`, and the service exposes `getStatements()`,
+`openDatabase()` calls `createDatabase` on `bruno.db` and starts a background `files.collect()`; the
+service exposes `getStatements()`, `getFiles()` (the SDK's file store — see the package README),
 `transaction(callback)`, `reclaimDiskSpace()` and `shutdown()`. It never hands out the `DB` itself,
 and it knows nothing about IPC. `index.js`'s ready block opens it (`sqliteService.openDatabase()`),
 and `before-quit` reclaims disk space and shuts it down.
@@ -153,8 +154,9 @@ try {
 
 `getStatements()` never returns `null`. Before `openDatabase()`, after shutdown, and when
 `createDatabase` returns `{ db: undefined, statements: undefined }` (even the in-memory fallback
-failed), it returns a stub whose `execute` logs the skipped statement and throws; `transaction`
-throws the same way. So there is one failure mode, and every caller must handle it:
+failed), it returns a stub whose `execute` logs the skipped statement and throws; `getFiles()`
+returns a matching stub whose methods log and throw (or reject, for the async ones), and
+`transaction` throws the same way. So there is one failure mode, and every caller must handle it:
 
 - **`execute` and `transaction` throw** when the database is unavailable, for an unknown statement,
   for one that couldn't be prepared against this schema (prepare failures are logged at construction
