@@ -61,19 +61,9 @@ const unmount = (collectionUid) => manager.unmount(collectionUid);
 const shutdown = () => manager.shutdown();
 const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
-const indexWorkspaceCollections = (collections, workspacePath) => manager.indexManyCollectionsInBackground(collections, workspacePath);
-
-const indexCollectionInBackground = (collectionPath, collectionName, workspacePath) =>
-  manager.indexCollectionInBackground({ collectionPath, collectionName, workspacePath });
-
-const sweepRemovedCollections = (validPaths) => manager.sweepRemovedCollections(validPaths);
-
 module.exports = {
   registerMountIpc,
   unmount,
   shutdown,
-  clearCollectionIndex,
-  indexWorkspaceCollections,
-  indexCollectionInBackground,
-  sweepRemovedCollections
+  clearCollectionIndex
 };

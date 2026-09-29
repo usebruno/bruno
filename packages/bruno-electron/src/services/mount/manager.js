@@ -105,8 +105,6 @@ class MountManager {
 
     entry.emit.loading(true);
     const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
-    if (searchIndexEnabled) this.#beginIndexingSession();
-    let indexingHandedOff = false;
     try {
       entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
@@ -116,19 +114,6 @@ class MountManager {
         ? await this.#resolveWorkspacePath(collectionPath, workspacePath)
         : null;
 
-      if (searchIndexEnabled) {
-        indexingHandedOff = true;
-        indexCollection(this.#getSearchIndex(), {
-          collectionPath,
-          collectionName: path.basename(collectionPath),
-          workspacePath: resolvedWorkspacePath,
-          fileIndex: this.#getIndex()
-        })
-          .catch((err) => console.error(`[mount:${collectionUid}] search index refresh failed:`, err))
-          .finally(() => this.#endIndexingSession());
-      }
-
-      // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
@@ -138,7 +123,6 @@ class MountManager {
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
-      if (searchIndexEnabled && !indexingHandedOff) this.#endIndexingSession();
       this.#mounts.delete(collectionUid);
       throw err;
     } finally {
@@ -226,16 +210,6 @@ class MountManager {
     await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
     const rows = this.#getSearchIndex().rowsForCollection(root);
     return { items: buildFolderTree(root, rows) };
-  }
-
-  sweepRemovedCollections(validPaths) {
-    const valid = new Set(validPaths.map((p) => path.resolve(p)));
-    const known = new Set([...this.#getIndex().collectionPaths(), ...this.#getSearchIndex().collectionPaths()]);
-    for (const collectionPath of known) {
-      if (valid.has(collectionPath)) continue;
-      this.#getIndex().clearCollection(collectionPath);
-      this.#getSearchIndex().clearCollection(collectionPath);
-    }
   }
 
   async indexCollectionInBackground({ collectionPath, collectionName, workspacePath }) {

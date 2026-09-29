@@ -81,8 +81,7 @@ const defaultPreferences = {
       enabled: false
     },
     searchIndex: {
-      enabled: false,
-      buildTrigger: 'on-search'
+      enabled: false
     }
   },
   ai: {
@@ -208,7 +207,7 @@ const preferencesSchema = Yup.object().shape({
     }),
     searchIndex: Yup.object({
       enabled: Yup.boolean(),
-      buildTrigger: Yup.string().oneOf(['app-start', 'on-search'])
+      buildTrigger: Yup.string().oneOf(['on-search'])
     })
   }).optional(),
   ai: Yup.object({
@@ -456,9 +455,6 @@ const preferencesUtil = {
   },
   isSearchIndexEnabled: () => {
     return get(getPreferences(), 'cache.searchIndex.enabled', false);
-  },
-  getSearchIndexBuildTrigger: () => {
-    return get(getPreferences(), 'cache.searchIndex.buildTrigger', 'on-search');
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);

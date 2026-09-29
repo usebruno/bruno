@@ -37,6 +37,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const searchRequestIdRef = useRef(0);
   const hasMountedForSearchRef = useRef(false);
+  const queryRef = useRef('');
+  const pollIntervalRef = useRef(null);
   const dispatch = useDispatch();
   const store = useStore();
   const { ipcRenderer } = window;
@@ -45,7 +47,6 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
   const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
-  const searchIndexBuildTrigger = useSelector((state) => state.app.preferences?.cache?.searchIndex?.buildTrigger);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
 
@@ -316,6 +317,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  queryRef.current = query;
+
   const handleQueryChange = (e) => {
     setQuery(e.target.value);
   };
@@ -337,16 +340,39 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       return () => clearTimeout(timeoutId);
     }
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
 
-    if (query.trim() && searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
+    if (query.trim() && searchIndexEnabled && !hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
       dispatch(mountUnmountedActiveWorkspaceCollections());
       dispatch(indexActiveWorkspaceCollections());
+    }
+
+    if (query.trim() && searchIndexBuilding) {
+      performLocalSearch(query);
+      setIsSearching(true);
+      if (!pollIntervalRef.current) {
+        fetchIndexResults(query);
+        pollIntervalRef.current = setInterval(() => {
+          const currentQuery = queryRef.current.trim();
+          if (!currentQuery) return;
+          fetchIndexResults(currentQuery);
+        }, 3000);
+      }
+      return;
+    }
+
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
     }
 
     if (!query.trim()) {
@@ -364,7 +390,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     }, SEARCH_CONFIG.DEBOUNCE_DELAY);
 
     return () => clearTimeout(debounceTimeoutRef.current);
-  }, [isOpen, query, performLocalSearch, fetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuildTrigger]);
+  }, [isOpen, query, performLocalSearch, fetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuilding]);
 
   useEffect(() => {
     if (results.length > 0) {

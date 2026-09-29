@@ -28,17 +28,21 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
   const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
-  const searchIndexBuildTrigger = useSelector((state) => state.app.preferences?.cache?.searchIndex?.buildTrigger);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
   const hasMountedForSearchRef = useRef(false);
   const pendingTreeFetchUidsRef = useRef(new Set());
+  const searchTextRef = useRef(debouncedSearchText);
+  searchTextRef.current = debouncedSearchText;
+  const activeWorkspacePathnameRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  activeWorkspacePathnameRef.current = activeWorkspace?.pathname;
 
   // Build the sidebar list in workspace.yml order. Each entry is either a fully
   // loaded collection (rendered via <Collection />) or, for non-default workspaces,
@@ -82,19 +86,51 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     });
 
     if (!searchText.trim()) {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
       setSearchTreesByPath({});
       setIsSearchIndexPending(false);
       hasMountedForSearchRef.current = false;
       return;
     }
 
-    if (searchIndexEnabled && searchIndexBuildTrigger === 'on-search' && !hasMountedForSearchRef.current) {
+    if (searchIndexEnabled && !hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
       dispatch(mountUnmountedActiveWorkspaceCollections());
       dispatch(indexActiveWorkspaceCollections());
     }
 
     if (searchText !== debouncedSearchText) return;
+
+    if (searchIndexBuilding) {
+      setIsSearchIndexPending(true);
+      if (!pollIntervalRef.current) {
+        const doSearch = () => {
+          const text = searchTextRef.current;
+          if (!text?.trim()) return;
+          dispatch(searchCollectionTreesFromIndex(text, activeWorkspacePathnameRef.current))
+            .then((trees) => {
+              if (!pollIntervalRef.current) return;
+              const byPath = {};
+              for (const [collectionPath, items] of Object.entries(trees || {})) {
+                byPath[normalizePath(collectionPath)] = items;
+              }
+              setSearchTreesByPath(byPath);
+            })
+            .catch(() => {});
+        };
+        doSearch();
+        pollIntervalRef.current = setInterval(doSearch, 3000);
+      }
+      return;
+    }
+
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
 
     let cancelled = false;
     setIsSearchIndexPending(true);
@@ -115,7 +151,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       });
 
     return () => { cancelled = true; };
-  }, [sidebarEntries, indexTreesByUid, searchText, debouncedSearchText, dispatch, activeWorkspace, searchIndexEnabled, searchIndexBuildTrigger]);
+  }, [sidebarEntries, indexTreesByUid, searchText, debouncedSearchText, dispatch, activeWorkspace, searchIndexEnabled, searchIndexBuilding]);
 
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;

@@ -11,9 +11,7 @@ const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-const { resolveLastOpenedWorkspacePaths, normalizeWorkspacePathname } = require('../utils/workspace-startup');
-const snapshotManager = require('../services/snapshot');
-const { preferencesUtil } = require('../store/preferences');
+const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
 
 const {
   createWorkspaceConfig,
@@ -37,18 +35,6 @@ const {
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
-
-const resolveActiveWorkspacePath = (defaultWorkspacePath, validWorkspaces) => {
-  const snapshotActivePath = snapshotManager.getSnapshot()?.activeWorkspacePath;
-  if (!snapshotActivePath) return defaultWorkspacePath;
-
-  const normalizedActive = normalizeWorkspacePathname(snapshotActivePath);
-  const normalizedDefault = defaultWorkspacePath ? normalizeWorkspacePathname(defaultWorkspacePath) : null;
-  if (normalizedDefault && normalizedActive === normalizedDefault) return defaultWorkspacePath;
-
-  const match = validWorkspaces.find((workspacePath) => normalizeWorkspacePathname(workspacePath) === normalizedActive);
-  return match || defaultWorkspacePath;
-};
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefault) => {
   const config = {
@@ -277,9 +263,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
   ipcMain.handle('renderer:set-active-workspace', async (event, workspacePath) => {
     if (!workspacePath) return;
-    if (preferencesUtil.getSearchIndexBuildTrigger() !== 'app-start') return;
-    const collections = getWorkspaceCollections(workspacePath).filter((c) => !c.notFoundLocally);
-    require('./mount').indexWorkspaceCollections(collections, workspacePath).catch(() => {});
   });
 
   ipcMain.handle('renderer:rename-workspace', async (event, workspacePath, newName) => {
@@ -546,8 +529,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const configForClient = prepareWorkspaceConfigForClient(workspaceConfig, workspacePath, isDefault);
       mainWindow.webContents.send('main:workspace-config-updated', workspacePath, workspaceUid, configForClient);
 
-      require('./mount').indexCollectionInBackground(normalizedCollection.path, normalizedCollection.name, workspacePath).catch(() => {});
-
       return updatedCollections;
     } catch (error) {
       throw error;
@@ -712,11 +693,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
     rendererReadyProcessed = true;
 
-    const allCollections = new Map();
-    let defaultWorkspacePath = null;
-    let validWorkspaces = [];
-
     try {
+      let defaultWorkspacePath = null;
+
       const defaultResult = await defaultWorkspaceManager.ensureDefaultWorkspaceExists();
       if (defaultResult) {
         const { workspacePath, workspaceUid } = defaultResult;
@@ -729,14 +708,11 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         if (workspaceWatcher) {
           workspaceWatcher.addWatcher(win, workspacePath);
         }
-        for (const collection of getWorkspaceCollections(workspacePath)) {
-          if (!collection.notFoundLocally) allCollections.set(collection.path, collection);
-        }
       }
 
-      ({ validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
+      const { validWorkspaces } = resolveLastOpenedWorkspacePaths(lastOpenedWorkspaces, {
         defaultWorkspacePath
-      }));
+      });
 
       for (const workspacePath of validWorkspaces) {
         try {
@@ -750,9 +726,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           if (workspaceWatcher) {
             workspaceWatcher.addWatcher(win, workspacePath);
           }
-          for (const collection of getWorkspaceCollections(workspacePath)) {
-            if (!collection.notFoundLocally) allCollections.set(collection.path, collection);
-          }
         } catch (error) {
           console.error(`Error loading workspace ${workspacePath}:`, error);
           lastOpenedWorkspaces.remove(workspacePath);
@@ -763,17 +736,6 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
 
     win.webContents.send('main:workspaces-ready');
-    try {
-      require('./mount').sweepRemovedCollections(Array.from(allCollections.keys()));
-    } catch (error) {
-      console.error('Error sweeping removed collections from search index:', error);
-    }
-
-    const activeWorkspacePath = resolveActiveWorkspacePath(defaultWorkspacePath, validWorkspaces);
-    if (activeWorkspacePath && preferencesUtil.getSearchIndexBuildTrigger() === 'app-start') {
-      const activeCollections = getWorkspaceCollections(activeWorkspacePath).filter((c) => !c.notFoundLocally);
-      require('./mount').indexWorkspaceCollections(activeCollections, activeWorkspacePath).catch(() => {});
-    }
     ipcMain.emit('main:workspaces-ready', win);
   });
 };
