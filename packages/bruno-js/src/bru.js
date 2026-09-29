@@ -266,6 +266,7 @@ class Bru {
     }
 
     assertValidVariableName(key);
+    if (key === '__name__') return;
 
     if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
       this.globalEnvironmentVariables[key] = value;

@@ -36,6 +36,13 @@ describe('bru.getGlobalEnvName', () => {
     expect(bru.getAllGlobalEnvVars()).toEqual({ apiKey: 'abc' });
   });
 
+  test('setGlobalEnvVar cannot overwrite the reserved __name__ key', () => {
+    const bru = makeBru({ globalEnvironmentVariables: { __name__: 'Production' } });
+    bru.setGlobalEnvVar('__name__', 'Other');
+    expect(bru.globalEnvironmentVariables.__name__).toBe('Production');
+    expect(bru._globalEnvDirty).toBeFalsy();
+  });
+
   test('deleteGlobalEnvVar cannot remove the reserved __name__ key', () => {
     const bru = makeBru({ globalEnvironmentVariables: { __name__: 'Production' } });
     bru.deleteGlobalEnvVar('__name__');
