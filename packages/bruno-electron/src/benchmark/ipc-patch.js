@@ -6,6 +6,10 @@ const patchIpcMainForBenchmark = (ipcMain, aggregator) => {
   const originalHandle = ipcMain.handle.bind(ipcMain);
 
   ipcMain.handle = (channel, listener) => {
+    if (typeof channel === 'string' && channel.startsWith('benchmark:')) {
+      return originalHandle(channel, listener);
+    }
+
     return originalHandle(channel, async (event, ...args) => {
       const id = `${channel}-${performance.now()}`;
       const startMonoMs = performance.now();

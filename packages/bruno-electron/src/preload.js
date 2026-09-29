@@ -16,7 +16,7 @@ if (benchmarkEnabled) {
 }
 
 const invokeWithBenchmark = async (channel, ...args) => {
-  if (!benchmarkEnabled) {
+  if (!benchmarkEnabled || (typeof channel === 'string' && channel.startsWith('benchmark:'))) {
     return ipcRenderer.invoke(channel, ...args);
   }
 

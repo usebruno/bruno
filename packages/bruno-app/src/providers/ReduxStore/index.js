@@ -27,9 +27,6 @@ let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMid
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }
-if (__BRUNO_BENCHMARK__) {
-  middleware = [...middleware, benchmarkMiddleware];
-}
 
 export const store = configureStore({
   reducer: {
@@ -47,7 +44,10 @@ export const store = configureStore({
     chat: chatReducer,
     collectionMigration: collectionMigrationReducer
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .prepend(...(__BRUNO_BENCHMARK__ ? [benchmarkMiddleware] : []))
+      .concat(middleware)
 });
 
 export default store;
