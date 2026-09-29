@@ -1,6 +1,12 @@
-const { describe, it, expect, jest, afterEach } = require('@jest/globals');
+const { describe, it, expect, jest, beforeEach, afterEach } = require('@jest/globals');
 
 describe('measureReduxDispatch', () => {
+  beforeEach(() => {
+    global.__BRUNO_BENCHMARK__ = false;
+    delete window.ipcRenderer;
+    jest.resetModules();
+  });
+
   afterEach(() => {
     global.__BRUNO_BENCHMARK__ = false;
     delete window.ipcRenderer;
@@ -77,9 +83,6 @@ describe('measureReduxDispatch', () => {
   });
 
   it('is a passthrough when benchmarking is disabled', () => {
-    global.__BRUNO_BENCHMARK__ = false;
-    jest.resetModules();
-
     const { measureReduxDispatch } = require('./benchmark');
     const run = jest.fn(() => 'ok');
 

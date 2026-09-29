@@ -8,6 +8,7 @@ class WalWriter {
     this.sessionId = sessionId;
     this.flushIntervalMs = flushIntervalMs;
     this.intervalId = null;
+    this.flushChain = Promise.resolve();
     this.filePath = this.resolveFilePath();
   }
 
@@ -34,16 +35,26 @@ class WalWriter {
     }, this.flushIntervalMs);
   }
 
-  async flush() {
+  async flushOnce() {
     const events = this.aggregator.drain();
 
     if (!events.length) {
       return;
     }
 
-    await this.ensureDirectory();
-    const payload = events.map((event) => JSON.stringify(event)).join('\n') + '\n';
-    await fs.promises.appendFile(this.filePath, payload, 'utf8');
+    try {
+      await this.ensureDirectory();
+      const payload = events.map((event) => JSON.stringify(event)).join('\n') + '\n';
+      await fs.promises.appendFile(this.filePath, payload, 'utf8');
+    } catch (err) {
+      this.aggregator.push(...events);
+      throw err;
+    }
+  }
+
+  flush() {
+    this.flushChain = this.flushChain.then(() => this.flushOnce());
+    return this.flushChain;
   }
 
   async stop() {

@@ -43,17 +43,17 @@ if (__BRUNO_BENCHMARK__) {
     }
 
     const preloadEvents = drainPreloadEvents();
+    const events = buffer.splice(0, buffer.length);
+    const allEvents = [...events, ...preloadEvents];
 
-    if (!buffer.length && !preloadEvents.length) {
+    if (!allEvents.length) {
       return;
     }
 
-    const events = buffer.splice(0, buffer.length);
-
     try {
-      await window.ipcRenderer.invoke('benchmark:flush-events', [...events, ...preloadEvents]);
+      await window.ipcRenderer.invoke('benchmark:flush-events', allEvents);
     } catch (err) {
-      buffer.unshift(...events);
+      buffer.unshift(...allEvents);
       console.error('[benchmark] Failed to flush renderer events:', err);
     }
   };
