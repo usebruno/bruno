@@ -14,14 +14,25 @@ const uidForSeed = (seed) => sha256(seed).slice(0, 21);
 
 const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])];
 
+const GLOB_METACHAR = /[*?[\]{}]/;
+
 const isDenied = (relativePathPosix, patterns) => {
   for (const pattern of patterns) {
-    const normalizedPattern = posixifyPath(pattern);
+    const normalizedPattern = posixifyPath(pattern).replace(/\/+$/, '');
+    if (!normalizedPattern) continue;
     if (
       relativePathPosix === normalizedPattern
       || relativePathPosix.startsWith(`${normalizedPattern}/`)
       || path.matchesGlob(relativePathPosix, normalizedPattern)
     ) return true;
+
+    if (!GLOB_METACHAR.test(normalizedPattern)) continue;
+    const segments = relativePathPosix.split('/');
+    let ancestor = '';
+    for (let i = 0; i < segments.length - 1; i++) {
+      ancestor = ancestor ? `${ancestor}/${segments[i]}` : segments[i];
+      if (path.matchesGlob(ancestor, normalizedPattern)) return true;
+    }
   }
   return false;
 };

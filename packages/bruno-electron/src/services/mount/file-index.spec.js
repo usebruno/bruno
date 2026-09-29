@@ -46,6 +46,23 @@ describe('FileIndex denylist', () => {
     expect([...entries.keys()]).toEqual(['visible.bru']);
   });
 
+  test('does not return rows denied by a folder entry with a trailing separator', () => {
+    const entries = index.entries(collectionPath, { denylist: ['hidden/'] });
+
+    expect([...entries.keys()]).toEqual(['visible.bru']);
+  });
+
+  test('does not return rows under a glob-denied directory', () => {
+    const nestedHidden = path.join(collectionPath, 'nested', 'hidden');
+    fs.mkdirSync(nestedHidden, { recursive: true });
+    fs.writeFileSync(path.join(nestedHidden, 'request.bru'), 'nested-hidden');
+    index.stageParsed(collectionPath, path.join(nestedHidden, 'request.bru'), { name: 'Nested Hidden' });
+
+    const entries = index.entries(collectionPath, { denylist: ['**/hidden'] });
+
+    expect([...entries.keys()]).toEqual(['visible.bru']);
+  });
+
   test('marks previously cached denied rows for removal', async () => {
     const { removed } = await index.status(collectionPath, { denylist: ['hidden'] });
 

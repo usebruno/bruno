@@ -12,4 +12,20 @@ describe('mount denylist', () => {
   test('preserves glob matching for default denylist entries', () => {
     expect(isDenied('nested/.DS_Store', resolveDenylist())).toBe(true);
   });
+
+  test('folder entries with a trailing separator deny the folder and its descendants', () => {
+    const denylist = resolveDenylist(['hidden/']);
+
+    expect(isDenied('hidden', denylist)).toBe(true);
+    expect(isDenied('hidden/request.bru', denylist)).toBe(true);
+    expect(isDenied('hidden-other/request.bru', denylist)).toBe(false);
+  });
+
+  test('a glob that matches a directory denies files beneath it', () => {
+    const denylist = resolveDenylist(['**/hidden']);
+
+    expect(isDenied('nested/hidden', denylist)).toBe(true);
+    expect(isDenied('nested/hidden/request.bru', denylist)).toBe(true);
+    expect(isDenied('nested/visible/request.bru', denylist)).toBe(false);
+  });
 });

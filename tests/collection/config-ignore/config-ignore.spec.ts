@@ -140,9 +140,9 @@ get {
 
   test('Should hide ignored folders when file cache is enabled', async ({
     launchElectronApp,
-    createTmpDir
+    createTmpDir,
+    collectionFixturePath
   }) => {
-    const collectionDir = await createTmpDir('config-ignore-file-cache');
     const userDataPath = await createTmpDir('config-ignore-file-cache-userdata');
     const collectionName = 'Config Ignore File Cache Test';
 
@@ -162,32 +162,13 @@ get {
         }
       })
     );
-    fs.writeFileSync(
-      path.join(collectionDir, 'bruno.json'),
-      JSON.stringify({
-        version: '1',
-        name: collectionName,
-        type: 'collection',
-        ignore: ['hidden']
-      })
-    );
-    fs.mkdirSync(path.join(collectionDir, 'hidden'));
-    fs.writeFileSync(path.join(collectionDir, 'hidden', 'folder.bru'), 'meta {\n  name: hidden\n  seq: 1\n}\n');
-    fs.writeFileSync(
-      path.join(collectionDir, 'hidden', 'hidden-request.bru'),
-      'meta {\n  name: Hidden Request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/hidden\n  body: none\n  auth: none\n}\n'
-    );
-    fs.writeFileSync(
-      path.join(collectionDir, 'visible-request.bru'),
-      'meta {\n  name: Visible Request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/visible\n  body: none\n  auth: none\n}\n'
-    );
 
     const electronApp = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(electronApp);
     const locators = buildCommonLocators(page);
 
     try {
-      await openCollectionFromDialog(page, electronApp, collectionDir);
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
       await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 30000 });
       await openCollection(page, collectionName);
 
