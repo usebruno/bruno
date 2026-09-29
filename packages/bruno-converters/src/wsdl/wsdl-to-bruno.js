@@ -120,6 +120,7 @@ class WSDLParser {
     this.bindings = new Map();
     this.services = new Map();
     this.namespaces = new Map();
+    this.choiceGroupCount = 0;
   }
 
   /**
@@ -267,7 +268,7 @@ class WSDLParser {
    * Parse complex type content (sequence, choice, all, attributes)
    */
   parseComplexTypeContent(complexType, target, prefixMap) {
-    this.parseParticles(complexType, target, prefixMap, false);
+    this.parseParticles(complexType, target, prefixMap, null);
 
     // Parse attributes
     if (complexType['xsd:attribute'] || complexType.attribute) {
@@ -326,24 +327,60 @@ class WSDLParser {
   /**
    * Parse particles of a content model (sequence, choice, all)
    */
-  parseParticles(particle, target, prefixMap, inChoice) {
+  parseParticles(particle, target, prefixMap, choiceBranch) {
     for (const [key, value] of Object.entries(particle)) {
       const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
 
       if (particleName === 'element') {
         for (const element of this.getArray(value)) {
-          const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
-          if (inChoice) {
-            parsedElement.choice = true;
-          }
-          target.elements.push(parsedElement);
+          this.addElement(element, target, prefixMap, choiceBranch);
         }
-      } else if (particleName === 'sequence' || particleName === 'all' || particleName === 'choice') {
+      } else if (particleName === 'choice') {
+        for (const choice of this.getArray(value)) {
+          if (choiceBranch) {
+            this.parseParticles(choice, target, prefixMap, choiceBranch);
+          } else {
+            this.parseChoiceBranches(choice, target, prefixMap, ++this.choiceGroupCount, 0);
+          }
+        }
+      } else if (particleName === 'sequence' || particleName === 'all') {
         for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, inChoice || particleName === 'choice');
+          this.parseParticles(nested, target, prefixMap, choiceBranch);
         }
       }
     }
+  }
+
+  /**
+   * Parse the branches of an xs:choice
+   */
+  parseChoiceBranches(choice, target, prefixMap, group, branch) {
+    for (const [key, value] of Object.entries(choice)) {
+      const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
+
+      if (particleName === 'element') {
+        for (const element of this.getArray(value)) {
+          this.addElement(element, target, prefixMap, { group, branch: branch++ });
+        }
+      } else if (particleName === 'choice') {
+        for (const nested of this.getArray(value)) {
+          branch = this.parseChoiceBranches(nested, target, prefixMap, group, branch);
+        }
+      } else if (particleName === 'sequence' || particleName === 'all') {
+        for (const nested of this.getArray(value)) {
+          this.parseParticles(nested, target, prefixMap, { group, branch: branch++ });
+        }
+      }
+    }
+    return branch;
+  }
+
+  addElement(element, target, prefixMap, choiceBranch) {
+    const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
+    if (choiceBranch) {
+      parsedElement.choice = choiceBranch;
+    }
+    target.elements.push(parsedElement);
   }
 
   /**
@@ -765,16 +802,22 @@ class XMLSampleGenerator {
     let xml = '';
     for (let i = 0; i < elements.length; i++) {
       const element = elements[i];
-      if (element.choice && (i === 0 || !elements[i - 1].choice)) {
-        let choiceCount = 0;
-        while (i + choiceCount < elements.length && elements[i + choiceCount].choice) {
-          choiceCount++;
-        }
-        xml += `<!--You have a CHOICE of the next ${choiceCount} items at this level-->`;
+      const group = element.choice ? element.choice.group : null;
+      const previousGroup = i > 0 && elements[i - 1].choice ? elements[i - 1].choice.group : null;
+      if (group !== null && group !== previousGroup) {
+        xml += `<!--You have a CHOICE of the next ${this.countChoiceBranches(elements, i, group)} items at this level-->`;
       }
       xml += this.generateElementSample(element);
     }
     return xml;
+  }
+
+  countChoiceBranches(elements, start, group) {
+    const seenBranches = new Set();
+    for (let i = start; i < elements.length && elements[i].choice && elements[i].choice.group === group; i++) {
+      seenBranches.add(elements[i].choice.branch);
+    }
+    return seenBranches.size;
   }
 
   /**
