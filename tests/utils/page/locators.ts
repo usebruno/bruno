@@ -7,6 +7,7 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
+import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -45,6 +46,7 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
@@ -529,15 +531,6 @@ export const buildScriptErrorLocators = (page: Page) => ({
   stack: (card?: Locator) => (card ?? page).getByTestId('script-error-stack'),
   /** ScriptErrorIcon (the red alert button shown when card is dismissed) */
   errorIcon: () => page.getByTestId('script-error-icon')
-});
-
-export const buildUnresolvedVariablesInfoLocators = (page: Page) => ({
-  card: () => page.getByTestId('unresolved-variables-info'),
-  names: () => page.getByTestId('unresolved-variables-names'),
-  count: () => page.getByTestId('unresolved-variables-count'),
-  popoverNames: () => page.getByTestId('unresolved-variables-popover').locator('li'),
-  copyButton: () => page.getByTestId('unresolved-variables-copy'),
-  closeButton: () => page.getByTestId('unresolved-variables-info-close')
 });
 
 /**

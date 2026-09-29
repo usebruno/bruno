@@ -3,8 +3,14 @@ import { createServer, type RequestListener } from 'http';
 import type { AddressInfo } from 'net';
 import { once } from 'events';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { buildCommonLocators, buildUnresolvedVariablesInfoLocators } from '../utils/page/locators';
-import { openRequest, sendAndWaitForResponse, waitForReadyPage } from '../utils/page/actions';
+import {
+  buildCommonLocators,
+  copyUnresolvedVariableNames,
+  openRequest,
+  openUnresolvedVariablesPopover,
+  sendAndWaitForResponse,
+  waitForReadyPage
+} from '../utils/page';
 
 const COLLECTION = 'unresolved-variables-info';
 const INIT_USER_DATA_PATH = path.join(__dirname, 'init-user-data');
@@ -25,7 +31,7 @@ const startLocalServer = async (handler?: RequestListener) => {
 
 test.describe('Unresolved variables info', () => {
   test('an http request with an undefined variable shows a dismissible info card', async ({ pageWithUserData: page }) => {
-    const info = buildUnresolvedVariablesInfoLocators(page);
+    const { unresolvedVariablesInfo: info, response } = buildCommonLocators(page);
 
     await test.step('Send the request', async () => {
       await openRequest(page, COLLECTION, 'http-unresolved');
@@ -44,13 +50,13 @@ test.describe('Unresolved variables info', () => {
     await test.step('The info card stays dismissed after switching to another request and back', async () => {
       await openRequest(page, COLLECTION, 'http-resolved');
       await openRequest(page, COLLECTION, 'http-unresolved');
-      await expect(buildCommonLocators(page).response.statusCode()).toBeVisible();
+      await expect(response.statusCode()).toBeVisible();
       await expect(info.card()).toBeHidden();
     });
   });
 
   test('a request with many undefined variables shows a count that lists and copies every name', async ({ pageWithUserData: page, installFakeClipboard }) => {
-    const info = buildUnresolvedVariablesInfoLocators(page);
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
     const names = ['stripe_secret_key', 'tenant_identifier', 'oauth_client_id', 'oauth_client_secret', 'region'];
 
     await test.step('Send the request', async () => {
@@ -60,20 +66,19 @@ test.describe('Unresolved variables info', () => {
 
     await test.step('The info card shows a count that lists every name on hover', async () => {
       await expect(info.count()).toHaveText('5 variables');
-      await info.count().hover();
+      await openUnresolvedVariablesPopover(page);
       await expect(info.popoverNames()).toHaveText(names);
     });
 
     await test.step('Copying puts every name on the clipboard', async () => {
       const clipboard = await installFakeClipboard(page);
-      await info.copyButton().click();
-      await expect(info.copyButton()).toHaveAttribute('title', 'Copied');
+      await copyUnresolvedVariableNames(page);
       expect(await clipboard.copiedText()).toBe(names.join('\n'));
     });
   });
 
   test('an api key sent as a query param reports its undefined value', async ({ pageWithUserData: page }) => {
-    const info = buildUnresolvedVariablesInfoLocators(page);
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
 
     await test.step('Send the request', async () => {
       await openRequest(page, COLLECTION, 'http-api-key-unresolved');
@@ -95,8 +100,7 @@ test.describe('Unresolved variables info', () => {
 
     try {
       const page = await waitForReadyPage(app);
-      const { request, response } = buildCommonLocators(page);
-      const info = buildUnresolvedVariablesInfoLocators(page);
+      const { unresolvedVariablesInfo: info, request, response } = buildCommonLocators(page);
 
       await test.step('Send the request and cancel it once the server has it', async () => {
         await openRequest(page, COLLECTION, 'http-cancelled');
@@ -126,8 +130,7 @@ test.describe('Unresolved variables info', () => {
 
     try {
       const page = await waitForReadyPage(app);
-      const { request } = buildCommonLocators(page);
-      const info = buildUnresolvedVariablesInfoLocators(page);
+      const { unresolvedVariablesInfo: info, request } = buildCommonLocators(page);
 
       await test.step('Send the request', async () => {
         await openRequest(page, COLLECTION, 'http-streamed');
@@ -144,7 +147,7 @@ test.describe('Unresolved variables info', () => {
   });
 
   test('a variable missing in a request run by bru.runRequest shows on the calling request', async ({ pageWithUserData: page }) => {
-    const info = buildUnresolvedVariablesInfoLocators(page);
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
 
     await test.step('Send the calling request', async () => {
       await openRequest(page, COLLECTION, 'run-request-parent');
@@ -157,7 +160,7 @@ test.describe('Unresolved variables info', () => {
   });
 
   test('an http request with every variable defined shows no info card', async ({ pageWithUserData: page }) => {
-    const info = buildUnresolvedVariablesInfoLocators(page);
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
 
     await test.step('Send the request', async () => {
       await openRequest(page, COLLECTION, 'http-resolved');
