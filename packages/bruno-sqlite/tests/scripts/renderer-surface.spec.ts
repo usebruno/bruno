@@ -3,7 +3,14 @@ import { statements } from '../../src/generated/node/statements';
 
 // `:main` is opt-out, so a new statement reaches the renderer unless someone remembers the flag.
 // Pinning both sets here turns that silent grant into a failing test.
-const MAIN_ONLY: string[] = [];
+const MAIN_ONLY: string[] = [
+  'delete_file',
+  'get_file_meta',
+  'insert_file',
+  'list_file_names',
+  'list_file_referrers',
+  'read_file_slice'
+];
 
 const RENDERER_CALLABLE = [
   'delete_runner_responses_for_collection',
