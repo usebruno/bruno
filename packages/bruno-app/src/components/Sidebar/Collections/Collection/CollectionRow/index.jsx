@@ -370,12 +370,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   drag(drop(collectionRef));
   dragPreview(getEmptyImage(), { captureDraggingState: true });
 
-  if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
-      return null;
-    }
-  }
-
   const collectionRowClassName = classnames(
     'flex py-1 collection-name items-center relative',
     {
@@ -568,6 +562,12 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       return acc;
     }, {}),
     { preventDefault: true, stopPropagation: true });
+
+  if (searchText && searchText.length) {
+    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
+      return null;
+    }
+  }
 
   return (
     <StyledWrapper className="flex flex-col">

@@ -590,18 +590,6 @@ const CollectionItemRow = ({
     'is-sidebar-dragging': isSidebarDragging
   });
 
-  if (searchText && searchText.length) {
-    if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
-        return null;
-      }
-    } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
-        return null;
-      }
-    }
-  }
-
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
   };
@@ -743,6 +731,18 @@ const CollectionItemRow = ({
     }
     return acc;
   }, {}), { preventDefault: true, stopPropagation: true });
+
+  if (searchText && searchText.length) {
+    if (isItemARequest(item)) {
+      if (!doesRequestMatchSearchText(item, searchText)) {
+        return null;
+      }
+    } else {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+        return null;
+      }
+    }
+  }
 
   return (
     <StyledWrapper className={className}>
