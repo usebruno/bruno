@@ -59,7 +59,7 @@ const UnresolvedVariablesInfo = ({ item, collection }) => {
   const names = item.unresolvedVariables;
   if (!names?.length) return null;
 
-  const inlineNames = names.join(', ');
+  const joinedNamesLength = names.join(', ').length;
 
   const handleClose = () => {
     dispatch(dismissUnresolvedVariables({ collectionUid: collection.uid, itemUid: item.uid }));
@@ -69,7 +69,7 @@ const UnresolvedVariablesInfo = ({ item, collection }) => {
     <StyledWrapper role="status" data-testid="unresolved-variables-info">
       <IconInfoCircle size={16} strokeWidth={1.5} className="info-icon" />
       <div className="info-message">
-        {inlineNames.length <= MAX_INLINE_NAMES_LENGTH ? (
+        {joinedNamesLength <= MAX_INLINE_NAMES_LENGTH ? (
           <>
             This request uses variables that could not be resolved:{' '}
             <span className="variable-names" data-testid="unresolved-variables-names">

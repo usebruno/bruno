@@ -4,7 +4,6 @@ import reducer, {
   responseCleared,
   dismissUnresolvedVariables
 } from 'providers/ReduxStore/slices/collections';
-import { cloneDeep } from 'lodash';
 import { hasRequestChanges } from 'utils/collections';
 
 const COLLECTION_UID = 'col-1';
@@ -65,7 +64,7 @@ describe('unresolved variables reducers', () => {
 
   it('does not mark the request as unsaved when the info card is dismissed', () => {
     const state = makeState({ unresolvedVariables: ['host'] });
-    state.collections[0].items[0].draft = cloneDeep(state.collections[0].items[0]);
+    state.collections[0].items[0].draft = { ...state.collections[0].items[0] };
 
     const next = reducer(state, dismissUnresolvedVariables({ collectionUid: COLLECTION_UID, itemUid: ITEM_UID }));
 
