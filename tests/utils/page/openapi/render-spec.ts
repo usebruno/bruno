@@ -18,9 +18,23 @@ export const buildApiSpecPanelLocators = (page: Page) => ({
   saveAndCloseButton: () => page.getByTestId('api-spec-save'),
   sidebarRows: () => page.getByTestId('sidebar-api-spec-row'),
   sidebarRow: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }),
-  sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions'),
-  sidebarRowRemoveMenuItem: () => page.getByTestId('api-spec-actions-remove')
+  sidebarRowActions: (name: string | RegExp) => page.getByTestId('sidebar-api-spec-row').filter({ hasText: name }).getByTestId('api-spec-actions')
 });
+
+export const buildApiSpecRowMenuLocators = (page: Page) => {
+  const openMenu = () => page.getByTestId('api-spec-actions-dropdown');
+
+  return {
+    menuItems: () => openMenu().getByRole('menuitem'),
+    menuItem: (id: string) => openMenu().getByTestId(`api-spec-actions-${id}`),
+    menuDivider: () => openMenu().getByRole('separator'),
+    removeModal: () => page.getByTestId('remove-api-spec-modal'),
+    removeSubmit: () => page.getByTestId('remove-api-spec-modal-submit-btn'),
+    deleteModal: () => page.getByTestId('delete-api-spec-modal'),
+    deleteSubmit: () => page.getByTestId('delete-api-spec-modal-submit-btn'),
+    connectedCollectionsWarning: () => page.getByTestId('api-spec-connected-collections-warning')
+  };
+};
 
 export const expandApiSpecsSection = async (page: Page): Promise<void> => {
   await test.step('Open the API Specs sidebar section', async () => {
@@ -126,16 +140,30 @@ export const closeApiSpecTab = async (page: Page, tabLabel: string): Promise<voi
   });
 };
 
-const openRowActionsMenu = async (row: Locator): Promise<void> => {
+const openRowActionsMenu = async (page: Page, row: Locator): Promise<void> => {
   await row.focus();
   await row.getByTestId('api-spec-actions').click();
+  await buildApiSpecRowMenuLocators(page).menuItems().first().waitFor({ state: 'visible' });
+};
+
+export const openApiSpecRowMenu = async (page: Page, name: string): Promise<void> => {
+  await test.step(`Open the actions menu of API spec "${name}"`, async () => {
+    await openRowActionsMenu(page, buildApiSpecPanelLocators(page).sidebarRow(name));
+  });
+};
+
+export const chooseApiSpecRowAction = async (page: Page, name: string, actionId: string): Promise<void> => {
+  await openApiSpecRowMenu(page, name);
+  await test.step(`Choose "${actionId}"`, async () => {
+    await buildApiSpecRowMenuLocators(page).menuItem(actionId).click();
+  });
 };
 
 const removeApiSpecRow = async (page: Page, row: Locator): Promise<void> => {
-  const { sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
-  await openRowActionsMenu(row);
-  await sidebarRowRemoveMenuItem().click();
-  await page.getByTestId('modal-submit-btn').click();
+  const { menuItem, removeSubmit } = buildApiSpecRowMenuLocators(page);
+  await openRowActionsMenu(page, row);
+  await menuItem('remove').click();
+  await removeSubmit().click();
 };
 
 export const removeApiSpecFromWorkspace = async (page: Page, name: string): Promise<void> => {
@@ -148,6 +176,7 @@ export const removeApiSpecFromWorkspace = async (page: Page, name: string): Prom
 export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> => {
   await test.step('Remove every API spec from the workspace', async () => {
     const { sidebarRows, section } = buildApiSpecPanelLocators(page);
+    const { removeSubmit } = buildApiSpecRowMenuLocators(page);
 
     if ((await section().count()) === 0) return;
     await expandApiSpecsSection(page);
@@ -158,7 +187,7 @@ export const removeAllApiSpecsFromWorkspace = async (page: Page): Promise<void> 
 
       await removeApiSpecRow(page, sidebarRows().first());
       await expect(sidebarRows()).toHaveCount(remaining - 1);
-      await expect(page.getByTestId('modal-submit-btn')).toHaveCount(0);
+      await expect(removeSubmit()).toHaveCount(0);
     }
   });
 };
