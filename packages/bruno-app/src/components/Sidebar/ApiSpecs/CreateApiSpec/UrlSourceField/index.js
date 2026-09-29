@@ -3,7 +3,7 @@ import { IconLink } from '@tabler/icons';
 
 const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl }) => (
   <>
-    <div className="relative mt-2">
+    <div className="relative mt-4">
       {formik.values.specUrl ? (
         <span className="input-icon">
           <IconLink size={14} strokeWidth={1.5} />
