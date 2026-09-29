@@ -185,3 +185,10 @@ body.os-mac * {
  * transform: scale(1.1);
  * }
  */
+
+/* Applied by useOverflowCollapse */
+.measuring-overflow,
+.measuring-overflow * {
+  transition: none !important;
+  animation: none !important;
+}
