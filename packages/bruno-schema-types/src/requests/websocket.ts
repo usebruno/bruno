@@ -1,4 +1,4 @@
-import type { KeyValue, Script, Variables, Auth } from '../common';
+import type { KeyValue, HTTPScripts, Variables, Auth } from '../common';
 
 export interface WebSocketMessage {
   name?: string | null;
@@ -17,7 +17,7 @@ export interface WebSocketRequest {
   headers: KeyValue[];
   auth?: Auth | null;
   body: WebSocketRequestBody;
-  script?: Script | null;
+  script?: HTTPScripts | null;
   vars?: {
     req: Variables;
     res: Variables;

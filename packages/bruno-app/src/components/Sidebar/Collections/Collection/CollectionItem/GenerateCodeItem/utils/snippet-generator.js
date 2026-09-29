@@ -3,8 +3,28 @@ import { stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
+import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
 import { parse } from 'url';
 import { stringify } from 'query-string';
+
+// Folds any `cookie`/`Cookie` header into a single header.
+const mergeCookieHeaders = (headers, capitalizeCookieHeaderName) => {
+  let cookieHeaderIndex = -1;
+  const merged = [];
+  for (const header of headers) {
+    if (header.name.toLowerCase() !== 'cookie') {
+      merged.push(header);
+      continue;
+    }
+    if (cookieHeaderIndex === -1) {
+      cookieHeaderIndex = merged.length;
+      merged.push({ ...header, name: capitalizeCookieHeaderName ? 'Cookie' : header.name });
+    } else {
+      merged[cookieHeaderIndex].value += `; ${header.value}`;
+    }
+  }
+  return merged;
+};
 
 // curl --digest / --ntlm are surface-level snippet adjustments, not part of
 // the HAR contract — keep them at this layer.
@@ -31,7 +51,7 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
-const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
+const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
@@ -50,8 +70,17 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
 
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
-    const sourceUrl = item.rawUrl || request.url;
-    const { har, rawUrl, encodedUrl, unhash } = buildHar({
+    // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
+    const sourceUrl = shouldInterpolate
+      ? interpolateUrlPathParams(
+          interpolateUrl({ url: request.url, variables }) || '',
+          request.params,
+          variables,
+          { raw: true }
+        )
+      : prependDefaultScheme(request.url);
+
+    const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
         method: request.method,
         url: sourceUrl,
@@ -68,21 +97,25 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
       collectionUid: collection?.uid
     });
 
+    const isCurl = language.target === 'shell' && language.client === 'curl';
+    const isLibcurl = language.target === 'c' && language.client === 'libcurl';
+
     // Generate snippet using HTTPSnippet
-    const snippet = new HTTPSnippet(har);
+    const snippet = new HTTPSnippet({ ...har, headers: mergeCookieHeaders(har.headers, isCurl || isLibcurl) });
     let result = snippet.convert(language.target, language.client);
 
     // curl --digest / --ntlm flags. Snippet-text manipulation, not HAR.
-    if (language.target === 'shell' && language.client === 'curl') {
+    if (isCurl) {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
-
     /**
      *
      * Display-swap. HTTPSnippet renders the URL in encoded form (using har.queryString as the source of truth).
      * For OFF mode we want the user's raw bytes visible in the snippet — swap the encoded path+query substring for the raw form.
-     * For OFF: prefer item.rawUrl when the caller explicitly supplied it (legacy GenerateCodeItem pipeline does this so user-typed pre-encoded
-     * bytes survive the WHATWG-URL normalization). Otherwise fall back to buildHar's rawUrl.
+     * buildHar derives `rawUrl` from the exact URL passed in above, so it carries the user's
+     * pre-encoded bytes (and, when the toggle is OFF, the un-substituted placeholders).
+     * `item.rawUrl` remains honoured for callers that resolve the URL themselves and want
+     * their own bytes displayed; GenerateCodeItem no longer sets it.
      */
     const displayRawUrl = item.rawUrl || rawUrl;
     const parsed = parse(encodedUrl, true, true);

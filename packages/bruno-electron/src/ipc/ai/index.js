@@ -12,6 +12,7 @@ const {
   clearSdkCache,
   isKnownProviderId,
   isBuiltInModelId,
+  isOpenAiCompatibleProviderId,
   isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
@@ -51,10 +52,15 @@ const buildStatus = () => {
 
   const providers = {};
   for (const provider of listProviders(aiPreferences)) {
+    const configured = provider.isCustom
+      ? Boolean(provider.baseURL)
+      : hasApiKey(provider.id);
+
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
-      configured: hasApiKey(provider.id)
+      configured,
+      hasApiKey: hasApiKey(provider.id)
     };
   }
 
@@ -105,9 +111,14 @@ const registerAiIpc = (mainWindow) => {
     assertKnownProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
-      throw new Error('API key cannot be empty');
+      if (isOpenAiCompatibleProviderId(providerId)) {
+        aiKeyStore.clearKey(providerId);
+      } else {
+        throw new Error('API key cannot be empty');
+      }
+    } else {
+      aiKeyStore.setKey(providerId, trimmed);
     }
-    aiKeyStore.setKey(providerId, trimmed);
     clearSdkCache();
     const status = buildStatus();
     broadcastStatus(status);
@@ -134,7 +145,9 @@ const registerAiIpc = (mainWindow) => {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
     const apiKey = aiKeyStore.getKey(providerId);
-    if (!apiKey) {
+    // Built-in providers must have a key to test. Compat endpoints can be
+    // hit without one (server may or may not require it).
+    if (!apiKey && !isOpenAiCompatibleProviderId(providerId)) {
       return { ok: false, error: 'No API key configured' };
     }
 

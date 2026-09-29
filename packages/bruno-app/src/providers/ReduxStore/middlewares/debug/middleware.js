@@ -1,15 +1,7 @@
 import { createListenerMiddleware } from '@reduxjs/toolkit';
 
+// ponytail: no active listeners registered (kept as a hook point for ad-hoc debugging,
+// add a startListening() call here when you actually need to trace redux actions)
 const debugMiddleware = createListenerMiddleware();
-
-debugMiddleware.startListening({
-  predicate: () => true, // it'll track every change
-  effect: (action, listenerApi) => {
-    console.debug('---redux action---');
-    console.debug('action', action.type); // which action did it
-    console.debug('action.payload', action.payload);
-    console.debug(listenerApi.getState()); // the updated store
-  }
-});
 
 export default debugMiddleware;

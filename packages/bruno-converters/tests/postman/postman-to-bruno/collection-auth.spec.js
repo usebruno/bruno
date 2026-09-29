@@ -40,7 +40,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -100,7 +101,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -154,7 +156,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -214,7 +217,8 @@ describe('Collection Authentication', () => {
       },
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -278,7 +282,8 @@ describe('Collection Authentication', () => {
       digest: {
         username: 'digest auth',
         password: 'digest auth'
-      }
+      },
+      ntlm: null
     });
   });
   it('should handle missing auth values when auth.type exists', async () => {
@@ -325,7 +330,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -372,7 +378,8 @@ describe('Collection Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 });

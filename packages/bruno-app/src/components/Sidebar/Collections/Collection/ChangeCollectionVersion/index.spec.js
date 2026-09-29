@@ -66,6 +66,12 @@ beforeEach(() => {
 });
 
 describe('ChangeCollectionVersion', () => {
+  it('opens with an empty new-version input, even when the collection already has a version', () => {
+    renderModal(buildCollection());
+    expect(screen.getByTestId('change-version-input')).toHaveValue('');
+    expect(screen.getByTestId('change-version-submit-btn')).toBeDisabled();
+  });
+
   it('lets you save only when the new version is different from the current one', () => {
     renderModal(buildCollection());
     const submit = screen.getByTestId('change-version-submit-btn');

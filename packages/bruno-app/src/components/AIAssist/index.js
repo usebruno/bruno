@@ -298,6 +298,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
           title={title}
           type="button"
           aria-label={title}
+          data-testid={`ai-assist-trigger-${scriptType}`}
         >
           <IconSparkles size={14} strokeWidth={1.75} />
         </button>

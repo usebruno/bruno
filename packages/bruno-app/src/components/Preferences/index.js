@@ -10,7 +10,8 @@ import {
   IconKeyboard,
   IconZoomQuestion,
   IconSquareLetterB,
-  IconDatabase
+  IconDatabase,
+  IconCertificate
 } from '@tabler/icons';
 
 import IconSparkles from 'components/Icons/IconSparkles';
@@ -22,6 +23,8 @@ import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
 import AI from './AI';
+
+import ClientCertSettings from './ClientCertSettings';
 
 import StyledWrapper from './StyledWrapper';
 import Cache from './Cache/index';
@@ -77,6 +80,10 @@ const Preferences = () => {
       case 'cache': {
         return <Cache />;
       }
+
+      case 'clientCert': {
+        return <ClientCertSettings />;
+      }
     }
   };
 
@@ -99,6 +106,10 @@ const Preferences = () => {
           <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
             <IconUserCircle size={16} strokeWidth={1.5} />
             Proxy
+          </div>
+          <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+            <IconCertificate size={16} strokeWidth={1.5} />
+            Client Certificates
           </div>
           <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
             <IconKeyboard size={16} strokeWidth={1.5} />

@@ -1,4 +1,5 @@
 const HeaderList = require('./header-list');
+const { parseUrl } = require('./utils/url');
 
 class BrunoRequest {
   /**
@@ -48,8 +49,7 @@ class BrunoRequest {
 
   getHost() {
     try {
-      const url = new URL(this.req.url);
-      return url.host;
+      return parseUrl(this.req.url).host;
     } catch (e) {
       return '';
     }
@@ -57,8 +57,7 @@ class BrunoRequest {
 
   getPath() {
     try {
-      const url = new URL(this.req.url);
-      let pathname = url.pathname;
+      let { pathname } = parseUrl(this.req.url);
 
       // If path params exist, interpolate them into the pathname
       if (this.req.pathParams && Array.isArray(this.req.pathParams)) {
@@ -91,9 +90,7 @@ class BrunoRequest {
 
   getQueryString() {
     try {
-      const url = new URL(this.req.url);
-      // Return query string without the leading '?'
-      return url.search ? url.search.substring(1) : '';
+      return parseUrl(this.req.url).queryString;
     } catch (e) {
       return '';
     }
@@ -137,6 +134,10 @@ class BrunoRequest {
     return this.req.headers;
   }
 
+  /**
+   * Replaces the whole header set, dropping headers set at collection/folder level.
+   * TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
+   */
   setHeaders(headers) {
     this.req.headers = headers;
   }

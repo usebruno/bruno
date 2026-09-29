@@ -34,6 +34,11 @@ const StyledWrapper = styled.div`
     left: 0;
     right: 0;
     height: 2px;
+
+    &.disconnecting {
+      animation: blink 0.8s ease-in-out infinite;
+      background-color: ${(props) => props.theme.colors.text.yellow};
+    }
   }
 
   @keyframes pulse {
@@ -46,6 +51,22 @@ const StyledWrapper = styled.div`
     100% {
       opacity: 0.4;
     }
+  }
+
+  @keyframes blink {
+    0% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.2;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 0.8s ease-in-out infinite;
   }
 
 `;

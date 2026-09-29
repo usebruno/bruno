@@ -1,18 +1,20 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { renameEnvironment, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
+import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { renameEnvironment, saveEnvironmentExtends, updateEnvironmentColor } from 'providers/ReduxStore/slices/collections/actions';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
 import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
+import InheritsFrom from 'components/Environments/Common/InheritsFrom';
+import EnvironmentInheritanceWarning from 'components/Environments/Common/EnvironmentInheritanceWarning';
 import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
-import DraftTabIcon from 'components/RequestTabs/RequestTab/DraftTabIcon';
-import { stripEnvVarUid } from 'utils/environments';
+import useEnvironmentTabs from 'hooks/useEnvironmentTabs';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
@@ -28,29 +30,24 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
   const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
 
-  // A tab shows an unsaved-changes dot when its slice of the environment draft differs from what's
-  // saved: Variables/Secrets compare their own (non-)secret variables.
-  const environmentsDraft = collection?.environmentsDraft?.environmentUid === environment?.uid ? collection.environmentsDraft : null;
+  const environmentsDraft = collection?.environmentsDraft;
 
-  const tabs = useMemo(() => {
-    const variablesTabDirty = (isSecret) => {
-      if (!environmentsDraft?.variables) return false;
-      const belongsToTab = (v) => (isSecret ? !!v.secret : !v.secret);
-      const normalize = (list) => JSON.stringify((list || []).filter(belongsToTab).map(stripEnvVarUid));
-      return normalize(environmentsDraft.variables) !== normalize(environment?.variables);
-    };
-    // The dot is floated into the tab's right margin (see StyledWrapper), so it never widens the
-    // tab; visibility toggles whether it shows without shifting the tab.
-    const draftIndicator = (dirty) => (
-      <span className="env-tab-draft-indicator" data-testid="env-tab-draft-indicator" style={{ visibility: dirty ? 'visible' : 'hidden' }}>
-        <DraftTabIcon />
-      </span>
-    );
-    return [
-      { key: 'variables', label: 'Variables', indicator: draftIndicator(variablesTabDirty(false)) },
-      { key: 'secrets', label: 'Secrets', indicator: draftIndicator(variablesTabDirty(true)) }
-    ];
-  }, [environmentsDraft, environment?.variables]);
+  const inheritedEnvironmentVariables = useMemo(() => {
+    const draft = environmentsDraft?.environmentUid === environment.uid ? environmentsDraft : null;
+    const liveEnvironment = { ...environment, variables: draft?.variables || environment.variables || [] };
+    const { inheritedVariables } = resolveEnvironmentInheritance({
+      environments: collection?.environments || [],
+      targetEnvironment: liveEnvironment
+    });
+    return inheritedVariables;
+  }, [environment, environmentsDraft, collection?.environments]);
+
+  const tabs = useEnvironmentTabs({ environment, draft: environmentsDraft, inheritedEnvironmentVariables });
+
+  const inheritedEnvironmentVariablesForActiveTab = useMemo(
+    () => inheritedEnvironmentVariables.filter((variable) => !!variable.secret === (activeTab === 'secrets')),
+    [inheritedEnvironmentVariables, activeTab]
+  );
 
   // Use the immediate query on a tab switch (debounced value lags and briefly
   // flashes the unfiltered table).
@@ -176,6 +173,21 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
     dispatch(updateEnvironmentColor(environment.uid, color, collection.uid));
   };
 
+  const handleExtendsChange = (inheritedEnvironmentName) => {
+    dispatch(saveEnvironmentExtends({ environmentUid: environment.uid, inheritedEnvironmentName, collectionUid: collection.uid }))
+      .then(() => {
+        toast.success(
+          inheritedEnvironmentName
+            ? `Inheriting variables from ${inheritedEnvironmentName}`
+            : 'Stopped inheriting variables'
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('An error occurred while saving the inherited environment');
+      });
+  };
+
   const handleSaveAll = () => {
     window.dispatchEvent(new Event('environment-save-all'));
   };
@@ -197,6 +209,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
                 ref={inputRef}
                 type="text"
                 className="title-input"
+                data-testid="env-rename-input"
                 value={newName}
                 onChange={handleNameChange}
                 onBlur={handleNameBlur}
@@ -227,13 +240,19 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <h2 className="title">{environment.name}</h2>
+              <h2 className="title" data-testid="env-details-title">{environment.name}</h2>
               <ColorPicker color={environment.color} onChange={handleColorChange} />
             </div>
           )}
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          <InheritsFrom
+            environment={environment}
+            environments={environments}
+            inheritedEnvironmentName={environment.extends}
+            onChange={handleExtendsChange}
+          />
           <ActionIcon label="Save All" onClick={handleSaveAll} data-testid="save-all-env">
             <IconDeviceFloppy size={15} strokeWidth={1.5} />
           </ActionIcon>
@@ -248,6 +267,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           </ActionIcon>
         </div>
       </div>
+
+      <EnvironmentInheritanceWarning environment={environment} environments={environments} />
 
       <div className="tabs-container">
         <ResponsiveTabs
@@ -301,6 +322,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           environment={environment}
           setIsModified={setIsModified}
           collection={collection}
+          inheritedEnvironmentVariables={inheritedEnvironmentVariablesForActiveTab}
           searchQuery={tableSearchQuery}
           variableType={activeTab}
         />

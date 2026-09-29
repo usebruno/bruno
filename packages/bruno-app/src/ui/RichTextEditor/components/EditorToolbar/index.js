@@ -1,0 +1,141 @@
+import React from 'react';
+import { IconCaretDown, IconDots, IconTableOptions } from '@tabler/icons';
+import MenuDropdown from 'ui/MenuDropdown';
+import ToolHint from 'components/ToolHint';
+import StyledWrapper from './StyledWrapper';
+import EditorTableMenu from '../EditorTableMenu';
+import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../../utils/editorToolbarUi';
+import { useToolbarOverflow } from '../../hooks/useToolbarOverflow';
+
+const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false, testId }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`toolbar-btn ${isActive ? 'is-active' : ''}`}
+      aria-label={tooltip}
+      data-testid={testId}
+      data-tooltip-id="editor-toolbar-tooltip"
+      data-tooltip-content={tooltip}
+    >
+      <Icon size={16} strokeWidth={1.5} />
+      {showLabel && <span className="toolbar-btn-label">{tooltip}</span>}
+    </button>
+  );
+};
+
+const ToolbarAction = ({ editor, action, isActive, disabled, showLabel = false }) => {
+  const { id, tooltip, Icon, run } = action;
+
+  return (
+    <ToolbarButton
+      tooltip={tooltip}
+      Icon={Icon}
+      isActive={isActive}
+      disabled={disabled}
+      onClick={() => run(editor)}
+      showLabel={showLabel}
+      testId={`toolbar-${id}`}
+    />
+  );
+};
+
+const EditorToolbar = ({ editor }) => {
+  const {
+    toolbarRef,
+    measureRef,
+    actions,
+    visibleActions,
+    overflowActions,
+    overflowActiveItemIds,
+    headingMenuItems,
+    overflowMenuItems,
+    activeHeading,
+    activeHeadingId,
+    activeItemIds,
+    disabledById,
+    isInTable
+  } = useToolbarOverflow(editor);
+
+  if (!editor) {
+    return null;
+  }
+
+  return (
+    <StyledWrapper>
+      <div className="editor-toolbar" ref={toolbarRef}>
+        <div className="editor-toolbar-measure" ref={measureRef} aria-hidden="true">
+          <div data-toolbar-part="heading" className="heading-dropdown-trigger">
+            <span>{activeHeading.label}</span>
+            <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
+          </div>
+          {isInTable && (
+            <div data-toolbar-part="table-menu" className="heading-dropdown-trigger is-active">
+              <IconTableOptions size={16} strokeWidth={1.5} />
+              <span>Table</span>
+              <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
+            </div>
+          )}
+          {actions.map((action) => (
+            <div key={action.id} data-toolbar-part="action" className="toolbar-btn">
+              <action.Icon size={16} strokeWidth={1.5} />
+            </div>
+          ))}
+        </div>
+
+        <MenuDropdown
+          items={headingMenuItems}
+          selectedItemId={activeHeadingId}
+          placement="bottom-start"
+          {...EDITOR_MENU_DROPDOWN_PROPS}
+        >
+          <button
+            type="button"
+            className={`heading-dropdown-trigger ${activeHeadingId !== 'normal' ? 'is-active' : ''}`}
+            data-testid="toolbar-heading-dropdown"
+          >
+            <span>{activeHeading.label}</span>
+            <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
+          </button>
+        </MenuDropdown>
+
+        <EditorTableMenu editor={editor} />
+
+        <div className="editor-toolbar-actions">
+          {visibleActions.map((action) => (
+            <ToolbarAction
+              key={action.id}
+              editor={editor}
+              action={action}
+              isActive={activeItemIds.includes(action.id)}
+              disabled={disabledById[action.id]}
+            />
+          ))}
+        </div>
+
+        {overflowActions.length > 0 && (
+          <MenuDropdown
+            items={overflowMenuItems}
+            activeItemIds={overflowActiveItemIds}
+            placement="bottom-end"
+            showTickMark={false}
+            {...EDITOR_MENU_DROPDOWN_PROPS}
+          >
+            <button
+              type="button"
+              className="toolbar-btn toolbar-overflow-btn"
+              aria-label="More formatting options"
+              data-testid="toolbar-overflow-menu"
+            >
+              <IconDots size={16} strokeWidth={1.5} />
+            </button>
+          </MenuDropdown>
+        )}
+      </div>
+      <ToolHint tooltipId="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
+    </StyledWrapper>
+  );
+};
+
+export default EditorToolbar;

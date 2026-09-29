@@ -49,6 +49,9 @@ jobs:
       - name: Install test collection dependencies
         run: npm ci --prefix packages/bruno-tests/collection
 
+      - name: Install additional-context-root-lib dependencies
+        run: npm ci --prefix packages/bruno-tests/additional-context-root-lib
+
       - name: Build libraries
         run: |
           npm run build:graphql-docs

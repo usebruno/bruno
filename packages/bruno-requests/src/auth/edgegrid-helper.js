@@ -1,118 +1,23 @@
-const crypto = require('crypto');
+import {
+  MAX_BODY_SIZE_DEFAULT,
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  makeContentHash,
+  isStrPresent
+} from '@usebruno/common/utils';
+
 const { URL } = require('node:url');
 
 /**
  * Akamai EdgeGrid Authentication Helper
  * Implements the EG1-HMAC-SHA256 scheme exactly as Akamai's official client library
  * (https://github.com/akamai/AkamaiOPEN-edgegrid-node) so signatures validate against
- * the real Akamai gateway.
+ * the real Akamai gateway. The signing/crypto primitives are shared with the Generate Code
+ * signer via @usebruno/common/utils; they use Web Crypto and are async.
  * Spec: https://techdocs.akamai.com/developer/docs/authenticate-with-edgegrid
  */
-
-const MAX_BODY_SIZE_DEFAULT = 131072; // 128 KB
-
-function isStrPresent(str) {
-  return str && str.trim() !== '' && str.trim() !== 'undefined';
-}
-
-/**
- * Generate a UTC timestamp in EdgeGrid format: YYYYMMDDTHH:MM:SS+0000
- * (date part has no separators, time part keeps colons, fixed +0000 offset).
- * @returns {string}
- */
-function makeEdgeGridTimestamp() {
-  const [datePart, timePart] = new Date().toISOString().split('T');
-  const date = datePart.replace(/-/g, '');
-  const time = timePart.replace(/\.\d+Z$/, '');
-  return `${date}T${time}+0000`;
-}
-
-/**
- * Generate a random nonce (UUID v4)
- * @returns {string}
- */
-function makeEdgeGridNonce() {
-  return crypto.randomUUID();
-}
-
-/**
- * Base64-encoded HMAC-SHA256. Note the result is a base64 STRING; when used as the
- * signing key it is passed (as a string) as the key of the next HMAC — matching Akamai.
- * @param {string|Buffer} data
- * @param {string} key
- * @returns {string}
- */
-function base64HmacSha256(data, key) {
-  return crypto.createHmac('sha256', key).update(data).digest('base64');
-}
-
-/**
- * Base64-encoded SHA256 hash.
- * @param {string|Buffer} data
- * @returns {string}
- */
-function base64Sha256(data) {
-  return crypto.createHash('sha256').update(data).digest('base64');
-}
-
-/**
- * Build the canonicalized headers segment from the comma-separated list of header NAMES
- * the user asked to sign, pulling the actual values off the outgoing request.
- * Format per header: `name(lowercase):value(trimmed, internal whitespace collapsed)`,
- * joined by a tab — matching Akamai's canonicalizeHeaders().
- * @param {string} headersToSign - comma-separated header names
- * @param {Object} requestHeaders - outgoing request headers ({ name: value })
- * @returns {string}
- */
-function canonicalizeHeaders(headersToSign, requestHeaders = {}) {
-  if (!isStrPresent(headersToSign)) {
-    return '';
-  }
-
-  // case-insensitive lookup of the actual request header values
-  const lookup = {};
-  Object.keys(requestHeaders || {}).forEach((name) => {
-    lookup[name.toLowerCase()] = requestHeaders[name];
-  });
-
-  return headersToSign
-    .split(',')
-    .map((name) => name.trim().toLowerCase())
-    .filter((name) => name.length > 0)
-    // Akamai only signs headers that are actually present on the request (config order preserved);
-    // names not present are skipped, not emitted as empty values.
-    .filter((name) => Object.prototype.hasOwnProperty.call(lookup, name))
-    .map((name) => `${name}:${String(lookup[name]).trim().replace(/\s+/g, ' ')}`)
-    .join('\t');
-}
-
-/**
- * Compute the request body content hash. Akamai hashes the body for POST requests only,
- * over the exact bytes that are sent on the wire (no re-serialization), truncated to
- * maxBodySize before hashing.
- * @param {Object} request - axios request config ({ method, data })
- * @param {number} maxBodySize
- * @returns {string} base64 SHA256 of the (possibly truncated) body, or '' when not applicable
- */
-function makeContentHash(request, maxBodySize) {
-  if (!request.method || request.method.toUpperCase() !== 'POST') {
-    return '';
-  }
-
-  let body = request.data;
-  if (!body) {
-    return '';
-  }
-  // Hash the bytes as sent — do NOT parse/re-stringify (that would change the payload).
-  body = typeof body === 'string' ? body : JSON.stringify(body);
-  if (body.length === 0) {
-    return '';
-  }
-  if (body.length > maxBodySize) {
-    body = body.substring(0, maxBodySize);
-  }
-  return base64Sha256(body);
-}
 
 /**
  * Sign an EdgeGrid request.
@@ -126,9 +31,9 @@ function makeContentHash(request, maxBodySize) {
  * @param {string} [config.headersToSign] - comma-separated header names to sign
  * @param {string|number} [config.maxBodySize=131072]
  * @param {Object} request - axios request config ({ method, url, headers, data })
- * @returns {string} Authorization header value
+ * @returns {Promise<string>} Authorization header value
  */
-export function signEdgeGridRequest(config, request) {
+export async function signEdgeGridRequest(config, request) {
   const { accessToken, clientToken, clientSecret, baseURL, headersToSign } = config;
   const maxBodySize = config.maxBodySize ? parseInt(config.maxBodySize, 10) : MAX_BODY_SIZE_DEFAULT;
 
@@ -166,6 +71,9 @@ export function signEdgeGridRequest(config, request) {
   const authHeader
     = `EG1-HMAC-SHA256 client_token=${clientToken};access_token=${accessToken};timestamp=${timestamp};nonce=${nonce};`;
 
+  // Hash the body bytes exactly as sent — do NOT parse/re-stringify (that would change the payload).
+  const bodyText = typeof request.data === 'string' ? request.data : request.data ? JSON.stringify(request.data) : '';
+
   // data-to-sign: tab-joined, in the exact order Akamai expects.
   const dataToSign = [
     request.method.toUpperCase(),
@@ -173,14 +81,14 @@ export function signEdgeGridRequest(config, request) {
     parsedUrl.host,
     parsedUrl.pathname + parsedUrl.search,
     canonicalizeHeaders(headersToSign, request.headers),
-    makeContentHash(request, maxBodySize),
+    await makeContentHash(request.method, bodyText, maxBodySize),
     authHeader
   ].join('\t');
 
   // Signing key is the base64 STRING of HMAC(timestamp, clientSecret); the signature is then
   // HMAC(dataToSign, signingKey) — both base64-encoded.
-  const signingKey = base64HmacSha256(timestamp, clientSecret);
-  const signature = base64HmacSha256(dataToSign, signingKey);
+  const signingKey = await base64HmacSha256(timestamp, clientSecret);
+  const signature = await base64HmacSha256(dataToSign, signingKey);
 
   return `${authHeader}signature=${signature}`;
 }
@@ -197,18 +105,20 @@ export function addEdgeGridInterceptor(axiosInstance, request) {
     return;
   }
 
-  // Add request interceptor to sign requests
-  axiosInstance.interceptors.request.use((config) => {
-    try {
-      const authHeader = signEdgeGridRequest(edgeGridConfig, config);
-      config.headers['Authorization'] = authHeader;
-      return config;
-    } catch (error) {
-      console.error('EdgeGrid signing error:', error);
+  // Sign requests as they go out. The signer is async (Web Crypto), and axios awaits a
+  // Promise-returning request interceptor.
+  axiosInstance.interceptors.request.use(
+    async (config) => {
+      try {
+        config.headers['Authorization'] = await signEdgeGridRequest(edgeGridConfig, config);
+        return config;
+      } catch (error) {
+        console.error('EdgeGrid signing error:', error);
+        return Promise.reject(error);
+      }
+    },
+    (error) => {
       return Promise.reject(error);
     }
-  },
-  (error) => {
-    return Promise.reject(error);
-  });
+  );
 }

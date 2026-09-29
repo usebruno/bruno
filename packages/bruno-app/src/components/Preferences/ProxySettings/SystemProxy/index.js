@@ -111,7 +111,7 @@ const SystemProxy = () => {
               data-testid="system-proxy-last-refreshed"
               data-refreshed-at={lastRefreshedAt}
             >
-              Last refreshed at {formatProxyTimestamp(lastRefreshedAt)}
+              Last refreshed: {formatProxyTimestamp(lastRefreshedAt)}
             </small>
           )}
         </div>

@@ -26,4 +26,5 @@ export interface BrunoPresetsExtension {
     type?: string;
     url?: string;
   };
+  defaultEnvironment?: string;
 }

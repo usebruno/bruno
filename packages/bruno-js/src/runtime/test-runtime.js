@@ -58,7 +58,7 @@ class TestRuntime {
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
@@ -68,7 +68,8 @@ class TestRuntime {
         collectionVariables: null,
         globalEnvironmentVariables: null,
         results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -103,8 +104,8 @@ class TestRuntime {
 
     let scriptError = null;
 
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
           script: testsFile,
           context,
@@ -112,17 +113,22 @@ class TestRuntime {
           scriptingConfig,
           scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
+      } catch (error) {
+        scriptError = error;
+      }
+      await waitForPendingTests();
+    } else {
+      // default runtime is `quickjs`
+      try {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
           collectionPath,
           scriptPath
         });
+      } catch (error) {
+        scriptError = error;
       }
-    } catch (error) {
-      scriptError = error;
     }
 
     const result = {
@@ -134,6 +140,7 @@ class TestRuntime {
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
+      stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     };
 

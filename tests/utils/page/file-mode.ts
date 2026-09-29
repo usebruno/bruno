@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { Page, test } from '../../../playwright';
+import { expect, Page, test } from '../../../playwright';
 
 const findShortcut = process.platform === 'darwin' ? 'Meta+f' : 'Control+f';
 
@@ -16,6 +16,9 @@ export const buildFileModeLocators = (page: Page) => ({
   },
   transientSaveModal: {
     card: () => page.getByTestId('save-transient-request-modal'),
+    title: () => page.getByTestId('save-transient-request-modal').locator('.bruno-modal-header-title'),
+    collectionOption: (collectionName: string) =>
+      page.getByTestId('save-transient-request-modal').locator('.collection-item').filter({ hasText: collectionName }),
     nameInput: () => page.getByTestId('save-transient-request-name'),
     saveButton: () => page.getByTestId('save-transient-request-submit')
   }
@@ -75,11 +78,23 @@ export const setFileModeRaw = async (page: Page, content: string) => {
   });
 };
 
-// Fill and submit the transient "Save Request" modal.
-export const saveTransientViaModal = async (page: Page, requestName: string) => {
+// Fill and submit the transient "Save Request" modal. When the active collection is a scratch
+// collection the modal opens on a "Select Collection" step first; pass `collectionName` to pick
+// the target and advance to the name form.
+export const saveTransientViaModal = async (
+  page: Page,
+  requestName: string,
+  options: { collectionName?: string } = {}
+) => {
   await test.step(`Save transient request as "${requestName}"`, async () => {
     const { transientSaveModal } = buildFileModeLocators(page);
     await transientSaveModal.card().waitFor({ state: 'visible' });
+
+    if (options.collectionName && (await transientSaveModal.title().textContent()) === 'Select Collection') {
+      await transientSaveModal.collectionOption(options.collectionName).click();
+      await expect(transientSaveModal.nameInput()).toBeVisible();
+    }
+
     await transientSaveModal.nameInput().fill(requestName);
     await transientSaveModal.saveButton().click();
   });

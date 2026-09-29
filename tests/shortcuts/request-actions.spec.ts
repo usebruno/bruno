@@ -2,10 +2,12 @@ import { expect, test } from '../../playwright';
 import { closeAllCollections, createRequest, selectRequestPaneTab } from '../utils/page';
 import {
   modifier,
+  expectResponsePlaceholderShortcut,
   openKeybindingsTab,
   openRequest,
   pressShortcut,
   resetKeybindings,
+  shiftEnterShortcutDisplayText,
   setupBoundActionsData
 } from './helpers';
 
@@ -208,6 +210,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
           method: 'POST'
         });
         await openRequest(page, 'kb-collection', 'shift-enter-req-vars', { persist: true });
+        await expectResponsePlaceholderShortcut(page, 'sendRequest', 'Send Request', shiftEnterShortcutDisplayText);
 
         await selectRequestPaneTab(page, 'Vars');
 

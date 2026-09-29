@@ -2,7 +2,14 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
+import {
+  IconTrash,
+  IconAlertCircle,
+  IconChevronDown,
+  IconChevronRight,
+  IconGripVertical,
+  IconMinusVertical
+} from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -10,7 +17,7 @@ import MultiLineEditor from 'components/MultiLineEditor/index';
 import SecretEyeButton from 'components/MultiLineEditor/SecretEyeButton';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper, { CHECKBOX_COLUMN_WIDTH, ACTIONS_COLUMN_WIDTH } from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -18,14 +25,28 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils'
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid } from 'utils/environments';
+import { getAllVariables, getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections';
+import {
+  stripEnvVarUid,
+  getDuplicateSecretNames,
+  DUPLICATE_SECRET_NAMES_ERROR,
+  DUPLICATE_SECRET_NAME_FIELD_ERROR
+} from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useSortCycle } from 'hooks/useSortCycle';
+import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
+import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import { useResizableColumns } from 'hooks/useResizableColumns';
+import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
+import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
+import InheritedVariableRow from './InheritedVariableRow';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
 const MIN_ROW_HEIGHT = 35;
+// The "Inherited <tab>" and "<tab>" headers, rendered only when something is inherited.
+const SECTION_HEADER_ROWS = 2;
 
 // Non-secret rows first, then secrets. The tabs save independently, so a stable
 // order keeps the "modified" comparison accurate regardless of which tab saved last.
@@ -36,11 +57,52 @@ const orderVarsBySecret = (vars) => {
   return [...nonSecret, ...secret];
 };
 
+const ROW_SECTION_HEADER = 'sectionHeader';
+const ROW_INHERITED_VARIABLE = 'inheritedVariable';
+
 const TableRow = React.memo(
-  ({ children, item, style, ...rest }) => {
+  ({ children, item, style, context, ...rest }) => {
+    if (item?.type === ROW_SECTION_HEADER) {
+      return (
+        <tr
+          style={style}
+          {...rest}
+          className={`${rest.className || ''} section-header-row`.trim()}
+          data-testid={`env-var-section-${item.section}`}
+        >
+          {children}
+        </tr>
+      );
+    }
+
     const variable = item?.variable ?? item;
+
+    if (item?.type === ROW_INHERITED_VARIABLE) {
+      return (
+        <tr
+          style={style}
+          {...rest}
+          className={`${rest.className || ''} inherited-row`.trim()}
+          data-testid={`env-inherited-var-row-${variable?.name}`}
+        >
+          {children}
+        </tr>
+      );
+    }
+
+    const canDrag = !!context?.dragEnabled && item?.index !== context?.lastFormikIndex;
+    const isDragOver = canDrag && context?.dragOverKey === variable?.uid;
+    const isBeingDragged = canDrag && context?.draggingKey === variable?.uid;
+
     return (
-      <tr key={variable?.uid} style={style} {...rest} data-testid={`env-var-row-${variable?.name}`}>
+      <tr
+        key={variable?.uid}
+        style={style}
+        {...rest}
+        className={`${rest.className || ''} ${isDragOver ? 'drag-over' : ''} ${isBeingDragged ? 'dragging-source' : ''}`.trim()}
+        data-testid={`env-var-row-${variable?.name}`}
+        {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: variable.uid } : {})}
+      >
         {children}
       </tr>
     );
@@ -48,11 +110,30 @@ const TableRow = React.memo(
   (prevProps, nextProps) => {
     const prevUid = prevProps?.item?.variable?.uid ?? prevProps?.item?.uid;
     const nextUid = nextProps?.item?.variable?.uid ?? nextProps?.item?.uid;
-    return prevUid === nextUid && prevProps.children === nextProps.children;
+    const prevCtx = prevProps.context || {};
+    const nextCtx = nextProps.context || {};
+    return (
+      prevUid === nextUid
+      && prevProps.item?.count === nextProps.item?.count
+      && prevProps.children === nextProps.children
+      && prevCtx.dragEnabled === nextCtx.dragEnabled
+      && prevCtx.dragOverKey === nextCtx.dragOverKey
+      && prevCtx.draggingKey === nextCtx.draggingKey
+    );
   }
 );
 
 const columns = ['name', 'value', 'description'];
+const DEFAULT_COLUMN_WIDTHS = [20, 45, 35];
+const RESERVED_COLUMNS_WIDTH = CHECKBOX_COLUMN_WIDTH + ACTIONS_COLUMN_WIDTH;
+
+const UNMEASURED_COLUMN_WIDTHS = { name: 'auto', value: 'auto', description: 'auto' };
+
+const matchesSearchQuery = (variable, query) => {
+  const valueText = ['string', 'number', 'boolean'].includes(typeof variable.value) ? String(variable.value) : '';
+  const description = typeof variable.description === 'string' ? variable.description : '';
+  return `${variable.name ?? ''}\n${valueText}\n${description}`.toLowerCase().includes(query);
+};
 
 const EnvVarValueCell = ({
   variable,
@@ -61,6 +142,7 @@ const EnvVarValueCell = ({
   isLastEmptyRow,
   storedTheme,
   collection,
+  resolvableVariables,
   formik,
   handleRowFocus,
   handleSave,
@@ -68,16 +150,18 @@ const EnvVarValueCell = ({
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
-  const [masked, setMasked] = useState(variable.secret);
+
+  const showAsSecret = variable.secret && !isLastEmptyRow;
+  const [masked, setMasked] = useState(showAsSecret);
 
   useEffect(() => {
-    setMasked(variable.secret);
-  }, [variable.secret]);
+    setMasked(showAsSecret);
+  }, [showAsSecret]);
 
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret ? (
+      trailingContent={showAsSecret ? (
         <SecretEyeButton
           masked={masked}
           testId="secret-reveal-toggle"
@@ -86,9 +170,10 @@ const EnvVarValueCell = ({
       ) : null}
       editor={(
         <div
-          className="relative flex flex-col"
+          className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
+          {renderExtraValueContent && renderExtraValueContent(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -96,11 +181,11 @@ const EnvVarValueCell = ({
             name={`${actualIndex}.value`}
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-            isSecret={variable.secret}
-            hideSecretEye={variable.secret}
+            isSecret={showAsSecret}
+            hideSecretEye={showAsSecret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
-              formik.setFieldValue(`${actualIndex}.value`, newValue, true);
+              formik.setFieldValue(`${actualIndex}.value`, newValue, false);
               if (variable.ephemeral) {
                 formik.setFieldValue(`${actualIndex}.ephemeral`, undefined, false);
                 formik.setFieldValue(`${actualIndex}.persistedValue`, undefined, false);
@@ -121,7 +206,6 @@ const EnvVarValueCell = ({
             }}
             onSave={handleSave}
           />
-          {renderExtraValueContent && renderExtraValueContent(variable)}
         </div>
       )}
       renderTypeSelector={!isLastEmptyRow
@@ -129,7 +213,7 @@ const EnvVarValueCell = ({
             <DataTypeSelector
               compact={isCompact}
               variable={variable}
-              collection={collection}
+              resolvableVariables={resolvableVariables}
               onChange={(fields) => {
                 Object.entries(fields).forEach(([key, val]) => {
                   formik.setFieldValue(`${actualIndex}.${key}`, val, true);
@@ -142,8 +226,22 @@ const EnvVarValueCell = ({
   );
 };
 
+const ErrorMessage = React.memo(({ id, error }) => {
+  if (!error) {
+    return null;
+  }
+
+  return (
+    <span>
+      <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
+      <Tooltip className="tooltip-mod" anchorId={id} html={error} />
+    </span>
+  );
+});
+
 const EnvironmentVariablesTable = ({
   environment,
+  inheritedEnvironmentVariables = [],
   collection,
   onSave,
   draft,
@@ -168,8 +266,14 @@ const EnvironmentVariablesTable = ({
 
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
-  const rowCount = (environment.variables?.length || 0) + 1;
-  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+  const [tableHeight, setTableHeight] = useState(() => {
+    const ownRows = (environment.variables || []).filter((variable) => !!variable.secret === isSecretTab).length + 1;
+    const inheritedRows = inheritedEnvironmentVariables.length
+      ? inheritedEnvironmentVariables.length + SECTION_HEADER_ROWS
+      : 0;
+    return Math.max((ownRows + inheritedRows) * MIN_ROW_HEIGHT, MIN_H);
+  });
+  const [hasMeasuredTableListHeight, setHasMeasuredTableListHeight] = useState(false);
 
   const [scroll, setScroll] = usePersistedState({
     key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
@@ -184,74 +288,49 @@ const EnvironmentVariablesTable = ({
   // Use environment UID as part of tableId so each environment has its own column widths
   const tableId = `env-vars-table-${environment.uid}`;
 
-  // Get column widths from Redux - derived value (not state)
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
   const storedColumnWidths = focusedTab?.tableColumnWidths?.[tableId];
 
-  // Local state initialized from Redux (computed once on mount/environment change via key)
-  const [columnWidths, setColumnWidths] = useState(() => {
-    return storedColumnWidths || { name: '20%', value: 'auto', description: '35%' };
+  const {
+    containerRef: columnsContainerRef,
+    colWidths,
+    resizingIdx,
+    handleResizeStart
+  } = useResizableColumns({
+    defaultWidths: DEFAULT_COLUMN_WIDTHS,
+    initialWidths: Array.isArray(storedColumnWidths) && storedColumnWidths.length === columns.length
+      ? storedColumnWidths
+      : null,
+    minColWidth: MIN_COLUMN_WIDTH,
+    reservedWidth: RESERVED_COLUMNS_WIDTH,
+    onResizeEnd: (widths) => dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }))
   });
 
-  const [resizing, setResizing] = useState(null);
+  const columnWidths = useMemo(() => {
+    if (!colWidths) return UNMEASURED_COLUMN_WIDTHS;
+    const [name, value, description] = colWidths;
+    return { name, value, description };
+  }, [colWidths]);
+
+  const handleScrollerRef = useCallback((el) => {
+    setScrollerEl(el);
+    columnsContainerRef(el);
+  }, [columnsContainerRef]);
+
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+  const isSearchActive = !!searchQuery?.trim();
 
-  const handleColumnWidthsChange = (id, widths) => {
-    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
-  };
+  const [collapsedSections, setCollapsedSections] = useState({ inherited: false, own: false });
+  const toggleSection = (section) => setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
 
-  // Store column widths in ref for access in event handlers
-  const columnWidthsRef = useRef(columnWidths);
-  columnWidthsRef.current = columnWidths;
-
-  const handleResizeStart = useCallback((e, columnKey) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const currentCell = e.target.closest('td');
-    const nextCell = currentCell?.nextElementSibling;
-    if (!currentCell || !nextCell) return;
-
-    const startX = e.clientX;
-    const startWidth = currentCell.offsetWidth;
-
-    const columnIndex = columns.indexOf(columnKey);
-    if (columnIndex < 0) return;
-
-    const nextColumnKey = columns[columnIndex + 1];
-    if (!nextColumnKey) return;
-
-    const nextColumnStartWidth = nextCell.offsetWidth;
-
-    setResizing(columnKey);
-
-    const handleMouseMove = (moveEvent) => {
-      const diff = moveEvent.clientX - startX;
-      const maxGrow = nextColumnStartWidth - MIN_COLUMN_WIDTH;
-      const maxShrink = startWidth - MIN_COLUMN_WIDTH;
-      const clampedDiff = Math.max(-maxShrink, Math.min(maxGrow, diff));
-
-      const newWidths = {
-        [columnKey]: `${startWidth + clampedDiff}px`,
-        [nextColumnKey]: `${nextColumnStartWidth - clampedDiff}px`
-      };
-      setColumnWidths(newWidths);
-    };
-
-    const handleMouseUp = () => {
-      setResizing(null);
-      // Save to Redux after resize ends using ref for latest values
-      handleColumnWidthsChange(tableId, columnWidthsRef.current);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [handleColumnWidthsChange]);
+  const variablesSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::variables` });
+  const secretsSort = useSortCycle({ storageKey: `persisted::${activeTabUid}::env-var-sort::${environment.uid}::secrets` });
+  const { sortMode, cycleSortMode, SortIcon, sortLabel } = isSecretTab ? secretsSort : variablesSort;
+  const dragEnabled = sortMode === 'default' && !isSearchActive;
 
   const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
+    setTableHeight(Math.max(h, MIN_H));
+    setHasMeasuredTableListHeight(true);
   }, []);
 
   const handleRowFocus = useCallback((uid) => {
@@ -265,22 +344,45 @@ const EnvironmentVariablesTable = ({
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
 
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const globalEnvironmentVariables = useMemo(
+    () => getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
+  const globalEnvSecrets = useMemo(
+    () => getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
-  // context. Without memoization, `cloneDeep(collection)` runs on every render —
-  // and Formik triggers a re-render on every keystroke, so a single env edit
-  // session can deep-clone the entire collection 100+ times. That's the
-  // dominant cost behind the test-budget flake.
+  // context. The copy exists only so the three fields below can be attached without
+  // writing to Redux state, so a shallow spread is enough, every consumer
+  // (getAllVariables, mergeVars, brunoVarInfo) reads the nested structures and never
+  // mutates them
   const _collection = useMemo(() => {
-    const c = collection ? cloneDeep(collection) : {};
+    const c = collection ? { ...collection } : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.globalEnvSecrets = globalEnvSecrets;
+    c.globalEnvironments = globalEnvironments;
+    c.activeGlobalEnvironmentUid = activeGlobalEnvironmentUid;
+    // Preserve the actual active environment so variable existence and
+    // interpolation environment can be resolved independently.
+    c.realActiveEnvironmentUid = collection?.activeEnvironmentUid;
     c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
+  }, [
+    collection,
+    globalEnvironmentVariables,
+    globalEnvSecrets,
+    globalEnvironments,
+    activeGlobalEnvironmentUid,
+    workspaceProcessEnvVariables,
+    environment.uid
+  ]);
+
+  const resolvableVariables = useMemo(() => getAllVariables(_collection), [_collection]);
 
   // Reuse the previous initialValues when only uids changed but the content is
   // identical.
@@ -308,7 +410,13 @@ const EnvironmentVariablesTable = ({
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
-    enableReinitialize: true,
+    // enableReinitialize is intentionally OFF. It used to blindly reset the form
+    // to `environment.variables` whenever the saved snapshot changed — including
+    // when our own autosave echoed back — which discarded keystrokes typed during
+    // the async save window. Reconciliation is handled explicitly below (see the
+    // reconcileSavedChange effect), so in-flight edits always win. Environment
+    // switches are handled by the `key={environment.uid}` remount, not reinit.
+    enableReinitialize: false,
     initialValues: initialValues,
     validationSchema: Yup.array().of(
       Yup.object({
@@ -336,6 +444,7 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
+      const duplicateSecrets = getDuplicateSecretNames(values);
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
@@ -351,12 +460,61 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+        } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
+          if (!errors[index]) errors[index] = {};
+          errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
     },
     onSubmit: () => { }
   });
+  const buildSortOrder = useCallback((variables, mode) => {
+    if (mode === 'default') return null;
+    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && v.name && v.name.trim() !== '');
+    return sortRowsByName(activeTabVars, mode, (v) => v.name).map((v) => v.uid);
+  }, [isSecretTab]);
+
+  const sortOrderRef = useRef(null);
+  const prevSortModeRef = useRef();
+  const prevIsSecretTabRef = useRef(isSecretTab);
+  const prevIsDraftRef = useRef(hasDraftForThisEnv);
+  const prevEnvironmentVariablesRef = useRef(environment.variables);
+  const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
+  const savedVariablesChanged = prevEnvironmentVariablesRef.current !== environment.variables;
+  const tabChanged = prevIsSecretTabRef.current !== isSecretTab;
+  prevIsSecretTabRef.current = isSecretTab;
+  prevIsDraftRef.current = hasDraftForThisEnv;
+  prevEnvironmentVariablesRef.current = environment.variables;
+  if (prevSortModeRef.current !== sortMode || tabChanged || justCommitted || savedVariablesChanged) {
+    prevSortModeRef.current = sortMode;
+    // After a save/reparse, `environment.variables` gets new uids; `initialValues` keeps stable ones for reorder.
+    sortOrderRef.current = buildSortOrder(savedVariablesChanged ? initialValues : formik.values, sortMode);
+  }
+
+  const handleRowReorder = useCallback((fromUid, toUid) => {
+    const belongsToActiveTab = (variable) => !!variable.secret === isSecretTab;
+    const reordered = reorderWithinSubset(formik.values, belongsToActiveTab, fromUid, toUid);
+    if (reordered !== formik.values) {
+      formik.setValues(reordered);
+    }
+  }, [formik, isSecretTab]);
+
+  const { draggingKey, dragOverKey, handleDragHandleMouseDown, cancelDrag } = useMouseRowDrag({
+    enabled: dragEnabled,
+    onReorder: handleRowReorder
+  });
+
+  useEffect(() => {
+    cancelDrag();
+  }, [variableType, cancelDrag]);
+
+  const dragContext = useMemo(() => ({
+    dragEnabled,
+    dragOverKey,
+    draggingKey,
+    lastFormikIndex: formik.values.length - 1
+  }), [dragEnabled, dragOverKey, draggingKey, formik.values.length]);
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
   useEffect(() => {
@@ -387,21 +545,17 @@ const EnvironmentVariablesTable = ({
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
 
+  // Controlled replacement for Formik's `enableReinitialize`.
+  useReconcileSavedEnvironment({
+    formik,
+    savedValuesJson,
+    savedVariables: environment.variables,
+    initialValues
+  });
+
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
   }, [savedValuesJson]);
-
-  // Keep the trailing empty "add new" row's secret flag in sync with the active
-  // tab, so typing into it creates a variable of the correct type. The empty row
-  // is filtered out of save/draft, so this never affects persisted data.
-  useEffect(() => {
-    const lastIndex = formik.values.length - 1;
-    const last = formik.values[lastIndex];
-    const isEmpty = !last?.name || (typeof last.name === 'string' && last.name.trim() === '');
-    if (last && isEmpty && !!last.secret !== isSecretTab) {
-      formik.setFieldValue(`${lastIndex}.secret`, isSecretTab, false);
-    }
-  }, [isSecretTab, formik.values]);
 
   // Sync modified state
   useEffect(() => {
@@ -433,28 +587,7 @@ const EnvironmentVariablesTable = ({
     return () => clearTimeout(timeoutId);
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
-  const ErrorMessage = ({ name, index }) => {
-    const meta = formik.getFieldMeta(name);
-    const id = `error-${name}-${index}`;
-
-    const isLastRow = index === formik.values.length - 1;
-    const variable = formik.values[index];
-    const isEmptyRow = !variable?.name || variable.name.trim() === '';
-
-    if (isLastRow && isEmptyRow) {
-      return null;
-    }
-
-    if (!meta.error || !meta.touched) {
-      return null;
-    }
-    return (
-      <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
-      </span>
-    );
-  };
+  const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
 
   const handleRemoveVar = useCallback(
     (id) => {
@@ -500,6 +633,8 @@ const EnvironmentVariablesTable = ({
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
+    // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
+    formik.setFieldTouched(`${index}.name`, true, false);
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -568,6 +703,11 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    if (getDuplicateSecretNames(activeCurrent).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
+      return;
+    }
+
     // Persist the active tab's edits alongside the other tab's last-saved rows (unchanged).
     const persistedVariables = orderVarsBySecret([...activeCurrent, ...otherSaved]);
 
@@ -588,6 +728,8 @@ const EnvironmentVariablesTable = ({
           onDraftClear();
         }
 
+        sortOrderRef.current = buildSortOrder(retainedVariables, sortMode);
+
         formik.resetForm({
           values: [
             ...retainedVariables,
@@ -607,7 +749,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
 
   const handleReset = useCallback(() => {
     const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
@@ -632,6 +774,8 @@ const EnvironmentVariablesTable = ({
       onDraftClear();
     }
 
+    sortOrderRef.current = buildSortOrder(resetVariables, sortMode);
+
     formik.resetForm({
       values: [
         ...resetVariables,
@@ -646,7 +790,7 @@ const EnvironmentVariablesTable = ({
       ]
     });
     setIsModified(otherDirty);
-  }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified]);
+  }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified, buildSortOrder, sortMode]);
 
   const handleSaveAll = useCallback(() => {
     const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
@@ -676,10 +820,17 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    if (getDuplicateSecretNames(namedValues).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
+      return;
+    }
+
     onSave(cloneDeep(persistedVariables))
       .then(() => {
         toast.success('Changes saved successfully');
         onDraftClear();
+
+        sortOrderRef.current = buildSortOrder(persistedVariables, sortMode);
 
         formik.resetForm({
           values: [
@@ -700,7 +851,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -737,86 +888,177 @@ const EnvironmentVariablesTable = ({
         return isSecretTab ? !!variable.secret : !variable.secret;
       });
 
-    if (!searchQuery?.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) {
       return tabVariables;
     }
 
-    const query = searchQuery.toLowerCase().trim();
-
     const effectivePins = pinnedData.query === searchQuery ? pinnedData.uids : new Set();
-    return tabVariables.filter(({ variable }) => {
-      if (effectivePins.has(variable.uid)) return true;
-      const nameMatch = variable.name ? variable.name.toLowerCase().includes(query) : false;
-      const valueText
-        = typeof variable.value === 'string'
-          ? variable.value
-          : typeof variable.value === 'number' || typeof variable.value === 'boolean'
-            ? String(variable.value)
-            : '';
-      const valueMatch = valueText.toLowerCase().includes(query);
-      const descriptionMatch
-        = variable.description && typeof variable.description === 'string'
-          ? variable.description.toLowerCase().includes(query)
-          : false;
-
-      return !!(nameMatch || valueMatch || descriptionMatch);
-    });
+    return tabVariables.filter(
+      ({ variable }) => effectivePins.has(variable.uid) || matchesSearchQuery(variable, query)
+    );
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
-  const isSearchActive = !!searchQuery?.trim();
+  const displayedVariables = (() => {
+    if (sortMode === 'default' || !sortOrderRef.current) {
+      return filteredVariables;
+    }
+
+    const lastFormikIndex = formik.values.length - 1;
+    const trailingIdx = filteredVariables.findIndex((entry) => entry.index === lastFormikIndex);
+    const hasTrailing = trailingIdx !== -1;
+    const trailing = hasTrailing ? filteredVariables[trailingIdx] : null;
+    const sortable = hasTrailing ? filteredVariables.filter((_, i) => i !== trailingIdx) : filteredVariables;
+
+    const byUid = new Map(sortable.map((entry) => [entry.variable.uid, entry]));
+    const knownUids = new Set(sortOrderRef.current);
+    const ordered = sortOrderRef.current.filter((uid) => byUid.has(uid)).map((uid) => byUid.get(uid));
+    const added = sortable.filter((entry) => !knownUids.has(entry.variable.uid));
+    const sorted = [...ordered, ...added];
+
+    return hasTrailing ? [...sorted, trailing] : sorted;
+  })();
+
+  const inheritedVariableRows = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const matching = query
+      ? inheritedEnvironmentVariables.filter((variable) => matchesSearchQuery(variable, query))
+      : inheritedEnvironmentVariables;
+    return matching.map((variable) => ({ type: ROW_INHERITED_VARIABLE, variable }));
+  }, [inheritedEnvironmentVariables, searchQuery]);
+
+  const tabLabel = isSecretTab ? 'Secrets' : 'Variables';
+  const variableRows = inheritedEnvironmentVariables.length
+    ? [
+        {
+          type: ROW_SECTION_HEADER,
+          section: 'inherited',
+          label: `Inherited ${tabLabel}`,
+          count: inheritedVariableRows.length
+        },
+        ...(collapsedSections.inherited ? [] : inheritedVariableRows),
+        {
+          type: ROW_SECTION_HEADER,
+          section: 'own',
+          label: tabLabel,
+          count: displayedVariables.filter(({ variable }) => variable.name && variable.name.trim() !== '').length
+        },
+        ...(collapsedSections.own ? [] : displayedVariables)
+      ]
+    : displayedVariables;
 
   return (
-    <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
-      {isSearchActive && filteredVariables.length === 0 ? (
-        <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
+    <StyledWrapper
+      data-testid="env-vars-table"
+      data-columns-measured={colWidths ? 'true' : 'false'}
+      className={`${resizingIdx !== null ? 'is-resizing' : ''} ${hasMeasuredTableListHeight ? '' : 'is-measuring'} has-description-column`.trim()}
+    >
+      {isSearchActive && displayedVariables.length === 0 && inheritedVariableRows.length === 0 ? (
+        <div className="no-results" data-testid="env-vars-no-results">
+          No results found for &ldquo;{searchQuery.trim()}&rdquo;
+        </div>
       ) : (
         <TableVirtuoso
           className="table-container"
           style={{ height: tableHeight }}
-          scrollerRef={setScrollerEl}
+          scrollerRef={handleScrollerRef}
           initialTopMostItemIndex={initialTopMostItemIndex}
-          overscan={Math.min(30, filteredVariables.length)}
+          overscan={Math.min(30, variableRows.length)}
           components={{ TableRow }}
-          data={filteredVariables}
+          context={dragContext}
+          data={variableRows}
           totalListHeightChanged={handleTotalHeightChanged}
           fixedHeaderContent={() => (
             <tr>
               <td className="text-center"></td>
-              <td style={{ width: columnWidths.name }}>
-                Name
+              <td
+                data-testid="env-vars-header-name"
+                style={{ width: columnWidths.name }}
+                className="sortable-header"
+                onClick={cycleSortMode}
+              >
+                <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 <div
-                  className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
+                  data-testid="env-vars-resize-handle-name"
+                  className={`resize-handle ${resizingIdx === 0 ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'name')}
+                  onMouseDown={(e) => handleResizeStart(e, 0)}
                 />
               </td>
-              <td style={{ width: columnWidths.value }}>
+              <td data-testid="env-vars-header-value" style={{ width: columnWidths.value }}>
                 Value
                 <div
-                  className={`resize-handle ${resizing === 'value' ? 'resizing' : ''}`}
+                  data-testid="env-vars-resize-handle-value"
+                  className={`resize-handle ${resizingIdx === 1 ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-                  onMouseDown={(e) => handleResizeStart(e, 'value')}
+                  onMouseDown={(e) => handleResizeStart(e, 1)}
                 />
               </td>
-              <td style={{ width: columnWidths.description }}>Description</td>
+              <td data-testid="env-vars-header-description" style={{ width: columnWidths.description }}>Description</td>
               <td className="actions-column"></td>
             </tr>
           )}
           defaultItemHeight={35}
-          computeItemKey={(virtualIndex, item) => `${environment.uid}-${item.index}`}
-          itemContent={(virtualIndex, { variable, index: actualIndex }) => {
+          computeItemKey={(virtualIndex, item) => {
+            if (item.type === ROW_SECTION_HEADER) return `section-${item.section}`;
+            if (item.type === ROW_INHERITED_VARIABLE) return `inherited-${item.variable.uid}`;
+            return item.variable.uid;
+          }}
+          itemContent={(virtualIndex, item) => {
+            if (item.type === ROW_SECTION_HEADER) {
+              const ChevronIcon = collapsedSections[item.section] ? IconChevronRight : IconChevronDown;
+              return (
+                <td colSpan={columns.length + 2}>
+                  <button
+                    type="button"
+                    className="section-toggle"
+                    onClick={() => toggleSection(item.section)}
+                    data-testid={`env-var-section-toggle-${item.section}`}
+                  >
+                    <ChevronIcon size={14} strokeWidth={1.5} />
+                    <span>{item.label}</span>
+                    <span className="section-count">({item.count})</span>
+                  </button>
+                </td>
+              );
+            }
+
+            if (item.type === ROW_INHERITED_VARIABLE) {
+              return (
+                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+              );
+            }
+
+            const { variable, index: actualIndex } = item;
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
+            const isDuplicateSecret
+              = variable.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+            const rowError = isLastEmptyRow
+              ? null
+              : formik.getFieldMeta(`${actualIndex}.name`).error
+                || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
 
             return (
               <>
-                <td className="text-center">
+                <td className="text-center relative">
+                  {dragEnabled && !isLastEmptyRow && (
+                    <div
+                      data-testid="drag-handle"
+                      className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                      onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                    >
+                      <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                      <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+                    </div>
+                  )}
                   {!isLastEmptyRow && (
                     <input
                       type="checkbox"
                       className="mousetrap"
                       name={`${actualIndex}.enabled`}
+                      data-testid="env-var-enabled-checkbox"
                       checked={variable.enabled}
                       onChange={formik.handleChange}
                     />
@@ -824,7 +1066,7 @@ const EnvironmentVariablesTable = ({
                 </td>
                 <td style={{ width: columnWidths.name }}>
                   <div className="flex items-center">
-                    <div className="name-cell-wrapper">
+                    <div className="name-cell-wrapper" data-testid={`env-var-name-cell-${actualIndex}`}>
                       <input
                         type="text"
                         autoComplete="off"
@@ -834,6 +1076,7 @@ const EnvironmentVariablesTable = ({
                         className="mousetrap"
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
+                        data-testid="env-var-name-input"
                         value={variable.name}
                         placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}
@@ -844,7 +1087,10 @@ const EnvironmentVariablesTable = ({
                         onKeyDown={(e) => handleNameKeyDown(actualIndex, e)}
                       />
                     </div>
-                    <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
+                    <ErrorMessage
+                      id={`error-${actualIndex}.name-${actualIndex}`}
+                      error={rowError}
+                    />
                   </div>
                 </td>
                 <td style={{ width: columnWidths.value }} className="overflow-hidden">
@@ -853,8 +1099,10 @@ const EnvironmentVariablesTable = ({
                     actualIndex={actualIndex}
                     isLastRow={isLastRow}
                     isLastEmptyRow={isLastEmptyRow}
+                    isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
+                    resolvableVariables={resolvableVariables}
                     formik={formik}
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}
@@ -869,7 +1117,7 @@ const EnvironmentVariablesTable = ({
                     value={variable.description ?? ''}
                     placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
                     onChange={(newValue) => {
-                      formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+                      formik.setFieldValue(`${actualIndex}.description`, newValue, false);
                       if (isLastRow) {
                         setTimeout(() => {
                           formik.setFieldValue(formik.values.length, {

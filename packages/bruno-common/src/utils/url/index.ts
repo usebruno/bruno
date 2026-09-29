@@ -1,25 +1,34 @@
 /**
- * Returns true when `url` already carries an explicit network scheme.
+ * The scheme a schemeless URL is sent over. "localhost:8080/api" and
+ * "{{host}}/api" (where the variable carries no scheme of its own) both go out
+ * over plain HTTP, so this is what callers prepend when a URL has to be parsed
+ * or displayed with an explicit scheme.
+ */
+const DEFAULT_SCHEME = 'http://';
+
+/**
+ * Returns the explicit network scheme of `url` (without "://"), or null when it
+ * has none.
  *
  * Per the WHATWG URL Standard, all network-fetch schemes (http, https, ftp,
  * ws, wss, file) require "://" — the authority component is mandatory.
  * This means "localhost:8080" is NOT a scheme: the colon separates host from
- * port, so callers should prepend "http://" to it.
+ * port, so callers should prepend `DEFAULT_SCHEME` to it.
  *
  * The scheme character set (ASCII alpha/digit/+/-/.) follows the WHATWG URL
  * scheme-state parser, which accepts the same characters as all major browsers.
  * @see https://url.spec.whatwg.org/#scheme-state
  *
  * @example
- * hasExplicitScheme('https://example.com') // true
- * hasExplicitScheme('ftp://files.example') // true
- * hasExplicitScheme('localhost:8080')       // false — port colon, not scheme
- * hasExplicitScheme('example.com/api')      // false — no scheme at all
+ * getExplicitScheme('https://example.com') // 'https'
+ * getExplicitScheme('ftp://files.example') // 'ftp'
+ * getExplicitScheme('localhost:8080')       // null — port colon, not scheme
+ * getExplicitScheme('example.com/api')      // null — no scheme at all
  */
-function hasExplicitScheme(url: string): boolean {
+function getExplicitScheme(url: string): string | null {
   // All WHATWG network schemes require authority ("://").
   const authorityStart = url.indexOf('://');
-  if (authorityStart < 1) return false;
+  if (authorityStart < 1) return null;
 
   const scheme = url.slice(0, authorityStart);
 
@@ -30,14 +39,25 @@ function hasExplicitScheme(url: string): boolean {
   };
 
   if (!isAlpha(first)) {
-    return false;
+    return null;
   }
 
   // Remaining characters must be ASCII alphanumeric, "+", "-", or ".".
   const isSchemeChar = (c: string) => {
     return isAlpha(c) || (c >= '0' && c <= '9') || c === '+' || c === '-' || c === '.';
   };
-  return scheme.slice(1).split('').every(isSchemeChar);
+  return scheme.slice(1).split('').every(isSchemeChar) ? scheme : null;
+}
+
+/**
+ * Returns true when `url` already carries an explicit network scheme.
+ *
+ * @example
+ * hasExplicitScheme('https://example.com') // true
+ * hasExplicitScheme('localhost:8080')       // false — port colon, not scheme
+ */
+function hasExplicitScheme(url: string): boolean {
+  return getExplicitScheme(url) !== null;
 }
 
 interface QueryParam {
@@ -214,19 +234,118 @@ const encodeUrl = (url: string): string => {
  * @example
  * stripOrigin('https://example.com/api/users?name=foo') // '/api/users?name=foo'
  * stripOrigin('http://localhost:3000')                   // '/'
+ * stripOrigin('ftp://files.example.com/pub')             // '/pub'
  */
 const stripOrigin = (url: string): string => {
-  return url.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+  return url.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/?#]*/, '') || '/';
+};
+
+/**
+ * Normalize a Bruno request URL to a mock-server route path.
+ * Strips scheme/host, leading `{{var}}`, query strings; turns remaining `{{var}}` into `:var`
+ * so it matches Express-style route params. Callers that persist or display the user-typed URL
+ * pass `preserveTemplateVars: true` to keep `{{var}}` intact.
+ */
+const extractMockRoutePath = (rawUrl: unknown, { preserveTemplateVars = false } = {}): string => {
+  if (!rawUrl) {
+    return '/';
+  }
+
+  let cleaned = String(rawUrl).trim();
+  cleaned = cleaned.replace(/^\{\{[^}]+\}\}/, '');
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    try {
+      cleaned = new URL(cleaned).pathname;
+    } catch {
+      const withoutScheme = cleaned.replace(/^https?:\/\//, '');
+      const slashIndex = withoutScheme.indexOf('/');
+      cleaned = slashIndex === -1 ? '/' : withoutScheme.slice(slashIndex);
+      const qIndex = cleaned.indexOf('?');
+      if (qIndex !== -1) {
+        cleaned = cleaned.substring(0, qIndex);
+      }
+    }
+  } else {
+    const ipHostMatch = cleaned.match(/^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(\/[^?#]*)?/);
+    if (ipHostMatch) {
+      cleaned = ipHostMatch[1] || '/';
+    } else {
+      const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
+      if (domainHostMatch) {
+        cleaned = domainHostMatch[1] || '/';
+      } else {
+        const bareHostMatch = cleaned.match(/^[a-zA-Z0-9-]+:\d+(\/[^?#]*)?/);
+        if (bareHostMatch) {
+          cleaned = bareHostMatch[1] || '/';
+        }
+      }
+    }
+
+    const qIndex = cleaned.indexOf('?');
+    if (qIndex !== -1) {
+      cleaned = cleaned.substring(0, qIndex);
+    }
+  }
+
+  if (preserveTemplateVars) {
+    cleaned = cleaned.replace(/%7B%7B([^%]+)%7D%7D/gi, '{{$1}}');
+  } else {
+    cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
+  }
+
+  if (!cleaned.startsWith('/')) {
+    cleaned = `/${cleaned}`;
+  }
+  if (cleaned.length > 1 && cleaned.endsWith('/')) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  cleaned = cleaned.replace(/\/+/g, '/');
+
+  return cleaned || '/';
+};
+
+interface MockResponseRouteKeyInput {
+  request?: {
+    method?: string;
+    url?: string;
+  } | null;
+  response?: {
+    status?: number | string;
+  } | null;
+}
+
+const getMockResponseRouteKey = (response?: MockResponseRouteKeyInput | null): string => {
+  const method = (response?.request?.method || 'GET').toUpperCase();
+  const url = extractMockRoutePath(response?.request?.url);
+  const status = Number(response?.response?.status) || 200;
+  return `${method} ${url}::${status}`;
+};
+
+const isSameOrigin = (url1: string, url2: string): boolean => {
+  try {
+    const parsed1 = new URL(url1);
+    const parsed2 = new URL(url2);
+    return parsed1.origin === parsed2.origin;
+  } catch (err) {
+    return false;
+  }
 };
 
 export {
+  DEFAULT_SCHEME,
+  getExplicitScheme,
   hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
   stripOrigin,
   safeDecodeURIComponent,
+  extractMockRoutePath,
+  getMockResponseRouteKey,
+  isSameOrigin,
   type QueryParam,
   type BuildQueryStringOptions,
-  type ExtractQueryParamsOptions
+  type ExtractQueryParamsOptions,
+  type MockResponseRouteKeyInput
 };

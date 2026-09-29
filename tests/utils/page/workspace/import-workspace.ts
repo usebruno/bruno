@@ -3,9 +3,6 @@ import * as path from 'path';
 import { clickImportWorkspace } from '../title-bar';
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage } from '../../../../playwright';
 
-/**
- * Import Workspace modal locators.
- */
 export const buildImportWorkspaceModalLocators = (page: Page) => {
   // Scope every modal query to the dialog so we avoid the brittle
   const modal = () => page.getByRole('dialog').filter({ hasText: 'Import Workspace' });

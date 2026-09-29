@@ -8,20 +8,30 @@ jest.mock('@usebruno/requests', () => ({
 
 const PROXY_ENV_KEYS = ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY', 'all_proxy', 'ALL_PROXY'];
 
+// The shell-env refresh no-ops on win32, so tests exercising that branch are
+// skipped on Windows hosts instead of faking the platform.
+const itIf = (condition) => (condition ? it : it.skip);
+const isWindows = process.platform === 'win32';
+
 describe('system-proxy refresh', () => {
   let fetchSystemProxy;
   const originalPlatform = process.platform;
 
   beforeEach(() => {
     jest.resetModules();
-    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     mockFetchShellEnv = jest.fn(() => Promise.resolve({}));
     mockGetSystemProxy = jest.fn(() => Promise.resolve({ source: 'environment' }));
     for (const key of PROXY_ENV_KEYS) delete process.env[key];
     ({ fetchSystemProxy } = require('../system-proxy'));
   });
 
-  it('updates proxy env vars from shell config', async () => {
+  // process is shared across spec files in a worker; a leaked fake platform
+  // would poison unrelated suites.
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+  });
+
+  itIf(!isWindows)('updates proxy env vars from shell config', async () => {
     process.env.http_proxy = 'http://old-proxy:8080';
     mockFetchShellEnv = jest.fn(() => Promise.resolve({ http_proxy: 'http://new-proxy:8080' }));
     ({ fetchSystemProxy } = require('../system-proxy'));
@@ -31,7 +41,7 @@ describe('system-proxy refresh', () => {
     expect(process.env.http_proxy).toBe('http://new-proxy:8080');
   });
 
-  it('removes proxy env vars missing from shell config (user removed the export)', async () => {
+  itIf(!isWindows)('removes proxy env vars missing from shell config (user removed the export)', async () => {
     process.env.http_proxy = 'http://old-proxy:8080';
     process.env.no_proxy = 'localhost';
     mockFetchShellEnv = jest.fn(() => Promise.resolve({}));
@@ -43,7 +53,7 @@ describe('system-proxy refresh', () => {
     expect(process.env.no_proxy).toBeUndefined();
   });
 
-  it('restores prior proxy vars when the shell fetch fails', async () => {
+  itIf(!isWindows)('restores prior proxy vars when the shell fetch fails', async () => {
     // fetchShellEnv never rejects - it resolves null on subprocess failure (see shell-env.ts).
     process.env.http_proxy = 'http://existing:8080';
     mockFetchShellEnv = jest.fn(() => Promise.resolve(null));
@@ -77,7 +87,7 @@ describe('system-proxy refresh', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => jest.useRealTimers());
 
-    it('restores prior proxy vars if the shell fetch hangs past 60s', async () => {
+    itIf(!isWindows)('restores prior proxy vars if the shell fetch hangs past 60s', async () => {
       process.env.http_proxy = 'http://existing:8080';
       mockFetchShellEnv = jest.fn(() => new Promise(() => {})); // never resolves
       ({ fetchSystemProxy } = require('../system-proxy'));

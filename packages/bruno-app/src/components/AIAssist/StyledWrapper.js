@@ -1,12 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 10;
-  background: ${(props) => props.theme.bg};
-  border: 1px solid ${(props) => props.theme.input.border};
+  display: inline-flex;
   border-radius: ${(props) => props.theme.border.radius.sm};
 
   .ai-assist-trigger {

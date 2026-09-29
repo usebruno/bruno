@@ -544,7 +544,14 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
 
+  .security-chip-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .security-chip-remove {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;

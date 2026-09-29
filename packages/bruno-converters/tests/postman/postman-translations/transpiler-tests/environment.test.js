@@ -102,6 +102,36 @@ describe('Environment Variable Translation', () => {
     expect(translatedCode).toBe('bru.deleteEnvVar("tempToken");');
   });
 
+  it('should translate postman.clearEnvironmentVariables', () => {
+    const code = 'postman.clearEnvironmentVariables();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.deleteAllEnvVars();');
+  });
+
+  it('should translate postman.setGlobalVariable', () => {
+    const code = 'postman.setGlobalVariable("timeStamp", now);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.setGlobalEnvVar("timeStamp", now);');
+  });
+
+  it('should translate postman.getGlobalVariable', () => {
+    const code = 'const ts = postman.getGlobalVariable("timeStamp");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('const ts = bru.getGlobalEnvVar("timeStamp");');
+  });
+
+  it('should translate postman.clearGlobalVariable', () => {
+    const code = 'postman.clearGlobalVariable("timeStamp");';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.deleteGlobalEnvVar("timeStamp");');
+  });
+
+  it('should translate postman.clearGlobalVariables', () => {
+    const code = 'postman.clearGlobalVariables();';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.deleteAllGlobalEnvVars();');
+  });
+
   it('should handle all environment variable methods together', () => {
     const code = `
         // All environment variable methods

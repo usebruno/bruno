@@ -5,9 +5,33 @@ export const BRUNO_VARIABLE_DATATYPES: readonly BrunoVariableDataType[] = ['stri
 export const isBrunoVariableDataType = (t: unknown): t is BrunoVariableDataType =>
   typeof t === 'string' && (BRUNO_VARIABLE_DATATYPES as readonly string[]).includes(t);
 
-// string-form → typed JS value, or raw on failure.
-export const parseValueByDataType = (value: any, dataType?: BrunoVariableDataType): any => {
+const getByPath = (obj: Record<string, any>, path: string): any => {
+  if (obj == null) return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+  return path.split('.').reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), obj);
+};
+
+export const resolveVariableReference = (value: any, resolvableVariables: Record<string, any>): any => {
+  if (typeof value !== 'string') return undefined;
+  const match = value.trim().match(/^\{\{([^}]+)\}\}$/);
+  if (!match) return undefined;
+  return getByPath(resolvableVariables, match[1].trim());
+};
+
+// string-form → typed JS value, or raw on failure. When `resolvableVariables` is
+// given, a whole-string `{{reference}}` resolves to that variable's own value and
+// is returned uncoerced — the referenced variable's type is authoritative.
+export const parseValueByDataType = (
+  value: any,
+  dataType?: BrunoVariableDataType,
+  resolvableVariables?: Record<string, any>
+): any => {
+  if (resolvableVariables) {
+    const resolved = resolveVariableReference(value, resolvableVariables);
+    if (resolved !== undefined) return resolved;
+  }
   if (!dataType || dataType === 'string') return value;
+
   try {
     if (dataType === 'number') {
       if (typeof value === 'number') return value;
@@ -71,3 +95,9 @@ export const validateDataTypeValue = (value: any, dataType?: BrunoVariableDataTy
 
   return null;
 };
+
+export const validateVariableType = (
+  value: any,
+  dataType?: BrunoVariableDataType,
+  resolvableVariables?: Record<string, any>
+): string | null => validateDataTypeValue(parseValueByDataType(value, dataType, resolvableVariables), dataType);

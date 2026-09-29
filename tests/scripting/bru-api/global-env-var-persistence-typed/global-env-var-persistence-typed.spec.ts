@@ -21,21 +21,21 @@ test.describe('Script-driven typed global env variable persistence', () => {
     await test.step('Verify globalNum has dataType=number and value 99', async () => {
       const row = locators.environment.variableRowByName('globalNum');
       await expect(row).toBeVisible();
-      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText('number');
+      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', 'number');
       await expect(locators.environment.variableValue('globalNum')).toContainText('99');
     });
 
     await test.step('Verify globalBool has dataType=boolean and value false', async () => {
       const row = locators.environment.variableRowByName('globalBool');
       await expect(row).toBeVisible();
-      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText('boolean');
+      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', 'boolean');
       await expect(locators.environment.variableValue('globalBool')).toContainText('false');
     });
 
     await test.step('Verify globalObj has dataType=object containing the serialized JSON', async () => {
       const row = locators.environment.variableRowByName('globalObj');
       await expect(row).toBeVisible();
-      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText('object');
+      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', 'object');
       await expect(locators.environment.variableValue('globalObj')).toContainText('tier');
       await expect(locators.environment.variableValue('globalObj')).toContainText('premium');
     });
@@ -43,7 +43,7 @@ test.describe('Script-driven typed global env variable persistence', () => {
     await test.step('Verify baseUrl (string, untouched) still has no special type label', async () => {
       const row = locators.environment.variableRowByName('baseUrl');
       await expect(row).toBeVisible();
-      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText('string');
+      await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', 'string');
     });
 
     await test.step('Close global environment config', async () => {

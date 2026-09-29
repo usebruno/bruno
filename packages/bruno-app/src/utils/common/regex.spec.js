@@ -1,7 +1,7 @@
 const { describe, it, expect } = require('@jest/globals');
 
 import { sanitizeName, validateName } from './regex';
-import { hasInvalidVariableNames } from './variables';
+import { hasInvalidVariableNames, invalidVariableNamesError, INVALID_VARIABLE_NAMES_ERROR_PREFIX } from './variables';
 
 describe('regex validators', () => {
   describe('sanitize name', () => {
@@ -244,5 +244,21 @@ describe('hasInvalidVariableNames', () => {
       expect(hasInvalidVariableNames(123)).toBe(false);
       expect(hasInvalidVariableNames({})).toBe(false);
     });
+  });
+});
+
+describe('invalidVariableNamesError', () => {
+  it('names the offending variables', () => {
+    expect(invalidVariableNamesError(['sdhjfgsbdjf@#$%^'])).toBe('Invalid variable name(s): sdhjfgsbdjf@#$%^');
+  });
+
+  it('lists several names comma-separated', () => {
+    expect(invalidVariableNamesError(['a b', 'c@d'])).toBe('Invalid variable name(s): a b, c@d');
+  });
+
+  // Callers decide a rejection is safe to show verbatim by matching this prefix, so the two must
+  // not drift apart.
+  it('starts with the prefix callers match on', () => {
+    expect(invalidVariableNamesError(['a b']).startsWith(INVALID_VARIABLE_NAMES_ERROR_PREFIX)).toBe(true);
   });
 });

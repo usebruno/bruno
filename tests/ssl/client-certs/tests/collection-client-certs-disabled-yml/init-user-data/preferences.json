@@ -1,0 +1,16 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/client-certs/tests/collection-client-certs-disabled-yml/fixtures/collection"],
+  "preferences": {
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/ca-cert.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    }
+  }
+}

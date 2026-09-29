@@ -36,7 +36,7 @@ taskMiddleware.startListening({
           collectionUid: collection.uid,
           type: item.type,
           pathname: item.pathname,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          requestPaneTab: task?.requestPaneTab || getDefaultRequestPaneTab(item),
           preview: task?.preview ?? true,
           ...(item.isTransient ? { isTransient: true } : {})
         })
@@ -66,7 +66,7 @@ taskMiddleware.startListening({
           collectionUid: collection.uid,
           type: item.type,
           pathname: item.pathname,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          requestPaneTab: task?.requestPaneTab || getDefaultRequestPaneTab(item),
           preview: task?.preview ?? true,
           ...(item.isTransient ? { isTransient: true } : {})
         })
@@ -105,7 +105,8 @@ taskMiddleware.startListening({
                 itemUid: item.uid,
                 pathname: item.pathname,
                 exampleName: example.name,
-                exampleIndex: task.exampleIndex
+                exampleIndex: task.exampleIndex,
+                openInEditMode: !!task.openInEditMode
               }));
             }
           }

@@ -1,0 +1,28 @@
+info:
+  name: body
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{process.env.NTLM_BASE_URL}}/api"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-Dropped
+      value: dropped
+  body:
+    type: json
+    data: |-
+      {"hello":"world"}
+  auth:
+    type: ntlm
+    username: ntlmtest
+    password: Br!unoNtlm
+    domain: ""
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        req.deleteHeader("X-Dropped");

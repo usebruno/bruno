@@ -5,6 +5,7 @@ const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const { copy } = require('@web/rollup-plugin-copy');
 const path = require('path');
+const os = require('os');
 
 const packageJson = require('./package.json');
 
@@ -24,6 +25,7 @@ const externalDeps = [
   'lodash/map',
   'js-yaml',
   'jscodeshift',
+  'mime-types',
   'nanoid',
   'xml2js',
   // Node built-ins
@@ -52,7 +54,9 @@ module.exports = [
         sourceMap: true,
         outDir: path.dirname(packageJson.main)
       }),
-      terser(),
+      terser({
+        maxWorkers: Math.max(1, os.availableParallelism())
+      }),
       copy({
         patterns: 'src/workers/scripts/**/*',
         rootDir: '.'
@@ -80,7 +84,9 @@ module.exports = [
         sourceMap: true,
         outDir: path.dirname(packageJson.module)
       }),
-      terser(),
+      terser({
+        maxWorkers: Math.max(1, os.availableParallelism())
+      }),
       copy({
         patterns: 'src/workers/scripts/**/*',
         rootDir: '.'

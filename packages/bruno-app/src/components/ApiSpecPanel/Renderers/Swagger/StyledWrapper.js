@@ -8,7 +8,6 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.bg};
     padding-bottom: 20px;
 
-    /* ── Global reset ── */
     .swagger-ui {
       font-family: inherit;
       font-size: ${(props) => props.theme.font.size.base};
@@ -31,7 +30,6 @@ const StyledWrapper = styled.div`
         max-width: none;
       }
 
-      /* ── Info section ── */
       .info {
         margin: 16px 0 12px;
 
@@ -83,7 +81,6 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* Version / OAS badges */
       .version-stamp span.version {
         background: ${(props) => props.theme.border.border1} !important;
         border: 1px solid ${(props) => props.theme.colors.text.muted} !important;
@@ -98,7 +95,6 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.colors.text.muted};
       }
 
-      /* ── Tag section headings ── */
       .opblock-tag-section {
         .opblock-tag {
           font-size: ${(props) => props.theme.font.size.md};
@@ -122,7 +118,6 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* ── Operation blocks (GET, POST, PUT, DELETE, PATCH) ── */
       .opblock {
         margin: 0 0 8px;
         border-radius: 4px;
@@ -156,13 +151,18 @@ const StyledWrapper = styled.div`
             font-size: ${(props) => props.theme.font.size.xs};
             color: ${(props) => props.theme.colors.text.muted};
           }
+        }
 
-          .opblock-summary-control {
-            svg {
-              fill: ${(props) => props.theme.colors.text.muted};
-              width: 14px;
-              height: 14px;
-            }
+        .opblock-control-arrow {
+          color: inherit;
+          background: none;
+          border: none;
+
+          svg,
+          svg path {
+            fill: ${(props) => props.theme.text};
+            width: 12px;
+            height: 12px;
           }
         }
 
@@ -207,17 +207,19 @@ const StyledWrapper = styled.div`
         }
       }
 
-      /* Method badge colors — keep them but tone down */
       .opblock.opblock-get .opblock-summary-method { background: #61affe; color: #fff; }
       .opblock.opblock-post .opblock-summary-method { background: #49cc90; color: #fff; }
       .opblock.opblock-put .opblock-summary-method { background: #fca130; color: #fff; }
       .opblock.opblock-delete .opblock-summary-method { background: #f93e3e; color: #fff; }
       .opblock.opblock-patch .opblock-summary-method { background: #50e3c2; color: #000; }
 
-      /* Lock / authorization icons */
       .authorization__btn {
+        color: inherit;
+        background: none;
+        border: none;
 
-        svg {
+        svg,
+        svg path {
           fill: ${(props) => props.theme.colors.text.muted};
           width: 14px;
           height: 14px;
@@ -282,7 +284,17 @@ const StyledWrapper = styled.div`
           padding: 6px 10px;
           margin: 0;
 
-          svg {
+          svg,
+          svg path {
+            fill: ${(props) => props.theme.colors.text.muted};
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .models-control {
+          svg,
+          svg path {
             fill: ${(props) => props.theme.colors.text.muted};
             width: 16px;
             height: 16px;
@@ -372,6 +384,7 @@ const StyledWrapper = styled.div`
       .models-control,
       .opblock-summary,
       .opblock-summary-control,
+      .opblock-control-arrow,
       .opblock-tag {
         outline: none !important;
         box-shadow: none !important;
@@ -402,7 +415,8 @@ const StyledWrapper = styled.div`
         }
 
         /* chevron / arrow icon */
-        .json-schema-2020-12-accordion__icon {
+        .json-schema-2020-12-accordion__icon,
+        .json-schema-2020-12-accordion__icon path {
           fill: ${(props) => props.theme.colors.text.muted} !important;
         }
 
@@ -636,21 +650,69 @@ const StyledWrapper = styled.div`
       }
 
       /* ── SVGs / icons ── */
-      svg {
+      svg:not(.opblock-summary-method) {
         fill: ${(props) => props.theme.colors.text.muted};
       }
 
-      svg.arrow {
+      svg:not(.opblock-summary-method) path {
+        fill: currentColor;
+      }
+
+      svg.arrow,
+      svg.arrow path {
         fill: ${(props) => props.theme.text};
         width: 12px;
         height: 12px;
         margin-left: 4px;
       }
 
-      .expand-operation svg {
+      .expand-operation {
+        color: inherit;
+        background: none;
+        border: none;
+      }
+
+      .expand-operation svg,
+      .expand-operation svg path {
         fill: ${(props) => props.theme.colors.text.muted};
         width: 14px;
         height: 14px;
+      }
+
+      /* ── Errors panel ── */
+      .errors-wrapper {
+        margin: 16px 20px;
+        padding: 10px 16px;
+        border: 1px solid ${(props) => props.theme.status.danger.border};
+        border-radius: 4px;
+        background: ${(props) => props.theme.status.danger.background};
+        overflow-wrap: anywhere;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+
+        .errors,
+        .error-wrapper,
+        .error-wrapper > div {
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .errors__title {
+          color: ${(props) => props.theme.status.danger.text};
+        }
+
+        .errors h4 {
+          color: ${(props) => props.theme.text};
+        }
+
+        .errors small {
+          color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .errors .message {
+          color: ${(props) => props.theme.text};
+        }
       }
 
       /* ── Misc / catch-all ── */
@@ -685,6 +747,21 @@ const StyledWrapper = styled.div`
         button {
           border-radius: 3px;
         }
+      }
+
+      .opblock-summary .view-line-link.copy-to-clipboard {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .view-line-link.copy-to-clipboard button {
+        background: none;
+        border: none;
+        padding: 0;
+        height: auto;
+        min-width: unset;
+        flex-grow: unset;
+        flex-shrink: unset;
       }
 
       /* Dialog / modal overrides */
@@ -830,8 +907,15 @@ const StyledWrapper = styled.div`
             }
 
             /* Authorize / Close buttons */
+            .auth-btn-wrapper {
+              display: flex;
+              gap: 8px;
+              margin-top: 12px;
+            }
+
             .btn-done,
             .auth-btn-wrapper .btn {
+              margin: 0;
               font-size: ${(props) => props.theme.font.size.sm};
               border-radius: 4px;
               padding: 6px 16px;

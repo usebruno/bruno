@@ -13,7 +13,7 @@ import {
 } from '../../utils/page/actions';
 
 const REQUEST_NAME = 'grpc-multi-msg';
-const GRPC_URL = 'grpcb.in:9000';
+const GRPC_URL = 'localhost:50051';
 const GRPC_METHOD = 'BidiHello';
 
 type GrpcRequestYml = {

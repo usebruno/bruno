@@ -2,12 +2,10 @@ name: macOS Tests
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'release/v*']
-  pull_request:
-    branches: [main, 'release/v*']
+    branches: [main, 'release/*']
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -47,6 +45,33 @@ jobs:
         if: always()
         with:
           check_name: CLI Test Results (macOS)
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: off
+          check_run: false
+
+  cli-test-cache-modules:
+    name: CLI Tests with experimental-cache-modules (macOS)
+    runs-on: macos-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Run CLI Tests
+        uses: ./.github/actions/tests/run-cli-tests
+        with:
+          experimental_cache_modules: 'true'
+
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        if: always()
+        with:
+          check_name: CLI Test Results with experimental-cache-modules (macOS)
           files: packages/bruno-tests/collection/junit.xml
           comment_mode: off
           check_run: false
@@ -97,11 +122,17 @@ jobs:
       - name: Setup CA Certificates
         uses: ./.github/actions/ssl/macos/setup-ca-certs
 
+      - name: Setup Client Certificates
+        uses: ./.github/actions/ssl/macos/setup-client-certs
+
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
 
       - name: Run Custom CA Certs CLI Tests
         uses: ./.github/actions/ssl/macos/run-custom-ca-certs-cli-tests
+
+      - name: Run Client Certs CLI Tests
+        uses: ./.github/actions/ssl/macos/run-client-certs-cli-tests
 
       - name: Run Custom CA Certs E2E Tests
         uses: ./.github/actions/ssl/macos/run-ssl-e2e-tests

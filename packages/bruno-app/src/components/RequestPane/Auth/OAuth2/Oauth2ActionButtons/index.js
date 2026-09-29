@@ -11,7 +11,7 @@ import { getAllVariables } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
 import Button from 'ui/Button';
 
-const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, credentialsId }) => {
+const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, credentialsId, disabled }) => {
   const { uid: collectionUid } = collection;
 
   const dispatch = useDispatch();
@@ -162,7 +162,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         size="sm"
         color="secondary"
         onClick={handleFetchOauth2Credentials}
-        disabled={fetchingToken || refreshingToken}
+        disabled={disabled || fetchingToken || refreshingToken}
         loading={fetchingToken}
       >
         Get Access Token
@@ -173,7 +173,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
               size="sm"
               color="secondary"
               onClick={handleRefreshAccessToken}
-              disabled={fetchingToken || refreshingToken}
+              disabled={disabled || fetchingToken || refreshingToken}
               loading={refreshingToken}
             >
               Refresh Token
@@ -186,6 +186,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
               size="sm"
               color="secondary"
               onClick={handleCancelAuthorization}
+              disabled={disabled}
               icon={<IconX size={16} />}
               iconPosition="left"
             >
@@ -197,6 +198,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         color="secondary"
         variant="ghost"
         onClick={handleClearCache}
+        disabled={disabled}
       >
         Clear Cache
       </Button>

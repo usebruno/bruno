@@ -1,0 +1,39 @@
+{
+  "info": {
+    "_postman_id": "vars-mixed-disabled-id",
+    "name": "Vars Mixed Disabled Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sample",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "https://example.com",
+          "protocol": "https",
+          "host": ["example", "com"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "enabledVar",
+      "value": "value1",
+      "type": "string"
+    },
+    {
+      "key": "disabledVar",
+      "value": "value2",
+      "type": "string",
+      "disabled": true
+    },
+    {
+      "key": "explicitlyEnabledVar",
+      "value": "value3",
+      "type": "string",
+      "disabled": false
+    }
+  ]
+}

@@ -38,7 +38,7 @@ const ConfirmCloseEnvironment = ({ onCancel, onCloseWithoutSave, onSaveAndClose,
             </Button>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" color="secondary" variant="ghost" onClick={onCancel} data-testid="env-unsaved-cancel">
+            <Button color="secondary" variant="ghost" onClick={onCancel} data-testid="env-unsaved-cancel">
               Cancel
             </Button>
             <Button onClick={onSaveAndClose} data-testid="env-unsaved-save-and-close">
