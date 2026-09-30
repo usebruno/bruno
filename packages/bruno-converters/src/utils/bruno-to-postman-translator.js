@@ -17,12 +17,18 @@ const simpleTranslations = {
   // Global variables
   'bru.getGlobalEnvVar': 'pm.globals.get',
   'bru.setGlobalEnvVar': 'pm.globals.set',
+  'bru.hasGlobalEnvVar': 'pm.globals.has',
+  'bru.deleteGlobalEnvVar': 'pm.globals.unset',
+  'bru.getAllGlobalEnvVars': 'pm.globals.toObject',
+  'bru.deleteAllGlobalEnvVars': 'pm.globals.clear',
 
   // Environment variables
   'bru.getEnvVar': 'pm.environment.get',
   'bru.setEnvVar': 'pm.environment.set',
   'bru.hasEnvVar': 'pm.environment.has',
   'bru.deleteEnvVar': 'pm.environment.unset',
+  'bru.getAllEnvVars': 'pm.environment.toObject',
+  'bru.deleteAllEnvVars': 'pm.environment.clear',
   // Note: bru.getEnvName() is handled in complexTransformations because it's a function -> property conversion
 
   // Runtime variables
@@ -30,11 +36,16 @@ const simpleTranslations = {
   'bru.setVar': 'pm.variables.set',
   'bru.hasVar': 'pm.variables.has',
   'bru.deleteVar': 'pm.variables.unset',
+  'bru.getAllVars': 'pm.variables.toObject',
   // 'bru.deleteAllVars':  Postman does not have a way to delete all variables
 
   // Collection variables
-  'bru.getCollectionVar': 'pm.variables.get',
-  /* Bruno does not have a way to set, has or delete collection variables */
+  'bru.getCollectionVar': 'pm.collectionVariables.get',
+  'bru.setCollectionVar': 'pm.collectionVariables.set',
+  'bru.hasCollectionVar': 'pm.collectionVariables.has',
+  'bru.deleteCollectionVar': 'pm.collectionVariables.unset',
+  'bru.getAllCollectionVars': 'pm.collectionVariables.toObject',
+  'bru.deleteAllCollectionVars': 'pm.collectionVariables.clear',
 
   // Folder variables
   'bru.getFolderVar': 'pm.variables.get',
@@ -55,25 +66,134 @@ const simpleTranslations = {
   // Request helpers
   // Note: req.getUrl(), req.getMethod(), req.getHeaders(), req.getBody(), req.getName() are handled
   // in complexTransformations because they're function -> property conversions
+  'req.url': 'pm.request.url',
+  'req.method': 'pm.request.method',
+  'req.headers': 'pm.request.headers',
+  'req.body': 'pm.request.body',
   'req.getHeader': 'pm.request.headers.get',
-  'req.setHeader': 'pm.request.headers.set',
+  // Note: req.setHeader is handled in complexTransformations because it needs arg restructuring (two args -> object)
+  'req.deleteHeader': 'pm.request.headers.remove',
+
+  // Request headerList PropertyList methods
+  'req.headerList': 'pm.request.headers',
+  'req.headerList.get': 'pm.request.headers.get',
+  'req.headerList.has': 'pm.request.headers.has',
+  'req.headerList.one': 'pm.request.headers.one',
+  'req.headerList.all': 'pm.request.headers.all',
+  'req.headerList.count': 'pm.request.headers.count',
+  'req.headerList.indexOf': 'pm.request.headers.indexOf',
+  'req.headerList.find': 'pm.request.headers.find',
+  'req.headerList.filter': 'pm.request.headers.filter',
+  'req.headerList.each': 'pm.request.headers.each',
+  'req.headerList.map': 'pm.request.headers.map',
+  'req.headerList.reduce': 'pm.request.headers.reduce',
+  'req.headerList.toObject': 'pm.request.headers.toObject',
+  'req.headerList.toString': 'pm.request.headers.toString',
+  'req.headerList.toJSON': 'pm.request.headers.toJSON',
+  'req.headerList.add': 'pm.request.headers.add',
+  'req.headerList.upsert': 'pm.request.headers.upsert',
+  'req.headerList.remove': 'pm.request.headers.remove',
+  'req.headerList.clear': 'pm.request.headers.clear',
+  'req.headerList.populate': 'pm.request.headers.populate',
+  'req.headerList.repopulate': 'pm.request.headers.repopulate',
+  'req.headerList.assimilate': 'pm.request.headers.assimilate',
+
+  // URL helper methods
+  'req.getHost': 'pm.request.url.getHost',
+  'req.getPath': 'pm.request.url.getPath',
+  'req.getQueryString': 'pm.request.url.getQueryString',
 
   // Response helpers
-  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders() are handled
+  // Note: res.getStatus(), res.getResponseTime(), res.getHeaders(), res.getUrl() are handled
   // in complexTransformations because they're function -> property conversions
   'res.status': 'pm.response.code',
   'res.statusText': 'pm.response.status',
   'res.body': 'pm.response.body',
+  'res.url': 'pm.response.url',
+  'res.responseTime': 'pm.response.responseTime',
+  'res.headers': 'pm.response.headers',
   'res.getBody': 'pm.response.json',
   'res.getHeader': 'pm.response.headers.get',
   'res.getSize': 'pm.response.size',
 
+  // Response headerList PropertyList methods (read-only)
+  'res.headerList': 'pm.response.headers',
+  'res.headerList.get': 'pm.response.headers.get',
+  'res.headerList.has': 'pm.response.headers.has',
+  'res.headerList.one': 'pm.response.headers.one',
+  'res.headerList.all': 'pm.response.headers.all',
+  'res.headerList.count': 'pm.response.headers.count',
+  'res.headerList.indexOf': 'pm.response.headers.indexOf',
+  'res.headerList.find': 'pm.response.headers.find',
+  'res.headerList.filter': 'pm.response.headers.filter',
+  'res.headerList.each': 'pm.response.headers.each',
+  'res.headerList.map': 'pm.response.headers.map',
+  'res.headerList.reduce': 'pm.response.headers.reduce',
+  'res.headerList.toObject': 'pm.response.headers.toObject',
+  'res.headerList.toString': 'pm.response.headers.toString',
+  'res.headerList.toJSON': 'pm.response.headers.toJSON',
+
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
+
+  // Direct cookie access
+  'bru.cookies.get': 'pm.cookies.get',
+  'bru.cookies.has': 'pm.cookies.has',
+  'bru.cookies.toObject': 'pm.cookies.toObject',
+  'bru.cookies.toString': 'pm.cookies.toString',
+  'bru.cookies.clear': 'pm.cookies.clear',
+  'bru.cookies.delete': 'pm.cookies.remove',
+
+  // PropertyList cookie methods (1:1 mappings)
+  'bru.cookies.one': 'pm.cookies.one',
+  'bru.cookies.all': 'pm.cookies.all',
+  'bru.cookies.idx': 'pm.cookies.idx',
+  'bru.cookies.count': 'pm.cookies.count',
+  'bru.cookies.indexOf': 'pm.cookies.indexOf',
+  'bru.cookies.find': 'pm.cookies.find',
+  'bru.cookies.filter': 'pm.cookies.filter',
+  'bru.cookies.each': 'pm.cookies.each',
+  'bru.cookies.map': 'pm.cookies.map',
+  'bru.cookies.reduce': 'pm.cookies.reduce',
+  'bru.cookies.add': 'pm.cookies.add',
+  'bru.cookies.upsert': 'pm.cookies.upsert',
+  'bru.cookies.remove': 'pm.cookies.remove',
 
   // Testing
   'expect.fail': 'pm.expect.fail'
 };
+
+// =============================================================================
+// UNSUPPORTED BRUNO APIs (No Postman Equivalent)
+// =============================================================================
+
+/**
+ * UNSUPPORTED BRUNO APIs (No Postman Equivalent)
+ *
+ * These Bruno APIs have no direct Postman equivalent and will be left unchanged
+ * in the translated code. Users should be aware that these calls will not work
+ * in Postman:
+ *
+ * Request APIs:
+ * - req.getTags() - Postman doesn't have tags
+ * - req.setMaxRedirects() - Postman doesn't expose redirect settings
+ * - req.getTimeout() / req.setTimeout() - Postman doesn't expose timeout settings
+ * - req.getExecutionMode() - Bruno-specific
+ * - req.onFail() - Postman doesn't support error handlers
+ * - req.disableParsingResponseJson() - Bruno-specific
+ *
+ * Response APIs:
+ * - res.setBody() - Postman response is read-only
+ *
+ * Bru APIs:
+ * - bru.runRequest() - Postman doesn't support nested request execution
+ * - bru.sleep() - Postman doesn't have sleep (use setTimeout workaround)
+ * - bru.getProcessEnv() - Postman doesn't expose process env vars
+ * - bru.getOauth2CredentialVar() - Bruno-specific
+ * - bru.getCollectionName() - pm.info doesn't expose collection name
+ * - bru.cwd() - Bruno-specific
+ * - bru.getAssertionResults() / bru.getTestResults() - Bruno-specific
+ */
 
 // =============================================================================
 // COMPLEX TRANSFORMATIONS
@@ -158,6 +278,16 @@ const complexTransformations = [
     pattern: 'req.getName',
     transform: () => buildMemberExpressionFromString('pm.info.requestName')
   },
+  // req.getAuthMode() -> pm.request.auth.type
+  {
+    pattern: 'req.getAuthMode',
+    transform: () => buildMemberExpressionFromString('pm.request.auth.type')
+  },
+  // req.getPathParams() -> pm.request.url.variables
+  {
+    pattern: 'req.getPathParams',
+    transform: () => buildMemberExpressionFromString('pm.request.url.variables')
+  },
 
   // Response helpers: function -> property conversions
   // res.getStatus() -> pm.response.code
@@ -179,6 +309,160 @@ const complexTransformations = [
   {
     pattern: 'res.getHeaders',
     transform: () => buildMemberExpressionFromString('pm.response.headers')
+  },
+  // res.getUrl() -> pm.response.url
+  {
+    pattern: 'res.getUrl',
+    transform: () => buildMemberExpressionFromString('pm.response.url')
+  },
+
+  // Request modifiers: function calls -> assignments
+  // req.setUrl(url) -> pm.request.url = url
+  {
+    pattern: 'req.setUrl',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.url');
+      }
+      // Transform req.setUrl(url) to pm.request.url = url
+      return j.assignmentExpression(
+        '=',
+        buildMemberExpressionFromString('pm.request.url'),
+        args[0]
+      );
+    }
+  },
+  // req.setMethod(method) -> pm.request.method = method
+  {
+    pattern: 'req.setMethod',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.method');
+      }
+      // Transform req.setMethod(method) to pm.request.method = method
+      return j.assignmentExpression(
+        '=',
+        buildMemberExpressionFromString('pm.request.method'),
+        args[0]
+      );
+    }
+  },
+  // req.setBody(data) -> pm.request.body.update({mode: "raw", raw: JSON.stringify(data)})
+  {
+    pattern: 'req.setBody',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.body');
+      }
+      // Transform req.setBody(data) to pm.request.body.update({mode: "raw", raw: JSON.stringify(data)})
+      const bodyArg = args[0];
+      const updateCall = j.callExpression(
+        j.memberExpression(
+          buildMemberExpressionFromString('pm.request.body'),
+          j.identifier('update')
+        ),
+        [
+          j.objectExpression([
+            j.property('init', j.identifier('mode'), j.literal('raw')),
+            j.property('init', j.identifier('raw'), j.callExpression(
+              j.identifier('JSON.stringify'),
+              [bodyArg]
+            ))
+          ])
+        ]
+      );
+      return updateCall;
+    }
+  },
+  // req.setHeader(key, value) -> pm.request.headers.upsert({key: key, value: value})
+  {
+    pattern: 'req.setHeader',
+    transform: (path) => {
+      const args = path.value.arguments;
+      if (!args || args.length < 2) {
+        return j.callExpression(
+          buildMemberExpressionFromString('pm.request.headers.upsert'),
+          args || []
+        );
+      }
+      return j.callExpression(
+        buildMemberExpressionFromString('pm.request.headers.upsert'),
+        [
+          j.objectExpression([
+            j.property('init', j.identifier('key'), args[0]),
+            j.property('init', j.identifier('value'), args[1])
+          ])
+        ]
+      );
+    }
+  },
+  // req.setHeaders(headers) -> loop calling pm.request.headers.upsert() for each header
+  {
+    pattern: 'req.setHeaders',
+    transform: (path) => {
+      const callExpr = path.value;
+      const args = callExpr.arguments;
+      if (!args || args.length === 0) {
+        // No arguments, return the property access
+        return buildMemberExpressionFromString('pm.request.headers');
+      }
+      const headersArg = args[0];
+
+      // Transform req.setHeaders(obj) to a for...in loop that calls upsert for each property
+      // Generate: for (const key in headersObj) { pm.request.headers.upsert({key: key, value: headersObj[key]}); }
+      const headersVar = j.identifier('_headers');
+      const keyVar = j.identifier('key');
+
+      // Create: for (const key in _headers) { pm.request.headers.upsert({key: key, value: _headers[key]}); }
+      const forLoop = j.forInStatement(
+        j.variableDeclaration('const', [j.variableDeclarator(keyVar)]),
+        headersVar,
+        j.blockStatement([
+          j.expressionStatement(
+            j.callExpression(
+              j.memberExpression(
+                buildMemberExpressionFromString('pm.request.headers'),
+                j.identifier('upsert')
+              ),
+              [
+                j.objectExpression([
+                  j.property('init', j.identifier('key'), keyVar),
+                  j.property('init', j.identifier('value'), j.memberExpression(headersVar, keyVar, true))
+                ])
+              ]
+            )
+          )
+        ])
+      );
+
+      // We need to replace the call expression with a block that includes the variable declaration and loop
+      // But the current architecture only replaces the call expression itself
+      // So we'll create an IIFE (Immediately Invoked Function Expression) that contains both
+      const iife = j.callExpression(
+        j.functionExpression(
+          null,
+          [],
+          j.blockStatement([
+            j.variableDeclaration('const', [
+              j.variableDeclarator(headersVar, headersArg)
+            ]),
+            forLoop
+          ])
+        ),
+        []
+      );
+
+      return iife;
+    }
   }
 ];
 

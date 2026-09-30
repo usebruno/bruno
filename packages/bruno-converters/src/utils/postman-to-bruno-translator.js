@@ -2,32 +2,42 @@ import sendRequestTransformer from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
+import { buildStatusAssertionEntries } from './postman-status-assertions';
 
 // Simple 1:1 translations for straightforward replacements
 const simpleTranslations = {
   // Global Variables
   'pm.globals.get': 'bru.getGlobalEnvVar',
   'pm.globals.set': 'bru.setGlobalEnvVar',
+  'pm.globals.has': 'bru.hasGlobalEnvVar',
+  'pm.globals.replaceIn': 'bru.interpolate',
+  'pm.globals.unset': 'bru.deleteGlobalEnvVar',
+  'pm.globals.toObject': 'bru.getAllGlobalEnvVars',
+  'pm.globals.clear': 'bru.deleteAllGlobalEnvVars',
 
   // Environment variables
   'pm.environment.get': 'bru.getEnvVar',
   'pm.environment.set': 'bru.setEnvVar',
   'pm.environment.name': 'bru.getEnvName()',
   'pm.environment.unset': 'bru.deleteEnvVar',
+  'pm.environment.replaceIn': 'bru.interpolate',
+  'pm.environment.toObject': 'bru.getAllEnvVars',
+  'pm.environment.clear': 'bru.deleteAllEnvVars',
 
   // Variables
   'pm.variables.get': 'bru.getVar',
   'pm.variables.set': 'bru.setVar',
   'pm.variables.has': 'bru.hasVar',
+  'pm.variables.toObject': 'bru.getAllVars',
   'pm.variables.replaceIn': 'bru.interpolate',
   // Collection variables
-  'pm.collectionVariables.get': 'bru.getVar',
-  'pm.collectionVariables.set': 'bru.setVar',
-  'pm.collectionVariables.has': 'bru.hasVar',
-  'pm.collectionVariables.unset': 'bru.deleteVar',
-
-  // Request flow control
-  'pm.setNextRequest': 'bru.setNextRequest',
+  'pm.collectionVariables.get': 'bru.getCollectionVar',
+  'pm.collectionVariables.set': 'bru.setCollectionVar',
+  'pm.collectionVariables.has': 'bru.hasCollectionVar',
+  'pm.collectionVariables.unset': 'bru.deleteCollectionVar',
+  'pm.collectionVariables.replaceIn': 'bru.interpolate',
+  'pm.collectionVariables.clear': 'bru.deleteAllCollectionVars',
+  'pm.collectionVariables.toObject': 'bru.getAllCollectionVars',
 
   // Testing
   'pm.test': 'test',
@@ -36,6 +46,39 @@ const simpleTranslations = {
 
   // Info
   'pm.info.requestName': 'req.getName()',
+
+  // Request headers
+  'pm.request.headers.remove': 'req.deleteHeader',
+  'pm.request.headers.get': 'req.headerList.get',
+  'pm.request.headers.has': 'req.headerList.has',
+  'pm.request.headers.one': 'req.headerList.one',
+  'pm.request.headers.all': 'req.headerList.all',
+  'pm.request.headers.count': 'req.headerList.count',
+  'pm.request.headers.indexOf': 'req.headerList.indexOf',
+  'pm.request.headers.find': 'req.headerList.find',
+  'pm.request.headers.filter': 'req.headerList.filter',
+  'pm.request.headers.each': 'req.headerList.each',
+  'pm.request.headers.map': 'req.headerList.map',
+  'pm.request.headers.reduce': 'req.headerList.reduce',
+  'pm.request.headers.toObject': 'req.headerList.toObject',
+  'pm.request.headers.toString': 'req.headerList.toString',
+  'pm.request.headers.toJSON': 'req.headerList.toJSON',
+  'pm.request.headers.clear': 'req.headerList.clear',
+
+  // Response headers PropertyList methods (read-only)
+  'pm.response.headers.has': 'res.headerList.has',
+  'pm.response.headers.one': 'res.headerList.one',
+  'pm.response.headers.all': 'res.headerList.all',
+  'pm.response.headers.count': 'res.headerList.count',
+  'pm.response.headers.indexOf': 'res.headerList.indexOf',
+  'pm.response.headers.find': 'res.headerList.find',
+  'pm.response.headers.filter': 'res.headerList.filter',
+  'pm.response.headers.each': 'res.headerList.each',
+  'pm.response.headers.map': 'res.headerList.map',
+  'pm.response.headers.reduce': 'res.headerList.reduce',
+  'pm.response.headers.toObject': 'res.headerList.toObject',
+  'pm.response.headers.toString': 'res.headerList.toString',
+  'pm.response.headers.toJSON': 'res.headerList.toJSON',
 
   // Request properties (pm.request.*)
   'pm.request.url.getHost': 'req.getHost',
@@ -74,13 +117,48 @@ const simpleTranslations = {
   'pm.cookies.jar().unset': 'bru.cookies.jar().deleteCookie',
   'pm.cookies.jar().clear': 'bru.cookies.jar().deleteCookies',
 
+  // Direct cookie access (pm.cookies.get/has/toObject)
+  'pm.cookies.get': 'bru.cookies.get',
+  'pm.cookies.has': 'bru.cookies.has',
+  'pm.cookies.toObject': 'bru.cookies.toObject',
+  'pm.cookies.toString': 'bru.cookies.toString',
+  'pm.cookies.clear': 'bru.cookies.clear',
+  'pm.cookies.remove': 'bru.cookies.delete',
+
+  // PropertyList cookie methods (1:1 mappings)
+  'pm.cookies.one': 'bru.cookies.one',
+  'pm.cookies.all': 'bru.cookies.all',
+  'pm.cookies.idx': 'bru.cookies.idx',
+  'pm.cookies.count': 'bru.cookies.count',
+  'pm.cookies.indexOf': 'bru.cookies.indexOf',
+  'pm.cookies.find': 'bru.cookies.find',
+  'pm.cookies.filter': 'bru.cookies.filter',
+  'pm.cookies.each': 'bru.cookies.each',
+  'pm.cookies.map': 'bru.cookies.map',
+  'pm.cookies.reduce': 'bru.cookies.reduce',
+  'pm.cookies.add': 'bru.cookies.add',
+  'pm.cookies.upsert': 'bru.cookies.upsert',
+  // Lossy: position-aware inserts map to add (position irrelevant for cookies)
+  'pm.cookies.prepend': 'bru.cookies.add',
+  'pm.cookies.insert': 'bru.cookies.add',
+  'pm.cookies.insertAfter': 'bru.cookies.add',
+
   // Execution control
   'pm.execution.skipRequest': 'bru.runner.skipRequest',
 
   // Legacy Postman API (deprecated) (we can use pm instead of postman, as we are converting all postman references to pm in the code as the part of pre-processing)
   'pm.setEnvironmentVariable': 'bru.setEnvVar',
   'pm.getEnvironmentVariable': 'bru.getEnvVar',
-  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar'
+  'pm.clearEnvironmentVariable': 'bru.deleteEnvVar',
+  'pm.clearEnvironmentVariables': 'bru.deleteAllEnvVars',
+  'pm.setGlobalVariable': 'bru.setGlobalEnvVar',
+  'pm.getGlobalVariable': 'bru.getGlobalEnvVar',
+  'pm.clearGlobalVariable': 'bru.deleteGlobalEnvVar',
+  'pm.clearGlobalVariables': 'bru.deleteAllGlobalEnvVars',
+
+  // Legacy response properties
+  'responseCode.code': 'res.getStatus()',
+  'responseCode.name': 'res.statusText'
 };
 
 /* Complex transformations that need custom handling
@@ -134,83 +212,79 @@ const complexTransformations = [
       return j.callExpression(j.identifier('res.getHeader'), path.parent.value.arguments);
     }
   },
-  // Handle pm.response.to.have.status
-  {
-    pattern: 'pm.response.to.have.status',
+  // pm.response.to[.not].have.status -> expect(res.getStatus()).to[.not].equal(arg)
+  ...['to.have.status', 'to.not.have.status', 'to.have.not.status'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
-      // Create: expect(res.getStatus()).to.equal(arg)
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getStatus'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.equal')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getStatus'), [])]),
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
-        args
+        path.parent.value.arguments
       );
     }
-  },
+  })),
 
-  // handle 'pm.response.to.have.header' to expect(res.getHeaders()).to.have.property(args)
-  {
-    pattern: 'pm.response.to.have.header',
+  // pm.response.to[.not].have.header -> expect(res.getHeaders()).to[.not].have.property(args)
+  // Header names are lowercased because axios normalizes response headers to lowercase
+  ...['to.have.header', 'to.not.have.header', 'to.have.not.header'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
+      const args = path.parent.value.arguments;
+      const negated = pattern.includes('.not.');
 
       if (args.length > 0) {
-        // Apply toLowerCase() to the first argument
         args[0] = j.callExpression(
-          j.memberExpression(
-            args[0],
-            j.identifier('toLowerCase')
-          ),
+          j.memberExpression(args[0], j.identifier('toLowerCase')),
           []
         );
       }
 
-      // Create: expect(res.getHeaders()).to.have.property(args)
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(
-            j.identifier('expect'),
-            [
-              j.callExpression(
-                j.identifier('res.getHeaders'),
-                []
-              )
-            ]
-          ),
-          j.identifier('to.have.property')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getHeaders'), [])]),
+          j.identifier(negated ? 'to.not.have.property' : 'to.have.property')
         ),
         args
       );
     }
-  },
-  // handle pm.response.to.have.body to expect(res.getBody()).to.equal(arg)
-  {
-    pattern: 'pm.response.to.have.body',
+  })),
+
+  // pm.response.to[.not].have.body -> expect(res.getBody()).to[.not].equal(arg)
+  ...['to.have.body', 'to.not.have.body', 'to.have.not.body'].map((pattern) => ({
+    pattern: `pm.response.${pattern}`,
     transform: (path, j) => {
-      const callExpr = path.parent.value;
-
-      const args = callExpr.arguments;
-
+      const negated = pattern.includes('.not.');
       return j.callExpression(
         j.memberExpression(
-          j.callExpression(j.identifier('expect'), [j.identifier('res.getBody()')]),
-          j.identifier('to.equal')
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier(negated ? 'to.not.equal' : 'to.equal')
         ),
+        path.parent.value.arguments
+      );
+    }
+  })),
+
+  // Handle pm.setNextRequest(null) — stop the runner.
+  // Note: the string 'null' is a valid request name in Postman, so only the
+  // actual null literal triggers stopExecution(); 'null' falls through to setNextRequest.
+  {
+    pattern: 'pm.setNextRequest',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      if (args[0] && args[0].type === 'Literal' && args[0].value === null) {
+        return j.callExpression(
+          j.identifier('bru.runner.stopExecution'),
+          []
+        );
+      }
+
+      return j.callExpression(
+        j.identifier('bru.runner.setNextRequest'),
         args
       );
     }
@@ -226,7 +300,7 @@ const complexTransformations = [
 
       // If argument is null or 'null', transform to bru.runner.stopExecution()
       if (
-        args[0].type === 'Literal' && (args[0].value === null || args[0].value === 'null')
+        args[0] && args[0].type === 'Literal' && (args[0].value === null)
       ) {
         return j.callExpression(
           j.identifier('bru.runner.stopExecution'),
@@ -240,7 +314,279 @@ const complexTransformations = [
         args
       );
     }
-  }
+  },
+
+  // pm.request.headers.add({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.add',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // pm.request.headers.upsert({key, value}) -> req.setHeader(key, value)
+  {
+    pattern: 'pm.request.headers.upsert',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+
+      // Check if the argument is an object with key and value properties
+      if (args.length > 0 && args[0].type === 'ObjectExpression') {
+        const obj = args[0];
+        let keyProp = null;
+        let valueProp = null;
+
+        obj.properties.forEach((prop) => {
+          if (prop.key.name === 'key' || prop.key.value === 'key') {
+            keyProp = prop.value;
+          }
+          if (prop.key.name === 'value' || prop.key.value === 'value') {
+            valueProp = prop.value;
+          }
+        });
+
+        if (keyProp && valueProp) {
+          return j.callExpression(
+            j.identifier('req.setHeader'),
+            [keyProp, valueProp]
+          );
+        }
+      }
+
+      // Fallback: keep original args
+      return j.callExpression(j.identifier('req.setHeader'), args);
+    }
+  },
+
+  // Lossy: positional header inserts → append (only keep the first arg, drop positional ref)
+  // pm.request.headers.prepend(item) -> req.headerList.add(item)
+  {
+    pattern: 'pm.request.headers.prepend',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
+    }
+  },
+  // pm.request.headers.insert(item, before) -> req.headerList.add(item)
+  {
+    pattern: 'pm.request.headers.insert',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
+    }
+  },
+  // pm.request.headers.insertAfter(item, after) -> req.headerList.add(item)
+  {
+    pattern: 'pm.request.headers.insertAfter',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(j.identifier('req.headerList.add'), args.length > 0 ? [args[0]] : []);
+    }
+  },
+
+  // pm.response.to.have.jsonBody(...) -> expect(res.getBody()).to.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonBody(...) -> expect(res.getBody()).to.not.have.jsonBody(...)
+  {
+    pattern: 'pm.response.to.not.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.not.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.not.have.jsonSchema(schema, options?) -> expect(res.getBody()).to.not.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.not.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.not.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonSchema(schema, options?) -> expect(res.getBody()).not.to.have.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.not.to.have.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('not.to.have.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonSchema(schema, options?) -> expect(res.getBody()).to.have.not.jsonSchema(schema, options?)
+  {
+    pattern: 'pm.response.to.have.not.jsonSchema',
+    transform: (path, j) => {
+      const args = path.parent.value.arguments;
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [
+            j.callExpression(j.identifier('res.getBody'), [])
+          ]),
+          j.identifier('to.have.not.jsonSchema')
+        ),
+        args
+      );
+    }
+  },
+
+  // pm.response.not.to.have.jsonBody(...) -> expect(res.getBody()).not.to.have.jsonBody(...)
+  {
+    pattern: 'pm.response.not.to.have.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('not.to.have.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // pm.response.to.have.not.jsonBody(...) -> expect(res.getBody()).to.have.not.jsonBody(...)
+  {
+    pattern: 'pm.response.to.have.not.jsonBody',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      const expectGetBody = j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]);
+      return j.callExpression(
+        j.memberExpression(expectGetBody, j.identifier('to.have.not.jsonBody')),
+        args
+      );
+    }
+  },
+
+  // Legacy postman.getResponseHeader(name) -> res.getHeader(name)
+  {
+    pattern: 'pm.getResponseHeader',
+    transform: (path, j) => {
+      const callExpr = path.parent.value;
+      const args = callExpr.arguments;
+      return j.callExpression(j.identifier('res.getHeader'), args);
+    }
+  },
+
+  // pm.response.to.be.withBody -> expect(res.getBody()).to.not.equal(undefined)
+  // Uses undefined check instead of truthiness (.to.be.ok) so falsy bodies (false, 0, null) pass correctly
+  {
+    pattern: 'pm.response.to.be.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.not.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.not.be.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+  {
+    pattern: 'pm.response.to.be.not.withBody',
+    transform: (path, j) => {
+      return j.callExpression(
+        j.memberExpression(
+          j.callExpression(j.identifier('expect'), [j.callExpression(j.identifier('res.getBody'), [])]),
+          j.identifier('to.equal')
+        ),
+        [j.identifier('undefined')]
+      );
+    }
+  },
+
+  // --- Data-driven status assertions (pm.response.to.be.*) ---
+  ...buildStatusAssertionEntries()
 ];
 
 // Create a map for complex transformations to enable O(1) lookups
@@ -249,7 +595,7 @@ complexTransformations.forEach((transform) => {
   complexTransformationsMap[transform.pattern] = transform;
 });
 
-const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals']);
+const varInitsToReplace = new Set(['pm', 'postman', 'pm.request', 'pm.response', 'pm.test', 'pm.expect', 'pm.environment', 'pm.variables', 'pm.collectionVariables', 'pm.execution', 'pm.globals', 'pm.cookies']);
 
 /**
  * Process all transformations (both simple and complex) in the AST in a single pass
@@ -272,27 +618,108 @@ function processTransformations(ast, transformedNodes) {
     }
 
     // Then check for complex transformations (O(1))
-    if (complexTransformationsMap.hasOwnProperty(memberExprStr)
-      && path.parent.value.type === 'CallExpression') {
-      const transform = complexTransformationsMap[memberExprStr];
-      const replacement = transform.transform(path, j);
-      if (Array.isArray(replacement)) {
-        replacement.forEach((nodePath, index) => {
-          if (index === 0) {
-            j(path.parent).replaceWith(nodePath);
-          } else {
-            j(path.parent.parent).insertAfter(nodePath);
+    if (complexTransformationsMap.hasOwnProperty(memberExprStr)) {
+      const parentType = path.parent.value.type;
+
+      // Call-based patterns (e.g., pm.response.to.have.jsonBody("path"))
+      if (parentType === 'CallExpression') {
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        if (Array.isArray(replacement)) {
+          // Capture stable references before mutating the AST
+          const parentPath = path.parent;
+          const grandParentPath = parentPath.parent;
+
+          // Replace the original CallExpression with the first node
+          j(parentPath).replaceWith(replacement[0]);
+          transformedNodes.add(replacement[0]);
+          transformedNodes.add(parentPath.node);
+
+          // Insert remaining nodes after the grandparent in reverse order
+          // so that repeated insertAfter on the same anchor yields correct sequence
+          for (let i = replacement.length - 1; i >= 1; i--) {
+            j(grandParentPath).insertAfter(replacement[i]);
+            transformedNodes.add(replacement[i]);
           }
-          transformedNodes.add(nodePath.node);
+        } else {
+          j(path.parent).replaceWith(replacement);
+          transformedNodes.add(path.node);
           transformedNodes.add(path.parent.node);
-        });
-      } else {
-        j(path.parent).replaceWith(replacement);
+        }
+      } else if (parentType === 'ExpressionStatement') {
+        // Property-access patterns used as statements (e.g., pm.response.to.be.ok;)
+        const transform = complexTransformationsMap[memberExprStr];
+        const replacement = transform.transform(path, j);
+        j(path).replaceWith(replacement);
         transformedNodes.add(path.node);
-        transformedNodes.add(path.parent.node);
       }
     }
   });
+}
+
+// Postman provides these as sandbox globals. Bruno requires explicit require()
+const POSTMAN_LIBRARY_GLOBALS = {
+  CryptoJS: 'crypto-js',
+  _: 'lodash',
+  moment: 'moment',
+  cheerio: 'cheerio',
+  tv4: 'tv4'
+};
+
+/**
+ * Inject require() for Postman sandbox globals (CryptoJS, _, moment, cheerio,
+ * tv4) used as X.foo or X(...) and not visible in any enclosing scope at the
+ * usage site. Requires are prepended to the program body, sorted alphabetically.
+ *
+ * @param {Collection} ast - jscodeshift AST
+ */
+function injectLibraryRequires(ast) {
+  const libraryNames = new Set(Object.keys(POSTMAN_LIBRARY_GLOBALS));
+  const usedLibraries = new Set();
+
+  ast.find(j.Identifier).forEach((path) => {
+    const name = path.value.name;
+    if (!libraryNames.has(name)) return;
+
+    const parent = path.parent.value;
+
+    // check for library usage: X.foo / X['foo'] / X[expr] (X is object) or X(...) (X is callee)
+    const isLibraryUsage
+      = (parent.type === 'MemberExpression' && parent.object === path.value)
+        || (parent.type === 'CallExpression' && parent.callee === path.value);
+    if (!isLibraryUsage) return;
+
+    // skip if the name is bound in any enclosing scope at this position
+    if (path.scope && path.scope.lookup(name)) return;
+
+    usedLibraries.add(name);
+  });
+
+  if (usedLibraries.size === 0) return;
+
+  const declarations = [...usedLibraries].sort().map((name) =>
+    j.variableDeclaration('const', [
+      j.variableDeclarator(
+        j.identifier(name),
+        j.callExpression(j.identifier('require'), [j.literal(POSTMAN_LIBRARY_GLOBALS[name])])
+      )
+    ])
+  );
+
+  // insert after directive prologue if present
+  const body = ast.get().value.program.body;
+  let insertIndex = 0;
+  while (insertIndex < body.length) {
+    const node = body[insertIndex];
+    const isDirective
+      = node.type === 'ExpressionStatement'
+        && node.expression
+        && node.expression.type === 'Literal'
+        && typeof node.expression.value === 'string';
+    if (!isDirective) break;
+    insertIndex++;
+  }
+  body.splice(insertIndex, 0, ...declarations);
 }
 
 /**
@@ -324,6 +751,9 @@ function translateCode(code) {
 
   // Handle special Postman syntax patterns
   handleTestsBracketNotation(ast);
+
+  // Inject require() for Postman sandbox globals
+  injectLibraryRequires(ast);
 
   return ast.toSource();
 }

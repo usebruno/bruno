@@ -1,15 +1,30 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  isolation: isolate;
+
+  &.is-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+  }
 
   .table-container {
-    overflow-y: auto;
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
+    overflow: clip;
+  }
+
+  &.has-section-rows thead tr {
+    height: 35px;
+  }
+
+  &.has-section-rows thead td {
+    height: 35px;
+    box-sizing: border-box;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
 
   table {
@@ -24,6 +39,10 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.table.thead.color} !important;
     background: ${(props) => props.theme.sidebar.bg};
     user-select: none;
+    overflow: visible;
+    position: sticky;
+    top: 0;
+    z-index: 13;
 
     border: none !important;
 
@@ -34,9 +53,50 @@ const StyledWrapper = styled.div`
       border-bottom: solid 1px ${(props) => props.theme.border.border0};
       border-right: solid 1px ${(props) => props.theme.border.border0};
       vertical-align: middle;
+      position: relative;
+      overflow: visible;
 
       &:last-child {
         border-right: none;
+      }
+
+      &.sortable-header {
+        cursor: pointer;
+      }
+
+      .column-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 4px;
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: -2px;
+        top: 0;
+        width: 5px;
+        height: 100%;
+        cursor: col-resize;
+        background: transparent;
+        z-index: 10;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 1px;
+          transform: translateX(-50%);
+          background: transparent;
+        }
+
+        &:hover::after,
+        &.resizing::after {
+          background: ${(props) => props.theme.colors.accent};
+        }
       }
     }
   }
@@ -48,6 +108,8 @@ const StyledWrapper = styled.div`
 
   tbody {
     tr {
+      height: 35px;
+      max-height: 35px;
       transition: background 0.1s ease;
 
       &:last-child td {
@@ -55,15 +117,95 @@ const StyledWrapper = styled.div`
       }
 
       td {
+        height: 35px;
+        max-height: 35px;
         padding: 1px 10px !important;
         border-top: none !important;
         border-left: none !important;
         border-bottom: solid 1px ${(props) => props.theme.border.border0};
         border-right: solid 1px ${(props) => props.theme.border.border0};
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        box-sizing: border-box;
 
-        &:last-child {
+        > div:not(.drag-handle) {
+          height: 33px;
+          max-height: 33px;
+          overflow: hidden;
+        }
+
+        /* Single-line CodeMirror editors: clip overflow to one row */
+        .single-line-editor .CodeMirror {
+          max-width: 100%;
+          height: 33px !important;
+          max-height: 33px !important;
+
+          .CodeMirror-scroll {
+            overflow: hidden !important;
+            max-height: 33px;
+          }
+
+          .CodeMirror-vscrollbar,
+          .CodeMirror-hscrollbar,
+          .CodeMirror-scrollbar-filler {
+            display: none;
+          }
+
+          .CodeMirror-lines {
+            max-width: 100%;
+          }
+
+          .CodeMirror-line {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+
+        &:has(.multi-line-editor) {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          white-space: normal;
+          text-overflow: clip;
+
+          > div:not(.drag-handle) {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+          }
+        }
+      }
+
+      &:has(.multi-line-editor) {
+        height: auto;
+        max-height: calc(35px * 3); 
+        overflow: auto;
+      }
+
+      &.section-header-row {
+        background: ${(props) => props.theme.sidebar.bg};
+
+        td.full-width-row {
+          position: relative;
+          z-index: 11;
+          height: 35px;
+          max-height: 35px;
+          padding: 0 !important;
           border-right: none;
+          border-bottom: solid 1px ${(props) => props.theme.border.border0} !important;
+          overflow: visible;
+          background: ${(props) => props.theme.sidebar.bg};
+          box-shadow:
+            0 -1px 0 ${(props) => props.theme.sidebar.bg},
+            inset 0 -1px 0 ${(props) => props.theme.border.border0};
+
+          > * {
+            height: 100%;
+            max-height: none;
+          }
         }
       }
     }
@@ -75,6 +217,7 @@ const StyledWrapper = styled.div`
     text-align: center;
     vertical-align: middle;
     line-height: 1;
+    text-overflow: clip;
 
     input[type='checkbox'] {
       vertical-align: baseline;
@@ -84,6 +227,9 @@ const StyledWrapper = styled.div`
 
   .tooltip-mod {
     max-width: 200px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
   }
 
   input[type='text'] {
@@ -97,6 +243,11 @@ const StyledWrapper = styled.div`
 
     &:focus {
       outline: none !important;
+    }
+    
+    &::placeholder {
+      color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+      opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
     }
   }
 
@@ -127,9 +278,44 @@ const StyledWrapper = styled.div`
   }
 
   .drag-handle {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     .icon-grip,
     .icon-minus {
       color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  tbody tr:hover .drag-handle,
+  tbody tr.drag-over .drag-handle {
+    opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
+  @keyframes row-focus-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.warning.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  tbody tr.row-focus-flash td {
+    animation: row-focus-flash 2.5s ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr.row-focus-flash td {
+      animation: none;
+      background-color: ${(props) => props.theme.status.warning.background};
     }
   }
 
@@ -138,7 +324,9 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     border: none;
     outline: none;
-    padding: 2px 8px;
+    padding: 2px 2px;
+    width: 100%;
+    box-sizing: border-box;
     font-size: 12px;
     cursor: pointer;
 

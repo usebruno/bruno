@@ -1,6 +1,12 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/scripting/url-helpers/fixtures/collections/url_helpers_test"
-  ]
+    "{{collectionPath}}/url_helpers_test"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

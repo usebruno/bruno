@@ -1,0 +1,31 @@
+meta {
+  name: getAllGlobalEnvVars
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setGlobalEnvVar("testGlobalA", "valueA");
+  bru.setGlobalEnvVar("testGlobalB", "valueB");
+}
+
+tests {
+  test("should return all global env vars", function() {
+    const vars = bru.getAllGlobalEnvVars();
+    expect(vars.testGlobalA).to.equal("valueA");
+    expect(vars.testGlobalB).to.equal("valueB");
+  });
+
+  test("should return a shallow copy", function() {
+    const vars = bru.getAllGlobalEnvVars();
+    vars.testGlobalA = "mutated";
+    const vars2 = bru.getAllGlobalEnvVars();
+    expect(vars2.testGlobalA).to.equal("valueA");
+  });
+}

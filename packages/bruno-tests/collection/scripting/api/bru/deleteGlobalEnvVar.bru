@@ -1,0 +1,32 @@
+meta {
+  name: deleteGlobalEnvVar
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setGlobalEnvVar("testDeleteGlobalEnvVar", "to-be-deleted");
+}
+
+script:post-response {
+  bru.deleteGlobalEnvVar("testDeleteGlobalEnvVar");
+}
+
+tests {
+  test("should delete global env var", function() {
+    const val = bru.getGlobalEnvVar("testDeleteGlobalEnvVar");
+    expect(val).to.be.undefined;
+  });
+
+  test("should not throw when deleting non-existent key", function() {
+    expect(function() {
+      bru.deleteGlobalEnvVar("non-existent-key");
+    }).to.not.throw();
+  });
+}

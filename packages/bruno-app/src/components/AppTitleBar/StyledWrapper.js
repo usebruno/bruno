@@ -210,6 +210,10 @@ const Wrapper = styled.div`
     margin-left: 6px;
   }
 
+  .app-menu {
+    margin-left: 8px;
+  }
+
   /* Custom window control buttons for Windows - always interactive, above modal overlay */
   .window-controls {
     display: flex;

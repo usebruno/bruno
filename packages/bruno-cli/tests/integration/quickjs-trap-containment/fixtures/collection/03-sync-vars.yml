@@ -1,0 +1,25 @@
+info:
+  name: 03-sync-vars
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/first"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test('sync vars expression starting async work does not crash the run', function() {
+          expect(res.getStatus()).to.equal(200);
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: Promise.resolve().then(() => bru.sleep(5))
+        method: jsonq
+      variable:
+        name: drainBorn
+        scope: runtime

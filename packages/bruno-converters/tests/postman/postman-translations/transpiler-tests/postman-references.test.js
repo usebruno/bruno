@@ -71,9 +71,9 @@ describe('Postman to PM References Conversion', () => {
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('if (bru.getEnvVar("isProduction") === "true") {');
     expect(translatedCode).toContain('const apiUrl = bru.getEnvVar("prodUrl");');
-    expect(translatedCode).toContain('bru.setNextRequest("Production Flow");');
+    expect(translatedCode).toContain('bru.runner.setNextRequest("Production Flow");');
     expect(translatedCode).toContain('const apiUrl = bru.getEnvVar("devUrl");');
-    expect(translatedCode).toContain('bru.setNextRequest("Development Flow");');
+    expect(translatedCode).toContain('bru.runner.setNextRequest("Development Flow");');
   });
 
   // Legacy response handling

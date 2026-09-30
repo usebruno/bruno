@@ -1,0 +1,17 @@
+meta {
+  name: pre-request-ref-error
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const data = "hello";
+  const result = undefinedVariable + data;
+  console.log(result);
+}

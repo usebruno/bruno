@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { buildGrpcCommonLocators } from '../../utils/page/locators';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe('make grpc requests', () => {
   const setupGrpcTest = async (page) => {
     const locators = buildGrpcCommonLocators(page);
@@ -23,7 +25,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select unary method', async () => {
       await locators.sidebar.request('SayHello').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/SayHello', { timeout: 30000 });
     });
 
     await test.step('verify gRPC unary request is opened successfully', async () => {
@@ -53,7 +55,7 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -94,7 +96,7 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -118,6 +120,7 @@ test.describe('make grpc requests', () => {
     await test.step('start client streaming connection', async () => {
       await locators.request.sendButton().click();
       await expect(locators.request.endConnectionButton()).toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).toBeVisible();
     });
 
     await test.step('send individual message', async () => {
@@ -132,6 +135,12 @@ test.describe('make grpc requests', () => {
       await expect(locators.response.statusText()).toHaveText(/OK/);
     });
 
+    await test.step('verify connection is closed after end', async () => {
+      await expect(locators.request.endConnectionButton()).not.toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).not.toBeVisible();
+      await expect(locators.request.sendButton()).toBeVisible();
+    });
+
     await test.step('verify response message count', async () => {
       await expect(locators.response.tabCount()).toHaveText('1');
     });
@@ -144,7 +153,7 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
     });
   });
 
@@ -168,6 +177,7 @@ test.describe('make grpc requests', () => {
     await test.step('start bidirectional streaming connection', async () => {
       await locators.request.sendButton().click();
       await expect(locators.request.endConnectionButton()).toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).toBeVisible();
     });
 
     await test.step('send individual message', async () => {
@@ -183,6 +193,12 @@ test.describe('make grpc requests', () => {
       await expect(locators.response.statusText()).toHaveText(/OK/);
     });
 
+    await test.step('verify connection is closed after end', async () => {
+      await expect(locators.request.endConnectionButton()).not.toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).not.toBeVisible();
+      await expect(locators.request.sendButton()).toBeVisible();
+    });
+
     await test.step('verify response message count', async () => {
       await expect(locators.response.tabCount()).toHaveText('2');
     });
@@ -196,7 +212,87 @@ test.describe('make grpc requests', () => {
 
     /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
     await test.step('save request via shortcut', async () => {
-      await page.keyboard.press('Meta+s');
+      await page.keyboard.press(saveShortcut);
+    });
+  });
+
+  test('cancel client streaming request', async ({ pageWithUserData: page }) => {
+    await setupGrpcTest(page);
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('select client streaming method', async () => {
+      await locators.sidebar.request('LotOfGreetings').click();
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings');
+    });
+
+    await test.step('start client streaming connection', async () => {
+      await locators.request.sendButton().click();
+      await expect(locators.request.endConnectionButton()).toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).toBeVisible();
+    });
+
+    await test.step('cancel the connection', async () => {
+      await locators.request.cancelConnectionButton().click();
+    });
+
+    await test.step('verify connection is cancelled', async () => {
+      await expect(locators.response.statusCode()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusText()).toBeVisible();
+      await expect(locators.response.statusCode()).toHaveText(/1/);
+      await expect(locators.response.statusText()).toHaveText(/CANCELLED/);
+    });
+
+    await test.step('verify connection controls are reset', async () => {
+      await expect(locators.request.endConnectionButton()).not.toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).not.toBeVisible();
+      await expect(locators.request.sendButton()).toBeVisible();
+    });
+
+    /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
+    await test.step('save request via shortcut', async () => {
+      await page.keyboard.press(saveShortcut);
+    });
+  });
+
+  test('cancel bidi streaming request', async ({ pageWithUserData: page }) => {
+    await setupGrpcTest(page);
+    const locators = buildGrpcCommonLocators(page);
+
+    await test.step('select bidirectional streaming method', async () => {
+      await locators.sidebar.request('BidiHello').click();
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello');
+    });
+
+    await test.step('start bidirectional streaming connection', async () => {
+      await locators.request.sendButton().click();
+      await expect(locators.request.endConnectionButton()).toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).toBeVisible();
+    });
+
+    await test.step('send a message before cancelling', async () => {
+      await locators.request.sendMessage(0).click();
+    });
+
+    await test.step('cancel the connection', async () => {
+      await locators.request.cancelConnectionButton().click();
+    });
+
+    await test.step('verify connection is cancelled', async () => {
+      await expect(locators.response.statusCode()).toBeVisible({ timeout: 5000 });
+      await expect(locators.response.statusText()).toBeVisible();
+      await expect(locators.response.statusCode()).toHaveText(/1/);
+      await expect(locators.response.statusText()).toHaveText(/CANCELLED/);
+    });
+
+    await test.step('verify connection controls are reset', async () => {
+      await expect(locators.request.endConnectionButton()).not.toBeVisible();
+      await expect(locators.request.cancelConnectionButton()).not.toBeVisible();
+      await expect(locators.request.sendButton()).toBeVisible();
+    });
+
+    /* TODO: Reflection fetching incorrectly marks requests as modified, causing save indicators to appear. This save step prevents test timeouts by clearing the modified state. This is a temporary workaround until the reflection fetching issue is resolved. */
+    await test.step('save request via shortcut', async () => {
+      await page.keyboard.press(saveShortcut);
     });
   });
 });

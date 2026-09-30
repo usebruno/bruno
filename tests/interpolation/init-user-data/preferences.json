@@ -2,5 +2,11 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/interpolation/collection"
-  ]
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

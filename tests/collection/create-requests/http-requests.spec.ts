@@ -10,21 +10,6 @@ test.describe('Create HTTP Requests', () => {
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    // Clean up Root HTTP Request
-    await locators.sidebar.request('Root HTTP Request').hover();
-    await locators.actions.collectionItemActions('Root HTTP Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up Folder HTTP Request
-    await locators.sidebar.request('Folder HTTP Request').hover();
-    await locators.actions.collectionItemActions('Folder HTTP Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up collection
     await closeAllCollections(page);
   });
 

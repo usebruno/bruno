@@ -38,10 +38,6 @@ const StyledWrapper = styled.button`
     color: ${props.$color};
   `}
 
-  svg {
-    stroke: currentColor;
-  }
-
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;

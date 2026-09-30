@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import get from 'lodash/get';
 import { moveResponseExampleHeader, setResponseExampleHeaders, updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import { getBodyType } from 'utils/responseBodyProcessor';
 import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -16,7 +17,17 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const responseHeadersWidths = focusedTab?.tableColumnWidths?.['example-response-headers'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const headers = useMemo(() => {
     return item.draft ? get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [] : get(item, 'examples', []).find((e) => e.uid === exampleUid)?.response?.headers || [];
@@ -37,10 +48,11 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
 
     if (contentTypeHeader && oldContentTypeHeader && contentTypeHeader.value !== oldContentTypeHeader.value) {
       const newContentType = contentTypeHeader.value?.toLowerCase() || '';
-      const newBodyType = getBodyType(newContentType);
       const currentBodyType = response.body?.type || 'text';
 
-      // Only update if the body type has changed
+      const derivedBodyType = getBodyType(newContentType);
+      const newBodyType = currentBodyType === 'binary' || derivedBodyType === 'binary' ? currentBodyType : derivedBodyType;
+
       if (newBodyType !== currentBodyType) {
         dispatch(updateResponseExampleResponse({
           itemUid: item.uid,
@@ -85,17 +97,12 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
     if (!editMode) {
       return;
     }
-    const cleanedHeaders = newHeaders.map((header) => ({
-      uid: header.uid,
-      name: header.name,
-      value: header.value
-    }));
 
     dispatch(setResponseExampleHeaders({
       itemUid: item.uid,
       collectionUid: collection.uid,
       exampleUid: exampleUid,
-      headers: cleanedHeaders
+      headers: newHeaders
     }));
   };
 
@@ -124,7 +131,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       placeholder: 'Key',
       width: '40%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -134,7 +141,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
           onRun={() => {}}
           collection={collection}
           readOnly={!editMode}
-          placeholder={isLastEmptyRow ? 'Key' : ''}
+          placeholder={!value ? 'Key' : ''}
         />
       )
     },
@@ -144,7 +151,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
       placeholder: 'Value',
       width: '60%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -156,7 +163,7 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
           collection={collection}
           item={item}
           readOnly={!editMode}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
     }
@@ -170,6 +177,10 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
   return (
     <StyledWrapper className="w-full px-4">
       <EditableTable
+        tableId="example-response-headers"
+        testId="response-example-response-headers-table"
+        columnWidths={responseHeadersWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('example-response-headers', widths)}
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

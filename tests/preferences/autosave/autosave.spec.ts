@@ -1,6 +1,8 @@
 import { test, expect } from '../../../playwright';
 import { createCollection, closeAllCollections, createRequest } from '../../utils/page';
 
+const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
 test.describe('Autosave', () => {
   test.setTimeout(60000);
 
@@ -25,7 +27,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
@@ -52,7 +54,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -77,7 +79,7 @@ test.describe('Autosave', () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Test Request' }) });
       await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -108,7 +110,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
@@ -131,7 +133,7 @@ test.describe('Autosave', () => {
       await expect(requestTab.locator('.has-changes-icon')).toBeVisible({ timeout: 2000 });
 
       // Save the request
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
       await expect(requestTab.locator('.has-changes-icon')).not.toBeVisible();
     });
   });
@@ -150,7 +152,7 @@ test.describe('Autosave', () => {
       const urlEditor = page.locator('#request-url .CodeMirror');
       await urlEditor.click();
       await page.keyboard.type('https://api.example.com');
-      await page.keyboard.press('Control+s');
+      await page.keyboard.press(saveShortcut);
 
       // Verify no draft indicator
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
@@ -192,7 +194,7 @@ test.describe('Autosave', () => {
       // Close preferences tab using the close icon
       const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
       await preferencesTab.hover();
-      await preferencesTab.locator('.close-icon').click();
+      await preferencesTab.locator('.close-icon').click({ force: true });
 
       // Click on the request to make it active again
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();
@@ -207,7 +209,7 @@ test.describe('Autosave', () => {
       // Close and reopen the request tab to verify persistence
       const requestTab = page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Draft Request' }) });
       await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click();
+      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
 
       // Reopen request
       await page.locator('.collection-item-name').filter({ hasText: 'Draft Request' }).click();

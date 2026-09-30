@@ -1,0 +1,23 @@
+meta {
+  name: hasCollectionVar
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should return true for existing collection var", function() {
+    const exists = bru.hasCollectionVar("collection-var");
+    expect(exists).to.be.true;
+  });
+
+  test("should return false for nonexistent collection var", function() {
+    const exists = bru.hasCollectionVar("nonexistent-collection-var");
+    expect(exists).to.be.false;
+  });
+}

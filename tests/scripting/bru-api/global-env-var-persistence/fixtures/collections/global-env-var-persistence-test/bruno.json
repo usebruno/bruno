@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "global-env-var-persistence-test",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

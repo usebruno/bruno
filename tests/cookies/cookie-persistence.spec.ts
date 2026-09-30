@@ -1,11 +1,12 @@
-import { test, expect } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../utils/page';
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
   // Create a temporary user-data directory so we control where the cookies store file is written.
   const userDataPath = await createTmpDir('cookie-persistence');
 
   const app1 = await launchElectronApp({ userDataPath });
-  const page1 = await app1.firstWindow();
+  const page1 = await waitForReadyPage(app1);
   await page1.waitForSelector('[data-trigger="cookies"]');
 
   // Open Cookies modal via the status-bar button.
@@ -26,11 +27,11 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
 
   await expect(page1.getByText('example.com')).toBeVisible();
 
-  await app1.close();
+  await closeElectronApp(app1);
 
   // Second launch – verify the cookie was persisted and re-loaded
   const app2 = await launchElectronApp({ userDataPath });
-  const page2 = await app2.firstWindow();
+  const page2 = await waitForReadyPage(app2);
 
   // Open the Cookies modal again.
   await page2.waitForSelector('[data-trigger="cookies"]');
@@ -39,5 +40,5 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
   // The domain we added earlier should still be present.
   await expect(page2.getByText('example.com')).toBeVisible();
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

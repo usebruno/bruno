@@ -10,21 +10,6 @@ test.describe('Create gRPC Requests', () => {
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
-    const locators = buildCommonLocators(page);
-
-    // Clean up Root gRPC Request
-    await locators.sidebar.request('Root gRPC Request').hover();
-    await locators.actions.collectionItemActions('Root gRPC Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up Folder gRPC Request
-    await locators.sidebar.request('Folder gRPC Request').hover();
-    await locators.actions.collectionItemActions('Folder gRPC Request').click();
-    await locators.dropdown.item('Delete').click();
-    await locators.modal.button('Delete').click();
-
-    // Clean up collection
     await closeAllCollections(page);
   });
 

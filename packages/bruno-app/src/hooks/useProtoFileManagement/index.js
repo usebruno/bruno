@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';
@@ -50,7 +50,7 @@ export default function useProtoFileManagement(collection) {
 
     const cachedMethods = protofileCache[absolutePath];
     if (cachedMethods && !isLoadingMethods && !isManualRefresh) {
-      return { methods: cachedMethods, error: null };
+      return { methods: cachedMethods, error: null, fromCache: true };
     }
 
     setIsLoadingMethods(true);
@@ -67,7 +67,7 @@ export default function useProtoFileManagement(collection) {
         [absolutePath]: methods
       }));
 
-      return { methods, error: null };
+      return { methods, error: null, fromCache: false };
     } catch (err) {
       console.error('Error loading gRPC methods:', err);
       return { methods: [], error: err };

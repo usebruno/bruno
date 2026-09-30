@@ -1,10 +1,14 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
+import { ensureString } from '../../utils';
+import type { BrunoPresetsExtension } from '../../types';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -18,34 +22,70 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // bruno config
     const brunoConfig: Record<string, any> = {
       opencollection: oc.opencollection || '1.0.0',
-      name: oc.info?.name || 'Untitled Collection',
+      name: ensureString(oc.info?.name, 'Untitled Collection'),
       type: 'collection',
       ignore: []
     };
-    if (oc.extensions?.ignore && Array.isArray(oc.extensions.ignore)) {
-      brunoConfig.ignore = oc.extensions.ignore;
+
+    if (oc.info?.version != null && oc.info.version !== '') {
+      brunoConfig.version = ensureString(oc.info.version, '');
+    }
+
+    const brunoExtension = (oc.extensions as any)?.bruno;
+    if (brunoExtension?.ignore && Array.isArray(brunoExtension.ignore)) {
+      brunoConfig.ignore = brunoExtension.ignore;
     }
 
     // presets
-    if (oc.extensions?.presets) {
-      const presets = oc.extensions.presets as any;
-      if (presets.request) {
+    if (brunoExtension?.presets) {
+      const presets = brunoExtension.presets as BrunoPresetsExtension;
+      if (presets.request || presets.defaultEnvironment) {
         brunoConfig.presets = {
-          requestType: presets.request.type || [],
-          requestUrl: presets.request.url || []
+          requestType: presets.request?.type || '',
+          requestUrl: presets.request?.url || ''
+        };
+        if (presets.defaultEnvironment) {
+          brunoConfig.presets.defaultEnvironment = presets.defaultEnvironment;
+        }
+      }
+    }
+
+    // bruno-specific extensions
+    const brunoExtensions = oc.extensions?.bruno as any;
+    if (Array.isArray(brunoExtensions?.scripts?.additionalContextRoots)) {
+      const sanitizedRoots = brunoExtensions.scripts.additionalContextRoots
+        .filter((item: any) => typeof item === 'string');
+
+      if (sanitizedRoots.length > 0) {
+        brunoConfig.scripts = {
+          ...brunoConfig.scripts,
+          additionalContextRoots: sanitizedRoots
         };
       }
+    }
+    // scripts.flow controls collection/folder/request script execution order
+    // ('sandwich' | 'sequential'); unrecognized values fall back to the runtime default.
+    if (brunoExtensions?.scripts?.flow === 'sandwich' || brunoExtensions?.scripts?.flow === 'sequential') {
+      brunoConfig.scripts = {
+        ...brunoConfig.scripts,
+        flow: brunoExtensions.scripts.flow
+      };
+    }
+
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtensions?.openapi);
+    if (openApiEntries.length > 0) {
+      brunoConfig.openapi = openApiEntries;
     }
 
     // protobuf
     if (oc.config?.protobuf) {
       brunoConfig.protobuf = {
-        protofFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
+        protoFiles: oc.config.protobuf.protoFiles?.map((protoFile: any) => ({
           path: protoFile.path
         })) || [],
         importPaths: oc.config.protobuf.importPaths?.map((importPath: any) => ({
           path: importPath.path,
-          disabled: importPath.disabled || false
+          enabled: importPath.disabled !== true
         })) || []
       };
     }
@@ -109,14 +149,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
               type: 'cert',
               certFilePath: cert.certificateFilePath,
               keyFilePath: cert.privateKeyFilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           } else if (cert.type === 'pkcs12') {
             return {
               domain: cert.domain,
               type: 'pfx',
               pfxFilePath: cert.pkcs12FilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           }
           return null;
@@ -159,7 +201,11 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
       // variables
       const variables = toBrunoVariables(oc.request.variables);
-      collectionRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((oc.request as any).actions);
+      collectionRoot.request.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);

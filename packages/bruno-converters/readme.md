@@ -54,7 +54,7 @@ const brunoCollection = await wsdlToBruno(wsdlContent);
 
 ## Example 
 
-```bash copy
+```javascript
 
 const { postmanToBruno } = require('@usebruno/converters');
 const fs = require('fs/promises');
@@ -66,7 +66,7 @@ async function convertPostmanToBruno(inputFile, outputFile) {
     const inputData = await fs.readFile(inputFile, 'utf8');
     
     // Convert to Bruno collection
-    const brunoCollection = postmanToBruno(JSON.parse(inputData));
+    const brunoCollection = await postmanToBruno(JSON.parse(inputData));
     
     // Save Bruno collection
     await fs.writeFile(outputFile, JSON.stringify(brunoCollection, null, 2));

@@ -1,6 +1,7 @@
 import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
+import { filterTransientItems } from 'utils/collections';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
@@ -93,13 +94,12 @@ export const deleteSecretsInEnvs = (envs) => {
   });
 };
 
-export const exportCollection = (collection, version) => {
-  // delete uids
+export const prepareCollectionForExport = (collection, version) => {
   delete collection.uid;
-
-  // delete process variables
   delete collection.processEnvVariables;
   delete collection.workspaceProcessEnvVariables;
+
+  collection.items = filterTransientItems(collection.items);
 
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
@@ -108,6 +108,12 @@ export const exportCollection = (collection, version) => {
 
   collection.exportedAt = new Date().toISOString();
   collection.exportedUsing = version ? `Bruno/${version}` : 'Bruno';
+
+  return collection;
+};
+
+export const exportCollection = (collection, version) => {
+  prepareCollectionForExport(collection, version);
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });

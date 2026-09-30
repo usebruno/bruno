@@ -1,0 +1,19 @@
+meta {
+  name: interpolation-path-param
+  type: http
+  seq: 51
+}
+
+get {
+  url: {{host}}/api/echo/anything/users/:userId
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 123
+}
+
+settings {
+  encodeUrl: false
+}

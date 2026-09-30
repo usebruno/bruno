@@ -32,19 +32,6 @@ const StyledWrapper = styled.div`
     flex-direction: column;
   }
 
-  .sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 12px 16px;
-    
-    .title {
-      font-size: ${(props) => props.theme.font.size.base};
-      font-weight: 500;
-      color: ${(props) => props.theme.text};
-      margin: 0;
-    }
-    
     .btn-action {
       display: flex;
       align-items: center;
@@ -58,7 +45,7 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.muted};
       cursor: pointer;
       transition: all 0.15s ease;
-      
+
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
         color: ${(props) => props.theme.text};
@@ -66,43 +53,102 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .search-container {
+  .env-list-search {
     position: relative;
-    padding: 0 12px 12px 12px;
-    
-    .search-icon {
+    display: flex;
+    align-items: center;
+    margin: 0 4px 6px 4px;
+
+    .env-list-search-icon {
       position: absolute;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-100%);
+      left: 8px;
       color: ${(props) => props.theme.colors.text.muted};
       pointer-events: none;
     }
-    
-    .search-input {
+
+    .env-list-search-input {
       width: 100%;
-      padding: 6px 8px 6px 28px;
+      padding: 5px 24px 5px 26px;
       font-size: 12px;
       background: transparent;
       border: 1px solid ${(props) => props.theme.border.border1};
-      border-radius: 5px;
+      border-radius: 6px;
       color: ${(props) => props.theme.text};
-      transition: all 0.15s ease;
-      
+      transition: border-color 0.15s ease;
+
       &::placeholder {
         color: ${(props) => props.theme.colors.text.muted};
       }
-      
+
       &:focus {
         outline: none;
+        border-color: ${(props) => props.theme.colors.accent};
+      }
+    }
+
+    .env-list-search-clear {
+      position: absolute;
+      right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: ${(props) => props.theme.colors.text.muted};
+      border-radius: 3px;
+
+      &:hover {
+        color: ${(props) => props.theme.text};
       }
     }
   }
 
-  .environments-list {
+  .sections-container {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 8px;
+    border-right: 1px solid ${(props) => props.theme.border.border0};
+  }
+
+  .section-header {
+    margin-inline: 4px !important;
+    padding-left: 6px !important;
+    border-radius: 6px ;
+    padding-right: 3px !important;
+    padding-block: 4px !important;
+  }
+
+  .environments-list {
     overflow-y: auto;
-    padding: 0 8px;
+    padding: 0 4px;
+  }
+
+  .btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      color: ${(props) => props.theme.text};
+    }
+
+    &.active {
+      color: ${(props) => props.theme.colors.accent};
+    }
   }
 
   .environment-item {
@@ -110,14 +156,15 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     padding: 4px 8px;
     margin-bottom: 1px;
     font-size: 13px;
     color: ${(props) => props.theme.text};
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 6px;
     transition: background 0.15s ease;
-    
+
     .environment-name {
       flex: 1;
       white-space: nowrap;
@@ -170,18 +217,18 @@ const StyledWrapper = styled.div`
     &:hover {
       background: ${(props) => props.theme.workspace.button.bg};
     }
-    
+
     &.active {
       background: ${(props) => props.theme.background.surface0};
       color: ${(props) => props.theme.text};
     }
-    
+
     &.renaming,
     &.creating {
       cursor: default;
       padding: 4px 4px 4px 8px;
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      
+
       &:hover {
         background: ${(props) => props.theme.workspace.button.bg};
       }
@@ -193,7 +240,7 @@ const StyledWrapper = styled.div`
       flex: 1;
       min-width: 0;
       overflow: hidden;
-      
+
       .environment-name-input {
         flex: 1;
         min-width: 0;
@@ -203,12 +250,12 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.text};
         font-size: 13px;
         padding: 2px 4px;
-        
+
         &::placeholder {
           color: ${(props) => props.theme.colors.text.muted};
         }
       }
-      
+
       .inline-actions {
         display: flex;
         gap: 2px;
@@ -227,12 +274,12 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.text};
         font-size: 13px;
         padding: 2px 4px;
-        
+
         &::placeholder {
           color: ${(props) => props.theme.colors.text.muted};
         }
       }
-      
+
       .inline-actions {
         display: flex;
         gap: 2px;
@@ -253,25 +300,25 @@ const StyledWrapper = styled.div`
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.15s ease;
-      
+
       &.save {
         color: ${(props) => props.theme.colors.text.green};
-        
+
         &:hover {
           background: ${(props) => rgba(props.theme.colors.text.green, 0.1)};
         }
       }
-      
+
       &.cancel {
         color: ${(props) => props.theme.colors.text.danger};
-        
+
         &:hover {
           background: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
         }
       }
     }
   }
-  
+
   .env-error {
     padding: 4px 12px;
     margin-top: 4px;
@@ -279,6 +326,39 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.danger};
     background: ${(props) => `${props.theme.colors.text.danger}15`};
     border-radius: 4px;
+  }
+
+  .no-env-file {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10%;
+    color: ${(props) => props.theme.colors.text.muted};
+
+    svg {
+      opacity: 0.3;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
   }
 `;
 

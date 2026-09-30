@@ -2,9 +2,36 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { IconTerminal2, IconPlus } from '@tabler/icons';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import SessionList from './SessionList';
 import '@xterm/xterm/css/xterm.css';
+
+// Build xterm.js theme from app theme
+const getTerminalTheme = (theme) => {
+  return {
+    background: theme.console.bg,
+    foreground: theme.console.messageColor,
+    cursor: theme.console.messageColor,
+    selectionBackground: theme.status.info.background,
+    black: theme.background.base,
+    red: theme.status.danger.text,
+    green: theme.status.success.text,
+    yellow: theme.status.warning.text,
+    blue: theme.status.info.text,
+    magenta: theme.colors.text.purple,
+    cyan: theme.codemirror.variable.prompt,
+    white: theme.text,
+    brightBlack: theme.colors.text.muted,
+    brightRed: theme.status.danger.text,
+    brightGreen: theme.status.success.text,
+    brightYellow: theme.status.warning.text,
+    brightBlue: theme.status.info.text,
+    brightMagenta: theme.colors.text.purple,
+    brightCyan: theme.codemirror.variable.prompt,
+    brightWhite: theme.text
+  };
+};
 
 // Terminal instances per session - Map<sessionId, { terminal, fitAddon, inputDisposable, resizeDisposable }>
 const terminalInstances = new Map();
@@ -33,7 +60,7 @@ const ensureParkingHost = () => {
   return parkingHost;
 };
 
-const createTerminalForSession = (sessionId) => {
+const createTerminalForSession = (sessionId, terminalTheme) => {
   if (terminalInstances.has(sessionId)) {
     return terminalInstances.get(sessionId);
   }
@@ -42,28 +69,7 @@ const createTerminalForSession = (sessionId) => {
     cursorBlink: true,
     fontSize: 14,
     fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-    theme: {
-      background: '#1e1e1e',
-      foreground: '#d4d4d4',
-      cursor: '#d4d4d4',
-      selection: '#264f78',
-      black: '#1e1e1e',
-      red: '#f14c4c',
-      green: '#23d18b',
-      yellow: '#f5f543',
-      blue: '#3b8eea',
-      magenta: '#d670d6',
-      cyan: '#29b8db',
-      white: '#e5e5e5',
-      brightBlack: '#666666',
-      brightRed: '#f14c4c',
-      brightGreen: '#23d18b',
-      brightYellow: '#f5f543',
-      brightBlue: '#3b8eea',
-      brightMagenta: '#d670d6',
-      brightCyan: '#29b8db',
-      brightWhite: '#e5e5e5'
-    },
+    theme: terminalTheme,
     allowProposedApi: true
   });
 
@@ -156,10 +162,10 @@ const cleanupTerminalInstance = (sessionId) => {
   }
 };
 
-const openTerminalIntoContainer = async (container, sessionId) => {
+const openTerminalIntoContainer = async (container, sessionId, terminalTheme) => {
   if (!container || !sessionId) return;
 
-  const instance = createTerminalForSession(sessionId);
+  const instance = createTerminalForSession(sessionId, terminalTheme);
   const { terminal, fitAddon } = instance;
 
   if (!terminal.element) {
@@ -174,6 +180,7 @@ const openTerminalIntoContainer = async (container, sessionId) => {
   await new Promise((resolve) => setTimeout(resolve, 50));
   try {
     fitAddon.fit();
+    terminal.focus();
     const { cols, rows } = terminal;
     if (cols && rows && window.ipcRenderer) {
       window.ipcRenderer.send('terminal:resize', sessionId, { cols, rows });
@@ -211,6 +218,8 @@ const TerminalTab = () => {
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
+  const terminalTheme = getTerminalTheme(theme);
 
   // Load sessions list
   const loadSessions = useCallback(async (currentActiveSessionId = null) => {
@@ -354,6 +363,15 @@ const TerminalTab = () => {
     };
   }, []);
 
+  // Update all terminal themes when app theme changes
+  useEffect(() => {
+    terminalInstances.forEach((instance) => {
+      if (instance.terminal) {
+        instance.terminal.options.theme = terminalTheme;
+      }
+    });
+  }, [theme.mode]);
+
   // Handle terminal display for active session
   useEffect(() => {
     if (!activeSessionId || !terminalRef.current) return;
@@ -361,7 +379,7 @@ const TerminalTab = () => {
     let mounted = true;
 
     const setupTerminal = async () => {
-      await openTerminalIntoContainer(terminalRef.current, activeSessionId);
+      await openTerminalIntoContainer(terminalRef.current, activeSessionId, terminalTheme);
 
       if (mounted) {
         const instance = terminalInstances.get(activeSessionId);

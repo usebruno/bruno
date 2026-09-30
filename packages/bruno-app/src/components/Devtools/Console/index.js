@@ -1,16 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
 import {
   IconX,
   IconTrash,
-  IconFilter,
-  IconAlertTriangle,
-  IconAlertCircle,
   IconBug,
-  IconCode,
-  IconChevronDown,
   IconTerminal2,
   IconNetwork,
   IconDashboard
@@ -26,6 +22,8 @@ import {
   toggleAllNetworkFilters
 } from 'providers/ReduxStore/slices/logs';
 
+import { DevToolsFilterDropdown } from './FilterDropdown';
+import LogIcon from './LogIcon';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
@@ -33,23 +31,10 @@ import RequestDetailsPanel from './RequestDetailsPanel';
 import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
+import { useResizablePanel } from 'hooks/useResizablePanel';
 
-const LogIcon = ({ type }) => {
-  const iconProps = { size: 16, strokeWidth: 1.5 };
-
-  switch (type) {
-    case 'error':
-      return <IconAlertCircle className="log-icon error" {...iconProps} />;
-    case 'warn':
-      return <IconAlertTriangle className="log-icon warn" {...iconProps} />;
-    case 'info':
-      return <IconAlertTriangle className="log-icon info" {...iconProps} />;
-    // case 'debug':
-    //   return <IconBug className="log-icon debug" {...iconProps} />;
-    default:
-      return <IconCode className="log-icon log" {...iconProps} />;
-  }
-};
+const MIN_DETAILS_PANEL_WIDTH = 280;
+const DETAILS_PANEL_MAX_RATIO = 0.7;
 
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);
@@ -64,6 +49,89 @@ const LogTimestamp = ({ timestamp }) => {
   return <span className="log-timestamp">{time}</span>;
 };
 
+// Helper function to check if an object is a plain object (not a class instance)
+const isPlainObject = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const proto = Object.getPrototypeOf(obj);
+  return proto === null || proto === Object.prototype;
+};
+
+// Helper function to transform Bruno special types back to readable format
+// Extracted outside component to avoid recreation on every render
+const transformBrunoTypes = (obj, seen = new WeakSet()) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  // Guard against circular references
+  if (seen.has(obj)) {
+    return '[Circular]';
+  }
+  seen.add(obj);
+
+  // Handle Bruno special types
+  if (obj.__brunoType) {
+    switch (obj.__brunoType) {
+      case 'Set':
+        // Transform Set to display values at top level with numeric indices
+        if (Array.isArray(obj.__brunoValue)) {
+          return Object.fromEntries(
+            obj.__brunoValue.map((value, index) => [index, transformBrunoTypes(value, seen)])
+          );
+        }
+        return {};
+      case 'Map':
+        // Transform Map to display entries at top level with => notation
+        if (Array.isArray(obj.__brunoValue)) {
+          const mapEntries = {};
+          for (const entry of obj.__brunoValue) {
+            // Defensive check: ensure entry is a valid [key, value] pair
+            if (Array.isArray(entry) && entry.length >= 2) {
+              const [key, value] = entry;
+              mapEntries[`${String(key)} =>`] = transformBrunoTypes(value, seen);
+            }
+          }
+          return mapEntries;
+        }
+        return {};
+      case 'Function':
+        return `[Function: ${obj.__brunoValue?.split?.('\n')?.[0]?.substring(0, 50) ?? 'anonymous'}...]`;
+      case 'undefined':
+        return 'undefined';
+      default:
+        return obj;
+    }
+  }
+
+  // Handle arrays - recurse into elements
+  if (Array.isArray(obj)) {
+    return obj.map((item) => transformBrunoTypes(item, seen));
+  }
+
+  // Preserve non-plain objects (Date, Error, RegExp, class instances, etc.)
+  if (!isPlainObject(obj)) {
+    return obj;
+  }
+
+  // Only deep-clone plain objects
+  const transformed = {};
+  for (const [key, value] of Object.entries(obj)) {
+    transformed[key] = transformBrunoTypes(value, seen);
+  }
+  return transformed;
+};
+
+// Helper to get metadata about Bruno types for display purposes
+const getBrunoTypeMetadata = (obj) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return {};
+  }
+  if (obj.__brunoType === 'Set' || obj.__brunoType === 'Map') {
+    return { type: obj.__brunoType };
+  }
+  return {};
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -71,18 +139,30 @@ const LogMessage = ({ message, args }) => {
     if (originalArgs && originalArgs.length > 0) {
       return originalArgs.map((arg, index) => {
         if (typeof arg === 'object' && arg !== null) {
+          const metadata = getBrunoTypeMetadata(arg);
+          const transformedArg = transformBrunoTypes(arg);
+
+          // Determine the name to display based on the type
+          let displayName = false;
+          let shouldCollapse = 1; // Default: collapse at depth 1 for regular objects
+
+          if (metadata.type === 'Map' || metadata.type === 'Set') {
+            displayName = metadata.type;
+            shouldCollapse = true; // Fully collapse Maps/Sets by default
+          }
+
           return (
             <div key={index} className="log-object">
               <ReactJson
-                src={arg}
+                src={transformedArg}
                 theme={displayedTheme === 'light' ? 'rjv-default' : 'monokai'}
                 iconStyle="triangle"
                 indentWidth={2}
-                collapsed={1}
+                collapsed={shouldCollapse}
                 displayDataTypes={false}
                 displayObjectSize={false}
                 enableClipboard={false}
-                name={false}
+                name={displayName}
                 style={{
                   backgroundColor: 'transparent',
                   fontSize: '${(props) => props.theme.font.size.sm}',
@@ -106,137 +186,6 @@ const LogMessage = ({ message, args }) => {
         <span key={index}>{item} </span>
       )) : formattedMessage}
     </span>
-  );
-};
-
-const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter logs by type"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Type</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([filterType, enabled]) => (
-              <label key={filterType} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(filterType, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <LogIcon type={filterType} />
-                  <span className="filter-option-label">{filterType}</span>
-                  <span className="filter-option-count">({logCounts[filterType] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([method, enabled]) => (
-              <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 
@@ -286,7 +235,34 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
+  const [savedDetailsPanelWidth, setSavedDetailsPanelWidth] = usePersistedState({ key: 'devtools-details-panel-width', default: 400 });
   const consoleRef = useRef(null);
+  const [consoleWidth, setConsoleWidth] = useState(0);
+
+  useEffect(() => {
+    const node = consoleRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setConsoleWidth(entry.contentRect.width);
+    });
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const detailsPanelMaxWidth = consoleWidth
+    ? Math.max(MIN_DETAILS_PANEL_WIDTH, consoleWidth * DETAILS_PANEL_MAX_RATIO)
+    : Number.POSITIVE_INFINITY;
+
+  const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
+    initialWidth: savedDetailsPanelWidth,
+    minWidth: MIN_DETAILS_PANEL_WIDTH,
+    maxWidth: detailsPanelMaxWidth,
+    direction: 'right',
+    onResizeEnd: (newWidth) => setSavedDetailsPanelWidth(newWidth)
+  });
 
   const logCounts = logs.reduce((counts, log) => {
     counts[log.type] = (counts[log.type] || 0) + 1;
@@ -398,11 +374,14 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <FilterDropdown
+              <DevToolsFilterDropdown
                 filters={filters}
-                logCounts={logCounts}
+                counts={logCounts}
                 onFilterToggle={handleFilterToggle}
                 onToggleAll={handleToggleAllFilters}
+                headerLabel="Filter by Type"
+                title="Filter logs by type"
+                renderIcon={(type) => <LogIcon type={type} />}
               />
             </div>
             <div className="action-controls">
@@ -420,11 +399,13 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <NetworkFilterDropdown
+              <DevToolsFilterDropdown
                 filters={networkFilters}
-                requestCounts={requestCounts}
+                counts={requestCounts}
                 onFilterToggle={handleNetworkFilterToggle}
                 onToggleAll={handleToggleAllNetworkFilters}
+                headerLabel="Filter by Method"
+                title="Filter requests by method"
               />
             </div>
           </div>
@@ -458,7 +439,7 @@ const Console = () => {
         className="console-resize-handle"
       />
 
-      <div className="console-header">
+      <div className="console-header" data-testid="console-header">
         <div className="console-tabs">
           <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
@@ -470,6 +451,7 @@ const Console = () => {
 
           <button
             className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
+            data-testid="network-tab"
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
@@ -519,7 +501,16 @@ const Console = () => {
             <div className="network-main">
               {renderTabContent()}
             </div>
-            <RequestDetailsPanel />
+            <div className="details-panel-wrapper" data-testid="details-panel" style={{ width: detailsPanelWidth }}>
+              <div
+                className="details-drag-handle"
+                onMouseDown={handleDetailsPanelDragStart}
+                data-testid="details-panel-drag-handle"
+              >
+                <div className="drag-request-border" />
+              </div>
+              <RequestDetailsPanel />
+            </div>
           </div>
         ) : activeTab === 'debug' && selectedError ? (
           <div className="debug-with-details">

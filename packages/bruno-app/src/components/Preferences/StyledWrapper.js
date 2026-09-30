@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   div.tabs {
     padding: 12px;
-    min-width: 160px;
+    min-width: 180px;
 
     div.tab {
       display: flex;
@@ -38,10 +38,12 @@ const StyledWrapper = styled.div`
   }
 
   section.tab-panel {
-    min-height: 70vh;
+    min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
     padding: 12px;
+    padding-bottom: 0;
   }
 
   input[type="checkbox"],
@@ -72,7 +74,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     font-weight: 500;
-    margin-bottom: 8px;
+    margin: 6px 0 8px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }

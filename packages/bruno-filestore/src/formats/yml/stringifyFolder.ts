@@ -1,6 +1,7 @@
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
 import type { Folder, FolderInfo } from '@opencollection/types/collection/item';
 import type { Variable } from '@opencollection/types/common/variables';
+import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { HttpRequestHeader } from '@opencollection/types/requests/http';
@@ -8,14 +9,17 @@ import type { RequestDefaults } from '@opencollection/types/common/request-defau
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
 import { toOpenCollectionVariables } from './common/variables';
+import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import { stringifyYml } from './utils';
+import { HTTP_SCRIPT_KEYS, normalizeTags } from '@usebruno/common';
 
 const hasRequestDefaults = (folderRoot: FolderRoot): boolean => {
   const requestDefaults = folderRoot?.request;
 
   return Boolean((requestDefaults?.headers?.length)
     || (requestDefaults?.vars?.req?.length)
+    || (requestDefaults?.vars?.res?.length)
     || hasRequestScripts(folderRoot)
     || hasRequestAuth(folderRoot));
 };
@@ -37,9 +41,18 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     // info block
     const info: FolderInfo = {
       name: folderRoot.meta?.name || 'Untitled Folder',
-      type: 'folder',
-      seq: folderRoot.meta?.seq || 1
+      type: 'folder'
     };
+    // Only write seq when the folder actually has a numeric one. Defaulting to 1 would
+    // force every seq-less folder into position 1 on disk and break alphabetical fallback.
+    const seq = folderRoot.meta?.seq;
+    if (typeof seq === 'number' && Number.isFinite(seq)) {
+      info.seq = seq;
+    }
+    const tags = normalizeTags(folderRoot.meta?.tags);
+    if (tags.length) {
+      info.tags = tags;
+    }
     ocFolder.info = info;
 
     // request defaults
@@ -70,9 +83,18 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
         }
       }
 
+      // actions (post-response variables)
+      if (folderRoot.request?.vars?.res?.length) {
+        const ocActions: Action[] | undefined = toOpenCollectionActions(folderRoot.request?.vars?.res);
+        if (ocActions) {
+          (ocFolder.request as any).actions = ocActions;
+        }
+      }
+
       // scripts
       if (hasRequestScripts(folderRoot)) {
-        const ocScripts: Scripts | undefined = toOpenCollectionScripts(folderRoot?.request);
+        // TODO: Widen scope to include GRPC scripts once Collection/Folder level inheritance is added to GRPC.
+        const ocScripts: Scripts | undefined = toOpenCollectionScripts(folderRoot?.request, HTTP_SCRIPT_KEYS);
         if (ocScripts) {
           ocFolder.request.scripts = ocScripts;
         }

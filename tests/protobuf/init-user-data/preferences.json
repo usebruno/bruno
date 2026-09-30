@@ -1,12 +1,16 @@
 {
-    "maximized": true,
-    "lastOpenedCollections": [
-        "{{projectRoot}}/tests/protobuf/collection"
-    ],
-    "preferences": {
-        "beta": {
-            "grpc": true,
-            "nodevm": false
-        }
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "beta": {
+      "grpc": true,
+      "nodevm": false
     }
+  }
 }

@@ -1,0 +1,17 @@
+meta {
+  name: test-request
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/echo
+  body: none
+  auth: none
+}
+
+tests {
+  test("should get 200 response", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

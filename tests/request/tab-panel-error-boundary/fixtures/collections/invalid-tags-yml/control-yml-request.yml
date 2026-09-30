@@ -1,0 +1,13 @@
+meta:
+  name: control-yml-request
+  type: http
+  seq: 3
+
+info:
+  name: control-yml-request
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: https://httpbin.org/get

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import ErrorBanner from 'ui/ErrorBanner';
 import Button from 'ui/Button';
@@ -17,14 +17,11 @@ const RequestNotFound = ({ itemUid }) => {
   };
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setShowErrorMessage(true);
     }, 300);
+    return () => clearTimeout(timer);
   }, []);
-
-  // add a delay component in react that shows a loading spinner
-  // and then shows the error message after a delay
-  // this will prevent the error message from flashing on the screen
 
   if (!showErrorMessage) {
     return null;
@@ -33,7 +30,7 @@ const RequestNotFound = ({ itemUid }) => {
   const errors = [
     {
       title: 'Request no longer exists',
-      message: 'This can happen when the .bru file associated with this request was deleted on your filesystem.'
+      message: 'This can happen when the file associated with this request was deleted on your filesystem.'
     }
   ];
 

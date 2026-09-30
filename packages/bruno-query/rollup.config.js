@@ -2,8 +2,9 @@ const { nodeResolve } = require("@rollup/plugin-node-resolve");
 const commonjs = require("@rollup/plugin-commonjs");
 const typescript = require("@rollup/plugin-typescript");
 const dts = require("rollup-plugin-dts");
-const { terser } = require("rollup-plugin-terser");
+const terser = require("@rollup/plugin-terser").default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
+const os = require('os');
 
 const packageJson = require("./package.json");
 
@@ -29,7 +30,9 @@ module.exports = [
       }),
       commonjs(),
       typescript({ tsconfig: "./tsconfig.json" }),
-      terser()
+      terser({
+        maxWorkers: Math.max(1, os.availableParallelism())
+      })
     ]
   },
   {

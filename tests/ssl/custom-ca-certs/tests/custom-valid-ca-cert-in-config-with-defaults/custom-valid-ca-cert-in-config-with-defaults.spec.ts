@@ -13,8 +13,8 @@ test.describe('custom valid ca cert added to the config and keep default ca cert
 
     // Validate test results
     await validateRunnerResults(page, {
-      totalRequests: 1,
-      passed: 1,
+      totalRequests: 2,
+      passed: 2,
       failed: 0,
       skipped: 0
     });
@@ -31,8 +31,8 @@ test.describe('custom valid ca cert added to the config and keep default ca cert
 
     // Validate test results
     await validateRunnerResults(page, {
-      totalRequests: 1,
-      passed: 1,
+      totalRequests: 2,
+      passed: 2,
       failed: 0,
       skipped: 0
     });

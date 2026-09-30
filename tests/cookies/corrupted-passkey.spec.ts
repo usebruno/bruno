@@ -1,13 +1,14 @@
-import { test, expect } from '../../playwright';
+import { test, expect, closeElectronApp } from '../../playwright';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { waitForReadyPage } from '../utils/page';
 
 test('should handle corrupted passkey and still display saved cookie list', async ({ createTmpDir, launchElectronApp }) => {
   const userDataPath = await createTmpDir('corrupted-passkey');
 
   const app1 = await launchElectronApp({ userDataPath });
   // 1. First run – add a cookie via the UI so `cookies.json` is created.
-  const page1 = await app1.firstWindow();
+  const page1 = await waitForReadyPage(app1);
 
   await page1.waitForSelector('[data-trigger="cookies"]');
   await page1.click('[data-trigger="cookies"]');
@@ -24,7 +25,7 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
 
   await expect(page1.getByText('example.com')).toBeVisible();
 
-  await app1.close();
+  await closeElectronApp(app1);
 
   // 2. Corrupt the encryptedPasskey in cookies.json
   const cookiesFilePath = path.join(userDataPath, 'cookies.json');
@@ -35,7 +36,7 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
 
   // 3. Second run – Bruno should recover and still list the cookie domain
   const app2 = await launchElectronApp({ userDataPath });
-  const page2 = await app2.firstWindow();
+  const page2 = await waitForReadyPage(app2);
 
   await page2.waitForSelector('[data-trigger="cookies"]');
   await page2.click('[data-trigger="cookies"]');
@@ -43,5 +44,5 @@ test('should handle corrupted passkey and still display saved cookie list', asyn
   // The domain row should still be visible (even if cookie values are blank).
   await expect(page2.getByText('example.com')).toBeVisible();
 
-  await app2.close();
+  await closeElectronApp(app2);
 });

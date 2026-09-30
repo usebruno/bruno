@@ -17,12 +17,31 @@ const StyledWrapper = styled.div`
     min-width: 0;
   }
 
+  .main {
+    padding-bottom: 1rem;
+  }
+
+  &.request-collapsed .query-url-wrapper,
+  &.response-collapsed .query-url-wrapper {
+    padding-bottom: 0;
+  }
+
+  &.request-collapsed .main,
+  &.response-collapsed .main {
+    padding-bottom: 0;
+  }
+
+  &.request-collapsed .response-pane,
+  &.response-collapsed .request-pane {
+    padding-top: 1rem;
+  }
+
   div.dragbar-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 10px;
-    min-width: 10px;
+    width: 12px;
+    min-width: 12px;
     padding: 0;
     cursor: col-resize;
     background: transparent;
@@ -33,25 +52,35 @@ const StyledWrapper = styled.div`
       height: 100%;
       width: 1px;
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
+      pointer-events: none;
     }
 
     &:hover div.dragbar-handle {
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
     }
+
   }
 
   &.vertical-layout {
     .request-pane {
       padding-bottom: 0.5rem;
+
     }
 
     .response-pane {
       padding-top: 0.5rem;
     }
+    &.request-collapsed .response-pane {
+      padding-top: 0;
+    }
+
+    &.response-collapsed .request-pane {
+      padding-bottom: 0;
+    }
 
     div.dragbar-wrapper {
       width: 100%;
-      height: 10px;
+      height: 12px;
       cursor: row-resize;
       padding: 0 1rem;
       position: relative;
@@ -61,12 +90,14 @@ const StyledWrapper = styled.div`
         height: 1px;
         border-left: none;
         border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
+        pointer-events: none;
       }
 
       &:hover div.dragbar-handle {
         border-left: none;
         border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
       }
+
     }
   }
 

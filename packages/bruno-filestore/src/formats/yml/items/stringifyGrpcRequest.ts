@@ -1,7 +1,7 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata, GrpcMessage, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant, GrpcMessage, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
@@ -12,6 +12,7 @@ import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
+import { GRPC_SCRIPT_KEYS } from '@usebruno/common';
 
 const stringifyGrpcRequest = (item: BrunoItem): string => {
   try {
@@ -28,6 +29,9 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -73,16 +77,11 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
 
     // message
     if (brunoRequest.body?.mode === 'grpc' && brunoRequest.body.grpc?.length) {
-      const messages = brunoRequest.body.grpc;
-
-      // todo: bruno app supports only one message for now
-      // update this when bruno app supports multiple messages
-      if (messages.length) {
-        const message: GrpcMessage = messages[0].content || '';
-        if (message.trim().length) {
-          grpc.message = message;
-        }
-      }
+      const messages: GrpcMessageVariant[] = brunoRequest.body.grpc.map(({ name, content }, index) => ({
+        title: name || `message ${index + 1}`,
+        message: content || ''
+      }));
+      grpc.message = messages;
     }
 
     // auth
@@ -105,7 +104,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, GRPC_SCRIPT_KEYS);
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;

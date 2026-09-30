@@ -4,21 +4,25 @@ import debugMiddleware from './middlewares/debug/middleware';
 import appReducer from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
-import workspaceTabsReducer from './slices/workspaceTabs';
 import notificationsReducer from './slices/notifications';
 import globalEnvironmentsReducer from './slices/global-environments';
 import logsReducer from './slices/logs';
 import performanceReducer from './slices/performance';
 import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
+import openapiSyncReducer from './slices/openapi-sync';
+import mockServerReducer from './slices/mock-server/index';
+import chatReducer from './slices/chat';
+import collectionMigrationReducer from './slices/collection-migration';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
+import { snapshotMiddleware } from './middlewares/snapshot/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
 };
 
-let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware];
+let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware, snapshotMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }
@@ -28,13 +32,16 @@ export const store = configureStore({
     app: appReducer,
     collections: collectionsReducer,
     tabs: tabsReducer,
-    workspaceTabs: workspaceTabsReducer,
     notifications: notificationsReducer,
     globalEnvironments: globalEnvironmentsReducer,
     logs: logsReducer,
     performance: performanceReducer,
     workspaces: workspacesReducer,
-    apiSpec: apiSpecReducer
+    apiSpec: apiSpecReducer,
+    openapiSync: openapiSyncReducer,
+    mockServer: mockServerReducer,
+    chat: chatReducer,
+    collectionMigration: collectionMigrationReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

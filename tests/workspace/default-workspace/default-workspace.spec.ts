@@ -1,22 +1,20 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { waitForReadyPage } from '../../utils/page';
 
 test.describe('Default Workspace', () => {
   test.describe('First Launch', () => {
     test('should create default workspace with "My Workspace" name on first launch', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('default-workspace-first-launch');
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       // Verify the workspace name is "My Workspace" in the title bar
       const workspaceName = page.getByTestId('workspace-name');
       await expect(workspaceName).toHaveText('My Workspace');
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -26,20 +24,17 @@ test.describe('Default Workspace', () => {
 
       // First launch
       const app1 = await launchElectronApp({ userDataPath });
-      const page1 = await app1.firstWindow();
-      await page1.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page1 = await waitForReadyPage(app1);
       await expect(page1.getByTestId('workspace-name')).toHaveText('My Workspace');
 
-      await app1.close();
+      await closeElectronApp(app1);
 
       // Second launch - same workspace should be loaded
       const app2 = await launchElectronApp({ userDataPath });
-      const page2 = await app2.firstWindow();
-      await page2.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page2 = await waitForReadyPage(app2);
       await expect(page2.getByTestId('workspace-name')).toHaveText('My Workspace');
 
-      await app2.context().close();
-      await app2.close();
+      await closeElectronApp(app2);
     });
   });
 
@@ -65,8 +60,7 @@ test.describe('Default Workspace', () => {
 
       // Launch app - should create NEW workspace
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       // Should show "My Workspace"
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
@@ -79,8 +73,7 @@ test.describe('Default Workspace', () => {
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
       expect(fs.existsSync(path.join(newWorkspacePath, 'workspace.yml'))).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should create NEW workspace when workspace.yml has invalid YAML', async ({ launchElectronApp, createTmpDir }) => {
@@ -103,8 +96,7 @@ test.describe('Default Workspace', () => {
 
       // Launch app - should create NEW workspace
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -116,8 +108,7 @@ test.describe('Default Workspace', () => {
       const newWorkspacePath = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should create NEW workspace when workspace.yml has wrong type', async ({ launchElectronApp, createTmpDir }) => {
@@ -147,8 +138,7 @@ docs: ''
 
       // Launch app
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -156,8 +146,7 @@ docs: ''
       const newWorkspacePath = path.join(userDataPath, 'default-workspace-1');
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should create NEW workspace when directory does not exist', async ({ launchElectronApp, createTmpDir }) => {
@@ -176,8 +165,7 @@ docs: ''
 
       // Launch app
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
 
@@ -186,8 +174,7 @@ docs: ''
       expect(fs.existsSync(newWorkspacePath)).toBe(true);
       expect(fs.existsSync(path.join(newWorkspacePath, 'workspace.yml'))).toBe(true);
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 
@@ -195,9 +182,7 @@ docs: ''
     test('should display default workspace in workspace dropdown', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('default-workspace-ui-dropdown');
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       // Click on workspace name to open dropdown
       await page.locator('.workspace-name-container').click();
@@ -206,16 +191,13 @@ docs: ''
       const workspaceItem = page.locator('.workspace-item, .dropdown-item').filter({ hasText: 'My Workspace' });
       await expect(workspaceItem.first()).toBeVisible();
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
 
     test('should not show pin button for default workspace', async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('default-workspace-ui-no-pin');
       const app = await launchElectronApp({ userDataPath });
-      const page = await app.firstWindow();
-
-      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const page = await waitForReadyPage(app);
 
       await page.locator('.workspace-name-container').click();
 
@@ -223,8 +205,7 @@ docs: ''
       // Default workspace should NOT have pin button
       await expect(workspaceItem.locator('.pin-btn')).not.toBeVisible();
 
-      await app.context().close();
-      await app.close();
+      await closeElectronApp(app);
     });
   });
 });

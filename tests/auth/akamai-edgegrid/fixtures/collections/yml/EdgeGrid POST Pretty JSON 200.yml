@@ -1,0 +1,35 @@
+info:
+  name: EdgeGrid POST Pretty JSON 200
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{localhost}}/api/auth/edgegrid/resource"
+  auth:
+    type: akamai-edgegrid
+    accessToken: akab-access-token-bruno-test
+    clientToken: akab-client-token-bruno-test
+    clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+  body:
+    type: json
+    data: |-
+      {
+        "name": "bruno",
+        "kind": "pretty"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.authenticated
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

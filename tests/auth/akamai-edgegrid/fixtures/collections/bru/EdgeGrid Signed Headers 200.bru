@@ -1,0 +1,32 @@
+meta {
+  name: EdgeGrid Signed Headers 200
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{localhost}}/api/auth/edgegrid/resource
+  body: none
+  auth: akamai-edgegrid
+}
+
+headers {
+  X-Test1: my-signed-value
+  x-eg-headers-to-sign: X-Test1
+}
+
+auth:akamai-edgegrid {
+  accessToken: akab-access-token-bruno-test
+  clientToken: akab-client-token-bruno-test
+  clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+  nonce:
+  timestamp:
+  baseURL:
+  headersToSign: X-Test1
+  maxBodySize:
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: eq true
+}

@@ -1,9 +1,12 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-      "{{projectRoot}}/tests/websockets/fixtures/collection"
+    "{{projectRoot}}/tests/websockets/fixtures/collection"
   ],
-  "beta": {
-      "websocket": true
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
   }
 }

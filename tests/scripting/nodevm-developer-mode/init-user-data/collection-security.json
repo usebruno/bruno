@@ -1,0 +1,16 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}/async-callbacks",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    },
+    {
+      "path": "{{collectionPath}}/collection-level-script",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

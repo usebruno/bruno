@@ -4,10 +4,13 @@ import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -17,6 +20,7 @@ import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
+import AppMenu from './AppMenu';
 import StyledWrapper from './StyledWrapper';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
 import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
@@ -48,6 +52,14 @@ const AppTitleBar = () => {
   useEffect(() => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
+
+    ipcRenderer.invoke('renderer:window-is-fullscreen')
+      .then((fullscreen) => {
+        setIsFullScreen(fullscreen);
+      })
+      .catch((error) => {
+        console.error('Error getting initial fullscreen state:', error);
+      });
 
     const removeEnterFullScreenListener = ipcRenderer.on('main:enter-full-screen', () => {
       setIsFullScreen(true);
@@ -128,26 +140,43 @@ const AppTitleBar = () => {
   });
 
   const handleHomeClick = () => {
-    dispatch(showHomePage());
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (scratchCollectionUid) {
+      dispatch(focusTab({ uid: `${scratchCollectionUid}-overview` }));
+    }
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
+    if (workspaceUid === activeWorkspaceUid) return;
+
     dispatch(switchWorkspace(workspaceUid));
     toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
     try {
-      await dispatch(openWorkspaceDialog());
-      toast.success('Workspace opened successfully');
+      const result = await dispatch(openWorkspaceDialog());
+      if (result) {
+        toast.success('Workspace opened successfully');
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to open workspace');
     }
   };
 
-  const handleCreateWorkspace = () => {
-    setCreateWorkspaceModalOpen(true);
-  };
+  const handleCreateWorkspace = useCallback(async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    try {
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
+  }, [preferences, dispatch]);
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
@@ -166,6 +195,7 @@ const AppTitleBar = () => {
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
+    setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
   };
 
   const handleToggleDevtools = () => {
@@ -235,7 +265,7 @@ const AppTitleBar = () => {
     );
 
     return items;
-  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
     <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
@@ -247,8 +277,9 @@ const AppTitleBar = () => {
       )}
 
       <div className="titlebar-content">
-        {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
+          {showWindowControls && <AppMenu />}
+
           <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>

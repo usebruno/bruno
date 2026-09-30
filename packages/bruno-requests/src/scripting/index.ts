@@ -1,1 +1,1 @@
-export { default as sendRequest } from './send-request';
+export { default as sendRequest, createSendRequest, buildScriptedEntry } from './send-request';

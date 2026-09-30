@@ -1,0 +1,47 @@
+{
+  "environments": [
+    {
+      "uid": "FlaexlO7lcH7UtEpWsVyz",
+      "name": "Development Environment",
+      "variables": [
+        {
+          "uid": "lflBDSYBdHkUedYhBF4Ty",
+          "name": "env_type",
+          "value": "development",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "uid": "MsHcnAIonZ3455OfvpTUT",
+      "name": "Production Environment",
+      "variables": [
+        {
+          "uid": "TZljXLErzW1nUWoozntZE",
+          "name": "env_type",
+          "value": "production",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "uid": "VdUAdMPcfapMCqjKAeUiI",
+      "name": "Staging Environment",
+      "variables": [
+        {
+          "uid": "FwoWhHvu9eLhA8H4brG6f",
+          "name": "env_type",
+          "value": "staging",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "MsHcnAIonZ3455OfvpTUT"
+}

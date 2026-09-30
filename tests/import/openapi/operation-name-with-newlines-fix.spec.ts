@@ -30,6 +30,7 @@ test.describe('OpenAPI Newline Handling', () => {
     // select a location
     await page.locator('#collection-location').fill(await createTmpDir('newline-test'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // verify the collection was imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Newline Test Collection')).toBeVisible();
@@ -39,6 +40,6 @@ test.describe('OpenAPI Newline Handling', () => {
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names
-    await expect(page.locator('#collection-newline-test-collection .collection-item-name')).toHaveCount(2);
+    await expect(page.locator('[data-collection-id="newline-test-collection"] .collection-item-name')).toHaveCount(2);
   });
 });

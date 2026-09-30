@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import ErrorBanner from 'ui/ErrorBanner';
 import Button from 'ui/Button';

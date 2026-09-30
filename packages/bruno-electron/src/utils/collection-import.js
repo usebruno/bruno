@@ -3,7 +3,8 @@ const path = require('node:path');
 const { ipcMain } = require('electron');
 const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollectionStats } = require('./filesystem');
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
-const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder } = require('@usebruno/filestore');
+const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
+const { transformProxyConfig } = require('@usebruno/requests/dist/cjs');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -21,8 +22,10 @@ async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
 
 /**
  * Import a collection - shared logic used by both IPC handler and onboarding service
+ * @param {Object} options - Optional settings
+ * @param {boolean} options.skipOpenEvent - If true, don't send main:collection-opened event (caller will handle it)
  */
-async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = 'bru') {
+async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = DEFAULT_COLLECTION_FORMAT, options = {}) {
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
@@ -84,11 +87,14 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
     if (!brunoConfig) {
       brunoConfig = {
-        version: '1',
         name: collection.name,
         type: 'collection',
         ignore: ['node_modules', '.git']
       };
+    }
+
+    if (brunoConfig.proxy) {
+      brunoConfig.proxy = transformProxyConfig(brunoConfig.proxy);
     }
 
     return brunoConfig;
@@ -100,13 +106,20 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   let brunoConfig = getBrunoJsonConfig(collection);
 
   if (format === 'yml') {
-    const collectionContent = await stringifyCollection(collection.root, { format });
+    brunoConfig.opencollection = '1.0.0';
+    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
   } else if (format === 'bru') {
-    const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+    const bruJsonConfig = { ...brunoConfig, version: '1' };
+    if (brunoConfig.version) {
+      bruJsonConfig.collectionVersion = brunoConfig.version;
+    } else {
+      delete bruJsonConfig.collectionVersion;
+    }
+    const stringifiedBrunoConfig = await stringifyJson(bruJsonConfig);
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-    const collectionContent = await stringifyCollection(collection.root, { format });
+    const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
     await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
   } else {
     throw new Error(`Invalid format: ${format}`);
@@ -116,8 +129,11 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   brunoConfig.size = size;
   brunoConfig.filesCount = filesCount;
 
-  mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-  ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
+  // Send collection-opened event unless caller wants to handle it themselves (e.g., during onboarding)
+  if (!options.skipOpenEvent) {
+    mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
+  }
 
   // create folder and files based on collection
   await parseCollectionItems(collection.items, collectionPath);

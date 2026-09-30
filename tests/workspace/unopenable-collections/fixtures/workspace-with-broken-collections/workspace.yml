@@ -1,0 +1,19 @@
+opencollection: 1.0.0
+info:
+  name: "Broken WS"
+  type: workspace
+
+collections:
+  - name: "Healthy Coll"
+    path: "collections/healthy-coll"
+  - name: "Missing Coll"
+    path: "collections/missing-coll"
+  - name: "Empty Coll"
+    path: "collections/empty-coll"
+  - name: "Ghost Coll"
+    path: "collections/ghost-coll"
+    remote: "https://github.com/usebruno/sample-collection.git"
+
+specs:
+
+docs: ''

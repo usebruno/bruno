@@ -1,0 +1,22 @@
+meta {
+  name: setCollectionVar
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setCollectionVar("testSetCollectionVar", "collection-test-value")
+}
+
+tests {
+  test("should set collection var in scripts", function() {
+    const testSetCollectionVar = bru.getCollectionVar("testSetCollectionVar");
+    expect(testSetCollectionVar).to.equal("collection-test-value");
+  });
+}

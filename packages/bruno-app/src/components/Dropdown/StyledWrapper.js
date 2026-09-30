@@ -18,7 +18,7 @@ const Wrapper = styled.div`
   max-height: 90vh;
   overflow-y: auto;
   max-width: unset !important;
-  padding: 0.25rem;
+  padding: ${(props) => (props.noPadding ? '0' : '0.25rem')};
 
   [role="menu"] {
     outline: none;
@@ -27,6 +27,14 @@ const Wrapper = styled.div`
     }
     &:focus-visible {
       outline: none;
+    }
+  }
+
+  &.hide-on-reference-clipped[data-reference-hidden],
+  &.hide-on-reference-clipped[data-popper-reference-hidden] {
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
     }
   }
 
@@ -83,6 +91,17 @@ const Wrapper = styled.div`
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .dropdown-tab-count {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      min-width: 18px;
+      text-align: center;
     }
 
     &:hover:not(:disabled):not(.disabled) {
@@ -148,11 +167,17 @@ const Wrapper = styled.div`
       background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
       .dropdown-icon {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+        opacity: 1;
       }
 
       &:hover {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
         background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
+      }
+
+      &.disabled {
+        opacity: 1;
+        cursor: not-allowed;
       }
     }
 
@@ -168,10 +193,33 @@ const Wrapper = styled.div`
     }
   }
 
+  .breadcrumb-collapsed-dropdown {
+    max-width: 250px;
+  }
+
+  .breadcrumb-collapsed-item {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .dropdown-separator {
     height: 1px;
     background-color: ${(props) => props.theme.dropdown.separator};
     margin: 0.25rem 0;
+  }
+
+  .submenu-trigger {
+    position: relative;
+  }
+
+  .submenu-arrow {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
   }
 `;
 

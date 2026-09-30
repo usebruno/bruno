@@ -1,0 +1,245 @@
+import styled from 'styled-components';
+
+export const CHECKBOX_COLUMN_WIDTH = 25;
+export const ACTIONS_COLUMN_WIDTH = 40;
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+
+  &.is-resizing {
+    user-select: none;
+  }
+
+  .table-container {
+    overflow-y: auto;
+    border-radius: 8px;
+    border: solid 1px ${(props) => props.theme.border.border0};
+    transition: height 75ms cubic-bezier(0,1.12,.84,.64);
+  }
+
+  &.is-measuring .table-container {
+    transition: none;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12px;
+
+    td {
+      vertical-align: middle;
+      padding: 2px 10px;
+
+      &:nth-child(1) {
+        width: ${CHECKBOX_COLUMN_WIDTH}px;
+        border-right: none;
+      }
+
+      &:nth-child(5) {
+        width: ${ACTIONS_COLUMN_WIDTH}px;
+      }
+    }
+
+    thead {
+      color: ${(props) => props.theme.table.thead.color} !important;
+      background: ${(props) => props.theme.sidebar.bg};
+      font-size: ${(props) => props.theme.font.size.base};
+      user-select: none;
+
+      td {
+        padding: 5px 10px !important;
+        border-bottom: solid 1px ${(props) => props.theme.border.border0};
+        border-right: solid 1px ${(props) => props.theme.border.border0};
+        position: relative;
+
+        &:last-child {
+          border-right: none;
+        }
+
+        &.sortable-header {
+          cursor: pointer;
+        }
+
+        .resize-handle {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 3px;
+          cursor: col-resize;
+          background: transparent;
+          z-index: 100;
+
+          &:hover,
+          &.resizing {
+            background: ${(props) => props.theme.colors.accent};
+          }
+        }
+      }
+    }
+
+    tbody {
+      tr.section-header-row td {
+        border-right: none;
+        padding: 0;
+      }
+
+      tr {
+        transition: background 0.1s ease;
+
+        &:last-child td {
+          border-bottom: none;
+        }
+
+        td {
+          border-bottom: solid 1px ${(props) => props.theme.border.border0};
+          border-right: solid 1px ${(props) => props.theme.border.border0};
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+    }
+  }
+
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: 600;
+
+    .section-count {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  .inherited-row {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .tooltip-mod {
+    max-width: 200px !important;
+  }
+
+  .name-cell-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .no-results {
+    padding: 24px;
+    text-align: center;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  input[type='text'] {
+    width: 100%;
+    border: 1px solid transparent;
+    outline: none !important;
+    background-color: transparent;
+    color: ${(props) => props.theme.text};
+    padding: 0;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+
+    &:focus {
+      outline: none !important;
+    }
+  }
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: ${(props) => props.theme.colors.accent};
+    vertical-align: middle;
+    margin: 0;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .button-container {
+    padding: 12px 2px;
+    background: ${(props) => props.theme.bg};
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .submit {
+    padding: 6px 16px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    border: none;
+    background: ${(props) => props.theme.brand};
+    color: ${(props) => props.theme.bg};
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .reset {
+    background: transparent;
+    padding: 6px 16px;
+    color: ${(props) => props.theme.brand};
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .drag-handle {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon-grip,
+    .icon-minus {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  tbody tr:hover .drag-handle,
+  tbody tr.drag-over .drag-handle {
+    opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
+  .column-sort-header .action-icon {
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+`;
+
+export default Wrapper;

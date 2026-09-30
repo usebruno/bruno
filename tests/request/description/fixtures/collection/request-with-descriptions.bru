@@ -1,0 +1,55 @@
+meta {
+  name: request-with-descriptions
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/api
+  body: none
+  auth: none
+}
+
+params:query {
+  @description('''Single-line query desc''')
+  q: search
+  @description('''
+    Multi-line query desc line one
+    Multi-line query desc line two
+  ''')
+  page: 1
+  plain-query: value
+}
+
+headers {
+  @description('''Single-line header desc''')
+  X-Version: 2.0
+  @description('''
+    Header line one
+    Header line two
+  ''')
+  X-Multi: value
+  X-Plain: plain-value
+}
+
+vars:pre-request {
+  @description('''Single-line var desc''')
+  apiKey: secret
+  @description('''
+    Multi-line var desc line one
+    Multi-line var desc line two
+  ''')
+  baseUrl: https://example.com
+  plainVar: value
+}
+
+assert {
+  @description('''Single-line assert desc''')
+  res.status: eq 200
+  @description('''
+    Multi-line assert line one
+    Multi-line assert line two
+  ''')
+  res.body.ok: eq true
+  plainAssert: eq foo
+}

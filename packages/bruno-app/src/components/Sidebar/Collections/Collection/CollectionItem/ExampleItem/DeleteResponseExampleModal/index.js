@@ -3,8 +3,7 @@ import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import { useDispatch } from 'react-redux';
 import { deleteResponseExample } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 
 const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
   const dispatch = useDispatch();
@@ -17,8 +16,10 @@ const DeleteResponseExampleModal = ({ onClose, example, item, collection }) => {
       collectionUid: collection.uid,
       exampleUid: example.uid
     }));
-    dispatch(saveRequest(item.uid, collection.uid));
-    onClose();
+    dispatch(saveRequest(item.uid, collection.uid, true))
+      .then(() => {
+        onClose();
+      });
   };
 
   return (

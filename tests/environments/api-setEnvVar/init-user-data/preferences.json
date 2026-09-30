@@ -1,6 +1,12 @@
 {
-    "maximized": false,
-    "lastOpenedCollections": [
-        "{{projectRoot}}/tests/environments/api-setEnvVar/fixtures/collection"
-    ]
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{collectionPath}}"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

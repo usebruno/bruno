@@ -9,7 +9,7 @@ import ActionIcon from 'ui/ActionIcon/index';
 const ResponseDownload = forwardRef(({ item, children }, ref) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
-  const isDisabled = !response.dataBuffer ? true : false;
+  const isDisabled = !response.dataBuffer || response.stream?.running;
   const elementRef = useRef(null);
 
   useImperativeHandle(ref, () => ({

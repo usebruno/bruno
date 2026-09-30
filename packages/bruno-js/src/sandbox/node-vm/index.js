@@ -1,27 +1,23 @@
 const vm = require('node:vm');
-const fs = require('node:fs');
 const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
+const { wrapConsoleWithSerializers } = require('./console');
+const { ScriptError, resolveVmFilename } = require('./utils');
+const { createCustomRequire, runWithScriptContext, getSharedNpmContext, attachRunLoaderState } = require('./cjs-loader');
+const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
-
-class ScriptError extends Error {
-  constructor(error, script) {
-    super(error.message);
-    this.name = 'ScriptError';
-    this.originalError = error;
-    this.script = script;
-    this.stack = error.stack;
-  }
-}
+const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
+ *
  * @param {Object} options - Configuration options
  * @param {string} options.script - The script code to execute
  * @param {Object} options.context - The execution context with Bruno objects
  * @param {string} options.collectionPath - Path to the collection directory
  * @param {Object} options.scriptingConfig - Scripting configuration options
+ * @param {string} [options.scriptPath] - Path to the source file for accurate stack traces
  * @returns {Promise<Object>} Execution results including variables and test results
  * @throws {ScriptError} When script execution fails
  */
@@ -29,14 +25,15 @@ async function runScriptInNodeVm({
   script,
   context,
   collectionPath,
-  scriptingConfig
+  scriptingConfig,
+  scriptPath
 }) {
   if (script.trim().length === 0) {
     return;
   }
 
   try {
-    // Compute additional context roots
+    // Compute allowed context roots for security validation
     const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
     const additionalContextRootsAbsolute = lodash
       .chain(additionalContextRoots)
@@ -45,196 +42,149 @@ async function runScriptInNodeVm({
       .value();
     additionalContextRootsAbsolute.push(path.normalize(collectionPath));
 
-    // Create script context with all necessary variables
-    const scriptContext = {
-      // Bruno context
-      console: context.console,
-      req: context.req,
-      res: context.res,
-      bru: context.bru,
-      expect: context.expect,
-      assert: context.assert,
-      __brunoTestResults: context.__brunoTestResults,
-      test: context.test,
-      // Configuration for nested module loading
-      scriptingConfig: scriptingConfig,
-      // Global objects
-      Buffer: global.Buffer,
-      process: global.process,
-      setTimeout: global.setTimeout,
-      setInterval: global.setInterval,
-      clearTimeout: global.clearTimeout,
-      clearInterval: global.clearInterval,
-      setImmediate: global.setImmediate,
-      clearImmediate: global.clearImmediate,
-      Error: global.Error,
-      TypeError: global.TypeError,
-      ReferenceError: global.ReferenceError,
-      SyntaxError: global.SyntaxError,
-      RangeError: global.RangeError
-    };
-
-    mixinTypedArrays(scriptContext);
-
-    // Create shared cache for local modules
+    // Build the script context with Bruno objects and globals
+    const scriptContext = buildScriptContext(context, scriptingConfig);
     const localModuleCache = new Map();
+    const cacheModules = get(scriptingConfig, 'cacheModules', false) === true;
 
-    // Create a custom require function and add it to the context
+    // cacheModules: one shared VM realm for scripts + npm modules so instanceof
+    // matches. Per-run bru/req/res/require resolve via ALS facades on that realm.
+    // Otherwise: fresh isolated context per script (default).
+    let vmContext;
+    if (cacheModules) {
+      vmContext = getSharedNpmContext();
+    } else {
+      vmContext = vm.createContext(scriptContext);
+      scriptContext.global = scriptContext;
+      scriptContext.globalThis = scriptContext;
+    }
+
     scriptContext.require = createCustomRequire({
-      scriptingConfig,
       collectionPath,
-      scriptContext,
+      isolatedContext: vmContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      additionalContextRootsAbsolute
+      additionalContextRootsAbsolute,
+      cacheModules
     });
+    // Stashed for shared npm requires that outlive this run's createCustomRequire closure.
+    // Symbol key so runWithScriptContext does not publish these as sandbox globals.
+    attachRunLoaderState(scriptContext, { localModuleCache, vmContext });
 
-    // Execute the script in an isolated VM context
-    await vm.runInNewContext(`
-        (async function(){
-          ${script}
-        })();
-      `, scriptContext, {
-      filename: path.join(collectionPath, 'script.js'),
-      displayErrors: true
-    });
+    // cacheModules: onFail runs after the script's ALS store exits, so re-bind
+    // registered callbacks to this run's context (bru/req/... facades).
+    let restoreOnFail;
+    if (cacheModules && typeof scriptContext.req?.onFail === 'function') {
+      const req = scriptContext.req;
+      const originalOnFail = req.onFail;
+      req.onFail = (callback) => {
+        if (typeof callback !== 'function') {
+          return originalOnFail.call(req, callback);
+        }
+        return originalOnFail.call(req, (error) => runWithScriptContext(scriptContext, () => callback(error)));
+      };
+      restoreOnFail = () => {
+        req.onFail = originalOnFail;
+      };
+    }
+
+    try {
+      const vmFilename = resolveVmFilename(scriptPath, collectionPath);
+
+      // Execute the script in the isolated context
+      const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
+      let compiledScript;
+      try {
+        compiledScript = new vm.Script(wrappedScript, {
+          filename: vmFilename
+        });
+      } catch (error) {
+        // V8 puts "filename:line" as the first line of syntax error stacks.
+        // Parse it so the error formatter can map to the correct source location.
+        const firstLine = error.stack?.split('\n')[0];
+        const match = firstLine?.match(/^(.+):(\d+)$/);
+        if (match && match[1] === vmFilename) {
+          error.__callSites = [{
+            filePath: vmFilename,
+            line: parseInt(match[2], 10),
+            column: null,
+            functionName: null
+          }];
+        }
+        throw error;
+      }
+
+      // Capture structured call sites for error-formatter line mapping
+      const originalPrepareStackTrace = Error.prepareStackTrace;
+      Error.prepareStackTrace = (error, callSites) => {
+        error.__callSites = callSites
+          .filter((site) => site.getFileName() === vmFilename)
+          .map((site) => ({
+            filePath: site.getFileName(),
+            line: site.getLineNumber(),
+            column: site.getColumnNumber(),
+            functionName: site.getFunctionName() || null
+          }));
+
+        return error.toString() + '\n' + callSites
+          .map((site) => `    at ${site}`)
+          .join('\n');
+      };
+
+      try {
+        const runScript = () => compiledScript.runInContext(vmContext, {
+          displayErrors: true
+        });
+        if (cacheModules) {
+          await runWithScriptContext(scriptContext, runScript);
+        } else {
+          await runScript();
+        }
+      } catch (error) {
+        // V8 invokes prepareStackTrace lazily on first .stack access.
+        // Reading .stack here so custom handler runs and populates error.__callSites
+        // (used later by the error formatter to map stack frames to the .bru/.yml script)
+        void error.stack;
+        throw error;
+      } finally {
+        Error.prepareStackTrace = originalPrepareStackTrace;
+      }
+    } finally {
+      restoreOnFail?.();
+    }
   } catch (error) {
     throw new ScriptError(error, script);
   }
-
-  return;
 }
 
 /**
- * Creates a custom require function with enhanced security and local module support
- * @param {Object} options - Configuration options
- * @param {Object} options.scriptingConfig - Scripting configuration with additional context roots
- * @param {string} options.collectionPath - Base collection path for security checks
- * @param {Object} options.scriptContext - Script execution context
- * @param {string} options.currentModuleDir - Current module directory for relative imports
- * @param {Map} options.localModuleCache - Cache for loaded local modules
- * @param {Array<string>} options.additionalContextRootsAbsolute - Pre-computed absolute context roots
- * @returns {Function} Custom require function
+ * Build the script context with Bruno objects and necessary globals
+ * @param {Object} context - Bruno context (bru, req, res, etc.)
+ * @param {Object} scriptingConfig - Scripting configuration
+ * @returns {Object} Script context object
  */
-function createCustomRequire({
-  scriptingConfig,
-  collectionPath,
-  scriptContext,
-  currentModuleDir = collectionPath,
-  localModuleCache = new Map(),
-  additionalContextRootsAbsolute = []
-}) {
-  return (moduleName) => {
-    // Check if it's a local module (starts with ./ or ../ or .\ or ..\)
-    // Normalize backslashes to forward slashes for cross-platform compatibility
-    const normalizedModuleName = moduleName.replace(/\\/g, '/');
-    if (normalizedModuleName.startsWith('./') || normalizedModuleName.startsWith('../')) {
-      return loadLocalModule({ moduleName: normalizedModuleName, collectionPath, scriptContext, localModuleCache, currentModuleDir, additionalContextRootsAbsolute });
-    }
+function buildScriptContext(context, scriptingConfig) {
+  const scriptContext = {
+    ...context,
 
-    // First try to require as a native/npm module
-    try {
-      const requiredModulePath = require.resolve(moduleName, { paths: [...additionalContextRootsAbsolute, ...module.paths] });
-      return require(requiredModulePath);
-    } catch (requireError) {
-      // If that fails, try to resolve from additionalContextRoots
-      throw new Error(`Could not resolve module "${moduleName}": ${requireError.message}\n\nThis most likely means you did not install the module under the collection or the "additionalContextRoots" using a package manager like npm.\n\nThese are your current "additionalContextRoots":\n${additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n') || '  - No "additionalContextRoots" defined'}`);
-    }
-  };
-}
+    // Bruno context (wrap console with Set/Map support)
+    console: wrapConsoleWithSerializers(context.console),
 
-/**
- * Loads a local module from the filesystem with security checks and caching
- * @param {Object} options - Configuration options
- * @param {string} options.moduleName - Name/path of the module to load
- * @param {string} options.collectionPath - Base collection path for security validation
- * @param {Object} options.scriptContext - Script execution context to inherit
- * @param {Map} options.localModuleCache - Cache for loaded modules
- * @param {string} options.currentModuleDir - Directory of the current module for relative resolution
- * @param {Array<string>} options.additionalContextRootsAbsolute - Additional allowed context root paths
- * @returns {*} The exported content of the loaded module
- * @throws {Error} When module is outside collection path or cannot be loaded
- */
-function loadLocalModule({
-  moduleName,
-  collectionPath,
-  scriptContext,
-  localModuleCache,
-  currentModuleDir,
-  additionalContextRootsAbsolute = []
-}) {
-  // Check if the filename has an extension
-  const hasExtension = path.extname(moduleName) !== '';
-  const resolvedFilename = hasExtension ? moduleName : `${moduleName}.js`;
+    // Configuration for nested module loading
+    scriptingConfig: scriptingConfig,
 
-  // Resolve the file path relative to the current module's directory
-  const filePath = path.resolve(currentModuleDir, resolvedFilename);
-  const normalizedFilePath = path.normalize(filePath);
-
-  const isWithinAllowedRoot = additionalContextRootsAbsolute.some((allowedRoot) => {
-    const normalizedAllowedRoot = path.normalize(allowedRoot);
-    const relativePath = path.relative(normalizedAllowedRoot, normalizedFilePath);
-    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
-  });
-
-  if (!isWithinAllowedRoot) {
-    const allowedRootsDisplay = additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n');
-    throw new Error(
-      `Access to files outside of the allowed context roots is not allowed: ${moduleName}\n\n`
-      + `Allowed context roots:\n${allowedRootsDisplay}`
-    );
-  }
-
-  // Check cache first (use normalized path as key)
-  if (localModuleCache.has(normalizedFilePath)) {
-    return localModuleCache.get(normalizedFilePath);
-  }
-
-  if (!fs.existsSync(normalizedFilePath)) {
-    throw new Error(`Cannot find module ${moduleName}`);
-  }
-
-  // Read and execute the local module
-  const moduleCode = fs.readFileSync(normalizedFilePath, 'utf8');
-
-  // Create module object
-  const moduleObj = { exports: {} };
-
-  // Get the directory of this module for nested imports
-  const moduleDir = path.dirname(normalizedFilePath);
-
-  // Create a new context that inherits from the script context
-  const moduleContext = {
-    ...scriptContext,
-    module: moduleObj,
-    exports: moduleObj.exports,
-    __filename: normalizedFilePath,
-    __dirname: moduleDir,
-    // Create a custom require function for this module that resolves relative to its directory
-    require: createCustomRequire({
-      scriptingConfig: scriptContext.scriptingConfig || {},
-      collectionPath,
-      scriptContext,
-      currentModuleDir: moduleDir,
-      localModuleCache,
-      additionalContextRootsAbsolute
-    })
+    // Safe globals from allowlist (Node.js/Web APIs only, not ECMAScript built-ins)
+    ...Object.fromEntries(
+      safeGlobals
+        .filter((key) => global[key] !== undefined)
+        .map((key) => [key, global[key]])
+    )
   };
 
-  try {
-    // Execute the module code in the shared context
-    vm.runInNewContext(moduleCode, moduleContext, {
-      filename: normalizedFilePath,
-      displayErrors: true
-    });
+  // Add TypedArrays from host for compatibility with host APIs (TextEncoder, crypto, etc.)
+  mixinTypedArrays(scriptContext);
 
-    // Cache the result using normalized path
-    localModuleCache.set(normalizedFilePath, moduleObj.exports);
-
-    return moduleObj.exports;
-  } catch (error) {
-    throw new Error(`Error loading local module ${moduleName}: ${error.message}`);
-  }
+  return scriptContext;
 }
 
 module.exports = {

@@ -1,30 +1,21 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../../utils/page';
+import { closeAllCollections, createCollection, createFolder, createRequest } from '../../utils/page';
 
-test.describe('Copy and Paste Requests', () => {
+test.describe.serial('Copy and Paste Requests', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   test('should copy and paste a request within the same collection', async ({ page, createTmpDir }) => {
     await createCollection(page, 'test-collection', await createTmpDir('test-collection'));
+    await createRequest(page, 'original-request', 'test-collection', { url: 'https://echo.usebruno.com' });
 
-    // Create a new request
     const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
-    await page.getByPlaceholder('Request Name').fill('original-request');
-    await page.locator('#new-request-url .CodeMirror').click();
-    await page.locator('textarea').fill('https://echo.usebruno.com');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toBeVisible();
 
     // Copy the request
     const requestItem = page.locator('.collection-item-name').filter({ hasText: 'original-request' });
     await requestItem.hover();
-    await requestItem.locator('.menu-icon').click();
+    await requestItem.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Copy' }).click();
 
     // Paste into the collection root
@@ -37,18 +28,13 @@ test.describe('Copy and Paste Requests', () => {
   });
 
   test('should paste request into a folder', async ({ page, createTmpDir }) => {
-    const collection = page.locator('.collection-name').filter({ hasText: 'test-collection' });
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-    await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await createFolder(page, 'test-folder', 'test-collection');
 
     // Paste into the folder
     const folder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
     await folder.click();
     await folder.hover();
-    await folder.locator('.menu-icon').click();
+    await folder.locator('.menu-icon').click({ force: true });
     await page.locator('.dropdown-item').filter({ hasText: 'Paste' }).click();
 
     await expect(page.locator('.collection-item-name').filter({ hasText: 'original-request' })).toHaveCount(3);

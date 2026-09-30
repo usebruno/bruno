@@ -65,7 +65,10 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       if (requestType === 'graphql-request' && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
         body.mode = 'graphql';
         body.graphql = parseGraphQL(parsedBody);
-      } else if (requestType === 'http-request' && request.isDataBinary) {
+      } else if (normalizedContentType.includes('application/x-ndjson') || normalizedContentType.includes('application/ndjson')) {
+        body.mode = 'text';
+        body.text = parsedBody;
+      } else if (requestType === 'http-request' && request.isDataBinary && Array.isArray(parsedBody)) {
         body.mode = 'file';
         body.file = parsedBody;
       } else if (isJsonLikeContentType(contentType)) {

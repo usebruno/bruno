@@ -1,0 +1,23 @@
+meta {
+  name: getAllEnvVars
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should return all env vars including host", function() {
+    const vars = bru.getAllEnvVars();
+    expect(vars.host).to.be.a("string");
+  });
+
+  test("should not include __name__ in result", function() {
+    const vars = bru.getAllEnvVars();
+    expect(vars.__name__).to.be.undefined;
+  });
+}

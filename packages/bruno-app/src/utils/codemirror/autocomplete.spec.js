@@ -18,7 +18,10 @@ jest.mock('codemirror', () => {
 // Import the functions to test
 import {
   getAutoCompleteHints,
-  setupAutoComplete
+  setupAutoComplete,
+  showRootHints,
+  extractNextSegmentSuggestions,
+  WORD_PATTERN
 } from './autocomplete';
 
 describe('Bruno Autocomplete', () => {
@@ -183,6 +186,32 @@ describe('Bruno Autocomplete', () => {
         });
       });
 
+      // The API token must be isolated from the surrounding code so the right
+      // context is detected — regression guard for the WORD_PATTERN range bug,
+      // where `( , + ...` glued the preceding code onto the token.
+      const embeddedCases = [
+        { name: 'bru inside a function call', line: 'console.log(bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'bru after an assignment', line: 'const value = bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'bru as an argument after a comma', line: 'fn(arg,bru.get', expected: ['getEnvVar(key)', 'getAllEnvVars()'] },
+        { name: 'req inside a function call', line: 'console.log(req.get', expected: ['getUrl()', 'getHeaders()'] },
+        { name: 'res after a return', line: 'return res.get', expected: ['getStatus()', 'getBody()'] }
+      ];
+
+      embeddedCases.forEach(({ name, line, expected }) => {
+        it(`should provide hints for ${name}`, () => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
+
+          const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+            showHintsFor: ['req', 'res', 'bru']
+          });
+
+          expect(result).toBeTruthy();
+          expect(result.list).toEqual(expect.arrayContaining(expected));
+        });
+      });
+
       it('should provide method hints for nested req objects', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 7 });
         mockedCodemirror.getLine.mockReturnValue('req.get');
@@ -225,6 +254,63 @@ describe('Bruno Autocomplete', () => {
             'stopExecution()'
           ])
         );
+      });
+    });
+
+    describe('gRPC hook context', () => {
+      // gRPC hooks have no `req` / `res`; everything hangs off `bru.grpc`, and each hook is
+      // handed a different subset of it — so the hints are grouped per hook, not per root.
+      const hintsFor = (line, showHintsFor) => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor });
+      };
+
+      const grpcHints = (line, hook) => hintsFor(line, ['bru', `grpc:${hook}`]);
+
+      it('offers only the request model before the call has produced a response', () => {
+        const result = grpcHints('bru.grpc.', 'before-call-start');
+
+        expect(result.list).toEqual(['request']);
+      });
+
+      it('offers both models once a message has been received', () => {
+        const result = grpcHints('bru.grpc.', 'after-message-receive');
+
+        expect(result.list).toEqual(expect.arrayContaining(['request', 'response']));
+      });
+
+      it('offers the metadata write methods only in before-call-start', () => {
+        const writable = grpcHints('bru.grpc.request.metadata.', 'before-call-start');
+        const readOnly = grpcHints('bru.grpc.request.metadata.', 'after-call-end');
+
+        expect(writable.list).toEqual(expect.arrayContaining(['get(key)', 'upsert(key, value)', 'clear()']));
+        expect(readOnly.list).toEqual(expect.arrayContaining(['get(key)']));
+        expect(readOnly.list).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
+      });
+
+      it('offers request.message only in before-message-send', () => {
+        expect(grpcHints('bru.grpc.request.', 'before-message-send').list).toContain('message');
+        expect(grpcHints('bru.grpc.request.', 'before-call-start').list).not.toContain('message');
+      });
+
+      it('offers response.message only in after-message-receive', () => {
+        expect(grpcHints('bru.grpc.response.', 'after-message-receive').list).toContain('message');
+
+        const afterCallEnd = grpcHints('bru.grpc.response.', 'after-call-end');
+        expect(afterCallEnd.list).toContain('statusCode');
+        expect(afterCallEnd.list).not.toContain('message');
+      });
+
+      it('does not leak gRPC hints into an HTTP script editor', () => {
+        expect(hintsFor('bru.grpc.', ['req', 'res', 'bru'])).toBeNull();
+      });
+
+      it('does not leak HTTP globals into a gRPC hook', () => {
+        expect(grpcHints('req.', 'before-call-start')).toBeNull();
+        expect(grpcHints('res.', 'after-call-end')).toBeNull();
       });
     });
 
@@ -382,6 +468,22 @@ describe('Bruno Autocomplete', () => {
         );
       });
 
+      it('should provide deleteHeader and deleteHeaders hints for req.delete prefix', () => {
+        const line = 'req.delete';
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+          showHintsFor: ['req']
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list).toEqual(
+          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(data)'])
+        );
+      });
+
       it('should handle case-insensitive matching', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 10 });
         mockedCodemirror.getLine.mockReturnValue('{{varName}}');
@@ -399,6 +501,170 @@ describe('Bruno Autocomplete', () => {
 
         expect(result).toBeTruthy();
         expect(result.list.length).toBe(3);
+      });
+    });
+  });
+
+  describe('showRootHints', () => {
+    const rootHintsFor = (showHintsFor) => {
+      mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 0 });
+      mockedCodemirror.getLine.mockReturnValue('');
+      mockedCodemirror.getRange.mockReturnValue('');
+
+      const shown = showRootHints(mockedCodemirror, showHintsFor);
+      const list = shown ? mockedCodemirror.showHint.mock.calls[0][0].hint().list : null;
+
+      return { shown, list };
+    };
+
+    it('offers the globals of the requested groups', () => {
+      expect(rootHintsFor(['req', 'bru']).list).toEqual(['bru', 'req']);
+    });
+
+    // The gRPC groups are keyed by hook, but every entry hangs off `bru` — the root list must
+    // report the global, never the group key.
+    it('offers bru for the gRPC hook groups', () => {
+      expect(rootHintsFor(['bru', 'grpc:after-message-receive']).list).toEqual(['bru']);
+    });
+
+    it('shows nothing when no group is requested', () => {
+      expect(rootHintsFor(['variables']).shown).toBe(false);
+    });
+  });
+
+  describe('WORD_PATTERN', () => {
+    it('matches token characters (word chars, . $ / -) and nothing else', () => {
+      const matching = [...'abcXYZ0189_', '.', '$', '/', '-'];
+      const nonMatching = [...'()%&\'*+,', ' ', '\t', '{', '}', '[', ']', '=', '@', '#', '!'];
+
+      matching.forEach((ch) => expect(WORD_PATTERN.test(ch)).toBe(true));
+      nonMatching.forEach((ch) => expect(WORD_PATTERN.test(ch)).toBe(false));
+    });
+  });
+
+  describe('extractNextSegmentSuggestions', () => {
+    describe('prefix matching', () => {
+      it('should extract the current segment for a partial prefix match', () => {
+        const hints = ['req.getUrl()', 'req.getMethod()', 'req.setUrl(url)'];
+        const result = extractNextSegmentSuggestions(hints, 'req.get');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()']);
+      });
+
+      it('should return the next segment after a trailing dot', () => {
+        const hints = ['bru.cookies.jar()', 'bru.runner.skipRequest()'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies', 'runner']);
+      });
+
+      it('should return the last segment on exact match', () => {
+        const hints = ['req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'req.url');
+
+        expect(result).toEqual(['url']);
+      });
+
+      it('should deduplicate segments from multiple hints', () => {
+        const hints = ['bru.cookies.jar().getCookie(url, name, callback)', 'bru.cookies.jar().getCookies(url, callback)'];
+        const result = extractNextSegmentSuggestions(hints, 'bru.');
+
+        expect(result).toEqual(['cookies']);
+      });
+
+      it('should extract top-level segment when input has no dots', () => {
+        const hints = ['req.url', 'req.getUrl()', 'res.url'];
+        const result = extractNextSegmentSuggestions(hints, 'r');
+
+        expect(result).toEqual(['req', 'res']);
+      });
+    });
+
+    describe('substring matching', () => {
+      it('should return full hints for substring-only matches', () => {
+        const hints = ['base_url', 'api_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is a prefix match (segment), base_url and api_url are substring matches (full hints)
+        expect(result).toEqual(['url_prefix', 'api_url', 'base_url']);
+      });
+
+      it('should return full hints for dotted substring matches', () => {
+        const hints = ['req.getUrl()', 'req.setUrl(url)', 'req.url'];
+        const result = extractNextSegmentSuggestions(hints, 'Url');
+
+        expect(result).toEqual(['req.getUrl()', 'req.setUrl(url)', 'req.url']);
+      });
+
+      it('should not include hints that do not contain the input', () => {
+        const hints = ['base_url', 'api_key', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        expect(result).not.toContain('api_key');
+      });
+    });
+
+    describe('ordering', () => {
+      it('should return prefix matches before substring matches', () => {
+        const hints = ['base_url', 'url_prefix'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // url_prefix is prefix → segment "url_prefix"; base_url is substring → full hint
+        expect(result).toEqual(['url_prefix', 'base_url']);
+      });
+
+      it('should sort prefix matches alphabetically among themselves', () => {
+        const hints = ['req.setUrl(url)', 'req.getUrl()', 'req.getMethod()'];
+        const result = extractNextSegmentSuggestions(hints, 'req.');
+
+        expect(result).toEqual(['getMethod()', 'getUrl()', 'setUrl(url)']);
+      });
+
+      it('should sort substring matches alphabetically among themselves', () => {
+        const hints = ['z_url', 'a_url'];
+        const result = extractNextSegmentSuggestions(hints, 'url');
+
+        // Both are substring-only matches
+        expect(result).toEqual(['a_url', 'z_url']);
+      });
+    });
+
+    describe('case insensitivity', () => {
+      it('should match prefix regardless of case', () => {
+        const hints = ['Content-Type', 'Content-Length'];
+        const result = extractNextSegmentSuggestions(hints, 'content');
+
+        expect(result).toEqual(['Content-Length', 'Content-Type']);
+      });
+
+      it('should match substring regardless of case', () => {
+        const hints = ['X-Custom-Type', 'Accept'];
+        const result = extractNextSegmentSuggestions(hints, 'type');
+
+        expect(result).toEqual(['X-Custom-Type']);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should return an empty array when no hints match', () => {
+        const hints = ['foo', 'bar', 'baz'];
+        const result = extractNextSegmentSuggestions(hints, 'xyz');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should return an empty array for empty hints list', () => {
+        const result = extractNextSegmentSuggestions([], 'url');
+
+        expect(result).toEqual([]);
+      });
+
+      it('should handle single-character input', () => {
+        const hints = ['apple', 'banana', 'avocado'];
+        const result = extractNextSegmentSuggestions(hints, 'a');
+
+        // apple and avocado are prefix matches, banana contains 'a' as substring
+        expect(result).toEqual(['apple', 'avocado', 'banana']);
       });
     });
   });

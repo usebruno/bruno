@@ -218,7 +218,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
               isOn={isRawMode}
               size="2xs"
               handleToggle={(e) => {
-                setIsRawMode(e.target.checked);
+                setIsRawMode(!isRawMode);
               }}
             />
             <label className="font-normal mr-4 normal-case">Edit Raw</label>

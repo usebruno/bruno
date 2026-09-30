@@ -16,8 +16,8 @@ test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
     await page.setInputFiles('input[type="file"]', insomniaFile);
 
     // Check for error message - this should fail during JSON parsing
-    const hasError = await page.getByText('Failed to parse the file').first().isVisible();
-    expect(hasError).toBe(true);
+    // Use auto-retrying assertion instead of snapshot isVisible() check
+    await expect(page.getByText('Failed to parse the file').first()).toBeVisible();
 
     // Cleanup: close any open modals
     await page.getByTestId('modal-close-button').click();

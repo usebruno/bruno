@@ -50,6 +50,18 @@ describe('Bruno to Postman Response Translation', () => {
     expect(translatedCode).toBe('console.log("Headers:", pm.response.headers);');
   });
 
+  it('should translate res.getUrl() to pm.response.url (function to property)', () => {
+    const code = 'const url = res.getUrl();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const url = pm.response.url;');
+  });
+
+  it('should translate res.url to pm.response.url (property to property)', () => {
+    const code = 'const url = res.url;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const url = pm.response.url;');
+  });
+
   it('should translate res.getHeader()', () => {
     const code = 'const contentType = res.getHeader("Content-Type");';
     const translatedCode = translateBruToPostman(code);
@@ -108,10 +120,12 @@ const [first, second] = items;
 bru.setEnvVar("userId", id);
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const { id, name, items } = pm.response.json();');
-    expect(translatedCode).toContain('const [first, second] = items;');
-    expect(translatedCode).toContain('pm.environment.set("userId", id);');
+    const expected = `
+const { id, name, items } = pm.response.json();
+const [first, second] = items;
+pm.environment.set("userId", id);
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response JSON with optional chaining', () => {
@@ -120,9 +134,11 @@ const userId = res.getBody()?.user?.id ?? "anonymous";
 const items = res.getBody()?.data?.items || [];
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const userId = pm.response.json()?.user?.id ?? "anonymous";');
-    expect(translatedCode).toContain('const items = pm.response.json()?.data?.items || [];');
+    const expected = `
+const userId = pm.response.json()?.user?.id ?? "anonymous";
+const items = pm.response.json()?.data?.items || [];
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response in complex conditionals', () => {
@@ -144,13 +160,24 @@ if (res.getStatus() >= 200 && res.getStatus() < 300) {
 }
 `;
     const translatedCode = translateBruToPostman(code);
+    const expected = `
+if (pm.response.code >= 200 && pm.response.code < 300) {
+    if (pm.response.headers.get('Content-Type').includes('application/json')) {
+        const data = pm.response.json();
 
-    expect(translatedCode).toContain('if (pm.response.code >= 200 && pm.response.code < 300) {');
-    expect(translatedCode).toContain('if (pm.response.headers.get(\'Content-Type\').includes(\'application/json\')) {');
-    expect(translatedCode).toContain('const data = pm.response.json();');
-    expect(translatedCode).toContain('pm.environment.set("authToken", data.token);');
-    expect(translatedCode).toContain('} else if (pm.response.code === 404) {');
-    expect(translatedCode).toContain('console.error("Request failed with status:", pm.response.code);');
+        if (data.success === true && data.token) {
+            pm.environment.set("authToken", data.token);
+        } else if (data.error) {
+            console.error("API error:", data.error);
+        }
+    }
+} else if (pm.response.code === 404) {
+    console.log("Resource not found");
+} else {
+    console.error("Request failed with status:", pm.response.code);
+}
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle all response property methods together', () => {
@@ -162,11 +189,14 @@ const statusText = res.statusText;
 const responseTime = res.getResponseTime();
 `;
     const translatedCode = translateBruToPostman(code);
-
-    expect(translatedCode).toContain('const statusCode = pm.response.code;');
-    expect(translatedCode).toContain('const responseBody = pm.response.json();');
-    expect(translatedCode).toContain('const statusText = pm.response.status;');
-    expect(translatedCode).toContain('const responseTime = pm.response.responseTime;');
+    const expected = `
+// All response property methods
+const statusCode = pm.response.code;
+const responseBody = pm.response.json();
+const statusText = pm.response.status;
+const responseTime = pm.response.responseTime;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
   });
 
   it('should handle response processing in arrow functions', () => {
@@ -180,10 +210,115 @@ const itemIds = processItems();
 bru.setEnvVar("itemIds", JSON.stringify(itemIds));
 `;
     const translatedCode = translateBruToPostman(code);
+    const expected = `
+const processItems = () => {
+    const items = pm.response.json().items;
+    return items.map(item => item.id);
+};
 
-    expect(translatedCode).toContain('const items = pm.response.json().items;');
-    expect(translatedCode).toContain('return items.map(item => item.id);');
-    expect(translatedCode).toContain('const itemIds = processItems();');
-    expect(translatedCode).toContain('pm.environment.set("itemIds", JSON.stringify(itemIds));');
+const itemIds = processItems();
+pm.environment.set("itemIds", JSON.stringify(itemIds));
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
+  });
+
+  it('should translate res.responseTime property to pm.response.responseTime', () => {
+    const code = 'const time = res.responseTime;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const time = pm.response.responseTime;');
+  });
+
+  it('should translate res.headers property to pm.response.headers', () => {
+    const code = 'const headers = res.headers;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const headers = pm.response.headers;');
+  });
+
+  it('should handle res.responseTime in conditionals', () => {
+    const code = 'if (res.responseTime > 1000) { console.log("Slow response"); }';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('if (pm.response.responseTime > 1000) { console.log("Slow response"); }');
+  });
+
+  it('should handle res.headers property access', () => {
+    const code = 'const contentType = res.headers["Content-Type"];';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const contentType = pm.response.headers["Content-Type"];');
+  });
+
+  it('should handle both res.responseTime property and res.getResponseTime() method', () => {
+    const code = `
+const time1 = res.responseTime;
+const time2 = res.getResponseTime();
+`;
+    const translatedCode = translateBruToPostman(code);
+    const expected = `
+const time1 = pm.response.responseTime;
+const time2 = pm.response.responseTime;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
+  });
+
+  it('should handle both res.headers property and res.getHeaders() method', () => {
+    const code = `
+const headers1 = res.headers;
+const headers2 = res.getHeaders();
+`;
+    const translatedCode = translateBruToPostman(code);
+    const expected = `
+const headers1 = pm.response.headers;
+const headers2 = pm.response.headers;
+`;
+    expect(translatedCode.trim()).toBe(expected.trim());
+  });
+
+  // --- res.headerList.* → pm.response.headers.* ------
+
+  it('should translate res.headerList.get to pm.response.headers.get', () => {
+    const code = 'const ct = res.headerList.get("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const ct = pm.response.headers.get("content-type");');
+  });
+
+  it('should translate res.headerList.has to pm.response.headers.has', () => {
+    const code = 'const hasCt = res.headerList.has("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hasCt = pm.response.headers.has("content-type");');
+  });
+
+  it('should translate res.headerList.all to pm.response.headers.all', () => {
+    const code = 'const allHeaders = res.headerList.all();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const allHeaders = pm.response.headers.all();');
+  });
+
+  it('should translate res.headerList.filter to pm.response.headers.filter', () => {
+    const code = 'const custom = res.headerList.filter(h => h.key.startsWith("x-"));';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const custom = pm.response.headers.filter(h => h.key.startsWith("x-"));');
+  });
+
+  it('should translate res.headerList.one to pm.response.headers.one', () => {
+    const code = 'const first = res.headerList.one("content-type");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const first = pm.response.headers.one("content-type");');
+  });
+
+  it('should translate res.headerList.find to pm.response.headers.find', () => {
+    const code = 'const found = res.headerList.find(h => h.key === "x-request-id");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const found = pm.response.headers.find(h => h.key === "x-request-id");');
+  });
+
+  it('should translate res.headerList.toObject to pm.response.headers.toObject', () => {
+    const code = 'const obj = res.headerList.toObject();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const obj = pm.response.headers.toObject();');
+  });
+
+  it('should translate standalone res.headerList to pm.response.headers', () => {
+    const code = 'const hl = res.headerList;';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const hl = pm.response.headers;');
   });
 });
