@@ -277,6 +277,22 @@ describe('openApiSpec workspace entry', () => {
     await openApiSpec(win, watcher, missing, { workspacePath });
 
     expect(readSpecs()).toEqual([]);
-    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', expect.anything());
+    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', expect.objectContaining({
+      message: `API spec file not found: ${missing}`
+    }));
+  });
+
+  test('keeps watching a listed spec whose file is missing, without an error', async () => {
+    const missing = path.join(tmpDir, 'a', 'gone.yaml');
+    fs.writeFileSync(
+      path.join(workspacePath, 'workspace.yml'),
+      ['opencollection: 1.0.0', 'info:', '  name: Test', '  type: workspace', 'collections: []', 'specs:', '  - name: gone', '    path: ../a/gone.yaml', 'docs: \'\''].join('\n')
+    );
+
+    await openApiSpec(win, watcher, missing, { workspacePath });
+
+    expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+    expect(ipcMain.emit).toHaveBeenCalledWith('main:apispec-opened', win, missing, expect.any(String), workspacePath);
+    expect(readSpecs()).toEqual([{ name: 'gone', path: '../a/gone.yaml' }]);
   });
 });

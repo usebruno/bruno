@@ -110,7 +110,7 @@ describe('api spec ipc handlers', () => {
     test('still removes the workspace entry when the file is already gone', async () => {
       fs.rmSync(specPath);
 
-      await expect(invoke(specPath, workspacePath)).resolves.toBeUndefined();
+      await expect(invoke(specPath, workspacePath)).resolves.toEqual({ workspaceUpdated: true });
 
       expect(readSpecs(workspacePath)).toEqual([]);
     });
@@ -208,15 +208,18 @@ describe('api spec ipc handlers', () => {
         rm.mockRestore();
       });
 
-      test('keeps the entry when its removal fails after the file is gone, and a retry completes the delete', async () => {
+      test('reports a failed workspace.yml update without failing once the file is gone, and a retry tidies the entry', async () => {
         removeApiSpecFromWorkspace.mockRejectedValueOnce(new Error('workspace.yml is read-only'));
+        jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        await expect(invoke(specPath, workspacePath)).rejects.toThrow('workspace.yml is read-only');
+        await expect(invoke(specPath, workspacePath)).resolves.toEqual({ workspaceUpdated: false });
 
         expect(fs.existsSync(specPath)).toBe(false);
+        expect(watcher.removeWatcher).toHaveBeenCalledWith(specPath, mainWindow);
         expect(readSpecs(workspacePath).map((spec) => spec.path)).toEqual(['a/first.yaml', 'a/openapi.yaml', 'a/last.yaml']);
+        console.error.mockRestore();
 
-        await invoke(specPath, workspacePath);
+        await expect(invoke(specPath, workspacePath)).resolves.toEqual({ workspaceUpdated: true });
 
         expect(readSpecs(workspacePath).map((spec) => spec.path)).toEqual(['a/first.yaml', 'a/last.yaml']);
       });

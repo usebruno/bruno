@@ -253,7 +253,10 @@ const removeApiSpecOverIpc = (channel) => ({ uid }) => (dispatch, getState) => {
 
   return ipcRenderer
     .invoke(channel, apiSpec.pathname, activeWorkspace?.pathname || null)
-    .then(() => dispatch(finalizeApiSpecRemoval(apiSpec, activeWorkspace)));
+    .then(async (result) => {
+      await dispatch(finalizeApiSpecRemoval(apiSpec, activeWorkspace));
+      return result;
+    });
 };
 
 export const removeApiSpecFromWorkspace = removeApiSpecOverIpc('renderer:remove-api-spec');

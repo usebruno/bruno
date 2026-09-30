@@ -123,8 +123,7 @@ test.describe('API spec row context menu', () => {
       await test.step('Menu items appear in the designed order with the divider before Remove', async () => {
         await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
         await expect(menu.menuItems()).toHaveCount(5);
-        expect(await menu.menuItemIds()).toEqual(['generate-collection', 'generate-mock-server', 'reveal', 'remove', 'delete']);
-        await expect(menu.menuDivider()).toHaveCount(1);
+        expect(await menu.menuEntries()).toEqual(['generate-collection', 'generate-mock-server', 'reveal', 'divider', 'remove', 'delete']);
         await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
         await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
         await expect(menu.menuItem('delete')).toHaveClass(/delete-item/);

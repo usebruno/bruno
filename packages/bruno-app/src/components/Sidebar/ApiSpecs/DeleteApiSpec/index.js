@@ -20,8 +20,12 @@ const DeleteApiSpec = ({ onClose, apiSpec }) => {
 
   const onConfirm = () =>
     dispatch(deleteApiSpec({ uid: apiSpec.uid }))
-      .then(() => {
-        toast.success('API Spec deleted');
+      .then((result) => {
+        if (result?.workspaceUpdated === false) {
+          toast('API Spec deleted, but workspace.yml could not be updated', { icon: '⚠️' });
+        } else {
+          toast.success('API Spec deleted');
+        }
         onClose();
       })
       .catch((err) => toast.error(formatIpcError(err) || 'An error occurred while deleting the API Spec'));

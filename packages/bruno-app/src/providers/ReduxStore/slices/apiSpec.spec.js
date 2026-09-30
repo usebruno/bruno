@@ -562,6 +562,18 @@ describe('removing or deleting an API spec from its row', () => {
       expect(dispatch).toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
     });
 
+    it('still closes the tab and drops the spec when the main process reports a partial result, and hands the result back', async () => {
+      window.ipcRenderer.invoke.mockResolvedValue({ workspaceUpdated: false });
+      const getState = () => stateWithWorkspace([spec('a')], [specTab('a')]);
+      const dispatch = runThunks(getState);
+
+      const result = await thunk({ uid: 'a' })(dispatch, getState);
+
+      expect(result).toEqual({ workspaceUpdated: false });
+      expect(dispatch).toHaveBeenCalledWith(closeTabs({ tabUids: [specTab('a').uid], reopenable: false }));
+      expect(dispatch).toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
+    });
+
     it('changes nothing in state when IPC fails', async () => {
       window.ipcRenderer.invoke.mockRejectedValue(new Error('EACCES'));
       const getState = () => stateWithWorkspace([spec('a')], [specTab('a')]);
