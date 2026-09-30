@@ -126,6 +126,32 @@ describe('encodeUrl', () => {
       const expected = 'https://user:pass@example.com:8080/path%20with%20space';
       expect(encodeUrl(url)).toBe(expected);
     });
+
+    // Issue #9030: `$` is a legal path byte (RFC 3986 §3.3 sub-delim) with no
+    // structural role in URI parsing — the same class as `!~*'()`, which
+    // encodeURIComponent already preserves — yet it went out as %24 and broke
+    // `$`-operation APIs (HL7 FHIR, OData). Keep it as typed.
+    it('should keep $ in path segments as typed (issue #9030)', () => {
+      const url = 'https://example.com/api/$create-identity';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should keep FHIR-style $ operations in the path untouched', () => {
+      const url = 'https://fhir.example.com/fhir/Patient/$everything';
+      expect(encodeUrl(url)).toBe(url);
+    });
+
+    it('should still encode structurally reserved path bytes (: @ & = ; + ,)', () => {
+      const url = 'https://example.com/a:b/c@d/e&f/g=h/i;j/k+l/m,n';
+      const expected = 'https://example.com/a%3Ab/c%40d/e%26f/g%3Dh/i%3Bj/k%2Bl/m%2Cn';
+      expect(encodeUrl(url)).toBe(expected);
+    });
+
+    it('collapses a pre-encoded %24 in the path to its raw form (path-side idempotency)', () => {
+      const url = 'https://example.com/api/%24create-identity';
+      const expected = 'https://example.com/api/$create-identity';
+      expect(encodeUrl(url)).toBe(expected);
+    });
   });
 
   describe('hash (#) treated as data, not RFC 3986 §3.5 fragment delimiter', () => {
