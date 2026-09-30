@@ -66,7 +66,6 @@ class FileIndex {
 
     for (const [relativePath, row] of metadata) {
       if (seen.has(relativePath)) continue;
-      if (isDenied(posixifyPath(relativePath), denylist)) continue;
       removed.push({ relativePath, id: row.id, hash: row.hash });
     }
 
@@ -77,12 +76,14 @@ class FileIndex {
     this.#statements.execute('file_index_clear_collection', { collection_path: collectionPath });
   }
 
-  entries(collectionPath) {
+  entries(collectionPath, options = {}) {
+    const denylist = resolveDenylist(options.denylist);
     const rows = this.#statements.execute('file_index_content_for_collection', {
       collection_path: collectionPath
     });
     const map = new Map();
     for (const row of rows) {
+      if (isDenied(posixifyPath(row.relativePath), denylist)) continue;
       map.set(row.relativePath, { data: JSON.parse(row.data), raw: row.raw });
     }
     return map;
