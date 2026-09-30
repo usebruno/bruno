@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkActiveWorkspaceCollectionsForUpdates } from 'providers/ReduxStore/slices/openapi-sync';
-import { normalizePath } from 'utils/common/path';
+import { isCollectionInWorkspace } from 'utils/workspaces';
 
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -17,9 +17,7 @@ const useOpenAPISyncPolling = () => {
   // Filter to only active workspace collections
   const activeWorkspaceCollections = useMemo(() => {
     if (!activeWorkspace) return [];
-    return collections.filter((c) =>
-      activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname))
-    );
+    return collections.filter((c) => isCollectionInWorkspace(activeWorkspace, c));
   }, [activeWorkspace, collections]);
 
   // Derive a stable boolean so polling doesn't restart on every collection mutation

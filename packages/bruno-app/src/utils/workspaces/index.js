@@ -1,3 +1,5 @@
+import { normalizePath } from 'utils/common/path';
+
 // Utility functions for workspace pinning and reordering
 
 export const sortWorkspaces = (workspaces, preferences) => {
@@ -117,3 +119,6 @@ export const reorderWorkspaces = (draggedUid, targetUid, dropPosition, preferenc
     };
   }
 };
+
+export const isCollectionInWorkspace = (workspace, collection) =>
+  (workspace?.collections || []).some((entry) => normalizePath(entry.path) === normalizePath(collection.pathname));
