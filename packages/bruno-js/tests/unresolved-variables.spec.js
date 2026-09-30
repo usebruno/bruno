@@ -14,7 +14,7 @@ const createBru = (unresolvedVariables) => new Bru({
   requestVariables: {},
   globalEnvironmentVariables: {},
   oauth2CredentialVariables: {},
-  processEnvVars: { SET: 'yes' },
+  processEnvVars: { EMPTY: '' },
   unresolvedVariables
 });
 
@@ -65,10 +65,9 @@ describe('unresolved variables', () => {
       const unresolvedVariables = new Set();
       const bru = createBru(unresolvedVariables);
 
-      bru.getEnvVar('present');
       bru.getEnvVar('falsy');
       bru.getVar('zero');
-      bru.getProcessEnv('SET');
+      bru.getProcessEnv('EMPTY');
 
       expect(unresolvedVariables.size).toBe(0);
     });
