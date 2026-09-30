@@ -53,13 +53,12 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
-import useKeybindings, { createKeybinding, Key, Modifier, getKeybindingTooltip } from 'hooks/useKeybindings';
-import usePlatform from 'hooks/usePlatform';
 
 const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
@@ -80,7 +79,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
 
-  const platform = usePlatform();
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
@@ -242,6 +240,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       });
   };
 
+  const getKeybindingDisplayText = useKeybindingDisplayText();
+
   // Sidebar shortcuts — only active when this collection has keyboard focus
   useKeybinding('cloneItem', () => {
     setShowCloneCollectionModalOpen(true);
@@ -259,6 +259,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
   useKeybinding('newRequest', () => {
+    ensureCollectionIsMounted();
     setShowNewRequestModal(true);
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
@@ -385,9 +386,9 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const menuItems = [
     {
       id: 'new-request',
-      keyBinding: Key.N,
       leftSection: IconFilePlus,
       label: 'New Request',
+      shortcut: getKeybindingDisplayText('newRequest'),
       onClick: () => {
         ensureCollectionIsMounted();
         setShowNewRequestModal(true);
@@ -395,8 +396,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'new-folder',
-      keyBinding: Key.N,
-      modifiers: [Modifier.Shift],
       leftSection: IconFolderPlus,
       label: 'New Folder',
       onClick: () => {
@@ -417,7 +416,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       id: 'run',
       leftSection: IconPlayerPlay,
       label: 'Run',
-      keyBinding: Key.X,
       onClick: () => {
         ensureCollectionIsMounted();
         handleRun();
@@ -426,10 +424,9 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'clone',
       leftSection: IconCopy,
-      keyBinding: Key.C,
-      modifiers: [Modifier.CmdOrCtrl],
       label: 'Clone',
       testId: 'clone-collection',
+      shortcut: getKeybindingDisplayText('cloneItem'),
       onClick: () => {
         setShowCloneCollectionModalOpen(true);
       }
@@ -444,19 +441,18 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       ? [
           {
             id: 'paste',
-            keyBinding: Key.V,
-            modifiers: [Modifier.CmdOrCtrl],
             leftSection: IconClipboard,
             label: 'Paste',
+            shortcut: getKeybindingDisplayText('pasteItem'),
             onClick: handlePasteItem
           }
         ]
       : []),
     {
       id: 'rename',
-      keyBinding: Key.R,
       leftSection: IconEdit,
       label: 'Rename',
+      shortcut: getKeybindingDisplayText('renameItem'),
       onClick: () => {
         setShowRenameCollectionModal(true);
       }
@@ -472,7 +468,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'generate-docs',
-      keyBinding: Key.D,
       leftSection: IconBook,
       label: 'Generate Docs',
       onClick: () => {
@@ -482,17 +477,14 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     },
     {
       id: 'collapse',
-      keyBinding: Key.H,
       leftSection: IconFoldDown,
       label: 'Collapse',
       onClick: handleCollapseFullCollection
     },
     {
       id: 'show-in-folder',
-      keyBinding: Key.Period,
-      modifiers: [Modifier.CmdOrCtrl],
       leftSection: IconFolder,
-      label: 'Show in Folder',
+      label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
     ...(isMockServerEnabled ? [{
@@ -515,8 +507,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'terminal',
       leftSection: IconTerminal2,
-      keyBinding: Key.T,
       label: 'Open in Terminal',
+      shortcut: getKeybindingDisplayText('openTerminal'),
       onClick: async () => {
         const collectionCwd = collection.pathname;
         await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
@@ -538,30 +530,12 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     {
       id: 'remove',
       leftSection: IconX,
-      keyBinding: [Key.Delete, Key.Backspace],
       label: 'Remove',
       onClick: () => {
         setShowRemoveCollectionModal(true);
       }
     }
   ];
-
-  const collectionKeybindings = useKeybindings(
-    Object.entries(menuItems).reduce((acc, [_, item]) => {
-      const keyBindings = Array.isArray(item.keyBinding) ? item.keyBinding : [item.keyBinding];
-      if (item.keyBinding) {
-        keyBindings.forEach((keyBinding) => {
-          acc[keyBinding] = createKeybinding({
-            actionFn: item.onClick,
-            modifiers: item.modifiers || [],
-            alias: item.id,
-            description: item.label
-          });
-        });
-      }
-      return acc;
-    }, {}),
-    { preventDefault: true, stopPropagation: true });
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -602,7 +576,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         className={collectionRowClassName}
         ref={collectionRef}
         tabIndex={0}
-        onKeyDown={collectionKeybindings.handleKeyPress}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onMouseDown={isDragDisabled ? startBlockedDragTracking : undefined}

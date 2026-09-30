@@ -1,7 +1,8 @@
 import React, { forwardRef, useRef, useCallback, useState, useImperativeHandle, useEffect, useMemo } from 'react';
+import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import SubMenuItem from './SubMenuItem';
-import KeyBindText from 'components/Keybindings/KeyBindText';
+import StyledWrapper from './StyledWrapper';
 
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
@@ -27,6 +28,8 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  *   - leftSection: React component or React element (rendered on the left side, for items only)
  *   - rightSection: React component or React element (rendered on the right side, for items only)
  *   - label: string (display text for items, or label text for labels; also used for aria-label and title if not provided)
+ *   - shortcut: string (optional, display-only shortcut hint after the label, for items only;
+ *     the owner binds it and must keep the binding active while the menu is open)
  *   - ariaLabel: string (accessibility label, falls back to label or title if not provided)
  *   - onClick: function (handler when item is clicked, for items only)
  *   - title: string (tooltip text, falls back to label or ariaLabel if not provided)
@@ -158,6 +161,7 @@ const MenuDropdown = forwardRef(({
             className: option.className,
             leftSection: option.leftSection,
             rightSection: option.rightSection,
+            shortcut: option.shortcut,
             ariaLabel: option.ariaLabel,
             title: option.title,
             submenu: option.submenu,
@@ -200,6 +204,8 @@ const MenuDropdown = forwardRef(({
       return item;
     });
   }, [normalizedItems, showTickMark, selectedItemId]);
+
+  const hasShortcuts = enhancedItems.some((item) => item.shortcut);
 
   // Clear focused class from all items
   const clearFocusedClass = (menuContainer) => {
@@ -264,7 +270,15 @@ const MenuDropdown = forwardRef(({
       e.stopPropagation();
       const nextIndex = getNextIndex(currentIndex, itemsToNavigate.length, e.key, isNoMenuItemFocused);
       focusMenuItem(itemsToNavigate[nextIndex], true);
+      return;
     }
+
+    // Shortcut handlers (Mousetrap, on document) run after this one, so check once the event has
+    // propagated: a handled shortcut prevents the default, and the menu closes.
+    const { nativeEvent } = e;
+    setTimeout(() => {
+      if (nativeEvent.defaultPrevented) updateOpenState(false);
+    });
   }, [getMenuItems, enhancedItems, handleItemClick, updateOpenState]);
 
   // Toggle dropdown visibility
@@ -386,13 +400,12 @@ const MenuDropdown = forwardRef(({
   const renderMenuItemContent = (item, rightContent = null) => (
     <>
       {renderSection(item.leftSection)}
-      <span className="dropdown-label">
-        {item.keyBinding ? (
-          <KeyBindText keybinding={item.keyBinding} keybindingConfig={{ description: item.label, modifiers: item.modifiers }} />
-        ) : (
-          item.label
-        )}
-      </span>
+      <span className="dropdown-label">{item.label}</span>
+      {item.shortcut ? (
+        <kbd className="dropdown-shortcut" data-testid={`${testId}-${String(item.id).toLowerCase()}-shortcut`}>
+          {item.shortcut}
+        </kbd>
+      ) : null}
       {rightContent}
     </>
   );
@@ -500,14 +513,19 @@ const MenuDropdown = forwardRef(({
       onClickOutside={handleClickOutside}
       {...dropdownProps}
     >
-      <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
+      <StyledWrapper {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (
           <div className="dropdown-header-container">
             {header}
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} className={menuClassName}>
+        <div
+          role="menu"
+          tabIndex={-1}
+          onKeyDown={handleMenuKeyDown}
+          className={classnames(menuClassName, { 'has-shortcuts': hasShortcuts })}
+        >
           {renderMenuContent()}
         </div>
         {footer && (
@@ -518,7 +536,7 @@ const MenuDropdown = forwardRef(({
             </div>
           </>
         )}
-      </div>
+      </StyledWrapper>
     </Dropdown>
   );
 });
