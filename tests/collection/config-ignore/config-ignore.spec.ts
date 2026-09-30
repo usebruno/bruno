@@ -179,4 +179,125 @@ get {
       await closeElectronApp(electronApp);
     }
   });
+
+  test('Should hide folders ignored after they were already cached', async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    const userDataPath = await createTmpDir('config-ignore-sticky-cache-userdata');
+    const collectionDir = await createTmpDir('config-ignore-sticky-cache-collection');
+    const collectionName = 'Config Ignore Sticky Cache Test';
+    const brunoConfigPath = path.join(collectionDir, 'bruno.json');
+
+    fs.writeFileSync(
+      path.join(userDataPath, 'preferences.json'),
+      JSON.stringify({
+        preferences: {
+          onboarding: {
+            hasLaunchedBefore: true,
+            hasSeenWelcomeModal: true
+          },
+          cache: {
+            file: {
+              enabled: true
+            }
+          }
+        }
+      })
+    );
+
+    fs.writeFileSync(
+      brunoConfigPath,
+      JSON.stringify(
+        {
+          version: '1',
+          name: collectionName,
+          type: 'collection'
+        },
+        null,
+        2
+      )
+    );
+    fs.mkdirSync(path.join(collectionDir, 'hidden'));
+    fs.writeFileSync(
+      path.join(collectionDir, 'hidden', 'folder.bru'),
+      `meta {
+  name: hidden
+  seq: 1
+}
+`
+    );
+    fs.writeFileSync(
+      path.join(collectionDir, 'hidden', 'hidden-request.bru'),
+      `meta {
+  name: Hidden Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/hidden
+  body: none
+  auth: none
+}
+`
+    );
+    fs.writeFileSync(
+      path.join(collectionDir, 'visible-request.bru'),
+      `meta {
+  name: Visible Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/visible
+  body: none
+  auth: none
+}
+`
+    );
+
+    const electronApp = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(electronApp);
+    const locators = buildCommonLocators(page);
+
+    try {
+      await test.step('Open once so the ignored folder is written into the file cache', async () => {
+        await openCollectionFromDialog(page, electronApp, collectionDir);
+        await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 30000 });
+        await openCollection(page, collectionName);
+        await expect(locators.sidebar.request('Visible Request')).toBeVisible({ timeout: 10000 });
+        await expect(locators.sidebar.folder('hidden')).toBeVisible();
+        await expect(locators.sidebar.request('Hidden Request')).toBeVisible();
+      });
+
+      await test.step('Add ignore and remount against the warm cache', async () => {
+        await removeCollection(page, collectionName);
+        fs.writeFileSync(
+          brunoConfigPath,
+          JSON.stringify(
+            {
+              version: '1',
+              name: collectionName,
+              type: 'collection',
+              ignore: ['hidden']
+            },
+            null,
+            2
+          )
+        );
+
+        await openCollectionFromDialog(page, electronApp, collectionDir);
+        await expect(locators.sidebar.collection(collectionName)).toBeVisible({ timeout: 30000 });
+        await openCollection(page, collectionName);
+
+        await expect(locators.sidebar.request('Visible Request')).toBeVisible({ timeout: 10000 });
+        await expect(locators.sidebar.folder('hidden')).not.toBeVisible();
+        await expect(locators.sidebar.request('Hidden Request')).not.toBeVisible();
+      });
+    } finally {
+      await closeElectronApp(electronApp);
+    }
+  });
 });
