@@ -50,6 +50,7 @@ const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const registerContextMenu = require('./ipc/context-menu');
 const { registerSqliteIpc } = require('./ipc/sqlite');
 const { registerWsdlIpc } = require('./ipc/wsdl');
 const collectionWatcher = require('./app/collection-watcher');
@@ -534,6 +535,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  registerContextMenu(mainWindow);
   registerSqliteIpc(mainWindow);
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
