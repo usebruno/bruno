@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openCollection, openCollectionFromDialog, removeCollection } from '../../utils/page';
+import { closeAllCollections, expandFolder, openCollection, openCollectionFromDialog, removeCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const ymlRequest = (name: string) => `info:
@@ -269,6 +269,7 @@ get {
         await openCollection(page, collectionName);
         await expect(locators.sidebar.request('Visible Request')).toBeVisible({ timeout: 10000 });
         await expect(locators.sidebar.folder('hidden')).toBeVisible();
+        await expandFolder(page, 'hidden');
         await expect(locators.sidebar.request('Hidden Request')).toBeVisible();
       });
 
