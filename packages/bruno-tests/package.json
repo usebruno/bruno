@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/grpc-js": "^1.14.5",
     "@grpc/proto-loader": "^0.7.15",
     "@grpc/reflection": "^1.0.4",
     "axios": "1.18.0",
