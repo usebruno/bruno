@@ -34,4 +34,52 @@ describe('mount denylist', () => {
     expect(isDenied('visible.bru', resolveDenylist(['*/']))).toBe(false);
     expect(isDenied('dir/file.bru', resolveDenylist(['*/']))).toBe(false);
   });
+
+  test('skips empty and slash-only plain patterns', () => {
+    const denylist = resolveDenylist(['', '/', '//', 'hidden']);
+
+    expect(isDenied('hidden/request.bru', denylist)).toBe(true);
+    expect(isDenied('visible.bru', denylist)).toBe(false);
+  });
+
+  test('walk prunes plain ignored directories without descending', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { walk } = require('./mount');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-walk-deny-'));
+
+    try {
+      fs.mkdirSync(path.join(root, 'hidden'));
+      fs.writeFileSync(path.join(root, 'hidden', 'request.bru'), 'hidden');
+      fs.writeFileSync(path.join(root, 'visible.bru'), 'visible');
+
+      const files = walk(root, resolveDenylist(['hidden'])).map((f) => f.relativePath);
+      expect(files).toEqual(['visible.bru']);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('walk still lists files under a directory that only matches a non-cascading glob', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { walk } = require('./mount');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-walk-glob-'));
+
+    try {
+      fs.mkdirSync(path.join(root, 'nested', 'hidden'), { recursive: true });
+      fs.writeFileSync(path.join(root, 'nested', 'hidden', 'request.bru'), 'nested-hidden');
+      fs.writeFileSync(path.join(root, 'visible.bru'), 'visible');
+
+      const files = walk(root, resolveDenylist(['**/hidden'])).map((f) => f.relativePath).sort();
+      expect(files).toEqual([
+        path.join('nested', 'hidden', 'request.bru'),
+        'visible.bru'
+      ].sort());
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
