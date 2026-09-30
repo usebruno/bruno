@@ -142,4 +142,150 @@ describe('wsdl-to-bruno', () => {
       );
     });
   });
+
+  describe('xsd:any elements', () => {
+    it('counts an xsd:any branch of a choice as an alternative', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:any namespace="##other" processContents="lax"/>
+              <xsd:element name="signerExtension" type="xsd:string"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<!--You have a CHOICE of the next 2 items at this level-->'
+        + '<!--You may enter ANY elements at this point-->'
+        + '<signerExtension>string</signerExtension>'
+      );
+    });
+
+    it('counts an xsd:any that carries no attributes', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:any/>
+              <xsd:element name="signerExtension" type="xsd:string"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<!--You have a CHOICE of the next 2 items at this level-->'
+        + '<!--You may enter ANY elements at this point-->'
+        + '<signerExtension>string</signerExtension>'
+      );
+    });
+
+    it('marks an xsd:any that sits in a sequence rather than a choice', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="timestamp" type="xsd:dateTime"/>
+              <xsd:any namespace="##other" processContents="lax"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<timestamp>2024-01-01T00:00:00Z</timestamp><!--You may enter ANY elements at this point-->'
+      );
+      expect(body).not.toContain('CHOICE');
+    });
+  });
+
+  describe('named model groups', () => {
+    it('expands an xsd:group reference into the elements it declares', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="identity">
+          <xsd:sequence>
+            <xsd:element name="swedishId" type="xsd:string"/>
+            <xsd:element name="name" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:group ref="tns:identity"/>
+              <xsd:element name="signedAt" type="xsd:dateTime"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<swedishId>string</swedishId><name>string</name><signedAt>2024-01-01T00:00:00Z</signedAt>'
+      );
+    });
+
+    it('counts an xsd:group branch of a choice as a single alternative', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="identity">
+          <xsd:sequence>
+            <xsd:element name="swedishId" type="xsd:string"/>
+            <xsd:element name="name" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:group ref="tns:identity"/>
+              <xsd:element name="foreignId" type="xsd:string"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<!--You have a CHOICE of the next 2 items at this level-->'
+        + '<swedishId>string</swedishId><name>string</name><foreignId>string</foreignId>'
+      );
+    });
+
+    it('resolves an unprefixed group reference by name', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="identity">
+          <xsd:sequence>
+            <xsd:element name="swedishId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:group ref="identity"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain('<SignRequest><swedishId>string</swedishId></SignRequest>');
+    });
+
+    it('stops expanding a group that references itself', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="node">
+          <xsd:sequence>
+            <xsd:element name="label" type="xsd:string"/>
+            <xsd:group ref="tns:node"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:group ref="tns:node"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain('<SignRequest><label>string</label></SignRequest>');
+    });
+  });
 });

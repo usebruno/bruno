@@ -120,6 +120,8 @@ class WSDLParser {
     this.bindings = new Map();
     this.services = new Map();
     this.namespaces = new Map();
+    this.modelGroups = new Map();
+    this.expandingModelGroups = new Set();
     this.choiceGroupCount = 0;
   }
 
@@ -179,6 +181,15 @@ class WSDLParser {
    * Parse WSDL types (XSD schemas)
    */
   parseTypes(schemas = []) {
+    for (const { node, prefixMap } of schemas) {
+      const targetNamespace = node.targetNamespace || '';
+
+      const modelGroups = this.getArray(node['xsd:group'] || node.group);
+      for (const modelGroup of modelGroups) {
+        this.modelGroups.set(`${targetNamespace}:${modelGroup.name}`, { node: modelGroup, prefixMap });
+      }
+    }
+
     for (const { node, prefixMap } of schemas) {
       const targetNamespace = node.targetNamespace || '';
 
@@ -335,6 +346,14 @@ class WSDLParser {
         for (const element of this.getArray(value)) {
           this.addElement(element, target, prefixMap, choicePath);
         }
+      } else if (particleName === 'any') {
+        for (let i = 0; i < this.occurrenceCount(value); i++) {
+          this.addAnyElement(target, choicePath);
+        }
+      } else if (particleName === 'group') {
+        for (const groupRef of this.getArray(value)) {
+          this.expandModelGroup(groupRef, target, prefixMap, choicePath);
+        }
       } else if (particleName === 'choice') {
         for (const choice of this.getArray(value)) {
           this.parseChoiceBranches(choice, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
@@ -358,6 +377,14 @@ class WSDLParser {
         for (const element of this.getArray(value)) {
           this.addElement(element, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
         }
+      } else if (particleName === 'any') {
+        for (let i = 0; i < this.occurrenceCount(value); i++) {
+          this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
+        }
+      } else if (particleName === 'group') {
+        for (const groupRef of this.getArray(value)) {
+          this.expandModelGroup(groupRef, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+        }
       } else if (particleName === 'choice') {
         for (const nested of this.getArray(value)) {
           branch = this.parseChoiceBranches(nested, target, prefixMap, choicePath, group, branch);
@@ -377,6 +404,56 @@ class WSDLParser {
       parsedElement.choicePath = choicePath;
     }
     target.elements.push(parsedElement);
+  }
+
+  /**
+   * Expand an xs:group reference in place
+   */
+  expandModelGroup(groupRef, target, prefixMap, choicePath) {
+    if (!groupRef.ref) {
+      return;
+    }
+
+    const { namespace, local } = resolveQName(groupRef.ref, prefixMap);
+    const key = this.findModelGroupKey(local, namespace);
+
+    if (!key || this.expandingModelGroups.has(key)) {
+      return;
+    }
+
+    const modelGroup = this.modelGroups.get(key);
+    this.expandingModelGroups.add(key);
+    this.parseParticles(modelGroup.node, target, modelGroup.prefixMap, choicePath);
+    this.expandingModelGroups.delete(key);
+  }
+
+  /**
+   * Find the key of a named model group
+   */
+  findModelGroupKey(name, namespace) {
+    if (namespace) {
+      const key = `${namespace}:${name}`;
+      return this.modelGroups.has(key) ? key : null;
+    }
+
+    for (const [key, modelGroup] of this.modelGroups) {
+      if (modelGroup.node.name === name) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Record an xs:any as a marker the generator renders as a comment
+   */
+  addAnyElement(target, choicePath) {
+    const anyElement = { anyElement: true };
+    if (choicePath.length > 0) {
+      anyElement.choicePath = choicePath;
+    }
+    target.elements.push(anyElement);
   }
 
   /**
@@ -521,6 +598,13 @@ class WSDLParser {
   getArray(item) {
     if (!item) return [];
     return Array.isArray(item) ? item : [item];
+  }
+
+  /**
+   * Count how many times a particle was declared
+   */
+  occurrenceCount(value) {
+    return Array.isArray(value) ? value.length : 1;
   }
 }
 
@@ -798,7 +882,11 @@ class XMLSampleGenerator {
     let xml = '';
     for (let i = 0; i < elements.length; i++) {
       xml += this.generateChoiceComments(elements, i);
-      xml += this.generateElementSample(elements[i]);
+      if (elements[i].anyElement) {
+        xml += '<!--You may enter ANY elements at this point-->';
+      } else {
+        xml += this.generateElementSample(elements[i]);
+      }
     }
     return xml;
   }
