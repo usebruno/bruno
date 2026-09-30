@@ -107,7 +107,7 @@ test.describe('ntlm over a real connection', () => {
     });
   });
 
-  test('logs only the request that carried the finished message on the timeline', async () => {
+  test('logs every request of the handshake on the timeline', async () => {
     const { timeline } = buildCommonLocators(page);
     const timelineHeaders = buildTimelineHeaderLocators(page);
 
@@ -116,15 +116,39 @@ test.describe('ntlm over a real connection', () => {
       await sendRequest(page, 200);
     });
 
-    await test.step('the timeline shows one hop carrying the NTLM header', async () => {
+    await test.step('the timeline shows all three requests, with the header on the last two', async () => {
       await selectResponsePaneTab(page, 'Timeline');
       await timeline.itemHeader(timeline.items().first()).click();
       await timelineHeaders.networkTab().click();
 
       const hops = await timelineHeaders.requestHops();
 
-      expect(hops.map((hop) => hop.request)).toEqual([`GET ${endpoint.baseUrl}/api`]);
-      expect(hops.map((hop) => hop.headerLines.join('\n'))).toEqual([expect.stringMatching(/authorization: NTLM/i)]);
+      expect(hops.map((hop) => hop.request)).toEqual(Array(3).fill(`GET ${endpoint.baseUrl}/api`));
+      expect(hops.map((hop) => hop.headerLines.join('\n'))).toEqual([
+        expect.not.stringMatching(/authorization/i),
+        expect.stringMatching(/authorization: NTLM/i),
+        expect.stringMatching(/authorization: NTLM/i)
+      ]);
+    });
+  });
+
+  test('logs the handshake of a request the server refuses', async () => {
+    const { timeline } = buildCommonLocators(page);
+    const timelineHeaders = buildTimelineHeaderLocators(page);
+
+    await test.step('send a request with the wrong password', async () => {
+      await openRequest(page, 'ntlm', 'wrong-password');
+      await sendRequest(page, 401);
+    });
+
+    await test.step('the refused handshake is reported as one entry holding all three requests', async () => {
+      await selectResponsePaneTab(page, 'Timeline');
+      await expect(timeline.entries()).toHaveText([/^401/]);
+
+      await timeline.itemHeader(timeline.items().first()).click();
+      await timelineHeaders.networkTab().click();
+
+      expect(await timelineHeaders.requestHops()).toHaveLength(3);
     });
   });
 
