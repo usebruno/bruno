@@ -207,21 +207,18 @@ const VARIABLE_SCOPE_DISPLAY_ORDER = [
   'environment',
   'folder',
   'request',
-  'oauth2',
   'runtime',
-  'process.env'
+  'process.env',
+  'dynamic',
+  'oauth2'
 ];
 
 /**
- * Rank a variable's scope for display grouping, per VARIABLE_SCOPE_DISPLAY_ORDER,
- * UNSCOPED_VARIABLE_RANK, and DYNAMIC_VARIABLE_RANK.
+ * Rank a variable's scope for display grouping, per VARIABLE_SCOPE_DISPLAY_ORDER.
  * @param {string} [scope]
  * @returns {number}
  */
 const getVariableScopeRank = (scope) => {
-  if (scope === 'dynamic') {
-    return VARIABLE_SCOPE_DISPLAY_ORDER.length + 1;
-  }
   const index = VARIABLE_SCOPE_DISPLAY_ORDER.indexOf(scope);
   return index === -1 ? VARIABLE_SCOPE_DISPLAY_ORDER.length : index;
 };
@@ -793,7 +790,7 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
   const hintList = filteredHints.map((hint) => {
     const scope = variableScopes[hint];
     if (!scope && isProcessEnvDrillDownPrefix(hint)) {
-      return { text: hint, displayText: hint, scope: 'process.env', render: renderVariableHint };
+      return { text: `${hint}${closingSuffix}`, displayText: hint, scope: 'process.env', render: renderVariableHint };
     }
     if (!scope || !SCOPE_ICON[scope]) {
       return { text: hint, displayText: hint };

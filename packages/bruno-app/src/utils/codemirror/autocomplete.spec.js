@@ -364,6 +364,22 @@ describe('Bruno Autocomplete', () => {
         expect(processHint.render).toBeTruthy();
       });
 
+      it('completes `{{process` with closing braces when there are none on the line yet', () => {
+        const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 9 });
+        mockedCodemirror.getLine.mockReturnValue('{{process');
+        mockedCodemirror.getRange.mockReturnValue('{{process');
+
+        const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
+          showHintsFor: ['variables']
+        });
+
+        expect(result).toBeTruthy();
+        const processHint = result.list.find((hint) => hint.displayText === 'process');
+        expect(processHint).toBeTruthy();
+        expect(processHint.text).toBe('process}}');
+      });
+
       it('re-forms the `{{` pair, with no closing braces, for an unscoped/intermediate dotted-path segment', () => {
         const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
@@ -987,7 +1003,7 @@ describe('Bruno Autocomplete', () => {
     });
 
     describe('scope-based grouping', () => {
-      it('groups by scope in global -> collection -> environment -> folder -> request -> oauth2 -> runtime -> process.env order, then alphabetically within a scope', () => {
+      it('groups by scope in global -> collection -> environment -> folder -> request -> runtime -> process.env -> dynamic -> oauth2 order, then alphabetically within a scope', () => {
         const hints = [
           'zRequestVar',
           'aRequestVar',
@@ -997,6 +1013,7 @@ describe('Bruno Autocomplete', () => {
           'folderVar',
           'envVar',
           'processEnvVar',
+          'dynamicVar',
           'collectionVar'
         ];
         const variableScopes = {
@@ -1008,6 +1025,7 @@ describe('Bruno Autocomplete', () => {
           folderVar: 'folder',
           envVar: 'environment',
           processEnvVar: 'process.env',
+          dynamicVar: 'dynamic',
           collectionVar: 'collection'
         };
 
@@ -1020,19 +1038,20 @@ describe('Bruno Autocomplete', () => {
           'folderVar',
           'aRequestVar',
           'zRequestVar',
-          'oauthVar',
           'runtimeVar',
-          'processEnvVar'
+          'processEnvVar',
+          'dynamicVar',
+          'oauthVar'
         ]);
       });
 
-      it('sorts an unscoped hint (synthetic drill-down prefix) after every real scope, and `dynamic` last of all', () => {
-        const hints = ['$guid', 'process', 'requestVar'];
-        const variableScopes = { $guid: 'dynamic', requestVar: 'request' };
+      it('sorts an unscoped hint (synthetic drill-down prefix, no recognized scope at all) after every real scope -- including `dynamic` and `oauth2`', () => {
+        const hints = ['$guid', 'process', 'requestVar', 'oauthVar'];
+        const variableScopes = { $guid: 'dynamic', requestVar: 'request', oauthVar: 'oauth2' };
 
         const result = extractNextSegmentSuggestions(hints, '', variableScopes);
 
-        expect(result).toEqual(['requestVar', 'process', '$guid']);
+        expect(result).toEqual(['requestVar', '$guid', 'oauthVar', 'process']);
       });
     });
   });

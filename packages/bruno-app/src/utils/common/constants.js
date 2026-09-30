@@ -90,14 +90,11 @@ export const TERMINAL_ICON_SVG_TEXT = `
 `;
 
 // Dynamic / mock (built-in faker) variable
-export const DICE_ICON_SVG_TEXT = `
+// so a dollar sign reads clearer than a dice.
+export const DOLLAR_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-  <circle cx="8.5" cy="8.5" r="1" fill="currentColor" stroke="none"></circle>
-  <circle cx="15.5" cy="8.5" r="1" fill="currentColor" stroke="none"></circle>
-  <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"></circle>
-  <circle cx="8.5" cy="15.5" r="1" fill="currentColor" stroke="none"></circle>
-  <circle cx="15.5" cy="15.5" r="1" fill="currentColor" stroke="none"></circle>
+  <line x1="12" y1="1" x2="12" y2="23"></line>
+  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
 </svg>
 `;
 
@@ -115,7 +112,7 @@ export const KEY_ICON_SVG_TEXT = `
 export const READ_ONLY_SCOPE_ICON = {
   'runtime': BOLT_ICON_SVG_TEXT,
   'process.env': TERMINAL_ICON_SVG_TEXT,
-  'dynamic': DICE_ICON_SVG_TEXT,
+  'dynamic': DOLLAR_ICON_SVG_TEXT,
   'oauth2': KEY_ICON_SVG_TEXT
 };
 
