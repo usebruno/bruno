@@ -5,6 +5,7 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 const { initializeShellEnv, waitForShellEnv } = require('./store/shell-env-state');
 const { percentageToZoomLevel } = require('@usebruno/common');
+const { isBenchmarkEnabled } = require('./utils/benchmark');
 
 if (isDev) {
   if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
@@ -31,6 +32,10 @@ if (os.platform() === 'linux') {
   // to address https://github.com/usebruno/bruno/issues/5471
   // Runtime sets the default version to 3, refs https://github.com/electron/electron/pull/44426
   app.commandLine.appendSwitch('xdg-portal-required-version', '4');
+}
+
+if (isBenchmarkEnabled()) {
+  app.commandLine.appendSwitch('enable-precise-memory-info');
 }
 
 const menuTemplate = require('./app/menu-template');
@@ -72,6 +77,7 @@ const { handleAppProtocolUrl, getAppProtocolUrlFromArgv } = require('./utils/dee
 
 const systemMonitor = new SystemMonitor();
 const terminalManager = new TerminalManager();
+const { startBenchmark, stopBenchmark } = require('./benchmark');
 
 const workspaceWatcher = new WorkspaceWatcher();
 const apiSpecWatcher = new ApiSpecWatcher();
@@ -196,6 +202,8 @@ if (useSingleInstance && !gotTheLock) {
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   initializeShellEnv();
+
+  startBenchmark();
 
   if (isDev) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
@@ -558,6 +566,12 @@ app.on('before-quit', (event) => {
   event.preventDefault();
 
   (async () => {
+    try {
+      await stopBenchmark();
+    } catch (err) {
+      console.error('[benchmark] Failed to stop benchmark writer:', err);
+    }
+
     try {
       await Promise.race([
         closeAllWatchers(),
