@@ -94,7 +94,7 @@ const resolveHttpVersion = async ({ url, mode = 'auto', tlsOptions, lookup, prox
   const key = cacheKey({ origin, tlsOptions, proxyUri });
   const cached = alpnCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
-    return { httpVersion: cached.alpn === 'h2' ? 2 : 1, reason: `ALPN cache: ${cached.alpn || 'none'}` };
+    return { httpVersion: cached.alpn === 'h2' ? 2 : 1, reason: 'auto (cached)', offered: ['h2', 'http/1.1'], alpn: cached.alpn || null };
   }
 
   const probe = await probeAlpn({ hostname: parsed.hostname, port, tlsOptions, lookup });
@@ -103,7 +103,7 @@ const resolveHttpVersion = async ({ url, mode = 'auto', tlsOptions, lookup, prox
     return { httpVersion: 1, reason: `ALPN probe failed (${probe.error}). using HTTP/1.1` };
   }
   alpnCache.set(key, { alpn: probe.alpn, expiresAt: Date.now() + ttlMs });
-  return { httpVersion: probe.alpn === 'h2' ? 2 : 1, reason: `ALPN probe: server chose ${probe.alpn || 'none'} (${probe.protocol})` };
+  return { httpVersion: probe.alpn === 'h2' ? 2 : 1, reason: `auto (${probe.protocol})`, offered: ['h2', 'http/1.1'], alpn: probe.alpn || null };
 };
 
 const invalidateAlpn = (origin) => {

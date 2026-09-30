@@ -104,12 +104,15 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
   let httpVersion = 1;
   let reason = '';
   let tunnelSocket = null;
+  let alpnOffered = null; // protocols we offered during negotiation (auto/proxy probe)
+  let alpnAccepted = null; // what the server picked
 
   if (proxyKey && /^https:/i.test(config.url || '')) {
     // Proxied: the tunnel doubles as the ALPN probe; keep the socket for the first session.
     const parsed = new URL(config.url);
     const port = Number(parsed.port) || 443;
     const alpnProtocols = mode === 'auto' ? ['h2', 'http/1.1'] : ['h2'];
+    alpnOffered = alpnProtocols;
     try {
       const tunnel = await connectThroughProxy({
         agent: config.httpsAgent,
@@ -118,6 +121,7 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
         tlsOptions: agentOptions,
         alpnProtocols
       });
+      alpnAccepted = tunnel.alpn || null;
       if (tunnel.alpn === 'h2') {
         httpVersion = 2;
         tunnelSocket = tunnel.socket;
@@ -140,15 +144,29 @@ const applyHttp2Transport = async ({ config, mode, agentOptions, timeline }) => 
     });
     httpVersion = resolved.httpVersion;
     reason = resolved.reason;
+    alpnOffered = resolved.offered || null;
+    alpnAccepted = resolved.alpn || null;
   }
 
+  if (alpnOffered && alpnOffered.length > 0) {
+    timeline.push({
+      timestamp: new Date(),
+      type: 'tls',
+      message: `ALPN: offered ${alpnOffered.join(', ')} · server accepted ${alpnAccepted || 'none'}`
+    });
+  }
   timeline.push({
     timestamp: new Date(),
     type: 'info',
     message: `HTTP/${httpVersion === 2 ? '2' : '1.1'} selected (${reason})`
   });
 
-  if (httpVersion !== 2) return;
+  // The redirect loop reuses this config for the next hop, so an h1 decision must undo an earlier
+  // hop's h2 transport — otherwise a h2 -> h1-only redirect keeps the h2 transport and fails ALPN.
+  if (httpVersion !== 2) {
+    delete config.transport;
+    return;
+  }
 
   // Through a proxy the tunnel is connected and DNS is the proxy's job: no lookup on the pool side.
   config.transport = createHttp2Transport({

@@ -52,7 +52,15 @@ export function buildHttp2RequestHeaders({ method, url, headers = {} }: ToH2Head
     // Never let callers inject pseudo-headers.
     if (lowerCaseName.startsWith(':')) continue;
 
-    if ((CONNECTION_HEADERS as readonly string[]).includes(lowerCaseName) || lowerCaseName === 'host') {
+    // A caller's Host header maps to :authority on HTTP/2 (virtual-host testing); it is not sent as a
+    // regular header. Later Host wins, matching last-header-wins for the rest.
+    if (lowerCaseName === 'host') {
+      http2Headers[':authority'] = value as OutgoingHttpHeaders[string];
+      stripped.push(name);
+      continue;
+    }
+
+    if ((CONNECTION_HEADERS as readonly string[]).includes(lowerCaseName)) {
       stripped.push(name);
       continue;
     }
