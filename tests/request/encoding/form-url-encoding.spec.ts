@@ -1,5 +1,6 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, Page } from '../../../playwright';
 import {
+  buildCommonLocators,
   closeAllCollections,
   createCollection,
   createRequest,
@@ -7,6 +8,23 @@ import {
   saveRequest,
   expectResponseContains
 } from '../../utils/page';
+import { fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
+
+const ECHO_URL = 'http://localhost:8081/api/echo/everything';
+
+const fillFormUrlEncodedParam = async (page: Page, rowIndex: number, name: string, value: string) => {
+  const formTable = buildCommonLocators(page).table('form-urlencoded-table');
+  const row = formTable.row(rowIndex);
+  await formTable.rowNameInput(row).fill(name);
+  await formTable.rowValueEditor(row).click();
+  await page.keyboard.type(value);
+};
+
+const addContentTypeHeader = async (page: Page, value: string) => {
+  const { headers } = buildCommonLocators(page).request;
+  await fillRequestHeaderName(page, headers.addRow(), 'Content-Type');
+  await fillRequestHeaderValue(page, headers.requestRow('Content-Type'), value);
+};
 
 test.describe('Form URL Encoding with Content-Type Parameters', () => {
   test.afterEach(async ({ page }) => {
@@ -19,7 +37,7 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: 'https://echo.usebruno.com' });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
@@ -34,19 +52,8 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
       await page.locator('.body-mode-selector').click();
       await page.locator('[data-item-id="formUrlEncoded"]').click();
 
-      // Add form parameters with special characters
-      const formTable = page.locator('table').first();
-      const firstRow = formTable.locator('tbody tr').first();
-
-      await firstRow.locator('input[placeholder="Key"]').fill('foo');
-      await firstRow.locator('.CodeMirror').click();
-      await firstRow.locator('textarea').fill('bar');
-
-      // Add second parameter
-      const secondRow = formTable.locator('tbody tr').nth(1);
-      await secondRow.locator('input[placeholder="Key"]').fill('baz');
-      await secondRow.locator('.CodeMirror').click();
-      await secondRow.locator('textarea').fill('test');
+      await fillFormUrlEncodedParam(page, 0, 'foo', 'bar');
+      await fillFormUrlEncodedParam(page, 1, 'baz', 'test');
 
       await saveRequest(page);
     });
@@ -71,7 +78,7 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: 'https://echo.usebruno.com' });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
@@ -83,33 +90,15 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
       // Add Content-Type header with charset parameter
       await selectRequestPaneTab(page, 'Headers');
-      const headerTable = page.locator('table').first();
-      const headerRow = headerTable.locator('tbody tr').first();
-
-      await headerRow.locator('.CodeMirror').first().click();
-      await headerRow.locator('textarea').first().fill('Content-Type');
-
-      await headerRow.locator('.CodeMirror').nth(1).click();
-      await headerRow.locator('textarea').nth(1).fill('application/x-www-form-urlencoded; charset=utf-8');
+      await addContentTypeHeader(page, 'application/x-www-form-urlencoded; charset=utf-8');
 
       // Select Body tab and switch to form-urlencoded
       await selectRequestPaneTab(page, 'Body');
       await page.locator('.body-mode-selector').click();
       await page.locator('[data-item-id="formUrlEncoded"]').click();
 
-      // Add form parameters with special characters
-      const formTable = page.locator('table').first();
-      const firstRow = formTable.locator('tbody tr').first();
-
-      await firstRow.locator('input[placeholder="Key"]').fill('foo');
-      await firstRow.locator('.CodeMirror').click();
-      await firstRow.locator('textarea').fill('bar');
-
-      // Add second parameter
-      const secondRow = formTable.locator('tbody tr').nth(1);
-      await secondRow.locator('input[placeholder="Key"]').fill('baz');
-      await secondRow.locator('.CodeMirror').click();
-      await secondRow.locator('textarea').fill('test');
+      await fillFormUrlEncodedParam(page, 0, 'foo', 'bar');
+      await fillFormUrlEncodedParam(page, 1, 'baz', 'test');
 
       await saveRequest(page);
     });
@@ -134,7 +123,7 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Setup request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: 'https://echo.usebruno.com' });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
@@ -145,30 +134,14 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
       // Add Content-Type header with multiple parameters
       await selectRequestPaneTab(page, 'Headers');
-      const headerTable = page.locator('table').first();
-      const headerRow = headerTable.locator('tbody tr').first();
-
-      await headerRow.locator('.CodeMirror').first().click();
-      await headerRow.locator('textarea').first().fill('Content-Type');
-
-      await headerRow.locator('.CodeMirror').nth(1).click();
-      await headerRow
-        .locator('textarea')
-        .nth(1)
-        .fill('application/x-www-form-urlencoded; charset=utf-8; boundary=something');
+      await addContentTypeHeader(page, 'application/x-www-form-urlencoded; charset=utf-8; boundary=something');
 
       // Select Body tab and switch to form-urlencoded
       await selectRequestPaneTab(page, 'Body');
       await page.locator('.body-mode-selector').click();
       await page.locator('[data-item-id="formUrlEncoded"]').click();
 
-      // Add form parameters
-      const formTable = page.locator('table').first();
-      const firstRow = formTable.locator('tbody tr').first();
-
-      await firstRow.locator('input[placeholder="Key"]').fill('test');
-      await firstRow.locator('.CodeMirror').click();
-      await firstRow.locator('textarea').fill('value with spaces');
+      await fillFormUrlEncodedParam(page, 0, 'test', 'value with spaces');
 
       await saveRequest(page);
     });
