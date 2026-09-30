@@ -1,4 +1,5 @@
 const URL = require('url');
+const { STATUS_CODES } = require('http');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
@@ -9,6 +10,9 @@ const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
 const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const { buildHttp2Options, describeHttp2Stream, stripConnectionHeaders, installHttp2NativePatch, applyBasicAuthHeader, resolveProxiedHttpVersion } = require('./http2-native');
+const { resolveHttpVersion } = require('./http2-resolver');
+const { proxyKeyFor } = require('./http2-proxy');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
 
@@ -25,7 +29,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -139,7 +143,7 @@ function makeAxiosInstance({
 
     // Add request data if available
     if (config.data) {
-      let requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
+      const requestData = typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2);
       timeline.push({
         timestamp: new Date(),
         type: 'requestData',
@@ -204,6 +208,62 @@ function makeAxiosInstance({
       });
     }
 
+    // POC evaluation: axios built-in HTTP/2, chosen in Preferences > General > Requests > HTTP version
+    // ('http1' default, 'http2' forces h2, 'auto' probes ALPN per origin and falls back; see http2-resolver.js).
+    // http2-native.js patches http2.connect so session errors are caught and CAs / client certs / lookup are honoured.
+    const httpVersionMode = preferencesUtil.getHttpVersion();
+    if (httpVersionMode === 'http2' || httpVersionMode === 'auto') {
+      installHttp2NativePatch();
+      const proxyKey = proxyKeyFor(config.httpsAgent);
+      if (proxyKey) {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `HTTP/2: request is proxied via ${proxyKey}`
+        });
+      }
+      // Change 4: proxied https requests tunnel through Bruno's proxy agent (or reuse the session already on it);
+      // direct requests keep the ALPN-probe resolver.
+      const resolved = proxyKey && /^https:/i.test(config.url || '')
+        ? await resolveProxiedHttpVersion({ config, mode: httpVersionMode, tlsOptions: agentOptions, proxyKey })
+        : await resolveHttpVersion({
+            url: config.url,
+            mode: httpVersionMode,
+            tlsOptions: agentOptions,
+            lookup: config.lookup,
+            proxyUri: proxyKey
+          });
+      timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `HTTP/${resolved.httpVersion === 2 ? '2' : '1.1'} selected (${resolved.reason})`
+      });
+      // The redirect loop reuses this config for the next hop, so an h1 decision must also undo an earlier h2 one.
+      if (resolved.httpVersion !== 2) {
+        delete config.httpVersion;
+        delete config.http2Options;
+      } else {
+        config.httpVersion = 2;
+        // Through a proxy the tunnel is already connected and DNS is the proxy's job: no lookup in the pool key.
+        config.http2Options = buildHttp2Options(agentOptions, proxyKey ? undefined : config.lookup, proxyKey);
+        if (applyBasicAuthHeader(config)) {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: 'HTTP/2: Authorization header built from auth option / URL credentials (axios drops these on h2)'
+          });
+        }
+        const strippedHeaders = stripConnectionHeaders(config.headers);
+        if (strippedHeaders.length) {
+          timeline.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `HTTP/2: removed connection-specific header(s) not allowed on h2: ${strippedHeaders.join(', ')}`
+          });
+        }
+      }
+    }
+
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
@@ -227,10 +287,31 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      const sentHeaders = getSentHeaders(response.request);
+      const h2 = describeHttp2Stream(response.request);
+      const sentHeaders = h2 ? h2.sentHeaders : getSentHeaders(response.request);
 
       /** Post-response vars and scripts read request.headers, which never held the transport set. */
       response.sentHeaders = sentHeaders;
+
+      if (h2) {
+        response.httpVersion = '2.0';
+        // HTTP/2 has no reason phrase (only :status), so axios leaves statusText undefined; scripts and the
+        // timeline expect the h1 wording. Synthesise it from Node's table.
+        if (!response.statusText) response.statusText = STATUS_CODES[response.status] || '';
+        timeline.push({
+          timestamp: new Date(),
+          type: 'tls',
+          message: `ALPN: ${h2.alpn} · ${h2.protocol} · ${h2.cipher} · ${h2.remote}`
+        });
+        for (const line of h2.certificateLines) {
+          timeline.push({ timestamp: new Date(), type: 'tls', message: line });
+        }
+        timeline.push({
+          timestamp: new Date(),
+          type: 'info',
+          message: `HTTP/2 request: ${h2.requestLine}`
+        });
+      }
 
       Object.entries(sentHeaders).forEach(([key, value]) => {
         timeline.push({
@@ -276,7 +357,12 @@ function makeAxiosInstance({
 
       // A failed request carries the ClientRequest on the error itself when no response came back.
       const errorRequest = error.response?.request || error.request;
-      const errorHeaders = getSentHeaders(errorRequest);
+      const errorH2 = describeHttp2Stream(errorRequest);
+      const errorHeaders = errorH2 ? errorH2.sentHeaders : getSentHeaders(errorRequest);
+      if (errorH2 && error.response) {
+        error.response.httpVersion = '2.0';
+        if (!error.response.statusText) error.response.statusText = STATUS_CODES[error.response.status] || '';
+      }
 
       /** A non-2xx still runs post-response scripts, and they read request.headers. */
       if (error.response) error.response.sentHeaders = errorHeaders;

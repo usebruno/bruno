@@ -23,6 +23,37 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .http-version-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+    font-size: ${(props) => props.theme.font.size.base};
+    font-family: inherit;
+    line-height: 1.25;
+    color: ${(props) => props.theme.text};
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background: ${(props) => props.theme.bg};
+    cursor: pointer;
+    min-width: 220px;
+
+    &:hover {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+
+    &:focus {
+      outline: none;
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
+  .http-version-select-chevron {
+    position: absolute;
+    right: 6px;
+    pointer-events: none;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .ca-certificate-select,
   .ca-certificate-file {
     display: inline-flex;

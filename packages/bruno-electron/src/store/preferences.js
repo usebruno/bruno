@@ -21,6 +21,7 @@ const defaultPreferences = {
     storeCookies: true,
     sendCookies: true,
     timeout: 0,
+    httpVersion: 'http1',
     oauth2: {
       useSystemBrowser: false
     },
@@ -119,6 +120,7 @@ const preferencesSchema = Yup.object().shape({
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.number(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1', 'http2']),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
@@ -418,6 +420,10 @@ const preferencesUtil = {
   },
   getRequestTimeout: () => {
     return get(getPreferences(), 'request.timeout', 0);
+  },
+  /** POC: app-level protocol choice ('auto' | 'http1' | 'http2'); becomes a collection setting later. */
+  getHttpVersion: () => {
+    return get(getPreferences(), 'request.httpVersion', 'http1');
   },
   getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', defaultPreferences.proxy);

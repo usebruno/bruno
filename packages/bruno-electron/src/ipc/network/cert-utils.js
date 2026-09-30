@@ -1,4 +1,6 @@
 const fs = require('node:fs');
+const { createScriptedRequestPreparer } = require('./http2-native');
+const { resolveHttpVersion } = require('./http2-resolver');
 const path = require('path');
 const { get } = require('lodash');
 const { getCACertificates } = require('@usebruno/requests');
@@ -238,6 +240,8 @@ const buildCertsAndProxyConfig = async ({
   const systemProxyConfig = await getCachedSystemProxy();
 
   return {
+    // POC: lets bru.sendRequest apply the same HTTP/2 selection as the request pane (see http2-native.js).
+    prepareRequest: createScriptedRequestPreparer({ getHttpVersionMode: preferencesUtil.getHttpVersion, resolveHttpVersion }),
     collectionPath,
     options,
     clientCertificates,
