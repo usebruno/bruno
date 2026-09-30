@@ -76,7 +76,7 @@ test.describe('Manage Workspace — rename', () => {
     }
   });
 
-  test('TC-6086: Verify renaming a workspace to an existing name is rejected', async ({
+  test('TC-6086: Verify renaming a workspace to an existing name is allowed', async ({
     launchElectronApp,
     createTmpDir
   }) => {
@@ -101,11 +101,15 @@ test.describe('Manage Workspace — rename', () => {
         await manageWorkspace.renameModal.submitButton().click();
       });
 
-      await test.step('Verify the rename is rejected and the original name is unchanged', async () => {
-        await expect(manageWorkspace.renameModal.error()).toHaveText('A workspace with this name already exists');
-        await expect(manageWorkspace.renameModal.modal()).toBeVisible();
-        await expect(manageWorkspace.workspaceItem('Rename Conflict WS')).toBeVisible();
-        await expect(manageWorkspace.workspaceItem('My Workspace')).toBeVisible();
+      await test.step('Verify the rename is accepted and both workspaces remain distinct', async () => {
+        await expect(manageWorkspace.renameModal.modal()).toBeHidden();
+        await expect(manageWorkspace.workspaceItem('Rename Conflict WS')).toHaveCount(0);
+
+        const duplicates = manageWorkspace.workspaceItem('My Workspace');
+        await expect(duplicates).toHaveCount(2);
+
+        const paths = await duplicates.getByTestId('workspace-path').allTextContents();
+        expect(new Set(paths).size).toBe(2);
       });
     } finally {
       await closeElectronApp(app);
