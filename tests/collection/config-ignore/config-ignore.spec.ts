@@ -1,7 +1,7 @@
 import { test, expect, closeElectronApp, waitForReadyPage } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openCollection, openCollectionFromDialog } from '../../utils/page';
+import { closeAllCollections, openCollection, openCollectionFromDialog, removeCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const ymlRequest = (name: string) => `info:
