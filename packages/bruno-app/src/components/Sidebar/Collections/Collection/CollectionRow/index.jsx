@@ -201,10 +201,10 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       return;
     }
 
-    // Otherwise, show the regular menu dropdown
+    // Otherwise, show the regular menu dropdown at the cursor
     const _menuDropdown = menuDropdownRef.current;
     if (_menuDropdown) {
-      _menuDropdown.toggle();
+      _menuDropdown.toggle({ x: event.clientX, y: event.clientY });
     }
   };
 
