@@ -17,7 +17,7 @@ export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';
 export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
-export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize, applySecureContext } from './utils/agent-cache';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
@@ -30,3 +30,16 @@ export {
   applySentHeadersToRequest,
   applyOmitConnectionToAxiosConfig
 } from './network';
+
+// HTTP/2 custom transport (POC)
+export {
+  createHttp2Transport,
+  acquireSession,
+  closeAllSessions,
+  getSessionCount,
+  getSessionEntries,
+  connectTls,
+  buildHttp2RequestHeaders,
+  getSessionKey
+} from './utils/http2';
+export type { CreateHttp2TransportParams, HttpVersionMode, ConnectTlsResult, PooledSession } from './utils/http2';
