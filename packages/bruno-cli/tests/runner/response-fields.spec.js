@@ -286,6 +286,7 @@ describe('runSingleRequest: variable value recorder (issue #9370)', () => {
       jest.fn(), // runSingleRequestByPathname
       {}, // globalEnvVars
       {}, // persistPaths
+      null, // runAbortSignal
       recorder // variableValueRecorder
     ];
     const result = await runSingleRequest(...args);
