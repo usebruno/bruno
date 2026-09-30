@@ -8,7 +8,7 @@ import { EnabledCell, NameCell, ValueCell, DescriptionCell, SourceCell } from '.
 const MASK_CHARACTER = '*';
 const maskValue = (value) => value.replace(/[^\n]/g, MASK_CHARACTER);
 
-const InheritedVariableRow = ({ variable, columnWidths }) => {
+const InheritedVariableRow = ({ variable, columnWidths, extraValueContent = null }) => {
   const [masked, setMasked] = useState(true);
   const { environments, onSelect } = useEnvironmentSelection();
   const value = valueToString(variable.value, 2);
@@ -31,6 +31,7 @@ const InheritedVariableRow = ({ variable, columnWidths }) => {
       </NameCell>
       <ValueCell style={{ width: columnWidths.value }} className="overflow-hidden">
         <div className="inherited-value-cell">
+          {extraValueContent}
           <div className="inherited-value">{isMasked ? maskValue(value) : value}</div>
           <span className="inherited-data-type" data-testid="inherited-data-type">
             {variable.dataType || 'string'}

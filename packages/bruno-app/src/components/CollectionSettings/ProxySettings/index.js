@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import InfoTip from 'components/InfoTip';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
-import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
@@ -32,6 +33,8 @@ const ProxySettings = ({ collection }) => {
     : get(collection, 'brunoConfig.proxy', initialProxyConfig);
 
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const proxyPasswordSensitive = isSensitive(currentProxyConfig.config?.auth?.password);
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
@@ -390,6 +393,9 @@ const ProxySettings = ({ collection }) => {
                     {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
                   </button>
                 </div>
+                {proxyPasswordSensitive.showWarning && (
+                  <SensitiveFieldWarning fieldName="proxy-password" warningMessage={proxyPasswordSensitive.warningMessage} />
+                )}
               </div>
             </div>
             <div className="mb-3 flex items-center">

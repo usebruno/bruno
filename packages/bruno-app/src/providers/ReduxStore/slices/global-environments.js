@@ -3,7 +3,7 @@ import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { cloneDeep, isEqual } from 'lodash';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 
 const initialState = {
@@ -27,7 +27,16 @@ export const globalEnvironmentsSlice = createSlice({
         ? incomingActiveUid
         : null;
 
-      state.globalEnvironments = newEnvs;
+      state.globalEnvironments = newEnvs.map((environment) => {
+        const existing = state.globalEnvironments.find((candidate) => candidate?.uid === environment?.uid);
+        if (!existing) {
+          return environment;
+        }
+        return {
+          ...environment,
+          variables: preserveVariableUids(existing.variables, environment.variables)
+        };
+      });
       state.activeGlobalEnvironmentUid = resolvedActiveUid;
     },
     _addGlobalEnvironment: (state, action) => {

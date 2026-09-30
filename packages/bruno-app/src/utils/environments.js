@@ -269,6 +269,20 @@ export const orderEnvironmentsByInheritance = (environments) => {
 };
 
 /**
+ * Copies each saved row id onto the reloaded row in the same position.
+ * A row that was not there before keeps the id it was parsed with.
+ */
+export const preserveVariableUids = (existing = [], updated = []) => {
+  if (!Array.isArray(updated)) {
+    return updated;
+  }
+
+  return updated.map((variable, index) => (
+    existing[index]?.uid ? { ...variable, uid: existing[index].uid } : variable
+  ));
+};
+
+/**
  * Strips the UID from an environment variable for comparison purposes.
  * This is useful when comparing variables where UIDs may differ but the actual data is the same.
  */

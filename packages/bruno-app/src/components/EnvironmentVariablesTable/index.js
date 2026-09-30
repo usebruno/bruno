@@ -1025,7 +1025,11 @@ const EnvironmentVariablesTable = ({
 
             if (item.type === ROW_INHERITED_VARIABLE) {
               return (
-                <InheritedVariableRow variable={item.variable} columnWidths={columnWidths} />
+                <InheritedVariableRow
+                  variable={item.variable}
+                  columnWidths={columnWidths}
+                  extraValueContent={renderExtraValueContent ? renderExtraValueContent(item.variable) : null}
+                />
               );
             }
 
