@@ -70,8 +70,9 @@ Path-scoped rules in `.claude/rules/` auto-attach when you touch matching files:
 module layout), `electron-ipc.md` (IPC handlers + startup), `redux-store.md` (slices/middleware),
 `sqlite.md` (`@usebruno/sqlite` — migrations, statements, main/renderer usage), `testing.md` (e2e
 patterns & gotchas), `cross-platform.md` (Windows file/process/path pitfalls), `dsl-changes.md`
-(on-disk `.bru`/`.yml` format & backward compat), `conventions.md` (readability, reuse, replacement
-& pre-submit hygiene).
+(on-disk `.bru`/`.yml` format & backward compat), `feature-parity.md` (co-related features —
+app↔CLI twins, converter/shim/level/protocol pairs), `conventions.md` (readability, reuse,
+replacement & pre-submit hygiene).
 
 Read on demand (not auto-loaded): `.claude/reference/architecture.md` — the monorepo map, request
 pipeline, sandbox, core types, and dependency versions. Consult it before cross-package or
