@@ -34,10 +34,14 @@ const StyledWrapper = styled.div`
   }
 
   .variable-count {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
     color: ${(props) => props.theme.textLink};
     text-decoration: underline;
     text-underline-offset: 2px;
-    cursor: default;
+    cursor: pointer;
   }
 
   .variable-popover {

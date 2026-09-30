@@ -8,6 +8,7 @@ import {
   copyUnresolvedVariableNames,
   openRequest,
   openUnresolvedVariablesPopover,
+  openUnresolvedVariablesPopoverWithKeyboard,
   sendAndWaitForResponse,
   waitForReadyPage
 } from '../utils/page';
@@ -70,10 +71,59 @@ test.describe('Unresolved variables info', () => {
       await expect(info.popoverNames()).toHaveText(names);
     });
 
+    await test.step('Moving the pointer away hides the list', async () => {
+      await page.mouse.move(0, 0);
+      await expect(info.popoverNames().first()).toBeHidden();
+    });
+
     await test.step('Copying puts every name on the clipboard', async () => {
       const clipboard = await installFakeClipboard(page);
+      await openUnresolvedVariablesPopover(page);
       await copyUnresolvedVariableNames(page);
       expect(await clipboard.copiedText()).toBe(names.join('\n'));
+    });
+  });
+
+  test('the variable count is a button that opens the list of names from the keyboard', async ({ pageWithUserData: page, installFakeClipboard }) => {
+    const { unresolvedVariablesInfo: info } = buildCommonLocators(page);
+    const countButton = info.countButton('5 variables');
+    const names = ['stripe_secret_key', 'tenant_identifier', 'oauth_client_id', 'oauth_client_secret', 'region'];
+
+    await test.step('Send the request', async () => {
+      await openRequest(page, COLLECTION, 'http-many-unresolved');
+      await sendAndWaitForResponse(page);
+    });
+
+    await test.step('The count is a collapsed button that controls the popover', async () => {
+      await expect(countButton).toHaveAttribute('type', 'button');
+      await expect(countButton).toHaveAttribute('aria-expanded', 'false');
+      await expect(countButton).toHaveAttribute('aria-controls', /.+/);
+    });
+
+    await test.step('Focusing the count opens the list and marks the button expanded', async () => {
+      await openUnresolvedVariablesPopoverWithKeyboard(page);
+      await expect(countButton).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    await test.step('The button points at the popover that holds the list', async () => {
+      const popoverId = await countButton.getAttribute('aria-controls');
+      await expect(info.popoverInsideElement(popoverId!)).toBeVisible();
+    });
+
+    await test.step('Tabbing to the copy button keeps the popover open and copies every name', async () => {
+      const clipboard = await installFakeClipboard(page);
+      await page.keyboard.press('Tab');
+      await expect(info.copyButton()).toBeFocused();
+      await expect(info.popoverNames().first()).toBeVisible();
+      await page.keyboard.press('Enter');
+      await expect(info.copyButton()).toHaveAttribute('title', 'Copied');
+      expect(await clipboard.copiedText()).toBe(names.join('\n'));
+    });
+
+    await test.step('Moving focus out of the popover closes it', async () => {
+      await info.closeButton().focus();
+      await expect(info.popoverNames().first()).toBeHidden();
+      await expect(countButton).toHaveAttribute('aria-expanded', 'false');
     });
   });
 

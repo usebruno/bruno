@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Tooltip } from 'react-tooltip';
 import { IconCheck, IconCopy, IconInfoCircle, IconX } from '@tabler/icons';
@@ -11,25 +11,43 @@ const MAX_INLINE_NAMES_LENGTH = 40;
 
 const UnresolvedVariableCount = ({ names, popoverId }) => {
   const { copied, copyToClipboard } = useCopyToClipboard(1500);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hasFocusWithin, setHasFocusWithin] = useState(false);
+  const isPopoverOpen = isHovered || hasFocusWithin;
+
+  const handleBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setHasFocusWithin(false);
+    }
+  };
 
   return (
-    <>
-      <span
+    <span
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setHasFocusWithin(true)}
+      onBlur={handleBlur}
+    >
+      <button
+        type="button"
         className="variable-count"
         data-tooltip-id={popoverId}
-        tabIndex={0}
+        aria-expanded={isPopoverOpen}
+        aria-controls={popoverId}
         data-testid="unresolved-variables-count"
       >
         {names.length} {names.length === 1 ? 'variable' : 'variables'}
-      </span>
+      </button>
       <Tooltip
         id={popoverId}
         className="variable-popover"
         place="bottom-start"
         positionStrategy="fixed"
+        offset={0}
         clickable
         noArrow
         opacity={1}
+        isOpen={isPopoverOpen}
       >
         <div className="popover-header">
           <span>Unresolved variables</span>
@@ -49,7 +67,7 @@ const UnresolvedVariableCount = ({ names, popoverId }) => {
           ))}
         </ul>
       </Tooltip>
-    </>
+    </span>
   );
 };
 
