@@ -693,7 +693,8 @@ const runSingleRequest = async function (
         systemProxyConfig: cachedSystemProxy,
         httpsAgentRequestFields,
         interpolationOptions,
-        disableCache
+        disableCache,
+        httpVersion: get(options, 'httpVersion', 'http1')
       });
 
       if (request.ntlmConfig) {

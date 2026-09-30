@@ -6,6 +6,8 @@ const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
 const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const { STATUS_CODES } = require('http');
+const { applyHttp2Transport } = require('./http2');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -85,7 +87,8 @@ function makeAxiosInstance({
   systemProxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
-  disableCache
+  disableCache,
+  httpVersion = 'http1'
 } = {}) {
   let redirectCount = 0;
 
@@ -128,6 +131,9 @@ function makeAxiosInstance({
       }
     }
 
+    // POC: attach the custom HTTP/2 transport when --http-version http2 (synchronous; no ALPN probe).
+    applyHttp2Transport({ config, mode: httpVersion });
+
     return config;
   });
 
@@ -139,6 +145,9 @@ function makeAxiosInstance({
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
 
+      // HTTP/2 has no reason phrase (only :status); fill statusText so summaries don't show "undefined".
+      if (!response.statusText) response.statusText = STATUS_CODES[response.status] || '';
+
       return response;
     },
     async (error) => {
@@ -148,6 +157,7 @@ function makeAxiosInstance({
         const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         error.response.sentHeaders = error.sentHeaders;
+        if (!error.response.statusText) error.response.statusText = STATUS_CODES[error.response.status] || '';
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
