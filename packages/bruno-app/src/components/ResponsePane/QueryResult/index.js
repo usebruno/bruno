@@ -1,9 +1,12 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import get from 'lodash/get';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
-import LargeResponseWarning from '../LargeResponseWarning';
+import { useResponseBody } from 'hooks/useResponseBody';
+import LargeResponseWarning, { SHOW_INLINE_BYTES, VIEW_MAX_BYTES } from '../LargeResponseWarning';
 import QueryResultFilter from './QueryResultFilter';
 import QueryResultPreview from './QueryResultPreview';
 import StyledWrapper from './StyledWrapper';
@@ -44,11 +47,15 @@ const formatErrorMessage = (error) => {
 // Custom hook to determine the initial format and tab based on the data buffer and headers
 export const useInitialResponseFormat = (dataBuffer, headers) => {
   return useMemo(() => {
-    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const detectedContentType = dataBuffer ? detectContentTypeFromBase64(dataBuffer) : null;
     const contentType = getContentType(headers);
 
-    // Wait until both content types are available
-    if (detectedContentType === null || contentType === undefined) {
+    // Wait until content type from headers is available when we have no magic-byte sniff
+    if (contentType === undefined) {
+      return { initialFormat: null, initialTab: null, contentType: contentType };
+    }
+
+    if (detectedContentType === null && dataBuffer) {
       return { initialFormat: null, initialTab: null, contentType: contentType };
     }
 
@@ -60,14 +67,14 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
 // Custom hook to determine preview format options based on content type
 export const useResponsePreviewFormatOptions = (dataBuffer, headers) => {
   return useMemo(() => {
-    const detectedContentType = detectContentTypeFromBase64(dataBuffer);
+    const detectedContentType = dataBuffer ? detectContentTypeFromBase64(dataBuffer) : null;
     const contentType = getContentType(headers);
 
     const byteFormatTypes = ['image', 'video', 'audio', 'pdf', 'zip'];
 
-    const isByteFormatType = (contentType) => {
-      if (contentType.toLowerCase().includes('svg')) return false; // SVG is text-based
-      return byteFormatTypes.some((type) => contentType.includes(type));
+    const isByteFormatType = (ct) => {
+      if (ct.toLowerCase().includes('svg')) return false; // SVG is text-based
+      return byteFormatTypes.some((type) => ct.includes(type));
     };
 
     const getContentTypeToCheck = () => {
@@ -108,9 +115,22 @@ const QueryResult = ({
   const contentType = getContentType(headers);
   const [showLargeResponse, setShowLargeResponse] = useState(false);
   const { displayedTheme } = useTheme();
+  const response = item.response || {};
+  const bodyRef = response.bodyRef;
+
+  const isBinaryMedia = useMemo(() => {
+    const ct = (contentType || '').toLowerCase();
+    return ct.includes('image') || ct.includes('pdf') || ct.includes('audio') || ct.includes('video');
+  }, [contentType]);
+
+  const textBody = useResponseBody({ bodyRef, mode: 'text' });
+  const blobBody = useResponseBody({ bodyRef, contentType, mode: 'blob' });
+
+  useEffect(() => {
+    setShowLargeResponse(false);
+  }, [bodyRef]);
 
   const responseSize = useMemo(() => {
-    const response = item.response || {};
     if (typeof response.size === 'number') {
       return response.size;
     }
@@ -120,23 +140,53 @@ const QueryResult = ({
       return Math.floor(dataBuffer.length * 0.75);
     }
     return 0;
-  }, [dataBuffer, item.response]);
+  }, [dataBuffer, response.size]);
 
-  const isLargeResponse = responseSize > 10 * 1024 * 1024; // 10 MB
+  const isLargeResponse = responseSize > SHOW_INLINE_BYTES;
+  const canViewLargeResponse = Boolean(bodyRef) && responseSize > SHOW_INLINE_BYTES && responseSize <= VIEW_MAX_BYTES;
+  const canPreviewBinary =
+    Boolean(bodyRef) && isBinaryMedia && !dataBuffer && responseSize <= VIEW_MAX_BYTES;
+  const displayData = textBody.data != null ? textBody.data : data;
+  const mediaSrc = dataBuffer ? null : blobBody.objectUrl;
+
+  const showLargeWarning = isLargeResponse && !showLargeResponse && !canPreviewBinary;
 
   const detectedContentType = useMemo(() => {
-    return detectContentTypeFromBase64(dataBuffer);
-  }, [dataBuffer, isLargeResponse]);
+    if (dataBuffer) return detectContentTypeFromBase64(dataBuffer);
+    return null;
+  }, [dataBuffer]);
 
   const formattedData = useMemo(
     () => {
-      if (isLargeResponse && !showLargeResponse) {
+      if (showLargeWarning) {
         return '';
       }
-      return formatResponse(data, dataBuffer, selectedFormat, filter);
+      return formatResponse(displayData, dataBuffer, selectedFormat, filter);
     },
-    [data, dataBuffer, selectedFormat, filter, isLargeResponse, showLargeResponse]
+    [displayData, dataBuffer, selectedFormat, filter, showLargeWarning]
   );
+
+  const handleRevealResponse = useCallback(async () => {
+    if (!canViewLargeResponse) return;
+    if (textBody.data != null) {
+      setShowLargeResponse(true);
+      return;
+    }
+
+    const ok = await textBody.load();
+    if (!ok) {
+      toast.error('Failed to load response body');
+      return;
+    }
+    setShowLargeResponse(true);
+  }, [canViewLargeResponse, textBody.data, textBody.load]);
+
+  useEffect(() => {
+    if (!canPreviewBinary || showLargeWarning) {
+      return;
+    }
+    blobBody.load();
+  }, [bodyRef, canPreviewBinary, showLargeWarning]);
 
   const handleFilterChange = (value) => {
     if (onFilterChange) {
@@ -154,17 +204,25 @@ const QueryResult = ({
 
     // For base64/hex, check content type to determine binary preview type
     if (selectedFormat === 'base64' || selectedFormat === 'hex') {
-      if (detectedContentType) {
-        if (detectedContentType.includes('image')) return 'preview-image';
-        if (detectedContentType.includes('pdf')) return 'preview-pdf';
-        if (detectedContentType.includes('audio')) return 'preview-audio';
-        if (detectedContentType.includes('video')) return 'preview-video';
-      }
-      // for all other content types, return preview-text
+      const ct = detectedContentType || contentType || '';
+      if (ct.includes('image')) return 'preview-image';
+      if (ct.includes('pdf')) return 'preview-pdf';
+      if (ct.includes('audio')) return 'preview-audio';
+      if (ct.includes('video')) return 'preview-video';
       return 'preview-text';
     }
+
+    // Auto media preview when content-type is binary and we have bodyRef
+    const ct = (contentType || '').toLowerCase();
+    if (bodyRef && !displayData) {
+      if (ct.includes('image')) return 'preview-image';
+      if (ct.includes('pdf')) return 'preview-pdf';
+      if (ct.includes('audio')) return 'preview-audio';
+      if (ct.includes('video')) return 'preview-video';
+    }
+
     return 'preview-text';
-  }, [selectedFormat, detectedContentType]);
+  }, [selectedFormat, detectedContentType, contentType, bodyRef, displayData]);
 
   const codeMirrorMode = useMemo(() => {
     // Find the codeMirrorMode from PREVIEW_FORMAT_OPTIONS (contains all format options)
@@ -194,11 +252,13 @@ const QueryResult = ({
             </div>
           ) : null}
         </div>
-      ) : isLargeResponse && !showLargeResponse ? (
+      ) : showLargeWarning ? (
         <LargeResponseWarning
           item={item}
           responseSize={responseSize}
-          onRevealResponse={() => setShowLargeResponse(true)}
+          canView={canViewLargeResponse}
+          revealLoading={textBody.loading}
+          onRevealResponse={handleRevealResponse}
         />
       ) : (
         <div className="h-full flex flex-col">
@@ -206,7 +266,7 @@ const QueryResult = ({
             <div className="absolute top-0 left-0 h-full w-full" data-testid="response-preview-container">
               <QueryResultPreview
                 selectedTab={selectedTab}
-                data={data}
+                data={displayData}
                 dataBuffer={dataBuffer}
                 formattedData={formattedData}
                 item={item}
@@ -217,18 +277,19 @@ const QueryResult = ({
                 disableRunEventListener={disableRunEventListener}
                 displayedTheme={displayedTheme}
                 docKey={docKey}
+                mediaSrc={mediaSrc}
               />
             </div>
-            {queryFilterEnabled && (
-              <QueryResultFilter
-                filter={filter}
-                filterExpanded={filterExpanded}
-                onChange={handleFilterChange}
-                onExpandChange={onFilterExpandChange}
-                mode={codeMirrorMode}
-              />
-            )}
           </div>
+          {queryFilterEnabled ? (
+            <QueryResultFilter
+              filter={filter}
+              filterExpanded={filterExpanded}
+              onChange={debounce(handleFilterChange, 200)}
+              onExpandChange={onFilterExpandChange}
+              mode={codeMirrorMode}
+            />
+          ) : null}
         </div>
       )}
     </StyledWrapper>

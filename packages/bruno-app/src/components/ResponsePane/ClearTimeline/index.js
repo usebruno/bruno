@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { clearRequestTimeline } from 'providers/ReduxStore/slices/collections/index';
+import { clearRequestTimeline } from 'providers/ReduxStore/slices/collections';
 
 const ClearTimeline = ({ collection, item }) => {
   const dispatch = useDispatch();

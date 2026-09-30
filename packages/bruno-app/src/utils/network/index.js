@@ -6,20 +6,14 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
           // if there is an error, we return the response object as is
           if (response?.error) {
             resolve(response);
+            return;
           }
 
+          // bodyRef is source of truth; never put dataBuffer in Redux
+          const { mapNetworkResponseToRedux } = require('utils/response-body');
           resolve({
             state: 'success',
-            data: response.data,
-            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
-            dataBuffer: response.dataBuffer,
-            headers: response.headers,
-            size: response.size,
-            status: response.status,
-            statusText: response.statusText,
-            duration: response.duration,
-            timeline: response.timeline,
-            stream: response.stream,
+            ...mapNetworkResponseToRedux(response),
             requestSent: response.requestSent
           });
         })

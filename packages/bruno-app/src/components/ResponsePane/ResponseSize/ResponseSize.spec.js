@@ -115,5 +115,29 @@ describe('ResponseSize', () => {
       expect(element.textContent).toMatch(/^\d+\.\d+KB$/);
       expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
     });
+
+    it('should render megabytes', () => {
+      const size = 2 * 1024 * 1024;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/2\.0MB/);
+      expect(element).toBeInTheDocument();
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
+    it('should render gigabytes', () => {
+      const size = 3 * 1024 * 1024 * 1024;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/3\.0GB/);
+      expect(element).toBeInTheDocument();
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
+
+    it('should render terabytes', () => {
+      const size = 1.5 * 1024 * 1024 * 1024 * 1024;
+      renderWithTheme(<ResponseSize size={size} />);
+      const element = screen.getByText(/1\.50TB/);
+      expect(element).toBeInTheDocument();
+      expect(element).toHaveAttribute('title', `${size.toLocaleString()}B`);
+    });
   });
 });

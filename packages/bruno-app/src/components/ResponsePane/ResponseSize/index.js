@@ -1,26 +1,33 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
+const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+const formatSize = (size) => {
+  if (size <= 1024) {
+    return size + 'B';
+  }
+
+  let value = size;
+  let unit = 0;
+  while (value >= 1024 && unit < UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+
+  const whole = Math.floor(value);
+  const decimal = Math.round((value - whole).toFixed(2) * 100);
+  return whole + '.' + decimal + UNITS[unit];
+};
+
 const ResponseSize = ({ size }) => {
   if (!Number.isFinite(size)) {
     return null;
   }
 
-  let sizeToDisplay = '';
-
-  // If size is greater than 1024 bytes, format as KB
-  if (size > 1024) {
-    let kb = Math.floor(size / 1024);
-    let decimal = Math.round(((size % 1024) / 1024).toFixed(2) * 100);
-    sizeToDisplay = kb + '.' + decimal + 'KB';
-  } else {
-    // If size is less than or equal to 1024 bytes, display as bytes (B)
-    sizeToDisplay = size + 'B';
-  }
-
   return (
     <StyledWrapper title={(size?.toLocaleString() || '0') + 'B'} className="ml-2">
-      {sizeToDisplay}
+      {formatSize(size)}
     </StyledWrapper>
   );
 };
