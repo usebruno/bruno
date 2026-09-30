@@ -8,7 +8,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconTrash, IconUpload } from '@tabler/icons';
+import { IconTrash, IconUpload, IconChevronDown } from '@tabler/icons';
 import path from 'utils/common/path';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
 
@@ -29,6 +29,7 @@ const General = () => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1', 'http2']),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -76,6 +77,7 @@ const General = () => {
         enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
+      httpVersion: get(preferences, 'request.httpVersion', 'http1'),
       storeCookies: get(preferences, 'request.storeCookies', true),
       sendCookies: get(preferences, 'request.sendCookies', true),
       autoSave: {
@@ -113,6 +115,7 @@ const General = () => {
             enabled: newPreferences.keepDefaultCaCertificates.enabled
           },
           timeout: newPreferences.timeout,
+          httpVersion: newPreferences.httpVersion,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies,
           oauth2: {
@@ -328,6 +331,28 @@ const General = () => {
               onBlur={formik.handleBlur}
               value={formik.values.timeout}
             />
+          </SettingsField>
+          <SettingsField
+            label="HTTP version"
+            htmlFor="httpVersion"
+          >
+            <div className="http-version-select-wrap relative inline-flex items-center">
+              <select
+                id="httpVersion"
+                name="httpVersion"
+                className="http-version-select"
+                value={formik.values.httpVersion}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                aria-label="HTTP version"
+                data-testid="general-http-version-select"
+              >
+                <option value="auto">Auto (HTTP/2 when available)</option>
+                <option value="http1">HTTP/1.1</option>
+                <option value="http2">HTTP/2</option>
+              </select>
+              <IconChevronDown size={12} strokeWidth={1.75} className="http-version-select-chevron" />
+            </div>
           </SettingsField>
         </SettingsGroup>
 

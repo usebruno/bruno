@@ -11,6 +11,7 @@ const { get, merge } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
+    httpVersion: 'http1',
     customCaCertificate: {
       enabled: false,
       filePath: null
@@ -109,6 +110,7 @@ const defaultPreferences = {
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
+    httpVersion: Yup.string().oneOf(['auto', 'http1', 'http2']),
     customCaCertificate: Yup.object({
       enabled: Yup.boolean(),
       filePath: Yup.string().nullable()
@@ -404,6 +406,10 @@ const savePreferences = async (newPreferences) => {
 };
 
 const preferencesUtil = {
+  /** POC: app-level protocol choice ('auto' | 'http1' | 'http2'); becomes a collection setting later. */
+  getHttpVersion: () => {
+    return get(getPreferences(), 'request.httpVersion', 'http1');
+  },
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
   },

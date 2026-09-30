@@ -11,7 +11,10 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * This is the same config used by getHttpHttpsAgents, minus requestUrl which is
  * extracted from the actual request.
  */
-type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
+  /** Host-supplied hook run on the axios config right before the request (POC: HTTP/2 selection lives in bruno-electron). */
+  prepareRequest?: (config: AxiosRequestConfig) => Promise<void> | void;
+};
 
 type SendRequestEntry = {
   request: { method: string; url: string | undefined; headers: Record<string, any>; data: any };
@@ -208,6 +211,11 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       if (httpsAgent && !normalizedConfig.httpsAgent) {
         normalizedConfig.httpsAgent = httpsAgent;
       }
+    }
+
+    // POC: host hook (bruno-electron) may attach the HTTP/2 transport before the instance is built.
+    if (config && typeof config.prepareRequest === 'function') {
+      await config.prepareRequest(normalizedConfig);
     }
 
     const axiosInstance = makeAxiosInstance();

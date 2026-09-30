@@ -9,6 +9,8 @@ const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
 const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const { STATUS_CODES } = require('http');
+const { applyHttp2Transport, describeHttp2Stream } = require('./http2-transport');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
 
@@ -204,6 +206,19 @@ function makeAxiosInstance({
       });
     }
 
+    // POC (custom transport): choose HTTP version and, if h2, attach our own transport (config.transport).
+    try {
+      await applyHttp2Transport({
+        config,
+        mode: preferencesUtil.getHttpVersion(),
+        agentOptions,
+        timeline
+      });
+    } catch (err) {
+      timeline.push({ timestamp: new Date(), type: 'error', message: `HTTP/2 setup failed: ${err?.message}` });
+      throw err;
+    }
+
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
@@ -227,7 +242,16 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      const sentHeaders = getSentHeaders(response.request);
+      const h2 = describeHttp2Stream(response.request);
+      const sentHeaders = h2 ? h2.sentHeaders : getSentHeaders(response.request);
+
+      if (h2) {
+        response.httpVersion = '2.0';
+        if (!response.statusText) response.statusText = STATUS_CODES[response.status] || '';
+        timeline.push({ timestamp: new Date(), type: 'info', message: `ALPN: ${h2.alpn} · ${h2.protocol} · ${h2.cipher} · ${h2.remote}` });
+        h2.certificateLines.forEach((line) => timeline.push({ timestamp: new Date(), type: 'tls', message: line }));
+        if (h2.requestLine) timeline.push({ timestamp: new Date(), type: 'info', message: `HTTP/2 request: ${h2.requestLine}` });
+      }
 
       /** Post-response vars and scripts read request.headers, which never held the transport set. */
       response.sentHeaders = sentHeaders;
@@ -240,7 +264,7 @@ function makeAxiosInstance({
         });
       });
 
-      const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
+      const httpVersion = response?.httpVersion || response?.request?.res?.httpVersion;
       if (httpVersion?.startsWith('2')) {
         timeline.push({
           timestamp: new Date(),
@@ -276,7 +300,13 @@ function makeAxiosInstance({
 
       // A failed request carries the ClientRequest on the error itself when no response came back.
       const errorRequest = error.response?.request || error.request;
-      const errorHeaders = getSentHeaders(errorRequest);
+      const h2 = describeHttp2Stream(errorRequest);
+      const errorHeaders = h2 ? h2.sentHeaders : getSentHeaders(errorRequest);
+
+      if (h2 && error.response) {
+        error.response.httpVersion = '2.0';
+        if (!error.response.statusText) error.response.statusText = STATUS_CODES[error.response.status] || '';
+      }
 
       /** A non-2xx still runs post-response scripts, and they read request.headers. */
       if (error.response) error.response.sentHeaders = errorHeaders;

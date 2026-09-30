@@ -1,3 +1,4 @@
+const { closeAllSessions } = require('@usebruno/requests');
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
@@ -168,6 +169,12 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow insecure server connections'
     })
+    .option('http-version', {
+      type: 'string',
+      choices: ['http1', 'http2', 'auto'],
+      default: 'http1',
+      description: 'HTTP version for requests: http1 (default), http2 (forced), or auto (negotiate via ALPN, fall back to http1)'
+    })
     .option('tests-only', {
       type: 'boolean',
       description: 'Only run requests that have a test or active assertion'
@@ -309,6 +316,7 @@ const handler = async function (argv) {
       envVar,
       globalEnvVar,
       insecure,
+      httpVersion,
       r: recursive,
       output: outputPath,
       format,
@@ -600,6 +608,9 @@ const handler = async function (argv) {
     }
     if (insecure) {
       options['insecure'] = true;
+    }
+    if (httpVersion) {
+      options['httpVersion'] = httpVersion;
     }
     if (disableCookies) {
       options['disableCookies'] = true;
@@ -946,6 +957,9 @@ const handler = async function (argv) {
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+
+    // POC: close any pooled HTTP/2 sessions so the process can exit promptly.
+    try { closeAllSessions(); } catch (_) {}
 
     // Extract environment name from envVars if available
     const environmentName = envVars?.__name__ || null;
