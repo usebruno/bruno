@@ -14,10 +14,10 @@ const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
 
 const saveCookies = (url, headers) => {
   if (headers['set-cookie']) {
-    let setCookieHeaders = Array.isArray(headers['set-cookie'])
+    const setCookieHeaders = Array.isArray(headers['set-cookie'])
       ? headers['set-cookie']
       : [headers['set-cookie']];
-    for (let setCookieHeader of setCookieHeaders) {
+    for (const setCookieHeader of setCookieHeaders) {
       if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
         addCookieToJar(setCookieHeader, url);
       }
@@ -105,7 +105,7 @@ function makeAxiosInstance({
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
-  instance.interceptors.request.use((config) => {
+  instance.interceptors.request.use(async (config) => {
     config.metadata = config.metadata || {};
     config.metadata.startTime = Date.now();
 
@@ -131,8 +131,8 @@ function makeAxiosInstance({
       }
     }
 
-    // POC: attach the custom HTTP/2 transport when --http-version http2 (synchronous; no ALPN probe).
-    applyHttp2Transport({ config, mode: httpVersion });
+    // POC: attach the custom HTTP/2 transport. On http2 it's forced; on auto we await the ALPN probe.
+    await applyHttp2Transport({ config, mode: httpVersion });
 
     return config;
   });

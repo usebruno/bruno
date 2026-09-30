@@ -7,7 +7,7 @@
  * Direct requests only for the POC — a proxied request in http2 falls back to HTTP/1.1.
  */
 const { URL } = require('url');
-const { createHttp2Transport } = require('@usebruno/requests');
+const { createHttp2Transport, connectTls } = require('@usebruno/requests');
 
 const applyBasicAuthHeader = (config) => {
   if (!config) return false;
@@ -43,8 +43,28 @@ const applyBasicAuthHeader = (config) => {
  * Synchronous (no ALPN probe). Clears config.transport otherwise, so a redirect hop to an h1 URL
  * does not keep a previous hop's transport.
  */
-const applyHttp2Transport = ({ config, mode }) => {
-  if (mode !== 'http2') {
+const ALPN_TTL_MS = 10 * 60 * 1000;
+const alpnCache = new Map(); // origin -> { alpn, expiresAt }
+
+/** auto only: one TLS handshake offering h2 + http/1.1, cached per origin. Never throws. */
+const probeHttp2 = async ({ hostname, port, tlsOptions, lookup }) => {
+  const origin = `${hostname}:${port}`;
+  const cached = alpnCache.get(origin);
+  if (cached && cached.expiresAt > Date.now()) return cached.alpn === 'h2';
+  let alpn = null;
+  try {
+    const probe = await connectTls({ hostname, port, tlsOptions, mode: 'auto', lookup });
+    alpn = probe ? probe.alpn : null;
+    if (probe && probe.socket) probe.socket.destroy();
+  } catch (_) {
+    return false; // let the real HTTP/1.1 request surface the error
+  }
+  alpnCache.set(origin, { alpn, expiresAt: Date.now() + ALPN_TTL_MS });
+  return alpn === 'h2';
+};
+
+const applyHttp2Transport = async ({ config, mode }) => {
+  if (mode !== 'http2' && mode !== 'auto') {
     return;
   }
   let parsed;
@@ -60,6 +80,16 @@ const applyHttp2Transport = ({ config, mode }) => {
     return;
   }
   const agentOptions = (config.httpsAgent && config.httpsAgent.options) || {};
+
+  if (mode === 'auto') {
+    const port = Number(parsed.port) || 443;
+    const useHttp2 = await probeHttp2({ hostname: parsed.hostname, port, tlsOptions: agentOptions, lookup: config.lookup });
+    if (!useHttp2) {
+      delete config.transport;
+      return;
+    }
+  }
+
   config.transport = createHttp2Transport({ tlsOptions: agentOptions, mode: 'http2', lookup: config.lookup });
   applyBasicAuthHeader(config);
 };

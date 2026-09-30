@@ -171,9 +171,9 @@ const builder = async (yargs) => {
     })
     .option('http-version', {
       type: 'string',
-      choices: ['http1', 'http2'],
+      choices: ['http1', 'http2', 'auto'],
       default: 'http1',
-      description: 'HTTP version for requests: http1 (default) or http2 (forced; fails on HTTP/1.1-only servers)'
+      description: 'HTTP version for requests: http1 (default), http2 (forced), or auto (negotiate via ALPN, fall back to http1)'
     })
     .option('tests-only', {
       type: 'boolean',
