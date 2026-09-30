@@ -3,6 +3,7 @@ import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { PromptVariablesProvider } from 'providers/PromptVariables';
+import { SetAsVariableProvider } from 'providers/SetAsVariable';
 import { SQLiteProvider } from '@usebruno/sqlite/web';
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
@@ -48,7 +49,9 @@ function Main({ children }) {
               <PromptVariablesProvider>
                 <AppProvider>
                   <HotkeysProvider>
-                    {children}
+                    <SetAsVariableProvider>
+                      {children}
+                    </SetAsVariableProvider>
                   </HotkeysProvider>
                 </AppProvider>
               </PromptVariablesProvider>
