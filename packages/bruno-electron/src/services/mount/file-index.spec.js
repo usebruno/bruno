@@ -86,4 +86,13 @@ describe('FileIndex denylist', () => {
 
     expect(removed.map(({ relativePath }) => relativePath)).toContain(path.join('hidden', 'request.bru'));
   });
+
+  test('returns denied rows when no denylist is passed', () => {
+    const entries = index.entries(collectionPath);
+
+    expect([...entries.keys()].sort()).toEqual([
+      path.join('hidden', 'request.bru'),
+      'visible.bru'
+    ].sort());
+  });
 });
