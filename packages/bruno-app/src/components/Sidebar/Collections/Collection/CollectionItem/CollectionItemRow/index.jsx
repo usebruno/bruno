@@ -752,7 +752,7 @@ const CollectionItemRow = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === 'Enter' && e.target === e.currentTarget) {
             e.preventDefault();
             e.stopPropagation();
             setRenameItemModalOpen(true);

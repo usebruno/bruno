@@ -570,7 +570,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === 'Enter' && e.target === e.currentTarget) {
             e.preventDefault();
             e.stopPropagation();
             setShowRenameCollectionModal(true);
