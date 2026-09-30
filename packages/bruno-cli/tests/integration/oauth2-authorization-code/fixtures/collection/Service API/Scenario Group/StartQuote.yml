@@ -1,0 +1,8 @@
+info:
+  name: StartQuote
+  type: http
+  seq: 1
+http:
+  method: GET
+  url: "{{api}}/quote"
+  auth: inherit

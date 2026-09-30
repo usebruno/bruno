@@ -221,6 +221,39 @@ describe('prepare-request: prepareRequest', () => {
         expect(result.oauth2.tokenHeaderPrefix).toBe('Bearer');
         expect(result.oauth2.tokenQueryKey).toBe('access_token');
       });
+
+      it('If collection auth is OAuth2 with authorization code grant type', async () => {
+        collection.root.request.auth = {
+          mode: 'oauth2',
+          oauth2: {
+            grantType: 'authorization_code',
+            authorizationUrl: 'https://auth.example.com/authorize',
+            accessTokenUrl: 'https://auth.example.com/token',
+            clientId: 'test_client_id'
+          }
+        };
+
+        const result = await prepareRequest(item, collection);
+
+        expect(result.oauth2).toMatchObject({
+          grantType: 'authorization_code',
+          authorizationUrl: 'https://auth.example.com/authorize',
+          accessTokenUrl: 'https://auth.example.com/token',
+          clientId: 'test_client_id'
+        });
+      });
+
+      it('If collection auth is OAuth2 with implicit grant type', async () => {
+        collection.root.request.auth = {
+          mode: 'oauth2',
+          oauth2: { grantType: 'implicit', authorizationUrl: 'https://auth.example.com/authorize', clientId: 'test_client_id' }
+        };
+
+        const result = await prepareRequest(item, collection);
+
+        // Forwarded so the token step reports it as unsupported instead of silently sending no auth
+        expect(result.oauth2).toMatchObject({ grantType: 'implicit' });
+      });
     });
 
     describe('AWS v4 Authentication', () => {
@@ -526,6 +559,96 @@ describe('prepare-request: prepareRequest', () => {
           password: 'requestPass123'
         };
         expect(result.digestConfig).toEqual(expected);
+      });
+    });
+
+    describe('OAuth2 Authentication', () => {
+      it('If request auth is OAuth2 with authorization code grant type', async () => {
+        const oauth2 = {
+          grantType: 'authorization_code',
+          callbackUrl: 'http://localhost:8765/callback',
+          authorizationUrl: 'https://auth.example.com/authorize',
+          accessTokenUrl: 'https://auth.example.com/token',
+          refreshTokenUrl: 'https://auth.example.com/refresh',
+          clientId: 'test_client_id',
+          clientSecret: 'test_client_secret',
+          scope: 'openid profile',
+          state: 'test_state',
+          pkce: true,
+          credentialsPlacement: 'basic_auth_header',
+          credentialsId: 'credentials',
+          tokenPlacement: 'header',
+          tokenHeaderPrefix: 'Bearer',
+          tokenQueryKey: 'access_token',
+          tokenSource: 'id_token',
+          autoFetchToken: true,
+          autoRefreshToken: true,
+          additionalParameters: {
+            authorization: [{ name: 'audience', value: 'api', enabled: true, sendIn: 'queryparams' }],
+            token: [],
+            refresh: []
+          }
+        };
+        item.request.auth = { mode: 'oauth2', oauth2 };
+
+        const result = await prepareRequest(item);
+
+        expect(result.oauth2).toEqual(oauth2);
+      });
+    });
+  });
+
+  describe('Properly maps auth inherited from a folder', () => {
+    it('forwards an authorization code OAuth2 config set on an ancestor folder', async () => {
+      const item = {
+        type: 'http-request',
+        name: 'StartQuote',
+        pathname: '/collection/service/scenario/StartQuote.yml',
+        request: {
+          method: 'GET',
+          url: 'https://example.com/quote',
+          headers: [],
+          params: [],
+          auth: { mode: 'inherit' },
+          script: {},
+          vars: {}
+        }
+      };
+      const innerFolder = {
+        type: 'folder',
+        name: 'scenario',
+        pathname: '/collection/service/scenario',
+        root: { request: { auth: { mode: 'inherit' } } },
+        items: [item]
+      };
+      const outerFolder = {
+        type: 'folder',
+        name: 'service',
+        pathname: '/collection/service',
+        root: {
+          request: {
+            auth: {
+              mode: 'oauth2',
+              oauth2: {
+                grantType: 'authorization_code',
+                authorizationUrl: 'https://auth.example.com/authorize',
+                accessTokenUrl: 'https://auth.example.com/token',
+                clientId: 'test_client_id'
+              }
+            }
+          }
+        },
+        items: [innerFolder]
+      };
+      const collection = { pathname: '/collection', root: {}, items: [outerFolder] };
+
+      const result = await prepareRequest(item, collection);
+
+      expect(result.oauth2).toMatchObject({
+        grantType: 'authorization_code',
+        authorizationUrl: 'https://auth.example.com/authorize',
+        accessTokenUrl: 'https://auth.example.com/token',
+        clientId: 'test_client_id'
       });
     });
   });

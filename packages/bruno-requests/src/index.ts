@@ -1,6 +1,7 @@
 export {
   addDigestInterceptor,
   getOAuth2Token,
+  OAUTH2_ERROR_CODES,
   createOAuth1Authorizer,
   computeBodyHash,
   applyOAuth1ToRequest,

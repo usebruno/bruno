@@ -1,0 +1,8 @@
+info:
+  name: GetQuote
+  type: http
+  seq: 2
+http:
+  method: GET
+  url: "{{api}}/quote"
+  auth: inherit

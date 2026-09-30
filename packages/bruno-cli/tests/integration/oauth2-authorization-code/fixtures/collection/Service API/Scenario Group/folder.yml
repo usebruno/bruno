@@ -1,0 +1,5 @@
+info:
+  name: Scenario Group
+  type: folder
+request:
+  auth: inherit
