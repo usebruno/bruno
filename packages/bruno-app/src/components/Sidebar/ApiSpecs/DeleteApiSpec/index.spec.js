@@ -8,10 +8,12 @@ import themes from 'themes/index';
 import { deleteApiSpec } from 'providers/ReduxStore/slices/apiSpec';
 import DeleteApiSpec from './index';
 
-jest.mock('react-hot-toast', () => ({
-  __esModule: true,
-  default: { success: jest.fn(), error: jest.fn() }
-}));
+jest.mock('react-hot-toast', () => {
+  const toast = jest.fn();
+  toast.success = jest.fn();
+  toast.error = jest.fn();
+  return { __esModule: true, default: toast };
+});
 
 jest.mock('providers/ReduxStore/slices/apiSpec', () => ({
   deleteApiSpec: jest.fn()
@@ -64,6 +66,7 @@ const renderModal = ({ draft, collections = [], onClose = jest.fn() } = {}) => {
 describe('the dialog for deleting an API spec', () => {
   beforeEach(() => {
     deleteApiSpec.mockReset();
+    toast.mockClear();
     toast.success.mockClear();
     toast.error.mockClear();
   });
@@ -120,6 +123,17 @@ describe('the dialog for deleting an API spec', () => {
     expect(deleteApiSpec).toHaveBeenCalledWith({ uid: 'runtime-uid' });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(toast.success).toHaveBeenCalledWith('API Spec deleted');
+  });
+
+  it('warns and still closes when the file was deleted but workspace.yml could not be updated', async () => {
+    deleteApiSpec.mockReturnValue(() => Promise.resolve({ workspaceUpdated: false }));
+    const { onClose } = renderModal();
+
+    fireEvent.click(screen.getByText('confirm'));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(toast).toHaveBeenCalledWith('API Spec deleted, but workspace.yml could not be updated', { icon: '⚠️' });
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it('shows the error and stays open when the delete fails', async () => {

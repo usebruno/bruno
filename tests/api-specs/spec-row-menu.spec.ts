@@ -125,8 +125,16 @@ test.describe('API spec row context menu', () => {
       await test.step('Menu items appear in the designed order with the divider before Remove', async () => {
         await openApiSpecRowMenu(page, COMPREHENSIVE_TITLE);
         await expect(menu.menuItems()).toHaveCount(7);
-        expect(await menu.menuItemIds()).toEqual(['generate-collection', 'generate-mock-server', 'clone', 'rename', 'reveal', 'remove', 'delete']);
-        await expect(menu.menuDivider()).toHaveCount(1);
+        expect(await menu.menuEntries()).toEqual([
+          'generate-collection',
+          'generate-mock-server',
+          'clone',
+          'rename',
+          'reveal',
+          'divider',
+          'remove',
+          'delete'
+        ]);
         await expect(menu.menuItem('generate-mock-server')).toContainText('Beta');
         await expect(menu.menuItem('reveal')).toHaveText(revealLabel);
         await expect(menu.menuItem('delete')).toHaveClass(/delete-item/);
@@ -210,7 +218,7 @@ test.describe('API spec row context menu', () => {
       await test.step('The collection that syncs from the spec still points at it', async () => {
         await chooseApiSpecRowAction(page, 'Orders API', 'delete');
         await expect(menu.connectedCollectionsWarning()).toBeVisible();
-        await page.keyboard.press('Escape');
+        await menu.deleteCancel().click();
         await expect(menu.deleteModal()).toHaveCount(0);
       });
     } finally {

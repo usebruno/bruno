@@ -108,9 +108,9 @@ const toDeleteError = (error) => {
   return error;
 };
 
-// The file goes first: if it cannot be deleted, the workspace is untouched. If the entry removal
-// fails after that, the entry points at a missing file and a retry of Delete completes it.
-// The watcher and uid cache are keyed by the path as it was opened, so they get the raw path.
+// The file decides whether the spec was deleted. If it cannot be deleted, nothing changes. Once it
+// is gone, a failed workspace.yml update is reported instead of thrown, so the app still closes
+// the spec's tab and row. The watcher and uid cache are keyed by the path as it was opened.
 const deleteApiSpec = async (deps, pathname, workspacePath) => {
   assertKnownApiSpec(deps, pathname, workspacePath);
   const { mainWindow, watcher } = deps;
@@ -125,8 +125,14 @@ const deleteApiSpec = async (deps, pathname, workspacePath) => {
   watcher.removeWatcher(pathname, mainWindow);
   removeApiSpecUid(pathname);
 
-  const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
-  broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
+  try {
+    const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
+    broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
+    return { workspaceUpdated: true };
+  } catch (error) {
+    console.error('Deleted the API spec file but could not update workspace.yml:', error);
+    return { workspaceUpdated: false };
+  }
 };
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {

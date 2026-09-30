@@ -66,10 +66,12 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     validateApiSpec(apiSpecPath);
 
     const uid = generateUidBasedOnHash(apiSpecPath);
-    const rawContent = fs.readFileSync(apiSpecPath, 'utf8');
 
     if (hasWorkspaceFile(options.workspacePath) && !findApiSpecEntry(options.workspacePath, apiSpecPath)) {
-      const apiSpecContent = parseApiSpecContent(rawContent, path.extname(apiSpecPath));
+      if (!fs.existsSync(apiSpecPath)) {
+        throw new Error(`API spec file not found: ${apiSpecPath}`);
+      }
+      const apiSpecContent = parseApiSpecContent(fs.readFileSync(apiSpecPath, 'utf8'), path.extname(apiSpecPath));
       await addApiSpecToWorkspace(options.workspacePath, {
         name: getApiSpecDisplayName(apiSpecContent, apiSpecPath),
         path: apiSpecPath
@@ -80,6 +82,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     if (!watcher.hasWatcher(apiSpecPath)) {
       ipcMain.emit('main:apispec-opened', win, apiSpecPath, uid, options.workspacePath);
     } else {
+      const rawContent = fs.readFileSync(apiSpecPath, 'utf8');
       const extension = path.extname(apiSpecPath);
       const apiSpecContent = parseApiSpecContent(rawContent, extension);
       const { resolvedJson } = await resolveExternalApiSpecRefs(apiSpecContent, apiSpecPath);

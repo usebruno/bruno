@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   .api-spec-info-card {
     background-color: ${(props) => props.theme.modal.title.bg};
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     padding: 12px;
   }
 

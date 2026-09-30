@@ -26,9 +26,10 @@ export const buildApiSpecRowMenuLocators = (page: Page) => {
 
   return {
     menuItems: () => openMenu().getByRole('menuitem'),
-    menuItemIds: () => openMenu().getByRole('menuitem').evaluateAll((items) => items.map((item) => item.getAttribute('data-item-id'))),
+    menuEntries: () => openMenu().locator('[role="menuitem"], [role="separator"]').evaluateAll((entries) =>
+      entries.map((entry) => (entry.getAttribute('role') === 'separator' ? 'divider' : entry.getAttribute('data-item-id')))
+    ),
     menuItem: (id: string) => openMenu().getByTestId(`api-spec-actions-${id}`),
-    menuDivider: () => openMenu().getByRole('separator'),
     removeModal: () => page.getByTestId('remove-api-spec-modal'),
     removeSubmit: () => page.getByTestId('remove-api-spec-modal-submit-btn'),
     removeCancel: () => page.getByTestId('remove-api-spec-modal').getByRole('button', { name: 'Cancel', exact: true }),
