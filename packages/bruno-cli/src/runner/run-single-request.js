@@ -114,6 +114,7 @@ const runSingleRequest = async function (
   runSingleRequestByPathname,
   globalEnvVars = {},
   persistPaths = {},
+  runAbortSignal = null,
   variableValueRecorder = null
 ) {
   const syncVariableUpdates = (result, currentRequest, recordValues) => {
@@ -764,6 +765,10 @@ const runSingleRequest = async function (
       if (request.edgeGridConfig) {
         addEdgeGridInterceptor(axiosInstance, request);
         delete request.edgeGridConfig;
+      }
+
+      if (runAbortSignal) {
+        request.signal = runAbortSignal;
       }
 
       /** @type {import('axios').AxiosResponse} */

@@ -743,6 +743,54 @@ const handler = async function (argv) {
       }
     }
 
+    const createSkippedResult = (requestItem, skipReason) => {
+      const relativePath = path.relative(collectionPath, requestItem.pathname);
+      return {
+        test: { filename: relativePath },
+        request: { method: requestItem.request?.method || null, url: requestItem.request?.url || null, headers: null, data: null },
+        response: { status: 'skipped', statusText: null, data: null, responseTime: 0 },
+        status: 'skipped',
+        skipped: true,
+        skipReason,
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        runDuration: 0,
+        suitename: stripExtension(requestItem.pathname),
+        name: requestItem.name,
+        path: relativePath
+      };
+    };
+
+    /**
+     * Halt raised by the run (--bail on a failure, or a script calling bru.runner.stopExecution()).
+     *
+     * @property {string|null} haltedBy - what halted the run: 'bail' | 'stopExecution'
+     * @property {string|null} haltedAtRequest - request that halted it, e.g. 'Get Users'
+     * @property {string|null} haltedReason - e.g. 'test failure' | 'assertion failure' | 'stopExecution'
+     * @property {number|null} remainingRequests - requests that never ran, e.g. 2
+     */
+    const haltState = {
+      haltedBy: null,
+      haltedAtRequest: null,
+      haltedReason: null,
+      remainingRequests: null
+    };
+
+    // Aborted by haltRun; cancels any in-flight request that received its signal.
+    const runAbortController = new AbortController();
+
+    const runAbortSignal = runAbortController.signal;
+
+    const haltRun = (reason, details = {}) => {
+      if (haltState.haltedBy) {
+        return;
+      }
+      Object.assign(haltState, { haltedBy: reason, ...details });
+      runAbortController.abort(reason);
+    };
+
     const runSingleRequestByPathname = async (relativeItemPathname) => {
       const ext = FORMAT_CONFIG[collection.format].ext;
       return new Promise(async (resolve, reject) => {
@@ -765,6 +813,7 @@ const handler = async function (argv) {
             runSingleRequestByPathname,
             globalEnvVars,
             persistPaths,
+            runAbortSignal,
             recordVariableValues
           );
           resolve(res?.response);
@@ -775,8 +824,6 @@ const handler = async function (argv) {
 
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
-    let bailInfo = null; // populated only if --bail triggers
-
     // Every value each --reporter-mask-var variable resolved to during the
     // run. A name can resolve to different values in the same request (bare
     // variable vs {{process.env.NAME}}) and across requests (a script updates
@@ -815,6 +862,7 @@ const handler = async function (argv) {
         runSingleRequestByPathname,
         globalEnvVars,
         persistPaths,
+        runAbortSignal,
         recordVariableValues
       );
 
@@ -865,44 +913,11 @@ const handler = async function (argv) {
           // Synthesize "Skipped (Bail)" placeholder results for the requests that never
           // ran due to bail. These let getRunnerSummary count them as skipped, and the
           // summary table can distinguish them from user-initiated skips via skipReason.
-          for (const ri of remainingItems) {
-            const relativePath = path.relative(collectionPath, ri.pathname);
-            results.push({
-              test: {
-                filename: relativePath
-              },
-              request: {
-                method: ri.request?.method || null,
-                url: ri.request?.url || null,
-                headers: null,
-                data: null
-              },
-              response: {
-                status: 'skipped',
-                statusText: null,
-                data: null,
-                responseTime: 0
-              },
-              status: 'skipped',
-              skipped: true,
-              skipReason: 'bail',
-              testResults: [],
-              assertionResults: [],
-              preRequestTestResults: [],
-              postResponseTestResults: [],
-              runDuration: 0,
-              suitename: stripExtension(ri.pathname),
-              name: ri.name,
-              path: relativePath
-            });
+          for (const request of remainingItems) {
+            results.push(createSkippedResult(request, 'bail'));
           }
 
-          bailInfo = {
-            bailed: true,
-            bailReason,
-            bailedAt: name,
-            skippedByBail: remainingItems.length
-          };
+          haltRun('bail', { haltedAtRequest: name, haltedReason: bailReason, remainingRequests: remainingItems.length });
 
           console.log(
             '\n' + chalk.hex(constants.COLORS.ORANGE)(
@@ -918,6 +933,17 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
 
       if (result?.shouldStopRunnerExecution) {
+        const remainingItems = requestItems.slice(currentRequestIndex + 1);
+
+        for (const request of remainingItems) {
+          results.push(createSkippedResult(request, 'stopExecution'));
+        }
+
+        haltRun('stopExecution', {
+          haltedAtRequest: name,
+          haltedReason: 'stopExecution',
+          remainingRequests: remainingItems.length
+        });
         break;
       }
 

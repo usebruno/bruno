@@ -94,6 +94,8 @@ const workspaceSchema = yup.object({
   lastActiveCollectionPathname: yup.string().nullable(),
   activeWorkspaceTabType: yup.string().oneOf([...WORKSPACE_TAB_TYPES, null]).nullable(),
   sorting: yup.mixed().oneOf(['alphabetical', 'reverseAlphabetical', 'default']),
+  apiSpecTabs: yup.array().of(yup.string()).optional(),
+  activeApiSpecTabPathname: yup.string().nullable(),
   collections: yup.array().of(yup.string()).optional()
 });
 
@@ -227,6 +229,8 @@ class SnapshotManager {
     this.store.set('workspaces', (this.store.store?.workspaces ?? []).map((d) => {
       d.lastActiveCollectionPathname = undefined;
       d.activeWorkspaceTabType = undefined;
+      d.apiSpecTabs = undefined;
+      d.activeApiSpecTabPathname = undefined;
       return d;
     }));
     this.store.set('collections', (this.store.store?.collections ?? []).map((d) => {
@@ -508,7 +512,7 @@ class SnapshotManager {
   }
 
   _normalizeWorkspaceEntry(pathname, workspace = {}) {
-    const collections = this._normalizeCollectionPathList(workspace.collections);
+    const collections = this._normalizePathList(workspace.collections);
 
     return {
       pathname,
@@ -520,21 +524,25 @@ class SnapshotManager {
         ? workspace.activeWorkspaceTabType
         : null,
       sorting: typeof workspace.sorting === 'string' ? workspace.sorting : 'default',
+      apiSpecTabs: this._normalizePathList(workspace.apiSpecTabs),
+      activeApiSpecTabPathname: typeof workspace.activeApiSpecTabPathname === 'string'
+        ? workspace.activeApiSpecTabPathname
+        : null,
       collections
     };
   }
 
-  _normalizeCollectionPathList(collectionPaths) {
-    if (!Array.isArray(collectionPaths)) {
+  _normalizePathList(paths) {
+    if (!Array.isArray(paths)) {
       return [];
     }
 
     const dedupedPaths = new Map();
 
-    collectionPaths.forEach((collectionPath) => {
-      const rawPath = typeof collectionPath === 'string'
-        ? collectionPath
-        : (isObject(collectionPath) && typeof collectionPath.path === 'string' ? collectionPath.path : null);
+    paths.forEach((entry) => {
+      const rawPath = typeof entry === 'string'
+        ? entry
+        : (isObject(entry) && typeof entry.path === 'string' ? entry.path : null);
 
       if (!rawPath) {
         return;
