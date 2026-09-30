@@ -6,6 +6,8 @@ const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
 const { getSentHeaders, applyOmitConnectionToAxiosConfig, handleNtlmRedirect } = require('@usebruno/requests');
+const { STATUS_CODES } = require('http');
+const { applyHttp2Native } = require('./http2');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -85,7 +87,8 @@ function makeAxiosInstance({
   systemProxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
-  disableCache
+  disableCache,
+  httpVersion = 'http1'
 } = {}) {
   let redirectCount = 0;
 
@@ -102,7 +105,7 @@ function makeAxiosInstance({
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
-  instance.interceptors.request.use((config) => {
+  instance.interceptors.request.use(async (config) => {
     config.metadata = config.metadata || {};
     config.metadata.startTime = Date.now();
 
@@ -128,6 +131,9 @@ function makeAxiosInstance({
       }
     }
 
+    // POC: axios-native HTTP/2 (installHttp2NativePatch + httpVersion:2). Awaits ALPN probe on auto.
+    await applyHttp2Native({ config, mode: httpVersion });
+
     return config;
   });
 
@@ -138,6 +144,8 @@ function makeAxiosInstance({
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
+      // HTTP/2 has no reason phrase; fill statusText so summaries don't show "undefined".
+      if (!response.statusText) response.statusText = STATUS_CODES[response.status] || '';
 
       return response;
     },
@@ -148,6 +156,7 @@ function makeAxiosInstance({
         const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         error.response.sentHeaders = error.sentHeaders;
+        if (!error.response.statusText) error.response.statusText = STATUS_CODES[error.response.status] || '';
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
