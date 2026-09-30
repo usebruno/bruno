@@ -19,7 +19,7 @@ import {
 import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { normalizePath } from 'utils/common/path';
+import { isCollectionInWorkspace } from 'utils/workspaces';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -99,7 +99,7 @@ const CollectionsSection = () => {
       if (isScratchCollection(c, workspaces)) {
         return false;
       }
-      return activeWorkspace.collections?.some((wc) => normalizePath(wc.path) === normalizePath(c.pathname));
+      return isCollectionInWorkspace(activeWorkspace, c);
     });
   };
 
