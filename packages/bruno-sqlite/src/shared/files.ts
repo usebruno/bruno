@@ -9,11 +9,6 @@ export type FileEntry = {
   inline: boolean;
 };
 
-export type FileRange = {
-  offset?: number;
-  length?: number;
-};
-
 export type FileWriteOptions = {
   contentType?: string | null;
 };

@@ -61,32 +61,27 @@ describe('FileStore', () => {
   });
 
   describe('read', () => {
-    it('reads an inline payload whole and by range', async () => {
+    it('reads an inline payload', async () => {
       const { id } = await files.write('hello world');
 
       expect(Buffer.from((await files.read(id))!).toString()).toBe('hello world');
-      expect(Buffer.from((await files.read(id, { offset: 6, length: 5 }))!).toString()).toBe('world');
-      expect(await files.readText(id, { offset: 0, length: 5 })).toBe('hello');
     });
 
-    it('reads a spilled payload whole and by range', async () => {
+    it('reads a spilled payload', async () => {
       const payload = Buffer.concat([Buffer.alloc(INLINE_MAX, 0x61), Buffer.from('needle')]);
       const { id } = await files.write(payload);
 
-      expect((await files.read(id))!.byteLength).toBe(payload.length);
-      expect(Buffer.from((await files.read(id, { offset: INLINE_MAX, length: 6 }))!).toString()).toBe('needle');
+      expect(Buffer.from((await files.read(id))!)).toEqual(payload);
     });
 
-    it('clamps a range to the end of the payload', async () => {
-      const { id } = await files.write('hello');
+    it('reads an empty payload', async () => {
+      const { id } = await files.write(null);
 
-      expect(Buffer.from((await files.read(id, { offset: 3, length: 100 }))!).toString()).toBe('lo');
-      expect((await files.read(id, { offset: 50 }))!.byteLength).toBe(0);
+      expect((await files.read(id))!.byteLength).toBe(0);
     });
 
     it('returns null for an unknown id', async () => {
       expect(await files.read(9999)).toBeNull();
-      expect(await files.readText(9999)).toBeNull();
       expect(files.stat(9999)).toBeNull();
     });
   });

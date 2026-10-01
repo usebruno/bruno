@@ -96,14 +96,12 @@ of it. Each entry is kept in whichever shape fits its size:
 const { db, statements, files } = createDatabase('/path/to/bruno.db');
 
 const entry = await files.write(buffer, { contentType: 'image/png' });  // { id, size, inline, contentType }
-const bytes = await files.read(entry.id, { offset: 0, length: 4096 });   // Uint8Array, or null
-const text  = await files.readText(entry.id);
+const bytes = await files.read(entry.id);                                // Uint8Array, or null
 files.stat(entry.id);
 await files.remove(entry.id);
 ```
 
-Offsets and lengths are **bytes**. A range read never materialises the whole payload: inline rows are
-sliced inside sqlite with `substr()`, spilled ones are read at a position.
+`read` returns the whole payload, from the row or from the spilled file.
 
 The files directory defaults to `<database path minus extension>-files`; pass `filesDir` to place it
 elsewhere, and `inlineMaxBytes` to move the threshold.
