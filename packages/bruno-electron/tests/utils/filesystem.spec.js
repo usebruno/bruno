@@ -1,4 +1,10 @@
-const { withFileLock } = require('../../src/utils/filesystem');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const {
+  withFileLock,
+  removeGitMetadata
+} = require('../../src/utils/filesystem');
 
 // Manual-gate helper: returns a Promise + a `resolve` function. Tests use this
 // to deterministically interleave two async operations through withFileLock —
@@ -178,5 +184,52 @@ describe('withFileLock', () => {
     await Promise.all([write('A'), write('B')]);
 
     expect(onDisk).toBe('0+A+B');
+  });
+});
+
+describe('removeGitMetadata', () => {
+  let rootDir;
+
+  const write = (relativePath, content = '') => {
+    const filePath = path.join(rootDir, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+
+  const listFiles = () =>
+    fs.readdirSync(rootDir, { recursive: true, withFileTypes: true })
+      .filter((dirent) => !dirent.isDirectory())
+      .map((dirent) => path.relative(rootDir, path.join(dirent.parentPath, dirent.name)).split(path.sep).join('/'))
+      .sort();
+
+  beforeEach(() => {
+    rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(rootDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  });
+
+  test('removes every .git in any case and at any depth and keeps everything else', async () => {
+    write('.git/hooks/post-checkout', '#!/bin/sh');
+    write('users/.git', 'gitdir: ../repo');
+    write('orders/.GIT/config');
+    write('opencollection.yml');
+    write('users/get-user.yml');
+    write('.gitignore');
+    write('.github/workflows/ci.yml');
+
+    await removeGitMetadata(rootDir);
+
+    expect(listFiles()).toEqual(['.github/workflows/ci.yml', '.gitignore', 'opencollection.yml', 'users/get-user.yml']);
+  });
+
+  test('removes a .git symlink without touching its target', async () => {
+    write('link-target/config');
+    fs.symlinkSync(path.join(rootDir, 'link-target'), path.join(rootDir, '.git'), 'junction');
+
+    await removeGitMetadata(rootDir);
+
+    expect(listFiles()).toEqual(['link-target/config']);
   });
 });

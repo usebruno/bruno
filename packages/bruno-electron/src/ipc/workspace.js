@@ -2,10 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const fsExtra = require('fs-extra');
 const archiver = require('archiver');
-const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const isDev = require('electron-is-dev');
-const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
+const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE, isGitMetadataName, extractZipWithoutGitMetadata } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
@@ -302,7 +301,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         return { success: false, canceled: true };
       }
 
-      const ignoredDirectories = ['node_modules', '.git'];
+      const ignoredDirectories = ['node_modules'];
 
       await new Promise((resolve, reject) => {
         const output = fs.createWriteStream(filePath);
@@ -324,6 +323,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           for (const entry of entries) {
             const fullPath = path.join(dirPath, entry.name);
             const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (isGitMetadataName(entry.name)) {
+              continue;
+            }
 
             if (entry.isDirectory()) {
               if (!ignoredDirectories.includes(entry.name)) {
@@ -359,7 +362,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       await fsExtra.ensureDir(tempDir);
 
       try {
-        await extractZip(zipFilePath, { dir: tempDir });
+        await extractZipWithoutGitMetadata({ zipFilePath, dir: tempDir });
 
         const extractedItems = fs.readdirSync(tempDir);
         let workspaceDir = tempDir;

@@ -4,7 +4,6 @@ const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
 const archiver = require('archiver');
-const extractZip = require('extract-zip');
 const AdmZip = require('adm-zip');
 const { ipcMain, shell, dialog, app } = require('electron');
 const {
@@ -61,7 +60,9 @@ const {
   generateUniqueName,
   isValidDotEnvFilename,
   scanForBrunoFiles,
-  withFileLock
+  withFileLock,
+  isGitMetadataName,
+  extractZipWithoutGitMetadata
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -2593,7 +2594,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         return { success: false, canceled: true };
       }
 
-      const ignoredDirectories = ['node_modules', '.git'];
+      const ignoredDirectories = ['node_modules'];
 
       await new Promise((resolve, reject) => {
         const output = fs.createWriteStream(filePath);
@@ -2615,6 +2616,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           for (const entry of entries) {
             const fullPath = path.join(dirPath, entry.name);
             const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
+
+            if (isGitMetadataName(entry.name)) {
+              continue;
+            }
 
             if (entry.isDirectory()) {
               if (!ignoredDirectories.includes(entry.name)) {
@@ -2713,7 +2718,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       };
 
       try {
-        await extractZip(zipFilePath, { dir: tempDir });
+        await extractZipWithoutGitMetadata({ zipFilePath, dir: tempDir });
 
         validateNoExternalSymlinks(tempDir, tempDir);
 
