@@ -3,19 +3,16 @@ const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-jest.mock('electron', () => ({
-  ipcMain: { handle: jest.fn() }
-}));
+const { resolveLocalWsdlSchemaRef } = require('../../src/commands/import');
 
-const { resolveWsdlSchemaRef } = require('../../src/ipc/wsdl');
-
-describe('resolveWsdlSchemaRef', () => {
+// Mirrors bruno-electron/tests/ipc/wsdl.test.js
+describe('resolveLocalWsdlSchemaRef', () => {
   let dir;
   let wsdlPath;
   let commonPath;
 
   beforeAll(() => {
-    dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-wsdl-')));
+    dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-wsdl-')));
     fs.mkdirSync(path.join(dir, 'wsdl'));
     fs.mkdirSync(path.join(dir, 'schema'));
     wsdlPath = path.join(dir, 'wsdl', 'Service.wsdl');
@@ -30,20 +27,30 @@ describe('resolveWsdlSchemaRef', () => {
   });
 
   it('joins a ref against an absolute path base and against a file:// base', async () => {
-    const firstHop = await resolveWsdlSchemaRef(wsdlPath, '../schema/Common.xsd');
+    const firstHop = await resolveLocalWsdlSchemaRef(wsdlPath, '../schema/Common.xsd');
 
     expect(firstHop.text).toBe('<schema/>');
     expect(firstHop.uri).toBe(pathToFileURL(commonPath).href);
 
-    const secondHop = await resolveWsdlSchemaRef(firstHop.uri, '../wsdl/Service.wsdl');
+    const secondHop = await resolveLocalWsdlSchemaRef(firstHop.uri, '../wsdl/Service.wsdl');
 
     expect(secondHop.text).toBe('<definitions/>');
     expect(secondHop.uri).toBe(pathToFileURL(wsdlPath).href);
   });
 
   it('refuses a ref pointing at a non-schema file', async () => {
-    await expect(resolveWsdlSchemaRef(wsdlPath, '../secret.txt')).rejects.toThrow(
+    await expect(resolveLocalWsdlSchemaRef(wsdlPath, '../secret.txt')).rejects.toThrow(
       /must point at a .xsd\/.wsdl file/
     );
+  });
+
+  it('rejects a non-string base uri', async () => {
+    await expect(resolveLocalWsdlSchemaRef(undefined, '../schema/Common.xsd')).rejects.toThrow(
+      /Invalid base URI/
+    );
+  });
+
+  it('rejects a non-string schema reference', async () => {
+    await expect(resolveLocalWsdlSchemaRef(wsdlPath, undefined)).rejects.toThrow(/Invalid schema reference/);
   });
 });
