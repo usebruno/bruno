@@ -9,7 +9,8 @@ import {
   getFolderTags,
   getOwnTags,
   getInheritedTagsFromTreePath,
-  getInheritedTagSourcesFromTreePath
+  getInheritedTagSourcesFromTreePath,
+  mockDataFunctions
 } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import {
@@ -1311,8 +1312,11 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection, item) => {
-  if (!collection) return {};
+const computeVariableScopeBuckets = (collection, item) => {
+  if (!collection) {
+    return {};
+  }
+
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
@@ -1354,6 +1358,38 @@ export const getAllVariables = (collection, item) => {
   const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
 
   return {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    oauth2CredentialVariables,
+    runtimeVariables,
+    promptVariables,
+    mergedProcessEnvVariables,
+    pathParams,
+    maskedEnvVariables: uniqueMaskedVariables
+  };
+};
+
+export const getAllVariables = (collection, item) => {
+  if (!collection) return {};
+
+  const {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    oauth2CredentialVariables,
+    runtimeVariables,
+    promptVariables,
+    mergedProcessEnvVariables,
+    pathParams,
+    maskedEnvVariables
+  } = computeVariableScopeBuckets(collection, item);
+
+  return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
@@ -1365,7 +1401,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
-    maskedEnvVariables: uniqueMaskedVariables,
+    maskedEnvVariables,
     process: {
       env: {
         ...mergedProcessEnvVariables
@@ -1919,6 +1955,56 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+export const getAllVariablesWithScope = (collection, item) => {
+  const {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    runtimeVariables,
+    promptVariables,
+    oauth2CredentialVariables,
+    mergedProcessEnvVariables
+  } = computeVariableScopeBuckets(collection, item);
+
+  const scopeByName = {};
+
+  [
+    ['global', globalEnvironmentVariables],
+    ['collection', collectionVariables],
+    ['environment', envVariables],
+    ['folder', folderVariables],
+    ['request', requestVariables]
+  ].forEach(([scope, vars]) => {
+    Object.keys(vars || {}).forEach((name) => {
+      scopeByName[name] = scope;
+    });
+  });
+
+  Object.keys(oauth2CredentialVariables || {}).forEach((name) => {
+    scopeByName[name] = 'oauth2';
+  });
+
+  Object.keys(runtimeVariables || {}).forEach((name) => {
+    scopeByName[name] = 'runtime';
+  });
+
+  Object.keys(promptVariables || {}).forEach((name) => {
+    scopeByName[name] = 'runtime';
+  });
+
+  Object.keys(mergedProcessEnvVariables || {}).forEach((key) => {
+    scopeByName[`process.env.${key}`] = 'process.env';
+  });
+
+  Object.keys(mockDataFunctions).forEach((key) => {
+    scopeByName[`$${key}`] = 'dynamic';
+  });
+
+  return Object.entries(scopeByName).map(([name, scope]) => ({ name, scope }));
 };
 
 const sidebarEntryCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });

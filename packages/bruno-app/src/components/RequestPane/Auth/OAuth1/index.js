@@ -141,6 +141,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             item={item}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger={true}
           />
         </div>
       </div>
@@ -160,6 +161,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               isSecret={true}
               readOnly={disabled}
               isCompact
+              enableSingleBraceTrigger={true}
             />
             {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
           </div>
@@ -179,6 +181,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             item={item}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger={true}
           />
         </div>
       </div>
@@ -197,6 +200,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             isSecret={true}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger={true}
           />
           {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
         </div>
@@ -370,6 +374,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>
@@ -387,6 +392,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>
@@ -404,6 +410,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>
@@ -421,6 +428,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>
@@ -438,6 +446,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>
@@ -455,6 +464,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger={true}
               />
             </div>
           </div>

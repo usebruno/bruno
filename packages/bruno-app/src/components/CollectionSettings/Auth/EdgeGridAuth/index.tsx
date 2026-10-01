@@ -124,6 +124,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
         </label>
         <div className="single-line-editor-wrapper">
           <SingleLineEditor
+            enableSingleBraceTrigger={true}
             value={fieldValue}
             theme={storedTheme}
             onSave={handleSave}
