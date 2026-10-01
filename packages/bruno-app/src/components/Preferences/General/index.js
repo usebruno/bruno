@@ -8,9 +8,10 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconTrash, IconUpload, IconChevronDown } from '@tabler/icons';
+import { IconTrash, IconUpload } from '@tabler/icons';
 import path from 'utils/common/path';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
+import SegmentedControl from 'ui/SegmentedControl';
 
 const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -335,24 +336,21 @@ const General = () => {
           <SettingsField
             label="HTTP version"
             htmlFor="httpVersion"
+            className="mt-3"
           >
-            <div className="http-version-select-wrap relative inline-flex items-center">
-              <select
-                id="httpVersion"
-                name="httpVersion"
-                className="http-version-select"
-                value={formik.values.httpVersion}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                aria-label="HTTP version"
-                data-testid="general-http-version-select"
-              >
-                <option value="auto">Auto (HTTP/2 when available)</option>
-                <option value="http1">HTTP/1.1</option>
-                <option value="http2">HTTP/2</option>
-              </select>
-              <IconChevronDown size={12} strokeWidth={1.75} className="http-version-select-chevron" />
-            </div>
+            <SegmentedControl
+              name="httpVersion"
+              ariaLabel="HTTP version"
+              size="md"
+              value={formik.values.httpVersion}
+              onChange={(value) => formik.setFieldValue('httpVersion', value)}
+              data-testid="general-http-version-select"
+              items={[
+                { value: 'auto', label: 'Auto' },
+                { value: 'http1', label: 'HTTP/1.1' },
+                { value: 'http2', label: 'HTTP/2' }
+              ]}
+            />
           </SettingsField>
         </SettingsGroup>
 
