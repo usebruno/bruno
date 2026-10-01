@@ -41,7 +41,20 @@ const config = {
         arch: ['x64', 'arm64']
       }
     ],
+    // Legacy icon, used by macOS versions older than 26
     icon: 'resources/icons/mac/icon.icns',
+    // Icon Composer icon (light/dark/tinted variants), used by macOS 26 and newer.
+    // Compiled from resources/icons/mac/icon.icon - see readme.md to regenerate.
+    // CFBundleIconName must match the actool --app-icon name.
+    extraResources: [
+      {
+        from: 'resources/icons/mac/Assets.car',
+        to: 'Assets.car'
+      }
+    ],
+    extendInfo: {
+      CFBundleIconName: 'icon'
+    },
     hardenedRuntime: true,
     identity: 'Anoop MD (W7LPPWA48L)',
     entitlements: 'resources/entitlements.mac.plist',
