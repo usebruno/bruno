@@ -1,10 +1,21 @@
-import { buildAddToScopes, buildScopeInfo, resolveFolderScopeTarget } from './index';
+import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope, resolveFolderScopeTarget } from './index';
 import { getAvailableAddToScopes } from 'utils/collections';
+import { addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 jest.mock('utils/collections', () => ({
   findCollectionByUid: (collections, uid) => (collections || []).find((collection) => collection.uid === uid),
   findParentItemInCollection: jest.fn(),
   getAvailableAddToScopes: jest.fn(() => [])
+}));
+
+jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
+  addEnvironment: jest.fn(),
+  selectEnvironment: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/global-environments', () => ({
+  addGlobalEnvironment: jest.fn()
 }));
 
 const { findParentItemInCollection } = require('utils/collections');
@@ -130,5 +141,73 @@ describe('buildScopeInfo', () => {
 
   it('returns null for an unknown scope', () => {
     expect(buildScopeInfo({ scopeType: 'runtime', state, collection, item })).toBeNull();
+  });
+});
+
+describe('createEnvironmentForScope', () => {
+  const createStore = (storeState) => ({
+    getState: () => storeState,
+    dispatch: jest.fn(() => Promise.resolve()),
+    subscribe: jest.fn(() => jest.fn())
+  });
+
+  it('rejects a name the main process would rewrite, rather than reporting a false failure later', async () => {
+    const store = createStore(state);
+
+    await expect(
+      createEnvironmentForScope({ scope: { type: 'environment', label: 'Collection Environment' }, name: 'Prod:Env', collectionUid: 'col-1', store })
+    ).rejects.toThrow();
+    expect(addEnvironment).not.toHaveBeenCalled();
+  });
+
+  it('rejects a collection environment name differing only in case', async () => {
+    const store = createStore(state);
+
+    await expect(
+      createEnvironmentForScope({ scope: { type: 'environment', label: 'Collection Environment' }, name: 'dev', collectionUid: 'col-1', store })
+    ).rejects.toThrow('Environment already exists');
+    expect(addEnvironment).not.toHaveBeenCalled();
+  });
+
+  it('rejects a global environment name differing only in case', async () => {
+    const store = createStore({
+      ...state,
+      globalEnvironments: { globalEnvironments: [{ uid: 'genv-1', name: 'Shared' }], activeGlobalEnvironmentUid: null }
+    });
+
+    await expect(
+      createEnvironmentForScope({ scope: { type: 'global', label: 'Global Environment' }, name: 'SHARED', collectionUid: 'col-1', store })
+    ).rejects.toThrow('Environment already exists');
+    expect(addGlobalEnvironment).not.toHaveBeenCalled();
+  });
+
+  it('creates a global environment', async () => {
+    const store = createStore(state);
+
+    await createEnvironmentForScope({ scope: { type: 'global', label: 'Global Environment' }, name: 'Shared', collectionUid: 'col-1', store });
+
+    expect(addGlobalEnvironment).toHaveBeenCalledWith({ name: 'Shared', variables: [] });
+  });
+
+  it('creates a collection environment then selects it once the watcher reports it', async () => {
+    const before = { collections: { collections: [{ uid: 'col-1', environments: [], activeEnvironmentUid: null }] } };
+    const after = {
+      collections: { collections: [{ uid: 'col-1', environments: [{ uid: 'env-9', name: 'Staging' }], activeEnvironmentUid: null }] }
+    };
+    const getState = jest.fn().mockReturnValueOnce(before).mockReturnValue(after);
+    const store = { getState, dispatch: jest.fn(() => Promise.resolve()), subscribe: jest.fn(() => jest.fn()) };
+
+    await createEnvironmentForScope({ scope: { type: 'environment', label: 'Collection Environment' }, name: 'Staging', collectionUid: 'col-1', store });
+
+    expect(addEnvironment).toHaveBeenCalledWith('Staging', 'col-1');
+    expect(selectEnvironment).toHaveBeenCalledWith('env-9', 'col-1');
+  });
+
+  it('rejects scopes that cannot be created', async () => {
+    const store = createStore(state);
+
+    await expect(
+      createEnvironmentForScope({ scope: { type: 'collection', label: 'Collection Variable' }, name: 'Nope', collectionUid: 'col-1', store })
+    ).rejects.toThrow('does not support creating a new one');
   });
 });

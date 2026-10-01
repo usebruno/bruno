@@ -1,5 +1,10 @@
 import { findCollectionByUid, findParentItemInCollection, getAvailableAddToScopes } from 'utils/collections';
+import { addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { validateName, validateNameError } from 'utils/common/regex';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+
+const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
 
 export const resolveFolderScopeTarget = (collection, item) => {
   const isSelfFolder = !!(item && item.type === 'folder');
@@ -66,4 +71,74 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
     default:
       return null;
   }
+};
+
+// `addEnvironment` only writes the file through IPC. The store is updated later, once the
+// filesystem watcher picks up the new file and dispatches it in.
+export const waitForEnvironmentByName = ({ store, collectionUid, name }) => {
+  const findEnvironment = () => {
+    const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
+    return (freshCollection?.environments || []).find((env) => env.name === name);
+  };
+
+  return new Promise((resolve, reject) => {
+    const existing = findEnvironment();
+    if (existing) {
+      return resolve(existing);
+    }
+
+    let unsubscribe;
+
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Failed to create environment "${name}"`));
+    }, NEW_ENVIRONMENT_WAIT_TIMEOUT_MS);
+
+    unsubscribe = store.subscribe(() => {
+      const found = findEnvironment();
+      if (found) {
+        clearTimeout(timeoutId);
+        unsubscribe();
+        resolve(found);
+      }
+    });
+  });
+};
+
+const isDuplicateEnvironmentName = (environments, name) =>
+  (environments || []).some((env) => env?.name?.toLowerCase().trim() === name.toLowerCase());
+
+export const createEnvironmentForScope = ({ scope, name, collectionUid, store }) => {
+  const trimmedName = (name || '').trim();
+
+  // The main process sanitizes the name into a filename; a name it would rewrite makes the
+  // name-based wait below time out, so reject it up front rather than reporting a false failure.
+  if (!validateName(trimmedName)) {
+    return Promise.reject(new Error(validateNameError(trimmedName)));
+  }
+
+  const state = store.getState();
+
+  if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
+    if (isDuplicateEnvironmentName(state.globalEnvironments?.globalEnvironments, trimmedName)) {
+      return Promise.reject(new Error('Environment already exists'));
+    }
+
+    return store.dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }));
+  }
+
+  if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
+    const freshCollection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    if (isDuplicateEnvironmentName(freshCollection?.environments, trimmedName)) {
+      return Promise.reject(new Error('Environment already exists'));
+    }
+
+    return store
+      .dispatch(addEnvironment(trimmedName, collectionUid))
+      .then(() => waitForEnvironmentByName({ store, collectionUid, name: trimmedName }))
+      .then((newEnvironment) => store.dispatch(selectEnvironment(newEnvironment.uid, collectionUid)));
+  }
+
+  return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
 };

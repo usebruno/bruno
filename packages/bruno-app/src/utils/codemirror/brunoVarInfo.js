@@ -18,12 +18,8 @@ import {
   findParentItemInCollection,
   getAvailableAddToScopes
 } from 'utils/collections';
-import {
-  updateVariableInScope,
-  addEnvironment,
-  selectEnvironment
-} from 'providers/ReduxStore/slices/collections/actions';
-import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import { createEnvironmentForScope } from 'utils/variables';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -119,40 +115,6 @@ const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
   labelSpan.className = 'var-scope-badge-label';
   labelSpan.textContent = label;
   scopeBadge.appendChild(labelSpan);
-};
-
-const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
-
-// `addEnvironment` only writes the file through IPC. The store is updated later, once the
-// filesystem watcher picks up the new file and dispatches it in.
-// subscribe to the store and resolve on the exact dispatch that adds it
-const waitForEnvironmentByName = (collectionUid, name) => {
-  const findEnvironment = () => {
-    const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
-    return (freshCollection?.environments || []).find((env) => env.name === name);
-  };
-
-  return new Promise((resolve, reject) => {
-  // check if the environment already exists in the store (in case it was created before this function was called)
-    const existing = findEnvironment();
-    if (existing) {
-      return resolve(existing);
-    }
-
-    const timeoutId = setTimeout(() => {
-      unsubscribe();
-      reject(new Error(`Failed to create environment "${name}"`));
-    }, NEW_ENVIRONMENT_WAIT_TIMEOUT_MS);
-
-    const unsubscribe = store.subscribe(() => {
-      const found = findEnvironment();
-      if (found) {
-        clearTimeout(timeoutId);
-        unsubscribe();
-        resolve(found);
-      }
-    });
-  });
 };
 
 // Get the masked display text based on the value length
@@ -882,47 +844,9 @@ export const renderVarInfo = (token, options) => {
         setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
       };
 
-      const onCreateEnvironment = (scope, name) => {
-        const dispatch = store.dispatch;
-        const trimmedName = (name || '').trim();
-
-        if (!validateName(trimmedName)) {
-          return Promise.reject(new Error(validateNameError(trimmedName)));
-        }
-
-        const freshState = store.getState();
-
-        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
-          const globalEnvironments = freshState.globalEnvironments?.globalEnvironments || [];
-          const isDuplicate = globalEnvironments.some(
-            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
-          );
-          if (isDuplicate) {
-            return Promise.reject(new Error('Environment already exists'));
-          }
-
-          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }))
-            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.GLOBAL));
-        }
-
-        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
-          const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
-
-          const isDuplicate = (freshCollection?.environments || []).some(
-            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
-          );
-          if (isDuplicate) {
-            return Promise.reject(new Error('Environment already exists'));
-          }
-
-          return dispatch(addEnvironment(trimmedName, collection.uid))
-            .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
-            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)))
-            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.ENVIRONMENT));
-        }
-
-        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
-      };
+      const onCreateEnvironment = (scope, name) =>
+        createEnvironmentForScope({ scope, name, collectionUid: collection?.uid, store })
+          .then(() => getFreshScopeForType(scope.type));
 
       const addToSwitcher = createAddToScopeSwitcher({
         scopes: addToScopes,
