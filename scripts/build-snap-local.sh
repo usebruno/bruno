@@ -26,7 +26,14 @@ done
 
 command -v snapcraft > /dev/null || { echo "snapcraft is not installed (sudo snap install snapcraft --classic)" >&2; exit 1; }
 
-SNAPCRAFT_MAJOR="$(snapcraft --version | awk '{print $2}' | cut -d. -f1)"
+# Output is "snapcraft 9.1.3" on recent releases, "snapcraft, version 4.4.4" on older ones
+SNAPCRAFT_VERSION="$(snapcraft --version)"
+if [[ "$SNAPCRAFT_VERSION" =~ ([0-9]+)\.[0-9]+ ]]; then
+  SNAPCRAFT_MAJOR="${BASH_REMATCH[1]}"
+else
+  echo "Cannot parse snapcraft version: $SNAPCRAFT_VERSION" >&2
+  exit 1
+fi
 
 # Destructive mode builds on the host, so the base must match the host release
 if [ -z "${SNAP_BASE:-}" ]; then
@@ -34,10 +41,16 @@ if [ -z "${SNAP_BASE:-}" ]; then
   case "$VERSION_ID" in
     20.04) SNAP_BASE=core20 ;;
     22.04) SNAP_BASE=core22 ;;
-    24.04) SNAP_BASE=core24 ;;
     *) echo "Unsupported host $PRETTY_NAME; set SNAP_BASE explicitly" >&2; exit 1 ;;
   esac
 fi
+
+# electron-builder 24 emits a core20/core22-style manifest (e.g. `architectures`),
+# which Snapcraft rejects for core24 and later
+case "$SNAP_BASE" in
+  core20|core22) ;;
+  *) echo "Base $SNAP_BASE is not supported by electron-builder 24; build on Ubuntu 20.04 or 22.04" >&2; exit 1 ;;
+esac
 
 case "$(uname -m)" in
   x86_64) SNAP_ARCH=amd64 ;;
