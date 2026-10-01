@@ -211,15 +211,20 @@ const CreateApiSpec = ({ onClose }) => {
     return { content: exported?.content || '', warnings: exported?.warnings || [] };
   };
 
-  const selectImportFrom = (nextImportFrom) => {
-    const currentImportFrom = formik.values.importFrom;
-    if (nextImportFrom === currentImportFrom) {
+  const getSourceMemoryKey = (importFrom, collectionSource) => (
+    importFrom === API_SPEC_SOURCE.COLLECTION ? `${importFrom}:${collectionSource}` : importFrom
+  );
+
+  const switchSource = ({ importFrom, collectionSource }) => {
+    const currentKey = getSourceMemoryKey(formik.values.importFrom, formik.values.collectionSource);
+    const nextKey = getSourceMemoryKey(importFrom, collectionSource);
+    if (nextKey === currentKey) {
       return;
     }
 
     sourceMemoryRef.current = {
       ...sourceMemoryRef.current,
-      [currentImportFrom]: {
+      [currentKey]: {
         apiSpecName: formik.values.apiSpecName,
         apiSpecLocation: formik.values.apiSpecLocation,
         nameEdited: apiSpecNameEditedRef.current,
@@ -227,19 +232,15 @@ const CreateApiSpec = ({ onClose }) => {
       }
     };
 
-    const remembered = sourceMemoryRef.current[nextImportFrom];
+    const remembered = sourceMemoryRef.current[nextKey];
     apiSpecNameEditedRef.current = Boolean(remembered?.nameEdited);
     apiSpecLocationEditedRef.current = Boolean(remembered?.locationEdited);
 
     formik.setFieldValue('apiSpecName', remembered?.apiSpecName || '');
     formik.setFieldValue('apiSpecLocation', remembered?.apiSpecLocation || defaultApiSpecLocation || '');
-    formik.setFieldValue('importFrom', nextImportFrom);
+    formik.setFieldValue('importFrom', importFrom);
+    formik.setFieldValue('collectionSource', collectionSource);
 
-    formik.setTouched({}, false);
-  };
-
-  const selectCollectionSource = (nextCollectionSource) => {
-    formik.setFieldValue('collectionSource', nextCollectionSource);
     formik.setTouched({}, false);
   };
 
@@ -294,7 +295,7 @@ const CreateApiSpec = ({ onClose }) => {
     }[formik.values.importFrom] || '';
 
     formik.setFieldValue('apiSpecName', derivedName);
-  }, [formik.values.importFrom, collectionSource.derivedName, urlSource.derivedName]);
+  }, [formik.values.importFrom, formik.values.collectionSource, collectionSource.derivedName, urlSource.derivedName]);
 
   const onSubmit = () => formik.handleSubmit();
 
@@ -331,7 +332,7 @@ const CreateApiSpec = ({ onClose }) => {
                       name="importFrom"
                       value={value}
                       checked={formik.values.importFrom === value}
-                      onChange={(e) => selectImportFrom(e.target.value)}
+                      onChange={(e) => switchSource({ importFrom: e.target.value, collectionSource: formik.values.collectionSource })}
                     />
                     <label htmlFor={value} className="ml-1 cursor-pointer select-none">
                       {label}
@@ -348,7 +349,7 @@ const CreateApiSpec = ({ onClose }) => {
                   selectedWorkspaceCollection={selectedWorkspaceCollection}
                   environmentNames={Object.keys(collectionSource.environments || {})}
                   loadError={collectionSource.loadError}
-                  onSelectSource={selectCollectionSource}
+                  onSelectSource={(nextCollectionSource) => switchSource({ importFrom: formik.values.importFrom, collectionSource: nextCollectionSource })}
                   onSelectCollection={(collectionUid) => formik.setFieldValue('collectionUid', collectionUid)}
                   onSelectEnvironment={(environmentName) => formik.setFieldValue('environment', environmentName)}
                   onBrowseCollection={browseCollection}

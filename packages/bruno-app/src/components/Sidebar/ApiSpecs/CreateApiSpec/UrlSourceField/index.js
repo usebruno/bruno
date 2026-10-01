@@ -1,45 +1,37 @@
 import React from 'react';
-import { IconLink } from '@tabler/icons';
 
 const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl }) => (
   <>
-    <div className="relative mt-4">
-      {formik.values.specUrl ? (
-        <span className="input-icon">
-          <IconLink size={14} strokeWidth={1.5} />
-        </span>
-      ) : null}
-      <input
-        id="spec-url"
-        type="text"
-        name="specUrl"
-        className={`mt-4 block textbox w-full ${formik.values.specUrl ? '!pl-9' : ''}`}
-        placeholder="https://api.example.com/openapi.json"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-        value={formik.values.specUrl || ''}
-        onChange={(e) => {
-          onUrlChanged(e.target.value);
-          formik.handleChange(e);
-        }}
-        onBlur={(e) => {
-          formik.handleBlur(e);
-          if (e.target.value.trim()) {
-            onResolveUrl(e.target.value);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            e.stopPropagation();
-            onResolveUrl(e.target.value);
-          }
-        }}
-        data-testid="api-spec-url"
-      />
-    </div>
+    <input
+      id="spec-url"
+      type="text"
+      name="specUrl"
+      className="mt-8 block textbox w-full"
+      placeholder="https://api.example.com/openapi.json"
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck="false"
+      value={formik.values.specUrl || ''}
+      onChange={(e) => {
+        onUrlChanged(e.target.value);
+        formik.handleChange(e);
+      }}
+      onBlur={(e) => {
+        formik.handleBlur(e);
+        if (e.target.value.trim()) {
+          onResolveUrl(e.target.value);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          onResolveUrl(e.target.value);
+        }
+      }}
+      data-testid="api-spec-url"
+    />
     {isFetching ? (
       <div className="text-xs mt-1 opacity-70" data-testid="api-spec-url-loading">
         Fetching specification…

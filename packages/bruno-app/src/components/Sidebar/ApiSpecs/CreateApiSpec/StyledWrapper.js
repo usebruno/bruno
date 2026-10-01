@@ -5,20 +5,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.darkOrange};
   }
 
-  .input-icon {
-    position: absolute;
-    left: 0.5rem;
-    top: 0;
-    bottom: 0;
-    width: 1rem;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
   /* Small enough to sit inside the modal rather than spilling past its edge. */
   .api-spec-hint-tooltip {
     max-width: 12.5rem;

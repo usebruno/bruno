@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip } from 'react-tooltip';
 import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
-import { IconChevronDown, IconFolder } from '@tabler/icons';
+import { IconChevronDown } from '@tabler/icons';
 import { COLLECTION_SOURCE, COLLECTION_SOURCE_ITEMS } from '../apiSpecSources';
 
 const NO_COLLECTIONS_HINT = 'No collections in this workspace';
@@ -72,6 +72,7 @@ const CollectionSourceFields = ({
             placement="bottom-start"
             appendTo={() => document.body}
             popperOptions={{ strategy: 'fixed' }}
+            offset={[0, 0]}
             sameWidth
           >
             <button
@@ -92,28 +93,21 @@ const CollectionSourceFields = ({
         </>
       ) : (
         <>
-          <div className="relative mt-1">
-            {formik.values.collectionLocation ? (
-              <span className="input-icon">
-                <IconFolder size={14} strokeWidth={1.5} />
-              </span>
-            ) : null}
-            <input
-              id="collection-location"
-              type="text"
-              name="collectionLocation"
-              readOnly={true}
-              placeholder="Choose file..."
-              className={`block textbox w-full cursor-pointer ${formik.values.collectionLocation ? '!pl-9' : ''}`}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              title={formik.values.collectionLocation || ''}
-              value={formik.values.collectionLocation || ''}
-              onClick={onBrowseCollection}
-            />
-          </div>
+          <input
+            id="collection-location"
+            type="text"
+            name="collectionLocation"
+            readOnly={true}
+            placeholder="Choose file..."
+            className="block textbox mt-1 w-full cursor-pointer"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            title={formik.values.collectionLocation || ''}
+            value={formik.values.collectionLocation || ''}
+            onClick={onBrowseCollection}
+          />
           {loadError || (formik.touched.collectionLocation && formik.errors.collectionLocation) ? (
             <div className="text-red-500 break-words">{loadError || formik.errors.collectionLocation}</div>
           ) : null}
@@ -141,6 +135,7 @@ const CollectionSourceFields = ({
             placement="bottom-start"
             appendTo={() => document.body}
             popperOptions={{ strategy: 'fixed' }}
+            offset={[0, 0]}
             sameWidth
           >
             <button
