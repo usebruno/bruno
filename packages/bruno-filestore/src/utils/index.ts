@@ -1,4 +1,4 @@
-const { customAlphabet } = require('nanoid');
+import { customAlphabet } from 'nanoid';
 
 export const isString = (value: unknown): value is string => typeof value === 'string';
 
