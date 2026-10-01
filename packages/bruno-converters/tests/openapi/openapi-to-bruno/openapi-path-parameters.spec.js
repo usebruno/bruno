@@ -1435,6 +1435,27 @@ describe('openapi object parameters at the default styles', () => {
     expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
   });
 
+  it('leaves an optional header off when the object declares properties but no values', () => {
+    const empty = { type: 'object', properties: { R: { type: 'integer' }, G: { type: 'integer' } } };
+    const request = importRequest({ name: 'X-Color', in: 'header', schema: empty });
+
+    expect(request.headers[0].value).toBe('');
+    expect(request.headers[0].enabled).toBe(false);
+  });
+
+  it('writes no value for a required path object whose properties declare none', () => {
+    const empty = { type: 'object', properties: { R: { type: 'integer' }, G: { type: 'integer' } } };
+    const request = importRequest({ name: 'color', in: 'path', required: true, schema: empty }, '/x/{color}');
+
+    expect(request.params[0].value).toBe('');
+    expect(request.params[0].enabled).toBe(true);
+  });
+
+  it('skips the properties that declare no value rather than leaving an empty slot', () => {
+    const partial = { type: 'object', properties: { R: { type: 'integer', example: 1 }, G: { type: 'integer' } } };
+    expect(values({ name: 'X-Color', in: 'header', schema: partial })).toEqual(['X-Color=R,1']);
+  });
+
   it('leaves an empty object to the later fallbacks rather than writing empty braces', () => {
     const param = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: {} };
     expect(values(param, '/x/{color}')).toEqual(['color=']);

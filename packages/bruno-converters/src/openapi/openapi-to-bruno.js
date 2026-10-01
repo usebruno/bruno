@@ -232,7 +232,10 @@ const objectValueFromSchema = (param) => {
     const [firstEntry] = getParameterEntries({
       ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
     });
-    value[propName] = firstEntry ? firstEntry.value : '';
+
+    if (firstEntry && firstEntry.value !== '') {
+      value[propName] = firstEntry.value;
+    }
   });
 
   return value;
