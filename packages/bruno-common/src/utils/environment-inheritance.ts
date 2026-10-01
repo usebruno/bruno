@@ -12,10 +12,22 @@ export interface InheritableVariable {
   inheritedFrom?: InheritedFrom;
 }
 
+export interface InheritableExternalSecretVariable {
+  name: string;
+  inheritedFrom?: InheritedFrom;
+  [key: string]: string | InheritedFrom | undefined;
+}
+
+export interface InheritableExternalSecrets {
+  type: string;
+  variables: InheritableExternalSecretVariable[];
+}
+
 export interface ExtendableEnvironment {
   uid: string;
   name: string;
   variables: InheritableVariable[];
+  externalSecrets?: InheritableExternalSecrets | null;
   extends?: string | null;
 }
 
@@ -26,7 +38,10 @@ export interface UnresolvedInheritance {
 
 export type ResolvedEnvironment<E extends ExtendableEnvironment, Merge extends boolean = false> = Merge extends true
   ? E & UnresolvedInheritance
-  : E & { inheritedVariables: E['variables'] } & UnresolvedInheritance;
+  : E & {
+    inheritedVariables: E['variables'];
+    inheritedExternalSecrets: InheritableExternalSecrets | undefined;
+  } & UnresolvedInheritance;
 
 export const validatedEnvironmentName = (reference: unknown): string | undefined => {
   if (typeof reference !== 'string') {
@@ -144,7 +159,9 @@ export const resolveEnvironmentInheritance = <
 
   if (!targetEnvironment.extends) {
     return (
-      merge ? { ...targetEnvironment } : { ...targetEnvironment, inheritedVariables: [] }
+      merge
+        ? { ...targetEnvironment }
+        : { ...targetEnvironment, inheritedVariables: [], inheritedExternalSecrets: undefined }
     ) as ResolvedEnvironment<E, Merge>;
   }
 
@@ -188,10 +205,53 @@ export const resolveEnvironmentInheritance = <
 
   const inheritedVariables = [...nonSecrets.values(), ...secrets.values()] as E['variables'];
 
+  // External secrets follow the same root-first walk: the nearest ancestor that defines a
+  // block decides the inherited provider type, and the target's own block decides the
+  // effective one. Ancestors on a different provider type do not contribute variables,
+  // since a single block can only be fetched from one provider.
+  const ownExternalSecrets = targetEnvironment.externalSecrets ?? undefined;
+  const inheritedSecretEntries = new Map<string, { variable: InheritableExternalSecretVariable; type: string }>();
+  let inheritedSecretsType: string | undefined;
+
+  inheritedEnvironments.forEach((environment) => {
+    const block = environment.externalSecrets;
+    if (!block || typeof block.type !== 'string' || !block.type) {
+      return;
+    }
+
+    inheritedSecretsType = block.type;
+    const inheritedFrom = { name: environment.name, uid: environment.uid };
+
+    (block.variables ?? []).forEach((v) => {
+      if (!v || typeof v.name !== 'string') {
+        return;
+      }
+      inheritedSecretEntries.set(v.name, { variable: { ...v, inheritedFrom }, type: block.type });
+    });
+  });
+
+  const effectiveExternalSecretsType = ownExternalSecrets?.type || inheritedSecretsType;
+  const ownExternalSecretNames = new Set((ownExternalSecrets?.variables ?? []).map((v) => v?.name));
+  const inheritedSecretVariables = [...inheritedSecretEntries.values()]
+    .filter(({ variable, type }) => type === effectiveExternalSecretsType && !ownExternalSecretNames.has(variable.name))
+    .map(({ variable }) => variable);
+
+  const inheritedExternalSecrets: InheritableExternalSecrets | undefined = inheritedSecretVariables.length
+    ? { type: effectiveExternalSecretsType as string, variables: inheritedSecretVariables }
+    : undefined;
+
   if (merge) {
+    const mergedExternalSecrets
+      = ownExternalSecrets || inheritedExternalSecrets
+        ? {
+            type: effectiveExternalSecretsType as string,
+            variables: [...(inheritedExternalSecrets?.variables ?? []), ...(ownExternalSecrets?.variables ?? [])]
+          }
+        : targetEnvironment.externalSecrets;
     return {
       ...targetEnvironment,
       variables: [...inheritedVariables, ...ownVariables],
+      externalSecrets: mergedExternalSecrets,
       missingInheritedEnvironmentName,
       cyclicInheritancePath
     } as ResolvedEnvironment<E, Merge>;
@@ -200,6 +260,7 @@ export const resolveEnvironmentInheritance = <
   return {
     ...targetEnvironment,
     inheritedVariables,
+    inheritedExternalSecrets,
     missingInheritedEnvironmentName,
     cyclicInheritancePath
   } as ResolvedEnvironment<E, Merge>;
