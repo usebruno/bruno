@@ -35,7 +35,8 @@ const aiPreferencesSchema = Yup.object().shape({
         Yup.object().shape({
           id: Yup.string().required(),
           label: Yup.string().max(120).nullable(),
-          modelId: Yup.string().max(200).nullable()
+          modelId: Yup.string().max(200).nullable(),
+          apiFormat: Yup.string().oneOf(['chat-completions', 'responses']).nullable()
         })
       )
     })
