@@ -1,4 +1,5 @@
 const { describe, it, expect, beforeEach } = require('@jest/globals');
+const path = require('node:path');
 
 // Mock all heavy dependencies before requiring the module
 jest.mock('../../src/runner/prepare-request', () => jest.fn());
@@ -233,5 +234,85 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.duration).toBe(0);
     expect(result.response.size).toBe(0);
     expect(result.response.responseTime).toBe(0);
+  });
+});
+
+describe('runSingleRequest: variable value recorder (issue #9370)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('records the effective values after a post-response script mutates a variable and throws', async () => {
+    const recorded = [];
+    const recorder = (effective) => recorded.push({ ...effective });
+
+    prepareRequest.mockResolvedValue({
+      method: 'GET',
+      url: 'http://example.com/api',
+      headers: {},
+      data: null,
+      settings: {},
+      script: { res: 'bru.setEnvVar("AffPass", "actual-secret"); throw new Error("actual-secret");' }
+    });
+
+    const mockAxios = jest.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => null, delete: jest.fn() },
+      data: JSON.stringify({ message: 'ok' }),
+      request: { protocol: 'http:', host: 'example.com', path: '/api' }
+    });
+    makeAxiosInstance.mockReturnValue(mockAxios);
+
+    const collectionPath = path.resolve('test-collection');
+    const scriptError = new Error('actual-secret');
+    scriptError.partialResults = {
+      envVariables: { AffPass: 'actual-secret' },
+      results: [{ status: 'pass', description: 'set var' }]
+    };
+    ScriptRuntime.mockImplementation(() => ({
+      runResponseScript: jest.fn().mockRejectedValue(scriptError)
+    }));
+
+    const item = {
+      ...baseItem,
+      pathname: path.join(collectionPath, 'request.bru'),
+      request: {
+        ...baseItem.request,
+        script: { res: 'bru.setEnvVar("AffPass", "actual-secret"); throw new Error("actual-secret");' },
+        headers: [],
+        body: { mode: 'none' },
+        vars: { req: [] }
+      }
+    };
+
+    const envVariables = {};
+    const args = [
+      item, // item
+      collectionPath, // collectionPath
+      {}, // runtimeVariables
+      envVariables, // envVariables
+      {}, // processEnvVars
+      {}, // brunoConfig
+      {}, // collectionRoot
+      'vm2', // runtime
+      { items: [], pathname: collectionPath }, // collection
+      jest.fn(), // runSingleRequestByPathname
+      {}, // globalEnvVars
+      {}, // persistPaths
+      null, // runAbortSignal
+      recorder // variableValueRecorder
+    ];
+    const result = await runSingleRequest(...args);
+
+    // The run itself stays a pass: a post-response script error is logged and
+    // surfaced through postResponseTestResults, not the request status.
+    expect(result.status).toBe('pass');
+    expect(result.postResponseTestResults.some((r) => r.isScriptError)).toBe(true);
+    // The partial results are synced and the recorder follows the sync, so the
+    // value the script wrote before erroring is captured for masking.
+    expect(recorded.length).toBeGreaterThan(1);
+    const lastSnapshot = recorded[recorded.length - 1];
+    expect(lastSnapshot.AffPass).toBe('actual-secret');
   });
 });
