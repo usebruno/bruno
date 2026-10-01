@@ -23,8 +23,6 @@ export type FileLocation = FileEntry & {
 
 const quoted = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
 
-// The only names write() ever produces. bruno.db is a plain file under userData, so a row's
-// file_name is untrusted input however it got there — anything else must never become a path.
 const SPILLED_FILE_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.bin$/;
 
 const toBytes = (data: FileData | null | undefined): Buffer => {
@@ -36,25 +34,21 @@ const toBytes = (data: FileData | null | undefined): Buffer => {
 export class FileStore {
   _db: DatabaseSync;
   _statements: Statements;
-  _directory: string;
+  readonly directory: string;
   _inlineMaxBytes: number;
 
   constructor(db: DatabaseSync, statements: Statements, options: FileStoreOptions) {
     this._db = db;
     this._statements = statements;
-    this._directory = options.directory;
+    this.directory = options.directory;
     this._inlineMaxBytes = options.inlineMaxBytes ?? INLINE_MAX_BYTES;
-  }
-
-  get directory(): string {
-    return this._directory;
   }
 
   pathFor(fileName: string): string {
     if (!SPILLED_FILE_NAME.test(fileName)) {
       throw new Error(`refusing to resolve an unexpected file name: ${fileName}`);
     }
-    return join(this._directory, fileName);
+    return join(this.directory, fileName);
   }
 
   async write(data: FileData | null, options: FileWriteOptions = {}): Promise<FileEntry> {
@@ -64,7 +58,7 @@ export class FileStore {
 
     if (!inline) {
       fileName = `${randomUUID()}.bin`;
-      await mkdir(this._directory, { recursive: true });
+      await mkdir(this.directory, { recursive: true });
       await writeFile(this.pathFor(fileName), bytes);
     }
 
@@ -163,7 +157,7 @@ export class FileStore {
 
     let entries: string[];
     try {
-      entries = await readdir(this._directory);
+      entries = await readdir(this.directory);
     } catch {
       return 0;
     }
