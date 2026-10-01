@@ -1161,11 +1161,12 @@ export const hasRequestChanges = (item) => {
   const originalItem = cloneDeep(item);
   const draftItem = cloneDeep(item.draft);
 
-  // Remove examples from both items for comparison
   delete originalItem.examples;
   delete originalItem.draft;
+  delete originalItem.unresolvedVariables;
   delete draftItem.examples;
   delete draftItem.draft;
+  delete draftItem.unresolvedVariables;
 
   return !isEqual(originalItem, draftItem);
 };

@@ -10,7 +10,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2, trackUnresolvedVariables, getUnresolvedVariableCollector } = require('@usebruno/js');
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -374,8 +374,12 @@ const configureRequest = async (
     const urlObj = new URL(request.url);
 
     // Interpolate key and value as they can be variables before adding to the URL.
-    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
-    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+    const apiKeyInterpolationOptions = {
+      ...interpolationOptions,
+      onUnresolved: getUnresolvedVariableCollector(request)
+    };
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, apiKeyInterpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, apiKeyInterpolationOptions);
 
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
@@ -753,13 +757,14 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     // Nested bru.runRequest() invocations have no item.requestUid; inherit the parent's
     // so script-driven variable updates aren't dropped by the renderer's requestUid gate.
     const requestUid = item.requestUid || parentRequestUid || uuid();
+    let unresolvedVariables = null;
 
     const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
@@ -810,7 +815,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
           } catch (e) {
             err = e;
           }
@@ -888,6 +893,24 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    if (!runInBackground || parentUnresolvedVariables) {
+      unresolvedVariables = trackUnresolvedVariables(request, parentUnresolvedVariables);
+    }
+
+    let reportedUnresolvedCount = 0;
+    const reportUnresolvedVariables = () => {
+      if (runInBackground || unresolvedVariables.size === reportedUnresolvedCount) return;
+
+      reportedUnresolvedCount = unresolvedVariables.size;
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'unresolved-variables',
+        unresolvedVariables: [...unresolvedVariables],
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
+    };
+
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
@@ -1045,6 +1068,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       let response, responseTime, axiosDataStream;
       const sseChunks = [];
+      reportUnresolvedVariables();
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(refreshExplicitHeaderNames(request));
@@ -1271,9 +1295,11 @@ const registerNetworkIpc = (mainWindow) => {
           } catch (error) {
             console.error('Error rebuilding response body from SSE chunks:', error);
           }
-          runPostScripts().catch((error) => {
-            console.error('Error running post-response scripts for SSE stream:', error);
-          });
+          runPostScripts()
+            .finally(reportUnresolvedVariables)
+            .catch((error) => {
+              console.error('Error running post-response scripts for SSE stream:', error);
+            });
         });
       } else {
         await runPostScripts();
@@ -1305,6 +1331,8 @@ const registerNetworkIpc = (mainWindow) => {
         timeline: error?.timeline,
         requestSent
       };
+    } finally {
+      reportUnresolvedVariables();
     }
   };
 
