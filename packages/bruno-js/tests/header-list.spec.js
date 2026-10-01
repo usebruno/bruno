@@ -29,11 +29,19 @@ describe('HeaderList (req.headerList)', () => {
     expect(ReadOnlyPropertyList.isPropertyList(list)).toBe(true);
   });
 
-  // ── Blocked inherited methods ─────────────────────────────────────────
+  // ── Positional access ─────────────────────────────────────────────────
 
-  test('idx is undefined (blocked from ReadOnlyPropertyList)', () => {
+  test('idx() returns the header at a position', () => {
     const { list } = createReqHeaders();
-    expect(list.idx).toBeUndefined();
+    expect(list.idx(0)).toEqual(list.all()[0]);
+    expect(list.idx(99)).toBeUndefined();
+  });
+
+  test('exposes no public own keys; idx lives on the prototype', () => {
+    const { list } = createReqHeaders();
+    expect(Object.keys(list).filter((key) => !key.startsWith('_'))).toEqual([]);
+    expect('idx' in list).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(list, 'idx')).toBe(false);
   });
 
   test('positional methods do not exist (not inherited from PropertyList)', () => {
@@ -195,7 +203,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.toObject(true)).toEqual({ A: '1' });
@@ -214,20 +222,22 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { 'X-Custom': 'enabled-val' },
-        disabledHeaders: [{ name: 'X-Custom', value: 'disabled-val' }]
+        headerEntries: [
+          { key: 'X-Custom', value: 'enabled-val' },
+          { key: 'X-Custom', value: 'disabled-val', disabled: true }
+        ]
       };
       const brunoReq = new BrunoRequest(rawReq);
-      // disabled comes first in the list, so its value wins with multiValue
-      const obj = brunoReq.headerList.toObject(false, true, true);
-      expect(obj['X-Custom']).toBe('disabled-val');
+      // disabled entries are laid down first, so with multiValue the disabled value is kept
+      expect(brunoReq.headerList.toObject(false, true, true)['X-Custom']).toBe('disabled-val');
+      expect(brunoReq.headerList.toObject(false, true, false)['X-Custom']).toBe('enabled-val');
     });
 
     test('toObject(_, _, _, true) skips headers with falsy keys', () => {
       const rawReq = {
         url: 'https://example.com',
         method: 'GET',
-        headers: { 'A': '1', '': 'empty-key' },
-        disabledHeaders: []
+        headers: { 'A': '1', '': 'empty-key' }
       };
       const brunoReq = new BrunoRequest(rawReq);
       const obj = brunoReq.headerList.toObject(false, true, false, true);
@@ -245,7 +255,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1', B: '2' },
-        disabledHeaders: [{ name: 'C', value: '3' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2' }, { key: 'C', value: '3', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.toString()).toBe('A: 1\nB: 2\n');
@@ -376,6 +386,79 @@ describe('HeaderList (req.headerList)', () => {
     });
   });
 
+  describe('disabled writes', () => {
+    function createWithDisabled() {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        headerEntries: [
+          { key: 'Content-Type', value: 'application/json' },
+          { key: 'X-Off', value: 'hidden', disabled: true }
+        ]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      return { list: brunoReq.headerList, rawReq };
+    }
+
+    const disabledEntries = (rawReq) => rawReq.headerEntries.filter((entry) => entry.disabled);
+
+    test('upsert() with disabled: true disables an enabled header in place', () => {
+      const { list, rawReq } = createWithDisabled();
+      const result = list.upsert({ key: 'content-type', value: 'text/plain', disabled: true });
+      expect(result).toBe(false);
+      expect(rawReq.headers).toEqual({});
+      expect(rawReq.headerEntries).toEqual([
+        { key: 'content-type', value: 'text/plain', disabled: true },
+        { key: 'X-Off', value: 'hidden', disabled: true }
+      ]);
+      expect(rawReq.__headersToDelete).toContain('Content-Type');
+      expect(list.one('Content-Type')).toEqual({ key: 'content-type', value: 'text/plain', disabled: true });
+    });
+
+    test('add() with disabled: true on a new key is appended and stays out of req.headers', () => {
+      const { list, rawReq } = createReqHeaders({});
+      const result = list.upsert({ key: 'X-New', value: 'v', disabled: true });
+      list.add({ key: 'X-Added', value: 'v', disabled: true });
+      expect(result).toBe(true);
+      expect(rawReq.headers).toEqual({});
+      expect(rawReq.headerEntries).toEqual([
+        { key: 'X-New', value: 'v', disabled: true },
+        { key: 'X-Added', value: 'v', disabled: true }
+      ]);
+    });
+
+    test('a disabled write replaces an existing disabled duplicate', () => {
+      const { list, rawReq } = createWithDisabled();
+      list.upsert({ key: 'x-off', value: 'again', disabled: true });
+      expect(disabledEntries(rawReq)).toEqual([{ key: 'x-off', value: 'again', disabled: true }]);
+    });
+
+    test('enabled upsert() on a key that is only disabled enables it and reports it existed', () => {
+      const { list, rawReq } = createWithDisabled();
+      const result = list.upsert({ key: 'X-Off', value: 'now-on' });
+      expect(result).toBe(false);
+      expect(rawReq.headers['X-Off']).toBe('now-on');
+      expect(disabledEntries(rawReq)).toEqual([]);
+      expect(list.filter((h) => h.key === 'X-Off')).toEqual([{ key: 'X-Off', value: 'now-on' }]);
+      expect(rawReq.__headersToDelete ?? []).not.toContain('X-Off');
+    });
+
+    test('upsert() on a request without a headers object creates it', () => {
+      const rawReq = { url: 'https://example.com', method: 'GET' };
+      const list = new HeaderList(rawReq);
+      expect(list.upsert({ key: 'X-New', value: 'val' })).toBe(true);
+      expect(rawReq.headers).toEqual({ 'X-New': 'val' });
+    });
+
+    test('populate() skips a key that exists only as disabled', () => {
+      const { list, rawReq } = createWithDisabled();
+      list.populate([{ key: 'x-off', value: 'ignored' }]);
+      expect(rawReq.headers['x-off']).toBeUndefined();
+      expect(disabledEntries(rawReq)).toEqual([{ key: 'X-Off', value: 'hidden', disabled: true }]);
+    });
+  });
+
   describe('remove()', () => {
     test('removes header by key string', () => {
       const { list, rawReq } = createReqHeaders();
@@ -431,11 +514,12 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       brunoReq.headerList.remove('B');
-      expect(rawReq.disabledHeaders).toHaveLength(0);
+      expect(rawReq.headerEntries).toEqual([{ key: 'A', value: '1' }]);
+      expect(rawReq.__headersToDelete).toBeUndefined();
       expect(brunoReq.headerList.has('B')).toBe(false);
     });
 
@@ -444,11 +528,11 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       brunoReq.headerList.remove((h) => h.disabled);
-      expect(rawReq.disabledHeaders).toHaveLength(0);
+      expect(rawReq.headerEntries).toEqual([{ key: 'A', value: '1' }]);
       expect(brunoReq.headerList.count()).toBe(1);
     });
   });
@@ -475,13 +559,14 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.count()).toBe(2);
       brunoReq.headerList.clear();
       expect(brunoReq.headerList.count()).toBe(0);
-      expect(rawReq.disabledHeaders).toEqual([]);
+      expect(rawReq.headerEntries).toEqual([]);
+      expect(rawReq.headers).toEqual({});
     });
   });
 
@@ -596,18 +681,21 @@ describe('HeaderList (req.headerList)', () => {
   // ── Disabled headers ───────────────────────────────────────────────────
 
   describe('disabled headers', () => {
-    test('all() includes disabled headers with disabled: true', () => {
+    test('all() includes disabled headers with disabled: true, in store order', () => {
       const rawReq = {
         url: 'https://example.com',
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+        headerEntries: [
+          { key: 'Content-Type', value: 'application/json' },
+          { key: 'X-Disabled', value: 'hidden', disabled: true }
+        ]
       };
       const brunoReq = new BrunoRequest(rawReq);
       const all = brunoReq.headerList.all();
       expect(all).toEqual([
-        { key: 'X-Disabled', value: 'hidden', disabled: true },
-        { key: 'Content-Type', value: 'application/json' }
+        { key: 'Content-Type', value: 'application/json' },
+        { key: 'X-Disabled', value: 'hidden', disabled: true }
       ]);
     });
 
@@ -616,7 +704,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: {},
-        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+        headerEntries: [{ key: 'X-Disabled', value: 'hidden', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.get('X-Disabled')).toBe('hidden');
@@ -627,7 +715,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: {},
-        disabledHeaders: [{ name: 'X-Disabled', value: 'hidden' }]
+        headerEntries: [{ key: 'X-Disabled', value: 'hidden', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.has('X-Disabled')).toBe(true);
@@ -638,7 +726,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.count()).toBe(2);
@@ -649,7 +737,7 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       const disabled = brunoReq.headerList.filter((h) => h.disabled);
@@ -657,11 +745,12 @@ describe('HeaderList (req.headerList)', () => {
       expect(disabled[0].key).toBe('B');
     });
 
-    test('works with no disabledHeaders property', () => {
+    test('a request with only a headers object is seeded into headerEntries on first read', () => {
       const rawReq = { url: 'https://example.com', method: 'GET', headers: { A: '1' } };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.count()).toBe(1);
       expect(brunoReq.headerList.all()).toEqual([{ key: 'A', value: '1' }]);
+      expect(rawReq.headerEntries).toEqual([{ key: 'A', value: '1' }]);
     });
 
     test('enabled header wins over disabled with same key in get/one/toObject', () => {
@@ -669,7 +758,10 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { 'X-Custom': 'active' },
-        disabledHeaders: [{ name: 'X-Custom', value: 'old' }]
+        headerEntries: [
+          { key: 'X-Custom', value: 'active' },
+          { key: 'X-Custom', value: 'old', disabled: true }
+        ]
       };
       const brunoReq = new BrunoRequest(rawReq);
       expect(brunoReq.headerList.get('X-Custom')).toBe('active');
@@ -827,12 +919,99 @@ describe('HeaderList (req.headerList)', () => {
         url: 'https://example.com',
         method: 'GET',
         headers: { A: '1' },
-        disabledHeaders: [{ name: 'B', value: '2' }]
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
       };
       const brunoReq = new BrunoRequest(rawReq);
       brunoReq.headerList.assimilate([{ key: 'A', value: 'updated' }], true);
       expect(rawReq.headers['A']).toBe('updated');
-      expect(rawReq.disabledHeaders).toHaveLength(0);
+      expect(rawReq.headerEntries).toEqual([{ key: 'A', value: 'updated' }]);
+    });
+  });
+
+  // ── Array store: req.headerEntries ⇄ req.headers ──────────────────────
+
+  describe('array store sync', () => {
+    test('a key set on req.headers directly appears in the list, appended', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1' });
+      rawReq.headers['X-Direct'] = 'raw';
+      expect(list.all()).toEqual([{ key: 'A', value: '1' }, { key: 'X-Direct', value: 'raw' }]);
+      expect(list.has('x-direct')).toBe(true);
+    });
+
+    test('a key deleted from req.headers directly leaves the list', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1', B: '2' });
+      delete rawReq.headers['A'];
+      expect(list.all()).toEqual([{ key: 'B', value: '2' }]);
+    });
+
+    test('req.setHeader() updates the value in place', () => {
+      const { list, brunoReq } = createReqHeaders({ A: '1', B: '2' });
+      brunoReq.setHeader('A', 'changed');
+      expect(list.all()).toEqual([{ key: 'A', value: 'changed' }, { key: 'B', value: '2' }]);
+    });
+
+    test('req.setHeaders() replacing the object is reflected on the next read', () => {
+      const { list, brunoReq } = createReqHeaders({ A: '1' });
+      brunoReq.setHeaders({ C: '3' });
+      expect(list.all()).toEqual([{ key: 'C', value: '3' }]);
+    });
+
+    test('headers prepare adds after building the entries come after the authored ones', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
+      };
+      rawReq.headers['Authorization'] = 'Bearer x';
+      const brunoReq = new BrunoRequest(rawReq);
+      expect(brunoReq.headerList.all()).toEqual([
+        { key: 'A', value: '1' },
+        { key: 'B', value: '2', disabled: true },
+        { key: 'Authorization', value: 'Bearer x' }
+      ]);
+    });
+
+    test('upsert() with a re-cased key keeps the position and does not leave the header suppressed', () => {
+      const { list, rawReq } = createReqHeaders({ 'A': '1', 'X-Token': 't', 'B': '2' });
+      list.upsert('x-token', 'u');
+      expect(list.map((h) => h.key)).toEqual(['A', 'x-token', 'B']);
+      expect(rawReq.headers).toEqual({ 'A': '1', 'B': '2', 'x-token': 'u' });
+      expect(rawReq.__headersToDelete).toEqual([]);
+    });
+
+    test('disabling keeps the position; enabling again clears the suppression', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1', B: '2', C: '3' });
+      list.upsert({ key: 'B', value: '2', disabled: true });
+      expect(list.map((h) => h.key)).toEqual(['A', 'B', 'C']);
+      expect(rawReq.headers).toEqual({ A: '1', C: '3' });
+      expect(rawReq.__headersToDelete).toEqual(['B']);
+
+      list.upsert('b', 'back');
+      expect(list.one('B')).toEqual({ key: 'b', value: 'back' });
+      expect(rawReq.headers).toEqual({ A: '1', C: '3', b: 'back' });
+      expect(rawReq.__headersToDelete).toEqual([]);
+    });
+
+    test('items returned by reads are copies, so editing them does not touch the store', () => {
+      const { list, rawReq } = createReqHeaders({ A: '1' });
+      list.one('A').disabled = true;
+      list.all()[0].value = 'edited';
+      list.idx(0).key = 'renamed';
+      expect(rawReq.headerEntries).toEqual([{ key: 'A', value: '1' }]);
+      expect(rawReq.headers).toEqual({ A: '1' });
+    });
+
+    test('script additions come after the authored entries', () => {
+      const rawReq = {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: { A: '1' },
+        headerEntries: [{ key: 'A', value: '1' }, { key: 'B', value: '2', disabled: true }]
+      };
+      const brunoReq = new BrunoRequest(rawReq);
+      brunoReq.headerList.add('C', '3');
+      expect(brunoReq.headerList.map((h) => h.key)).toEqual(['A', 'B', 'C']);
     });
   });
 
@@ -1051,6 +1230,18 @@ describe('Response Headers (res.headerList)', () => {
       expect(() => headerList.upsert({ key: 'X-New', value: 'val' })).toThrow('read-only');
       expect(() => headerList.populate([])).toThrow('read-only');
       expect(() => headerList.assimilate([])).toThrow('read-only');
+    });
+
+    test('idx() returns the snapshot entry', () => {
+      const { headerList } = createResHeaders();
+      expect(headerList.idx(0)).toEqual({ key: 'content-type', value: 'application/json' });
+      expect(headerList.idx(99)).toBeUndefined();
+    });
+
+    test('exposes no public own keys; idx lives on the prototype', () => {
+      const { headerList } = createResHeaders();
+      expect(Object.keys(headerList).filter((key) => !key.startsWith('_'))).toEqual([]);
+      expect('idx' in headerList).toBe(true);
     });
 
     test('response headers repopulate throws read-only', () => {

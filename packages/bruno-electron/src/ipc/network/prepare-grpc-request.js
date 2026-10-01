@@ -144,7 +144,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
@@ -152,9 +152,20 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     request.promptVariables = promptVariables;
   }
 
+  // `headers` is what the client builds call metadata from. `headerEntries` is the ordered store
+  // behind `bru.grpc.request.metadata`, disabled rows included; the list keeps the two in sync.
+  // COMPAT: the list follows this order (what mergeHeaders emits: enabled rows first, then
+  // disabled rows). `disabledHeaders` is no longer set.
+  const headerEntries = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name?.length > 0) {
+    if (!(h.name?.length > 0)) {
+      return;
+    }
+    if (h.enabled) {
       headers[h.name] = h.value;
+      headerEntries.push({ key: h.name, value: h.value });
+    } else {
+      headerEntries.push({ key: h.name, value: h.value, disabled: true });
     }
   });
 
@@ -170,6 +181,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
     methodType: request.methodType,
     url,
     headers,
+    headerEntries,
     authMode: resolveAuthMode(request, collectionRoot),
     processEnvVars,
     envVars,

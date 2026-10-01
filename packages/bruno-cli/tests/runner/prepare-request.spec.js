@@ -26,6 +26,30 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Header entries', () => {
+    it('Should emit headerEntries in row order with disabled rows flagged, and headers from the enabled rows', async () => {
+      const request = {
+        method: 'GET',
+        url: 'https://usebruno.com',
+        body: { mode: 'none' },
+        headers: [
+          { name: 'x-on', value: 'on', enabled: true },
+          { name: 'x-off', value: 'off', enabled: false },
+          { name: '', value: 'nameless', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      };
+      const result = await prepareRequest({ request });
+      expect(result.headers['x-on']).toBe('on');
+      expect(result.headers).not.toHaveProperty('x-off');
+      expect(result.headerEntries).toEqual([
+        { key: 'x-on', value: 'on' },
+        { key: 'x-off', value: 'off', disabled: true }
+      ]);
+      expect(result).not.toHaveProperty('disabledHeaders');
+    });
+  });
+
   describe('Properly maps inherited auth from collectionRoot', () => {
     // Initialize Test Fixtures
     let collection, item;

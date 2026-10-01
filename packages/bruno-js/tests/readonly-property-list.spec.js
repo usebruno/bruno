@@ -170,6 +170,135 @@ describe('ReadOnlyPropertyList', () => {
     });
   });
 
+  // ── Key matching ─────────────────────────────────────────────────────
+
+  describe('caseInsensitiveKeys', () => {
+    const items = [
+      { key: 'Content-Type', value: 'json' },
+      { key: 'Accept', value: '*/*' }
+    ];
+
+    test('true matches keys across casing in get/one/has/indexOf', () => {
+      const list = new ReadOnlyPropertyList({ items, caseInsensitiveKeys: true });
+      expect(list.get('content-type')).toBe('json');
+      expect(list.one('CONTENT-TYPE')).toEqual({ key: 'Content-Type', value: 'json' });
+      expect(list.has('accept')).toBe(true);
+      expect(list.has('accept', '*/*')).toBe(true);
+      expect(list.indexOf('ACCEPT')).toBe(1);
+      expect(list.indexOf({ key: 'content-type', value: 'json' })).toBe(0);
+    });
+
+    test('false (default) matches keys exactly', () => {
+      const list = new ReadOnlyPropertyList({ items });
+      expect(list.get('content-type')).toBeUndefined();
+      expect(list.one('CONTENT-TYPE')).toBeUndefined();
+      expect(list.has('accept')).toBe(false);
+      expect(list.indexOf('ACCEPT')).toBe(-1);
+    });
+
+    test('non-string keys never match', () => {
+      const list = new ReadOnlyPropertyList({ items, caseInsensitiveKeys: true });
+      expect(list.get(42)).toBeUndefined();
+      expect(list.has(undefined)).toBe(false);
+    });
+  });
+
+  describe('has() and indexOf() argument forms', () => {
+    const list = new ReadOnlyPropertyList({
+      items: [
+        { key: 'a', value: '1' },
+        { key: 'b', value: '2' },
+        { key: 'b', value: '3' }
+      ]
+    });
+
+    test('has() accepts an item object and uses its key', () => {
+      expect(list.has({ key: 'b', value: 'ignored' })).toBe(true);
+      expect(list.has({ key: 'missing' })).toBe(false);
+    });
+
+    test('indexOf() with a string returns the first key match', () => {
+      expect(list.indexOf('b')).toBe(1);
+    });
+
+    test('indexOf() with an item matches key and value', () => {
+      expect(list.indexOf({ key: 'b', value: '3' })).toBe(2);
+    });
+  });
+
+  // ── Context binding ──────────────────────────────────────────────────
+
+  describe('iterator context binding', () => {
+    const list = new ReadOnlyPropertyList({
+      items: [
+        { key: 'a', value: '1' },
+        { key: 'b', value: '2' }
+      ]
+    });
+    const ctx = { wanted: 'b', prefix: '#', seen: [] };
+
+    test('each(fn, ctx)', () => {
+      list.each(function (item) {
+        this.seen.push(item.key);
+      }, ctx);
+      expect(ctx.seen).toEqual(['a', 'b']);
+    });
+
+    test('find(fn, ctx)', () => {
+      expect(list.find(function (item) {
+        return item.key === this.wanted;
+      }, ctx)).toEqual({ key: 'b', value: '2' });
+    });
+
+    test('filter(fn, ctx)', () => {
+      expect(list.filter(function (item) {
+        return item.key !== this.wanted;
+      }, ctx)).toEqual([{ key: 'a', value: '1' }]);
+    });
+
+    test('map(fn, ctx)', () => {
+      expect(list.map(function (item) {
+        return this.prefix + item.key;
+      }, ctx)).toEqual(['#a', '#b']);
+    });
+
+    test('reduce(fn, init, ctx)', () => {
+      expect(list.reduce(function (acc, item) {
+        return acc + this.prefix + item.key;
+      }, '', ctx)).toBe('#a#b');
+    });
+  });
+
+  // ── Writable guard ───────────────────────────────────────────────────
+
+  describe('_assertWritable()', () => {
+    test('is a no-op on a writable list', () => {
+      const list = new ReadOnlyPropertyList({ items: [] });
+      expect(() => list._assertWritable('add')).not.toThrow();
+    });
+
+    test('throws the default message on a read-only list', () => {
+      const list = new ReadOnlyPropertyList({ items: [], writable: false });
+      expect(() => list._assertWritable('add')).toThrow('add() is not available on a read-only list');
+    });
+
+    test('a subclass override of _readOnlyMessage changes the text', () => {
+      class Custom extends ReadOnlyPropertyList {
+        _readOnlyMessage(method) {
+          return `custom: ${method}`;
+        }
+      }
+      const list = new Custom({ items: [], writable: false });
+      expect(() => list._assertWritable('upsert')).toThrow('custom: upsert');
+    });
+  });
+
+  test('own enumerable keys hold no methods', () => {
+    const list = new ReadOnlyPropertyList({ items: [] });
+    const methodNames = Object.getOwnPropertyNames(ReadOnlyPropertyList.prototype);
+    expect(Object.keys(list).filter((key) => methodNames.includes(key))).toEqual([]);
+  });
+
   // ── No Mutation Methods ──────────────────────────────────────────────
 
   describe('does not have mutation methods', () => {

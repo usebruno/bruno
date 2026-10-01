@@ -1,213 +1,142 @@
 const ReadOnlyPropertyList = require('../readonly-property-list');
-const { setMetadataKey } = require('./grpc-metadata');
+const { liveHeaderEntries, projectHeaderEntries, snapshotHeaderEntries } = require('../utils/header-entries');
 
-// Extends ReadOnlyPropertyList in dynamic mode: entries are read through the accessor (live headers) on every access.
-// Keep quickjs shim up to date on any updates to this class
+/**
+ * GrpcMetadataList — `bru.grpc.request.metadata`, `bru.grpc.response.metadata`,
+ * `bru.grpc.response.trailers`.
+ *
+ * Request side: array-backed, exactly like `HeaderList`. The store is `request.headerEntries`;
+ * `request.headers` is the `{ name: value }` projection the gRPC client builds `Metadata` from.
+ * Writable in `beforeCallStart`, read-only once the call is open. See `utils/header-entries.js`.
+ *
+ * Response side: a static snapshot of the `[{ name, value }]` display rows, read-only.
+ *
+ * COMPAT: the constructor takes the request (or the rows) directly, the same shape as `HeaderList`.
+ * It used to take a `readMetadata` accessor returning the `{ name: value }` map.
+ *
+ * Keep quickjs shim up to date on any updates to this class
+ */
 class GrpcMetadataList extends ReadOnlyPropertyList {
-  #readMetadata;
-  #writable;
+  #request;
 
   /**
-   * @param {Function} readMetadata - Returns the `{ key: value }` map backing the list. A writable
-   *   list needs it to return the same live object every call, since that object is what writes edit.
+   * @param {object|Array} source - The prepared gRPC request (its `headers` and `headerEntries`
+   *   are the store, read live), or the `[{ name, value }]` rows of a response to snapshot.
    * @param {object} [options]
-   * @param {boolean} [options.writable=false] - When false, write methods throw
+   * @param {boolean} [options.writable=false] - When false, write methods throw. A snapshot is
+   *   never writable.
    */
-  constructor(readMetadata, { writable = false } = {}) {
+  constructor(source, { writable = false } = {}) {
+    const snapshot = !source || Array.isArray(source);
     super({
-      keyProperty: 'key',
-      valueProperty: 'value',
-      dataSource: () => Object.entries(readMetadata()).map(([key, value]) => ({ key, value }))
+      caseInsensitiveKeys: true,
+      writable: writable && !snapshot,
+      // Reads hand out copies, so `one(k).disabled = true` on the result cannot bypass the write methods.
+      ...(snapshot
+        ? { items: snapshotHeaderEntries(source) }
+        : { dataSource: () => liveHeaderEntries(source).map((entry) => ({ ...entry })) })
     });
-    this.#readMetadata = readMetadata;
-    this.#writable = writable;
+    this.#request = snapshot ? null : source;
   }
 
-  // Positional access is deliberately removed from ReadOnlyPropertyList.
-  idx = undefined;
-
-  #assertWritable(method) {
-    if (!this.#writable) {
-      throw new Error(
-        `metadata.${method}() is not available once the call has been sent — change metadata in the beforeCallStart hook`
-      );
-    }
-  }
-
-  #findKey(name) {
-    if (typeof name !== 'string') {
-      return undefined;
-    }
-
-    const target = name.toLowerCase();
-
-    return Object.keys(this.#readMetadata()).find((key) => key.toLowerCase() === target);
-  }
-
-  /**
-   * Get the value of an entry by key.
-   * @param {string} key
-   * @returns {*}
-   */
-  get(key) {
-    const match = this.#findKey(key);
-
-    return match === undefined ? undefined : this.#readMetadata()[match];
-  }
-
-  /**
-   * Get the full entry by key.
-   * @param {string} key
-   * @returns {object|undefined}
-   */
-  one(key) {
-    const match = this.#findKey(key);
-
-    return match === undefined ? undefined : { key: match, value: this.#readMetadata()[match] };
-  }
-
-  /**
-   * Check whether an entry exists, optionally matching its value too.
-   * @param {string} key
-   * @param {*} [value]
-   * @returns {boolean}
-   */
-  has(key, value) {
-    const match = this.#findKey(key);
-
-    if (match === undefined) {
-      return false;
-    }
-
-    return value === undefined || this.#readMetadata()[match] === value;
-  }
-
-  /**
-   * Get the index of an entry, by key string or by `{ key, value }`.
-   * @param {string|object} item
-   * @returns {number} -1 if not found
-   */
-  indexOf(item) {
-    const match = this.#findKey(typeof item === 'string' ? item : item?.key);
-
-    if (match === undefined) {
-      return -1;
-    }
-
-    const entries = this.all();
-
-    if (typeof item === 'string') {
-      return entries.findIndex((entry) => entry.key === match);
-    }
-
-    return entries.findIndex((entry) => entry.key === match && entry.value === item.value);
-  }
-
-  // ── Iteration overrides (optional context binding) ────────────────────
-
-  /** @param {Function} fn @param {*} [context] */
-  each(fn, context) {
-    super.each(context !== undefined ? fn.bind(context) : fn);
-  }
-
-  /** @param {Function} fn @param {*} [context] @returns {object|undefined} */
-  find(fn, context) {
-    return super.find(context !== undefined ? fn.bind(context) : fn);
-  }
-
-  /** @param {Function} fn @param {*} [context] @returns {Array} */
-  filter(fn, context) {
-    return super.filter(context !== undefined ? fn.bind(context) : fn);
-  }
-
-  /** @param {Function} fn @param {*} [context] @returns {Array} */
-  map(fn, context) {
-    return super.map(context !== undefined ? fn.bind(context) : fn);
-  }
-
-  /** @param {Function} fn @param {*} [accumulator] @param {*} [context] @returns {*} */
-  reduce(fn, ...args) {
-    const bound = args.length > 1 ? fn.bind(args[1]) : fn;
-
-    return args.length ? super.reduce(bound, args[0]) : super.reduce(bound);
+  _readOnlyMessage(method) {
+    return `metadata.${method}() is not available once the call has been sent — change metadata in the beforeCallStart hook`;
   }
 
   // ── Transform override ────────────────────────────────────────────────
 
-  /** `key: value` per line — how metadata travels as HTTP/2 headers. */
+  /** `key: value` per line — how metadata travels as HTTP/2 headers. Skips disabled entries. */
   toString() {
     return this.all()
+      .filter((entry) => !entry.disabled)
       .map((entry) => `${entry.key}: ${entry.value}`)
       .join('\n');
   }
 
-  // ── Write methods (edit the backing map) ──────────────────────────────
+  // ── Write methods (edit the entries, then project into the headers map) ──
 
   /**
-   * Insert a key, or update it in place when it already exists.
+   * Insert a key, or update it in place when it already exists under any casing. The key ends
+   * up enabled.
    *
    * @param {string} key
    * @param {*} value
    */
   upsert(key, value) {
-    this.#assertWritable('upsert');
+    this._assertWritable('upsert');
 
     if (typeof key !== 'string' || !key.length) {
       return;
     }
 
-    const metadata = this.#readMetadata();
-    const existing = this.#findKey(key);
-
-    // A server reads `X-Token` and `x-token` as one key, so a re-cased upsert replaces instead of
-    // leaving two entries the transport would send as duplicates.
-    if (existing !== undefined && existing !== key) {
-      delete metadata[existing];
-    }
-
-    setMetadataKey(metadata, key, value);
+    this.#write({ key, value, disabled: false });
   }
 
   /**
-   * Upsert an entry from the `{ key, value }` shape `all()` returns, so an entry read from one list
-   * can be handed straight to another.
+   * Upsert an entry from the `{ key, value, disabled? }` shape `all()` returns, so an entry read
+   * from one list can be handed straight to another.
    *
    * @param {object} item
    */
   add(item) {
-    this.#assertWritable('add');
+    this._assertWritable('add');
 
-    if (!item || typeof item !== 'object') {
+    if (!item || typeof item !== 'object' || typeof item.key !== 'string' || !item.key.length) {
       return;
     }
 
-    this.upsert(item.key, item.value);
+    this.#write({ key: item.key, value: item.value, disabled: item.disabled === true });
   }
 
   /**
-   * Remove the entry with the given key.
+   * Remove the entry with the given key, enabled or disabled.
    * @param {string} key
    */
   remove(key) {
-    this.#assertWritable('remove');
+    this._assertWritable('remove');
 
-    const existing = this.#findKey(key);
+    const entries = liveHeaderEntries(this.#request);
 
-    if (existing !== undefined) {
-      delete this.#readMetadata()[existing];
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (this._keyMatches(entries[i].key, key)) {
+        entries.splice(i, 1);
+      }
     }
+
+    projectHeaderEntries(entries, this.#request.headers);
   }
 
-  /** Remove every entry. */
+  /** Remove every entry, enabled and disabled. */
   clear() {
-    this.#assertWritable('clear');
+    this._assertWritable('clear');
 
-    const metadata = this.#readMetadata();
+    const entries = liveHeaderEntries(this.#request);
 
-    // Emptied in place rather than reassigned
-    for (const key of Object.keys(metadata)) {
-      delete metadata[key];
+    // Emptied in place rather than reassigned: the request owns the array.
+    entries.length = 0;
+
+    projectHeaderEntries(entries, this.#request.headers);
+  }
+
+  #write({ key, value, disabled }) {
+    const entries = liveHeaderEntries(this.#request);
+    // A server reads `X-Token` and `x-token` as one key, so a re-cased write replaces in place
+    // instead of leaving two entries the transport would send as duplicates.
+    const existing = entries.find((entry) => this._keyMatches(entry.key, key));
+
+    if (existing) {
+      existing.key = key;
+      existing.value = value;
+      if (disabled) {
+        existing.disabled = true;
+      } else {
+        delete existing.disabled;
+      }
+    } else {
+      entries.push(disabled ? { key, value, disabled: true } : { key, value });
     }
+
+    projectHeaderEntries(entries, this.#request.headers);
   }
 }
 
