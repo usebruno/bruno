@@ -32,9 +32,10 @@ It is **not** the right home for:
   `src/store/` (see `.claude/rules/electron-ipc.md`).
 - **UI state** — Redux, or local `useState` (see `.claude/rules/redux-store.md`).
 
-The database file is `bruno.db` under `app.getPath('userData')`. **Treat it as disposable**: the
-open path below deletes and rebuilds it rather than failing, so never let it hold the only copy of
-anything.
+The database file is `bruno.db` under `app.getPath('userData')`, and the file store spills large
+payloads to `sqlite-files/` beside it. **Treat both as disposable**: the open path below deletes
+and rebuilds the database rather than failing (startup `collect()` then sweeps the spilled files no
+row names), so never let either hold the only copy of anything.
 
 ## Package layout
 
