@@ -18,6 +18,13 @@ const SpecLocationField = ({ formik, onBrowse }) => (
       title={formik.values.apiSpecLocation || ''}
       value={formik.values.apiSpecLocation || ''}
       onClick={onBrowse}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onBrowse();
+        }
+      }}
     />
     {formik.touched.apiSpecLocation && formik.errors.apiSpecLocation ? (
       <div className="text-red-500 break-words">{formik.errors.apiSpecLocation}</div>

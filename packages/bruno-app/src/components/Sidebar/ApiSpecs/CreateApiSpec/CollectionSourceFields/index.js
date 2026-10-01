@@ -107,6 +107,13 @@ const CollectionSourceFields = ({
             title={formik.values.collectionLocation || ''}
             value={formik.values.collectionLocation || ''}
             onClick={onBrowseCollection}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onBrowseCollection();
+              }
+            }}
           />
           {loadError || (formik.touched.collectionLocation && formik.errors.collectionLocation) ? (
             <div className="text-red-500 break-words">{loadError || formik.errors.collectionLocation}</div>

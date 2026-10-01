@@ -390,39 +390,6 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(screen.getByText('location is required')).toBeInTheDocument());
     expect(createApiSpecFile).not.toHaveBeenCalled();
   });
-
-  it('generates the same spec whether the collection came from the dropdown or from a path', async () => {
-    const user = userEvent.setup();
-
-    const firstRender = renderModal();
-    await chooseCollectionSource(user);
-    await user.click(screen.getByTestId(`api-spec-collection-dropdown-${PETSTORE.uid}`));
-    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Petstore'));
-    await user.clear(screen.getByLabelText('Name'));
-    await user.type(screen.getByLabelText('Name'), 'petstore-spec');
-    await user.click(screen.getByText('Create'));
-    await waitFor(() => expect(exportApiSpec).toHaveBeenCalled());
-    const fromDropdown = exportApiSpec.mock.calls[0][0];
-    const fileFromDropdown = createApiSpecFile.mock.calls[0];
-
-    exportApiSpec.mockClear();
-    createApiSpecFile.mockClear();
-    firstRender.unmount();
-
-    browseDirectory.mockReturnValue(Promise.resolve(PETSTORE.pathname));
-    const { getByPlaceholderText, getByLabelText, getByText, getByRole } = render(withTheme(<CreateApiSpec onClose={jest.fn()} />));
-    await user.click(getByLabelText('From Bruno Collection'));
-    await user.click(getByRole('radio', { name: 'From file system' }));
-    await user.click(getByPlaceholderText('Choose file...'));
-    await waitFor(() => expect(getByLabelText('Name')).toHaveValue('petstore'));
-    await user.clear(getByLabelText('Name'));
-    await user.type(getByLabelText('Name'), 'petstore-spec');
-    await user.click(getByText('Create'));
-    await waitFor(() => expect(exportApiSpec).toHaveBeenCalled());
-
-    expect(exportApiSpec.mock.calls[0][0]).toEqual(fromDropdown);
-    expect(createApiSpecFile.mock.calls[0]).toEqual(fileFromDropdown);
-  });
 });
 
 describe('CreateApiSpec — URL source', () => {
@@ -451,7 +418,7 @@ describe('CreateApiSpec — URL source', () => {
     }));
   });
 
-  it('fetches through the shared helper and fills the name from the spec title', async () => {
+  it('fetches through the shared helper, fills the name from the spec title, and clears it when the URL is emptied', async () => {
     const user = userEvent.setup();
     renderModal();
     await openUrlSource(user);
@@ -459,6 +426,9 @@ describe('CreateApiSpec — URL source', () => {
 
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Hotel Booking API'));
     expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledWith({ url: SPEC_URL });
+
+    await user.clear(screen.getByTestId('api-spec-url'));
+    expect(screen.getByLabelText('Name')).toHaveValue('');
   });
 
   it('falls back to the file name in the URL when the spec has no usable title', async () => {
@@ -473,24 +443,6 @@ describe('CreateApiSpec — URL source', () => {
     await typeUrlAndBlur(user);
 
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('hotel-booking'));
-  });
-
-  it('clears the prefilled name when the URL is emptied, but keeps a hand-typed one', async () => {
-    const user = userEvent.setup();
-    renderModal();
-    await openUrlSource(user);
-    await typeUrlAndBlur(user);
-    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Hotel Booking API'));
-
-    await user.clear(screen.getByTestId('api-spec-url'));
-    expect(screen.getByLabelText('Name')).toHaveValue('');
-
-    await typeUrlAndBlur(user);
-    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Hotel Booking API'));
-    await user.clear(screen.getByLabelText('Name'));
-    await user.type(screen.getByLabelText('Name'), 'My Hotels');
-    await user.clear(screen.getByTestId('api-spec-url'));
-    expect(screen.getByLabelText('Name')).toHaveValue('My Hotels');
   });
 
   it('only lets the newest fetch update the form, keeping Create disabled until it finishes', async () => {
@@ -672,5 +624,175 @@ describe('CreateApiSpec — URL source', () => {
       '/home/dev/workspaces/team/apispec',
       YAML_SPEC
     ));
+  });
+});
+
+describe('CreateApiSpec — each source keeps its own data', () => {
+  const SPEC_URL = 'https://example.com/specs/hotel-booking.json';
+  const JSON_SPEC = '{"openapi":"3.1.0","info":{"title":"Hotel Booking API"}}';
+  const DEFAULT_LOCATION = '/home/dev/workspaces/team/apispec';
+
+  const chooseSource = (user, label) => user.click(screen.getByLabelText(label));
+  const chooseTab = (user, name) => user.click(screen.getByRole('radio', { name }));
+  const typeName = async (user, name) => {
+    await user.clear(screen.getByLabelText('Name'));
+    await user.type(screen.getByLabelText('Name'), name);
+  };
+  const fetchSpecUrl = async (user) => {
+    await user.type(screen.getByTestId('api-spec-url'), SPEC_URL);
+    await user.tab();
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Hotel Booking API'));
+  };
+  const pickPetstore = async (user) => {
+    await user.click(screen.getByTestId(`api-spec-collection-dropdown-${PETSTORE.uid}`));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Petstore'));
+  };
+
+  beforeEach(() => {
+    useDispatch.mockReturnValue(jest.fn((action) => action));
+    useDefaultApiSpecLocation.mockReturnValue(DEFAULT_LOCATION);
+    createApiSpecFile.mockImplementation(() => Promise.resolve());
+    window.ipcRenderer = {
+      invoke: jest.fn((channel, pathname) => Promise.resolve(
+        channel === 'renderer:get-collection-json' ? COLLECTION_JSON[pathname] : undefined
+      ))
+    };
+    fetchAndValidateApiSpecFromUrl.mockImplementation(() => Promise.resolve({
+      data: { openapi: '3.1.0', info: { title: 'Hotel Booking API' } },
+      specType: 'openapi',
+      rawContent: JSON_SPEC
+    }));
+  });
+
+  it('keeps a name typed in one source or collection tab out of every other', async () => {
+    const user = userEvent.setup();
+    browseDirectory.mockReturnValue(Promise.resolve('/home/dev/elsewhere/outside-collection'));
+    renderModal();
+
+    await typeName(user, 'blank-name');
+
+    await chooseSource(user, 'From Spec URL');
+    expect(screen.getByLabelText('Name')).toHaveValue('');
+    await fetchSpecUrl(user);
+    await typeName(user, 'url-name');
+
+    await chooseSource(user, 'From Bruno Collection');
+    expect(screen.getByLabelText('Name')).toHaveValue('');
+    await pickPetstore(user);
+    await typeName(user, 'workspace-name');
+
+    await chooseTab(user, 'From file system');
+    expect(screen.getByLabelText('Name')).toHaveValue('');
+    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
+    await typeName(user, 'filesystem-name');
+
+    await chooseTab(user, 'From workspace');
+    expect(screen.getByLabelText('Name')).toHaveValue('workspace-name');
+    await chooseSource(user, 'From Spec URL');
+    expect(screen.getByLabelText('Name')).toHaveValue('url-name');
+    await chooseSource(user, 'Blank Spec');
+    expect(screen.getByLabelText('Name')).toHaveValue('blank-name');
+    await chooseSource(user, 'From Bruno Collection');
+    expect(screen.getByLabelText('Name')).toHaveValue('workspace-name');
+    await chooseTab(user, 'From file system');
+    expect(screen.getByLabelText('Name')).toHaveValue('filesystem-name');
+  });
+
+  it('keeps a location picked in one source or collection tab out of every other', async () => {
+    const user = userEvent.setup();
+    browseDirectory
+      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/blank'))
+      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/url'))
+      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/workspace'));
+    renderModal();
+
+    await user.click(screen.getByLabelText('Location'));
+    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/blank'));
+
+    await chooseSource(user, 'From Spec URL');
+    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
+    await user.click(screen.getByLabelText('Location'));
+    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/url'));
+
+    await chooseSource(user, 'From Bruno Collection');
+    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
+    await user.click(screen.getByLabelText('Location'));
+    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/workspace'));
+
+    await chooseTab(user, 'From file system');
+    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
+
+    await chooseTab(user, 'From workspace');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/workspace');
+    await chooseSource(user, 'From Spec URL');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/url');
+    await chooseSource(user, 'Blank Spec');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/blank');
+  });
+
+  it('creates a blank spec without content from the URL or collection visited before', async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await chooseSource(user, 'From Spec URL');
+    await fetchSpecUrl(user);
+    await chooseSource(user, 'From Bruno Collection');
+    await pickPetstore(user);
+
+    await chooseSource(user, 'Blank Spec');
+    await typeName(user, 'blank-name');
+    await user.click(screen.getByText('Create'));
+
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('blank-name.yaml', DEFAULT_LOCATION, ''));
+    expect(exportApiSpec).not.toHaveBeenCalled();
+    expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it('creates a URL spec from the URL only, ignoring a collection picked earlier', async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await chooseSource(user, 'From Bruno Collection');
+    await pickPetstore(user);
+
+    await chooseSource(user, 'From Spec URL');
+    await fetchSpecUrl(user);
+    await user.click(screen.getByText('Create'));
+
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('Hotel Booking API.json', DEFAULT_LOCATION, JSON_SPEC));
+    expect(exportApiSpec).not.toHaveBeenCalled();
+  });
+
+  it('creates a collection spec from the collection only, ignoring a URL fetched earlier', async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await chooseSource(user, 'From Spec URL');
+    await fetchSpecUrl(user);
+
+    await chooseSource(user, 'From Bruno Collection');
+    await pickPetstore(user);
+    await user.click(screen.getByText('Create'));
+
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('Petstore.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0'));
+    expect(exportApiSpec).toHaveBeenCalledWith(expect.objectContaining({ items: [{ name: 'get pet' }] }));
+  });
+
+  it('creates from the browsed folder on the file system tab, not the workspace pick', async () => {
+    const user = userEvent.setup();
+    browseDirectory.mockReturnValue(Promise.resolve('/home/dev/elsewhere/outside-collection'));
+    renderModal();
+
+    await chooseSource(user, 'From Bruno Collection');
+    await pickPetstore(user);
+
+    await chooseTab(user, 'From file system');
+    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
+    await user.click(screen.getByText('Create'));
+
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('outside-collection.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0'));
+    expect(exportApiSpec).toHaveBeenCalledWith(expect.objectContaining({ items: [{ name: 'ping' }] }));
   });
 });
