@@ -249,6 +249,31 @@ describe('wsdl-to-bruno', () => {
       );
     });
 
+    it('leaves out a group referenced with maxOccurs of zero', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="identity">
+          <xsd:sequence>
+            <xsd:element name="swedishId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:group ref="tns:identity" minOccurs="0" maxOccurs="0"/>
+              <xsd:element name="foreignId" type="xsd:string"/>
+              <xsd:element name="passportId" type="xsd:string"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).not.toContain('swedishId');
+      expect(body).toContain(
+        '<!--You have a CHOICE of the next 2 items at this level-->'
+        + '<foreignId>string</foreignId><passportId>string</passportId>'
+      );
+    });
+
     it('resolves an unprefixed group reference by name', async () => {
       const body = await generateRequestBody(`
         <xsd:group name="identity">

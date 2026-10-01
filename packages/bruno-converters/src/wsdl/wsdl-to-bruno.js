@@ -410,7 +410,8 @@ class WSDLParser {
    * Expand an xs:group reference in place
    */
   expandModelGroup(groupRef, target, prefixMap, choicePath) {
-    if (!groupRef.ref) {
+    // add a check to skip groups with maxOccurs of 0
+    if (!groupRef.ref || groupRef.maxOccurs === '0') {
       return;
     }
 
