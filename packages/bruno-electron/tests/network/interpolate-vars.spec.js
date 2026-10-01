@@ -656,6 +656,76 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
+  describe('Form URL encoded body', () => {
+    it('interpolates variables in TEXT body when Content-Type is application/x-www-form-urlencoded', () => {
+      const request = {
+        method: 'POST',
+        url: '{{oauth_uri}}/token',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: 'username={{oauth_user}}&password={{oauth_password}}&grant_type=password'
+      };
+
+      const result = interpolateVars(
+        request,
+        {
+          oauth_uri: 'https://auth.example.com',
+          oauth_user: 'alice',
+          oauth_password: 's3cret'
+        },
+        null,
+        null
+      );
+
+      expect(result.url).toBe('https://auth.example.com/token');
+      expect(result.data).toBe('username=alice&password=s3cret&grant_type=password');
+    });
+
+    it('interpolates TEXT urlencoded body from global environment variables', () => {
+      const request = {
+        method: 'POST',
+        url: '{{oauth_uri}}/token',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: 'username={{oauth_user}}&password={{oauth_password}}&grant_type=password',
+        globalEnvironmentVariables: {
+          oauth_uri: 'https://auth.example.com',
+          oauth_user: 'alice',
+          oauth_password: 's3cret'
+        }
+      };
+
+      const result = interpolateVars(request, {}, null, null);
+
+      expect(result.url).toBe('https://auth.example.com/token');
+      expect(result.data).toBe('username=alice&password=s3cret&grant_type=password');
+    });
+
+    it('still interpolates form-urlencoded field values when body is an array', () => {
+      const request = {
+        method: 'POST',
+        url: 'https://auth.example.com/token',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: [
+          { name: 'username', value: '{{oauth_user}}', enabled: true },
+          { name: 'password', value: '{{oauth_password}}', enabled: true },
+          { name: 'grant_type', value: 'password', enabled: true }
+        ]
+      };
+
+      const result = interpolateVars(
+        request,
+        { oauth_user: 'alice', oauth_password: 's3cret' },
+        null,
+        null
+      );
+
+      expect(result.data).toEqual([
+        { name: 'username', value: 'alice', enabled: true },
+        { name: 'password', value: 's3cret', enabled: true },
+        { name: 'grant_type', value: 'password', enabled: true }
+      ]);
+    });
+  });
+
   describe('File body streaming', () => {
     it('keeps stream-backed JSON request bodies intact', () => {
       const streamPayload = {
