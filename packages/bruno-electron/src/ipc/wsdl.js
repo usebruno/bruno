@@ -2,6 +2,7 @@ const { ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL, fileURLToPath } = require('url');
+const { canonicalPath } = require('../utils/filesystem');
 
 const WSDL_MAX_SCHEMA_FILE_SIZE = 10 * 1024 * 1024;
 const WSDL_SCHEMA_EXTENSIONS = ['.xsd', '.wsdl'];
@@ -40,7 +41,7 @@ const resolveWsdlSchemaRef = async (baseUri, ref) => {
   }
 
   const text = await fs.promises.readFile(targetPath, 'utf8');
-  return { text, uri: target.href };
+  return { text, uri: target.href, key: pathToFileURL(canonicalPath(targetPath)).href };
 };
 
 const registerWsdlIpc = () => {
