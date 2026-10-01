@@ -15,7 +15,7 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
-import { findUsedPlainVariableUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 
 const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
@@ -36,7 +36,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
 
   const resolvableVariables = useMemo(() => getAllVariables(collection, item), [collection, item]);
   const usedVariableUids = useMemo(
-    () => (varType === 'request' ? findUsedPlainVariableUids(collection, 'request') : new Set()),
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'request') : new Set()),
     [collection, varType]
   );
 

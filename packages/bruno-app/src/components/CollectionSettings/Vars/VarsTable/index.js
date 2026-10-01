@@ -14,7 +14,7 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
-import { findUsedPlainVariableUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
 
 const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) => {
@@ -35,7 +35,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) =>
 
   const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
   const usedVariableUids = useMemo(
-    () => (varType === 'request' ? findUsedPlainVariableUids(collection, 'collection') : new Set()),
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'collection') : new Set()),
     [collection, varType]
   );
 

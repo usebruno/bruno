@@ -4,7 +4,7 @@ import {
   extractSensitiveVarNames,
   findUsedEnvironmentVariableUids,
   findUsedGlobalEnvironmentVariableUids,
-  findUsedPlainVariableUids,
+  findUsedVarsRowUids,
   PLAINTEXT_SENSITIVE_WARNING,
   resolveSensitiveVariable,
   scopedSensitiveWarning
@@ -553,7 +553,7 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual(['request-token']);
+    expect([...findUsedVarsRowUids(collection, 'request')]).toEqual(['request-token']);
   });
 
   it('flags a request variable that overrides auth inherited from the collection', () => {
@@ -570,7 +570,7 @@ describe('vars table usage flags', () => {
     });
     collection.root.request.auth = { mode: 'bearer', bearer: { token: '{{token}}' } };
 
-    expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual(['request-token']);
+    expect([...findUsedVarsRowUids(collection, 'request')]).toEqual(['request-token']);
     expect([...findUsedEnvironmentVariableUids(collection, collection.environments[0])]).toEqual([]);
   });
 
@@ -603,9 +603,9 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(inherited, 'folder')]).toEqual(['folder-token']);
-    expect([...findUsedPlainVariableUids(overridden, 'folder')]).toEqual([]);
-    expect([...findUsedPlainVariableUids(overridden, 'request')]).toEqual(['request-token']);
+    expect([...findUsedVarsRowUids(inherited, 'folder')]).toEqual(['folder-token']);
+    expect([...findUsedVarsRowUids(overridden, 'folder')]).toEqual([]);
+    expect([...findUsedVarsRowUids(overridden, 'request')]).toEqual(['request-token']);
   });
 
   it('does not flag a disabled request variable', () => {
@@ -624,7 +624,7 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual([]);
+    expect([...findUsedVarsRowUids(collection, 'request')]).toEqual([]);
   });
 
   it('flags the folder variable that wins and not a parent folder variable with the same name', () => {
@@ -643,7 +643,7 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(collection, 'folder')]).toEqual(['child-token']);
+    expect([...findUsedVarsRowUids(collection, 'folder')]).toEqual(['child-token']);
   });
 
   it('does not flag a folder variable when the request variable wins', () => {
@@ -664,8 +664,8 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(collection, 'folder')]).toEqual([]);
-    expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual(['request-token']);
+    expect([...findUsedVarsRowUids(collection, 'folder')]).toEqual([]);
+    expect([...findUsedVarsRowUids(collection, 'request')]).toEqual(['request-token']);
   });
 
   it('flags a collection variable only when the active environment does not define it', () => {
@@ -688,7 +688,7 @@ describe('vars table usage flags', () => {
       activeEnvironmentUid: 'env-prod'
     });
 
-    expect([...findUsedPlainVariableUids(withSecretEnvironment, 'collection')]).toEqual([]);
-    expect([...findUsedPlainVariableUids(withoutEnvironmentVariable, 'collection')]).toEqual(['collection-token']);
+    expect([...findUsedVarsRowUids(withSecretEnvironment, 'collection')]).toEqual([]);
+    expect([...findUsedVarsRowUids(withoutEnvironmentVariable, 'collection')]).toEqual(['collection-token']);
   });
 });

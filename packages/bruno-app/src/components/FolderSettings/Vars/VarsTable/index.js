@@ -15,7 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
-import { findUsedPlainVariableUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
+import { findUsedVarsRowUids, plainVariableUsageWarning } from 'utils/sensitive-fields';
 import { setFolderVars, moveFolderVar } from 'providers/ReduxStore/slices/collections/index';
 
 const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDraft }) => {
@@ -36,7 +36,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDra
 
   const resolvableVariables = useMemo(() => getAllVariables(collection, folder), [collection, folder]);
   const usedVariableUids = useMemo(
-    () => (varType === 'request' ? findUsedPlainVariableUids(collection, 'folder') : new Set()),
+    () => (varType === 'request' ? findUsedVarsRowUids(collection, 'folder') : new Set()),
     [collection, varType]
   );
 
