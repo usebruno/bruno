@@ -283,8 +283,7 @@ export const preserveVariableUids = (existing = [], updated = []) => {
 };
 
 /**
- * Strips the UID from an environment variable for comparison purposes.
- * This is useful when comparing variables where UIDs may differ but the actual data is the same.
+ * Drops the row id so two variables can be compared by their saved fields.
  */
 export const stripEnvVarUid = (variable) => {
   const { name, value, type, enabled, secret, description, dataType } = variable;

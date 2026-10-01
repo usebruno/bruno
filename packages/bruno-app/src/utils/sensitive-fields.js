@@ -54,7 +54,7 @@ const warning = (scope, variableName, warningMessage) => ({
   variableName
 });
 
-/** First match wins. An environment variable beats a collection variable. */
+/** Earlier scope wins: request, folder, environment, collection, then global. */
 const SCOPE_ORDER = ['request', 'folder', 'environment', 'collection', 'global'];
 
 export const extractSensitiveVarNames = (value) => {
@@ -69,7 +69,7 @@ const resolveFieldScope = (item, scope) => {
   if (scope === 'request' || scope === 'folder' || scope === 'collection') {
     return scope;
   }
-  // An item without a uid is collection scope. Collection auth passes item = {}.
+  // No item means this field belongs to the collection.
   if (item?.type === 'folder' && item?.uid) {
     return 'folder';
   }
@@ -142,7 +142,7 @@ const toResolvedVariable = (type, variable) => ({
   inheritedFrom: variable.inheritedFrom || null
 });
 
-/** Saved variable Bruno sends for this name. Runtime and process.env are ignored. */
+/** Saved variable used for this name. Skips runtime and process.env. */
 export const resolveSensitiveVariable = (variableName, { collection, item, scope } = {}) => {
   if (!variableName || !collection) {
     return null;
@@ -173,7 +173,7 @@ const isSecretEnvironmentVariable = (resolved) => (
 
 const hasPlaintextOutsideVariables = (value) => value.replace(/\{\{[^}]+\}\}/g, '').trim().length > 0;
 
-/** Text outside {{name}} warns, including when the variable is secret. */
+/** Text outside {{name}} warns, even when the variable is a secret. */
 export const classifySensitiveValue = (value, context = {}) => {
   if (typeof value !== 'string' || value.length === 0) {
     return noWarning();
@@ -259,7 +259,7 @@ const collectWinningVariableUids = (collection, scopeType) => {
   return uids;
 };
 
-/** Non-secret rows in the viewed environment that a sensitive field sends. */
+/** Non-secret environment rows used by a sensitive field. */
 export const findUsedEnvironmentVariableUids = (collection, environment) => {
   if (!collection || !environment?.uid) {
     return new Set();
@@ -272,7 +272,7 @@ export const findUsedEnvironmentVariableUids = (collection, environment) => {
   }, 'environment');
 };
 
-/** Non-secret rows in the viewed global environment that win in a loaded collection. */
+/** Non-secret global rows used by a sensitive field in an open collection. */
 export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnvironments, environment) => {
   const uids = new Set();
   if (!environment?.uid) {
@@ -289,7 +289,7 @@ export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnviron
   return uids;
 };
 
-/** Request, folder, or collection rows that a sensitive field sends. */
+/** Request, folder, or collection rows used by a sensitive field. */
 export const findUsedPlainVariableUids = (collection, scopeType) => {
   const uids = new Set();
   if (!collection || !['request', 'folder', 'collection'].includes(scopeType)) {

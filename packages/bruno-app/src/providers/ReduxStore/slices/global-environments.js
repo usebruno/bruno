@@ -27,6 +27,7 @@ export const globalEnvironmentsSlice = createSlice({
         ? incomingActiveUid
         : null;
 
+      // The full list is replaced. Copy saved row ids onto an environment that was already open.
       state.globalEnvironments = newEnvs.map((environment) => {
         const existing = state.globalEnvironments.find((candidate) => candidate?.uid === environment?.uid);
         if (!existing) {
