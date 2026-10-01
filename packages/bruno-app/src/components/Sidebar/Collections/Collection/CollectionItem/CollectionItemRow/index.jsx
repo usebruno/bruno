@@ -777,31 +777,33 @@ const CollectionItemRow = ({
             onDoubleClick={handleDoubleClick}
           >
 
-            {isFolder ? (
-              <ActionIcon style={{ width: 16, minWidth: 16 }}>
-                <IconChevronRight
-                  size={16}
-                  strokeWidth={2}
-                  className={iconClassName}
-                  style={{ color: 'rgb(160 160 160)' }}
-                  onClick={handleFolderCollapse}
-                  onDoubleClick={handleFolderDoubleClick}
-                  data-testid="folder-chevron"
-                />
-              </ActionIcon>
-            ) : hasExamples && !hasSearchText ? (
-              <ActionIcon style={{ width: 16, minWidth: 16 }}>
-                <IconChevronRight
-                  size={16}
-                  strokeWidth={2}
-                  className={examplesIconClassName}
-                  style={{ color: 'rgb(160 160 160)' }}
-                  onClick={handleExamplesCollapse}
-                  onDoubleClick={handleExamplesDoubleClick}
-                  data-testid="request-item-chevron"
-                />
-              </ActionIcon>
-            ) : null}
+            <div style={{ width: 16, minWidth: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {isFolder ? (
+                <ActionIcon>
+                  <IconChevronRight
+                    size={16}
+                    strokeWidth={2}
+                    className={iconClassName}
+                    style={{ color: 'rgb(160 160 160)' }}
+                    onClick={handleFolderCollapse}
+                    onDoubleClick={handleFolderDoubleClick}
+                    data-testid="folder-chevron"
+                  />
+                </ActionIcon>
+              ) : hasExamples && !hasSearchText ? (
+                <ActionIcon>
+                  <IconChevronRight
+                    size={16}
+                    strokeWidth={2}
+                    className={examplesIconClassName}
+                    style={{ color: 'rgb(160 160 160)' }}
+                    onClick={handleExamplesCollapse}
+                    onDoubleClick={handleExamplesDoubleClick}
+                    data-testid="request-item-chevron"
+                  />
+                </ActionIcon>
+              ) : null}
+            </div>
 
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />

@@ -108,6 +108,13 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     if (isCurl) {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
+
+    // Fix axios import to use standard require instead of .default
+    // This ensures global axios interceptors and config work correctly
+    const isNodeAxios = language.target === 'node' && language.client === 'axios';
+    if (isNodeAxios) {
+      result = result.replace(/const\s+axios\s*=\s*require\(['"]axios['"]\)\.default;/, 'const axios = require(\'axios\');');
+    }
     /**
      *
      * Display-swap. HTTPSnippet renders the URL in encoded form (using har.queryString as the source of truth).
