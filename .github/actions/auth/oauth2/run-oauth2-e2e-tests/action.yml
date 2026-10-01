@@ -1,0 +1,79 @@
+name: 'Run OAuth2 E2E Tests'
+description: 'Start Keycloak and run the OAuth2 (Keycloak) E2E tests on Linux, macOS and Windows'
+
+inputs:
+  use-xvfb:
+    description: 'Wrap the test run in xvfb-run (needed on headless Linux)'
+    required: false
+    default: 'false'
+  port:
+    description: 'HTTP port Keycloak listens on'
+    required: false
+    default: '8090'
+  artifact-suffix:
+    description: 'Suffix for the uploaded Playwright report artifact name (linux, macos, windows)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    # Keycloak is started HERE — in the same step as the tests — on purpose. On Windows,
+    # GitHub Actions kills a step's child-process tree when the step ends (Job Object), so a
+    # server started in an earlier step is dead by the time tests run. Doing the same on every
+    # OS keeps a single script. KC_HOME comes from the setup-keycloak step. bash is available
+    # on all three runner OSes (Git Bash on Windows); kc.bat vs kc.sh is the only OS switch.
+    - name: Start Keycloak and run OAuth2 E2E tests
+      shell: bash
+      env:
+        USE_XVFB: ${{ inputs.use-xvfb }}
+        KEYCLOAK_PORT: ${{ inputs.port }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${KC_HOME:-}" ]; then
+          echo "::error::KC_HOME is not set; setup-keycloak must run first"
+          exit 1
+        fi
+
+        if [ "${RUNNER_OS}" = "Windows" ]; then
+          kc_bin="${KC_HOME}/bin/kc.bat"
+        else
+          kc_bin="${KC_HOME}/bin/kc.sh"
+        fi
+        log="${RUNNER_TEMP}/keycloak.log"
+
+        "${kc_bin}" start-dev --http-port="${KEYCLOAK_PORT}" --import-realm > "${log}" 2>&1 &
+        kc_pid=$!
+        trap 'kill "${kc_pid}" 2>/dev/null || true' EXIT
+
+        echo "Waiting for Keycloak (realm bruno) on :${KEYCLOAK_PORT} ..."
+        ready=false
+        for i in $(seq 1 60); do
+          if curl -fsS "http://127.0.0.1:${KEYCLOAK_PORT}/realms/bruno/.well-known/openid-configuration" > /dev/null 2>&1; then
+            ready=true
+            break
+          fi
+          sleep 2
+        done
+        if [ "${ready}" != "true" ]; then
+          echo "::error::Keycloak did not become ready in time"
+          tail -n 100 "${log}" || true
+          exit 1
+        fi
+        echo "Keycloak is ready."
+
+        if [ "${USE_XVFB}" = "true" ]; then
+          xvfb-run npm run test:e2e:auth:oauth2
+        else
+          npm run test:e2e:auth:oauth2
+        fi
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-oauth2-${{ inputs.artifact-suffix }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
