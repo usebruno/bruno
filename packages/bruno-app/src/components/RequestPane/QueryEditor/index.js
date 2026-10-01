@@ -20,6 +20,7 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
 import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 
 const CodeMirror = require('codemirror');
 
@@ -46,6 +47,15 @@ const createSafeGraphQLLinter = () => {
 };
 
 export default class QueryEditor extends React.Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    this.context?.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
 
@@ -79,7 +89,9 @@ export default class QueryEditor extends React.Component {
       mode: 'graphql',
       // mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection)
+        variables: getAllVariables(this.props.collection),
+        collection: this.props.collection,
+        item: this.props.item
       },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -155,6 +167,7 @@ export default class QueryEditor extends React.Component {
     }));
     if (editor) {
       editor.on('change', this._onEdit);
+      editor.on('contextmenu', this._onContextMenu);
       editor.on('keyup', this._onKeyUp);
       editor.on('hasCompletion', this._onHasCompletion);
       editor.on('beforeChange', this._onBeforeChange);

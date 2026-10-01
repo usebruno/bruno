@@ -13,6 +13,7 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -38,6 +39,15 @@ const restoreAncestorScrolls = (snapshots) => {
 };
 
 class MultiLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    this.context?.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -212,6 +222,7 @@ class MultiLineEditor extends Component {
     this.cachedValue = String(this.props.value) || '';
     this.editor.on('change', this._onEdit);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
     this.addOverlay(variables);
     this._setupViewPersistence();
 

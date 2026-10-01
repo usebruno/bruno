@@ -24,6 +24,7 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { useSetAsVariable } from 'providers/SetAsVariable/context';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
@@ -35,6 +36,7 @@ const ResponsePane = ({ item, collection }) => {
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const [showErrorCards, setShowErrorCards] = useState(false);
   const rightContentRef = useRef(null);
+  const setAsVariable = useSetAsVariable();
 
   const response = item.response || {};
 
@@ -306,7 +308,11 @@ const ResponsePane = ({ item, collection }) => {
             collection={collection}
           />
         )}
-        <div className="response-tab-content">
+        <div
+          className="response-tab-content"
+          data-testid="response-tab-content"
+          onContextMenu={(event) => setAsVariable?.openFromDomSelection(event, { collection, item })}
+        >
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline

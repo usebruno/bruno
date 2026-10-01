@@ -37,6 +37,10 @@ let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
+let hideActiveVarInfoPopup = () => {};
+
+export const dismissActiveVarInfoPopup = () => hideActiveVarInfoPopup();
+
 const COPY_ICON_SVG_TEXT = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -1216,6 +1220,11 @@ if (!SERVER_RENDERED) {
 
     // Track this popup as the active one
     activePopup = popup;
+    hideActiveVarInfoPopup = () => {
+      if (activePopup === popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
+    };
 
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);

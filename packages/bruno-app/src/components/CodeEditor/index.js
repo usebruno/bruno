@@ -33,6 +33,7 @@ import {
   writePersistedEditorState
 } from './state-persistence';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
 import {
   changeIntroducesLongLine,
   hasLongLine
@@ -119,6 +120,15 @@ const applyEditorProfile = (
 };
 
 class CodeEditor extends React.Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    this.context?.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
 
@@ -296,6 +306,7 @@ class CodeEditor extends React.Component {
       );
       editor.on('beforeChange', this._onBeforeChange);
       editor.on('change', this._onEdit);
+      editor.on('contextmenu', this._onContextMenu);
 
       // Persist view state immediately when the user folds or unfolds — without
       // this, a fold only gets saved on the next tab switch / unmount. That
