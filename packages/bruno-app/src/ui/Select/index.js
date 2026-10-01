@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo, useId } from 'react';
 import Dropdown from 'components/Dropdown';
-import { IconCaretDown, IconX, IconLoader2 } from '@tabler/icons';
+import { IconCaretDown, IconX, IconLoader2, IconCheck } from '@tabler/icons';
 import InputWrapper from 'ui/InputWrapper';
 import StyledWrapper from './StyledWrapper';
 
@@ -42,8 +42,9 @@ const sameWidthModifier = {
  * Select - A reusable select/dropdown component for forms
  *
  * @param {Array} props.data - Array of strings or { value, label, disabled? } objects
- * @param {string} props.value - Controlled selected value
- * @param {function} props.onChange - Called with the selected value string
+ * @param {string|string[]} props.value - Controlled selection: a value string, or an array of values when `multiple`
+ * @param {function} props.onChange - Called with the selected value string, or the array of values when `multiple`
+ * @param {boolean} props.multiple - Allows selecting several options; the dropdown stays open and each option toggles
  * @param {string} props.placeholder - Placeholder text when no value selected
  * @param {boolean} props.disabled - Disables interaction
  * @param {string} props.error - Error message displayed below the select
@@ -64,6 +65,7 @@ const Select = ({
   data,
   value,
   onChange,
+  multiple = false,
   placeholder = 'Select...',
   disabled = false,
   error,
@@ -103,18 +105,33 @@ const Select = ({
     return options.filter((opt) => opt.label.toLowerCase().includes(query));
   }, [options, searchable, searchValue]);
 
+  const selectedValues = useMemo(
+    () => (multiple ? (Array.isArray(value) ? value : []) : []),
+    [multiple, value]
+  );
+
+  const isSelected = useCallback(
+    (optionValue) => (multiple ? selectedValues.includes(optionValue) : optionValue === value),
+    [multiple, selectedValues, value]
+  );
+
   const selectedOption = useMemo(
     () => options.find((opt) => opt.value === value),
     [options, value]
+  );
+
+  const selectedOptions = useMemo(
+    () => (multiple ? options.filter((opt) => selectedValues.includes(opt.value)) : []),
+    [multiple, options, selectedValues]
   );
 
   const handleOpen = useCallback(() => {
     if (disabled) return;
     setIsOpen(true);
     setSearchValue('');
-    const idx = options.findIndex((opt) => opt.value === value);
+    const idx = options.findIndex((opt) => (multiple ? selectedValues.includes(opt.value) : opt.value === value));
     setFocusedIndex(idx >= 0 ? idx : 0);
-  }, [disabled, options, value]);
+  }, [disabled, options, value, multiple, selectedValues]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -133,6 +150,13 @@ const Select = ({
   const handleSelect = useCallback(
     (option) => {
       if (option.disabled) return;
+      if (multiple) {
+        const next = selectedValues.includes(option.value)
+          ? selectedValues.filter((v) => v !== option.value)
+          : [...selectedValues, option.value];
+        onChange?.(next);
+        return;
+      }
       if (allowDeselect && option.value === value) {
         onChange?.(null);
       } else {
@@ -140,15 +164,15 @@ const Select = ({
       }
       handleClose();
     },
-    [onChange, handleClose, allowDeselect, value]
+    [onChange, handleClose, allowDeselect, value, multiple, selectedValues]
   );
 
   const handleClear = useCallback(
     (e) => {
       e.stopPropagation();
-      onChange?.(null);
+      onChange?.(multiple ? [] : null);
     },
-    [onChange]
+    [onChange, multiple]
   );
 
   const handleClickOutside = useCallback(() => {
@@ -241,7 +265,7 @@ const Select = ({
         </span>
       );
     }
-    if (clearable && value != null && value !== '') {
+    if (clearable && (multiple ? selectedValues.length > 0 : value != null && value !== '')) {
       return (
         <button
           type="button"
@@ -277,6 +301,31 @@ const Select = ({
           autoCapitalize="off"
           spellCheck="false"
         />
+      );
+    }
+    if (multiple) {
+      if (selectedOptions.length === 0) {
+        return <span className="select-trigger-placeholder">{placeholder}</span>;
+      }
+      return (
+        <span className="select-tags">
+          {selectedOptions.map((option) => (
+            <span key={option.value} className="select-tag">
+              <span className="select-tag-label">{option.label}</span>
+              <button
+                type="button"
+                className="select-tag-remove"
+                aria-label={`Remove ${option.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelect(option);
+                }}
+              >
+                <IconX size={12} strokeWidth={2} />
+              </button>
+            </span>
+          ))}
+        </span>
       );
     }
     if (selectedOption) {
@@ -327,11 +376,11 @@ const Select = ({
       return <div className="select-nothing-found">{nothingFoundMessage}</div>;
     }
     return filteredOptions.map((option, index) => {
-      const isSelected = option.value === value;
+      const optionSelected = isSelected(option.value);
       const isFocused = index === focusedIndex;
       const classNames = [
         'dropdown-item',
-        isSelected ? 'dropdown-item-active' : '',
+        optionSelected ? 'dropdown-item-active' : '',
         isFocused ? 'dropdown-item-focused' : '',
         option.disabled ? 'disabled' : ''
       ]
@@ -344,12 +393,21 @@ const Select = ({
           className={classNames}
           data-index={index}
           role="option"
-          aria-selected={isSelected}
+          aria-selected={optionSelected}
           onClick={() => handleSelect(option)}
         >
           {renderOption
-            ? renderOption({ option, isSelected, isFocused })
-            : <span className="dropdown-label">{option.label}</span>}
+            ? renderOption({ option, isSelected: optionSelected, isFocused })
+            : (
+                <>
+                  {multiple && (
+                    <span className="select-option-check">
+                      {optionSelected && <IconCheck size={14} strokeWidth={2} />}
+                    </span>
+                  )}
+                  <span className="dropdown-label">{option.label}</span>
+                </>
+              )}
         </div>
       );
     });
