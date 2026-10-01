@@ -1809,7 +1809,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            sendRunnerRequestSent({ requestUid, requestSent, eventData });
+            await sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1896,7 +1896,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              sendRunnerResponseReceived({
+              await sendRunnerResponseReceived({
                 requestUid,
                 responseReceived: {
                   status: response.status,
@@ -1944,7 +1944,7 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                sendRunnerResponseReceived({
+                await sendRunnerResponseReceived({
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,

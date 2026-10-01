@@ -1,14 +1,14 @@
 import { SQLITE_QUERY_KEY } from '../../src/shared/ipc';
+import { SQLITE_FILE_QUERY_KEY } from '../../src/shared/files';
+import { intersectsTablesPredicate } from '../../src/web/tables';
 
-jest.doMock('../../src/generated/web/statements', () => ({
+jest.mock('../../src/generated/web/statements', () => ({
   statementTables: {
     getUsers: ['users'],
     getUserPosts: ['users', 'posts'],
     getComments: ['comments']
   }
 }));
-
-const { intersectsTablesPredicate } = require('../../src/web/tables');
 
 const query = (...queryKey: unknown[]) => ({ queryKey });
 
@@ -47,5 +47,15 @@ describe('intersectsTablesPredicate', () => {
     const predicate = intersectsTablesPredicate(['users']);
     expect(predicate(query(SQLITE_QUERY_KEY, 'getUsers', { id: 1 }))).toBe(true);
     expect(predicate(query(SQLITE_QUERY_KEY, 'getUsers', { id: 2 }))).toBe(true);
+  });
+
+  it('matches a file read when the files table changed', () => {
+    const predicate = intersectsTablesPredicate(['files']);
+    expect(predicate(query(SQLITE_QUERY_KEY, SQLITE_FILE_QUERY_KEY, 'read', 1, null))).toBe(true);
+  });
+
+  it('does not match a file read when some other table changed', () => {
+    const predicate = intersectsTablesPredicate(['users']);
+    expect(predicate(query(SQLITE_QUERY_KEY, SQLITE_FILE_QUERY_KEY, 'read', 1, null))).toBe(false);
   });
 });

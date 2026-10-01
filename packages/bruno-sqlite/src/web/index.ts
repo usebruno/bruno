@@ -4,3 +4,5 @@ export { useSqliteQuery, useSqliteMutation } from './use-sqlite';
 export type { SqliteMutationOptions } from './use-sqlite';
 export type { StatementName } from '../generated/web/statements';
 export * from '../shared';
+export { createFileClient, type FileClient } from './files';
+export { useSqliteFileClient, useSqliteFile, useSqliteFileBytes, useSqliteFileText, sqliteFileQueryKey } from './use-file';

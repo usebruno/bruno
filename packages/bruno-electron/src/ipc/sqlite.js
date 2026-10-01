@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('path');
 const { app, ipcMain } = require('electron');
-const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
+const { createDatabase, registerSQLiteIpc, registerFileIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
 
 let ipc = null;
 
@@ -24,10 +24,11 @@ const removeLegacyFileIndex = () => {
 class SqliteEventModel {
   _db = null;
   _statements = null;
+  _files = null;
   _window = null;
   constructor(window) {
     this._window = window;
-    const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
+    const { db, statements, files } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
       pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' },
       onMutation: (event) => {
         this._window?.webContents?.send(SQLITE_MUTATION_CHANNEL, event);
@@ -35,12 +36,22 @@ class SqliteEventModel {
     });
     this._db = db;
     this._statements = statements;
+    this._files = files;
     removeLegacyFileIndex();
     registerSQLiteIpc(ipcMain, statements);
+
+    if (files) {
+      registerFileIpc(ipcMain, files);
+      files.collect().catch((err) => console.warn('failed to collect orphaned files: ', err));
+    }
   }
 
   get statements() {
     return this._statements;
+  }
+
+  get files() {
+    return this._files;
   }
 
   get db() {
@@ -52,6 +63,7 @@ class SqliteEventModel {
       this._db.close();
       this._db = null;
       this._statements = null;
+      this._files = null;
       this._window = null;
     }
   }
@@ -102,6 +114,8 @@ const getStatements = () => (ipc ? ipc.statements : null);
 
 const getDatabase = () => (ipc ? ipc.db : null);
 
+const getFiles = () => (ipc ? ipc.files : null);
+
 const reclaimDiskSpace = (options) => (ipc ? ipc.reclaimDiskSpace(options) : Promise.resolve());
 
-module.exports = { registerSqliteIpc, shutdown, getStatements, getDatabase, reclaimDiskSpace };
+module.exports = { registerSqliteIpc, shutdown, getStatements, getDatabase, getFiles, reclaimDiskSpace };
