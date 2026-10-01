@@ -50,7 +50,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
     dispatch(clearEnvironmentsDraft({ collectionUid: collection.uid }));
   }, [dispatch, collection.uid]);
 
-  const renderExtraValueContent = useCallback(
+  const renderSensitiveWarning = useCallback(
     (variable) => {
       if (!variable.secret && hasSensitiveUsage(variable)) {
         return (
@@ -76,7 +76,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
       onDraftChange={handleDraftChange}
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
-      renderExtraValueContent={renderExtraValueContent}
+      renderSensitiveWarning={renderSensitiveWarning}
       searchQuery={searchQuery}
       variableType={variableType}
     />

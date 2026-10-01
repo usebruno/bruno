@@ -6,7 +6,6 @@ import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
-import { buildSensitiveFieldLocators } from './sensitive-field';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -149,7 +148,11 @@ export const buildCommonLocators = (page: Page) => ({
     within: (scope: Locator) => scope.locator('.CodeMirror').first(),
     /** Nth row's value-column editor in an EditableTable (Headers / Params / Vars / Assertions). */
     valueCellAt: (scope: Locator, rowIndex: number = 0) =>
-      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror')
+      scope.locator('table tbody tr').nth(rowIndex).getByTestId('column-value').locator('.CodeMirror'),
+    /** Warning icon beside a sensitive input. `fieldName` is the field or variable name. */
+    sensitiveWarning: (fieldName: string) => page.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveWarningIn: (root: Locator, fieldName: string) => root.getByTestId(`sensitive-field-warning-${fieldName}`),
+    sensitiveTooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text })
   },
   // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
   // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
@@ -212,7 +215,6 @@ export const buildCommonLocators = (page: Page) => ({
     inheritedFields: () => page.getByTestId('inherited-auth-fields'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
-  sensitiveField: buildSensitiveFieldLocators(page),
   presets: {
     requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),

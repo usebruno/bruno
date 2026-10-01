@@ -470,7 +470,6 @@ describe('environment table usage flags', () => {
     };
     const collection = collectionWithEnvVariables(savedRequest, [variable], {
       brunoConfig: {
-        proxy: { config: { auth: { password: '{{token}}' } } },
         clientCertificates: { certs: [{ passphrase: '{{token}}' }] }
       },
       root: {
@@ -485,6 +484,17 @@ describe('environment table usage flags', () => {
     });
 
     expect(findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] }).has('env-token')).toBe(true);
+  });
+
+  it('flags a variable named in the proxy password', () => {
+    const variable = tokenVariable('env-token');
+    const collection = collectionWithEnvVariables(null, [variable], {
+      brunoConfig: {
+        proxy: { config: { auth: { password: '{{token}}' } } }
+      }
+    });
+
+    expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
   });
 
   it('flags the inherited row that wins and not a plaintext child that loses to it', () => {
@@ -544,6 +554,58 @@ describe('vars table usage flags', () => {
     });
 
     expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual(['request-token']);
+  });
+
+  it('flags a request variable that overrides auth inherited from the collection', () => {
+    const variable = requestVar('request-token');
+    const request = {
+      uid: 'request-1',
+      type: 'http-request',
+      request: { auth: { mode: 'inherit' }, vars: { req: [variable], res: [] } }
+    };
+    const collection = buildCollection({
+      request,
+      environments: [environment('env-prod', 'Prod', [secret('token', 'ENV_SECRET')])],
+      activeEnvironmentUid: 'env-prod'
+    });
+    collection.root.request.auth = { mode: 'bearer', bearer: { token: '{{token}}' } };
+
+    expect([...findUsedPlainVariableUids(collection, 'request')]).toEqual(['request-token']);
+    expect([...findUsedEnvironmentVariableUids(collection, collection.environments[0])]).toEqual([]);
+  });
+
+  it('flags the folder variable only when an inheriting request sends it', () => {
+    const folderVariable = requestVar('folder-token');
+    const requestVariable = requestVar('request-token');
+    const inheritingRequest = {
+      uid: 'request-1',
+      type: 'http-request',
+      request: { auth: { mode: 'inherit' }, vars: { req: [], res: [] } }
+    };
+    const overridingRequest = {
+      uid: 'request-2',
+      type: 'http-request',
+      request: { auth: { mode: 'inherit' }, vars: { req: [requestVariable], res: [] } }
+    };
+    const quietFolder = folderWithVars('folder-1', [folderVariable], [inheritingRequest]);
+    quietFolder.root.request.auth = { mode: 'bearer', bearer: { token: '{{token}}' } };
+    const overridingFolder = folderWithVars('folder-2', [folderVariable], [overridingRequest]);
+    overridingFolder.root.request.auth = { mode: 'bearer', bearer: { token: '{{token}}' } };
+
+    const inherited = buildCollection({
+      folders: [quietFolder],
+      environments: [environment('env-prod', 'Prod', [secret('token', 'ENV_SECRET')])],
+      activeEnvironmentUid: 'env-prod'
+    });
+    const overridden = buildCollection({
+      folders: [overridingFolder],
+      environments: [environment('env-prod', 'Prod', [secret('token', 'ENV_SECRET')])],
+      activeEnvironmentUid: 'env-prod'
+    });
+
+    expect([...findUsedPlainVariableUids(inherited, 'folder')]).toEqual(['folder-token']);
+    expect([...findUsedPlainVariableUids(overridden, 'folder')]).toEqual([]);
+    expect([...findUsedPlainVariableUids(overridden, 'request')]).toEqual(['request-token']);
   });
 
   it('does not flag a disabled request variable', () => {

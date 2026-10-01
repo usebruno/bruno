@@ -27,7 +27,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
   const hasSensitiveUsage = useCallback((variable) => (
     !!variable?.uid && usedVariableUids.has(variable.uid)
   ), [usedVariableUids]);
-  const renderExtraValueContent = useCallback((variable) => {
+  const renderSensitiveWarning = useCallback((variable) => {
     if (!variable.secret && hasSensitiveUsage(variable)) {
       return (
         <SensitiveFieldWarning
@@ -73,7 +73,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, inherite
       onDraftChange={handleDraftChange}
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
-      renderExtraValueContent={renderExtraValueContent}
+      renderSensitiveWarning={renderSensitiveWarning}
       searchQuery={searchQuery}
       variableType={variableType}
     />

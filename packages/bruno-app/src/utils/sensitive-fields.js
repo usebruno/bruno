@@ -1,10 +1,10 @@
 import get from 'lodash/get';
 import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { resolveInheritedAuth } from 'utils/auth';
 import {
   findEnvironmentInCollection,
   flattenItems,
   getTreePathFromCollectionToItem,
-  isItemAFolder,
   isItemARequest,
   resolveEnabledVariable
 } from './collections';
@@ -209,8 +209,7 @@ const readSensitiveValues = (source, item, scope) => (
 );
 
 const collectSensitiveFieldValues = (collection) => {
-  const collectionRoot = (collection?.draft && collection.draft.root) || collection?.root || {};
-  const fields = readSensitiveValues(collectionRoot, null, 'collection');
+  const fields = [];
   const brunoConfig = collection?.draft?.brunoConfig || collection?.brunoConfig || {};
   const proxyPassword = get(brunoConfig, 'proxy.config.auth.password');
   if (typeof proxyPassword === 'string' && proxyPassword) {
@@ -224,13 +223,10 @@ const collectSensitiveFieldValues = (collection) => {
   });
 
   flattenItems(collection?.items || []).forEach((item) => {
-    if (isItemARequest(item)) {
-      fields.push(...readSensitiveValues(item.draft || item, item, 'request'));
+    if (!isItemARequest(item)) {
       return;
     }
-    if (isItemAFolder(item)) {
-      fields.push(...readSensitiveValues(item.draft || item.root, item, 'folder'));
-    }
+    fields.push(...readSensitiveValues({ request: resolveInheritedAuth(item, collection) }, item, 'request'));
   });
 
   return fields;
