@@ -71,6 +71,26 @@ describe('interpolate-vars: interpolateVars', () => {
     expect(result.data).toContain(`--${boundary}`);
     expect(result.data).toContain(`--${boundary}--`);
   });
+
+  it('interpolates form-urlencoded field values when Content-Type has a charset parameter', () => {
+    const request = {
+      method: 'POST',
+      mode: 'formUrlEncoded',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      data: [
+        { name: 'token', value: '{{token}}', enabled: true },
+        { name: 'static', value: 'value', enabled: true }
+      ]
+    };
+
+    const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+    expect(result.data).toEqual([
+      { name: 'token', value: 'abc123', enabled: true },
+      { name: 'static', value: 'value', enabled: true }
+    ]);
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {

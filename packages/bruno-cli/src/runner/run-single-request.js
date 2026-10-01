@@ -540,7 +540,10 @@ const runSingleRequest = async function (
       (name) => name.toLowerCase() === 'content-type'
     );
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    const mediaType = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
+
+    if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
       } else if (typeof request.data !== 'string') {
@@ -549,18 +552,17 @@ const runSingleRequest = async function (
       // if `data` is of string type - return as-is (assumes already encoded)
     }
 
-    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
-    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
+    if (mediaType.startsWith('multipart/')) {
       if (typeof request.data !== 'string' && !isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const existingBoundary = extractBoundaryFromContentType(contentType);
+        let form = createFormData(request.data, collectionPath, existingBoundary);
         request.data = form;
 
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const existingBoundary = extractBoundaryFromContentType(contentType);
           if (existingBoundary) {
             formHeaders['content-type'] = contentType;
           } else {

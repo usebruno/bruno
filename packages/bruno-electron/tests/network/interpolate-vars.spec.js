@@ -330,6 +330,27 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
+  describe('Form URL-encoded body', () => {
+    it('interpolates field values when Content-Type has a charset parameter', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        data: [
+          { name: 'token', value: '{{token}}', enabled: true },
+          { name: 'static', value: 'value', enabled: true }
+        ]
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toEqual([
+        { name: 'token', value: 'abc123', enabled: true },
+        { name: 'static', value: 'value', enabled: true }
+      ]);
+    });
+  });
+
   describe('Multipart body (multipart/form-data and multipart/mixed)', () => {
     it('interpolates value in each part when Content-Type is multipart/form-data', () => {
       const request = {

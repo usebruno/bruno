@@ -90,6 +90,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
+  const mediaType = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
   const isGraphqlRequest = request.mode === 'graphql';
 
   // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
@@ -112,7 +113,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
-    } else if (contentType === 'application/x-www-form-urlencoded') {
+    } else if (mediaType === 'application/x-www-form-urlencoded') {
       if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
