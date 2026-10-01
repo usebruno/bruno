@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Bru = require('../bru');
-const { getUnresolvedVariables } = require('../unresolved-variables');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
@@ -51,7 +51,7 @@ class VarsRuntime {
       promptVariables,
       certsAndProxyConfig,
       requestUrl: request?.url,
-      unresolvedVariables: getUnresolvedVariables(request)
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);

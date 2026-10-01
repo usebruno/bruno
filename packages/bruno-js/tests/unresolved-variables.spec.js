@@ -3,7 +3,7 @@ const Bru = require('../src/bru');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
-const { trackUnresolvedVariables, getUnresolvedVariables } = require('../src/unresolved-variables');
+const { trackUnresolvedVariables, getUnresolvedVariableCollector } = require('../src/unresolved-variables');
 
 const createBru = (unresolvedVariables) => new Bru({
   runtime: 'nodevm',
@@ -15,7 +15,7 @@ const createBru = (unresolvedVariables) => new Bru({
   globalEnvironmentVariables: {},
   oauth2CredentialVariables: {},
   processEnvVars: { EMPTY: '' },
-  unresolvedVariables
+  onUnresolved: unresolvedVariables && ((name) => unresolvedVariables.add(name))
 });
 
 describe('unresolved variables', () => {
@@ -28,8 +28,8 @@ describe('unresolved variables', () => {
       const childUnresolvedVariables = trackUnresolvedVariables(childRequest, parentUnresolvedVariables);
       trackUnresolvedVariables(grandchildRequest, childUnresolvedVariables);
 
-      getUnresolvedVariables(childRequest).add('childHost');
-      getUnresolvedVariables(grandchildRequest).add('grandchildToken');
+      getUnresolvedVariableCollector(childRequest)('childHost');
+      getUnresolvedVariableCollector(grandchildRequest)('grandchildToken');
 
       expect([...parentUnresolvedVariables]).toEqual(['childHost', 'grandchildToken']);
     });

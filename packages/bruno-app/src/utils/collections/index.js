@@ -1161,7 +1161,6 @@ export const hasRequestChanges = (item) => {
   const originalItem = cloneDeep(item);
   const draftItem = cloneDeep(item.draft);
 
-  // Remove examples and run-only state from both items for comparison
   delete originalItem.examples;
   delete originalItem.draft;
   delete originalItem.unresolvedVariables;

@@ -4,7 +4,6 @@ export const buildUnresolvedVariablesInfoLocators = (page: Page) => ({
   card: () => page.getByTestId('unresolved-variables-info'),
   names: () => page.getByTestId('unresolved-variables-names'),
   count: () => page.getByTestId('unresolved-variables-count'),
-  countButton: (name: string) => page.getByRole('button', { name, exact: true }),
   popoverInsideElement: (id: string) => page.locator(`[id="${id}"]`).getByTestId('unresolved-variables-popover'),
   popoverNames: () => page.getByTestId('unresolved-variables-popover').locator('li'),
   copyButton: () => page.getByTestId('unresolved-variables-copy'),

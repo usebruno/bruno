@@ -45,20 +45,14 @@ const StyledWrapper = styled.div`
   }
 
   .variable-popover {
-    z-index: 9999 !important;
-    padding: 0 !important;
-    font-size: ${(props) => props.theme.font.size.sm} !important;
-    color: ${(props) => props.theme.dropdown.color} !important;
-    background-color: ${(props) => props.theme.dropdown.bg} !important;
-    ${(props) =>
-      props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
-        ? `box-shadow: ${props.theme.dropdown.shadow};`
-        : ''}
-    ${(props) =>
-      props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
-        ? `border: 1px solid ${props.theme.dropdown.border};`
-        : ''}
-    border-radius: ${(props) => props.theme.border.radius.base} !important;
+    z-index: 9999;
+    padding: 0;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    background-color: ${(props) => props.theme.dropdown.bg};
+    box-shadow: ${(props) => props.theme.dropdown.shadow};
+    border: ${(props) => (props.theme.dropdown.border === 'none' ? 'none' : `1px solid ${props.theme.dropdown.border}`)};
+    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
   .popover-header {

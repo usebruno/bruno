@@ -1,7 +1,7 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
-const { getUnresolvedVariables, createUnresolvedCollector } = require('@usebruno/js');
+const { getUnresolvedVariableCollector } = require('@usebruno/js');
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -45,7 +45,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
-  const onUnresolved = createUnresolvedCollector(getUnresolvedVariables(request));
+  const onUnresolved = getUnresolvedVariableCollector(request);
   // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 

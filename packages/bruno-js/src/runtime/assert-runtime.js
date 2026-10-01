@@ -2,7 +2,7 @@ const _ = require('lodash');
 const chai = require('chai');
 const { nanoid } = require('nanoid');
 const Bru = require('../bru');
-const { getUnresolvedVariables } = require('../unresolved-variables');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
@@ -352,7 +352,7 @@ const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime) => {
   return evaluateJsExpression(expr, context);
 };
 
-const evaluateRhsOperand = (rhsOperand, operator, context, runtime, unresolvedVariables) => {
+const evaluateRhsOperand = (rhsOperand, operator, context, runtime, onUnresolved) => {
   if (isUnaryOperator(operator)) {
     return;
   }
@@ -365,7 +365,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime, unresolvedVa
     runtimeVariables: context.bru.runtimeVariables,
     envVariables: context.bru.envVariables,
     processEnvVars: context.bru.processEnvVars,
-    unresolvedVariables
+    onUnresolved
   };
 
   // gracefully allow both a,b as well as [a, b]
@@ -420,7 +420,7 @@ class AssertRuntime {
 
     const promptVariables = request?.promptVariables || {};
     const certsAndProxyConfig = request?.certsAndProxyConfig;
-    const unresolvedVariables = getUnresolvedVariables(request);
+    const onUnresolved = getUnresolvedVariableCollector(request);
     const bru = new Bru({
       runtime: this.runtime,
       envVariables,
@@ -433,7 +433,7 @@ class AssertRuntime {
       promptVariables,
       certsAndProxyConfig,
       requestUrl: request?.url,
-      unresolvedVariables
+      onUnresolved
     });
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
@@ -466,7 +466,7 @@ class AssertRuntime {
 
       try {
         const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime);
-        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime, unresolvedVariables);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime, onUnresolved);
 
         switch (operator) {
           case 'eq':

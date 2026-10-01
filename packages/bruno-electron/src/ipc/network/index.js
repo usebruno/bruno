@@ -10,7 +10,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2, trackUnresolvedVariables, getUnresolvedVariables, createUnresolvedCollector } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2, trackUnresolvedVariables, getUnresolvedVariableCollector } = require('@usebruno/js');
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
@@ -371,7 +371,7 @@ const configureRequest = async (
     // Interpolate key and value as they can be variables before adding to the URL.
     const apiKeyInterpolationOptions = {
       ...interpolationOptions,
-      onUnresolved: createUnresolvedCollector(getUnresolvedVariables(request))
+      onUnresolved: getUnresolvedVariableCollector(request)
     };
     const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, apiKeyInterpolationOptions);
     const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, apiKeyInterpolationOptions);

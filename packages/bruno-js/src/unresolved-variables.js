@@ -9,13 +9,12 @@ const trackUnresolvedVariables = (request, parentUnresolvedVariables) => {
   return unresolvedVariables;
 };
 
-const getUnresolvedVariables = (request) => unresolvedVariablesByRequest.get(request);
-
-const createUnresolvedCollector = (unresolvedVariables) =>
-  unresolvedVariables ? (name) => unresolvedVariables.add(name) : undefined;
+const getUnresolvedVariableCollector = (request) => {
+  const unresolvedVariables = unresolvedVariablesByRequest.get(request);
+  return unresolvedVariables && ((name) => unresolvedVariables.add(name));
+};
 
 module.exports = {
   trackUnresolvedVariables,
-  getUnresolvedVariables,
-  createUnresolvedCollector
+  getUnresolvedVariableCollector
 };

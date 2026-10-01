@@ -4,7 +4,6 @@ const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
-const { createUnresolvedCollector } = require('./unresolved-variables');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -41,7 +40,7 @@ class Bru {
    * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
    * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
    * @property {string} [options.requestUrl] - The URL of the current request (used for cookie access)
-   * @property {Set<string>} [options.unresolvedVariables] - Receives each variable a script reads or interpolates that is not defined
+   * @property {function(string): void} [options.onUnresolved] - Called with each variable a script reads or interpolates that is not defined
    */
   constructor({
     runtime,
@@ -58,7 +57,7 @@ class Bru {
     promptVariables,
     certsAndProxyConfig,
     requestUrl,
-    unresolvedVariables
+    onUnresolved
   }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
@@ -71,7 +70,7 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    this.#onUnresolved = createUnresolvedCollector(unresolvedVariables);
+    this.#onUnresolved = onUnresolved;
     // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
