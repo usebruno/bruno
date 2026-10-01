@@ -21,7 +21,7 @@ const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest, measureResponseTime } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
@@ -744,14 +744,11 @@ const runSingleRequest = async function (
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(refreshExplicitHeaderNames(request));
+      responseTime = measureResponseTime(response.config.metadata);
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
       response.dataBuffer = dataBuffer;
-
-      // Prevents the duration on leaking to the actual result
-      responseTime = Number(response.headers.get('request-duration')) || 0;
-      response.headers.delete('request-duration');
 
       // save cookies if enabled
       if (!options.disableCookies) {
@@ -759,14 +756,11 @@ const runSingleRequest = async function (
       }
     } catch (err) {
       if (err?.response) {
+        responseTime = measureResponseTime(err.response.config.metadata);
         const { data, dataBuffer } = parseDataFromResponse(err?.response);
         err.response.data = data;
         err.response.dataBuffer = dataBuffer;
         response = err.response;
-
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
 
         // save cookies if enabled (4XX/5XX responses can also set cookies)
         if (!options.disableCookies) {
@@ -1004,8 +998,6 @@ const runSingleRequest = async function (
         data: response.data,
         url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null,
         responseTime,
-        // In the GUI, duration is wall-clock time (timeEnd - timeStart).
-        // In the CLI we use responseTime as a close approximation.
         duration: responseTime,
         size: response.dataBuffer ? Buffer.byteLength(response.dataBuffer) : 0
       },
