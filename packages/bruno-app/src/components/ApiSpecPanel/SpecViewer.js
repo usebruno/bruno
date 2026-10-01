@@ -9,6 +9,7 @@ import CodeEditor from './FileEditor/CodeEditor/index';
 import Swagger from './Renderers/Swagger';
 import { useDragResize } from 'hooks/useDragResize';
 import { SPEC_PREVIEW_ERRORS } from './constants';
+import normalizeOpenApiVersionForSwagger from './normalize-openapi-version';
 
 const PREVIEW_TIMEOUT_MS = 15000;
 
@@ -171,7 +172,7 @@ const SpecViewer = ({
         ) : (
           <>
             <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
-              <Swagger spec={resolvedSpec || content} onComplete={handleSwaggerComplete} />
+              <Swagger spec={normalizeOpenApiVersionForSwagger(resolvedSpec || content)} onComplete={handleSwaggerComplete} />
             </div>
             {!swaggerReady && (
               <div
