@@ -566,7 +566,10 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
  * @returns {string[]} Filtered hints
  */
 const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = []) => {
-  if (!currentWord) {
+  // An empty word means the user just typed `{{` with nothing after it yet -
+  // show the full variable list rather than nothing. Other contexts never
+  // reach here with an empty word (extractWordFromLine only returns non-empty matches).
+  if (!currentWord && context !== 'variables') {
     return [];
   }
 
