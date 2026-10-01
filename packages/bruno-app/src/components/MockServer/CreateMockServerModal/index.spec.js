@@ -77,9 +77,9 @@ const storeState = {
   mockServer: { instancesByWorkspace: { 'ws-1': [] } }
 };
 
-const renderModal = () => {
+const renderModal = (props = {}) => {
   useSelector.mockImplementation((selector) => selector(storeState));
-  return render(<CreateMockServerModal onClose={jest.fn()} />);
+  return render(<CreateMockServerModal onClose={jest.fn()} {...props} />);
 };
 
 describe('CreateMockServerModal validation', () => {
@@ -147,5 +147,29 @@ describe('CreateMockServerModal validation', () => {
     await waitFor(() => {
       expect(screen.queryByText('API spec is required')).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('CreateMockServerModal opened from an API spec', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useDispatch.mockReturnValue(jest.fn(() => Promise.resolve()));
+  });
+
+  it('starts on the spec source with that spec selected', () => {
+    renderModal({ defaultSourceType: 'spec', defaultApiSpecUid: 'spec-1' });
+
+    expect(screen.getByTestId('mock-server-source-spec')).toBeChecked();
+    expect(screen.getByTestId('mock-server-spec-select')).toHaveValue('spec-1');
+  });
+
+  it('leaves the spec unselected when the dropdown does not list it, so Create asks for one', async () => {
+    renderModal({ defaultSourceType: 'spec', defaultApiSpecUid: 'spec-missing' });
+
+    expect(screen.getByTestId('mock-server-source-spec')).toBeChecked();
+    fireEvent.change(screen.getByTestId('mock-server-name-input'), { target: { value: 'Spec Server' } });
+    fireEvent.click(screen.getByTestId('modal-submit-btn'));
+
+    expect(await screen.findByText('API spec is required')).toBeInTheDocument();
   });
 });

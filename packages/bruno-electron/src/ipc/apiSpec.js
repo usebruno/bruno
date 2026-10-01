@@ -1,15 +1,90 @@
 const { ipcMain } = require('electron');
-const { openApiSpecDialog, openApiSpec, validateApiSpec } = require('../app/apiSpecs');
+const { openApiSpecDialog, openApiSpec, validateApiSpec, broadcastWorkspaceConfig } = require('../app/apiSpecs');
 const { writeFile, isDirectory } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
-const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
+const {
+  removeApiSpecFromWorkspace,
+  findApiSpecEntry,
+  hasWorkspaceFile
+} = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const { proxySwaggerFetch } = require('./swagger-fetch');
+const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
+const { defaultWorkspaceManager } = require('../store/default-workspace');
 const path = require('path');
 const fs = require('fs');
 
+const isOpenedWorkspace = (lastOpenedWorkspaces, workspacePath) => {
+  if (typeof workspacePath !== 'string' || !workspacePath) {
+    return false;
+  }
+
+  const target = path.normalize(workspacePath);
+
+  return [defaultWorkspaceManager.getDefaultWorkspacePath(), ...lastOpenedWorkspaces.getAll()]
+    .filter(Boolean)
+    .some((openedPath) => path.normalize(openedPath) === target);
+};
+
+// Delete gets the file path from the app window, so it only deletes a spec that an open
+// workspace lists in its workspace.yml. It does not check that the file is inside the
+// workspace folder: a listed spec can be anywhere on disk.
+const assertKnownApiSpec = ({ lastOpenedWorkspaces }, pathname, workspacePath) => {
+  if (typeof pathname !== 'string' || !pathname) {
+    throw new Error('API spec path is required');
+  }
+  validateApiSpec(pathname);
+
+  if (!isOpenedWorkspace(lastOpenedWorkspaces, workspacePath) || !hasWorkspaceFile(workspacePath)) {
+    throw new Error(`workspace: ${workspacePath} is not an open workspace`);
+  }
+
+  if (!findApiSpecEntry(workspacePath, pathname)) {
+    throw new Error(`api spec: ${pathname} is not listed in this workspace`);
+  }
+};
+
+const toDeleteError = (error) => {
+  if (error.code === 'EBUSY') {
+    return new Error('The file is in use by another program. Close it and try again.');
+  }
+  if (error.code === 'EPERM' || error.code === 'EACCES') {
+    return new Error('Bruno does not have permission to delete this file.');
+  }
+  return error;
+};
+
+// The file decides whether the spec was deleted. If it cannot be deleted, nothing changes. Once it
+// is gone, a failed workspace.yml update is reported instead of thrown, so the app still closes
+// the spec's tab and row. The watcher and uid cache are keyed by the path as it was opened.
+const deleteApiSpec = async (deps, pathname, workspacePath) => {
+  assertKnownApiSpec(deps, pathname, workspacePath);
+  const { mainWindow, watcher } = deps;
+  const target = path.normalize(pathname);
+
+  try {
+    await fs.promises.rm(target, { force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (error) {
+    throw toDeleteError(error);
+  }
+
+  watcher.removeWatcher(pathname, mainWindow);
+  removeApiSpecUid(pathname);
+
+  try {
+    const { updatedConfig } = await removeApiSpecFromWorkspace(workspacePath, target);
+    broadcastWorkspaceConfig(mainWindow, workspacePath, updatedConfig);
+    return { workspaceUpdated: true };
+  } catch (error) {
+    console.error('Deleted the API spec file but could not update workspace.yml:', error);
+    return { workspaceUpdated: false };
+  }
+};
+
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) => {
+  const deps = { mainWindow, watcher, lastOpenedWorkspaces: new LastOpenedWorkspaces() };
+
   ipcMain.handle('renderer:open-api-spec', (event, workspacePath = null) => {
     if (watcher && mainWindow) {
       return openApiSpecDialog(mainWindow, watcher, { workspacePath });
@@ -60,18 +135,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
         watcher.removeWatcher(pathname, mainWindow);
         removeApiSpecUid(pathname);
 
-        if (workspacePath) {
-          const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-          if (fs.existsSync(workspaceFilePath)) {
-            await removeApiSpecFromWorkspace(workspacePath, pathname);
-          }
+        if (hasWorkspaceFile(workspacePath)) {
+          await removeApiSpecFromWorkspace(workspacePath, pathname);
         }
       }
     } catch (error) {
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:delete-api-spec', (event, pathname, workspacePath) =>
+    deleteApiSpec(deps, pathname, workspacePath));
 
   ipcMain.handle('renderer:fetch-api-spec', async (event, url) => {
     try {

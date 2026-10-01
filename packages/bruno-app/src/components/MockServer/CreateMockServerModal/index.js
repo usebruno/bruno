@@ -8,6 +8,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import { normalizePath } from 'utils/common/path';
+import { isCollectionInWorkspace } from 'utils/workspaces';
 import { areItemsLoading, isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
@@ -164,7 +165,8 @@ const CreateMockServerModal = ({
   onDelete,
   editingInstance = null,
   defaultCollectionUid = null,
-  defaultSourceType = 'collection'
+  defaultSourceType = 'collection',
+  defaultApiSpecUid = null
 }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
@@ -192,9 +194,7 @@ const CreateMockServerModal = ({
         return false;
       }
 
-      return activeWorkspace.collections?.some(
-        (workspaceCollection) => normalizePath(workspaceCollection.path) === normalizePath(collection.pathname)
-      );
+      return isCollectionInWorkspace(activeWorkspace, collection);
     });
   }, [activeWorkspace, collections, workspaces]);
 
@@ -223,10 +223,15 @@ const CreateMockServerModal = ({
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
+  // Preselect the spec only when the dropdown lists it. Otherwise the form would hold a spec
+  // the user cannot see, and Create would not find it.
+  const defaultSpecUid = defaultApiSpecUid && specSelectOptions.some((option) => option.uid === defaultApiSpecUid)
+    ? defaultApiSpecUid
+    : '';
   const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
     ? (resolveSelectedSpecUid(editingInstance, workspaceApiSpecs) || editingInstance.specPath || '')
-    : '';
+    : defaultSpecUid;
 
   const initialSourceType = (() => {
     if (editingInstance) {

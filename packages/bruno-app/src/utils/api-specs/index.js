@@ -1,10 +1,14 @@
-import { normalizePath } from 'utils/common/path';
+import { getAbsoluteFilePath, normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
+import { isHttpUrl } from 'utils/url';
+import { isCollectionInWorkspace } from 'utils/workspaces';
 
 export const API_SPEC_TAB_TYPE = 'api-spec';
 
 const API_SPEC_TAB_UID_PREFIX = 'api-spec::';
 
+// Paths are compared ignoring letter case on Windows only. specPathKey in bruno-electron
+// (utils/workspace-config) follows the same rule, so change both together.
 export const getApiSpecPathKey = (pathname) => {
   const normalizedPathname = normalizePath(pathname);
   if (!normalizedPathname) return '';
@@ -38,3 +42,18 @@ export const isApiSpecTabForPathname = (tab, pathname) => {
 
 export const hasUnsavedApiSpecChanges = (apiSpec) =>
   Boolean(apiSpec) && typeof apiSpec.draft === 'string' && apiSpec.draft !== apiSpec.raw;
+
+const syncsFromSpec = (collection, specPathKey) =>
+  (collection.brunoConfig?.openapi || []).some(({ sourceUrl } = {}) => {
+    if (!sourceUrl || isHttpUrl(sourceUrl)) return false;
+    return getApiSpecPathKey(getAbsoluteFilePath(collection.pathname, sourceUrl)) === specPathKey;
+  });
+
+export const countCollectionsSyncingFromSpec = (collections, workspace, specPathname) => {
+  const specPathKey = getApiSpecPathKey(specPathname);
+  if (!specPathKey || !Array.isArray(collections)) return 0;
+
+  return collections.filter(
+    (collection) => isCollectionInWorkspace(workspace, collection) && syncsFromSpec(collection, specPathKey)
+  ).length;
+};
