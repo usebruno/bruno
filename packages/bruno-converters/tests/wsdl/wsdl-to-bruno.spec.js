@@ -182,7 +182,7 @@ describe('wsdl-to-bruno', () => {
       );
     });
 
-    it('marks an xsd:any that sits in a sequence rather than a choice', async () => {
+    it('marks an xsd:any inside a sequence without a choice comment', async () => {
       const body = await generateRequestBody(`
         <xsd:element name="SignRequest">
           <xsd:complexType>
@@ -198,6 +198,26 @@ describe('wsdl-to-bruno', () => {
         '<timestamp>2024-01-01T00:00:00Z</timestamp><!--You may enter ANY elements at this point-->'
       );
       expect(body).not.toContain('CHOICE');
+    });
+
+    it('keeps an xsd:any at its position between two elements', async () => {
+      const body = await generateRequestBody(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="timestamp" type="xsd:dateTime"/>
+              <xsd:any namespace="##other" processContents="lax"/>
+              <xsd:element name="subject" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain(
+        '<timestamp>2024-01-01T00:00:00Z</timestamp>'
+        + '<!--You may enter ANY elements at this point-->'
+        + '<subject>string</subject>'
+      );
     });
   });
 
@@ -223,6 +243,27 @@ describe('wsdl-to-bruno', () => {
       expect(body).toContain(
         '<swedishId>string</swedishId><name>string</name><signedAt>2024-01-01T00:00:00Z</signedAt>'
       );
+    });
+
+    it('expands a group at its position between two elements', async () => {
+      const body = await generateRequestBody(`
+        <xsd:group name="identity">
+          <xsd:sequence>
+            <xsd:element name="swedishId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:group>
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="before" type="xsd:string"/>
+              <xsd:group ref="tns:identity"/>
+              <xsd:element name="after" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+
+      expect(body).toContain('<before>string</before><swedishId>string</swedishId><after>string</after>');
     });
 
     it('counts an xsd:group branch of a choice as a single alternative', async () => {

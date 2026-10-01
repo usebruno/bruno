@@ -10,8 +10,10 @@ const generateUID = () => {
 
 import { get, each } from 'lodash';
 import { collectionSchema } from '@usebruno/schema';
-import parseXML from './parse-xml.js';
+import parseXML, { XML_POSITION_KEY } from './parse-xml.js';
 import { collectWsdlSchemas, resolveQName } from './schema-graph.js';
+
+const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 
 // --- Inlined from src/common/index.js ---
 export const validateSchema = (collection = {}) => {
@@ -339,29 +341,17 @@ class WSDLParser {
    * Parse particles of a content model (sequence, choice, all)
    */
   parseParticles(particle, target, prefixMap, choicePath) {
-    for (const [key, value] of Object.entries(particle)) {
-      const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
-
-      if (particleName === 'element') {
-        for (const element of this.getArray(value)) {
-          this.addElement(element, target, prefixMap, choicePath);
-        }
-      } else if (particleName === 'any') {
-        for (let i = 0; i < this.occurrenceCount(value); i++) {
-          this.addAnyElement(target, choicePath);
-        }
-      } else if (particleName === 'group') {
-        for (const groupRef of this.getArray(value)) {
-          this.expandModelGroup(groupRef, target, prefixMap, choicePath);
-        }
-      } else if (particleName === 'choice') {
-        for (const choice of this.getArray(value)) {
-          this.parseChoiceBranches(choice, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
-        }
-      } else if (particleName === 'sequence' || particleName === 'all') {
-        for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, choicePath);
-        }
+    for (const { name, node } of this.orderedParticles(particle)) {
+      if (name === 'element') {
+        this.addElement(node, target, prefixMap, choicePath);
+      } else if (name === 'any') {
+        this.addAnyElement(target, choicePath);
+      } else if (name === 'group') {
+        this.expandModelGroup(node, target, prefixMap, choicePath);
+      } else if (name === 'choice') {
+        this.parseChoiceBranches(node, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
+      } else {
+        this.parseParticles(node, target, prefixMap, choicePath);
       }
     }
   }
@@ -370,32 +360,37 @@ class WSDLParser {
    * Parse the branches of an xs:choice
    */
   parseChoiceBranches(choice, target, prefixMap, choicePath, group, branch) {
-    for (const [key, value] of Object.entries(choice)) {
-      const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
-
-      if (particleName === 'element') {
-        for (const element of this.getArray(value)) {
-          this.addElement(element, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
-        }
-      } else if (particleName === 'any') {
-        for (let i = 0; i < this.occurrenceCount(value); i++) {
-          this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
-        }
-      } else if (particleName === 'group') {
-        for (const groupRef of this.getArray(value)) {
-          this.expandModelGroup(groupRef, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
-        }
-      } else if (particleName === 'choice') {
-        for (const nested of this.getArray(value)) {
-          branch = this.parseChoiceBranches(nested, target, prefixMap, choicePath, group, branch);
-        }
-      } else if (particleName === 'sequence' || particleName === 'all') {
-        for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
-        }
+    for (const { name, node } of this.orderedParticles(choice)) {
+      if (name === 'element') {
+        this.addElement(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'any') {
+        this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'group') {
+        this.expandModelGroup(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'choice') {
+        branch = this.parseChoiceBranches(node, target, prefixMap, choicePath, group, branch);
+      } else {
+        this.parseParticles(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
       }
     }
     return branch;
+  }
+
+  /**
+   * The child particles of a content model in document order
+   */
+  orderedParticles(particle) {
+    const particles = [];
+    for (const [key, value] of Object.entries(particle)) {
+      const name = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
+      if (!PARTICLE_NAMES.includes(name)) {
+        continue;
+      }
+      for (const node of this.getArray(value)) {
+        particles.push({ name, node });
+      }
+    }
+    return particles.sort((a, b) => a.node[XML_POSITION_KEY] - b.node[XML_POSITION_KEY]);
   }
 
   addElement(element, target, prefixMap, choicePath) {
@@ -599,13 +594,6 @@ class WSDLParser {
   getArray(item) {
     if (!item) return [];
     return Array.isArray(item) ? item : [item];
-  }
-
-  /**
-   * Count how many times a particle was declared
-   */
-  occurrenceCount(value) {
-    return Array.isArray(value) ? value.length : 1;
   }
 }
 
