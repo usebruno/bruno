@@ -16,7 +16,7 @@ const RAW_FORMAT_OPTIONS = [
 ];
 
 // Preview format options
-const PREVIEW_FORMAT_OPTIONS = [
+export const PREVIEW_FORMAT_OPTIONS = [
   // Structured formats
   { id: 'json', label: 'JSON', type: 'item', codeMirrorMode: 'application/ld+json' },
   { id: 'html', label: 'HTML', type: 'item', codeMirrorMode: 'xml' },
