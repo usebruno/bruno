@@ -122,9 +122,6 @@ const unavailableFiles = {
   async read(id) {
     throw unavailable(`a read of file ${id}`);
   },
-  async readText(id) {
-    throw unavailable(`a read of file ${id}`);
-  },
   async remove(id) {
     throw unavailable(`a removal of file ${id}`);
   },

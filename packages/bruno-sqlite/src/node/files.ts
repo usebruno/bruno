@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, open, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import type { Statements } from './statements';
-import { INLINE_MAX_BYTES, CollectResult, FileData, FileEntry, FileRange, FileWriteOptions } from '../shared/files';
+import { INLINE_MAX_BYTES, CollectResult, FileData, FileEntry, FileWriteOptions } from '../shared/files';
 
 type MetaRow = {
   id: number;
@@ -102,35 +102,13 @@ export class FileStore {
     return entry;
   }
 
-  async read(id: number, range: FileRange = {}): Promise<Uint8Array | null> {
+  async read(id: number): Promise<Uint8Array | null> {
     const found = this.locate(id);
     if (found === null) return null;
+    if (found.path !== null) return readFile(found.path);
 
-    const start = Math.max(0, Math.min(range.offset ?? 0, found.size));
-    const end = range.length === undefined ? found.size : Math.min(found.size, start + Math.max(0, range.length));
-    if (end <= start) return Buffer.alloc(0);
-
-    if (found.path === null) {
-      const row = this._statements.execute('read_file_slice', { id, offset: start + 1, length: end - start }) as
-        | { slice: Uint8Array | null }
-        | undefined;
-      return row && row.slice ? Buffer.from(row.slice) : Buffer.alloc(0);
-    }
-
-    const handle = await open(found.path, 'r');
-    try {
-      const buffer = Buffer.allocUnsafe(end - start);
-      const { bytesRead } = await handle.read(buffer, 0, buffer.length, start);
-      return buffer.subarray(0, bytesRead);
-    } finally {
-      await handle.close();
-    }
-  }
-
-  async readText(id: number, range: FileRange = {}): Promise<string | null> {
-    const bytes = await this.read(id, range);
-    if (bytes === null) return null;
-    return Buffer.from(bytes).toString('utf8');
+    const row = this._statements.execute('get_file_data', { id }) as { data: Uint8Array | null } | undefined;
+    return row && row.data ? Buffer.from(row.data) : Buffer.alloc(0);
   }
 
   async remove(id: number): Promise<boolean> {
