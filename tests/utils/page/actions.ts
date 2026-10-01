@@ -2762,15 +2762,8 @@ const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await page.keyboard.type(value);
 };
 
-/**
- * Replace the contents of a single-line CodeMirror editor identified by its sibling label.
- * Sets the value on the editor directly. Secret fields mask keystrokes, so typing {{name}}
- * does not reliably become the stored value.
- * @param page - The page object
- * @param labelText - Exact label text next to the editor
- * @param value - The text to set
- */
-const setFieldValue = async (page: Page, labelText: string, value: string) => {
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
   const editor = fieldEditor(page, labelText).first();
   await editor.waitFor({ state: 'visible' });
   await editor.evaluate((el: any, nextValue: string) => {
@@ -4036,7 +4029,7 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
-  setFieldValue,
+  writeFieldValue,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,

@@ -15,7 +15,7 @@ import {
   selectAuthMode,
   selectCollectionPaneTab,
   selectRequestPaneTab,
-  setFieldValue
+  writeFieldValue
 } from '../../utils/page';
 import { AUTH_MODE_LABELS } from '../../utils/constants';
 import { addVarsRow } from '../../utils/request';
@@ -57,7 +57,7 @@ test.describe('Sensitive field warnings', () => {
       await openRequest(page, collectionName, 'login');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await setFieldValue(page, 'Value', 'raw-secret');
+      await writeFieldValue(page, 'Value', 'raw-secret');
     });
 
     await test.step('The value warns and the key name does not', async () => {
@@ -78,7 +78,7 @@ test.describe('Sensitive field warnings', () => {
       await openRequest(page, collectionName, 'login');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await setFieldValue(page, 'Value', '{{process.env.TOKEN}}');
+      await writeFieldValue(page, 'Value', '{{process.env.TOKEN}}');
     });
 
     await test.step('No warning is shown', async () => {
@@ -102,12 +102,12 @@ test.describe('Sensitive field warnings', () => {
       await openRequest(page, collectionName, 'login');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await setFieldValue(page, 'Value', '{{token}}');
+      await writeFieldValue(page, 'Value', '{{token}}');
       await expect(buildCommonLocators(page).codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
     });
 
     await test.step('Text outside the braces warns', async () => {
-      await setFieldValue(page, 'Value', 'Bearer {{token}}');
+      await writeFieldValue(page, 'Value', 'Bearer {{token}}');
       await expectSensitiveWarning(page, 'apikey-value', PLAINTEXT_WARNING);
     });
   });
@@ -129,7 +129,7 @@ test.describe('Sensitive field warnings', () => {
       await openRequest(page, collectionName, 'login');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await setFieldValue(page, 'Value', '{{token}}');
+      await writeFieldValue(page, 'Value', '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', requestVariableWarning('token'));
     });
 
@@ -164,7 +164,7 @@ test.describe('Sensitive field warnings', () => {
       await openRequest(page, collectionName, 'login');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
-      await setFieldValue(page, 'Value', '{{token}}');
+      await writeFieldValue(page, 'Value', '{{token}}');
       await expectSensitiveWarning(page, 'apikey-value', ENVIRONMENT_FIELD_WARNING);
     });
 
