@@ -31,7 +31,11 @@ jest.mock('providers/ReduxStore', () => ({
   __esModule: true,
   default: {
     dispatch: jest.fn(),
-    getState: jest.fn()
+    getState: jest.fn(() => ({}))
+  },
+  store: {
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({}))
   }
 }));
 
