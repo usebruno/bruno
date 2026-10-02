@@ -1223,19 +1223,27 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const findActiveGlobalEnvironment = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+};
+
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   const environment = resolveEnvironmentInheritance({
     environments: globalEnvironments,
-    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    targetEnvironment: findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid }),
     merge: true
   });
   return toVariablesMap(environment?.variables);
 };
 
+export const getGlobalEnvironmentName = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid })?.name;
+};
+
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   const environment = resolveEnvironmentInheritance({
     environments: globalEnvironments,
-    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    targetEnvironment: findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid }),
     merge: true
   });
   if (environment && Array.isArray(environment.variables)) {
