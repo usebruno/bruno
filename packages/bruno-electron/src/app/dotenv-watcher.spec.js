@@ -29,7 +29,7 @@ const { setDotEnvVars } = require('../store/process-env');
 const dotEnvWatcher = require('./dotenv-watcher');
 
 describe('DotEnvWatcher - FIFO .env handling (#6057)', () => {
-  const collectionPath = '/collection';
+  const collectionPath = path.join('tmp', 'collection');
   const envPath = path.join(collectionPath, '.env');
   let win;
 
@@ -45,7 +45,7 @@ describe('DotEnvWatcher - FIFO .env handling (#6057)', () => {
   });
 
   it('reads a FIFO .env once on add but ignores subsequent change events', () => {
-    jest.spyOn(fs, 'lstatSync').mockReturnValue({ isFIFO: () => true });
+    jest.spyOn(fs, 'statSync').mockReturnValue({ isFIFO: () => true });
     jest.spyOn(fs, 'readFileSync').mockReturnValue('{"KEY":"1"}');
 
     dotEnvWatcher.addCollectionWatcher(win, collectionPath, 'col-uid');
@@ -59,7 +59,7 @@ describe('DotEnvWatcher - FIFO .env handling (#6057)', () => {
   });
 
   it('still re-reads a regular (non-FIFO) .env file on every change', () => {
-    jest.spyOn(fs, 'lstatSync').mockReturnValue({ isFIFO: () => false });
+    jest.spyOn(fs, 'statSync').mockReturnValue({ isFIFO: () => false });
     jest.spyOn(fs, 'readFileSync').mockReturnValue('{"KEY":"1"}');
 
     dotEnvWatcher.addCollectionWatcher(win, collectionPath, 'col-uid');

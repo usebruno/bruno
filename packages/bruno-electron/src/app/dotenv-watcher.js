@@ -26,7 +26,7 @@ const DEFAULT_WATCHER_OPTIONS = {
 
 const isFIFO = (pathname) => {
   try {
-    return fs.lstatSync(pathname).isFIFO();
+    return fs.statSync(pathname).isFIFO();
   } catch (err) {
     return false;
   }
