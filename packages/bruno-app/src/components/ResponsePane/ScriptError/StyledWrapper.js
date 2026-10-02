@@ -6,6 +6,7 @@ import styled from 'styled-components';
    what it has to show and the remainder flows to the longer cards. */
 const StyledWrapper = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: minmax(auto, max-content);
   gap: 0.5rem;
   min-height: 0;

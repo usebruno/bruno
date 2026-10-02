@@ -1,13 +1,10 @@
 # @usebruno/sqlite
 
-SQLite storage for the Bruno API client. You author migrations as `.ts` and statements as `.sql`; the package compiles them into a typed, cached data layer for the Electron main process and the React renderer.
+SQLite storage for the Bruno API client. You author migrations as `.ts` and statements as `.sql`; the package compiles them into a typed data layer for the Electron main process.
 
-## Entry points
+## Entry point
 
-- `@usebruno/sqlite` (or `/node`) — main process. Owns the DB and runs statements.
-- `@usebruno/sqlite/web` — renderer. React Query hooks that call statements over IPC.
-
-Peer deps for the web layer: `react` 19, `@tanstack/react-query` 5. The node layer uses the built-in `node:sqlite`.
+`@usebruno/sqlite` (or `/node`) — main process only. Owns the DB and runs statements, using the built-in `node:sqlite`.
 
 ## Add a migration
 
@@ -38,6 +35,10 @@ npm run migration:verify --workspace=packages/bruno-sqlite
 ```
 
 It fails if a migration errors, or if a migration's content no longer matches what was recorded when it was first applied to that DB.
+
+### Schema
+
+[`SCHEMA.md`](./SCHEMA.md) shows the schema the migrations produce: an ER diagram plus each table's columns, keys and indexes. The pre-commit hook regenerates it whenever a migration is staged; `npm run schema` regenerates it by hand.
 
 ## Add statements (sqlc syntax)
 
@@ -75,37 +76,9 @@ const ada   = statements.execute('get_user', { id: 1 });
 // db.close() on shutdown
 ```
 
-`registerSQLiteIpc(ipcMain, statements)` exposes every statement to the renderer over IPC.
-
-## Use it — renderer
-
-Wrap the app once (Electron's `window.ipcRenderer` works as the bridge):
-
-```jsx
-import { SQLiteProvider } from '@usebruno/sqlite/web';
-
-<SQLiteProvider bridge={window.ipcRenderer}>
-  <App />
-</SQLiteProvider>
-```
-
-Then read and write by statement name:
-
-```jsx
-import { useSqliteQuery, useSqliteMutation } from '@usebruno/sqlite/web';
-
-const { data, isFetching } = useSqliteQuery('list_users');
-const one = useSqliteQuery('get_user', { id: 5 });
-
-const create = useSqliteMutation('create_user');
-create.mutate({ name: 'Ada', email: 'ada@x.com' });
-```
-
-- `useSqliteQuery(name, params?)` returns the React Query result (`data`, `isFetching`, `error`, `refetch`, …); results are cached.
-- `useSqliteMutation(name)` returns `{ mutate, mutateAsync, … }`.
-- After a mutation, any query reading an affected table refreshes **automatically** (across windows too) — no manual invalidation needed.
-
 Params are always an **object** keyed by the named parameters (no positional/array binding).
+
+The package does not expose statements to a renderer. The host application registers its own IPC handler for each statement it wants to expose.
 
 ## Development
 

@@ -14,6 +14,7 @@ import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import ScriptError from './ScriptError';
 import ScriptErrorIcon from './ScriptErrorIcon';
+import UnresolvedVariablesInfo from './UnresolvedVariablesInfo';
 import StyledWrapper from './StyledWrapper';
 import ResponsePaneActions from './ResponsePaneActions';
 import QueryResultTypeSelector from './QueryResult/QueryResultTypeSelector/index';
@@ -299,6 +300,7 @@ const ResponsePane = ({ item, collection }) => {
       </div>
       <section className={`response-pane-content ${hasScriptError && showErrorCards ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {!isLoading && <UnresolvedVariablesInfo item={item} collection={collection} />}
         {hasScriptError && showErrorCards && (
           <ScriptError
             item={item}
