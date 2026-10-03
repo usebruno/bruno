@@ -77,6 +77,8 @@ import {
   addSaveTransientRequestModal,
   updatePathParam,
   toggleCollection,
+  expandCollection,
+  expandItem,
   setSidebarSelection
 } from './index';
 
@@ -133,6 +135,51 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
     const { ipcRenderer } = window;
     ipcRenderer.invoke('renderer:rename-collection', newName, collection.pathname).then(resolve).catch(reject);
   });
+};
+
+export const importRequest = (collectionUid, folderUid) => async (dispatch, getState) => {
+  let collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) throw new Error('Collection not found');
+
+  if (collection.mountStatus !== 'mounted') {
+    await dispatch(mountCollection({
+      collectionUid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig,
+      skipTabRestore: true
+    }));
+    collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  }
+
+  const parent = folderUid ? findItemInCollection(collection, folderUid) : collection;
+  if (!parent || (folderUid && !isItemAFolder(parent))) throw new Error('Folder not found');
+
+  const seq = filter(parent.items || [], (item) => isItemAFolder(item) || isItemARequest(item) || item.type === 'app').length + 1;
+  const result = await window.ipcRenderer.invoke('renderer:import-request', parent.pathname, seq);
+  if (!result) return;
+
+  dispatch(expandCollection(collectionUid));
+  if (folderUid) dispatch(expandItem({ collectionUid, itemUid: folderUid }));
+  dispatch(insertTaskIntoQueue({
+    uid: uuid(),
+    type: 'OPEN_REQUEST',
+    collectionUid,
+    itemPathname: result.pathname
+  }));
+  toast.success('Request imported successfully');
+};
+
+export const exportRequest = (itemUid, collectionUid) => async (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) throw new Error('Collection not found');
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item || !isItemARequest(item)) throw new Error('Request not found');
+
+  const request = transformRequestToSaveToFilesystem(item);
+  await itemSchema.validate(request);
+  const result = await window.ipcRenderer.invoke('renderer:export-request', item.pathname, request);
+  if (result) toast.success('Request exported successfully');
 };
 
 export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch, getState) => {

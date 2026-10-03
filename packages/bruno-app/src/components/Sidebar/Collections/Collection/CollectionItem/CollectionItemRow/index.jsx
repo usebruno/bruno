@@ -19,11 +19,13 @@ import {
   IconInfoCircle,
   IconTerminal2,
   IconAppWindow,
-  IconEyeOff
+  IconEyeOff,
+  IconFileImport,
+  IconFileExport
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, importRequest, exportRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -424,6 +426,14 @@ const CollectionItemRow = ({
           onClick: () => setNewRequestModalOpen(true)
         },
         {
+          id: 'import-request',
+          leftSection: IconFileImport,
+          label: 'Import Request',
+          onClick: () => dispatch(importRequest(collectionUid, item.uid)).catch((error) => {
+            toast.error(error.message || 'Failed to import request');
+          })
+        },
+        {
           id: 'new-folder',
           leftSection: IconFolderPlus,
           label: 'New Folder',
@@ -442,6 +452,17 @@ const CollectionItemRow = ({
           onClick: () => setRunCollectionModalOpen(true)
         }
       );
+    }
+
+    if (isItemARequest(item)) {
+      items.push({
+        id: 'export-request',
+        leftSection: IconFileExport,
+        label: 'Export Request',
+        onClick: () => dispatch(exportRequest(item.uid, collectionUid)).catch((error) => {
+          toast.error(error.message || 'Failed to export request');
+        })
+      });
     }
 
     if (isCloneable) {
