@@ -142,12 +142,16 @@ export const importRequest = (collectionUid, folderUid) => async (dispatch, getS
   if (!collection) throw new Error('Collection not found');
 
   if (collection.mountStatus !== 'mounted') {
-    await dispatch(mountCollection({
-      collectionUid,
-      collectionPathname: collection.pathname,
-      brunoConfig: collection.brunoConfig,
-      skipTabRestore: true
-    }));
+    try {
+      await dispatch(mountCollection({
+        collectionUid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig,
+        skipTabRestore: true
+      }));
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Failed to open the collection');
+    }
     collection = findCollectionByUid(getState().collections.collections, collectionUid);
   }
 

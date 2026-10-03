@@ -1,10 +1,14 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
+const { itemSchema } = require('@usebruno/schema');
 const { writeFileUnique, validateName } = require('./filesystem');
 const { REQUEST_TYPES } = require('./constants');
 
 const importRequestFile = async (sourcePath, targetDirname, format, seq) => {
+  if (!Number.isSafeInteger(seq) || seq < 1) {
+    throw new Error('Request sequence must be a positive integer');
+  }
   if (path.extname(sourcePath).toLowerCase() !== '.bru') {
     throw new Error('Select a .bru request file');
   }
@@ -28,6 +32,7 @@ const exportRequestFile = async (filePath, request) => {
   if (!REQUEST_TYPES.includes(request.type)) {
     throw new Error('Only requests can be exported');
   }
+  await itemSchema.validate(request);
   await fs.writeFile(filePath, stringifyRequest(request, { format: 'bru' }), 'utf8');
 };
 

@@ -1,4 +1,4 @@
-import { newHttpRequest, tryResponseExample } from './actions';
+import { importRequest, newHttpRequest, tryResponseExample } from './actions';
 
 const mockUuid = jest.fn();
 
@@ -28,6 +28,24 @@ describe('collection actions', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('importRequest', () => {
+    it('reports mount failures even when the mount action rejects without a reason', async () => {
+      const dispatch = jest.fn().mockRejectedValue(undefined);
+      const getState = () => ({
+        collections: {
+          collections: [{
+            uid: 'collection-uid',
+            pathname: 'C:\\bruno\\collection',
+            mountStatus: 'unmounted'
+          }]
+        }
+      });
+
+      await expect(importRequest('collection-uid')(dispatch, getState)).rejects.toThrow('Failed to open the collection');
+      expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    });
   });
 
   describe('newHttpRequest', () => {

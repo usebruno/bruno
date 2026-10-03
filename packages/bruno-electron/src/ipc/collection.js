@@ -21,6 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
+const { itemSchema } = require('@usebruno/schema');
 const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
@@ -587,6 +588,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:export-request', async (event, pathname, request) => {
     validatePathIsInsideCollection(pathname);
+    await itemSchema.validate(request);
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: 'Export Request',
       defaultPath: `${path.basename(pathname, path.extname(pathname))}.bru`,

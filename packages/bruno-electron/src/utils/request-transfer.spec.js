@@ -48,6 +48,15 @@ describe('request file transfer', () => {
   let sourcePath;
   let targetDir;
 
+  const exportPayload = () => {
+    const request = parseRequest(source, { format: 'bru' });
+    request.uid = 'r'.repeat(21);
+    request.request.headers.forEach((header) => {
+      header.uid = 'h'.repeat(21);
+    });
+    return request;
+  };
+
   beforeEach(async () => {
     directory = await fs.mkdtemp(path.join(os.tmpdir(), 'bruno-request-transfer-'));
     sourcePath = path.join(directory, 'shared.bru');
@@ -94,10 +103,24 @@ describe('request file transfer', () => {
   });
 
   it('exports a request as a portable bru file', async () => {
-    const request = parseRequest(source, { format: 'bru' });
+    const request = exportPayload();
     const filePath = path.join(directory, 'exported.bru');
     await exportRequestFile(filePath, request);
     const exported = parseRequest(await fs.readFile(filePath, 'utf8'), { format: 'bru' });
-    expect(exported).toEqual(request);
+    expect(exported).toEqual(parseRequest(source, { format: 'bru' }));
+  });
+
+  it.each([0, -1, '3', NaN, Infinity])('rejects invalid request sequence %s without creating a file', async (seq) => {
+    await expect(importRequestFile(sourcePath, targetDir, 'yml', seq)).rejects.toThrow('positive integer');
+    expect(await fs.readdir(targetDir)).toEqual([]);
+  });
+
+  it('rejects malformed exports without overwriting the destination', async () => {
+    const request = exportPayload();
+    delete request.request.method;
+    const filePath = path.join(directory, 'exported.bru');
+    await fs.writeFile(filePath, 'existing content');
+    await expect(exportRequestFile(filePath, request)).rejects.toThrow('method');
+    expect(await fs.readFile(filePath, 'utf8')).toBe('existing content');
   });
 });
