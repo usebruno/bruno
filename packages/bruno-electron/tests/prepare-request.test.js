@@ -181,7 +181,7 @@ describe('setAuthHeaders', () => {
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
 
-      expect(result.headers['X-WSSE']).toMatch(/UsernameToken Username="testuser", PasswordDigest="[^"]+", Nonce="1234567890abcdef", Created="[^"]+"/);
+      expect(result.headers['X-WSSE']).toMatch(/UsernameToken Username="testuser", PasswordDigest="[^"]+", Nonce="EjRWeJCrze8=", Created="[^"]+"/);
     });
 
     test('should inherit API key authentication from collection (header placement)', () => {
@@ -571,7 +571,7 @@ describe('setAuthHeaders', () => {
 
       const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
 
-      expect(result.headers['X-WSSE']).toMatch(/UsernameToken Username="requestuser", PasswordDigest="[^"]+", Nonce="1234567890abcdef", Created="[^"]+"/);
+      expect(result.headers['X-WSSE']).toMatch(/UsernameToken Username="requestuser", PasswordDigest="[^"]+", Nonce="EjRWeJCrze8=", Created="[^"]+"/);
     });
 
     test('should set API key authentication at request level (header placement)', () => {
