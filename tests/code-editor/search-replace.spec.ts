@@ -14,7 +14,8 @@ import {
   scrollCodeEditorToLine,
   focusCodeEditor,
   getCodeEditorScrollTop,
-  appendTextToCodeEditor
+  appendTextToCodeEditor,
+  getCodeEditorState
 } from '../utils/page';
 import process from 'node:process';
 
@@ -360,6 +361,38 @@ test.describe.serial('CodeEditor Search/Replace', () => {
       await appendTextToCodeEditor(page, EDITOR_ID, ' foo');
       await expectMatchCount(page, '1 / 2');
     });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
+  });
+
+  test('editing the document while search is open keeps the cursor in place', async ({ page }) => {
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
+    const lines = ['const name = 1;', 'const name = 2;', 'const other = 3;'];
+
+    await test.step('Set content and search for "name"', async () => {
+      await setCodeEditorContent(page, EDITOR_ID, lines.join('\n'));
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('name');
+      await expectMatchCount(page, '1 / 2');
+    });
+
+    await test.step('Move the cursor to the end of line 3 and type', async () => {
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 2, ch: lines[2].length }, true);
+      await page.keyboard.type(' // a');
+      // Let the search bar's post-edit refresh (100ms debounce) run. There is no UI
+      // signal for it, so a fixed wait is needed before typing again.
+      await page.waitForTimeout(300);
+      await page.keyboard.type('b');
+    });
+
+    await test.step('Typed text lands at the cursor and no match is overwritten', async () => {
+      const state = await getCodeEditorState(page, EDITOR_ID);
+      expect(state.value).toBe([lines[0], lines[1], `${lines[2]} // ab`].join('\n'));
+      expect(state.cursor).toEqual({ line: 2, ch: `${lines[2]} // ab`.length });
+      expect(state.hasSelection).toBe(false);
+      await expect(loc.matchCount()).toContainText('/ 2', { timeout: 1500 });
+    });
+
     await closeCodeEditorSearchBar(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });

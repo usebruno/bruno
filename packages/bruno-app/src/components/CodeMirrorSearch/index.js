@@ -38,7 +38,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     markViewportMatches(editor, searchMatches.current, currentMatchIndex.current, searchMarks.current);
   }, [editor]);
 
-  const doSearch = useCallback((text, newIndex = 0, preferLine = null, shouldScroll = false) => {
+  const doSearch = useCallback((text, newIndex = 0, preferLine = null, shouldScroll = false, moveSelection = true) => {
     if (!editor || !visible) {
       return;
     }
@@ -95,7 +95,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
       if (shouldScroll) {
         editor.scrollIntoView(matches[resolvedIndex].from, 100);
       }
-      editor.setSelection(matches[resolvedIndex].from, matches[resolvedIndex].to, { scroll: false });
+      // Skip moving the selection when refreshing after a user edit
+      if (moveSelection) {
+        editor.setSelection(matches[resolvedIndex].from, matches[resolvedIndex].to, { scroll: false });
+      }
     } catch (e) {
       console.error('Search error:', e);
       setMatchCount(0);
@@ -227,9 +230,15 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         searchCacheKey.current = '';
-        const idx = pendingSearchIndexRef.current ?? 0;
+        const pendingIdx = pendingSearchIndexRef.current;
         pendingSearchIndexRef.current = null;
-        doSearch(debouncedSearchText, idx);
+        if (pendingIdx !== null) {
+          doSearch(debouncedSearchText, pendingIdx);
+          return;
+        }
+        // Change came from the user editing the document so pass moveSelection=false to avoid moving the selection away from the user's cursor.
+        const cursor = editor.getCursor('from');
+        doSearch(debouncedSearchText, 0, cursor.line, false, false);
       }, 100);
     };
 
