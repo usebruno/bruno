@@ -5,6 +5,7 @@ import { ThemeProvider } from 'styled-components';
 import { formatSize } from 'utils/common';
 import { LONG_LINE_LIMIT } from 'utils/common/long-lines';
 import darkTheme from 'themes/dark/dark';
+import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const CodeMirror = require('codemirror');
 
@@ -48,6 +49,8 @@ jest.mock('components/CodeMirrorSearch/searchKeyBindings', () => ({
   buildSearchKeyBindings: jest.fn(() => ({}))
 }));
 
+jest.mock('components/ToolHint', () => ({ children }) => <>{children}</>);
+
 jest.mock('./state-persistence', () => {
   const actual = jest.requireActual('./state-persistence');
   return {
@@ -55,9 +58,13 @@ jest.mock('./state-persistence', () => {
     applyEditorState: jest.fn(),
     captureEditorState: jest.fn(),
     readPersistedEditorState: jest.fn(),
-    writePersistedEditorState: jest.fn()
+    writePersistedEditorState: jest.fn(),
+    readPersistedSearchState: jest.fn(),
+    writePersistedSearchState: jest.fn()
   };
 });
+
+const { readPersistedSearchState, writePersistedSearchState } = require('./state-persistence');
 
 jest.mock('utils/collections', () => ({
   getAllVariables: jest.fn(() => ({}))
@@ -303,6 +310,37 @@ describe('CodeEditor', () => {
     const view = setupEditorWithRef({ value: 'short', mode: 'application/json' });
 
     expect(view.queryByTestId('editor-status-bar')).not.toBeInTheDocument();
+  });
+
+  it('restores persisted search state for an opted-in response editor', () => {
+    readPersistedSearchState.mockReturnValue({
+      visible: true,
+      searchText: '',
+      regex: true,
+      caseSensitive: true,
+      wholeWord: true
+    });
+
+    const view = render(
+      <ScopedPersistenceProvider scope="tab-a">
+        <ThemeProvider theme={darkTheme}>
+          <CodeEditor
+            value={'{"status": 200}'}
+            mode="application/json"
+            persistSearchState
+            docKey="response:editor"
+            readOnly
+          />
+        </ThemeProvider>
+      </ScopedPersistenceProvider>
+    );
+
+    expect(readPersistedSearchState).toHaveBeenCalledWith({ scope: 'tab-a', key: 'response:editor' });
+    expect(view.getByTestId('codemirror-search-bar')).toBeInTheDocument();
+    expect(view.getByTestId('codemirror-search-regex-btn')).toHaveClass('active');
+    expect(view.getByTestId('codemirror-search-case-btn')).toHaveClass('active');
+    expect(view.getByTestId('codemirror-search-wholeword-btn')).toHaveClass('active');
+    expect(writePersistedSearchState).not.toHaveBeenCalled();
   });
 
   describe('link-aware setup', () => {

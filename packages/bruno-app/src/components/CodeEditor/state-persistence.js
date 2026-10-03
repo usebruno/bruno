@@ -19,10 +19,16 @@
 export const STORAGE_PREFIX = 'persisted::';
 export const DEFAULT_PERSISTENCE_SCOPE = 'global';
 export const STORAGE_SEGMENT = 'codeeditor';
+export const SEARCH_STORAGE_SEGMENT = 'codeeditor-search';
 
 export const getScopedStorageKey = (scope, key) => {
   const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
   return `${STORAGE_PREFIX}${resolvedScope}::${STORAGE_SEGMENT}::${key}`;
+};
+
+export const getScopedSearchStorageKey = (scope, key) => {
+  const resolvedScope = scope || DEFAULT_PERSISTENCE_SCOPE;
+  return `${STORAGE_PREFIX}${resolvedScope}::${SEARCH_STORAGE_SEGMENT}::${key}`;
 };
 
 // Identifies which Doc state belongs to a given CodeEditor instance.
@@ -63,6 +69,28 @@ export const writePersistedEditorState = ({ scope, key, state }) => {
   } catch {
     // localStorage may be unavailable or full (Chromium ~10 MB cap). Editor
     // state is non-critical — content lives in Redux — so silently ignore.
+  }
+};
+
+export const readPersistedSearchState = ({ scope, key }) => {
+  try {
+    const raw = localStorage.getItem(getScopedSearchStorageKey(scope, key));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const writePersistedSearchState = ({ scope, key, state }) => {
+  try {
+    const storageKey = getScopedSearchStorageKey(scope, key);
+    if (state == null) {
+      localStorage.removeItem(storageKey);
+    } else {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+  } catch {
+    // Search state is non-critical and localStorage may be unavailable or full.
   }
 };
 
