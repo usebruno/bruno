@@ -280,6 +280,7 @@ const ResponsePane = ({ item, collection }) => {
             selectedTab={selectedViewTab}
             data={response.data}
             dataBuffer={response.dataBuffer}
+            filter={focusedTab?.responseFilter}
           />
         ) : null}
       </div>
