@@ -1,3 +1,4 @@
+import './onec';
 import { targets } from 'httpsnippet';
 
 export const getLanguages = () => {
@@ -10,12 +11,14 @@ export const getLanguages = () => {
         ? [{
             name: title,
             target: key,
-            client: clients[0]
+            client: clients[0],
+            language: key === '1c' ? 'text/plain' : undefined
           }]
         : clients.map((client) => ({
             name: `${title}-${client}`,
             target: key,
-            client
+            client,
+            language: key === '1c' ? 'text/plain' : undefined
           }));
     allLanguages.push(...languages);
 

@@ -19,7 +19,9 @@ const CodeViewToolbar = () => {
       }
       acc[mainLang].push({
         ...lang,
-        libraryName: lang.name.split('-')[1] || 'default'
+        libraryName: lang.name.includes('-')
+          ? lang.name.slice(lang.name.indexOf('-') + 1)
+          : 'default'
       });
       return acc;
     }, {});
@@ -77,7 +79,7 @@ const CodeViewToolbar = () => {
             <div className="library-options">
               {availableLibraries.map((lib) => (
                 <button
-                  key={lib.libraryName}
+                  key={lib.name}
                   className={`lib-btn ${generateCodePrefs.library === lib.libraryName ? 'active' : ''}`}
                   onClick={() => handleLibraryChange(lib.libraryName)}
                 >
