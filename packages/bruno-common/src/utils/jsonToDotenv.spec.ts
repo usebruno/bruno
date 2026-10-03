@@ -116,6 +116,15 @@ describe('jsonToDotenv', () => {
     });
   });
 
+  test.each([
+    '"hello\u2028world"',
+    '"hello\u2029world"',
+    '\'\u2028hello\'',
+    '\'\u2029hello\''
+  ])('it should leave Unicode-separated values unquoted in %s', (value) => {
+    expect(jsonToDotenv([{ name: 'VALUE', value }])).toBe(`VALUE=${value}`);
+  });
+
   describe('round-trip with dotenvToJson', () => {
     test('it should preserve simple values through round-trip', () => {
       const variables = [
@@ -162,6 +171,32 @@ describe('jsonToDotenv', () => {
       const serialized = jsonToDotenv(variables);
       const parsed = dotenvToJson(serialized);
       expect(parsed.APOSTROPHE).toBe('it\'s working');
+    });
+
+    test.each([
+      '"hello"',
+      '\'hello\'',
+      '`hello`',
+      '""',
+      '\'\'',
+      '``',
+      '"C:\\new\\request"',
+      '"#\\n\\r"',
+      '\'#\\n\\r\'',
+      '`#\\n\\r`',
+      '"hello\nworld"',
+      '\'hello\rworld\'',
+      '`hello\r\nworld`',
+      '"a\'b`"',
+      '\'a"b`\'',
+      '`a\'b"`'
+    ])('it should preserve literal surrounding quotes in %s through repeated round-trips', (value) => {
+      let currentValue = value;
+      for (let i = 0; i < 3; i++) {
+        const serialized = jsonToDotenv([{ name: 'VALUE', value: currentValue }]);
+        currentValue = dotenvToJson(serialized).VALUE;
+        expect(currentValue).toBe(value);
+      }
     });
 
     test('it should preserve values with hash, single quote, and double quote through round-trip', () => {
