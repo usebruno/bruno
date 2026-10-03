@@ -22,11 +22,12 @@ import {
   IconBook,
   IconServer,
   IconFileArrowRight,
-  IconAppWindow
+  IconAppWindow,
+  IconRefresh
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig, reloadCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -38,7 +39,7 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { getSortedDraggedItems } from 'utils/collections';
+import { getSortedDraggedItems, getCollectionDrafts } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from '../RenameCollection';
@@ -47,6 +48,7 @@ import CloneCollection from '../CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from '../GenerateDocumentation';
+import ConfirmReloadDrafts from '../ConfirmReloadDrafts';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
@@ -72,6 +74,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
+  const [showReloadConfirmModal, setShowReloadConfirmModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
@@ -220,6 +223,24 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
         type: 'collection-settings'
       })
     );
+  };
+
+  const handleReloadCollection = () => {
+    const { requestDrafts, transientDrafts, folderDrafts, collectionDrafts } = getCollectionDrafts([collection]);
+    const hasDrafts = requestDrafts.length + transientDrafts.length + folderDrafts.length + collectionDrafts.length > 0;
+
+    if (hasDrafts) {
+      setShowReloadConfirmModal(true);
+    } else {
+      dispatch(reloadCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      })).catch((error) => {
+        console.error('Error reloading the collection', error);
+        toast.error(error?.message || 'Error reloading the collection');
+      });
+    }
   };
 
   const handleShowInFolder = () => {
@@ -480,6 +501,12 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       onClick: handleCollapseFullCollection
     },
     {
+      id: 'reload',
+      leftSection: IconRefresh,
+      label: 'Reload',
+      onClick: handleReloadCollection
+    },
+    {
       id: 'show-in-folder',
       leftSection: IconFolder,
       label: getRevealInFolderLabel(),
@@ -556,6 +583,9 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showReloadConfirmModal && (
+        <ConfirmReloadDrafts collectionUid={collection.uid} onClose={() => setShowReloadConfirmModal(false)} />
       )}
       {showCreateMockServerModal && (
         <CreateMockServerModal

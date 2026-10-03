@@ -1,3 +1,4 @@
+const path = require('path');
 const { ipcMain, BrowserWindow } = require('electron');
 const { MountManager } = require('../services/mount');
 const { checkpoint, createSpan } = require('../utils/benchmark');
@@ -5,6 +6,18 @@ const { checkpoint, createSpan } = require('../utils/benchmark');
 const manager = new MountManager();
 
 const registerMountIpc = () => {
+  ipcMain.handle('renderer:reload-collection', async (event, { collectionUid, collectionPathname }) => {
+    const resolvedPath = path.resolve(collectionPathname);
+
+    await manager.unmount(collectionUid).catch(() => {});
+
+    const collectionWatcher = require('../app/collection-watcher');
+    const win = BrowserWindow.fromWebContents(event.sender);
+    try {
+      collectionWatcher.removeWatcher(resolvedPath, win, collectionUid);
+    } catch (_) {}
+  });
+
   ipcMain.handle(
     'renderer:mount-collection-v2',
     async (event, { collectionUid, collectionPathname, brunoConfig }) => {
