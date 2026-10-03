@@ -121,9 +121,13 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
   .tl-header-url-method {
+    display: inline-block;
     font-weight: 600;
     margin-right: 6px;
     text-transform: uppercase;
+  }
+  .tl-header-url-text {
+    display: inline-block;
   }
   .tl-header-src {
     display: inline-flex;
