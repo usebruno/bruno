@@ -21,6 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
+const { itemSchema } = require('@usebruno/schema');
 const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
@@ -84,6 +85,7 @@ const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = requir
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
 const { findUniqueFolderName } = require('../utils/collection-import');
+const { importRequestFile, exportRequestFile } = require('../utils/request-transfer');
 const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
 const {
@@ -568,6 +570,34 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:import-request', async (event, targetDirname, seq) => {
+    validatePathIsInsideCollection(targetDirname);
+    const collectionPath = findCollectionPathByItemPath(targetDirname);
+    const format = getCollectionFormat(collectionPath);
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Request',
+      properties: ['openFile'],
+      filters: [{ name: 'Bruno Request', extensions: ['bru'] }]
+    });
+    if (canceled || !filePaths?.length) return null;
+
+    return importRequestFile(filePaths[0], targetDirname, format, seq);
+  });
+
+  ipcMain.handle('renderer:export-request', async (event, pathname, request) => {
+    validatePathIsInsideCollection(pathname);
+    await itemSchema.validate(request);
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Request',
+      defaultPath: `${path.basename(pathname, path.extname(pathname))}.bru`,
+      filters: [{ name: 'Bruno Request', extensions: ['bru'] }]
+    });
+    if (canceled || !filePath) return null;
+
+    await exportRequestFile(filePath, request);
+    return { pathname: filePath };
   });
 
   // save request
