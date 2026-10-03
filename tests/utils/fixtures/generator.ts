@@ -409,6 +409,36 @@ export interface SortingTestCollectionOptions {
   items: SortingTestItem[];
   /** Collection format */
   format: CollectionFormat;
+  /** Enable the on-disk file cache for the mounted collection */
+  fileCacheEnabled?: boolean;
+}
+
+/**
+ * Write the seed preferences.json that preloads the given collections and
+ * toggles the file cache used when mounting them.
+ */
+async function writePreferences(
+  userDataPath: string,
+  lastOpenedCollections: string[],
+  fileCacheEnabled: boolean
+): Promise<void> {
+  const preferences = {
+    lastOpenedCollections,
+    preferences: {
+      onboarding: {
+        hasLaunchedBefore: true,
+        hasSeenWelcomeModal: true
+      },
+      cache: {
+        file: { enabled: fileCacheEnabled }
+      }
+    }
+  };
+
+  await fs.promises.writeFile(
+    path.join(userDataPath, 'preferences.json'),
+    JSON.stringify(preferences, null, 2)
+  );
 }
 
 /**
@@ -503,20 +533,7 @@ export async function setupSortingTestFixture(
   );
 
   try {
-    const preferences = {
-      lastOpenedCollections: [collection.path],
-      preferences: {
-        onboarding: {
-          hasLaunchedBefore: true,
-          hasSeenWelcomeModal: true
-        }
-      }
-    };
-
-    await fs.promises.writeFile(
-      path.join(userDataPath, 'preferences.json'),
-      JSON.stringify(preferences, null, 2)
-    );
+    await writePreferences(userDataPath, [collection.path], options.fileCacheEnabled ?? false);
 
     return {
       collection,
@@ -543,6 +560,8 @@ export async function setupSortingTestFixture(
 export interface TestFixtureOptions extends GenerateCollectionOptions {
   /** Additional collections to preload (paths) */
   additionalCollections?: string[];
+  /** Enable the on-disk file cache for the mounted collection */
+  fileCacheEnabled?: boolean;
 }
 
 /**
@@ -569,7 +588,7 @@ export interface TestFixture {
 export async function setupTestFixture(
   options: TestFixtureOptions
 ): Promise<TestFixture> {
-  const { additionalCollections = [], ...collectionOptions } = options;
+  const { additionalCollections = [], fileCacheEnabled = false, ...collectionOptions } = options;
 
   // Generate the collection
   const collection = await generateCollection(collectionOptions);
@@ -580,21 +599,7 @@ export async function setupTestFixture(
   );
 
   try {
-    // Create preferences.json with collection preloaded
-    const preferences = {
-      lastOpenedCollections: [collection.path, ...additionalCollections],
-      preferences: {
-        onboarding: {
-          hasLaunchedBefore: true,
-          hasSeenWelcomeModal: true
-        }
-      }
-    };
-
-    await fs.promises.writeFile(
-      path.join(userDataPath, 'preferences.json'),
-      JSON.stringify(preferences, null, 2)
-    );
+    await writePreferences(userDataPath, [collection.path, ...additionalCollections], fileCacheEnabled);
 
     return {
       collection,
@@ -638,7 +643,8 @@ export interface StaticTestFixture {
  * fixture. cleanup() removes the temp copy and the user data dir.
  */
 export async function setupStaticFixture(
-  sourceCollectionPath: string
+  sourceCollectionPath: string,
+  options: { fileCacheEnabled?: boolean } = {}
 ): Promise<StaticTestFixture> {
   const userDataPath = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), 'bruno-test-userdata-')
@@ -658,20 +664,7 @@ export async function setupStaticFixture(
     // Copy the committed collection into the temp dir so the app mounts the copy.
     await fs.promises.cp(sourceCollectionPath, collectionPath, { recursive: true });
 
-    const preferences = {
-      lastOpenedCollections: [collectionPath],
-      preferences: {
-        onboarding: {
-          hasLaunchedBefore: true,
-          hasSeenWelcomeModal: true
-        }
-      }
-    };
-
-    await fs.promises.writeFile(
-      path.join(userDataPath, 'preferences.json'),
-      JSON.stringify(preferences, null, 2)
-    );
+    await writePreferences(userDataPath, [collectionPath], options.fileCacheEnabled ?? false);
 
     return { collectionPath, userDataPath, cleanup };
   } catch (error) {
