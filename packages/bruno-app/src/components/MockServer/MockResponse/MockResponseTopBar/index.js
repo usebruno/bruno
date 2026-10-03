@@ -10,7 +10,10 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
 import Button from 'ui/Button';
-import { getMockResponseDescriptionError, getMockResponseNameInputError } from 'utils/mock-server/mock-responses';
+import {
+  getMockResponseDescriptionError,
+  getMockResponseNameValidationError
+} from 'utils/mock-server/mock-responses';
 
 const MockResponseTopBar = ({
   item,
@@ -21,7 +24,9 @@ const MockResponseTopBar = ({
   onSave,
   onCancel,
   onDelete,
-  copiedFrom
+  copiedFrom,
+  existingResponses = [],
+  responseUid
 }) => {
   const dispatch = useDispatch();
 
@@ -53,7 +58,10 @@ const MockResponseTopBar = ({
     return null;
   }
 
-  const nameError = getMockResponseNameInputError(example.name);
+  const nameError = getMockResponseNameValidationError(example.name, {
+    existingResponses,
+    excludeUid: responseUid
+  });
   const descriptionError = getMockResponseDescriptionError(example.description);
 
   if (editMode) {
