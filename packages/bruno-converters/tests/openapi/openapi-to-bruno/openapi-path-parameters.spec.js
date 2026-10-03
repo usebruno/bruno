@@ -1,6 +1,29 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
 
+const importRequestWithParam = (param, path = '/x') => {
+  const spec = {
+    openapi: '3.0.0',
+    info: { title: 't', version: '1' },
+    servers: [{ url: 'https://api.example.com' }],
+    paths: {
+      [path]: {
+        get: { operationId: 'op', parameters: [param], responses: { 200: { description: 'OK' } } }
+      }
+    }
+  };
+
+  return openApiToBruno(spec).items[0].request;
+};
+
+const importParamEntries = (param, path) => {
+  const request = importRequestWithParam(param, path);
+
+  return param.in === 'header'
+    ? request.headers.filter((entry) => entry.name === param.name)
+    : request.params.filter((entry) => entry.name === param.name);
+};
+
 describe('openapi path-item level parameters', () => {
   it('should apply path-item parameters to all operations when no operation params exist', () => {
     const spec = `
@@ -611,7 +634,7 @@ paths:
 
 describe('array param serialization — OAS defaults per location', () => {
   describe('path — simple style, explode:false (comma-join)', () => {
-    it('param.example array', () => {
+    it('joins an array from the parameter example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -642,7 +665,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(idsParams[0].enabled).toBe(true);
     });
 
-    it('param.examples[0].value array', () => {
+    it('joins an array from a named example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -673,7 +696,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(idsParams[0].enabled).toBe(true);
     });
 
-    it('schema.default array', () => {
+    it('joins an array from the schema default with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -702,7 +725,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(rolesParam.enabled).toBe(true);
     });
 
-    it('items.enum default array', () => {
+    it('joins an array default drawn from the item options with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -731,7 +754,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(typesParam.enabled).toBe(true);
     });
 
-    it('schema.example array', () => {
+    it('joins an array from the schema example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -761,7 +784,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(params[0].enabled).toBe(true);
     });
 
-    it('schema.examples[0] array', () => {
+    it('joins an array from the schema examples list with commas', () => {
       const spec = {
         openapi: '3.1.0',
         info: { title: 'API', version: '1.0.0' },
@@ -793,7 +816,7 @@ describe('array param serialization — OAS defaults per location', () => {
   });
 
   describe('header — simple style, explode:false (comma-join)', () => {
-    it('param.example array', () => {
+    it('joins an array from the parameter example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -822,7 +845,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(header.enabled).toBe(true);
     });
 
-    it('param.examples[0].value array', () => {
+    it('joins an array from a named example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -851,7 +874,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(header.enabled).toBe(true);
     });
 
-    it('schema.default array', () => {
+    it('joins an array from the schema default with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -879,7 +902,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(header.enabled).toBe(true);
     });
 
-    it('schema.example array', () => {
+    it('joins an array from the schema example with commas', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -907,7 +930,7 @@ describe('array param serialization — OAS defaults per location', () => {
       expect(header.enabled).toBe(true);
     });
 
-    it('schema.examples[0] array', () => {
+    it('joins an array from the schema examples list with commas', () => {
       const spec = {
         openapi: '3.1.0',
         info: { title: 'API', version: '1.0.0' },
@@ -937,7 +960,7 @@ describe('array param serialization — OAS defaults per location', () => {
   });
 
   describe('query — form style, explode:true (one entry per item)', () => {
-    it('param.example array', () => {
+    it('gives each item from the parameter example its own entry', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -967,7 +990,7 @@ describe('array param serialization — OAS defaults per location', () => {
       params.forEach((p) => expect(p.enabled).toBe(true));
     });
 
-    it('param.examples[0].value array', () => {
+    it('gives each item from a named example its own entry', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -997,7 +1020,7 @@ describe('array param serialization — OAS defaults per location', () => {
       params.forEach((p) => expect(p.enabled).toBe(true));
     });
 
-    it('schema.default array', () => {
+    it('gives each item from the schema default its own entry', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -1026,7 +1049,7 @@ describe('array param serialization — OAS defaults per location', () => {
       params.forEach((p) => expect(p.enabled).toBe(true));
     });
 
-    it('schema.example array', () => {
+    it('gives each item from the schema example its own entry', () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'API', version: '1.0.0' },
@@ -1055,7 +1078,7 @@ describe('array param serialization — OAS defaults per location', () => {
       params.forEach((p) => expect(p.enabled).toBe(true));
     });
 
-    it('schema.examples[0] array', () => {
+    it('gives each item from the schema examples list its own entry', () => {
       const spec = {
         openapi: '3.1.0',
         info: { title: 'API', version: '1.0.0' },
@@ -1154,25 +1177,7 @@ describe('openapi querystring parameter location', () => {
 describe('openapi explicit explode on array parameters', () => {
   const arraySchema = { type: 'array', items: { type: 'string' }, default: ['a', 'b'] };
 
-  const importParam = (param, path = '/x') => {
-    const spec = {
-      openapi: '3.0.0',
-      info: { title: 't', version: '1' },
-      paths: {
-        [path]: {
-          get: {
-            operationId: 'op',
-            parameters: [param],
-            responses: { 200: { description: 'OK' } }
-          }
-        }
-      }
-    };
-    const request = openApiToBruno(spec).items[0].request;
-    return param.in === 'header'
-      ? request.headers.filter((h) => h.name === param.name).map((h) => h.value)
-      : request.params.filter((p) => p.name === param.name).map((p) => p.value);
-  };
+  const importParam = (param, path) => importParamEntries(param, path).map((entry) => entry.value);
 
   it('joins a query array into one entry when the spec asks for explode false', () => {
     expect(importParam({ name: 'st', in: 'query', explode: false, schema: arraySchema })).toEqual(['a,b']);
@@ -1244,25 +1249,7 @@ describe('openapi explicit explode on array parameters', () => {
 });
 
 describe('openapi parameters that do not carry a usable value', () => {
-  const importSpec = (param, path = '/x') => {
-    const spec = {
-      openapi: '3.0.0',
-      info: { title: 't', version: '1' },
-      paths: {
-        [path]: {
-          get: {
-            operationId: 'op',
-            parameters: [param],
-            responses: { 200: { description: 'OK' } }
-          }
-        }
-      }
-    };
-    const request = openApiToBruno(spec).items[0].request;
-    return param.in === 'header'
-      ? request.headers.filter((h) => h.name === param.name)
-      : request.params.filter((p) => p.name === param.name);
-  };
+  const importSpec = importParamEntries;
 
   it('falls back to a later example when the first one the spec gives is empty', () => {
     const param = { name: 'status', in: 'query', schema: { type: 'string', default: '', example: 'active' } };
@@ -1279,6 +1266,28 @@ describe('openapi parameters that do not carry a usable value', () => {
     expect(importSpec(param).map((p) => p.enabled)).toEqual([true]);
   });
 
+  it('still switches on an optional list parameter whose default is an empty list', () => {
+    const param = { name: 'tags', in: 'query', schema: { type: 'array', items: { type: 'string' }, default: [] } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([true]);
+  });
+
+  it('treats an empty default the same whether the schema is a list or a string', () => {
+    const list = { name: 'tags', in: 'query', schema: { type: 'array', items: { type: 'string' }, default: [] } };
+    const text = { name: 'tags', in: 'query', schema: { type: 'string', default: '' } };
+    expect(importSpec(list).map((p) => p.enabled)).toEqual(importSpec(text).map((p) => p.enabled));
+  });
+
+  it('leaves an optional list parameter that allows an empty value switched off', () => {
+    const param = {
+      name: 'tags',
+      in: 'query',
+      allowEmptyValue: true,
+      schema: { type: 'array', items: { type: 'string' }, default: [] }
+    };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
   it('leaves an optional parameter switched off when the spec declares no value at all', () => {
     const param = { name: 'q', in: 'query', schema: { type: 'string' } };
     expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
@@ -1286,6 +1295,21 @@ describe('openapi parameters that do not carry a usable value', () => {
 
   it('leaves an optional parameter that allows an empty value switched off', () => {
     const param = { name: 'q', in: 'query', allowEmptyValue: true, schema: { type: 'string', default: '' } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('writes no value for a parameter whose example is null, rather than the word null', () => {
+    const param = { name: 'q', in: 'query', example: null, schema: { type: 'string' } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+  });
+
+  it('writes no value for a parameter whose default is null either', () => {
+    const param = { name: 'q', in: 'query', schema: { type: 'string', default: null } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+  });
+
+  it('leaves an optional nullable parameter switched off when its example is null', () => {
+    const param = { name: 'q', in: 'query', example: null, schema: { type: 'string', nullable: true } };
     expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
   });
 
@@ -1320,19 +1344,7 @@ describe('openapi object parameters at the default styles', () => {
     properties: { R: { type: 'integer', example: 100 }, G: { type: 'integer', example: 200 }, B: { type: 'integer', example: 150 } }
   };
 
-  const importRequest = (param, path = '/x') => {
-    const spec = {
-      openapi: '3.0.0',
-      info: { title: 't', version: '1' },
-      servers: [{ url: 'https://api.example.com' }],
-      paths: {
-        [path]: {
-          get: { operationId: 'op', parameters: [param], responses: { 200: { description: 'OK' } } }
-        }
-      }
-    };
-    return openApiToBruno(spec).items[0].request;
-  };
+  const importRequest = importRequestWithParam;
 
   const values = (param, path) => {
     const request = importRequest(param, path);
@@ -1456,29 +1468,61 @@ describe('openapi object parameters at the default styles', () => {
     expect(values({ name: 'X-Color', in: 'header', schema: partial })).toEqual(['X-Color=R,1']);
   });
 
+  it('takes the default of an enum property rather than its first allowed value', () => {
+    const theme = {
+      type: 'object',
+      properties: {
+        size: { type: 'string', example: 'large' },
+        mode: { type: 'string', enum: ['light', 'dark'], default: 'dark' }
+      }
+    };
+
+    expect(values({ name: 'X-Theme', in: 'header', schema: theme })).toEqual(['X-Theme=size,large,mode,dark']);
+    expect(values({ name: 'theme', in: 'path', required: true, schema: theme }, '/x/{theme}'))
+      .toEqual(['theme=size,large,mode,dark']);
+  });
+
+  it('falls back to the first allowed value when an enum property declares no default', () => {
+    const theme = {
+      type: 'object',
+      properties: { mode: { type: 'string', enum: ['light', 'dark'] } }
+    };
+
+    expect(values({ name: 'X-Theme', in: 'header', schema: theme })).toEqual(['X-Theme=mode,light']);
+  });
+
   it('leaves an empty object to the later fallbacks rather than writing empty braces', () => {
     const param = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: {} };
     expect(values(param, '/x/{color}')).toEqual(['color=']);
   });
+
+  it('keeps a property whose example is an empty string, as an empty member', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    expect(values({ name: 'color', in: 'path', required: true, schema: partial }, '/x/{color}')).toEqual(['color=R,,G,2']);
+  });
+
+  it('keeps a property whose default is an empty string, as an empty member', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', default: '' }, G: { type: 'integer', example: 2 } } };
+    expect(values({ name: 'X-Color', in: 'header', schema: partial })).toEqual(['X-Color=R,,G,2']);
+  });
+
+  it('writes a declared empty property as a bare key equals when the parameter explodes', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    const param = { name: 'color', in: 'path', required: true, explode: true, schema: partial };
+    expect(values(param, '/x/{color}')).toEqual(['color=R=,G=2']);
+  });
+
+  it('tells a property declared empty apart from one that declares nothing', () => {
+    const declaredEmpty = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    const undeclared = { type: 'object', properties: { R: { type: 'string' }, G: { type: 'integer', example: 2 } } };
+
+    expect(values({ name: 'X-Color', in: 'header', schema: declaredEmpty })).toEqual(['X-Color=R,,G,2']);
+    expect(values({ name: 'X-Color', in: 'header', schema: undeclared })).toEqual(['X-Color=G,2']);
+  });
 });
 
 describe('openapi query array styles other than form', () => {
-  const importValues = (param) => {
-    const spec = {
-      openapi: '3.0.0',
-      info: { title: 't', version: '1' },
-      paths: {
-        '/x': {
-          get: {
-            operationId: 'op',
-            parameters: [param],
-            responses: { 200: { description: 'OK' } }
-          }
-        }
-      }
-    };
-    return openApiToBruno(spec).items[0].request.params.map((p) => p.value);
-  };
+  const importValues = (param) => importRequestWithParam(param).params.map((entry) => entry.value);
 
   const schema = { type: 'array', items: { type: 'string' }, default: ['a', 'b'] };
 

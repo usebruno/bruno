@@ -31,19 +31,21 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   return '';
 };
 
-const serializeItem = (item) => {
-  if (item === null || typeof item !== 'object') {
-    return String(item);
+const serializeParamValue = (value) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value !== 'object') {
+    return String(value);
   }
 
   try {
-    return JSON.stringify(item);
+    return JSON.stringify(value);
   } catch (err) {
-    return String(item);
+    return String(value);
   }
 };
-
-const serializeMember = (item) => (item === null || item === undefined ? '' : serializeItem(item));
 
 const queryMemberDelimiter = (style) => {
   if (style === 'pipeDelimited') return '|';
@@ -62,7 +64,7 @@ const paramEntriesFromValue = (val, param) => {
       return null;
     }
 
-    const members = val.map(serializeMember);
+    const members = val.map(serializeParamValue);
 
     return usesFormStyle && explode
       ? members.map((value) => ({ value, enabled: true }))
@@ -76,27 +78,25 @@ const paramEntriesFromValue = (val, param) => {
     }
 
     if (usesFormStyle && explode) {
-      return pairs.map(([key, item]) => ({ name: key, value: serializeMember(item), enabled: true }));
+      return pairs.map(([key, item]) => ({ name: key, value: serializeParamValue(item), enabled: true }));
     }
 
     const flattened = explode
-      ? pairs.map(([key, item]) => `${key}=${serializeMember(item)}`)
-      : pairs.flatMap(([key, item]) => [key, serializeMember(item)]);
+      ? pairs.map(([key, item]) => `${key}=${serializeParamValue(item)}`)
+      : pairs.flatMap(([key, item]) => [key, serializeParamValue(item)]);
 
     return [{ value: flattened.join(delimiter), enabled: true }];
   }
 
-  const value = serializeItem(val);
+  const value = serializeParamValue(val);
 
   return value === '' ? null : [{ value, enabled: true }];
 };
 
 /**
- * Extracts parameter entries based on OpenAPI parameter schema
- * For enum parameters, creates multiple entries (one per enum value)
- * Handles enum, default, constant, nullable, and array types per Swagger spec
  * @param {Object} param - The OpenAPI parameter object
- * @returns {Array} - Array of objects with value and enabled properties
+ * @param {*} [fallbackValue] - Value to use once every source the spec declares has come up empty
+ * @returns {Array} - Entries of `{ value, enabled }`, plus `name` where a member overrides it
  */
 const getParameterEntries = (param, fallbackValue) => {
   const schema = param.schema || {};
@@ -149,9 +149,6 @@ const getParameterEntries = (param, fallbackValue) => {
     return entries;
   }
 
-  // Priority 1-4: declared values, in the precedence the spec gives them. A source that serializes
-  // to nothing is skipped so a later one can still supply a value, but declaring it at all still
-  // marks the parameter as one to send.
   const firstNamedExample = param.examples ? Object.values(param.examples)[0] : undefined;
   const valueSources = [
     param.example,
@@ -170,14 +167,12 @@ const getParameterEntries = (param, fallbackValue) => {
 
     enabled = true;
 
-    const entries = paramEntriesFromValue(source, param);
-    if (entries) {
-      return entries;
+    const sourceEntries = paramEntriesFromValue(source, param);
+    if (sourceEntries) {
+      return sourceEntries;
     }
   }
 
-  // Priority 5: a value the caller assembled from the schema, used only once every declared
-  // source above has come up empty so a parameter's own example still wins.
   if (fallbackValue !== undefined) {
     const fallbackEntries = paramEntriesFromValue(fallbackValue, param);
     if (fallbackEntries) {
@@ -185,7 +180,12 @@ const getParameterEntries = (param, fallbackValue) => {
     }
   }
 
-  // Priority 6: Array type handling (items-based fallback)
+  if (schema.nullable === true && !param.required) {
+    enabled = false;
+  } else if (param.allowEmptyValue === true && !param.required) {
+    enabled = false;
+  }
+
   if (schema.type === 'array' && schema.items) {
     let value;
     if (schema.items.example !== undefined) {
@@ -197,28 +197,21 @@ const getParameterEntries = (param, fallbackValue) => {
     } else {
       value = '';
     }
-    return [{ value, enabled: param.required || false }];
+    return [{ value, enabled }];
   }
 
-  // Priority 7: schema.minimum fallback for numeric types
   if (schema.minimum !== undefined) {
-    return [
-      {
-        value: String(schema.minimum),
-        enabled: param.required || false
-      }
-    ];
-  }
-
-  // Priority 8: Edge cases
-  if (schema.nullable === true && !param.required) {
-    enabled = false;
-  } else if (param.allowEmptyValue === true && !param.required) {
-    enabled = false;
+    return [{ value: String(schema.minimum), enabled }];
   }
 
   return [{ value: '', enabled }];
 };
+
+const declaresValue = (schema) =>
+  schema.example !== undefined
+  || schema.default !== undefined
+  || (Array.isArray(schema.examples) && schema.examples.length > 0)
+  || (Array.isArray(schema.enum) && schema.enum.length > 0);
 
 const objectValueFromSchema = (param) => {
   const schemaExample = param.schema.example || {};
@@ -229,12 +222,14 @@ const objectValueFromSchema = (param) => {
       ? { ...prop, example: schemaExample[propName] }
       : prop;
     const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
-    const [firstEntry] = getParameterEntries({
+    const entries = getParameterEntries({
       ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
     });
 
-    if (firstEntry && firstEntry.value !== '') {
-      value[propName] = firstEntry.value;
+    const picked = entries.find((entry) => entry.enabled) || entries[0];
+
+    if (picked && (picked.value !== '' || declaresValue(propSchema))) {
+      value[propName] = picked.value;
     }
   });
 
