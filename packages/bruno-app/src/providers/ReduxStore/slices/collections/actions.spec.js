@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { importRequest, newHttpRequest, tryResponseExample } from './actions';
 
 const mockUuid = jest.fn();
@@ -37,7 +38,7 @@ describe('collection actions', () => {
         collections: {
           collections: [{
             uid: 'collection-uid',
-            pathname: 'C:\\bruno\\collection',
+            pathname: path.join('bruno', 'collection'),
             mountStatus: 'unmounted'
           }]
         }
