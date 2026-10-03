@@ -194,12 +194,27 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
           replaceInputRef.current?.focus();
           replaceInputRef.current?.select();
         }, 0);
+      } else if (e.key === 'Tab' && replaceVisible && !readOnly && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // With replace open, Tab moves search input -> replace input -> buttons,
+        // instead of DOM order, which puts the search-row buttons between the inputs
+        const focusOrder = [
+          inputRef.current,
+          replaceInputRef.current,
+          ...container.querySelectorAll('.search-row button:not(:disabled), .replace-row button:not(:disabled)')
+        ].filter(Boolean);
+        const currentIndex = focusOrder.indexOf(e.target);
+        const next = currentIndex === -1 ? null : focusOrder[currentIndex + (e.shiftKey ? -1 : 1)];
+        // At either end, leave it to the browser so focus can leave the bar
+        if (!next) return;
+        e.preventDefault();
+        e.stopPropagation();
+        next.focus();
       }
     };
 
     container.addEventListener('keydown', onKeyDown, true);
     return () => container.removeEventListener('keydown', onKeyDown, true);
-  }, [visible, handleSearchBarClose, setReplaceVisible]);
+  }, [visible, readOnly, replaceVisible, handleSearchBarClose, setReplaceVisible]);
 
   useEffect(() => {
     if (!editor || !visible) return;
