@@ -2738,8 +2738,8 @@ const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
     .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
+    .locator('xpath=following-sibling::*[contains(@class,"single-line-editor-wrapper")][1]')
+    .locator('.CodeMirror');
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.
@@ -2760,6 +2760,16 @@ const selectAuthMode = async (page: Page, modeLabel: string) => {
 const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await fieldEditor(page, labelText).click();
   await page.keyboard.type(value);
+};
+
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readField(page, labelText)).toBe(value);
 };
 
 /**
@@ -4019,6 +4029,7 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
+  writeFieldValue,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,

@@ -17,7 +17,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
@@ -3321,7 +3321,8 @@ export const collectionsSlice = createSlice({
         if (existingEnv) {
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
-          existingEnv.variables = environment.variables;
+          // One file was reloaded. Copy saved row ids onto the new rows in the same position.
+          existingEnv.variables = preserveVariableUids(existingEnv.variables, environment.variables);
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
           existingEnv.extends = environment.extends;

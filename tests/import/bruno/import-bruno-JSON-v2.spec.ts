@@ -1,6 +1,6 @@
 import path from 'path';
 import { test, expect } from '../../../playwright';
-import { importCollection, closeAllCollections } from '../../utils/page';
+import { importCollection, closeAllCollections, readField } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Bruno v2 JSON collection', () => {
@@ -29,8 +29,8 @@ test.describe('Import Bruno v2 JSON collection', () => {
     await test.step('Verify proxy settings match the imported file', async () => {
       await expect(page.locator('input[name="enabled"][value="true"]')).toBeChecked();
       await expect(page.locator('input[name="protocol"][value="http"]')).toBeChecked();
-      await expect(page.locator('#hostname')).toHaveValue('127.0.0.1');
-      await expect(page.locator('#port')).toHaveValue('8080');
+      await expect.poll(() => readField(page, 'Hostname')).toBe('127.0.0.1');
+      await expect.poll(() => readField(page, 'Port')).toBe('8080');
       await expect(page.locator('input[name="auth.disabled"]')).not.toBeChecked();
     });
   });

@@ -1,17 +1,20 @@
 import React from 'react';
 import InfoTip from 'components/InfoTip';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import SingleLineEditor from 'components/SingleLineEditor';
+import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateCollectionProxy } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import { useTheme } from 'providers/Theme';
 
 const ProxySettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const initialProxyConfig = {
     inherit: true,
     config: {
@@ -31,7 +34,9 @@ const ProxySettings = ({ collection }) => {
     ? get(collection, 'draft.brunoConfig.proxy', initialProxyConfig)
     : get(collection, 'brunoConfig.proxy', initialProxyConfig);
 
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const { isSensitive } = useDetectSensitiveField(collection);
+  const proxyPassword = currentProxyConfig.config?.auth?.password || '';
+  const { showWarning, warningMessage } = isSensitive(proxyPassword);
 
   const validateHostnameOnChange = (hostname) => {
     if (hostname && hostname.length > 1024) {
@@ -41,9 +46,14 @@ const ProxySettings = ({ collection }) => {
     return true;
   };
 
+  const containsVariable = (value) => /\{\{/.test(value);
+
   const validatePortOnChange = (port) => {
     if (!port || port === '') {
       return true; // Allow empty port during typing
+    }
+    if (containsVariable(port)) {
+      return true;
     }
     const portNum = Number(port);
     if (isNaN(portNum)) {
@@ -113,8 +123,7 @@ const ProxySettings = ({ collection }) => {
     });
   };
 
-  const handleHostnameChange = (e) => {
-    const hostname = e.target.value;
+  const handleHostnameChange = (hostname) => {
     if (validateHostnameOnChange(hostname)) {
       updateProxy({
         config: {
@@ -125,13 +134,12 @@ const ProxySettings = ({ collection }) => {
     }
   };
 
-  const handlePortChange = (e) => {
-    const port = e.target.value ? Number(e.target.value) : '';
+  const handlePortChange = (port) => {
     if (validatePortOnChange(port)) {
       updateProxy({
         config: {
           ...currentProxyConfig.config,
-          port
+          port: port && !containsVariable(port) ? Number(port) : port
         }
       });
     }
@@ -149,8 +157,7 @@ const ProxySettings = ({ collection }) => {
     });
   };
 
-  const handleAuthUsernameChange = (e) => {
-    const username = e.target.value;
+  const handleAuthUsernameChange = (username) => {
     if (validateAuthUsernameOnChange(username)) {
       updateProxy({
         config: {
@@ -164,8 +171,7 @@ const ProxySettings = ({ collection }) => {
     }
   };
 
-  const handleAuthPasswordChange = (e) => {
-    const password = e.target.value;
+  const handleAuthPasswordChange = (password) => {
     if (validateAuthPasswordOnChange(password)) {
       updateProxy({
         config: {
@@ -306,35 +312,31 @@ const ProxySettings = ({ collection }) => {
               <label className="settings-label" htmlFor="hostname">
                 Hostname
               </label>
-              <input
-                id="hostname"
-                type="text"
-                name="hostname"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={handleHostnameChange}
-                value={currentProxyConfig.config?.hostname || ''}
-              />
+              <div className="single-line-editor-wrapper">
+                <SingleLineEditor
+                  value={currentProxyConfig.config?.hostname || ''}
+                  theme={storedTheme}
+                  onSave={handleSave}
+                  onChange={handleHostnameChange}
+                  collection={collection}
+                  isCompact
+                />
+              </div>
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="port">
                 Port
               </label>
-              <input
-                id="port"
-                type="number"
-                name="port"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={handlePortChange}
-                value={currentProxyConfig.config?.port || ''}
-              />
+              <div className="single-line-editor-wrapper">
+                <SingleLineEditor
+                  value={currentProxyConfig.config?.port === undefined || currentProxyConfig.config?.port === null ? '' : String(currentProxyConfig.config.port)}
+                  theme={storedTheme}
+                  onSave={handleSave}
+                  onChange={handlePortChange}
+                  collection={collection}
+                  isCompact
+                />
+              </div>
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="auth.disabled">
@@ -352,43 +354,32 @@ const ProxySettings = ({ collection }) => {
                 <label className="settings-label" htmlFor="auth.username">
                   Username
                 </label>
-                <input
-                  id="auth.username"
-                  type="text"
-                  name="auth.username"
-                  className="block textbox"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={currentProxyConfig.config?.auth?.username || ''}
-                  onChange={handleAuthUsernameChange}
-                />
+                <div className="single-line-editor-wrapper">
+                  <SingleLineEditor
+                    value={currentProxyConfig.config?.auth?.username || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={handleAuthUsernameChange}
+                    collection={collection}
+                    isCompact
+                  />
+                </div>
               </div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="auth.password">
                   Password
                 </label>
-                <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
-                  <input
-                    id="auth.password"
-                    type={passwordVisible ? 'text' : 'password'}
-                    name="auth.password"
-                    className="outline-none bg-transparent w-[10.5rem]"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    value={currentProxyConfig.config?.auth?.password || ''}
+                <div className="single-line-editor-wrapper flex items-center">
+                  <SingleLineEditor
+                    value={proxyPassword}
+                    theme={storedTheme}
+                    onSave={handleSave}
                     onChange={handleAuthPasswordChange}
+                    collection={collection}
+                    isSecret={true}
+                    isCompact
                   />
-                  <button
-                    type="button"
-                    className="btn btn-sm absolute right-0"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
-                  </button>
+                  {showWarning && <SensitiveFieldWarning fieldName="proxy-password" warningMessage={warningMessage} />}
                 </div>
               </div>
             </div>
