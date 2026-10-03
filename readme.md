@@ -23,6 +23,7 @@
 | [Italiano](docs/readme/readme_it.md)
 | [Română](docs/readme/readme_ro.md)
 | [Polski](docs/readme/readme_pl.md)
+| [Tiếng Việt](docs/readme/readme_vi.md)
 | [简体中文](docs/readme/readme_cn.md)
 | [正體中文](docs/readme/readme_zhtw.md)
 | [العربية](docs/readme/readme_ar.md)
