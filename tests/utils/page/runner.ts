@@ -8,6 +8,7 @@ import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, dragSidebarToWidth, revealFolderR
  * @returns Object with locators for runner elements
  */
 export const buildRunnerLocators = (page: Page) => ({
+  tab: () => page.getByTestId('request-tab-collection-runner').locator('.special-tab-icon'),
   allCount: () => page.getByTestId('runner-filter-all-count'),
   passedCount: () => page.getByTestId('runner-filter-passed-count'),
   failedCount: () => page.getByTestId('runner-filter-failed-count'),
@@ -15,6 +16,7 @@ export const buildRunnerLocators = (page: Page) => ({
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  resultsResetButton: () => page.getByTestId('runner-reset-button'),
   cancelExecutionButton: () => page.getByTestId('runner-cancel-button'),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
@@ -23,6 +25,7 @@ export const buildRunnerLocators = (page: Page) => ({
   requestItems: () => page.getByTestId('runner-request-item'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
+  resultsBody: () => page.getByTestId('runner-results-body'),
   passedTestRows: () => page.getByTestId('runner-test-row-passed'),
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
@@ -35,6 +38,20 @@ export const buildRunnerLocators = (page: Page) => ({
 });
 
 export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
+
+export const scrollRunnerResults = async (page: Page, fraction: number) => {
+  return await test.step('Scroll the runner results', async () => {
+    const body = buildRunnerLocators(page).resultsBody();
+    return await body.evaluate((node, fraction) => {
+      const target = Math.round((node.scrollHeight - node.clientHeight) * fraction);
+      if (node.scrollTop === target) return target;
+      return new Promise<number>((resolve) => {
+        node.addEventListener('scroll', () => resolve(target), { once: true });
+        node.scrollTo({ top: target });
+      });
+    }, fraction);
+  });
+};
 
 export type RunnerToolbarLevel = 'compact' | 'tiny';
 

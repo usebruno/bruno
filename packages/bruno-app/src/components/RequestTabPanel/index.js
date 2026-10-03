@@ -533,7 +533,11 @@ const RequestTabPanel = () => {
   const isWsRequest = item?.type === 'ws-request';
 
   if (focusedTab.type === 'collection-runner') {
-    return <RunnerResults collection={collection} />;
+    return (
+      <ScopedPersistenceProvider key={focusedTab.uid} scope={focusedTab.uid}>
+        <RunnerResults collection={collection} />
+      </ScopedPersistenceProvider>
+    );
   }
 
   if (focusedTab.type === 'variables') {

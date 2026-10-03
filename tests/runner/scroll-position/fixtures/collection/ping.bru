@@ -1,0 +1,19 @@
+meta {
+  name: ping
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/api/wait-for?time=1000
+  body: none
+  auth: inherit
+}
+
+tests {
+  for (let i = 1; i <= 80; i++) {
+    test(`Result ${i}`, function() {
+      expect(res.getStatus()).to.equal(200);
+    });
+  }
+}
