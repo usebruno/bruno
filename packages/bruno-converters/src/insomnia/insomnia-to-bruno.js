@@ -103,7 +103,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     });
   });
 
-  const authType = get(request, 'authentication.type', '');
+  const isAuthDisabled = get(request, 'authentication.disabled', false) === true;
+  const authType = isAuthDisabled ? '' : get(request, 'authentication.type', '');
 
   if (authType === 'basic') {
     brunoRequestItem.request.auth.mode = 'basic';
