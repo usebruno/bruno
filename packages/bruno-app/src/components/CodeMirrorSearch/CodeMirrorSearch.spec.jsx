@@ -106,6 +106,37 @@ describe('CodeMirrorSearch', () => {
       fireEvent.click(screen.getByTitle('Show replace'));
       expect(screen.getByTestId('codemirror-search-replace-input')).toBeInTheDocument();
     });
+
+    it('restores the search text and options supplied by the editor', () => {
+      renderSearch({
+        initialSearchState: {
+          searchText: 'persisted term',
+          regex: true,
+          caseSensitive: true,
+          wholeWord: true
+        }
+      });
+
+      expect(screen.getByTestId('codemirror-search-input')).toHaveValue('persisted term');
+      expect(screen.getByTestId('codemirror-search-regex-btn')).toHaveClass('active');
+      expect(screen.getByTestId('codemirror-search-case-btn')).toHaveClass('active');
+      expect(screen.getByTestId('codemirror-search-wholeword-btn')).toHaveClass('active');
+    });
+
+    it('reports search text and option changes to the editor', () => {
+      const onSearchStateChange = jest.fn();
+      renderSearch({ onSearchStateChange });
+
+      fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'term' } });
+      fireEvent.click(screen.getByTestId('codemirror-search-regex-btn'));
+
+      expect(onSearchStateChange).toHaveBeenLastCalledWith({
+        searchText: 'term',
+        regex: true,
+        caseSensitive: false,
+        wholeWord: false
+      });
+    });
   });
 
   describe('result count', () => {

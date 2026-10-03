@@ -30,7 +30,9 @@ import {
   captureEditorState,
   getDocKey,
   readPersistedEditorState,
-  writePersistedEditorState
+  writePersistedEditorState,
+  readPersistedSearchState,
+  writePersistedSearchState
 } from './state-persistence';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
@@ -44,6 +46,37 @@ window.JSHINT = JSHINT;
 
 const NORMAL_GUTTERS = ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'];
 const TAB_SIZE = 2;
+const EMPTY_SEARCH_STATE = {
+  searchText: '',
+  regex: false,
+  caseSensitive: false,
+  wholeWord: false
+};
+
+const getSearchStateStorageKey = (props) => {
+  if (!props.persistSearchState) return null;
+  return `${props.persistenceScope || 'global'}::${getDocKey(props)}`;
+};
+
+const normalizeSearchState = (state) => ({
+  searchText: typeof state?.searchText === 'string' ? state.searchText : EMPTY_SEARCH_STATE.searchText,
+  regex: state?.regex === true,
+  caseSensitive: state?.caseSensitive === true,
+  wholeWord: state?.wholeWord === true
+});
+
+const getInitialSearchState = (props) => {
+  const searchPersistenceKey = getSearchStateStorageKey(props);
+  const persistedState = searchPersistenceKey
+    ? readPersistedSearchState({ scope: props.persistenceScope, key: getDocKey(props) })
+    : null;
+
+  return {
+    searchBarVisible: persistedState?.visible === true,
+    searchState: normalizeSearchState(persistedState),
+    searchPersistenceKey
+  };
+};
 
 const buildCodeMirrorOptions = ({
   profile,
@@ -119,6 +152,12 @@ const applyEditorProfile = (
 };
 
 class CodeEditor extends React.Component {
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const searchPersistenceKey = getSearchStateStorageKey(nextProps);
+    if (searchPersistenceKey === prevState.searchPersistenceKey) return null;
+    return getInitialSearchState(nextProps);
+  }
+
   constructor(props) {
     super(props);
 
@@ -142,7 +181,7 @@ class CodeEditor extends React.Component {
     this.longLineMode = longLineDetected;
 
     this.state = {
-      searchBarVisible: false,
+      ...getInitialSearchState(props),
       longLineDetected,
       longLineMode: this.longLineMode
     };
@@ -160,6 +199,31 @@ class CodeEditor extends React.Component {
   _getDocKey() {
     return getDocKey(this.props);
   }
+
+  _getSearchStateStorageKey() {
+    return getSearchStateStorageKey(this.props);
+  }
+
+  _persistSearchState = () => {
+    if (!this.props.persistSearchState) return;
+
+    writePersistedSearchState({
+      scope: this.props.persistenceScope,
+      key: this._getDocKey(),
+      state: {
+        ...this.state.searchState,
+        visible: this.state.searchBarVisible
+      }
+    });
+  };
+
+  _handleSearchStateChange = (searchState) => {
+    if (!this.props.persistSearchState) return;
+
+    const nextSearchState = normalizeSearchState(searchState);
+    if (isEqual(this.state.searchState, nextSearchState)) return;
+    this.setState({ searchState: nextSearchState }, this._persistSearchState);
+  };
 
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
@@ -482,6 +546,7 @@ class CodeEditor extends React.Component {
     // container like a WS message accordion can reserve enough room for the bar).
     if (prevState.searchBarVisible !== this.state.searchBarVisible) {
       this.props.onSearchBarVisibilityChange?.(this.state.searchBarVisible);
+      this._persistSearchState();
     }
 
     // Ensure the changes caused by this update are not interpreted as
@@ -578,6 +643,8 @@ class CodeEditor extends React.Component {
   }
 
   componentWillUnmount() {
+    this._persistSearchState();
+
     if (this.editor) {
       if (this.props.onScroll) {
         this.props.onScroll(this._lastScrollTop);
@@ -651,6 +718,7 @@ class CodeEditor extends React.Component {
       >
         <div className="editor-shell graphiql-container relative flex flex-col flex-1 min-h-0">
           <CodeMirrorSearch
+            key={this.props.persistSearchState ? this._getSearchStateStorageKey() : undefined}
             ref={(node) => {
               if (!node) return;
               this.searchBarRef.current = node;
@@ -658,6 +726,8 @@ class CodeEditor extends React.Component {
             visible={this.state.searchBarVisible}
             editor={this.editor}
             readOnly={this.props.readOnly}
+            initialSearchState={this.state.searchState}
+            onSearchStateChange={this.props.persistSearchState ? this._handleSearchStateChange : undefined}
             onClose={() => this.setState({ searchBarVisible: false })}
           />
           <div

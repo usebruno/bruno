@@ -8,13 +8,13 @@ import { findSearchMatches, createCacheKey } from './searchUtils';
 import { markViewportMatches, clearMarks } from './markingUtils';
 import { useSearchBarHandle } from './useSearchBarHandle';
 
-const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref) => {
-  const [searchText, setSearchText] = useState('');
+const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose, initialSearchState, onSearchStateChange }, ref) => {
+  const [searchText, setSearchText] = useState(() => initialSearchState?.searchText ?? '');
   const [replaceText, setReplaceText] = useState('');
   const [replaceVisible, setReplaceVisible] = useState(false);
-  const [regex, setRegex] = useState(false);
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [wholeWord, setWholeWord] = useState(false);
+  const [regex, setRegex] = useState(() => initialSearchState?.regex ?? false);
+  const [caseSensitive, setCaseSensitive] = useState(() => initialSearchState?.caseSensitive ?? false);
+  const [wholeWord, setWholeWord] = useState(() => initialSearchState?.wholeWord ?? false);
   const [matchIndex, setMatchIndex] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
 
@@ -32,6 +32,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   const rafRef = useRef(null);
 
   const debouncedSearchText = useDebounce(searchText, 250);
+
+  useEffect(() => {
+    onSearchStateChange?.({ searchText, regex, caseSensitive, wholeWord });
+  }, [searchText, regex, caseSensitive, wholeWord, onSearchStateChange]);
 
   const redrawMarks = useCallback(() => {
     if (!editor) return;

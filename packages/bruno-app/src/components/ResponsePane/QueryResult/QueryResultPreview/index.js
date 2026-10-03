@@ -73,6 +73,7 @@ const QueryResultPreview = ({
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
         onLinkClick={handleResponseLinkClick}
+        persistSearchState
         readOnly
       />
     );
