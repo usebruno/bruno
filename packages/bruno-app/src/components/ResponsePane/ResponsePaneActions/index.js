@@ -163,7 +163,14 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
           dataBuffer={dataBuffer}
         />
         {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
-        <ResponseDownload ref={downloadButtonRef} item={item} />
+        <ResponseDownload
+          ref={downloadButtonRef}
+          item={item}
+          selectedFormat={selectedFormat}
+          selectedTab={selectedTab}
+          data={data}
+          dataBuffer={dataBuffer}
+        />
         <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
         <ResponseLayoutToggle ref={layoutToggleButtonRef} />
       </div>
