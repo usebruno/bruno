@@ -1,5 +1,5 @@
 const { ipcMain, app } = require('electron');
-const { WsClient } = require('@usebruno/requests');
+const { WsClient, getParsedWsUrlObject } = require('@usebruno/requests');
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { preferencesUtil } = require('../../store/preferences');
@@ -22,6 +22,7 @@ const {
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const { setAuthHeaders } = require('./prepare-request');
+const { attachCookieHeader } = require('../../utils/cookies');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
   const request = item.draft ? item.draft.request : item.request;
@@ -277,6 +278,14 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   delete wsRequest.apiKeyAuthValueForQueryParams;
 
   interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars);
+
+  // add cookies to request
+  if (preferencesUtil.shouldSendCookies()) {
+    const { fullUrl } = getParsedWsUrlObject(wsRequest.url);
+    if (fullUrl) {
+      attachCookieHeader(fullUrl, wsRequest.headers);
+    }
+  }
 
   return wsRequest;
 };
