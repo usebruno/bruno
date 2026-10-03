@@ -52,7 +52,7 @@
 
 ```sh
 # Mac-ზე Homebrew-ს საშუალებით
-brew install bruno
+brew install --cask bruno
 
 # Windows-ზე Chocolatey-ს საშუალებით
 choco install bruno

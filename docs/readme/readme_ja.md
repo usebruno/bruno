@@ -52,7 +52,7 @@ Homebrew, Chocolatey, Scoop, Snap, Flatpak, Apt などのパッケージマネ�
 
 ```sh
 # MacでHomebrewを使ってインストール
-brew install bruno
+brew install --cask bruno
 
 # WindowsでChocolateyを使ってインストール
 choco install bruno
