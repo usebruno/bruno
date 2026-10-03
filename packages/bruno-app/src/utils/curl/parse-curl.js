@@ -518,10 +518,34 @@ const cleanRequest = (request) => {
 };
 
 /**
+ * Detect and decode Windows CMD-style curl commands.
+ *
+ * Browsers' "Copy as cURL (cmd)" wraps every argument in `^"..."^"` and
+ * caret-escapes special characters (e.g. `"` becomes `^\^"`, `{` becomes `^{`),
+ * continuing lines with a trailing `^`. The `shell-quote` parser only understands
+ * POSIX/bash syntax, so these carets leak into the parsed result.
+ *
+ * Since CMD always escapes a literal caret as `^^`, every remaining caret is an
+ * escape character: stripping the caret before the character it escapes (including
+ * line-continuation newlines) yields an equivalent bash-style command.
+ */
+const normalizeWindowsCmdCurl = (curlCommand) => {
+  // `^"` is the hallmark of the cmd format; leave other commands untouched
+  if (!/\^"/.test(curlCommand)) {
+    return curlCommand;
+  }
+
+  // A caret escapes the following character (including line-continuation newlines)
+  return curlCommand.replace(/\^([\s\S])/g, '$1');
+};
+
+/**
  * Clean up curl command
  * Handles escape sequences, line continuations, and method concatenation
  */
 const cleanCurlCommand = (curlCommand) => {
+  // Decode Windows CMD caret-escaping before bash-oriented processing
+  curlCommand = normalizeWindowsCmdCurl(curlCommand);
   // Handle bash ANSI $'..' escapes by decoding common sequences
   curlCommand = curlCommand.replace(/\$'((?:\\.|[^'])*)'/g, (match, group) => quoteForShell(decodeAnsiEscapes(group)));
   // Convert escaped single quotes to shell quote pattern
