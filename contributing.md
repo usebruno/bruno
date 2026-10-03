@@ -72,6 +72,21 @@ Bruno is a desktop app. Below are the instructions to run Bruno.
 
 > Note: We use React for the frontend and rsbuild for build and dev server.
 
+### Setup Node
+If your Node version does not meet the project's requirements as instructed by the docs, "nvm" (Node Version Manager) allows using Node at the version required by the project:
+
+   ```sh
+   nvm use
+   ```
+
+   You first might need to install the specific version:
+
+   ```sh
+   nvm install
+   ```
+
+   You can install nvm from [here](https://github.com/nvm-sh/nvm).
+   
 ### Local Development
 
 #### 1. Setup
