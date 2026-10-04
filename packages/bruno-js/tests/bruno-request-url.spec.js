@@ -17,8 +17,7 @@ describe('BrunoRequest - getHost(), getPath(), getQueryString()', () => {
     expect(req.getQueryString()).toBe('a=1&b=2');
   });
 
-  // new URL() re-encodes a query - a space becomes %20 but ':' and '=' do not - which matches neither
-  // the url as written nor the one sent, so a resolved url's query is read as written like a templated one's
+  // a resolved url's query is reported as written, the same as a templated url's
   it('reports the query string as written rather than re-encoding it', () => {
     const req = new BrunoRequest(makeRequest('https://api.example.com/path?test=a:b = c'));
 

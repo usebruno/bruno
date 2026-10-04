@@ -44,9 +44,8 @@ const parseUrl = (rawUrl) => {
         return {
           host: url.host,
           pathname: url.pathname,
-          // url.search re-encodes the query - a space becomes %20 but ':' and '=' stay put - so
-          // 'a:b = c' came back as 'a:b%20=%20c', matching neither the url as written nor the one
-          // sent. read it as written, the same as a templated url's query
+          // url.search percent-encodes the query (a space becomes %20), so read it from the raw url
+          // instead, reporting the query as written, the same as for a templated url
           queryString: customParseUrl(rawUrl).queryString
         };
       }
