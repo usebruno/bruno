@@ -473,7 +473,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
             const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
             return new TextDecoder().decode(bytes);
           }
-          const rawResults = JSON.parse(decodeBase64('${resutsJsonString}'));
+          const rawResults = ${resutsJsonString.replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')};
 
           const res = computed(() => {
             return mergeTests(rawResults.results);
