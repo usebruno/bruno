@@ -420,6 +420,12 @@ class CodeEditor extends React.Component {
       }
 
       this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
+
+      // The initial render passes no editor to a restored search bar.
+      // Render again so it can search with the initialized editor.
+      if (this.state.searchBarVisible) {
+        this.forceUpdate();
+      }
     }
   }
 

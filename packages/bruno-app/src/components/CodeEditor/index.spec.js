@@ -312,13 +312,26 @@ describe('CodeEditor', () => {
     expect(view.queryByTestId('editor-status-bar')).not.toBeInTheDocument();
   });
 
-  it('restores persisted search state for an opted-in response editor', () => {
+  it('restores persisted search state and finds matches on mount for an opted-in response editor', () => {
     readPersistedSearchState.mockReturnValue({
       visible: true,
-      searchText: '',
+      searchText: 'status',
       regex: true,
       caseSensitive: true,
       wholeWord: true
+    });
+
+    const createMockEditor = CodeMirror.getMockImplementation();
+    CodeMirror.mockImplementationOnce((node, options) => {
+      const editor = createMockEditor(node, options);
+      const doc = new CodeMirror.Doc(options.value);
+      return Object.assign(editor, {
+        getSearchCursor: (...args) => doc.getSearchCursor(...args),
+        getViewport: () => ({ from: 0, to: doc.lineCount() }),
+        addLineClass: jest.fn(),
+        removeLineClass: jest.fn(),
+        setSelection: jest.fn()
+      });
     });
 
     const view = render(
@@ -337,6 +350,8 @@ describe('CodeEditor', () => {
 
     expect(readPersistedSearchState).toHaveBeenCalledWith({ scope: 'tab-a', key: 'response:editor' });
     expect(view.getByTestId('codemirror-search-bar')).toBeInTheDocument();
+    expect(view.getByTestId('codemirror-search-input')).toHaveValue('status');
+    expect(view.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 1');
     expect(view.getByTestId('codemirror-search-regex-btn')).toHaveClass('active');
     expect(view.getByTestId('codemirror-search-case-btn')).toHaveClass('active');
     expect(view.getByTestId('codemirror-search-wholeword-btn')).toHaveClass('active');
