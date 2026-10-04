@@ -24,10 +24,11 @@ describe('detectContentTypeFromBase64', () => {
     });
 
     it('detects a UTF-8 body longer than the 512-byte sample as text', () => {
-      const body = '{"a":"' + '测'.repeat(300) + '"}';
-      // 6 ASCII bytes followed by 3-byte characters, so the sample is cut inside a character
+      const prefix = '{"a":"';
+      const body = prefix + '测'.repeat(300) + '"}';
+      // ASCII prefix followed by 3-byte characters, so the sample is cut inside a character
       expect(Buffer.byteLength(body)).toBeGreaterThan(512);
-      expect((512 - 6) % 3).not.toBe(0);
+      expect((512 - Buffer.byteLength(prefix)) % 3).not.toBe(0);
 
       expect(detectContentTypeFromBase64(toBase64(body))).toBe('text/plain');
     });
@@ -38,6 +39,11 @@ describe('detectContentTypeFromBase64', () => {
       expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF0, 0x90, 0x80, 0x80])))).toBe('text/plain'); // U+10000
       expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xF4, 0x8F, 0xBF, 0xBF])))).toBe('text/plain'); // U+10FFFF
     });
+
+    it('detects SVG content', () => {
+      expect(detectContentTypeFromBase64(toBase64('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
+      expect(detectContentTypeFromBase64(toBase64('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
+    });
   });
 
   describe('binary detection', () => {
@@ -47,25 +53,12 @@ describe('detectContentTypeFromBase64', () => {
       expect(detectContentTypeFromBase64(toBase64([0x1F, 0x8B, 0x08, 0x00, 0x00, 0x00]))).toBe('application/gzip');
     });
 
-    it('detects SVG content', () => {
-      expect(detectContentTypeFromBase64(toBase64('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
-      expect(detectContentTypeFromBase64(toBase64('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe('image/svg+xml');
-    });
-
     it('returns null for bytes that are not valid UTF-8', () => {
-      const bytes = [];
-      for (let i = 0; i < 100; i++) {
-        bytes.push(0x80, 0x81, 0xFE, 0xFF, 0x00);
-      }
-      expect(detectContentTypeFromBase64(toBase64(bytes))).toBe(null);
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0x80, 0x81, 0xFE, 0xFF, 0x00])))).toBe(null);
     });
 
     it('returns null for UTF-8 lead bytes without continuation bytes', () => {
-      const bytes = [];
-      for (let i = 0; i < 256; i++) {
-        bytes.push(0xE6, 0x61);
-      }
-      expect(detectContentTypeFromBase64(toBase64(bytes))).toBe(null);
+      expect(detectContentTypeFromBase64(toBase64(repeatBytes([0xE6, 0x61], 256)))).toBe(null);
     });
 
     it('returns null for overlong, surrogate and out-of-range UTF-8 sequences', () => {
