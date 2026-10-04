@@ -209,6 +209,8 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         e.preventDefault();
         e.stopPropagation();
         next.focus();
+        // Like native Tab, select the text of an input so typing replaces it
+        if (next instanceof HTMLInputElement) next.select();
       }
     };
 

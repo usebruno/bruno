@@ -284,11 +284,14 @@ describe('CodeMirrorSearch', () => {
       fireEvent.click(screen.getByTitle('Show replace'));
     }
 
-    it('Tab from the search input moves to the replace input', () => {
+    it('Tab from the search input moves to the replace input and selects its text', () => {
       renderWithReplace();
-      const notPrevented = pressTab(screen.getByTestId('codemirror-search-input'));
-      expect(notPrevented).toBe(false);
-      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-replace-input'));
+      const replaceInput = screen.getByTestId('codemirror-search-replace-input');
+      fireEvent.change(replaceInput, { target: { value: 'bar' } });
+      expect(pressTab(screen.getByTestId('codemirror-search-input'))).toBe(false);
+      expect(document.activeElement).toBe(replaceInput);
+      expect(replaceInput.selectionStart).toBe(0);
+      expect(replaceInput.selectionEnd).toBe('bar'.length);
     });
 
     it('Tab from the replace input moves to the first search-row button', () => {
@@ -297,10 +300,14 @@ describe('CodeMirrorSearch', () => {
       expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-regex-btn'));
     });
 
-    it('Shift+Tab from the replace input moves back to the search input', () => {
+    it('Shift+Tab from the replace input moves back to the search input and selects its text', () => {
       renderWithReplace();
+      const searchInput = screen.getByTestId('codemirror-search-input');
+      typeSearch('foo');
       pressTab(screen.getByTestId('codemirror-search-replace-input'), { shiftKey: true });
-      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
+      expect(document.activeElement).toBe(searchInput);
+      expect(searchInput.selectionStart).toBe(0);
+      expect(searchInput.selectionEnd).toBe('foo'.length);
     });
 
     it('Shift+Tab from the first search-row button moves back to the replace input', () => {
