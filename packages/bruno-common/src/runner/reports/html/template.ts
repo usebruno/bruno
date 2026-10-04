@@ -468,11 +468,6 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
 
       const App = {
         setup() {
-          function decodeBase64(base64) {
-            const binary = atob(base64);
-            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-            return new TextDecoder().decode(bytes);
-          }
           const rawResults = ${resutsJsonString.replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')};
 
           const res = computed(() => {
