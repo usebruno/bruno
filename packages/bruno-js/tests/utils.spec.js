@@ -319,6 +319,17 @@ describe('utils', () => {
       expect(serialized).toContain('[Circular Reference]');
     });
 
+    it('stays fast after the repeat budget is spent', () => {
+      const big = Array.from({ length: 1000000 }, () => 0);
+      const holder = {};
+      for (let i = 0; i < 1000; i++) {
+        holder[`k${i}`] = big;
+      }
+      const start = Date.now();
+      cleanJson(holder);
+      expect(Date.now() - start).toBeLessThan(5000);
+    });
+
     it('replaces a cycle that goes through an Error', () => {
       const obj = { id: 1 };
       const err = new Error('ctx');

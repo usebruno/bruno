@@ -155,6 +155,9 @@ const createCycleGuard = () => {
         return true;
       }
       if (seen.has(value)) {
+        if (repeated >= MAX_REPEATED_ENTRIES) {
+          return true;
+        }
         repeated += 1 + Object.keys(value).length;
         return repeated > MAX_REPEATED_ENTRIES;
       }
