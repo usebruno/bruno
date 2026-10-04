@@ -24,6 +24,10 @@ const importRequestFile = async (sourcePath, targetDirname, format, seq) => {
     throw new Error('Select a Bruno request file, not a collection, folder or environment file');
   }
 
+  if (format === 'bru' && request.type === 'http-request' && !request.request.method) {
+    throw new Error('HTTP request method is required');
+  }
+
   request.seq = seq;
   return writeFileUnique(targetDirname, basename, format, stringifyRequest(request, { format }));
 };

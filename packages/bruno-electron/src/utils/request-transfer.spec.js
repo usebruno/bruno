@@ -102,6 +102,18 @@ describe('request file transfer', () => {
     await expect(importRequestFile(path.join(directory, 'request.json'), targetDir, 'bru', 1)).rejects.toThrow('.bru');
   });
 
+  it('rejects methodless HTTP imports into bru collections without creating a file', async () => {
+    const content = source.replace('post {', 'http {');
+    const parsed = parseRequest(content, { format: 'bru' });
+    expect(parsed.type).toBe('http-request');
+    expect(parsed.request.method).toBe('');
+    expect(parsed.request.url).toBe('http://localhost:8081/ping');
+    await fs.writeFile(sourcePath, content);
+
+    await expect(importRequestFile(sourcePath, targetDir, 'bru', 1)).rejects.toThrow('HTTP request method is required');
+    expect(await fs.readdir(targetDir)).toEqual([]);
+  });
+
   it('exports a request as a portable bru file', async () => {
     const request = exportPayload();
     const filePath = path.join(directory, 'exported.bru');
