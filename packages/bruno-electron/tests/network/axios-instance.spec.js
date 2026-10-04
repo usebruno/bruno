@@ -31,6 +31,7 @@ jest.mock('../../src/utils/form-data', () => ({
 }));
 
 const http = require('http');
+const zlib = require('zlib');
 const { AxiosHeaders } = require('axios');
 const { measureResponseTime, addDigestInterceptor } = require('@usebruno/requests');
 const { setupProxyAgents } = require('../../src/utils/proxy-util');
@@ -813,8 +814,6 @@ describe('axios-instance: sent headers', () => {
 });
 
 describe('axios-instance: content-encoding response header (GitHub #8233)', () => {
-  const zlib = require('zlib');
-
   const withServer = async (handler, run) => {
     const server = http.createServer(handler);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
