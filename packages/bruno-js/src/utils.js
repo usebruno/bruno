@@ -127,40 +127,43 @@ const createResponseParser = (response = {}) => {
   return res;
 };
 
-// Upper bound on objects serialized again because they were already serialized elsewhere.
+// Upper bound on the work spent serializing objects again because they were already
+// serialized elsewhere, counted as one per object plus one per own key or array slot.
 // Without it, a graph with many shared references (a DAG) grows exponentially when expanded.
-const MAX_REPEATED_OBJECTS = 10000;
+const MAX_REPEATED_ENTRIES = 100000;
 
 /**
  * JSON.stringify replacer guard that flags only real cycles.
  * An object is circular only when it is one of its own ancestors; the same object
  * reached again through a sibling branch (a shared reference) is serialized again,
- * up to MAX_REPEATED_OBJECTS times, after which repeats are flagged as before.
+ * until MAX_REPEATED_ENTRIES is spent, after which repeats are flagged as before.
  * `holder` is the replacer's `this`. `serialized` is the object JSON.stringify will descend into,
  * which can differ from `value` when the replacer returns a substitute.
  */
 const createCycleGuard = () => {
   const ancestors = [];
+  const ancestorValues = new Set();
   const seen = new WeakSet();
   let repeated = 0;
 
   return {
     isCircular(holder, value) {
       while (ancestors.length && ancestors[ancestors.length - 1].serialized !== holder) {
-        ancestors.pop();
+        ancestorValues.delete(ancestors.pop().value);
       }
-      if (ancestors.some((entry) => entry.value === value)) {
+      if (ancestorValues.has(value)) {
         return true;
       }
       if (seen.has(value)) {
-        repeated++;
-        return repeated > MAX_REPEATED_OBJECTS;
+        repeated += 1 + Object.keys(value).length;
+        return repeated > MAX_REPEATED_ENTRIES;
       }
       return false;
     },
     enter(value, serialized) {
       seen.add(value);
       ancestors.push({ value, serialized });
+      ancestorValues.add(value);
     }
   };
 };

@@ -308,6 +308,33 @@ describe('utils', () => {
       expect(serialized).toContain('[Circular Reference]');
     });
 
+    it('stays bounded when a large array is shared by many keys', () => {
+      const big = Array.from({ length: 10000 }, (_, i) => i);
+      const holder = {};
+      for (let i = 0; i < 1000; i++) {
+        holder[`k${i}`] = big;
+      }
+      const serialized = JSON.stringify(cleanJson(holder));
+      expect(serialized.length).toBeLessThan(2000000);
+      expect(serialized).toContain('[Circular Reference]');
+    });
+
+    it('replaces a cycle that goes through an Error', () => {
+      const obj = { id: 1 };
+      const err = new Error('ctx');
+      err.ctx = obj;
+      obj.err = err;
+      const out = cleanJson(obj);
+      expect(out.err).toMatchObject({ message: 'ctx', ctx: '[Circular Reference]' });
+    });
+
+    it('keeps an Error shared by two keys', () => {
+      const err = new Error('shared');
+      const out = cleanJson({ a: err, b: err });
+      expect(out.a).toMatchObject({ message: 'shared', name: 'Error' });
+      expect(out.b).toMatchObject({ message: 'shared', name: 'Error' });
+    });
+
     it('still replaces a cycle that goes through a shared object', () => {
       const shared = { name: 'shared' };
       shared.self = shared;
