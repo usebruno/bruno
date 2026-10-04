@@ -282,6 +282,39 @@ describe('utils', () => {
       expect(out.err).toMatchObject({ message: 'cycle' });
       expect(out.ref).toBe('[Circular Reference]');
     });
+
+    it('keeps an object shared by two variables (GitHub #8005)', () => {
+      const members = [{ id: 1, name: 'me' }, { id: 2, name: 'other' }];
+      const runtimeVariables = { members, others: members.filter((m) => m.id !== 1) };
+      expect(cleanJson(runtimeVariables)).toEqual({
+        members: [{ id: 1, name: 'me' }, { id: 2, name: 'other' }],
+        others: [{ id: 2, name: 'other' }]
+      });
+    });
+
+    it('keeps an object that appears twice in the same array', () => {
+      const item = { id: 1 };
+      expect(cleanJson([item, item])).toEqual([{ id: 1 }, { id: 1 }]);
+    });
+
+    it('stays bounded on a graph with many shared references', () => {
+      let node = { leaf: true };
+      for (let i = 0; i < 40; i++) {
+        node = { l: node, r: node };
+      }
+      // Fully expanded this is 2^40 leaves; the repeat budget keeps the output small.
+      const serialized = JSON.stringify(cleanJson(node));
+      expect(serialized.length).toBeLessThan(1000000);
+      expect(serialized).toContain('[Circular Reference]');
+    });
+
+    it('still replaces a cycle that goes through a shared object', () => {
+      const shared = { name: 'shared' };
+      shared.self = shared;
+      const out = cleanJson({ a: shared, b: shared });
+      expect(out.a).toEqual({ name: 'shared', self: '[Circular Reference]' });
+      expect(out.b).toEqual({ name: 'shared', self: '[Circular Reference]' });
+    });
   });
 
   describe('cleanCircularJson', () => {
@@ -304,6 +337,11 @@ describe('utils', () => {
       expect(out.level).toBe(1);
       expect(out.child.level).toBe(2);
       expect(out.child.back).toBe('[Circular Reference]');
+    });
+
+    it('keeps an object shared by two keys (GitHub #8005)', () => {
+      const item = { id: 1 };
+      expect(cleanCircularJson({ a: item, b: [item] })).toEqual({ a: { id: 1 }, b: [{ id: 1 }] });
     });
   });
 

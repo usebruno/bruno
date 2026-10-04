@@ -127,6 +127,44 @@ const createResponseParser = (response = {}) => {
   return res;
 };
 
+// Upper bound on objects serialized again because they were already serialized elsewhere.
+// Without it, a graph with many shared references (a DAG) grows exponentially when expanded.
+const MAX_REPEATED_OBJECTS = 10000;
+
+/**
+ * JSON.stringify replacer guard that flags only real cycles.
+ * An object is circular only when it is one of its own ancestors; the same object
+ * reached again through a sibling branch (a shared reference) is serialized again,
+ * up to MAX_REPEATED_OBJECTS times, after which repeats are flagged as before.
+ * `holder` is the replacer's `this`. `serialized` is the object JSON.stringify will descend into,
+ * which can differ from `value` when the replacer returns a substitute.
+ */
+const createCycleGuard = () => {
+  const ancestors = [];
+  const seen = new WeakSet();
+  let repeated = 0;
+
+  return {
+    isCircular(holder, value) {
+      while (ancestors.length && ancestors[ancestors.length - 1].serialized !== holder) {
+        ancestors.pop();
+      }
+      if (ancestors.some((entry) => entry.value === value)) {
+        return true;
+      }
+      if (seen.has(value)) {
+        repeated++;
+        return repeated > MAX_REPEATED_OBJECTS;
+      }
+      return false;
+    },
+    enter(value, serialized) {
+      seen.add(value);
+      ancestors.push({ value, serialized });
+    }
+  };
+};
+
 /**
  * Objects that are created inside developer mode execution context result in an serialization error when sent to the renderer process
  * Error sending from webFrameMain:  Error: Failed to serialize arguments
@@ -161,15 +199,10 @@ const cleanJson = (data) => {
   ].filter(Boolean);
   const binaryNames = typedArrays.map((d) => d.name);
 
-  const seen = new WeakSet();
+  const guard = createCycleGuard();
 
-  const replacer = (key, value) => {
+  const serialize = (value) => {
     if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return '[Circular Reference]';
-      }
-      seen.add(value);
-
       // instanceof + [[Class]] cover same-realm; duck-type fallback for cross-realm/cross-context Error-like objects
       if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
         const error = {};
@@ -191,6 +224,18 @@ const cleanJson = (data) => {
       }
     }
     return value;
+  };
+
+  const replacer = function (key, value) {
+    if (typeof value !== 'object' || value === null) {
+      return value;
+    }
+    if (guard.isCircular(this, value)) {
+      return '[Circular Reference]';
+    }
+    const serialized = serialize(value);
+    guard.enter(value, serialized);
+    return serialized;
   };
 
   const reviver = (key, value) => {
@@ -216,21 +261,16 @@ const cleanJson = (data) => {
 
 const cleanCircularJson = (data) => {
   try {
-    // Handle circular references by keeping track of seen objects
-    const seen = new WeakSet();
+    const guard = createCycleGuard();
 
-    const replacer = (key, value) => {
-      // Skip non-objects and null
+    const replacer = function (key, value) {
       if (typeof value !== 'object' || value === null) {
         return value;
       }
-
-      // Detect circular reference
-      if (seen.has(value)) {
+      if (guard.isCircular(this, value)) {
         return '[Circular Reference]';
       }
-
-      seen.add(value);
+      guard.enter(value, value);
       return value;
     };
 
