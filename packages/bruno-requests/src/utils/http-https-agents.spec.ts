@@ -8,20 +8,21 @@ import { HeaderSafeHttpProxyAgent, getHttpHttpsAgents } from './http-https-agent
 const HEADER_END = '\r\n\r\n';
 
 type CapturedRequest = {
-  raw: string;
   requestLineCount: number;
   contentLength: number;
   body: string;
 };
 
+const readContentLength = (headerBlock: string): number => {
+  const contentLengthMatch = headerBlock.match(/^content-length:\s*(\d+)/im);
+  return contentLengthMatch ? Number(contentLengthMatch[1]) : 0;
+};
+
 const parseCaptured = (raw: string, requestLine: RegExp): CapturedRequest => {
   const headerEnd = raw.indexOf(HEADER_END);
-  const headerBlock = raw.slice(0, headerEnd);
-  const contentLengthMatch = headerBlock.match(/^content-length:\s*(\d+)/im);
   return {
-    raw,
     requestLineCount: (raw.match(requestLine) || []).length,
-    contentLength: contentLengthMatch ? Number(contentLengthMatch[1]) : 0,
+    contentLength: readContentLength(raw.slice(0, headerEnd)),
     body: raw.slice(headerEnd + HEADER_END.length)
   };
 };
@@ -43,8 +44,7 @@ const startCapturingProxy = async () => {
         if (responded || headerEnd === -1) {
           return;
         }
-        const contentLengthMatch = raw.slice(0, headerEnd).match(/^content-length:\s*(\d+)/im);
-        const contentLength = contentLengthMatch ? Number(contentLengthMatch[1]) : 0;
+        const contentLength = readContentLength(raw.slice(0, headerEnd));
         if (raw.length - (headerEnd + HEADER_END.length) >= contentLength) {
           responded = true;
           setTimeout(() => {
@@ -200,7 +200,7 @@ describe('HeaderSafeHttpProxyAgent', () => {
       expect(captured.body).toContain('filename="sample.txt"');
       expect(captured.body).toContain('hello world');
     } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
+      fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     }
   });
 });
