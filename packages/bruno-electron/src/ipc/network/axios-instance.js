@@ -102,6 +102,24 @@ const completeOpenHop = (config) => {
 };
 
 /**
+ * axios deletes content-encoding from response.headers after it decompresses the body.
+ * Restore it from the raw socket headers so the user sees what the server sent.
+ */
+const restoreContentEncodingHeader = (response) => {
+  const rawHeaders = response?.request?.res?.rawHeaders;
+  if (!response?.headers || !Array.isArray(rawHeaders) || response.headers['content-encoding'] !== undefined) {
+    return;
+  }
+
+  for (let i = 0; i < rawHeaders.length - 1; i += 2) {
+    if (String(rawHeaders[i]).toLowerCase() === 'content-encoding') {
+      response.headers['content-encoding'] = rawHeaders[i + 1];
+      return;
+    }
+  }
+};
+
+/**
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
  * @see https://github.com/axios/axios/issues/695
@@ -262,6 +280,7 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       redirectCount = 0;
+      restoreContentEncodingHeader(response);
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
@@ -336,6 +355,7 @@ function makeAxiosInstance({
         message: 'there was an error executing the request!'
       });
       if (error.response) {
+        restoreContentEncodingHeader(error.response);
         const isStreamedBody = config.responseType === 'stream';
         if (isStreamedBody) {
           recordResponseHeadersReceived(config);
