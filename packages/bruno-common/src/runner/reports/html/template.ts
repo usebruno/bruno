@@ -816,6 +816,7 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
                 }
               }
               if (!copied) {
+                const previouslyFocusedElement = document.activeElement;
                 const textarea = document.createElement('textarea');
                 textarea.value = textToCopy;
                 textarea.setAttribute('readonly', '');
@@ -825,8 +826,13 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
                 document.body.appendChild(textarea);
                 textarea.focus();
                 textarea.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(textarea);
+                let ok;
+                try {
+                  ok = document.execCommand('copy');
+                } finally {
+                  document.body.removeChild(textarea);
+                  previouslyFocusedElement?.focus();
+                }
                 if (!ok) throw new Error('Copy command was rejected');
               }
               message.success('Copied to clipboard!');
