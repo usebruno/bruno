@@ -10,7 +10,8 @@ const {
   applyOmitConnectionToAxiosConfig,
   handleNtlmRedirect,
   startHop,
-  completeHop
+  completeHop,
+  restoreContentEncodingHeader
 } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
@@ -142,6 +143,7 @@ function makeAxiosInstance({
     (response) => {
       completeHop(response.config.metadata);
       redirectCount = 0;
+      restoreContentEncodingHeader(response);
       response.sentHeaders = getSentHeaders(response.request);
 
       return response;
@@ -149,6 +151,7 @@ function makeAxiosInstance({
     async (error) => {
       error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
+        restoreContentEncodingHeader(error.response);
         completeHop(error.config.metadata);
         error.response.sentHeaders = error.sentHeaders;
 

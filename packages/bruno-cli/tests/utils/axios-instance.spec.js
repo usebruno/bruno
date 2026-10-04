@@ -1,4 +1,6 @@
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+const http = require('http');
+const zlib = require('zlib');
 const { measureResponseTime, addDigestInterceptor } = require('@usebruno/requests');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
 
@@ -338,6 +340,47 @@ describe('makeAxiosInstance', () => {
       expect(calls[1].url).toBe('https://api.example.com/relative-target');
       expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
       expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+    });
+  });
+});
+
+describe('makeAxiosInstance: content-encoding response header (GitHub #8233)', () => {
+  const withServer = async (handler, run) => {
+    const server = http.createServer(handler);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await run(`http://127.0.0.1:${server.address().port}`);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  };
+
+  const gzipHandler = (status) => (req, res) => {
+    const body = zlib.gzipSync(JSON.stringify({ ok: true }));
+    res.writeHead(status, { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Content-Length': body.length });
+    res.end(body);
+  };
+
+  it('keeps content-encoding after axios decompresses the body', async () => {
+    await withServer(gzipHandler(200), async (url) => {
+      const response = await makeAxiosInstance()({ url, method: 'get' });
+      expect(response.data).toEqual({ ok: true });
+      expect(response.headers['content-encoding']).toBe('gzip');
+    });
+  });
+
+  it('keeps content-encoding on an error response', async () => {
+    await withServer(gzipHandler(404), async (url) => {
+      const error = await makeAxiosInstance()({ url, method: 'get' }).catch((err) => err);
+      expect(error.response.status).toBe(404);
+      expect(error.response.headers['content-encoding']).toBe('gzip');
+    });
+  });
+
+  it('does not add content-encoding when the server did not send it', async () => {
+    await withServer((req, res) => res.end('plain'), async (url) => {
+      const response = await makeAxiosInstance()({ url, method: 'get' });
+      expect(response.headers['content-encoding']).toBeUndefined();
     });
   });
 });

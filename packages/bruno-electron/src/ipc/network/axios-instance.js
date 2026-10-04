@@ -15,7 +15,8 @@ const {
   readCurrentTime,
   measureTimeSince,
   startHop,
-  completeHop
+  completeHop,
+  restoreContentEncodingHeader
 } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
@@ -99,24 +100,6 @@ const completeOpenHop = (config) => {
     type: 'timing',
     message: `Request completed in ${hopTime} ms`
   });
-};
-
-/**
- * axios deletes content-encoding from response.headers after it decompresses the body.
- * Restore it from the raw socket headers so the user sees what the server sent.
- */
-const restoreContentEncodingHeader = (response) => {
-  const rawHeaders = response.request?.res?.rawHeaders;
-  if (!rawHeaders || response.headers['content-encoding'] !== undefined) {
-    return;
-  }
-
-  for (let i = 0; i < rawHeaders.length; i += 2) {
-    if (rawHeaders[i].toLowerCase() === 'content-encoding') {
-      response.headers['content-encoding'] = rawHeaders[i + 1];
-      return;
-    }
-  }
 };
 
 /**
