@@ -5,7 +5,7 @@ const archiver = require('archiver');
 const extractZip = require('extract-zip');
 const { ipcMain, dialog } = require('electron');
 const isDev = require('electron-is-dev');
-const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE } = require('../utils/filesystem');
+const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE, removeGitMetadata } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
@@ -360,6 +360,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       try {
         await extractZip(zipFilePath, { dir: tempDir });
+        await removeGitMetadata(tempDir);
 
         const extractedItems = fs.readdirSync(tempDir);
         let workspaceDir = tempDir;
