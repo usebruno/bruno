@@ -84,6 +84,7 @@ test('exports a request and imports it into a folder without overwriting an exis
     const imported = await fs.readFile(path.join(folderPath, filenames[0]), 'utf8');
     expect(imported.replace(/^  seq: \d+$/m, '')).toBe(exported.replace(/^  seq: \d+$/m, ''));
 
+    await expect(sidebar.folderRequest('Destination', 'Shared request')).toContainClass('item-focused-in-tab');
     await sendRequestAndWaitForResponse(page, 200);
     await page.screenshot({ path: testInfo.outputPath('request-transfer.png') });
   } finally {
