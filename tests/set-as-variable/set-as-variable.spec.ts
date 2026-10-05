@@ -55,6 +55,33 @@ test.describe('Set as variable', () => {
     });
   });
 
+  test('opens with an empty name and blocks saving until one is typed', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await createCollection(page, 'empty-name', await createTmpDir('empty-name'));
+    await createRequest(page, 'Fetch Posts', 'empty-name');
+    await sidebar.request('Fetch Posts').click();
+    await setRequestUrlAndSave(page, 'https://example.com/posts');
+
+    await openSetAsVariablePopover(page, request.urlLine(), 10);
+
+    await test.step('The name starts empty even though a value is selected', async () => {
+      await expect(setAsVariable.value()).toHaveText('https');
+      await expect(setAsVariable.nameInput()).toHaveValue('');
+      await expect(setAsVariable.saveButton()).toBeDisabled();
+    });
+
+    await test.step('Typing a name enables Save', async () => {
+      await setAsVariable.nameInput().fill('scheme');
+      await expect(setAsVariable.saveButton()).toBeEnabled();
+    });
+
+    await test.step('Clearing it disables Save again', async () => {
+      await setAsVariable.nameInput().fill('');
+      await expect(setAsVariable.saveButton()).toBeDisabled();
+    });
+  });
+
   test('does not open the menu without a selection', async ({ page, createTmpDir }) => {
     const { sidebar, request, setAsVariable } = buildCommonLocators(page);
 

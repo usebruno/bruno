@@ -4,7 +4,6 @@ import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { PromptVariablesProvider } from 'providers/PromptVariables';
 import { SetAsVariableProvider } from 'providers/SetAsVariable';
-import { SQLiteProvider } from '@usebruno/sqlite/web';
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
@@ -43,21 +42,19 @@ function Main({ children }) {
   return (
     <ErrorBoundary>
       <Provider store={ReduxStore}>
-        <SQLiteProvider bridge={window.ipcRenderer}>
-          <ThemeProvider>
-            <ToastProvider>
-              <PromptVariablesProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <SetAsVariableProvider>
-                      {children}
-                    </SetAsVariableProvider>
-                  </HotkeysProvider>
-                </AppProvider>
-              </PromptVariablesProvider>
-            </ToastProvider>
-          </ThemeProvider>
-        </SQLiteProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <PromptVariablesProvider>
+              <AppProvider>
+                <HotkeysProvider>
+                  <SetAsVariableProvider>
+                    {children}
+                  </SetAsVariableProvider>
+                </HotkeysProvider>
+              </AppProvider>
+            </PromptVariablesProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </Provider>
     </ErrorBoundary>
   );

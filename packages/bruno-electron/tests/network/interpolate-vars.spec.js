@@ -1,4 +1,5 @@
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
+const { trackUnresolvedVariables } = require('@usebruno/js');
 
 describe('interpolate-vars: interpolateVars', () => {
   describe('Interpolates string', () => {
@@ -673,6 +674,32 @@ describe('interpolate-vars: interpolateVars', () => {
       const result = interpolateVars(request, { shouldNotApply: 'value' }, null, null);
 
       expect(result.data).toBe(streamPayload);
+    });
+  });
+
+  describe('Reports unresolved variables to a tracked request', () => {
+    it('reports misses from the url, headers and body', () => {
+      const request = {
+        method: 'POST',
+        url: '{{host}}/users',
+        headers: { 'content-type': 'application/json', 'x-tenant': '{{tenant}}' },
+        data: '{"key": "{{apiKey}}", "name": "{{name}}"}'
+      };
+      const unresolvedVariables = trackUnresolvedVariables(request);
+
+      interpolateVars(request, { name: 'bruno' }, {}, {});
+
+      expect([...unresolvedVariables]).toEqual(['host', 'tenant', 'apiKey']);
+    });
+
+    it('does not report a process.env reference inside an env var when the process variable is set', () => {
+      const request = { method: 'GET', url: '{{baseUrl}}', headers: {} };
+      const unresolvedVariables = trackUnresolvedVariables(request);
+
+      interpolateVars(request, { baseUrl: '{{process.env.BASE_URL}}' }, {}, { BASE_URL: 'https://usebruno.com' });
+
+      expect(request.url).toBe('https://usebruno.com');
+      expect(unresolvedVariables.size).toBe(0);
     });
   });
 });

@@ -10,17 +10,22 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2, trackUnresolvedVariables, getUnresolvedVariableCollector } = require('@usebruno/js');
 const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, addEdgeGridInterceptor, applySentHeadersToRequest } = require('@usebruno/requests');
+const {
+  addDigestInterceptor,
+  addEdgeGridInterceptor,
+  applySentHeadersToRequest,
+  measureResponseTime
+} = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
-const { makeAxiosInstance } = require('./axios-instance');
+const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
 const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -369,8 +374,12 @@ const configureRequest = async (
     const urlObj = new URL(request.url);
 
     // Interpolate key and value as they can be variables before adding to the URL.
-    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
-    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+    const apiKeyInterpolationOptions = {
+      ...interpolationOptions,
+      onUnresolved: getUnresolvedVariableCollector(request)
+    };
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, apiKeyInterpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, apiKeyInterpolationOptions);
 
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
@@ -748,13 +757,14 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     // Nested bru.runRequest() invocations have no item.requestUid; inherit the parent's
     // so script-driven variable updates aren't dropped by the renderer's requestUid gate.
     const requestUid = item.requestUid || parentRequestUid || uuid();
+    let unresolvedVariables = null;
 
     const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
@@ -805,7 +815,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
           } catch (e) {
             err = e;
           }
@@ -883,6 +893,24 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    if (!runInBackground || parentUnresolvedVariables) {
+      unresolvedVariables = trackUnresolvedVariables(request, parentUnresolvedVariables);
+    }
+
+    let reportedUnresolvedCount = 0;
+    const reportUnresolvedVariables = () => {
+      if (runInBackground || unresolvedVariables.size === reportedUnresolvedCount) return;
+
+      reportedUnresolvedCount = unresolvedVariables.size;
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'unresolved-variables',
+        unresolvedVariables: [...unresolvedVariables],
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
+    };
+
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
@@ -1040,6 +1068,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       let response, responseTime, axiosDataStream;
       const sseChunks = [];
+      reportUnresolvedVariables();
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(refreshExplicitHeaderNames(request));
@@ -1047,11 +1076,9 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
+          completeOpenHop(response.config);
         }
-
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
+        responseTime = measureResponseTime(response.config.metadata);
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -1068,14 +1095,12 @@ const registerNetworkIpc = (mainWindow) => {
         }
         if (error?.response) {
           response = error.response;
-
-          // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
-          response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
+            completeOpenHop(response.config);
           }
+          responseTime = measureResponseTime(response.config.metadata);
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
             sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
@@ -1257,6 +1282,8 @@ const registerNetworkIpc = (mainWindow) => {
       };
       if (isResponseStream) {
         axiosDataStream.on('close', () => {
+          completeOpenHop(response.config);
+          response.responseTime = measureResponseTime(response.config.metadata);
           try {
             const { data, dataBuffer } = buildResponseBodyFromStreamChunks(
               sseChunks,
@@ -1268,9 +1295,11 @@ const registerNetworkIpc = (mainWindow) => {
           } catch (error) {
             console.error('Error rebuilding response body from SSE chunks:', error);
           }
-          runPostScripts().catch((error) => {
-            console.error('Error running post-response scripts for SSE stream:', error);
-          });
+          runPostScripts()
+            .finally(reportUnresolvedVariables)
+            .catch((error) => {
+              console.error('Error running post-response scripts for SSE stream:', error);
+            });
         });
       } else {
         await runPostScripts();
@@ -1302,6 +1331,8 @@ const registerNetworkIpc = (mainWindow) => {
         timeline: error?.timeline,
         requestSent
       };
+    } finally {
+      reportUnresolvedVariables();
     }
   };
 
@@ -1641,9 +1672,6 @@ const registerNetworkIpc = (mainWindow) => {
             });
           };
 
-          let timeStart;
-          let timeEnd;
-
           const requestUid = uuid();
 
           mainWindow.webContents.send('main:run-folder-event', {
@@ -1862,7 +1890,6 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            timeStart = Date.now();
             let response, responseTime;
             try {
               if (delay && !Number.isNaN(delay) && delay > 0) {
@@ -1880,13 +1907,12 @@ const registerNetworkIpc = (mainWindow) => {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
-              timeEnd = Date.now();
+              completeOpenHop(response.config);
+              response.responseTime = measureResponseTime(response.config.metadata);
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = response.headers.get('request-duration');
-              response.headers.delete('request-duration');
 
               // save cookies
               if (preferencesUtil.shouldStoreCookies()) {
@@ -1904,7 +1930,7 @@ const registerNetworkIpc = (mainWindow) => {
                   status: response.status,
                   statusText: response.statusText,
                   headers: response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
@@ -1922,9 +1948,9 @@ const registerNetworkIpc = (mainWindow) => {
 
               if (error?.response) {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
+                completeOpenHop(error.response.config);
+                error.response.responseTime = measureResponseTime(error.response.config.metadata);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
-                error.response.responseTime = error.response.headers.get('request-duration');
-                error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1933,12 +1959,11 @@ const registerNetworkIpc = (mainWindow) => {
                   saveCookies(request.url, error.response.headers);
                 }
 
-                timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: error.response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: error.response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
@@ -2283,3 +2308,5 @@ module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
 module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
+module.exports.promisifyStream = promisifyStream;
+module.exports.hasStreamHeaders = hasStreamHeaders;

@@ -12,7 +12,6 @@ import { variableNameRegex } from 'utils/common/regex';
 import { SCOPE_ICON, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import StyledWrapper from './StyledWrapper';
 
-const DERIVED_NAME_LIMIT = 40;
 const COPY_SUCCESS_TIMEOUT = 1000;
 const INVALID_NAME_ERROR
   = 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
@@ -23,14 +22,6 @@ const SCOPE_BADGE_LABEL = {
   [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection',
   [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder',
   [VARIABLE_ADD_SCOPES.REQUEST]: 'Request'
-};
-
-const deriveInitialName = (text) => {
-  const trimmed = (text || '').trim();
-  if (!trimmed || trimmed.length > DERIVED_NAME_LIMIT || !variableNameRegex.test(trimmed)) {
-    return '';
-  }
-  return trimmed;
 };
 
 const summariseValue = (text) => {
@@ -73,7 +64,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
     item: selection.item
   });
 
-  const [name, setName] = useState(() => deriveInitialName(selection.text));
+  const [name, setName] = useState('');
   const [scopeType, setScopeType] = useState(() => pickDefaultScope(scopes));
   const [scopeListOpen, setScopeListOpen] = useState(false);
   const [secret, setSecret] = useState(false);

@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "name": "Config Ignore File Cache Test",
+  "type": "collection",
+  "ignore": [
+    "hidden"
+  ]
+}
