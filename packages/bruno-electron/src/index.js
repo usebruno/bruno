@@ -38,22 +38,6 @@ if (isBenchmarkEnabled()) {
   app.commandLine.appendSwitch('enable-precise-memory-info');
 }
 
-// Dev-only. Must stay a plain port: the value is placed in http://localhost:${port}.
-function resolveBrunoDevPort(raw) {
-  if (raw === undefined || raw === null || String(raw).trim() === '') {
-    return 3000;
-  }
-  const value = String(raw).trim();
-  if (!/^\d+$/.test(value)) {
-    return null;
-  }
-  const port = Number(value);
-  if (port < 1 || port > 65535) {
-    return null;
-  }
-  return port;
-}
-
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
@@ -385,11 +369,14 @@ app.on('ready', async () => {
     }
     mainWindow.show();
   });
-  const devPort = isDev ? resolveBrunoDevPort(process.env.BRUNO_DEV_PORT) : null;
-  if (isDev && devPort === null) {
-    console.error(
-      `BRUNO_DEV_PORT must be a numeric port between 1 and 65535, received "${process.env.BRUNO_DEV_PORT}". Refusing to load the dev window.`
-    );
+  let devPort = null;
+  if (isDev) {
+    try {
+      // Dev-only require: the packaged app does not include scripts/dev-port.js.
+      devPort = require('../../../scripts/dev-port').resolveDevPort(process.env.BRUNO_DEV_PORT);
+    } catch (err) {
+      console.error(`${err.message} Refusing to load the dev window.`);
+    }
   }
   const url = isDev
     ? (devPort === null ? null : `http://localhost:${devPort}`)
@@ -405,7 +392,7 @@ app.on('ready', async () => {
       console.error('Original message:', reason);
       if (isDev) {
         console.error(
-          'Could not connect to Next.Js dev server, is it running?'
+          'Could not connect to the dev server, is it running?'
           + ' Start the dev server using "npm run dev:web" and restart electron'
         );
       } else {

@@ -137,7 +137,7 @@ function startElectron(port) {
 
 // shell: true means child.kill() only stops the cmd.exe wrapper on Windows.
 function killProcessTree(child) {
-  if (!child || child.pid == null) {
+  if (!child || child.pid === undefined || child.pid === null) {
     return;
   }
 

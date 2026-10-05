@@ -21,6 +21,5 @@ function resolveDevPort(raw = process.env.BRUNO_DEV_PORT) {
 }
 
 module.exports = {
-  DEFAULT_DEV_PORT,
   resolveDevPort
 };
