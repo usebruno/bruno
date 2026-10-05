@@ -3,27 +3,7 @@ import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage } from '../utils/page';
 import { readSnapshot } from '../utils/snapshot';
-
-const buildWorkspaceYml = (workspaceName: string) => [
-  'opencollection: 1.0.0',
-  'info:',
-  `  name: ${workspaceName}`,
-  '  type: workspace',
-  'collections:',
-  'specs: []',
-  'docs: \'\'',
-  ''
-].join('\n');
-
-const createWorkspaceDir = async (
-  createTmpDir: (tag?: string) => Promise<string>,
-  tag: string,
-  workspaceName: string
-) => {
-  const workspacePath = await createTmpDir(tag);
-  fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml(workspaceName));
-  return workspacePath;
-};
+import { createWorkspaceFromYml } from '../utils/workspace';
 
 const seedPreferences = (userDataPath: string, lastOpenedWorkspaces: string[]) => {
   fs.writeFileSync(
@@ -73,11 +53,11 @@ const setupMultiWorkspaceRestoreFixture = async (
 ) => {
   const userDataPath = await createTmpDir('snap-active-ws-restore');
   const workspacePaths = await Promise.all([
-    createWorkspaceDir(createTmpDir, 'workspace-one', 'Workspace One'),
-    createWorkspaceDir(createTmpDir, 'workspace-two', 'Workspace Two'),
-    createWorkspaceDir(createTmpDir, 'workspace-three', 'Workspace Three'),
-    createWorkspaceDir(createTmpDir, 'workspace-four', 'Workspace Four'),
-    createWorkspaceDir(createTmpDir, 'workspace-five', 'Workspace Five')
+    createWorkspaceFromYml(createTmpDir, 'workspace-one', 'Workspace One'),
+    createWorkspaceFromYml(createTmpDir, 'workspace-two', 'Workspace Two'),
+    createWorkspaceFromYml(createTmpDir, 'workspace-three', 'Workspace Three'),
+    createWorkspaceFromYml(createTmpDir, 'workspace-four', 'Workspace Four'),
+    createWorkspaceFromYml(createTmpDir, 'workspace-five', 'Workspace Five')
   ]);
 
   const lastOpenedWorkspaces = [...workspacePaths].reverse();
