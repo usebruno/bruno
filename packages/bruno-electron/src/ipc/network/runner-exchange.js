@@ -1,12 +1,9 @@
 const { safeStringifyJSON } = require('../../utils/common');
-const { getStatements } = require('../sqlite');
+const { getStatements } = require('../../services/sqlite');
 
 const storeRunnerExchange = ({ requestUid, eventData, request = null, response = null }) => {
-  const statements = getStatements();
-  if (!statements) return false;
-
   try {
-    statements.execute('upsert_runner_response', {
+    getStatements().execute('upsert_runner_response', {
       request_uid: requestUid,
       collection_uid: eventData.collectionUid,
       request,

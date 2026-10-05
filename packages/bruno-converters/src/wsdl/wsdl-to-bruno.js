@@ -10,8 +10,10 @@ const generateUID = () => {
 
 import { get, each } from 'lodash';
 import { collectionSchema } from '@usebruno/schema';
-import parseXML from './parse-xml.js';
+import parseXML, { XML_POSITION_KEY } from './parse-xml.js';
 import { collectWsdlSchemas, resolveQName } from './schema-graph.js';
+
+const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 
 // --- Inlined from src/common/index.js ---
 export const validateSchema = (collection = {}) => {
@@ -120,6 +122,9 @@ class WSDLParser {
     this.bindings = new Map();
     this.services = new Map();
     this.namespaces = new Map();
+    this.modelGroups = new Map();
+    this.expandingModelGroups = new Set();
+    this.choiceGroupCount = 0;
   }
 
   /**
@@ -178,6 +183,15 @@ class WSDLParser {
    * Parse WSDL types (XSD schemas)
    */
   parseTypes(schemas = []) {
+    for (const { node, prefixMap } of schemas) {
+      const targetNamespace = node.targetNamespace || '';
+
+      const modelGroups = this.getArray(node['xsd:group'] || node.group);
+      for (const modelGroup of modelGroups) {
+        this.modelGroups.set(`${targetNamespace}:${modelGroup.name}`, { node: modelGroup, prefixMap });
+      }
+    }
+
     for (const { node, prefixMap } of schemas) {
       const targetNamespace = node.targetNamespace || '';
 
@@ -267,7 +281,7 @@ class WSDLParser {
    * Parse complex type content (sequence, choice, all, attributes)
    */
   parseComplexTypeContent(complexType, target, prefixMap) {
-    this.parseParticles(complexType, target, prefixMap, false);
+    this.parseParticles(complexType, target, prefixMap, []);
 
     // Parse attributes
     if (complexType['xsd:attribute'] || complexType.attribute) {
@@ -326,24 +340,116 @@ class WSDLParser {
   /**
    * Parse particles of a content model (sequence, choice, all)
    */
-  parseParticles(particle, target, prefixMap, inChoice) {
-    for (const [key, value] of Object.entries(particle)) {
-      const particleName = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
-
-      if (particleName === 'element') {
-        for (const element of this.getArray(value)) {
-          const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
-          if (inChoice) {
-            parsedElement.choice = true;
-          }
-          target.elements.push(parsedElement);
-        }
-      } else if (particleName === 'sequence' || particleName === 'all' || particleName === 'choice') {
-        for (const nested of this.getArray(value)) {
-          this.parseParticles(nested, target, prefixMap, inChoice || particleName === 'choice');
-        }
+  parseParticles(particle, target, prefixMap, choicePath) {
+    for (const { name, node } of this.orderedParticles(particle)) {
+      if (name === 'element') {
+        this.addElement(node, target, prefixMap, choicePath);
+      } else if (name === 'any') {
+        this.addAnyElement(target, choicePath);
+      } else if (name === 'group') {
+        this.expandModelGroup(node, target, prefixMap, choicePath);
+      } else if (name === 'choice') {
+        this.parseChoiceBranches(node, target, prefixMap, choicePath, ++this.choiceGroupCount, 0);
+      } else {
+        this.parseParticles(node, target, prefixMap, choicePath);
       }
     }
+  }
+
+  /**
+   * Parse the branches of an xs:choice
+   */
+  parseChoiceBranches(choice, target, prefixMap, choicePath, group, branch) {
+    for (const { name, node } of this.orderedParticles(choice)) {
+      if (name === 'element') {
+        this.addElement(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'any') {
+        this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'group') {
+        this.expandModelGroup(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+      } else if (name === 'choice') {
+        branch = this.parseChoiceBranches(node, target, prefixMap, choicePath, group, branch);
+      } else {
+        this.parseParticles(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
+      }
+    }
+    return branch;
+  }
+
+  /**
+   * The child particles of a content model in document order
+   */
+  orderedParticles(particle) {
+    const particles = [];
+    for (const [key, value] of Object.entries(particle)) {
+      const name = key.startsWith('xsd:') ? key.slice('xsd:'.length) : key;
+      if (!PARTICLE_NAMES.includes(name)) {
+        continue;
+      }
+      for (const node of this.getArray(value)) {
+        particles.push({ name, node });
+      }
+    }
+    return particles.sort((a, b) => a.node[XML_POSITION_KEY] - b.node[XML_POSITION_KEY]);
+  }
+
+  addElement(element, target, prefixMap, choicePath) {
+    const parsedElement = this.parseElementInline(element, target.namespace || '', prefixMap);
+    if (choicePath.length > 0) {
+      parsedElement.choicePath = choicePath;
+    }
+    target.elements.push(parsedElement);
+  }
+
+  /**
+   * Expand an xs:group reference in place
+   */
+  expandModelGroup(groupRef, target, prefixMap, choicePath) {
+    // add a check to skip groups with maxOccurs of 0
+    if (!groupRef.ref || groupRef.maxOccurs === '0') {
+      return;
+    }
+
+    const { namespace, local } = resolveQName(groupRef.ref, prefixMap);
+    const key = this.findModelGroupKey(local, namespace);
+
+    if (!key || this.expandingModelGroups.has(key)) {
+      return;
+    }
+
+    const modelGroup = this.modelGroups.get(key);
+    this.expandingModelGroups.add(key);
+    this.parseParticles(modelGroup.node, target, modelGroup.prefixMap, choicePath);
+    this.expandingModelGroups.delete(key);
+  }
+
+  /**
+   * Find the key of a named model group
+   */
+  findModelGroupKey(name, namespace) {
+    if (namespace) {
+      const key = `${namespace}:${name}`;
+      return this.modelGroups.has(key) ? key : null;
+    }
+
+    for (const [key, modelGroup] of this.modelGroups) {
+      if (modelGroup.node.name === name) {
+        return key;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Record an xs:any as a marker the generator renders as a comment
+   */
+  addAnyElement(target, choicePath) {
+    const anyElement = { anyElement: true };
+    if (choicePath.length > 0) {
+      anyElement.choicePath = choicePath;
+    }
+    target.elements.push(anyElement);
   }
 
   /**
@@ -764,17 +870,42 @@ class XMLSampleGenerator {
   generateElementList(elements) {
     let xml = '';
     for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-      if (element.choice && (i === 0 || !elements[i - 1].choice)) {
-        let choiceCount = 0;
-        while (i + choiceCount < elements.length && elements[i + choiceCount].choice) {
-          choiceCount++;
-        }
-        xml += `<!--You have a CHOICE of the next ${choiceCount} items at this level-->`;
+      xml += this.generateChoiceComments(elements, i);
+      if (elements[i].anyElement) {
+        xml += '<!--You may enter ANY elements at this point-->';
+      } else {
+        xml += this.generateElementSample(elements[i]);
       }
-      xml += this.generateElementSample(element);
     }
     return xml;
+  }
+
+  generateChoiceComments(elements, index) {
+    const choicePath = elements[index].choicePath || [];
+    const previousPath = (index > 0 && elements[index - 1].choicePath) || [];
+    let xml = '';
+
+    for (let depth = 0; depth < choicePath.length; depth++) {
+      const previous = previousPath[depth];
+      if (previous && previous.group === choicePath[depth].group) {
+        continue;
+      }
+      const count = this.countChoiceBranches(elements, index, depth, choicePath[depth].group);
+      xml += `<!--You have a CHOICE of the next ${count} items at this level-->`;
+    }
+    return xml;
+  }
+
+  countChoiceBranches(elements, start, depth, group) {
+    const seenBranches = new Set();
+    for (let i = start; i < elements.length; i++) {
+      const step = (elements[i].choicePath || [])[depth];
+      if (!step || step.group !== group) {
+        break;
+      }
+      seenBranches.add(step.branch);
+    }
+    return seenBranches.size;
   }
 
   /**
