@@ -6,25 +6,27 @@ import { formatIpcError } from 'utils/common/error';
 const useCollectionSource = ({ collectionPathname, fallbackName, onEnvironmentsLoaded, onFilesSkipped }) => {
   const [collectionData, setCollectionData] = useState(null);
   const [environments, setEnvironments] = useState({});
+  const [derivedName, setDerivedName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
 
-  const derivedName = collectionPathname
-    ? sanitizeName(fallbackName || getBasename('', collectionPathname) || '')
-    : '';
-
-  useEffect(() => {
-    setCollectionData(null);
-    setEnvironments({});
-    setLoadError('');
-    setIsLoading(Boolean(collectionPathname));
-    onEnvironmentsLoaded('');
-  }, [collectionPathname]);
-
   useEffect(() => {
     if (!collectionPathname) {
+      setCollectionData(null);
+      setEnvironments({});
+      setDerivedName('');
+      setIsLoading(false);
+      setLoadError('');
+      onEnvironmentsLoaded('');
       return;
     }
+
+    setDerivedName(sanitizeName(fallbackName || getBasename('', collectionPathname) || ''));
+    setCollectionData(null);
+    setEnvironments({});
+    setIsLoading(true);
+    setLoadError('');
+    onEnvironmentsLoaded('');
 
     let cancelled = false;
 
