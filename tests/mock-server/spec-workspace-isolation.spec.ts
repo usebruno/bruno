@@ -33,7 +33,7 @@ const PREFERENCES = JSON.stringify({
 }, null, 2);
 
 const SPEC_FIXTURE = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures', 'openapi-comprehensive.yaml');
-const SPEC_TITLE = 'Comprehensive API Test Collection';
+const SPEC_NAME = 'openapi-comprehensive';
 const SPEC_FILENAME = 'openapi-comprehensive.yaml';
 const STALE_SPEC_SERVER = 'Stale Spec Mock';
 
@@ -87,7 +87,7 @@ test.describe('Mock server API spec source is scoped to the active workspace', (
 
       await test.step('Open an API spec in the starting workspace', async () => {
         await openApiSpecFromDialog(page, app, SPEC_FIXTURE);
-        await expect(apiSpecPanel.sidebarItem(SPEC_TITLE)).toBeVisible({ timeout: 10000 });
+        await expect(apiSpecPanel.sidebarItem(SPEC_NAME)).toBeVisible({ timeout: 10000 });
       });
 
       await test.step('Switch to a workspace that has no collections and no specs', async () => {
@@ -96,7 +96,7 @@ test.describe('Mock server API spec source is scoped to the active workspace', (
       });
 
       await test.step('The API Specs sidebar section is empty here', async () => {
-        await expect(apiSpecPanel.sidebarItem(SPEC_TITLE)).toHaveCount(0);
+        await expect(apiSpecPanel.sidebarItem(SPEC_NAME)).toHaveCount(0);
       });
 
       await openCreateMockServerModal(page);
@@ -142,7 +142,7 @@ test.describe('Mock server API spec source is scoped to the active workspace', (
       });
 
       await test.step('The unregistered spec is never offered under its own name', async () => {
-        await expect(ms.specOption(SPEC_TITLE)).toHaveCount(0);
+        await expect(ms.specOption(new RegExp(`^${SPEC_NAME}$`))).toHaveCount(0);
       });
     } finally {
       await closeElectronApp(app);

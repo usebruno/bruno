@@ -37,7 +37,7 @@ const add = async (win, pathname, refWatchState) => {
     const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
-    file.name = apiSpecContent?.info?.title || basename.split('.')[0];
+    file.name = path.basename(pathname, path.extname(pathname));
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;
@@ -61,7 +61,7 @@ const change = async (win, pathname, refWatchState) => {
     const { resolvedJson, refFilePaths } = await resolveExternalApiSpecRefs(apiSpecContent, pathname);
 
     file.raw = raw;
-    file.name = apiSpecContent?.info?.title || basename.split('.')[0];
+    file.name = path.basename(pathname, path.extname(pathname));
     file.filename = basename;
     file.pathname = pathname;
     file.json = apiSpecContent;

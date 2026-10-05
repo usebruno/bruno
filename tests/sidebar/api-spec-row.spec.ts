@@ -3,8 +3,8 @@ import * as path from 'path';
 import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
 
 const FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
-const SPEC_A = { file: path.join(FIXTURES, 'openapi-simple.json'), name: 'Simple Test API' };
-const SPEC_B = { file: path.join(FIXTURES, 'openapi-comprehensive.yaml'), name: 'Comprehensive API Test Collection' };
+const SPEC_A = { file: path.join(FIXTURES, 'openapi-simple.json'), name: 'openapi-simple' };
+const SPEC_B = { file: path.join(FIXTURES, 'openapi-comprehensive.yaml'), name: 'openapi-comprehensive' };
 
 test.describe('API Spec sidebar row', () => {
   test.beforeAll(async ({ electronApp }) => {

@@ -46,7 +46,7 @@ export const buildMockServerLocators = (page: Page) => ({
   syncOnCreateCheckbox: () => page.getByTestId('mock-server-sync-on-create-checkbox'),
   specSelect: () => page.getByTestId('mock-server-spec-select'),
   specSelectedOption: () => page.getByTestId('mock-server-spec-select').locator('option:checked'),
-  specOption: (name: string) => page.getByTestId('mock-server-spec-select').locator('option').filter({ hasText: name }),
+  specOption: (name: string | RegExp) => page.getByTestId('mock-server-spec-select').locator('option').filter({ hasText: name }),
   settingsBtn: () => page.getByTestId('mock-server-settings-btn'),
   sidebarItem: (name: string) => page.locator('.mock-server-item').filter({ hasText: name }),
   sidebarSection: () => page.locator('.sidebar-section').filter({ hasText: 'Mock Servers' }),

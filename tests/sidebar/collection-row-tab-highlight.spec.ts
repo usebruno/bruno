@@ -6,7 +6,7 @@ import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/
 const COLLECTION = 'Spec Highlight Test';
 const SPEC = {
   file: path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures', 'openapi-simple.json'),
-  name: 'Simple Test API'
+  name: 'openapi-simple'
 };
 
 test.describe('Collection row highlight vs the API spec panel', () => {

@@ -18,9 +18,9 @@ import {
 import { buildCommonLocators } from '../../utils/page/locators';
 import { createTransientRequest, closeAllTabs } from '../../utils/page/actions';
 
-const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'Comprehensive API Test Collection' };
-const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'Path Grouping Test API' };
-const EDITABLE_SPEC = { file: 'openapi-with-examples.yaml', name: 'API with Examples' };
+const FIRST_SPEC = { file: 'openapi-comprehensive.yaml', name: 'openapi-comprehensive' };
+const SECOND_SPEC = { file: 'openapi-path-grouping.json', name: 'openapi-path-grouping' };
+const EDITABLE_SPEC = { file: 'openapi-with-examples.yaml', name: 'openapi-with-examples' };
 const EDIT_MARKER = '# edited from the spec editor\n';
 
 const fixture = (name: string) => path.resolve(__dirname, 'fixtures', name);
