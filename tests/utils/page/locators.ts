@@ -20,6 +20,7 @@ import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
+import { buildTitleBarLocators } from './title-bar';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -28,6 +29,7 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),

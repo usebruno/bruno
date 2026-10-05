@@ -1,6 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab, setDefaultLocation } from '../../utils/page';
-import { buildTitleBarLocators } from '../../utils/page/title-bar';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -87,16 +86,13 @@ test.describe('Create collection', () => {
     await expect(page.getByTestId('info-version-value')).toHaveText('Not Set');
   });
 
-  test('TC-1054: saves Untitled Collection (n) from the collections menu on the default workspace', async ({ page, electronApp, createTmpDir }) => {
-    const { plusMenu, toast, sidebar } = buildCommonLocators(page);
+  test('TC-1054: saves Untitled Collection (n) from the collections menu on the default workspace', async ({ page }) => {
+    const { titleBar, plusMenu, toast, sidebar } = buildCommonLocators(page);
     const { inlineCollectionCreator } = sidebar;
-    const titleBar = buildTitleBarLocators(page);
 
     await test.step('The default workspace is open', async () => {
       await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
     });
-
-    await setDefaultLocation(page, electronApp, await createTmpDir('untitled-collection'));
 
     for (const defaultName of ['Untitled Collection', 'Untitled Collection - 1', 'Untitled Collection - 2']) {
       await test.step(`Create collection opens an inline name prefilled with "${defaultName}"`, async () => {
