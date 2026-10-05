@@ -55,7 +55,8 @@ jest.mock('@usebruno/requests', () => ({
   getCACertificates: jest.fn(() => ({ caCertificates: [] })),
   transformProxyConfig: jest.fn(() => ({})),
   getOrCreateHttpsAgent: jest.fn(() => ({})),
-  getOrCreateHttpAgent: jest.fn(() => ({}))
+  getOrCreateHttpAgent: jest.fn(() => ({})),
+  measureResponseTime: jest.requireActual('@usebruno/requests').measureResponseTime
 }));
 jest.mock('../../src/utils/oauth2', () => ({
   getOAuth2Token: jest.fn(),
@@ -165,41 +166,54 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.statusText).toBe('request skipped via pre-request script');
   });
 
-  it('should return numeric duration and size on successful request', async () => {
-    const responseBody = JSON.stringify({ message: 'ok' });
-    const mockHeaders = new Map([['request-duration', '253']]);
-    mockHeaders.delete = function (key) { this.delete(key); };
-    // Use a plain object with get/delete to simulate axios headers
-    const headers = {
-      get: (key) => key === 'request-duration' ? '253' : null,
-      delete: jest.fn()
-    };
+  describe('with a response received', () => {
+    const ELAPSED_MS = 253;
 
-    prepareRequest.mockResolvedValue({
-      method: 'GET',
-      url: 'http://example.com/api',
-      headers: {},
-      data: null,
-      settings: {}
+    beforeEach(() => {
+      prepareRequest.mockResolvedValue({
+        method: 'GET',
+        url: 'http://example.com/api',
+        headers: {},
+        data: null,
+        settings: {}
+      });
     });
 
-    const mockAxios = jest.fn().mockResolvedValue({
-      status: 200,
-      statusText: 'OK',
-      headers,
-      data: responseBody,
+    const buildResponse = (status, statusText) => ({
+      status,
+      statusText,
+      headers: { get: () => null },
+      data: JSON.stringify({ message: statusText }),
+      config: { metadata: { completedHopsTime: ELAPSED_MS } },
       request: { protocol: 'http:', host: 'example.com', path: '/api' }
     });
-    makeAxiosInstance.mockReturnValue(mockAxios);
 
-    const result = await runSingleRequest(...baseArgs);
+    it('should return numeric duration and size on successful request', async () => {
+      makeAxiosInstance.mockReturnValue(jest.fn().mockResolvedValue(buildResponse(200, 'OK')));
 
-    expect(result.status).toBe('pass');
-    expect(result.response.responseTime).toBe(253);
-    expect(result.response.duration).toBe(253);
-    expect(typeof result.response.duration).toBe('number');
-    expect(typeof result.response.size).toBe('number');
-    expect(result.response.size).toBeGreaterThan(0);
+      const result = await runSingleRequest(...baseArgs);
+
+      expect(result.status).toBe('pass');
+      expect(result.response.responseTime).toBe(ELAPSED_MS);
+      expect(result.response.duration).toBe(ELAPSED_MS);
+      expect(typeof result.response.size).toBe('number');
+      expect(result.response.size).toBeGreaterThan(0);
+    });
+
+    it('should return numeric duration and size on a 4xx/5xx error response', async () => {
+      const error = Object.assign(new Error('Request failed with status code 500'), {
+        response: buildResponse(500, 'Internal Server Error')
+      });
+      makeAxiosInstance.mockReturnValue(jest.fn().mockRejectedValue(error));
+
+      const result = await runSingleRequest(...baseArgs);
+
+      expect(result.response.status).toBe(500);
+      expect(result.response.responseTime).toBe(ELAPSED_MS);
+      expect(result.response.duration).toBe(ELAPSED_MS);
+      expect(typeof result.response.size).toBe('number');
+      expect(result.response.size).toBeGreaterThan(0);
+    });
   });
 
   it('should return duration=0 and size=0 on network error', async () => {

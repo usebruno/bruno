@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { getStatements, getDatabase } = require('../../ipc/sqlite');
+const { getStatements, transaction } = require('../sqlite');
 const {
   hashFile,
   hashFileAsync,
@@ -15,15 +15,10 @@ const {
 
 class FileIndex {
   #statements;
-  #db;
   #applicationVersion;
 
   constructor() {
     this.#statements = getStatements();
-    this.#db = getDatabase();
-    if (!this.#statements || !this.#db) {
-      throw new Error('the file cache is unavailable: the sqlite database is not open');
-    }
     this.#applicationVersion = require('electron').app.getVersion();
   }
 
@@ -141,7 +136,7 @@ class FileIndex {
   }
 
   transaction(callback) {
-    return this.#db._transaction(callback);
+    return transaction(callback);
   }
 
   #loadMetadata(collectionPath) {
