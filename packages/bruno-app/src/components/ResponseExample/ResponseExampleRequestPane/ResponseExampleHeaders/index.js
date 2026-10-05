@@ -81,6 +81,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          enableSingleBraceTrigger
           value={value || ''}
           readOnly={!editMode}
           theme={storedTheme}
@@ -101,6 +102,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
+          enableSingleBraceTrigger
           value={value || ''}
           readOnly={!editMode}
           theme={storedTheme}

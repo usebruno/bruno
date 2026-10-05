@@ -145,6 +145,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
 
@@ -161,6 +162,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           isSecret={true}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
 
         {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
@@ -178,6 +180,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
 
@@ -193,6 +196,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
 
@@ -208,6 +212,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
 
@@ -223,6 +228,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save, disabled }) =>
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
     </StyledWrapper>

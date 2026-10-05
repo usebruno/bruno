@@ -120,6 +120,7 @@ const QueryParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           variablesAutocomplete={true}
+          enableSingleBraceTrigger
           placeholder={!value ? 'Value' : ''}
         />
       )
@@ -148,6 +149,7 @@ const QueryParams = ({ item, collection }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          enableSingleBraceTrigger
         />
       )
     },

@@ -141,6 +141,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             item={item}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger
           />
         </div>
       </div>
@@ -160,6 +161,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
               isSecret={true}
               readOnly={disabled}
               isCompact
+              enableSingleBraceTrigger
             />
             {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
           </div>
@@ -179,6 +181,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             item={item}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger
           />
         </div>
       </div>
@@ -197,6 +200,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             isSecret={true}
             readOnly={disabled}
             isCompact
+            enableSingleBraceTrigger
           />
           {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
         </div>
@@ -253,6 +257,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
             <div className="flex flex-1 flex-col gap-2">
               <div className="private-key-editor-wrapper flex-1 flex items-center">
                 <MultiLineEditor
+                  enableSingleBraceTrigger
                   value={privateKeyValue}
                   theme={storedTheme}
                   onSave={handleSave}
@@ -370,6 +375,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>
@@ -387,6 +393,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>
@@ -404,6 +411,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>
@@ -421,6 +429,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>
@@ -438,6 +447,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>
@@ -455,6 +465,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth, disabled }) 
                 item={item}
                 readOnly={disabled}
                 isCompact
+                enableSingleBraceTrigger
               />
             </div>
           </div>

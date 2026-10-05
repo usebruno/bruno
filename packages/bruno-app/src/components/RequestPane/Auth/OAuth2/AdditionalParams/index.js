@@ -192,6 +192,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
             <tr key={index}>
               <td className="flex relative">
                 <SingleLineEditor
+                  enableSingleBraceTrigger
                   value={param?.name || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({
@@ -208,6 +209,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
               </td>
               <td>
                 <MultiLineEditor
+                  enableSingleBraceTrigger
                   value={param?.value || ''}
                   theme={storedTheme}
                   onChange={(value) => handleUpdateAdditionalParam({

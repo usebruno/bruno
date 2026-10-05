@@ -118,6 +118,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <div className="flex flex-col gap-1 w-full">
           <div className="oauth2-input-wrapper flex-1 flex items-center">
             <SingleLineEditor
+              enableSingleBraceTrigger
               value={callbackUrl}
               theme={storedTheme}
               onSave={handleSave}
@@ -160,6 +161,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             <label className="block min-w-[140px]">{label}</label>
             <div className="oauth2-input-wrapper flex-1">
               <SingleLineEditor
+                enableSingleBraceTrigger
                 value={oAuth[key] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -208,6 +210,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         <label className="block min-w-[140px]">Token ID</label>
         <div className="oauth2-input-wrapper flex-1">
           <SingleLineEditor
+            enableSingleBraceTrigger
             value={oAuth['credentialsId'] || 'credentials'}
             theme={storedTheme}
             onSave={handleSave}
@@ -245,6 +248,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           <label className="block min-w-[140px]">Header Prefix</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
+              enableSingleBraceTrigger
               value={oAuth.tokenHeaderPrefix || 'Bearer'}
               theme={storedTheme}
               onSave={handleSave}
@@ -262,6 +266,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           <label className="block min-w-[140px]">URL Query Key</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
+              enableSingleBraceTrigger
               value={oAuth.tokenQueryKey || 'access_token'}
               theme={storedTheme}
               onSave={handleSave}

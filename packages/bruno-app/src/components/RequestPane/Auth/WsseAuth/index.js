@@ -65,6 +65,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
           item={item}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
       </div>
 
@@ -81,6 +82,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
           isSecret={true}
           readOnly={disabled}
           isCompact
+          enableSingleBraceTrigger
         />
         {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>
