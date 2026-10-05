@@ -35,7 +35,7 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
     await closeAllCollections(page);
   });
 
-  test('Should encode form params correctly without explicit Content-Type header', async ({ page, createTmpDir }) => {
+  test('Should send form params url-encoded when no Content-Type header is set', async ({ page, createTmpDir }) => {
     const collectionName = 'form-encoding-test';
     const requestName = 'form-basic';
 
@@ -56,12 +56,12 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await sendRequestAndWaitForResponse(page, 200);
 
-    await test.step('Validate response', async () => {
+    await test.step('Verify response', async () => {
       await expectResponseContains(page, ['foo=bar&baz=test']);
     });
   });
 
-  test('Should encode form params correctly WITH Content-Type header including charset', async ({ page, createTmpDir }) => {
+  test('Should send form params url-encoded with the charset Content-Type when the header has a charset', async ({ page, createTmpDir }) => {
     const collectionName = 'form-encoding-charset-test';
     const requestName = 'form-with-charset';
 
@@ -86,15 +86,18 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
     await sendRequestAndWaitForResponse(page, 200);
 
     await test.step('Verify response', async () => {
-      await expectResponseContains(page, ['foo=bar&baz=test']);
+      await expectResponseContains(page, [
+        'foo=bar&baz=test',
+        '"content-type": "application/x-www-form-urlencoded; charset=utf-8"'
+      ]);
     });
   });
 
-  test('Should encode form params correctly with multiple Content-Type parameters', async ({ page, createTmpDir }) => {
+  test('Should send form params url-encoded with every Content-Type parameter when the header has several', async ({ page, createTmpDir }) => {
     const collectionName = 'form-encoding-multiple-params-test';
     const requestName = 'form-multiple-params';
 
-    await test.step('Setup request', async () => {
+    await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
       await createRequest(page, requestName, collectionName, { url: ECHO_URL, method: 'POST' });
     });
@@ -114,7 +117,10 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
     await sendRequestAndWaitForResponse(page, 200);
 
     await test.step('Verify response', async () => {
-      await expectResponseContains(page, ['test=value+with+spaces']);
+      await expectResponseContains(page, [
+        'test=value+with+spaces',
+        '"content-type": "application/x-www-form-urlencoded; charset=utf-8; boundary=something"'
+      ]);
     });
   });
 });
