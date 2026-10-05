@@ -81,6 +81,18 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
     const result = await pool.run(JobType.ParseFile, { collectionPath, relativePath, format, type: 'request' });
     if (result.error) return;
     searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
+    if (fileIndex) {
+      try {
+        fileIndex.stage(collectionPath, {
+          op: 'add',
+          relativePath,
+          mtime: result.mtime,
+          hash: result.hash,
+          data: result.data,
+          raw: result.raw
+        });
+      } catch (_) {}
+    }
   });
 };
 

@@ -2,7 +2,7 @@ import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, mountUnmountedActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
@@ -98,7 +98,6 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
     if (searchIndexEnabled && !hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
-      dispatch(mountUnmountedActiveWorkspaceCollections());
       dispatch(indexActiveWorkspaceCollections());
     }
 
