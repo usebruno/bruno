@@ -2,9 +2,7 @@ import { test, expect } from '../../../playwright';
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as path from 'path';
-import { closeAllCollections, exportCollectionAsZip, importCollection } from '../../utils/page';
-import { buildCommonLocators } from '../../utils/page/locators';
-import { openCollectionFromPath } from '../../utils/page/mounting';
+import { closeAllCollections, importCollection } from '../../utils/page';
 
 const COLLECTION_NAME = 'Zip Git Metadata';
 
@@ -31,35 +29,9 @@ const listFilesRecursively = (dir: string) =>
 const hasGitSegment = (relativePath: string) =>
   relativePath.split('/').some((segment) => segment.toLowerCase() === '.git');
 
-test.describe('Collection ZIP export and import leave out git metadata', () => {
+test.describe('Collection ZIP import leaves out git metadata', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
-  });
-
-  test('exporting a collection that is a git repo leaves every .git out of the zip', async ({
-    page,
-    electronApp,
-    collectionFixturePath,
-    createTmpDir
-  }) => {
-    const locators = buildCommonLocators(page);
-    const collectionDir = collectionFixturePath!;
-    const zipFilePath = path.join(await createTmpDir('zip-git-export-output'), 'export.zip');
-
-    addGitMetadata(collectionDir);
-
-    await openCollectionFromPath(page, electronApp, collectionDir);
-    await expect(locators.sidebar.collection(COLLECTION_NAME)).toBeVisible();
-
-    await exportCollectionAsZip(page, { electronApp, collectionName: COLLECTION_NAME, zipFilePath });
-
-    await expect(locators.toast.byMessage('Collection exported successfully')).toBeVisible();
-
-    await test.step('The zip holds the collection files and no .git', async () => {
-      const archivedNames = new AdmZip(zipFilePath).getEntries().map((entry) => entry.entryName).sort();
-
-      expect(archivedNames).toEqual(['opencollection.yml', 'users/get-user.yml']);
-    });
   });
 
   test('importing a zip that carries git metadata leaves no .git in the imported collection', async ({

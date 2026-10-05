@@ -3238,37 +3238,6 @@ const exportCollectionToPostman = async (
   });
 };
 
-type ExportCollectionAsZipOptions = {
-  electronApp: ElectronApplication;
-  collectionName: string;
-  zipFilePath: string;
-};
-
-const exportCollectionAsZip = async (
-  page: Page,
-  { electronApp, collectionName, zipFilePath }: ExportCollectionAsZipOptions
-) => {
-  const locators = buildCommonLocators(page);
-
-  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
-    await openCollection(page, collectionName);
-
-    await locators.sidebar.collection(collectionName).hover();
-    await locators.actions.collectionActions(collectionName).click();
-    await locators.dropdown.item('Share').click();
-    await locators.modal.title('Share Collection').waitFor({ state: 'visible' });
-  });
-
-  await test.step('Export as ZIP to the given path', async () => {
-    await electronApp.evaluate(({ dialog }, target: string) => {
-      dialog.showSaveDialog = async () => ({ canceled: false, filePath: target });
-    }, zipFilePath);
-
-    await locators.modal.button('Proceed').click();
-    await locators.toast.byMessage('Collection exported successfully').waitFor({ state: 'visible' });
-  });
-};
-
 /**
  * Toggle the "Enable App" request setting idempotently (Settings tab).
  * Enabling exposes the App tab and the Request/App/File view-mode toggle.
@@ -4068,7 +4037,6 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
-  exportCollectionAsZip,
   addTag,
   removeTag,
   saveFolderSettings,

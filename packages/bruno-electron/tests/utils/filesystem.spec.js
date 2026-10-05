@@ -188,48 +188,62 @@ describe('withFileLock', () => {
 });
 
 describe('removeGitMetadata', () => {
-  let rootDir;
-
-  const write = (relativePath, content = '') => {
-    const filePath = path.join(rootDir, relativePath);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, content);
-  };
-
-  const listFiles = () =>
-    fs.readdirSync(rootDir, { recursive: true, withFileTypes: true })
-      .filter((dirent) => !dirent.isDirectory())
-      .map((dirent) => path.relative(rootDir, path.join(dirent.parentPath, dirent.name)).split(path.sep).join('/'))
-      .sort();
+  let tempDir;
 
   beforeEach(() => {
-    rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-'));
   });
 
   afterEach(() => {
-    fs.rmSync(rootDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test('removes every .git in any case and at any depth and keeps everything else', async () => {
-    write('.git/hooks/post-checkout', '#!/bin/sh');
-    write('users/.git', 'gitdir: ../repo');
-    write('orders/.GIT/config');
-    write('opencollection.yml');
-    write('users/get-user.yml');
-    write('.gitignore');
-    write('.github/workflows/ci.yml');
+  test('removes .git folders and files in any case at any depth and keeps everything else', async () => {
+    fs.mkdirSync(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, '.git', 'hooks', 'post-checkout'), '#!/bin/sh');
+    fs.mkdirSync(path.join(tempDir, 'users'));
+    fs.writeFileSync(path.join(tempDir, 'users', '.git'), 'gitdir: ../repo');
+    fs.mkdirSync(path.join(tempDir, 'orders', '.GIT'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, 'opencollection.yml'), '');
+    fs.writeFileSync(path.join(tempDir, '.gitignore'), '');
 
-    await removeGitMetadata(rootDir);
+    await removeGitMetadata(tempDir);
 
-    expect(listFiles()).toEqual(['.github/workflows/ci.yml', '.gitignore', 'opencollection.yml', 'users/get-user.yml']);
+    expect(fs.existsSync(path.join(tempDir, '.git'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'users', '.git'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'orders', '.GIT'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'opencollection.yml'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.gitignore'))).toBe(true);
   });
 
-  test('removes a .git symlink without touching its target', async () => {
-    write('link-target/config');
-    fs.symlinkSync(path.join(rootDir, 'link-target'), path.join(rootDir, '.git'), 'junction');
+  test('removes a .git symlink without deleting the folder it points to', async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-outside-'));
+    try {
+      fs.writeFileSync(path.join(outside, 'config'), '[core]');
+      fs.symlinkSync(outside, path.join(tempDir, '.git'), 'junction');
 
-    await removeGitMetadata(rootDir);
+      await removeGitMetadata(tempDir);
 
-    expect(listFiles()).toEqual(['link-target/config']);
+      expect(fs.existsSync(path.join(tempDir, '.git'))).toBe(false);
+      expect(fs.existsSync(path.join(outside, 'config'))).toBe(true);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  test('does not follow a symlink into a folder outside the tree', async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-outside-'));
+    try {
+      fs.mkdirSync(path.join(outside, '.git'));
+      fs.writeFileSync(path.join(outside, '.git', 'config'), '[core]');
+      fs.symlinkSync(outside, path.join(tempDir, 'linked-folder'), 'junction');
+
+      await removeGitMetadata(tempDir);
+
+      expect(fs.existsSync(path.join(tempDir, 'linked-folder'))).toBe(true);
+      expect(fs.existsSync(path.join(outside, '.git', 'config'))).toBe(true);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
   });
 });

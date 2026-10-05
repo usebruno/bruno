@@ -7,7 +7,6 @@ const os = require('os');
 // Single shared implementation lives in @usebruno/common; re-exported below so
 // `require('../utils/filesystem')` consumers keep working unchanged.
 const { sanitizeName, validateName } = require('@usebruno/common').utils;
-const extractZip = require('extract-zip');
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -637,11 +636,6 @@ const removeGitMetadata = async (dir) => {
   }
 };
 
-const extractZipWithoutGitMetadata = async ({ zipFilePath, dir }) => {
-  await extractZip(zipFilePath, { dir });
-  await removeGitMetadata(dir);
-};
-
 /**
  * Move a collection directory from source to destination.
  * Uses fs-extra's move for cross-device compatibility.
@@ -815,9 +809,7 @@ module.exports = {
   safeWriteFile,
   safeWriteFileSync,
   removePath,
-  isGitMetadataName,
   removeGitMetadata,
-  extractZipWithoutGitMetadata,
   moveCollectionDirectory,
   getPaths,
   isLargeFile,
