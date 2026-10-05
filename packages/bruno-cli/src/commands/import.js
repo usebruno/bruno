@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno } = require('@usebruno/converters');
-const { exists, isDirectory, sanitizeName } = require('../utils/filesystem');
+const { exists, isDirectory, sanitizeName, canonicalPath } = require('../utils/filesystem');
 const { createCollectionFromBrunoObject } = require('../utils/collection');
 
 const command = 'import <type>';
@@ -211,6 +211,13 @@ const readWSDLFile = async (source, options = {}) => {
 };
 
 const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
+  if (typeof baseUri !== 'string' || !baseUri.length) {
+    throw new Error('Invalid base URI for schema resolution');
+  }
+  if (typeof ref !== 'string' || !ref.length) {
+    throw new Error('Invalid schema reference');
+  }
+
   const base = path.isAbsolute(baseUri) ? pathToFileURL(baseUri) : new URL(baseUri);
   const target = new URL(ref, base);
 
@@ -231,7 +238,11 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
     throw new Error(`Schema file exceeds the ${WSDL_MAX_SCHEMA_FILE_SIZE / (1024 * 1024)}MB limit: ${targetPath}`);
   }
 
-  return { text: fs.readFileSync(targetPath, 'utf8'), uri: target.href };
+  return {
+    text: fs.readFileSync(targetPath, 'utf8'),
+    uri: target.href,
+    key: pathToFileURL(canonicalPath(targetPath)).href
+  };
 };
 
 const handler = async (argv) => {
@@ -354,5 +365,6 @@ module.exports = {
   handler,
   isUrl,
   readOpenApiFile,
-  readWSDLFile
+  readWSDLFile,
+  resolveLocalWsdlSchemaRef
 };

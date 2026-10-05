@@ -3,6 +3,8 @@ name: Local
 variables:
   - name: host
     value: http://localhost:8080
+  - name: localhost
+    value: http://localhost:8081
   - name: echo-host
     value: https://echo.usebruno.com
   - name: typed_env_num

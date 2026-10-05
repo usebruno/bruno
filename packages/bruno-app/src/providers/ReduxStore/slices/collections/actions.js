@@ -1392,7 +1392,24 @@ export const updateItemsSequences
       });
     };
 
-export const newHttpRequest = (params) => (dispatch, getState) => {
+const parseParamsFromUrl = (requestUrl) => {
+  const parts = splitOnFirst(requestUrl, '?');
+  const queryParams = parseQueryParams(parts[1]);
+  each(queryParams, (urlParam) => {
+    urlParam.enabled = true;
+    urlParam.type = 'query';
+  });
+
+  const pathParams = parsePathParams(requestUrl);
+  each(pathParams, (pathParam) => {
+    pathParam.enabled = true;
+    pathParam.type = 'path';
+  });
+
+  return [...queryParams, ...pathParams];
+};
+
+export const newHttpRequest = (options) => (dispatch, getState) => {
   const {
     requestName,
     filename,
@@ -1402,12 +1419,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     collectionUid,
     itemUid,
     headers,
+    params,
     body,
     auth,
     settings,
     requestPaneTab,
-    isTransient = false
-  } = params;
+    isTransient = false,
+    autoSend = false
+  } = options;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -1419,20 +1438,10 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     // Get temp directory if isTransient is true
     const tempDirectory = isTransient ? state.collections.tempDirectories?.[collectionUid] : null;
 
-    const parts = splitOnFirst(requestUrl, '?');
-    const queryParams = parseQueryParams(parts[1]);
-    each(queryParams, (urlParam) => {
-      urlParam.enabled = true;
-      urlParam.type = 'query';
-    });
-
-    const pathParams = parsePathParams(requestUrl);
-    each(pathParams, (pathParm) => {
-      pathParams.enabled = true;
-      pathParm.type = 'path';
-    });
-
-    const params = [...queryParams, ...pathParams];
+    // callers that already hold a full params list (e.g. "try" on a response example)
+    // pass it explicitly so path param values are not lost to url parsing
+    const parsedUrlParams = parseParamsFromUrl(requestUrl);
+    const requestParams = params ?? parsedUrlParams;
 
     const item = {
       uid: uuid(),
@@ -1444,7 +1453,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         method: requestMethod,
         url: requestUrl,
         headers: headers ?? [],
-        params,
+        params: requestParams,
         body: body ?? {
           mode: 'none',
           json: null,
@@ -1490,6 +1499,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
               collectionUid,
               itemPathname: result?.pathname || fullName,
               preview: false,
+              ...(autoSend ? { autoSend: true } : {}),
               ...(requestPaneTab ? { requestPaneTab } : {})
             })
           );
@@ -1763,6 +1773,56 @@ export const newWsRequest = (params) => (dispatch, getState) => {
         .catch(reject);
     }
   });
+};
+
+/**
+ * "Try" a saved response example: opens a transient request built from the example's
+ * request (method, url, params, headers, body) in a focused tab and sends it immediately.
+ */
+export const tryResponseExample = ({ itemUid, collectionUid, exampleUid }) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    return Promise.reject(new Error('Collection not found'));
+  }
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) {
+    return Promise.reject(new Error('Request not found'));
+  }
+
+  const examples = item.draft ? get(item, 'draft.examples', []) : get(item, 'examples', []);
+  const example = find(examples, (e) => e.uid === exampleUid);
+  if (!example) {
+    return Promise.reject(new Error('Example not found'));
+  }
+
+  const requestType = example.type || item.type;
+
+  const exampleRequest = example.request || {};
+  if (!exampleRequest.url) {
+    return Promise.reject(new Error('The example has no request URL to try'));
+  }
+
+  const requestName = generateTransientRequestName(collection);
+  const filename = sanitizeName(requestName);
+
+  return dispatch(
+    newHttpRequest({
+      requestName,
+      filename,
+      requestType,
+      requestUrl: exampleRequest.url,
+      requestMethod: exampleRequest.method || item.request?.method || 'GET',
+      collectionUid,
+      itemUid: null,
+      isTransient: true,
+      autoSend: true,
+      headers: exampleRequest.headers || [],
+      params: exampleRequest.params || [],
+      ...(exampleRequest.body ? { body: exampleRequest.body } : {})
+    })
+  );
 };
 
 /**
