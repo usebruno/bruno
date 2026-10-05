@@ -61,6 +61,59 @@ describe('openapi query parameter import', () => {
         ])
       );
     });
+
+    // The URL carries values verbatim, exactly as the app's own params/URL sync
+    // writes them. Percent-encoding here would mangle {{placeholder}} expressions
+    // and desync the URL from the params table; encoding happens on the wire.
+    it('writes values containing delimiters and spaces verbatim', () => {
+      const request = search(
+        specWith(`        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 'a&b c'`)
+      );
+
+      expect(request.url).toBe('{{baseUrl}}/search?q=a&b c');
+      expect(request.params).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'q', value: 'a&b c', enabled: true })
+        ])
+      );
+    });
+
+    it('leaves {{placeholder}} expressions intact', () => {
+      const request = search(
+        specWith(`        - name: api_key
+          in: query
+          required: true
+          schema:
+            type: string
+            example: '{{apiKey}}'`)
+      );
+
+      expect(request.url).toBe('{{baseUrl}}/search?api_key={{apiKey}}');
+    });
+
+    it('omits params with a blank name from the URL', () => {
+      const request = search(
+        specWith(`        - name: ' '
+          in: query
+          required: true
+          schema:
+            type: string
+            example: ignored
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            example: hello`)
+      );
+
+      expect(request.url).toBe('{{baseUrl}}/search?q=hello');
+    });
   });
 
   describe('enableOptionalParameters option', () => {
