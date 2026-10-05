@@ -2,6 +2,17 @@ const { describe, it, expect } = require('@jest/globals');
 const interpolateVars = require('../../src/runner/interpolate-vars');
 const prepareRequest = require('../../src/runner/prepare-request');
 
+const FORM_URL_ENCODED_CONTENT_TYPES = [
+  'application/x-www-form-urlencoded',
+  'application/x-www-form-urlencoded; charset=UTF-8',
+  'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+];
+const JSON_CONTENT_TYPES = [
+  'application/json',
+  'application/json; charset=utf-8',
+  'Application/JSON'
+];
+
 describe('interpolate-vars: interpolateVars', () => {
   it('keeps stream-backed JSON request bodies intact', () => {
     const streamPayload = {
@@ -72,11 +83,7 @@ describe('interpolate-vars: interpolateVars', () => {
     expect(result.data).toContain(`--${boundary}--`);
   });
 
-  it.each([
-    'application/x-www-form-urlencoded',
-    'application/x-www-form-urlencoded; charset=UTF-8',
-    'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
-  ])('interpolates form-urlencoded field values when Content-Type is "%s"', (contentType) => {
+  it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates form-urlencoded field values when Content-Type is "%s"', (contentType) => {
     const request = {
       method: 'POST',
       mode: 'formUrlEncoded',
@@ -96,11 +103,7 @@ describe('interpolate-vars: interpolateVars', () => {
     ]);
   });
 
-  it.each([
-    'application/x-www-form-urlencoded',
-    'application/x-www-form-urlencoded; charset=UTF-8',
-    'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
-  ])('interpolates a form-urlencoded string body when Content-Type is "%s"', (contentType) => {
+  it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates a form-urlencoded string body when Content-Type is "%s"', (contentType) => {
     const request = {
       method: 'POST',
       mode: 'text',
@@ -114,11 +117,7 @@ describe('interpolate-vars: interpolateVars', () => {
     expect(result.data).toBe('token=abc123&static=value');
   });
 
-  it.each([
-    'application/json',
-    'application/json; charset=utf-8',
-    'Application/JSON'
-  ])('interpolates a JSON object body when Content-Type is "%s"', (contentType) => {
+  it.each(JSON_CONTENT_TYPES)('interpolates a JSON object body when Content-Type is "%s"', (contentType) => {
     const request = {
       method: 'POST',
       mode: 'json',

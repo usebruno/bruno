@@ -1,6 +1,17 @@
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
 const { trackUnresolvedVariables } = require('@usebruno/js');
 
+const FORM_URL_ENCODED_CONTENT_TYPES = [
+  'application/x-www-form-urlencoded',
+  'application/x-www-form-urlencoded; charset=UTF-8',
+  'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+];
+const JSON_CONTENT_TYPES = [
+  'application/json',
+  'application/json; charset=utf-8',
+  'Application/JSON'
+];
+
 describe('interpolate-vars: interpolateVars', () => {
   describe('Interpolates string', () => {
     describe('With environment variables', () => {
@@ -332,11 +343,7 @@ describe('interpolate-vars: interpolateVars', () => {
   });
 
   describe('JSON body', () => {
-    it.each([
-      'application/json',
-      'application/json; charset=utf-8',
-      'Application/JSON'
-    ])('interpolates an object body when Content-Type is "%s"', (contentType) => {
+    it.each(JSON_CONTENT_TYPES)('interpolates an object body when Content-Type is "%s"', (contentType) => {
       const request = {
         method: 'POST',
         url: 'http://api.example/submit',
@@ -364,11 +371,7 @@ describe('interpolate-vars: interpolateVars', () => {
   });
 
   describe('Form URL-encoded body', () => {
-    it.each([
-      'application/x-www-form-urlencoded',
-      'application/x-www-form-urlencoded; charset=UTF-8',
-      'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
-    ])('interpolates field values when Content-Type is "%s"', (contentType) => {
+    it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates field values when Content-Type is "%s"', (contentType) => {
       const request = {
         method: 'POST',
         url: 'http://api.example/submit',
@@ -387,11 +390,7 @@ describe('interpolate-vars: interpolateVars', () => {
       ]);
     });
 
-    it.each([
-      'application/x-www-form-urlencoded',
-      'application/x-www-form-urlencoded; charset=UTF-8',
-      'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
-    ])('interpolates a string body when Content-Type is "%s"', (contentType) => {
+    it.each(FORM_URL_ENCODED_CONTENT_TYPES)('interpolates a string body when Content-Type is "%s"', (contentType) => {
       const request = {
         method: 'POST',
         url: 'http://api.example/submit',
