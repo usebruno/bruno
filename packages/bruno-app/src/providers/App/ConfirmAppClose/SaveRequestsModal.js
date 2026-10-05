@@ -161,9 +161,18 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           case 'global-environment':
             dispatch(clearGlobalEnvironmentDraft());
             break;
-          case 'api-spec':
-            dispatch(clearApiSpecDraft({ uid: draft.uid }));
+          case 'api-spec': {
+            const isOpenInASurvivingTab = tabs.some(
+              (tab) =>
+                tab.type === API_SPEC_TAB_TYPE
+                && !tabUidsToClose.includes(tab.uid)
+                && findApiSpecByPathname(apiSpecs, tab.apiSpecPathname)?.uid === draft.uid
+            );
+            if (!isOpenInASurvivingTab) {
+              dispatch(clearApiSpecDraft({ uid: draft.uid }));
+            }
             break;
+          }
           default:
             // Request and app drafts both live on collection items.
             dispatch(deleteRequestDraft({ collectionUid: draft.collectionUid, itemUid: draft.uid }));

@@ -174,4 +174,35 @@ describe('the unsaved changes dialog shown while quitting', () => {
     expect(saveApiSpecToFile).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('keeps the spec draft when another workspace still has the same spec open', async () => {
+    const tab = specTab(SPEC_PATHNAME);
+    const otherWorkspaceTab = { ...tab, uid: 'api-spec::other-scratch::' + SPEC_PATHNAME, collectionUid: 'other-scratch' };
+    const { onClose } = renderModal({
+      apiSpecs: [{ uid: 'spec-1', name: 'Petstore', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: 'openapi: 3.1.0' }],
+      tabs: [tab, otherWorkspaceTab],
+      forceCloseTabs: true,
+      tabUidsToClose: [tab.uid]
+    });
+
+    fireEvent.click(screen.getByText('Don\'t Save'));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(clearApiSpecDraft).not.toHaveBeenCalled();
+  });
+
+  it('discards the spec draft once the last tab showing it is closed', async () => {
+    const tab = specTab(SPEC_PATHNAME);
+    const otherWorkspaceTab = { ...tab, uid: 'api-spec::other-scratch::' + SPEC_PATHNAME, collectionUid: 'other-scratch' };
+    renderModal({
+      apiSpecs: [{ uid: 'spec-1', name: 'Petstore', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: 'openapi: 3.1.0' }],
+      tabs: [tab, otherWorkspaceTab],
+      forceCloseTabs: true,
+      tabUidsToClose: [tab.uid, otherWorkspaceTab.uid]
+    });
+
+    fireEvent.click(screen.getByText('Don\'t Save'));
+
+    await waitFor(() => expect(clearApiSpecDraft).toHaveBeenCalledWith({ uid: 'spec-1' }));
+  });
 });
