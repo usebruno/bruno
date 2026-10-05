@@ -1,6 +1,7 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
+import { buildQueryString } from '@usebruno/common/utils';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
 import { swagger2ToBruno } from './swagger2-to-bruno';
 import {
@@ -466,10 +467,16 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     (param) => param.type === 'query' && param.enabled
   );
   if (enabledQueryParams.length > 0) {
-    const queryString = enabledQueryParams
-      .map((param) => `${param.name}=${param.value ?? ''}`)
-      .join('&');
-    brunoRequestItem.request.url += `?${queryString}`;
+    // buildQueryString is what the app's own URL/params sync uses, so the
+    // imported URL is byte-identical to one Bruno would have written itself.
+    // Values stay unencoded on purpose: encoding happens at the wire boundary
+    // (encodeUrl) and encoding here would mangle {{placeholder}} expressions.
+    const queryString = buildQueryString(
+      enabledQueryParams.map((param) => ({ name: param.name, value: param.value ?? '' }))
+    );
+    if (queryString.length > 0) {
+      brunoRequestItem.request.url += `?${queryString}`;
+    }
   }
 
   // TODO: handle allOf/anyOf/oneOf
