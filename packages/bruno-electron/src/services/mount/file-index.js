@@ -48,7 +48,7 @@ class FileIndex {
 
   constructor({ dbPath } = {}) {
     this.#dbPath = dbPath || path.join(require('electron').app.getPath('userData'), 'mount-snapshots.db');
-    this.#db = new Database({ path: this.#dbPath, migrations: MIGRATIONS, readBigInts: true });
+    this.#db = new Database({ path: this.#dbPath, migrations: MIGRATIONS, pragmas: { journal_mode: 'WAL' }, readBigInts: true });
   }
 
   close() {

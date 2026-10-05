@@ -222,17 +222,16 @@ class MountManager {
       collectionPath: root,
       collectionName,
       workspacePath: resolvedWorkspacePath,
-      fileIndex: preferencesUtil.isFileCacheEnabled() ? this.#getIndex() : null
+      fileIndex: this.#getIndex()
     });
   }
 
   async indexManyCollectionsInBackground(collections, workspacePath) {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
-    const fileCacheEnabled = preferencesUtil.isFileCacheEnabled();
     this.#beginIndexingSession();
     try {
       const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
-      const fileCachePaths = fileCacheEnabled ? new Set(this.#getIndex().collectionPaths()) : new Set();
+      const fileCachePaths = new Set(this.#getIndex().collectionPaths());
       const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
         root: path.resolve(collectionPath),
         collectionName
@@ -248,7 +247,7 @@ class MountManager {
           collectionPath: root,
           collectionName,
           workspacePath,
-          fileIndex: fileCacheEnabled ? this.#getIndex() : null
+          fileIndex: this.#getIndex()
         }).catch(() => {});
       }
     } finally {
