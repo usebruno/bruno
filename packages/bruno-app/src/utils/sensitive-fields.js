@@ -207,16 +207,25 @@ const readSensitiveValues = (source, item, scope) => (
   })
 );
 
+/** Collection proxy is sent only when it is enabled and its auth is on. */
+const usesCollectionProxyPassword = (proxy) => (
+  !!proxy && !proxy.disabled && proxy.inherit === false && proxy.config?.auth?.disabled !== true
+);
+
 /** Auth, proxy password, and certificate values that can be sent. */
 const collectSensitiveFieldValues = (collection) => {
   const fields = [];
   const brunoConfig = collection?.draft?.brunoConfig || collection?.brunoConfig || {};
-  const proxyPassword = get(brunoConfig, 'proxy.config.auth.password');
-  if (typeof proxyPassword === 'string' && proxyPassword) {
+  const proxy = get(brunoConfig, 'proxy');
+  const proxyPassword = get(proxy, 'config.auth.password');
+  if (usesCollectionProxyPassword(proxy) && typeof proxyPassword === 'string' && proxyPassword) {
     fields.push({ value: proxyPassword, item: null, scope: 'collection' });
   }
   const certificates = get(brunoConfig, 'clientCertificates.certs', []);
   certificates.forEach((certificate) => {
+    if (certificate?.disabled) {
+      return;
+    }
     if (typeof certificate?.passphrase === 'string' && certificate.passphrase) {
       fields.push({ value: certificate.passphrase, item: null, scope: 'collection' });
     }
