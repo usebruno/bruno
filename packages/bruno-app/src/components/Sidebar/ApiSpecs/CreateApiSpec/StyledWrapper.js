@@ -21,7 +21,7 @@ const StyledWrapper = styled.div`
       gap: 0.125rem;
       box-sizing: border-box;
       border-radius: 0.375rem;
-      margin-top: 1.125rem;
+      margin-top: 12px;
     }
 
     .segment {

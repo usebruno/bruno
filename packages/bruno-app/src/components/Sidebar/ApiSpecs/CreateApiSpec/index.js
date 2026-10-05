@@ -380,7 +380,7 @@ const CreateApiSpec = ({ onClose }) => {
               />
             ) : null}
 
-            <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-5">
+            <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
               Name
             </label>
             <div className="relative">
