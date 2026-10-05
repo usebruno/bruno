@@ -1,5 +1,7 @@
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
+const net = require('net');
 const path = require('path');
+const { resolveDevPort } = require('./dev-port');
 
 // ANSI color codes
 const colors = {
@@ -26,82 +28,82 @@ const rootDir = path.join(__dirname, '..');
 const webDir = path.join(rootDir, 'packages/bruno-app');
 const electronDir = path.join(rootDir, 'packages/bruno-electron');
 
+// Cold Windows builds can take well over 30s. This only bounds a server that
+// never binds; Electron starts as soon as the pinned port accepts connections.
+const PORT_READY_TIMEOUT_MS = 180000;
+const PORT_POLL_MS = 250;
+
+let webProcess = null;
 let electronProcess = null;
-let detectedPort = null;
-let electronStarted = false;
-let fallbackTimer = null;
+let shuttingDown = false;
+let portPollTimer = null;
+let activeSocket = null;
 
-// rsbuild's default dev server port; used as a fallback if the port line is never parsed
-const DEFAULT_DEV_PORT = process.env.BRUNO_DEV_PORT || '3000';
-
-// How long to wait for the port line before launching Electron on the default port
-const PORT_DETECT_TIMEOUT_MS = 30000;
-
-// Accumulate stdout so the port line is matched even when it arrives split across chunks
-let outputBuffer = '';
-
-// Strip ANSI color/escape codes so the regex isn't broken by colorized output (common on Windows)
-const stripAnsi = (str) => str.replace(/\x1b\[[0-9;]*m/g, '');
-
-// Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/")
-// Tolerant of extra characters between "Local:" and the URL on the same line.
-const portRegex = /Local:[^\n]*?localhost:(\d+)/;
-
-console.log(`\n${colors.bright}${colors.yellow}🚀 Starting Bruno development environment...${colors.reset}\n`);
-
-// Start the rsbuild dev server
-const webProcess = spawn('npm', ['run', 'dev'], {
-  cwd: webDir,
-  stdio: ['inherit', 'pipe', 'pipe'],
-  shell: true
-});
-
-// Safety net: if the port line is never detected (e.g. unexpected output formatting),
-// launch Electron on the default port so the single `npm run dev` flow still works.
-fallbackTimer = setTimeout(() => {
-  if (!electronStarted) {
-    log.warn(`Could not detect dev server port from output; falling back to port ${colors.bright}${DEFAULT_DEV_PORT}${colors.reset}`);
-    startElectron(DEFAULT_DEV_PORT);
-  }
-}, PORT_DETECT_TIMEOUT_MS);
-
-webProcess.stdout.on('data', (data) => {
-  const output = data.toString();
-  process.stdout.write(output);
-
-  // Try to detect the port from rsbuild output
-  if (!detectedPort) {
-    // Match against the accumulated, ANSI-stripped output so a split or
-    // colorized "Local: http://localhost:PORT" line is still detected (Windows).
-    outputBuffer += stripAnsi(output);
-    const match = outputBuffer.match(portRegex);
-    if (match) {
-      detectedPort = match[1];
-      outputBuffer = '';
-      log.success(`Detected dev server on port ${colors.bright}${detectedPort}${colors.reset}`);
-      startElectron(detectedPort);
+function portIsOpen(port) {
+  return new Promise((resolve) => {
+    if (shuttingDown) {
+      resolve(false);
+      return;
     }
-  }
-});
 
-webProcess.stderr.on('data', (data) => {
-  process.stderr.write(data.toString());
-});
+    const socket = net.connect({ port, host: '127.0.0.1' });
+    activeSocket = socket;
+    let settled = false;
+    const finish = (open) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (activeSocket === socket) {
+        activeSocket = null;
+      }
+      socket.destroy();
+      resolve(open);
+    };
 
-webProcess.on('close', (code) => {
-  log.info(`Web process exited with code ${code}`);
-  cleanup();
-});
+    socket.once('connect', () => finish(true));
+    socket.once('error', () => finish(false));
+    socket.setTimeout(500, () => finish(false));
+  });
+}
+
+function waitForDevServer(port) {
+  const started = Date.now();
+
+  return new Promise((resolve) => {
+    const poll = async () => {
+      if (shuttingDown) {
+        resolve(false);
+        return;
+      }
+
+      const open = await portIsOpen(port);
+      if (shuttingDown) {
+        resolve(false);
+        return;
+      }
+      if (open) {
+        log.success(`Dev server is accepting connections on port ${colors.bright}${port}${colors.reset}`);
+        resolve(true);
+        return;
+      }
+      if (Date.now() - started >= PORT_READY_TIMEOUT_MS) {
+        log.error(`Dev server did not open port ${port} within ${PORT_READY_TIMEOUT_MS / 1000}s`);
+        cleanup(1);
+        resolve(false);
+        return;
+      }
+
+      portPollTimer = setTimeout(poll, PORT_POLL_MS);
+    };
+
+    poll();
+  });
+}
 
 function startElectron(port) {
-  // Guard against launching Electron twice (port detection + fallback timer racing)
-  if (electronStarted) {
+  if (electronProcess || shuttingDown) {
     return;
-  }
-  electronStarted = true;
-  if (fallbackTimer) {
-    clearTimeout(fallbackTimer);
-    fallbackTimer = null;
   }
 
   log.info(`Starting Electron with ${colors.cyan}BRUNO_DEV_PORT=${port}${colors.reset}`);
@@ -112,30 +114,122 @@ function startElectron(port) {
     shell: true,
     env: {
       ...process.env,
-      BRUNO_DEV_PORT: port
+      BRUNO_DEV_PORT: String(port)
     }
   });
 
+  electronProcess.on('error', (err) => {
+    if (shuttingDown) {
+      return;
+    }
+    log.error(`Failed to start Electron: ${err.message}`);
+    cleanup(1);
+  });
+
   electronProcess.on('close', (code) => {
+    if (shuttingDown) {
+      return;
+    }
     log.info(`Electron process exited with code ${code}`);
-    cleanup();
+    cleanup(code ?? 0);
   });
 }
 
-function cleanup() {
-  if (fallbackTimer) {
-    clearTimeout(fallbackTimer);
-    fallbackTimer = null;
+// shell: true means child.kill() only stops the cmd.exe wrapper on Windows.
+function killProcessTree(child) {
+  if (!child || child.pid == null) {
+    return;
   }
-  if (webProcess && !webProcess.killed) {
-    webProcess.kill();
+
+  if (process.platform === 'win32') {
+    try {
+      execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    } catch {
+      // The process tree has already exited.
+    }
+    return;
   }
-  if (electronProcess && !electronProcess.killed) {
-    electronProcess.kill();
+
+  if (!child.killed) {
+    child.kill();
   }
-  process.exit(0);
 }
 
-// Handle termination signals
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+function cleanup(exitCode = 0) {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+
+  if (portPollTimer) {
+    clearTimeout(portPollTimer);
+    portPollTimer = null;
+  }
+  if (activeSocket) {
+    activeSocket.destroy();
+    activeSocket = null;
+  }
+
+  killProcessTree(webProcess);
+  killProcessTree(electronProcess);
+  process.exit(exitCode);
+}
+
+process.on('SIGINT', () => cleanup(0));
+process.on('SIGTERM', () => cleanup(0));
+process.on('SIGHUP', () => cleanup(0));
+
+async function main() {
+  let devPort;
+  try {
+    devPort = resolveDevPort();
+  } catch (err) {
+    log.error(err.message);
+    process.exit(1);
+  }
+
+  console.log(`\n${colors.bright}${colors.yellow}🚀 Starting Bruno development environment...${colors.reset}\n`);
+
+  if (await portIsOpen(devPort)) {
+    log.error(`Port ${devPort} is already in use. Stop the other process or set BRUNO_DEV_PORT to a free port.`);
+    process.exit(1);
+  }
+
+  log.info(`Starting dev server on port ${colors.bright}${devPort}${colors.reset}`);
+
+  webProcess = spawn('npm', ['run', 'dev'], {
+    cwd: webDir,
+    stdio: 'inherit',
+    shell: true,
+    env: {
+      ...process.env,
+      BRUNO_DEV_PORT: String(devPort)
+    }
+  });
+
+  webProcess.on('error', (err) => {
+    if (shuttingDown) {
+      return;
+    }
+    log.error(`Failed to start the dev server: ${err.message}`);
+    cleanup(1);
+  });
+
+  webProcess.on('close', (code) => {
+    if (shuttingDown) {
+      return;
+    }
+    log.info(`Web process exited with code ${code}`);
+    cleanup(code ?? 0);
+  });
+
+  const ready = await waitForDevServer(devPort);
+  if (ready) {
+    startElectron(devPort);
+  }
+}
+
+main().catch((err) => {
+  log.error(err.message);
+  cleanup(1);
+});

@@ -38,6 +38,22 @@ if (isBenchmarkEnabled()) {
   app.commandLine.appendSwitch('enable-precise-memory-info');
 }
 
+// Dev-only. Must stay a plain port: the value is placed in http://localhost:${port}.
+function resolveBrunoDevPort(raw) {
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    return 3000;
+  }
+  const value = String(raw).trim();
+  if (!/^\d+$/.test(value)) {
+    return null;
+  }
+  const port = Number(value);
+  if (port < 1 || port > 65535) {
+    return null;
+  }
+  return port;
+}
+
 const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
@@ -369,30 +385,37 @@ app.on('ready', async () => {
     }
     mainWindow.show();
   });
-  const devPort = process.env.BRUNO_DEV_PORT || 3000;
+  const devPort = isDev ? resolveBrunoDevPort(process.env.BRUNO_DEV_PORT) : null;
+  if (isDev && devPort === null) {
+    console.error(
+      `BRUNO_DEV_PORT must be a numeric port between 1 and 65535, received "${process.env.BRUNO_DEV_PORT}". Refusing to load the dev window.`
+    );
+  }
   const url = isDev
-    ? `http://localhost:${devPort}`
+    ? (devPort === null ? null : `http://localhost:${devPort}`)
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
         protocol: 'file:',
         slashes: true
       });
 
-  mainWindow.loadURL(url).catch((reason) => {
-    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
-    console.error('Original message:', reason);
-    if (isDev) {
-      console.error(
-        'Could not connect to Next.Js dev server, is it running?'
-        + ' Start the dev server using "npm run dev:web" and restart electron'
-      );
-    } else {
-      console.error(
-        'If you are using an official production build: the above error is most likely a bug! '
-        + ' Please report this under: https://github.com/usebruno/bruno/issues'
-      );
-    }
-  });
+  if (url) {
+    mainWindow.loadURL(url).catch((reason) => {
+      console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+      console.error('Original message:', reason);
+      if (isDev) {
+        console.error(
+          'Could not connect to Next.Js dev server, is it running?'
+          + ' Start the dev server using "npm run dev:web" and restart electron'
+        );
+      } else {
+        console.error(
+          'If you are using an official production build: the above error is most likely a bug! '
+          + ' Please report this under: https://github.com/usebruno/bruno/issues'
+        );
+      }
+    });
+  }
 
   let boundsTimeout;
   const handleBoundsChange = () => {
