@@ -1,7 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -3633,12 +3633,14 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
 export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
   const collection = findCollectionByUid(getState().collections.collections, collectionUid);
   if (!collection) {
-    return 'skipped';
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
   }
 
   const item = findItemInCollection(collection, itemUid);
   if (!item) {
-    return collection.mountStatus === 'mounted' && !collection.isLoading ? 'skipped' : 'pending';
+    return collection.mountStatus === 'mounted' && !collection.isLoading
+      ? SIDEBAR_REVEAL_STATUS.SKIPPED
+      : SIDEBAR_REVEAL_STATUS.PENDING;
   }
 
   if (collection.collapsed) {
@@ -3654,13 +3656,13 @@ export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = fal
     }
   });
 
-  return 'revealed';
+  return SIDEBAR_REVEAL_STATUS.REVEALED;
 };
 
 export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
   const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
   if (!tab?.collectionUid) {
-    return 'skipped';
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
   }
 
   const isExampleTab = tab.type === 'response-example';

@@ -1,4 +1,5 @@
 import { newHttpRequest, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 
 const mockUuid = jest.fn();
 
@@ -132,7 +133,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe('revealed');
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
       expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
         { type: 'collections/expandCollection', payload: 'collection-uid' },
         { type: 'collections/expandItem', payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' } },
@@ -175,7 +176,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe('skipped');
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
       expect(dispatch).not.toHaveBeenCalled();
     });
 
@@ -190,8 +191,8 @@ describe('collection actions', () => {
         makeGetState(makeCollection({ mountStatus: 'mounting' }))
       );
 
-      expect(loading).toBe('pending');
-      expect(mounting).toBe('pending');
+      expect(loading).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
+      expect(mounting).toBe(SIDEBAR_REVEAL_STATUS.PENDING);
       expect(dispatch).not.toHaveBeenCalled();
     });
 
@@ -202,7 +203,7 @@ describe('collection actions', () => {
         makeGetState(makeCollection())
       );
 
-      expect(status).toBe('skipped');
+      expect(status).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
       expect(dispatch).not.toHaveBeenCalled();
     });
   });
@@ -219,7 +220,7 @@ describe('collection actions', () => {
       ]);
       const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
 
-      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe('revealed');
+      expect(revealTabInSidebar('deep-req')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.REVEALED);
       expect(dispatch).toHaveBeenCalledWith({
         type: 'collections/expandItem',
         payload: { collectionUid: 'collection-uid', itemUid: 'folder-a' }
@@ -244,7 +245,7 @@ describe('collection actions', () => {
       const getState = makeGetStateWithTabs(makeCollection(), [{ uid: 'workspace-overview', type: 'workspaceOverview' }]);
       const dispatch = jest.fn();
 
-      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe('skipped');
+      expect(revealTabInSidebar('workspace-overview')(dispatch, getState)).toBe(SIDEBAR_REVEAL_STATUS.SKIPPED);
       expect(dispatch).not.toHaveBeenCalled();
     });
   });

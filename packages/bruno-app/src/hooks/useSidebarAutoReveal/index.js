@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { revealTabInSidebar } from 'providers/ReduxStore/slices/collections/actions';
+import { SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 
 const useSidebarAutoReveal = ({ rows, sidebarEntries, virtuosoRef }) => {
   const dispatch = useDispatch();
@@ -30,7 +31,7 @@ const useSidebarAutoReveal = ({ rows, sidebarEntries, virtuosoRef }) => {
     }
     if (revealedTabUidRef.current === activeTabUid) return;
 
-    if (dispatch(revealTabInSidebar(activeTabUid)) !== 'pending') {
+    if (dispatch(revealTabInSidebar(activeTabUid)) !== SIDEBAR_REVEAL_STATUS.PENDING) {
       revealedTabUidRef.current = activeTabUid;
     }
   }, [dispatch, activeTabUid, activeTabCollectionUid, workspaceCollectionUids, rows]);

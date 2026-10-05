@@ -5,6 +5,12 @@ export const DEFAULT_COLLECTION_FORMAT = 'yml';
 export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const DEFAULT_SIDEBAR_COLLAPSED = false;
 
+export const SIDEBAR_REVEAL_STATUS = {
+  REVEALED: 'revealed',
+  SKIPPED: 'skipped',
+  PENDING: 'pending'
+};
+
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
