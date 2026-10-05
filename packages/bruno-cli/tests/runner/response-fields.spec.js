@@ -80,6 +80,7 @@ jest.mock('@usebruno/common', () => {
       buildFormUrlEncodedPayload: jest.fn(),
       extractPromptVariables: mockExtractPromptVariables,
       isFormData: jest.fn(() => false),
+      getMediaType: ogUtils.getMediaType,
       hasExplicitScheme: ogUtils.hasExplicitScheme
     }
   };

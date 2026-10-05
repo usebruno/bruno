@@ -1,3 +1,4 @@
+const { getMediaType } = require('@usebruno/common').utils;
 const HeaderList = require('./header-list');
 const { parseUrl } = require('./utils/url');
 
@@ -172,7 +173,7 @@ class BrunoRequest {
 
   hasJSONContentType(headers) {
     const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
-    return contentType.includes('json');
+    return getMediaType(contentType).includes('json');
   }
 
   /**

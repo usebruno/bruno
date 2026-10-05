@@ -24,7 +24,7 @@ const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAx
 const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, getMediaType, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -541,7 +541,7 @@ const runSingleRequest = async function (
     );
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
-    const mediaType = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
+    const mediaType = getMediaType(contentType);
 
     if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {

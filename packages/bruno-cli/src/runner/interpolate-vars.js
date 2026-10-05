@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, getMediaType } = require('@usebruno/common').utils;
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -90,7 +90,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
-  const mediaType = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
+  const mediaType = getMediaType(contentType);
   const isGraphqlRequest = request.mode === 'graphql';
 
   // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
@@ -101,7 +101,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
   // Skip body interpolation for GraphQL requests.
   if (!isGraphqlRequest) {
-    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
+    if (mediaType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request?.data?.length) {
           request.data = _interpolate(request.data, { escapeJSONStrings: true });
@@ -120,7 +120,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType.startsWith('multipart/')) {
+    } else if (mediaType.startsWith('multipart/')) {
       if (request?.data && typeof request.data === 'string') {
         request.data = _interpolate(request.data);
       } else if (Array.isArray(request?.data) && !isFormData(request.data)) {

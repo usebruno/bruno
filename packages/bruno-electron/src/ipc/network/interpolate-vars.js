@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, getMediaType } = require('@usebruno/common').utils;
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -97,7 +97,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
-  const mediaType = typeof contentType === 'string' ? contentType.split(';')[0].trim() : '';
+  const mediaType = getMediaType(contentType);
   const isGraphqlRequest = request.mode === 'graphql';
 
   // gRPC: interpolate entire body (JSON message template and any other keys).
@@ -135,7 +135,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       buffers or streams depending on size. Even if the selected file's content type is JSON, the
       transport object itself must not be interpolated.
     */
-    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
+    if (mediaType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
@@ -158,7 +158,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType.startsWith('multipart/')) {
+    } else if (mediaType.startsWith('multipart/')) {
       if (request?.data && typeof request.data === 'string') {
         request.data = _interpolate(request.data);
       } else if (Array.isArray(request?.data) && !isFormData(request.data)) {

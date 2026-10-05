@@ -330,12 +330,48 @@ describe('interpolate-vars: interpolateVars', () => {
     });
   });
 
-  describe('Form URL-encoded body', () => {
-    it('interpolates field values when Content-Type has a charset parameter', () => {
+  describe('JSON body', () => {
+    it.each([
+      'application/json',
+      'application/json; charset=utf-8',
+      'Application/JSON'
+    ])('interpolates an object body when Content-Type is "%s"', (contentType) => {
       const request = {
         method: 'POST',
         url: 'http://api.example/submit',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        headers: { 'Content-Type': contentType },
+        data: { token: '{{token}}' }
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toEqual({ token: 'abc123' });
+    });
+
+    it('JSON-escapes mock values in a string body when Content-Type is mixed case', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': 'Application/JSON' },
+        data: '{"note": "{{$randomLoremParagraphs}}"}'
+      };
+
+      const result = interpolateVars(request, {}, null, null);
+
+      expect(() => JSON.parse(result.data)).not.toThrow();
+    });
+  });
+
+  describe('Form URL-encoded body', () => {
+    it.each([
+      'application/x-www-form-urlencoded',
+      'application/x-www-form-urlencoded; charset=UTF-8',
+      'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+    ])('interpolates field values when Content-Type is "%s"', (contentType) => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': contentType },
         data: [
           { name: 'token', value: '{{token}}', enabled: true },
           { name: 'static', value: 'value', enabled: true }
@@ -674,6 +710,19 @@ describe('interpolate-vars: interpolateVars', () => {
       };
       const result = interpolateVars(request, {}, null, null);
       expect(result.data).toBe(rawMultipartBody);
+    });
+
+    it('interpolates a multi-line field value when the boundary contains "json"', () => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/upload',
+        headers: { 'Content-Type': 'multipart/form-data; boundary=json-boundary' },
+        data: [{ name: 'note', value: '{{note}}', type: 'text', enabled: true }]
+      };
+
+      const result = interpolateVars(request, { note: 'first line\nsecond line' }, null, null);
+
+      expect(result.data).toEqual([{ name: 'note', value: 'first line\nsecond line', type: 'text', enabled: true }]);
     });
   });
 

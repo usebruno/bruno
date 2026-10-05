@@ -52,7 +52,8 @@ describe('runSingleRequest: request body encoding by Content-Type', () => {
     'application/x-www-form-urlencoded',
     'application/x-www-form-urlencoded; charset=utf-8',
     'application/x-www-form-urlencoded ; charset=utf-8',
-    'application/x-www-form-urlencoded; charset=utf-8; boundary=something'
+    'application/x-www-form-urlencoded; charset=utf-8; boundary=something',
+    'Application/X-WWW-Form-Urlencoded; charset=utf-8'
   ])('url-encodes the form fields when Content-Type is "%s"', async (contentType) => {
     const sentRequest = await sendRequest({ headers: { 'content-type': contentType }, data: buildFormFields() });
 
