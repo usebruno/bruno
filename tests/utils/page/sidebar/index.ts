@@ -13,10 +13,19 @@ export const buildSidebarLocators = (page: Page) => {
   const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
 
   const collectionScope = (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`);
+  const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
+    inlineCollectionCreator: {
+      root: inlineCollectionCreatorRoot,
+      nameInput: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-input'),
+      advancedButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-advanced'),
+      createButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-save'),
+      cancelButton: () => inlineCollectionCreatorRoot().getByTestId('inline-collection-cancel')
+    },
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
+    collectionExact: (name: string) => page.locator('#sidebar-collection-name').and(page.getByTitle(name, { exact: true })),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),

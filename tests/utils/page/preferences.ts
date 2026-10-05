@@ -1,4 +1,4 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect, Page, ElectronApplication } from '../../../playwright';
 
 /**
  * Locators for the Preferences dialog: the status-bar trigger that opens it
@@ -17,7 +17,9 @@ export const buildPreferencesLocators = (page: Page) => ({
     autoSaveEnabled: () => page.locator('#autoSaveEnabled'),
     autoSaveInterval: () => page.locator('#autoSaveInterval'),
     /** The "Request Timeout (in ms)" field on the General tab */
-    requestTimeoutInput: () => page.locator('input[name="timeout"]')
+    requestTimeoutInput: () => page.locator('input[name="timeout"]'),
+    defaultLocationInput: () => page.locator('.default-location-input'),
+    defaultLocationBrowse: () => page.locator('.default-location-browse')
   },
   /** The open Preferences tab in the tab bar */
   openTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
@@ -100,6 +102,31 @@ export const setAutoSave = async (
     // The preferences form persists on a 500ms debounce.
     await page.waitForTimeout(800);
     await closePreferences(page);
+  });
+};
+
+/**
+ * Set the General "Default Location" preference by stubbing the native folder picker
+ * and clicking Browse. Used where collections are created at the default location
+ * (e.g. the inline collection creator) so they land in a throwaway dir.
+ */
+export const setDefaultLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
+  await test.step(`Set default location to "${location}"`, async () => {
+    const preferences = buildPreferencesLocators(page);
+    await electronApp.evaluate(({ dialog }, dir) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+    }, location);
+
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'General');
+    await preferences.general.defaultLocationBrowse().click();
+    await expect(preferences.general.defaultLocationInput()).toHaveValue(location);
+
+    // The preferences form persists on a 500ms debounce.
+    await page.waitForTimeout(800);
+    await preferences.openTab().hover();
+    await preferences.openTabCloseIcon().click({ force: true });
+    await preferences.openTab().waitFor({ state: 'detached' });
   });
 };
 

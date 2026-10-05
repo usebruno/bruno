@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab, setDefaultLocation } from '../../utils/page';
+import { buildTitleBarLocators } from '../../utils/page/title-bar';
 
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
@@ -84,5 +85,36 @@ test.describe('Create collection', () => {
     await openCollectionSettings(page, collectionName);
     await selectCollectionPaneTab(page, 'overview');
     await expect(page.getByTestId('info-version-value')).toHaveText('Not Set');
+  });
+
+  test('TC-1054: saves Untitled Collection (n) from the collections menu on the default workspace', async ({ page, electronApp, createTmpDir }) => {
+    const { plusMenu, toast, sidebar } = buildCommonLocators(page);
+    const { inlineCollectionCreator } = sidebar;
+    const titleBar = buildTitleBarLocators(page);
+
+    await test.step('The default workspace is open', async () => {
+      await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
+    });
+
+    await setDefaultLocation(page, electronApp, await createTmpDir('untitled-collection'));
+
+    for (const defaultName of ['Untitled Collection', 'Untitled Collection - 1', 'Untitled Collection - 2']) {
+      await test.step(`Create collection opens an inline name prefilled with "${defaultName}"`, async () => {
+        await plusMenu.button().click();
+        await plusMenu.createCollection().click();
+        await expect(inlineCollectionCreator.root()).toBeVisible();
+        await expect(inlineCollectionCreator.nameInput()).toHaveValue(defaultName);
+        await expect(inlineCollectionCreator.advancedButton()).toBeVisible();
+        await expect(inlineCollectionCreator.createButton()).toBeVisible();
+        await expect(inlineCollectionCreator.cancelButton()).toBeVisible();
+      });
+
+      await test.step(`The check icon creates "${defaultName}" and shows it in the sidebar`, async () => {
+        await inlineCollectionCreator.createButton().click();
+        await expect(toast.byMessage('Collection created!').first()).toBeVisible();
+        await expect(sidebar.collectionExact(defaultName)).toBeVisible();
+        await expect(inlineCollectionCreator.root()).toBeHidden();
+      });
+    }
   });
 });

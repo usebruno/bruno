@@ -121,12 +121,13 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
 
   return (
     <StyledWrapper>
-      <div className="inline-collection-creator" ref={containerRef}>
+      <div className="inline-collection-creator" data-testid="inline-collection-creator" ref={containerRef}>
         <div className="input-wrapper">
           <input
             ref={inputRef}
             type="text"
             className="inline-collection-input"
+            data-testid="inline-collection-input"
             defaultValue="Untitled Collection"
             onKeyDown={handleKeyDown}
             autoComplete="off"
@@ -137,6 +138,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
           />
           <button
             className="cog-btn"
+            data-testid="inline-collection-advanced"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               openingAdvancedRef.current = true;
@@ -151,6 +153,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
         <div className="inline-actions">
           <button
             className="inline-action-btn save"
+            data-testid="inline-collection-save"
             onClick={handleCreate}
             onMouseDown={(e) => e.preventDefault()}
             title="Create"
@@ -160,6 +163,7 @@ const InlineCollectionCreator = ({ onComplete, onCancel, onOpenAdvanced }) => {
           </button>
           <button
             className="inline-action-btn cancel"
+            data-testid="inline-collection-cancel"
             onClick={handleCancel}
             onMouseDown={(e) => e.preventDefault()}
             title="Cancel"
