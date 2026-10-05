@@ -59,11 +59,13 @@ const registerMountIpc = () => {
 
 const unmount = (collectionUid) => manager.unmount(collectionUid);
 const shutdown = () => manager.shutdown();
+const getWatcherIndexOptions = (collectionPath, workspacePath) => manager.getWatcherIndexOptions(collectionPath, workspacePath);
 const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
 module.exports = {
   registerMountIpc,
   unmount,
   shutdown,
+  getWatcherIndexOptions,
   clearCollectionIndex
 };

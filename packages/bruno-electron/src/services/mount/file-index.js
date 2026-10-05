@@ -176,14 +176,17 @@ class FileIndex {
     const relativePath = path.relative(root, normalize(absolutePath));
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
     const stat = fs.statSync(absolutePath, { bigint: true });
+    const mtime = stat.mtimeNs;
+    const hash = hashFile(absolutePath);
     this.stage(root, {
       op: 'add',
       relativePath,
-      mtime: stat.mtimeNs,
-      hash: hashFile(absolutePath),
+      mtime,
+      hash,
       raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
+    return { mtime, hash };
   }
 
   unstagePath(collectionPath, absolutePath) {

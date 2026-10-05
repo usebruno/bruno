@@ -6,7 +6,7 @@ const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { SearchIndex } = require('../search-index');
-const { indexCollection } = require('../search-index/indexer');
+const { indexCollection, toRow } = require('../search-index/indexer');
 const { buildFolderTree } = require('../search-index/build-tree');
 const { preferencesUtil } = require('../../store/preferences');
 
@@ -70,8 +70,20 @@ const ensureTransientDirectory = () => {
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };
 
+// File-cache OFF keeps its File Index in a throwaway DB, so mount-snapshots.db only ever holds cached data when the cache is ON
+const SESSION_INDEX_FILENAME = 'file-index-session.db';
+
+const removeSessionIndexFiles = (dbPath) => {
+  for (const suffix of ['', '-wal', '-shm']) {
+    try {
+      fs.rmSync(`${dbPath}${suffix}`, { force: true, maxRetries: 3, retryDelay: 100 });
+    } catch (_) {}
+  }
+};
+
 class MountManager {
   #index = null;
+  #sessionIndex = null;
   #searchIndex = null;
   #mounts = new Map();
   #activeIndexingCount = 0;
@@ -104,22 +116,16 @@ class MountManager {
     this.#mounts.set(collectionUid, entry);
 
     entry.emit.loading(true);
-    const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
     try {
-      entry.state = this.#getIndex().entries(collectionPath);
-      await this.#reconcile(entry);
+      const indexOptions = await this.getWatcherIndexOptions(collectionPath, workspacePath);
+      entry.state = indexOptions.fileIndex.entries(collectionPath);
+      await this.#reconcile(entry, indexOptions);
       await this.#emitTree(collectionUid, entry);
-
-      const resolvedWorkspacePath = searchIndexEnabled
-        ? await this.#resolveWorkspacePath(collectionPath, workspacePath)
-        : null;
 
       const collectionWatcher = require('../../app/collection-watcher');
       collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
-        fileIndex: this.#getIndex(),
-        searchIndex: searchIndexEnabled ? this.#getSearchIndex() : null,
-        workspacePathname: resolvedWorkspacePath
+        ...indexOptions
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
     } catch (err) {
@@ -154,6 +160,11 @@ class MountManager {
       this.#index.close();
       this.#index = null;
     }
+    if (this.#sessionIndex) {
+      this.#sessionIndex.close();
+      removeSessionIndexFiles(this.#sessionIndex.dbPath);
+      this.#sessionIndex = null;
+    }
     if (this.#searchIndex) {
       this.#searchIndex.close();
       this.#searchIndex = null;
@@ -162,7 +173,7 @@ class MountManager {
 
   getCacheSize() {
     try {
-      return fs.statSync(this.#getIndex().dbPath).size;
+      return fs.statSync(this.#getPersistentIndex().dbPath).size;
     } catch (err) {
       if (err && err.code === 'ENOENT') return 0;
       throw err;
@@ -178,8 +189,19 @@ class MountManager {
     }
   }
 
+  // Indexes the watcher keeps in sync with live edits. The search index is only wired up
+  // (with the workspace its rows are scoped to) when search indexing is enabled.
+  async getWatcherIndexOptions(collectionPath, workspacePath) {
+    const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
+    return {
+      fileIndex: this.#getIndex(),
+      searchIndex: searchIndexEnabled ? this.#getSearchIndex() : null,
+      workspacePathname: searchIndexEnabled ? await this.#resolveWorkspacePath(collectionPath, workspacePath) : null
+    };
+  }
+
   clearCache() {
-    this.#getIndex().clear();
+    this.#getPersistentIndex().clear();
   }
 
   clearSearchIndex() {
@@ -263,13 +285,15 @@ class MountManager {
 
   clearCollectionIndex(collectionPath) {
     const root = path.resolve(collectionPath);
-    this.#getIndex().clearCollection(root);
+    this.#getPersistentIndex().clearCollection(root);
+    this.#sessionIndex?.clearCollection(root);
     this.#getSearchIndex().clearCollection(root);
   }
 
-  async #reconcile(entry) {
+  async #reconcile(entry, indexOptions) {
+    const { fileIndex } = indexOptions;
     const denylist = entry.brunoConfig?.ignore || [];
-    const { added, updated, removed } = await this.#getIndex().status(entry.collectionPath, { denylist });
+    const { added, updated, removed } = await fileIndex.status(entry.collectionPath, { denylist });
 
     const toParse = [];
     for (const e of [...added, ...updated]) {
@@ -284,7 +308,7 @@ class MountManager {
       await Promise.allSettled(
         toParse.map(async (e) => {
           try {
-            const result = await pool.run(JobType.ParseFile, {
+            const result = await pool.runOnce(JobType.ParseFile, {
               collectionPath: entry.collectionPath,
               relativePath: e.relativePath,
               format: e.format,
@@ -301,7 +325,7 @@ class MountManager {
       );
     }
 
-    this.#getIndex().transaction(() => {
+    fileIndex.transaction(() => {
       for (const e of toParse) {
         const result = parsed.get(e.relativePath);
         if (!result) continue;
@@ -310,7 +334,7 @@ class MountManager {
           continue;
         }
         entry.state.set(e.relativePath, { data: result.data, raw: result.raw });
-        this.#getIndex().stage(entry.collectionPath, {
+        fileIndex.stage(entry.collectionPath, {
           op: 'add',
           relativePath: e.relativePath,
           mtime: result.mtime,
@@ -321,7 +345,42 @@ class MountManager {
       }
       for (const e of removed) {
         entry.state.delete(e.relativePath);
-        this.#getIndex().stage(entry.collectionPath, { op: 'remove', relativePath: e.relativePath });
+        fileIndex.stage(entry.collectionPath, { op: 'remove', relativePath: e.relativePath });
+      }
+    });
+
+    if (indexOptions.searchIndex) {
+      try {
+        this.#syncSearchIndex(entry, parsed, indexOptions);
+      } catch (err) {
+        console.error(`[mount] search index sync failed for ${entry.collectionPath}`, err);
+      }
+    }
+  }
+
+  // Brings the collection's search rows in line with what was just reconciled, reusing the
+  // parse results and cached entries so nothing is parsed a second time for search.
+  #syncSearchIndex(entry, parsed, { searchIndex, workspacePathname }) {
+    const root = entry.collectionPath;
+    const collectionName = searchIndex.collectionNameFor(root) || entry.brunoConfig?.name || path.basename(root);
+    const stored = searchIndex.entriesFor(root);
+
+    searchIndex.transaction(() => {
+      for (const [relativePath, cached] of entry.state) {
+        if (defaultClassify(relativePath)?.type !== 'request') continue;
+        const source = parsed.get(relativePath) ?? cached;
+        if (source.error || source.mtime === undefined) continue;
+        const prior = stored.get(relativePath);
+        if (prior && prior.mtime === source.mtime && prior.hash === source.hash) continue;
+        searchIndex.upsert(toRow(root, collectionName, {
+          relativePath,
+          mtime: source.mtime,
+          hash: source.hash,
+          data: source.data
+        }, workspacePathname));
+      }
+      for (const relativePath of stored.keys()) {
+        if (!entry.state.has(relativePath)) searchIndex.remove(root, relativePath);
       }
     });
   }
@@ -332,9 +391,24 @@ class MountManager {
     await sendTree(collectionUid, entry.collectionPath, tree, entry.emit);
   }
 
-  #getIndex() {
+  #getPersistentIndex() {
     if (!this.#index) this.#index = new FileIndex({});
     return this.#index;
+  }
+
+  #getSessionIndex() {
+    if (!this.#sessionIndex) {
+      const tmpDir = path.join(require('electron').app.getPath('userData'), 'fileindex', 'tmp');
+      fs.mkdirSync(tmpDir, { recursive: true });
+      const dbPath = path.join(tmpDir, SESSION_INDEX_FILENAME);
+      removeSessionIndexFiles(dbPath);
+      this.#sessionIndex = new FileIndex({ dbPath });
+    }
+    return this.#sessionIndex;
+  }
+
+  #getIndex() {
+    return preferencesUtil.isFileCacheEnabled() ? this.#getPersistentIndex() : this.#getSessionIndex();
   }
 
   #getSearchIndex() {

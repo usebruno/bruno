@@ -25,6 +25,7 @@ const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
+const { defaultClassify } = require('../utils/mount');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -37,15 +38,24 @@ const environmentSecretsStore = new EnvironmentSecretsStore();
 const fileIndexByCollection = new Map();
 // registered collections keep the search index in sync with live edits, same idea as the cache above
 const searchIndexByCollection = new Map();
-const refreshSearchIndexEntry = (collectionPath, pathname) => {
+// Writes the search row from the data the watcher just parsed, so a request is never parsed twice
+const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
   const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered) return;
-  const { searchIndex, workspacePath } = registered;
-  const { revalidateEntry } = require('../services/search-index/indexer');
+  if (!registered || !stamp) return;
   const requestPath = path.relative(collectionPath, pathname);
-  revalidateEntry(searchIndex, { collectionPath, requestPath, workspacePath }).catch((err) => {
-    console.error('[collection-watcher] search index refresh failed for', pathname, err);
-  });
+  if (defaultClassify(requestPath)?.type !== 'request') return;
+  const { searchIndex, workspacePath, collectionName } = registered;
+  const { toRow } = require('../services/search-index/indexer');
+  try {
+    searchIndex.upsert(toRow(
+      collectionPath,
+      searchIndex.collectionNameFor(collectionPath) || collectionName,
+      { relativePath: requestPath, mtime: stamp.mtime, hash: stamp.hash, data },
+      workspacePath
+    ));
+  } catch (err) {
+    console.error('[collection-watcher] search index update failed for', pathname, err);
+  }
 };
 
 const removeFromSearchIndex = (collectionPath, pathname) => {
@@ -56,14 +66,15 @@ const removeFromSearchIndex = (collectionPath, pathname) => {
 
 const stageToCache = (collectionPath, pathname, data) => {
   const index = fileIndexByCollection.get(collectionPath);
+  let stamp = null;
   if (index) {
     try {
-      index.stageParsed(collectionPath, pathname, data);
+      stamp = index.stageParsed(collectionPath, pathname, data);
     } catch (err) {
       console.error('[collection-watcher] cache stage failed for', pathname, err);
     }
   }
-  refreshSearchIndexEntry(collectionPath, pathname);
+  upsertSearchIndexEntry(collectionPath, pathname, data, stamp);
 };
 const unstageFromCache = (collectionPath, pathname) => {
   const index = fileIndexByCollection.get(collectionPath);
@@ -837,7 +848,11 @@ class CollectionWatcher {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
     if (searchIndex) {
-      searchIndexByCollection.set(watchPath, { searchIndex, workspacePath: workspacePathname });
+      searchIndexByCollection.set(watchPath, {
+        searchIndex,
+        workspacePath: workspacePathname,
+        collectionName: brunoConfig?.name || path.basename(watchPath)
+      });
     }
 
     this.initializeLoadingState(collectionUid);

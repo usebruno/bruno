@@ -78,7 +78,7 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
 
   const pool = getPool();
   await runWithConcurrency(toParse, concurrency, async ({ relativePath, format }) => {
-    const result = await pool.run(JobType.ParseFile, { collectionPath, relativePath, format, type: 'request' });
+    const result = await pool.runOnce(JobType.ParseFile, { collectionPath, relativePath, format, type: 'request' });
     if (result.error) return;
     searchIndex.upsert(toRow(collectionPath, collectionName, result, workspacePath));
     if (fileIndex) {
@@ -96,41 +96,18 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   });
 };
 
-const indexCollection = async (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath, fileIndex }) => {
+// One run per collection at a time; a request that arrives mid-run joins it instead of walking and parsing again
+const activeRuns = new Map();
+
+const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath, fileIndex }) => {
   const root = normalize(collectionPath);
-  await indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex);
+  const running = activeRuns.get(root);
+  if (running) return running;
+
+  const run = indexUncached(searchIndex, root, collectionName, denylist, concurrency, workspacePath, fileIndex)
+    .finally(() => activeRuns.delete(root));
+  activeRuns.set(root, run);
+  return run;
 };
 
-const revalidateEntry = async (searchIndex, { collectionPath, collectionName, requestPath, workspacePath }) => {
-  const root = normalize(collectionPath);
-  const absolutePath = path.join(root, requestPath);
-  const prior = searchIndex.entry(root, requestPath);
-
-  let stat;
-  try {
-    stat = await fs.promises.stat(absolutePath, { bigint: true });
-  } catch (err) {
-    if (prior) searchIndex.remove(root, requestPath);
-    return null;
-  }
-
-  if (prior && prior.mtime === stat.mtimeNs) return prior;
-  if (prior) {
-    const hash = await hashFileAsync(absolutePath);
-    if (hash === prior.hash) return prior;
-  }
-
-  const cls = defaultClassify(requestPath);
-  if (cls?.type !== 'request') {
-    if (prior) searchIndex.remove(root, requestPath);
-    return null;
-  }
-
-  const result = await getPool().run(JobType.ParseFile, { collectionPath: root, relativePath: requestPath, format: cls.format, type: 'request' });
-  if (result.error) return prior || null;
-  const row = toRow(root, collectionName || prior?.collectionName, result, workspacePath ?? prior?.workspacePath);
-  searchIndex.upsert(row);
-  return row;
-};
-
-module.exports = { indexCollection, revalidateEntry, BACKGROUND_INDEX_CONCURRENCY };
+module.exports = { indexCollection, toRow, BACKGROUND_INDEX_CONCURRENCY };

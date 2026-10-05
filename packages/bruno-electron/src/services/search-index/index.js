@@ -123,6 +123,14 @@ class SearchIndex {
     );
   }
 
+  collectionNameFor(collectionPath) {
+    const row = this.#db.get(
+      'SELECT collection_name AS collectionName FROM search_index_entries WHERE collection_path = ? LIMIT 1',
+      collectionPath
+    );
+    return row?.collectionName ?? null;
+  }
+
   entry(collectionPath, requestPath) {
     return this.#db.get(
       `SELECT ${SELECT_ROW}, mtime, hash FROM search_index_entries WHERE collection_path = ? AND request_path = ?`,

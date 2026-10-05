@@ -2406,7 +2406,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         || (filesCount > MAX_COLLECTION_FILES_COUNT)
         || (maxFileSize > MAX_SINGLE_FILE_SIZE_IN_COLLECTION_IN_MB);
 
-    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, { workspacePathname: workspacePathname || null });
+    const indexOptions = await require('./mount').getWatcherIndexOptions(collectionPathname, workspacePathname);
+    watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync, {
+      ...indexOptions,
+      workspacePathname: indexOptions.workspacePathname || workspacePathname || null
+    });
 
     // Add watcher for transient directory
     watcher.addTempDirectoryWatcher(mainWindow, tempDirectoryPath, collectionUid, collectionPathname);
