@@ -1,5 +1,10 @@
 import { createContext, useContext } from 'react';
 
-export const SetAsVariableContext = createContext(null);
+const NO_PROVIDER = {
+  openFromCodeMirror: () => {},
+  openFromDomSelection: () => {}
+};
+
+export const SetAsVariableContext = createContext(NO_PROVIDER);
 
 export const useSetAsVariable = () => useContext(SetAsVariableContext);

@@ -42,7 +42,7 @@ class MultiLineEditor extends Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
-    this.context?.openFromCodeMirror(event, editor, {
+    this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item
     });
@@ -352,6 +352,7 @@ class MultiLineEditor extends Component {
       this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('contextmenu', this._onContextMenu);
       this.editor.getWrapperElement().remove();
     }
   }

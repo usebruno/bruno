@@ -1,45 +1,38 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: max-content;
+  padding: 0.25rem;
+  box-sizing: border-box;
   color: ${(props) => props.theme.dropdown.color};
+  background-color: ${(props) => props.theme.dropdown.bg};
+  border-radius: ${(props) => props.theme.border.radius.base};
   font-size: ${(props) => props.theme.font.size.base};
+  ${(props) =>
+    props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
+      ? `border: 1px solid ${props.theme.dropdown.border};`
+      : ''}
+  ${(props) =>
+    props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
+      ? `box-shadow: ${props.theme.dropdown.shadow};`
+      : ''}
 
   .var-set-bar {
-    display: flex;
-    align-items: stretch;
+    display: block;
     width: 100%;
     background: transparent;
     border: none;
-    border-radius: inherit;
-    padding: 0;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.3125rem 0.625rem;
     color: ${(props) => props.theme.dropdown.color};
+    font-size: inherit;
+    text-align: left;
+    white-space: nowrap;
     cursor: pointer;
 
     &:hover {
       background: ${(props) => props.theme.dropdown.hoverBg};
     }
-  }
-
-  .var-set-bar-label {
-    display: inline-flex;
-    align-items: center;
-    flex: 1;
-    padding: 0.4375rem 0.625rem;
-    white-space: nowrap;
-  }
-
-  .var-set-bar-separator {
-    width: 1px;
-    margin: 0.375rem 0;
-    background: ${(props) => props.theme.dropdown.separator};
-    flex-shrink: 0;
-  }
-
-  .var-set-bar-dots {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.4375rem 0.5rem;
-    color: ${(props) => props.theme.dropdown.mutedText};
   }
 `;
 

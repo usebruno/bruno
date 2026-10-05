@@ -311,7 +311,7 @@ const ResponsePane = ({ item, collection }) => {
         <div
           className="response-tab-content"
           data-testid="response-tab-content"
-          onContextMenu={(event) => setAsVariable?.openFromDomSelection(event, { collection, item })}
+          onContextMenu={(event) => setAsVariable.openFromDomSelection(event, { collection, item })}
         >
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (

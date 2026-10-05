@@ -15,7 +15,7 @@ class SingleLineEditor extends Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
-    this.context?.openFromCodeMirror(event, editor, {
+    this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item
     });
@@ -235,6 +235,7 @@ class SingleLineEditor extends Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;

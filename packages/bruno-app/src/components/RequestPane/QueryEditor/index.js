@@ -50,7 +50,7 @@ export default class QueryEditor extends React.Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
-    this.context?.openFromCodeMirror(event, editor, {
+    this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item
     });
@@ -224,6 +224,7 @@ export default class QueryEditor extends React.Component {
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
       this.editor.off('beforeChange', this._onBeforeChange);
+      this.editor.off('contextmenu', this._onContextMenu);
       // Remove the CodeMirror DOM element so React 18 Strict Mode's
       // unmount-remount cycle doesn't leave an orphaned instance behind.
       const wrapper = this.editor.getWrapperElement();

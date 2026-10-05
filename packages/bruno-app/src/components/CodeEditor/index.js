@@ -123,7 +123,7 @@ class CodeEditor extends React.Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
-    this.context?.openFromCodeMirror(event, editor, {
+    this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item
     });
@@ -608,6 +608,7 @@ class CodeEditor extends React.Component {
       this._disableEnhancedFeatures();
       this.editor.off('beforeChange', this._onBeforeChange);
       this.editor.off('change', this._onEdit);
+      this.editor.off('contextmenu', this._onContextMenu);
 
       // Tear down the debounced fold-persistence listener. Cancel any pending
       // call so it can't fire after we've already snapshotted state above.

@@ -15,17 +15,20 @@ import {
   getAllVariables,
   findCollectionByUid,
   findItemInCollectionByItemUid,
-  findParentItemInCollection,
-  getAvailableAddToScopes
+  findParentItemInCollection
 } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
-import { createEnvironmentForScope } from 'utils/variables';
+import {
+  buildAddToScopes as sharedBuildAddToScopes,
+  buildScopeInfo,
+  createEnvironmentForScope
+} from 'utils/variables';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES, SCOPE_ICON } from 'utils/common/constants';
+import { variableNameRegex } from 'utils/common/regex';
+import { SCOPE_ICON } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -726,59 +729,11 @@ export const renderVarInfo = (token, options) => {
 
     // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
     if (isNewVariable) {
-      const buildScopeInfoForSwitch = (scope) => {
-        switch (scope.type) {
-          case VARIABLE_ADD_SCOPES.COLLECTION:
-            return { type: 'collection', value: '', data: { collection, variable: null } };
-          case VARIABLE_ADD_SCOPES.REQUEST:
-            return { type: 'request', value: '', data: { item, variable: null } };
-          case VARIABLE_ADD_SCOPES.FOLDER:
-            return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
-          case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
-            const freshState = store.getState();
-            const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
-            const environment = (freshCollection?.environments || []).find(
-              (env) => env.uid === freshCollection?.activeEnvironmentUid
-            );
-            return { type: 'environment', value: '', data: { environment, variable: null, secret: false } };
-          }
-          case VARIABLE_ADD_SCOPES.GLOBAL: {
-            const freshGlobalState = store.getState();
-            const globalEnvironments = freshGlobalState.globalEnvironments?.globalEnvironments || [];
-            const activeGlobalEnvironmentUid = freshGlobalState.globalEnvironments?.activeGlobalEnvironmentUid;
-            const globalEnvironment = globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid);
-            return { type: 'global', value: '', data: { environment: globalEnvironment, variable: null, secret: false } };
-          }
-          default:
-            return null;
-        }
-      };
+      const buildScopeInfoForSwitch = (scope) =>
+        buildScopeInfo({ scopeType: scope.type, state: store.getState(), collection, item });
 
-      const buildAddToScopes = () => {
-        const addToScopesState = store.getState();
-        const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
-
-        const freshCollectionForScopes = collection?.uid
-          ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
-          : null;
-        const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
-          (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
-        )?.name;
-        const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
-          (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
-        )?.name;
-
-        return getAvailableAddToScopes({
-          activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
-          activeEnvironmentName,
-          activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
-          activeGlobalEnvironmentName,
-          item,
-          parentFolder: folderScopeTarget,
-          isSelfFolder: isInFolderSettings,
-          hasCollection: !!collection?.uid
-        });
-      };
+      const buildAddToScopes = () =>
+        sharedBuildAddToScopes({ state: store.getState(), collection, item });
 
       const getFreshScopeForType = (type) => buildAddToScopes().find((s) => s.type === type);
 
