@@ -28,6 +28,12 @@ describe('restoreContentEncodingHeader', () => {
     expect(response.headers).not.toHaveProperty('content-encoding');
   });
 
+  it('ignores a header name without a value', () => {
+    const response = responseWith({}, ['Content-Type', 'text/plain', 'Content-Encoding']);
+    restoreContentEncodingHeader(response);
+    expect(response.headers).not.toHaveProperty('content-encoding');
+  });
+
   it('does nothing when the raw response is not available', () => {
     const response = responseWith({});
     restoreContentEncodingHeader(response);

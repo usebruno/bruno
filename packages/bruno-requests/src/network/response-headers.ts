@@ -14,7 +14,7 @@ export const restoreContentEncodingHeader = (response?: ResponseLike | null): vo
     return;
   }
 
-  for (let i = 0; i < rawHeaders.length; i += 2) {
+  for (let i = 0; i + 1 < rawHeaders.length; i += 2) {
     if (rawHeaders[i].toLowerCase() === 'content-encoding') {
       headers['content-encoding'] = rawHeaders[i + 1];
       return;
