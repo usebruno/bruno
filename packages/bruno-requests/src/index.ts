@@ -29,6 +29,7 @@ export {
   getSentHeaders,
   applySentHeadersToRequest,
   applyOmitConnectionToAxiosConfig,
+  restoreContentEncodingHeader,
   readCurrentTime,
   measureTimeSince,
   startHop,

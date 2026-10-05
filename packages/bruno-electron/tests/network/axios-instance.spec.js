@@ -31,6 +31,7 @@ jest.mock('../../src/utils/form-data', () => ({
 }));
 
 const http = require('http');
+const zlib = require('zlib');
 const { AxiosHeaders } = require('axios');
 const { measureResponseTime, addDigestInterceptor } = require('@usebruno/requests');
 const { setupProxyAgents } = require('../../src/utils/proxy-util');
@@ -809,5 +810,56 @@ describe('axios-instance: sent headers', () => {
     const masked = error.response.sentHeaders['Proxy-Authorization'];
     expect(masked).toBe('*'.repeat(credential.length));
     expect(masked).not.toContain('dXNlcj');
+  });
+});
+
+describe('axios-instance: content-encoding response header (GitHub #8233)', () => {
+  const withServer = async (handler, run) => {
+    const server = http.createServer(handler);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await run(`http://127.0.0.1:${server.address().port}`);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  };
+
+  const gzipHandler = (status) => (req, res) => {
+    const body = zlib.gzipSync(JSON.stringify({ ok: true }));
+    res.writeHead(status, { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Content-Length': body.length });
+    res.end(body);
+  };
+
+  test('keeps content-encoding after axios decompresses the body', async () => {
+    await withServer(gzipHandler(200), async (url) => {
+      const response = await makeAxiosInstance()({ url, method: 'get' });
+      expect(response.data).toEqual({ ok: true });
+      expect(response.headers['content-encoding']).toBe('gzip');
+    });
+  });
+
+  test('keeps content-encoding on a streamed response', async () => {
+    await withServer(gzipHandler(200), async (url) => {
+      const response = await makeAxiosInstance()({ url, method: 'get', responseType: 'stream' });
+      const chunks = [];
+      for await (const chunk of response.data) chunks.push(chunk);
+      expect(JSON.parse(Buffer.concat(chunks).toString())).toEqual({ ok: true });
+      expect(response.headers['content-encoding']).toBe('gzip');
+    });
+  });
+
+  test('keeps content-encoding on an error response', async () => {
+    await withServer(gzipHandler(404), async (url) => {
+      const error = await makeAxiosInstance()({ url, method: 'get' }).catch((err) => err);
+      expect(error.response.status).toBe(404);
+      expect(error.response.headers['content-encoding']).toBe('gzip');
+    });
+  });
+
+  test('does not add content-encoding when the server did not send it', async () => {
+    await withServer((req, res) => res.end('plain'), async (url) => {
+      const response = await makeAxiosInstance()({ url, method: 'get' });
+      expect(response.headers['content-encoding']).toBeUndefined();
+    });
   });
 });

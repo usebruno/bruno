@@ -1,6 +1,7 @@
 import { default as axios, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
+import { restoreContentEncodingHeader } from './response-headers';
 
 /**
  *
@@ -82,6 +83,7 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
   });
 
   axiosInstance.interceptors.response.use((response: AxiosResponse) => {
+    restoreContentEncodingHeader(response);
     const config = response.config as ModifiedInternalAxiosRequestConfig;
     const startTime = config.startTime;
     const endTime = Date.now();
@@ -90,6 +92,9 @@ const makeAxiosInstance = (customRequestConfig?: AxiosRequestConfig) => {
       responseTime: endTime - startTime
     };
     return modifiedResponse;
+  }, (error) => {
+    restoreContentEncodingHeader(error?.response);
+    return Promise.reject(error);
   });
 
   return axiosInstance;

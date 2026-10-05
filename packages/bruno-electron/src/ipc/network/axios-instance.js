@@ -15,7 +15,8 @@ const {
   readCurrentTime,
   measureTimeSince,
   startHop,
-  completeHop
+  completeHop,
+  restoreContentEncodingHeader
 } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
@@ -262,6 +263,7 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       redirectCount = 0;
+      restoreContentEncodingHeader(response);
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
@@ -336,6 +338,7 @@ function makeAxiosInstance({
         message: 'there was an error executing the request!'
       });
       if (error.response) {
+        restoreContentEncodingHeader(error.response);
         const isStreamedBody = config.responseType === 'stream';
         if (isStreamedBody) {
           recordResponseHeadersReceived(config);
