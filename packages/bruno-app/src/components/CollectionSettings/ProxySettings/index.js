@@ -309,7 +309,7 @@ const ProxySettings = ({ collection }) => {
               </div>
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="hostname">
+              <label className="settings-label">
                 Hostname
               </label>
               <div className="single-line-editor-wrapper">
@@ -324,7 +324,7 @@ const ProxySettings = ({ collection }) => {
               </div>
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="port">
+              <label className="settings-label">
                 Port
               </label>
               <div className="single-line-editor-wrapper">
@@ -351,7 +351,7 @@ const ProxySettings = ({ collection }) => {
             </div>
             <div>
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.username">
+                <label className="settings-label">
                   Username
                 </label>
                 <div className="single-line-editor-wrapper">
@@ -366,7 +366,7 @@ const ProxySettings = ({ collection }) => {
                 </div>
               </div>
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.password">
+                <label className="settings-label">
                   Password
                 </label>
                 <div className="single-line-editor-wrapper flex items-center">

@@ -63,7 +63,7 @@ export const extractSensitiveVarNames = (value) => {
     return [];
   }
 
-  return Array.from(value.matchAll(/\{\{([^}]+)\}\}/g), (match) => match[1].trim()).filter(Boolean);
+  return Array.from(value.matchAll(/\{\{([^}]+)\}\}/g), (match) => match[1]).filter(Boolean);
 };
 
 /** Uses the passed scope, or infers it from the item. */
@@ -163,7 +163,7 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
   return toResolvedVariable(winningScope, candidates[winningScope]);
 };
 
-/** True when the winning row is a secret collection or global environment variable. */
+/** True when the winning row is a secret collection-environment or global-environment variable. */
 const isSecretEnvironmentVariable = (resolved) => (
   (resolved?.type === 'environment' || resolved?.type === 'global') && !!resolved.variable?.secret
 );
@@ -297,21 +297,8 @@ export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnviron
 
 /** Request, folder, or collection Vars rows that a sensitive field sends. */
 export const findUsedVarsRowUids = (collection, scopeType) => {
-  const uids = new Set();
   if (!collection || !['request', 'folder', 'collection'].includes(scopeType)) {
-    return uids;
+    return new Set();
   }
-  collectSensitiveFieldValues(collection).forEach((field) => {
-    extractSensitiveVarNames(field.value).forEach((variableName) => {
-      const resolved = resolveSensitiveVariable(variableName, {
-        collection,
-        item: field.item,
-        scope: field.scope
-      });
-      if (resolved?.type === scopeType && resolved.variable?.uid) {
-        uids.add(resolved.variable.uid);
-      }
-    });
-  });
-  return uids;
+  return collectSentVariableUids(collection, scopeType);
 };

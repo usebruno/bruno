@@ -33,11 +33,11 @@ const plainVariableRowWarning = (name: string) => (
 );
 
 const expectSensitiveWarning = async (page: Page, fieldName: string, message: string) => {
-  const locators = buildCommonLocators(page);
-  const warning = locators.codeMirror.sensitiveWarning(fieldName);
+  const { codeMirror } = buildCommonLocators(page);
+  const warning = codeMirror.sensitiveWarning(fieldName);
   await expect(warning).toBeVisible();
   await warning.hover();
-  await expect(locators.codeMirror.sensitiveTooltip(message)).toBeVisible();
+  await expect(codeMirror.sensitiveTooltip(message)).toBeVisible();
 };
 
 test.describe('Sensitive field warnings', () => {
@@ -61,8 +61,9 @@ test.describe('Sensitive field warnings', () => {
     });
 
     await test.step('The value warns and the key name does not', async () => {
+      const { codeMirror } = buildCommonLocators(page);
       await expectSensitiveWarning(page, 'apikey-value', PLAINTEXT_WARNING);
-      await expect(buildCommonLocators(page).codeMirror.sensitiveWarning('apikey-key')).toHaveCount(0);
+      await expect(codeMirror.sensitiveWarning('apikey-key')).toHaveCount(0);
     });
   });
 
@@ -82,18 +83,21 @@ test.describe('Sensitive field warnings', () => {
     });
 
     await test.step('No warning is shown', async () => {
-      await expect(buildCommonLocators(page).codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
+      const { codeMirror } = buildCommonLocators(page);
+      await expect(codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
     });
   });
 
   test('a secret environment variable stays quiet unless the field also contains plaintext', async ({ page, createTmpDir }) => {
     const collectionName = 'sensitive-secret-environment';
+    const { codeMirror, environment } = buildCommonLocators(page);
 
     await test.step('Create a collection with a secret token', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
       await createEnvironment(page, 'dev', 'collection');
       await addEnvironmentVariable(page, { name: 'token', value: 'super-secret', isSecret: true });
       await saveEnvironment(page);
+      await expect(environment.savedToast()).toBeVisible();
       await closeEnvironmentPanel(page);
       await createRequest(page, 'login', collectionName);
     });
@@ -103,7 +107,7 @@ test.describe('Sensitive field warnings', () => {
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
       await writeFieldValue(page, 'Value', '{{token}}');
-      await expect(buildCommonLocators(page).codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
+      await expect(codeMirror.sensitiveWarning('apikey-value')).toHaveCount(0);
     });
 
     await test.step('Text outside the braces warns', async () => {
@@ -114,7 +118,7 @@ test.describe('Sensitive field warnings', () => {
 
   test('a request variable used by a sensitive field warns on the field and on its Vars row', async ({ page, createTmpDir }) => {
     const collectionName = 'sensitive-request-variable';
-    const locators = buildCommonLocators(page);
+    const { codeMirror, table } = buildCommonLocators(page);
 
     await test.step('Create a request variable named token', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -135,16 +139,16 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('The Pre Request row shows the same warning', async () => {
       await selectRequestPaneTab(page, 'Vars');
-      const rowWarning = locators.codeMirror.sensitiveWarningIn(locators.table('request-vars-req').rowByName('token'), 'token');
+      const rowWarning = codeMirror.sensitiveWarningIn(table('request-vars-req').rowByName('token'), 'token');
       await expect(rowWarning).toBeVisible();
       await rowWarning.hover();
-      await expect(locators.codeMirror.sensitiveTooltip(plainVariableRowWarning('token'))).toBeVisible();
+      await expect(codeMirror.sensitiveTooltip(plainVariableRowWarning('token'))).toBeVisible();
     });
   });
 
   test('a non-secret environment variable wins over a collection variable', async ({ page, createTmpDir }) => {
     const collectionName = 'sensitive-environment-wins';
-    const locators = buildCommonLocators(page);
+    const { codeMirror, environment, table, varsPanel } = buildCommonLocators(page);
 
     await test.step('Save a plaintext environment token and a collection token', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -157,7 +161,7 @@ test.describe('Sensitive field warnings', () => {
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'vars');
       await addVarsRow(page, 'collection-vars-req', 'token', 'from-collection');
-      await locators.varsPanel('collection').saveButton().click();
+      await varsPanel('collection').saveButton().click();
     });
 
     await test.step('The API key field warns about the environment variable', async () => {
@@ -170,14 +174,14 @@ test.describe('Sensitive field warnings', () => {
 
     await test.step('The environment row is flagged and the collection row is not', async () => {
       await openEnvironmentConfigTab(page);
-      const environmentWarning = locators.codeMirror.sensitiveWarningIn(locators.environment.varRow('token'), 'token');
+      const environmentWarning = codeMirror.sensitiveWarningIn(environment.varRow('token'), 'token');
       await expect(environmentWarning).toBeVisible();
       await environmentWarning.hover();
-      await expect(locators.codeMirror.sensitiveTooltip(ENVIRONMENT_ROW_WARNING)).toBeVisible();
+      await expect(codeMirror.sensitiveTooltip(ENVIRONMENT_ROW_WARNING)).toBeVisible();
 
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'vars');
-      await expect(locators.codeMirror.sensitiveWarningIn(locators.table('collection-vars-req').container(), 'token')).toHaveCount(0);
+      await expect(codeMirror.sensitiveWarningIn(table('collection-vars-req').container(), 'token')).toHaveCount(0);
     });
   });
 });

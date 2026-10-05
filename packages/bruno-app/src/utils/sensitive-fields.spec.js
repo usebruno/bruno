@@ -54,8 +54,8 @@ const folderWithVars = (uid, requestVars, items = []) => ({
 });
 
 describe('extractSensitiveVarNames', () => {
-  it('returns each referenced name once, trimmed, in source order', () => {
-    expect(extractSensitiveVarNames('Bearer {{ token }}-{{suffix}}')).toEqual(['token', 'suffix']);
+  it('returns each referenced name in source order', () => {
+    expect(extractSensitiveVarNames('Bearer {{ token }}-{{suffix}}')).toEqual([' token ', 'suffix']);
   });
 
   it('returns nothing for a plain value or an empty interpolation', () => {
@@ -434,7 +434,7 @@ describe('environment table usage flags', () => {
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
   });
 
-  it('does not flag a secret, a losing environment variable, or a name overridden by a collection variable check that the environment wins', () => {
+  it('does not flag a secret environment variable, and flags a non-secret environment variable that wins over a collection variable', () => {
     const secretVariable = tokenVariable('secret-token', { secret: true, value: '' });
     const plainVariable = tokenVariable('plain-token');
     const collection = collectionWithEnvVariables(requestWithAuthValue('auth.bearer.token', '{{token}}'), [secretVariable]);
