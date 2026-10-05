@@ -29,7 +29,7 @@ const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
 const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, isBinaryRequestBody } = require('../../utils/common');
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
@@ -661,14 +661,14 @@ const registerNetworkIpc = (mainWindow) => {
     if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
+      } else if (typeof request.data !== 'string' && !isBinaryRequestBody(request.data)) {
         request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
       }
-      // if `data` is of string type - return as-is (assumes already encoded)
+      // string and file (Buffer/stream) bodies are sent as-is (assumed already encoded)
     }
 
     if (mediaType.startsWith('multipart/')) {
-      if (typeof request.data !== 'string' && !isFormData(request.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request.data) && !isBinaryRequestBody(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         const existingBoundary = extractBoundaryFromContentType(contentType);

@@ -15,7 +15,7 @@ const { refreshExplicitHeaderNames, shouldOmitConnection } = require('@usebruno/
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
-const { parseDataFromResponse } = require('../utils/common');
+const { parseDataFromResponse, isBinaryRequestBody } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const axios = require('axios');
@@ -546,14 +546,14 @@ const runSingleRequest = async function (
     if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
+      } else if (typeof request.data !== 'string' && !isBinaryRequestBody(request.data)) {
         request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
       }
-      // if `data` is of string type - return as-is (assumes already encoded)
+      // string and file (Buffer/stream) bodies are sent as-is (assumed already encoded)
     }
 
     if (mediaType.startsWith('multipart/')) {
-      if (typeof request.data !== 'string' && !isFormData(request?.data)) {
+      if (typeof request.data !== 'string' && !isFormData(request?.data) && !isBinaryRequestBody(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
         const existingBoundary = extractBoundaryFromContentType(contentType);

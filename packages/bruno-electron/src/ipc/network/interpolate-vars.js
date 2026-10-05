@@ -2,6 +2,7 @@ const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData, getMediaType } = require('@usebruno/common').utils;
 const { getUnresolvedVariableCollector } = require('@usebruno/js');
+const { isBinaryRequestBody } = require('../../utils/common');
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
@@ -20,8 +21,6 @@ const hasResolvablePathParamValue = (pathParam) => {
 
   return true;
 };
-
-const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
 const getContentType = (headers = {}) => {
   let contentType = '';

@@ -1,5 +1,6 @@
 const os = require('os');
 const path = require('path');
+const { Readable } = require('stream');
 const { describe, it, expect, beforeEach } = require('@jest/globals');
 const { isFormData } = require('@usebruno/common').utils;
 
@@ -14,6 +15,13 @@ const { runSingleRequest } = require('../../../../src/runner/run-single-request'
 
 const COLLECTION_PATH = path.join(os.tmpdir(), 'test-collection');
 const URL_ENCODED_FORM_FIELDS = 'name=John+Doe&role=admin';
+const FORM_CONTENT_TYPES = [
+  'application/x-www-form-urlencoded',
+  'application/x-www-form-urlencoded; charset=utf-8',
+  'Application/X-WWW-Form-Urlencoded',
+  'multipart/form-data; boundary=custom',
+  'Multipart/Form-Data'
+];
 
 const buildFormFields = () => [
   { name: 'name', value: 'John Doe', type: 'text', enabled: true },
@@ -74,6 +82,22 @@ describe('runSingleRequest: request body encoding by Content-Type', () => {
     const sentRequest = await sendRequest({ headers: {}, data: buildFormFields() });
 
     expect(sentRequest.data).toEqual(buildFormFields());
+  });
+
+  it.each(FORM_CONTENT_TYPES)('sends a file body unchanged when Content-Type is "%s"', async (contentType) => {
+    const fileBody = Buffer.from(URL_ENCODED_FORM_FIELDS);
+
+    const sentRequest = await sendRequest({ headers: { 'content-type': contentType }, data: fileBody });
+
+    expect(sentRequest.data).toBe(fileBody);
+  });
+
+  it.each(FORM_CONTENT_TYPES)('sends a streamed file body unchanged when Content-Type is "%s"', async (contentType) => {
+    const fileStream = Readable.from([URL_ENCODED_FORM_FIELDS]);
+
+    const sentRequest = await sendRequest({ headers: { 'content-type': contentType }, data: fileStream });
+
+    expect(sentRequest.data).toBe(fileStream);
   });
 
   it('sends multipart form data with a generated boundary when Content-Type carries a charset', async () => {
