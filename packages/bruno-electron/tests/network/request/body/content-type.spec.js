@@ -1,14 +1,18 @@
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { Readable } = require('stream');
-const { describe, it, expect, beforeEach } = require('@jest/globals');
+const { describe, it, expect, beforeEach, afterAll } = require('@jest/globals');
 const { isFormData } = require('@usebruno/common').utils;
+
+// The app's settings stores write their files under userData while the network module loads.
+const mockUserDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-userdata-'));
 
 jest.mock('electron', () => ({
   ipcMain: { handle: jest.fn(), on: jest.fn() },
   app: {
     on: jest.fn(),
-    getPath: jest.fn(() => require('node:os').tmpdir()),
+    getPath: jest.fn(() => mockUserDataPath),
     getVersion: jest.fn(() => '1.0.0')
   }
 }));
@@ -58,6 +62,10 @@ describe('send-http-request: request body encoding by Content-Type', () => {
     jest.clearAllMocks();
     registerAllNetworkIpc(fakeWindow);
     sendHttpRequestHandler = ipcMain.handle.mock.calls.find(([channel]) => channel === 'send-http-request')[1];
+  });
+
+  afterAll(() => {
+    fs.rmSync(mockUserDataPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 
   // Runs the request through the IPC handler and returns the config handed to axios.
