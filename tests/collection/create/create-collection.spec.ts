@@ -1,6 +1,8 @@
+import path from 'path';
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createRequest, openCollectionSettings, selectCollectionPaneTab, waitForReadyPage } from '../../utils/page';
 
+const initUserDataPath = path.join(__dirname, 'init-user-data');
 test.describe('Create collection', () => {
   test.afterEach(async ({ page }) => {
     // cleanup: close all collections
@@ -85,14 +87,15 @@ test.describe('Create collection', () => {
     await selectCollectionPaneTab(page, 'overview');
     await expect(page.getByTestId('info-version-value')).toHaveText('Not Set');
   });
+});
 
-  test('TC-1054: saves Untitled Collection (n) from the collections menu on the default workspace', async ({ page }) => {
-    const { titleBar, plusMenu, toast, sidebar } = buildCommonLocators(page);
+test.describe('Create Collection through sidebar', () => {
+  test('TC-1054: Verify the Collection created in default with Untitled Collection (n) with gear icon', async ({ launchElectronApp, createTmpDir }) => {
+    const wsLocation = await createTmpDir('verify-default-collection');
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+    const page = await waitForReadyPage(app);
+    const { plusMenu, toast, sidebar } = buildCommonLocators(page);
     const { inlineCollectionCreator } = sidebar;
-
-    await test.step('The default workspace is open', async () => {
-      await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
-    });
 
     for (const defaultName of ['Untitled Collection', 'Untitled Collection - 1', 'Untitled Collection - 2']) {
       await test.step(`Create collection opens an inline name prefilled with "${defaultName}"`, async () => {
