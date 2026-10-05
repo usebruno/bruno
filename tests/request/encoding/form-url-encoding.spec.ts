@@ -1,16 +1,20 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, Page } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   createRequest,
+  openRequest,
   selectRequestPaneTab,
+  selectRequestBodyMode,
   saveRequest,
+  sendRequestAndWaitForResponse,
   expectResponseContains
 } from '../../utils/page';
 import { fillRequestHeaderName, fillRequestHeaderValue } from '../../utils/request';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/everything';
+const FORM_URL_ENCODED_BODY_MODE = 'Form URL Encoded';
 
 const fillFormUrlEncodedParam = async (page: Page, rowIndex: number, name: string, value: string) => {
   const formTable = buildCommonLocators(page).table('form-urlencoded-table');
@@ -37,37 +41,22 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL, method: 'POST' });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
-      await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
+      await openRequest(page, collectionName, requestName);
 
-      // Change method to POST
-      await page.locator('.method-selector').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'POST' }).click();
-
-      // Select Body tab and switch to form-urlencoded
-      await selectRequestPaneTab(page, 'Body');
-      await page.locator('.body-mode-selector').click();
-      await page.locator('[data-item-id="formUrlEncoded"]').click();
-
+      await selectRequestBodyMode(page, FORM_URL_ENCODED_BODY_MODE);
       await fillFormUrlEncodedParam(page, 0, 'foo', 'bar');
       await fillFormUrlEncodedParam(page, 1, 'baz', 'test');
 
       await saveRequest(page);
     });
 
-    await test.step('Send request', async () => {
-      // Send request
-      await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible', timeout: 15000 });
-    });
+    await sendRequestAndWaitForResponse(page, 200);
 
     await test.step('Validate response', async () => {
-      await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-
-      // Verify response contains properly encoded data
       await expectResponseContains(page, ['foo=bar&baz=test']);
     });
   });
@@ -78,41 +67,25 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Create collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL, method: 'POST' });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
-      await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
+      await openRequest(page, collectionName, requestName);
 
-      // Change method to POST
-      await page.locator('.method-selector').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'POST' }).click();
-
-      // Add Content-Type header with charset parameter
       await selectRequestPaneTab(page, 'Headers');
       await addContentTypeHeader(page, 'application/x-www-form-urlencoded; charset=utf-8');
 
-      // Select Body tab and switch to form-urlencoded
-      await selectRequestPaneTab(page, 'Body');
-      await page.locator('.body-mode-selector').click();
-      await page.locator('[data-item-id="formUrlEncoded"]').click();
-
+      await selectRequestBodyMode(page, FORM_URL_ENCODED_BODY_MODE);
       await fillFormUrlEncodedParam(page, 0, 'foo', 'bar');
       await fillFormUrlEncodedParam(page, 1, 'baz', 'test');
 
       await saveRequest(page);
     });
 
-    await test.step('Send request', async () => {
-      // Send request
-      await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible', timeout: 15000 });
-    });
+    await sendRequestAndWaitForResponse(page, 200);
 
     await test.step('Verify response', async () => {
-      await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-
-      // Verify response contains properly encoded data
       await expectResponseContains(page, ['foo=bar&baz=test']);
     });
   });
@@ -123,38 +96,24 @@ test.describe('Form URL Encoding with Content-Type Parameters', () => {
 
     await test.step('Setup request', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await createRequest(page, requestName, collectionName, { url: ECHO_URL });
+      await createRequest(page, requestName, collectionName, { url: ECHO_URL, method: 'POST' });
     });
 
     await test.step('Navigate to request and populate fields', async () => {
-      await page.locator('.collection-item-name').filter({ hasText: requestName }).first().click();
-      // Change method to POST
-      await page.locator('.method-selector').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'POST' }).click();
+      await openRequest(page, collectionName, requestName);
 
-      // Add Content-Type header with multiple parameters
       await selectRequestPaneTab(page, 'Headers');
       await addContentTypeHeader(page, 'application/x-www-form-urlencoded; charset=utf-8; boundary=something');
 
-      // Select Body tab and switch to form-urlencoded
-      await selectRequestPaneTab(page, 'Body');
-      await page.locator('.body-mode-selector').click();
-      await page.locator('[data-item-id="formUrlEncoded"]').click();
-
+      await selectRequestBodyMode(page, FORM_URL_ENCODED_BODY_MODE);
       await fillFormUrlEncodedParam(page, 0, 'test', 'value with spaces');
 
       await saveRequest(page);
     });
 
-    await test.step('Send request', async () => {
-      // Send request
-      await page.getByTestId('send-arrow-icon').click();
-      await page.getByTestId('response-status-code').waitFor({ state: 'visible', timeout: 15000 });
-    });
+    await sendRequestAndWaitForResponse(page, 200);
 
     await test.step('Verify response', async () => {
-      await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
-      // Verify response contains properly encoded data
       await expectResponseContains(page, ['test=value+with+spaces']);
     });
   });
