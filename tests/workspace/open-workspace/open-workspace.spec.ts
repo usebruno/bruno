@@ -1,4 +1,4 @@
-import { closeElectronApp, expect, test } from '../../../playwright';
+import { closeElectronApp, ElectronApplication, expect, test } from '../../../playwright';
 import { buildCommonLocators, waitForReadyPage } from '../../utils/page';
 import { clickOpenWorkspace } from '../../utils/page/title-bar';
 import {
@@ -11,18 +11,18 @@ test.describe('Open Workspace', () => {
     launchElectronApp,
     createTmpDir
   }) => {
-    let app;
+    let app: ElectronApplication | undefined;
     try {
       const userDataPath = await createTmpDir('open-workspace-from-device');
       const workspaceName = 'Device Workspace';
       const workspacePath = await createWorkspaceFromYml(createTmpDir, 'open-workspace-source', workspaceName);
 
-      const app = await launchElectronApp({ userDataPath });
+      app = await launchElectronApp({ userDataPath });
       const page = await waitForReadyPage(app);
       const { titleBar, toast } = buildCommonLocators(page);
 
       await test.step('Pick a valid workspace directory from the file explorer', async () => {
-        await stubOpenDirectoryDialog(app, workspacePath);
+        await stubOpenDirectoryDialog(app as ElectronApplication, [workspacePath]);
         await clickOpenWorkspace(page);
       });
 
@@ -54,7 +54,8 @@ test.describe('Open Workspace', () => {
       const initialWorkspaceName = await titleBar.activeWorkspaceName().textContent();
 
       // No file paths provided to simulate the user cancelling the dialog.
-      await stubOpenDirectoryDialog(app);
+      const filePaths: string[] = [];
+      await stubOpenDirectoryDialog(app, filePaths);
       await clickOpenWorkspace(page);
 
       await test.step('Workspace unchanged after canceling the dialog', async () => {
