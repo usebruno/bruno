@@ -6,13 +6,13 @@ jest.mock('electron', () => ({
   app: { getVersion: () => '0.0.0-test' }
 }));
 
-jest.mock('../../ipc/sqlite', () => ({
+jest.mock('../sqlite', () => ({
   getStatements: jest.fn(),
-  getDatabase: jest.fn()
+  transaction: jest.fn()
 }));
 
 const { createDatabase } = require('@usebruno/sqlite');
-const { getStatements, getDatabase } = require('../../ipc/sqlite');
+const { getStatements, transaction } = require('../sqlite');
 const { FileIndex } = require('./file-index');
 
 describe('FileIndex denylist', () => {
@@ -25,7 +25,7 @@ describe('FileIndex denylist', () => {
     const opened = createDatabase(':memory:');
     db = opened.db;
     getStatements.mockReturnValue(opened.statements);
-    getDatabase.mockReturnValue(opened.db);
+    transaction.mockImplementation((callback) => opened.db._transaction(callback));
     index = new FileIndex();
 
     fs.mkdirSync(path.join(collectionPath, 'hidden'));

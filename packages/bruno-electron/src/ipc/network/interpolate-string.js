@@ -55,8 +55,9 @@ const interpolateString = (str, interpolationOptions) => {
     return str;
   }
 
+  const { onUnresolved } = interpolationOptions;
   const combinedVars = buildCombinedVars(interpolationOptions);
-  return interpolate(str, combinedVars);
+  return interpolate(str, combinedVars, { onUnresolved });
 };
 
 /**
