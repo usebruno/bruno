@@ -1,6 +1,6 @@
 import React from 'react';
 
-const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl }) => (
+const UrlSourceField = ({ url, validationError, onChange, onBlur, isFetching, error, onUrlChanged, onResolveUrl }) => (
   <>
     <input
       id="spec-url"
@@ -12,13 +12,13 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
       autoCorrect="off"
       autoCapitalize="off"
       spellCheck="false"
-      value={formik.values.specUrl || ''}
+      value={url}
       onChange={(e) => {
         onUrlChanged(e.target.value);
-        formik.handleChange(e);
+        onChange(e);
       }}
       onBlur={(e) => {
-        formik.handleBlur(e);
+        onBlur(e);
         if (e.target.value.trim()) {
           onResolveUrl(e.target.value);
         }
@@ -40,8 +40,8 @@ const UrlSourceField = ({ formik, isFetching, error, onUrlChanged, onResolveUrl 
     {error ? (
       <div className="text-red-500 break-words" data-testid="api-spec-url-error">{error}</div>
     ) : null}
-    {!isFetching && !error && formik.touched.specUrl && formik.errors.specUrl ? (
-      <div className="text-red-500 break-words">{formik.errors.specUrl}</div>
+    {!isFetching && !error && validationError ? (
+      <div className="text-red-500 break-words">{validationError}</div>
     ) : null}
   </>
 );

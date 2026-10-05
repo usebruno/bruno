@@ -30,6 +30,12 @@ import {
 } from './apiSpecSources';
 
 const CreateApiSpec = ({ onClose }) => {
+  const sourceRadios = [
+    { id: 'api-spec-source-blank', value: API_SPEC_SOURCE.BLANK, label: 'Blank Spec' },
+    { id: 'api-spec-source-collection', value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
+    { id: 'api-spec-source-url', value: API_SPEC_SOURCE.URL, label: 'From Spec URL' }
+  ];
+
   const inputRef = useRef();
   const dispatch = useDispatch();
   const defaultApiSpecLocation = useDefaultApiSpecLocation();
@@ -50,12 +56,6 @@ const CreateApiSpec = ({ onClose }) => {
   ), [collections, workspaces, activeWorkspace]);
 
   const urlSource = useApiSpecUrlSource();
-
-  const getApiSpecExtension = (importFrom) => (
-    importFrom === API_SPEC_SOURCE.URL && urlSource.fetchedApiSpec?.extension
-      ? urlSource.fetchedApiSpec.extension
-      : DEFAULT_API_SPEC_EXTENSION
-  );
 
   const formik = useFormik({
     initialValues: {
@@ -185,6 +185,43 @@ const CreateApiSpec = ({ onClose }) => {
     onFilesSkipped: (skipped) => toast.error(buildSkippedFilesMessage(skipped))
   });
 
+  useEffect(() => {
+    if (inputRef && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [inputRef]);
+
+  useEffect(() => {
+    if (!defaultApiSpecLocation || apiSpecLocationEditedRef.current) {
+      return;
+    }
+    formik.setFieldValue('apiSpecLocation', defaultApiSpecLocation);
+  }, [defaultApiSpecLocation]);
+
+  useEffect(() => {
+    if (apiSpecNameEditedRef.current) {
+      return;
+    }
+
+    const derivedName = {
+      [API_SPEC_SOURCE.COLLECTION]: collectionSource.derivedName,
+      [API_SPEC_SOURCE.URL]: urlSource.derivedName
+    }[formik.values.importFrom] || '';
+
+    formik.setFieldValue('apiSpecName', derivedName);
+  }, [
+    formik.values.importFrom,
+    formik.values.collectionSource,
+    collectionSource.derivedName,
+    urlSource.derivedName
+  ]);
+
+  const getApiSpecExtension = (importFrom) => (
+    importFrom === API_SPEC_SOURCE.URL && urlSource.fetchedApiSpec?.extension
+      ? urlSource.fetchedApiSpec.extension
+      : DEFAULT_API_SPEC_EXTENSION
+  );
+
   const exportCollectionAsApiSpec = (values) => {
     const { requests, envVariables, processEnvVariables, collectionVariables } = collectionSource.collectionData;
 
@@ -244,7 +281,12 @@ const CreateApiSpec = ({ onClose }) => {
     formik.setTouched({}, false);
   };
 
-  const browse = () => {
+  const handleApiSpecNameChange = (e) => {
+    apiSpecNameEditedRef.current = Boolean(e.target.value.trim());
+    formik.handleChange(e);
+  };
+
+  const onBrowse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
         if (typeof dirPath === 'string') {
@@ -253,8 +295,10 @@ const CreateApiSpec = ({ onClose }) => {
         }
       })
       .catch((error) => {
-        formik.setFieldValue('apiSpecLocation', '');
         console.error(error);
+        formik.setFieldValue('apiSpecLocation', '', false);
+        formik.setFieldTouched('apiSpecLocation', true, false);
+        formik.setFieldError('apiSpecLocation', 'Could not open the folder picker');
       });
   };
 
@@ -271,40 +315,6 @@ const CreateApiSpec = ({ onClose }) => {
       });
   };
 
-  useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [inputRef]);
-
-  useEffect(() => {
-    if (!defaultApiSpecLocation || apiSpecLocationEditedRef.current) {
-      return;
-    }
-    formik.setFieldValue('apiSpecLocation', defaultApiSpecLocation);
-  }, [defaultApiSpecLocation]);
-
-  useEffect(() => {
-    if (apiSpecNameEditedRef.current) {
-      return;
-    }
-
-    const derivedName = {
-      [API_SPEC_SOURCE.COLLECTION]: collectionSource.derivedName,
-      [API_SPEC_SOURCE.URL]: urlSource.derivedName
-    }[formik.values.importFrom] || '';
-
-    formik.setFieldValue('apiSpecName', derivedName);
-  }, [formik.values.importFrom, formik.values.collectionSource, collectionSource.derivedName, urlSource.derivedName]);
-
-  const onSubmit = () => formik.handleSubmit();
-
-  const sourceRadios = [
-    { value: API_SPEC_SOURCE.BLANK, label: 'Blank Spec' },
-    { value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
-    { value: API_SPEC_SOURCE.URL, label: 'From Spec URL' }
-  ];
-
   return (
     <Portal>
       <StyledWrapper>
@@ -316,86 +326,90 @@ const CreateApiSpec = ({ onClose }) => {
             urlSource.isFetching
             || (formik.values.importFrom === API_SPEC_SOURCE.COLLECTION && collectionSource.isLoading)
           }
-          handleConfirm={onSubmit}
+          handleConfirm={formik.handleSubmit}
           handleCancel={onClose}
         >
-          <form className="bruno-form w-[500px] max-w-full" onSubmit={(e) => e.preventDefault()}>
-            <div>
-              <label className="block font-semibold mb-2">Source</label>
-              <div className="flex items-center gap-[28px]">
-                {sourceRadios.map(({ value, label }) => (
-                  <div key={value} className="flex items-center">
-                    <input
-                      id={value}
-                      className="cursor-pointer w-[18px] h-[18px]"
-                      type="radio"
-                      name="importFrom"
-                      value={value}
-                      checked={formik.values.importFrom === value}
-                      onChange={(e) => switchSource({ importFrom: e.target.value, collectionSource: formik.values.collectionSource })}
-                    />
-                    <label htmlFor={value} className="ml-1 cursor-pointer select-none">
-                      {label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              {formik.values.importFrom === API_SPEC_SOURCE.COLLECTION ? (
-                <CollectionSourceFields
-                  formik={formik}
-                  isWorkspaceSource={isWorkspaceSource}
-                  workspaceCollections={workspaceCollections}
-                  selectedWorkspaceCollection={selectedWorkspaceCollection}
-                  environmentNames={Object.keys(collectionSource.environments || {})}
-                  loadError={collectionSource.loadError}
-                  onSelectSource={(nextCollectionSource) => switchSource({ importFrom: formik.values.importFrom, collectionSource: nextCollectionSource })}
-                  onSelectCollection={(collectionUid) => formik.setFieldValue('collectionUid', collectionUid)}
-                  onSelectEnvironment={(environmentName) => formik.setFieldValue('environment', environmentName)}
-                  onBrowseCollection={browseCollection}
-                />
-              ) : null}
-
-              {formik.values.importFrom === API_SPEC_SOURCE.URL ? (
-                <UrlSourceField
-                  formik={formik}
-                  isFetching={urlSource.isFetching}
-                  error={urlSource.error}
-                  onUrlChanged={urlSource.forget}
-                  onResolveUrl={urlSource.resolve}
-                />
-              ) : null}
-
-              <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-5">
-                Name
-              </label>
-              <div className="relative">
-                <input
-                  id="api-spec-name"
-                  type="text"
-                  name="apiSpecName"
-                  ref={inputRef}
-                  className="block textbox mt-1 !pr-11 w-full"
-                  onChange={(e) => {
-                    apiSpecNameEditedRef.current = Boolean(e.target.value.trim());
-                    formik.handleChange(e);
-                  }}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={formik.values.apiSpecName || ''}
-                />
-                <div className="absolute right-2 top-0 bottom-0 h-full flex items-center api-spec-file-extension">
-                  {getApiSpecExtension(formik.values.importFrom)}
+          <form className="bruno-form w-[500px] max-w-full" onSubmit={formik.handleSubmit}>
+            <label className="block font-semibold mb-2">Source</label>
+            <div className="flex items-center gap-[28px]">
+              {sourceRadios.map(({ id, value, label }) => (
+                <div key={id} className="flex items-center">
+                  <input
+                    id={id}
+                    className="cursor-pointer w-[18px] h-[18px]"
+                    type="radio"
+                    name="importFrom"
+                    value={value}
+                    checked={formik.values.importFrom === value}
+                    onChange={(e) => switchSource({ importFrom: e.target.value, collectionSource: formik.values.collectionSource })}
+                  />
+                  <label htmlFor={id} className="ml-1 cursor-pointer select-none">
+                    {label}
+                  </label>
                 </div>
-              </div>
-              {formik.touched.apiSpecName && formik.errors.apiSpecName ? (
-                <div className="text-red-500 break-words">{formik.errors.apiSpecName}</div>
-              ) : null}
-
-              <SpecLocationField formik={formik} onBrowse={browse} />
+              ))}
             </div>
+
+            {formik.values.importFrom === API_SPEC_SOURCE.COLLECTION ? (
+              <CollectionSourceFields
+                collectionUid={formik.values.collectionUid}
+                collectionLocation={formik.values.collectionLocation}
+                environment={formik.values.environment}
+                collectionError={formik.touched.collectionUid ? formik.errors.collectionUid : ''}
+                collectionLocationError={formik.touched.collectionLocation ? formik.errors.collectionLocation : ''}
+                isWorkspaceSource={isWorkspaceSource}
+                workspaceCollections={workspaceCollections}
+                selectedWorkspaceCollection={selectedWorkspaceCollection}
+                environmentNames={Object.keys(collectionSource.environments || {})}
+                loadError={collectionSource.loadError}
+                onSelectSource={(nextCollectionSource) => switchSource({ importFrom: formik.values.importFrom, collectionSource: nextCollectionSource })}
+                onSelectCollection={(collectionUid) => formik.setFieldValue('collectionUid', collectionUid)}
+                onSelectEnvironment={(environmentName) => formik.setFieldValue('environment', environmentName)}
+                onBrowseCollection={browseCollection}
+              />
+            ) : formik.values.importFrom === API_SPEC_SOURCE.URL ? (
+              <UrlSourceField
+                url={formik.values.specUrl}
+                validationError={formik.touched.specUrl ? formik.errors.specUrl : ''}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                isFetching={urlSource.isFetching}
+                error={urlSource.error}
+                onUrlChanged={urlSource.forget}
+                onResolveUrl={urlSource.resolve}
+              />
+            ) : null}
+
+            <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-5">
+              Name
+            </label>
+            <div className="relative">
+              <input
+                id="api-spec-name"
+                type="text"
+                name="apiSpecName"
+                ref={inputRef}
+                className="block textbox mt-1 !pr-11 w-full"
+                onChange={handleApiSpecNameChange}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.apiSpecName}
+              />
+              <div className="absolute right-2 top-0 bottom-0 h-full flex items-center api-spec-file-extension">
+                {getApiSpecExtension(formik.values.importFrom)}
+              </div>
+            </div>
+            {formik.touched.apiSpecName && formik.errors.apiSpecName ? (
+              <div className="text-red-500 break-words">{formik.errors.apiSpecName}</div>
+            ) : null}
+
+            <SpecLocationField
+              location={formik.values.apiSpecLocation}
+              error={formik.touched.apiSpecLocation ? formik.errors.apiSpecLocation : ''}
+              onBrowse={onBrowse}
+            />
           </form>
         </Modal>
       </StyledWrapper>

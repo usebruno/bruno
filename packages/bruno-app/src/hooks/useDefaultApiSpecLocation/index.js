@@ -12,11 +12,18 @@ const useDefaultApiSpecLocation = () => {
   const preferredLocation = isDefaultWorkspace ? get(preferences, 'general.defaultLocation', '') : '';
   const workspacePathname = activeWorkspace?.pathname || '';
 
+  const shouldResolveFolder = Boolean(workspacePathname) && !preferredLocation;
+
   const [apiSpecFolder, setApiSpecFolder] = useState('');
 
   useEffect(() => {
-    if (preferredLocation || !workspacePathname) {
+    if (!shouldResolveFolder) {
       setApiSpecFolder('');
+    }
+  }, [shouldResolveFolder]);
+
+  useEffect(() => {
+    if (!shouldResolveFolder) {
       return;
     }
 
@@ -35,7 +42,7 @@ const useDefaultApiSpecLocation = () => {
     return () => {
       cancelled = true;
     };
-  }, [workspacePathname, preferredLocation]);
+  }, [workspacePathname, shouldResolveFolder]);
 
   return preferredLocation || apiSpecFolder;
 };

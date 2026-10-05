@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SpecLocationField = ({ formik, onBrowse }) => (
+const SpecLocationField = ({ location, error, onBrowse }) => (
   <>
     <label htmlFor="api-spec-location" className="block font-semibold mt-5">
       Location
@@ -15,8 +15,8 @@ const SpecLocationField = ({ formik, onBrowse }) => (
       autoCorrect="off"
       autoCapitalize="off"
       spellCheck="false"
-      title={formik.values.apiSpecLocation || ''}
-      value={formik.values.apiSpecLocation || ''}
+      title={location}
+      value={location}
       onClick={onBrowse}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -26,8 +26,8 @@ const SpecLocationField = ({ formik, onBrowse }) => (
         }
       }}
     />
-    {formik.touched.apiSpecLocation && formik.errors.apiSpecLocation ? (
-      <div className="text-red-500 break-words">{formik.errors.apiSpecLocation}</div>
+    {error ? (
+      <div className="text-red-500 break-words">{error}</div>
     ) : null}
     <div className="mt-1">
       <span className="text-link cursor-pointer hover:underline" onClick={onBrowse}>

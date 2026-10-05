@@ -8,7 +8,11 @@ import { COLLECTION_SOURCE, COLLECTION_SOURCE_ITEMS } from '../apiSpecSources';
 const NO_COLLECTIONS_HINT = 'No collections in this workspace';
 
 const CollectionSourceFields = ({
-  formik,
+  collectionUid,
+  collectionLocation,
+  environment,
+  collectionError,
+  collectionLocationError,
   isWorkspaceSource,
   workspaceCollections,
   selectedWorkspaceCollection,
@@ -66,7 +70,7 @@ const CollectionSourceFields = ({
         <>
           <MenuDropdown
             items={collectionItems}
-            selectedItemId={formik.values.collectionUid}
+            selectedItemId={collectionUid}
             data-testid="api-spec-collection-dropdown"
             menuClassName="max-h-64 overflow-y-auto"
             placement="bottom-start"
@@ -87,8 +91,8 @@ const CollectionSourceFields = ({
               <IconChevronDown className="caret" size={14} strokeWidth={2} />
             </button>
           </MenuDropdown>
-          {loadError || (formik.touched.collectionUid && formik.errors.collectionUid) ? (
-            <div className="text-red-500 break-words">{loadError || formik.errors.collectionUid}</div>
+          {loadError || collectionError ? (
+            <div className="text-red-500 break-words">{loadError || collectionError}</div>
           ) : null}
         </>
       ) : (
@@ -104,8 +108,8 @@ const CollectionSourceFields = ({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
-            title={formik.values.collectionLocation || ''}
-            value={formik.values.collectionLocation || ''}
+            title={collectionLocation}
+            value={collectionLocation}
             onClick={onBrowseCollection}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -115,11 +119,11 @@ const CollectionSourceFields = ({
               }
             }}
           />
-          {loadError || (formik.touched.collectionLocation && formik.errors.collectionLocation) ? (
-            <div className="text-red-500 break-words">{loadError || formik.errors.collectionLocation}</div>
+          {loadError || collectionLocationError ? (
+            <div className="text-red-500 break-words">{loadError || collectionLocationError}</div>
           ) : null}
 
-          {formik.values.collectionLocation ? (
+          {collectionLocation ? (
             <div className="mt-1">
               <span className="text-link cursor-pointer hover:underline" onClick={onBrowseCollection}>
                 Browse
@@ -136,7 +140,7 @@ const CollectionSourceFields = ({
           </label>
           <MenuDropdown
             items={environmentItems}
-            selectedItemId={formik.values.environment}
+            selectedItemId={environment}
             data-testid="api-spec-environment-dropdown"
             menuClassName="max-h-64 overflow-y-auto"
             placement="bottom-start"
@@ -151,7 +155,7 @@ const CollectionSourceFields = ({
               className="collection-select-trigger flex items-center justify-between cursor-pointer mt-2 w-full"
               data-testid="api-spec-environment-trigger"
             >
-              <span className="truncate">{formik.values.environment}</span>
+              <span className="truncate">{environment}</span>
               <IconChevronDown className="caret" size={14} strokeWidth={2} />
             </button>
           </MenuDropdown>
