@@ -1,3 +1,5 @@
+const os = require('os');
+const path = require('path');
 const { describe, it, expect, beforeEach } = require('@jest/globals');
 const { isFormData } = require('@usebruno/common').utils;
 
@@ -10,7 +12,7 @@ const prepareRequest = require('../../../../src/runner/prepare-request');
 const { makeAxiosInstance } = require('../../../../src/utils/axios-instance');
 const { runSingleRequest } = require('../../../../src/runner/run-single-request');
 
-const COLLECTION_PATH = '/test-collection';
+const COLLECTION_PATH = path.join(os.tmpdir(), 'test-collection');
 const URL_ENCODED_FORM_FIELDS = 'name=John+Doe&role=admin';
 
 const buildFormFields = () => [
@@ -28,7 +30,7 @@ const sendRequest = async ({ headers, data }) => {
   makeAxiosInstance.mockReturnValue(axiosInstance);
 
   await runSingleRequest(
-    { pathname: `${COLLECTION_PATH}/request.bru` }, // item
+    { pathname: path.join(COLLECTION_PATH, 'request.bru') }, // item
     COLLECTION_PATH, // collectionPath
     {}, // runtimeVariables
     {}, // envVariables

@@ -1,3 +1,5 @@
+const os = require('os');
+const path = require('path');
 const { describe, it, expect, beforeEach } = require('@jest/globals');
 const { isFormData } = require('@usebruno/common').utils;
 
@@ -26,8 +28,9 @@ const { prepareRequest } = require('../../../../src/ipc/network/prepare-request'
 const { makeAxiosInstance } = require('../../../../src/ipc/network/axios-instance');
 const registerAllNetworkIpc = require('../../../../src/ipc/network/index');
 
-const COLLECTION = { uid: 'collection-1', pathname: '/test-collection' };
-const ITEM = { uid: 'item-1', pathname: '/test-collection/request.bru' };
+const COLLECTION_PATH = path.join(os.tmpdir(), 'test-collection');
+const COLLECTION = { uid: 'collection-1', pathname: COLLECTION_PATH };
+const ITEM = { uid: 'item-1', pathname: path.join(COLLECTION_PATH, 'request.bru') };
 const URL_ENCODED_FORM_FIELDS = 'name=John+Doe&role=admin';
 
 const buildFormFields = () => [
