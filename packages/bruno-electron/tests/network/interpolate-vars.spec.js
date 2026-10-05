@@ -385,6 +385,23 @@ describe('interpolate-vars: interpolateVars', () => {
         { name: 'static', value: 'value', enabled: true }
       ]);
     });
+
+    it.each([
+      'application/x-www-form-urlencoded',
+      'application/x-www-form-urlencoded; charset=UTF-8',
+      'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+    ])('interpolates a string body when Content-Type is "%s"', (contentType) => {
+      const request = {
+        method: 'POST',
+        url: 'http://api.example/submit',
+        headers: { 'Content-Type': contentType },
+        data: 'token={{token}}&static=value'
+      };
+
+      const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+      expect(result.data).toBe('token=abc123&static=value');
+    });
   });
 
   describe('Multipart body (multipart/form-data and multipart/mixed)', () => {

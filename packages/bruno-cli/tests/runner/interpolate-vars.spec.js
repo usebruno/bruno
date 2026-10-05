@@ -97,6 +97,24 @@ describe('interpolate-vars: interpolateVars', () => {
   });
 
   it.each([
+    'application/x-www-form-urlencoded',
+    'application/x-www-form-urlencoded; charset=UTF-8',
+    'Application/X-WWW-Form-Urlencoded; charset=UTF-8'
+  ])('interpolates a form-urlencoded string body when Content-Type is "%s"', (contentType) => {
+    const request = {
+      method: 'POST',
+      mode: 'text',
+      url: 'https://api.example/submit',
+      headers: { 'content-type': contentType },
+      data: 'token={{token}}&static=value'
+    };
+
+    const result = interpolateVars(request, { token: 'abc123' }, null, null);
+
+    expect(result.data).toBe('token=abc123&static=value');
+  });
+
+  it.each([
     'application/json',
     'application/json; charset=utf-8',
     'Application/JSON'

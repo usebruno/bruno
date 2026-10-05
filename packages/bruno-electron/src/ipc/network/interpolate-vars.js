@@ -152,7 +152,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         } catch (err) {}
       }
     } else if (mediaType === 'application/x-www-form-urlencoded') {
-      if (request.data && Array.isArray(request.data)) {
+      if (typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
