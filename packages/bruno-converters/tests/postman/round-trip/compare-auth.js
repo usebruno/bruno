@@ -29,6 +29,23 @@ const normalizeAuth = (auth) => {
   return result;
 };
 
+// Keys Postman omits at a non-empty default it still applies; absent means the default, not "unset".
+const POSTMAN_NON_EMPTY_DEFAULTS = {
+  oauth2: [
+    { key: 'headerPrefix', value: 'Bearer', appliesWhen: (params) => (params.addTokenTo || 'header') === 'header' }
+  ]
+};
+
+const materializePostmanDefaults = (authType, params) => {
+  const defaults = POSTMAN_NON_EMPTY_DEFAULTS[authType];
+  if (!defaults) return params;
+  const materialized = { ...params };
+  for (const { key, value, appliesWhen } of defaults) {
+    if (materialized[key] === undefined && appliesWhen(params)) materialized[key] = value;
+  }
+  return materialized;
+};
+
 // Walk a Postman collection and collect every auth-bearing node keyed by a stable path:
 //   'collection'                    -> collection-level auth
 //   'collection/Folder'             -> folder-level auth
@@ -86,7 +103,7 @@ export const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
       continue;
     }
 
-    const paramsA = a?.params || {};
+    const paramsA = materializePostmanDefaults(a?.type, a?.params || {});
     const paramsB = b?.params || {};
     // Grant type of the node (oauth2 only), taken from the original and falling back to the
     // round-tripped side. Attached to every oauth2 diff so the whitelist can accept a dropped
