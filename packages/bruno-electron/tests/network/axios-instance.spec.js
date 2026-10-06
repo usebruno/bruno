@@ -811,3 +811,18 @@ describe('axios-instance: sent headers', () => {
     expect(masked).not.toContain('dXNlcj');
   });
 });
+
+describe('axios-instance: string request bodies', () => {
+  // axios JSON-quotes a non-JSON string body whenever application/json appears anywhere in the Content-Type
+  test.each([
+    ['multipart/related; type="application/json"; boundary=b1', '--b1\r\nContent-Type: application/json\r\n\r\n{"a":1}\r\n--b1--'],
+    ['text/plain; profile=application/json', 'hello world']
+  ])('sends the string body unchanged when application/json is only a parameter of %s', async (contentType, body) => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({ url: 'https://api.example.com/test', method: 'post', headers: { 'Content-Type': contentType }, data: body, adapter: stubAdapter });
+
+    expect(stubAdapter.getConfig().data).toBe(body);
+  });
+});
