@@ -388,7 +388,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         additionalParameters.authorization = [];
       }
 
-      const tokenPlacement = findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url';
+      const tokenPlacement = findValueUsingKey('addTokenTo') === 'queryParams' ? 'url' : 'header'; // Postman defaults an unspecified placement to the header
       const tokenHeaderPrefix
         = tokenPlacement === 'header' && authValues.headerPrefix == null
           ? 'Bearer'

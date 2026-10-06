@@ -437,8 +437,8 @@ describe('processAuth', () => {
       clientSecret: '',
       scope: '',
       state: '',
-      tokenPlacement: 'url',
-      tokenHeaderPrefix: '',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header',
       credentialsId: ''
@@ -459,8 +459,8 @@ describe('processAuth', () => {
       clientSecret: '',
       scope: '',
       state: '',
-      tokenPlacement: 'url',
-      tokenHeaderPrefix: '',
+      tokenPlacement: 'header',
+      tokenHeaderPrefix: 'Bearer',
       tokenQueryKey: 'access_token',
       credentialsPlacement: 'basic_auth_header',
       credentialsId: ''
@@ -544,6 +544,19 @@ describe('processAuth', () => {
       credentialsPlacement: 'body',
       credentialsId: 'test-token-name'
     });
+  });
+
+  it('should default oauth2 token placement to the header when addTokenTo is absent', () => {
+    const auth = {
+      type: 'oauth2',
+      oauth2: [
+        { key: 'grant_type', value: 'client_credentials' },
+        { key: 'accessTokenUrl', value: 'https://token.example.com' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.oauth2.tokenPlacement).toBe('header');
+    expect(requestObject.auth.oauth2.tokenHeaderPrefix).toBe('Bearer');
   });
 
   it('should default oauth2 tokenHeaderPrefix to Bearer when headerPrefix is absent and the token goes in the header', () => {

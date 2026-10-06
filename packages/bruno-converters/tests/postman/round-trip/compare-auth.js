@@ -41,7 +41,7 @@ const materializePostmanDefaults = (authType, params) => {
   if (!defaults) return params;
   const materialized = { ...params };
   for (const { key, value, appliesWhen } of defaults) {
-    if (materialized[key] === undefined && appliesWhen(params)) materialized[key] = value;
+    if ((materialized[key] === undefined || materialized[key] === null) && appliesWhen(params)) materialized[key] = value;
   }
   return materialized;
 };
