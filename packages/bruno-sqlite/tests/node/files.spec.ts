@@ -1,9 +1,15 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FileStore } from '../../src/node/files';
 import { filesDirFor } from '../../src/node/index';
 import { createTestDatabase } from '../utils';
 import type { TestDatabase } from '../utils';
+
+jest.mock('node:fs/promises', () => {
+  const actual = jest.requireActual('node:fs/promises');
+  return { ...actual, writeFile: jest.fn(actual.writeFile) };
+});
 
 const INLINE_MAX = 64;
 const ORPHAN_NAME = '11111111-2222-3333-4444-555555555555';
@@ -170,6 +176,64 @@ describe('FileStore', () => {
 
       expect(await files.collect()).toMatchObject({ files: 0 });
       expect(onDisk().sort()).toEqual(['notes.txt', 'orphan.bin']);
+    });
+
+    describe('while a spilled write is in flight', () => {
+      let release: () => void;
+
+      const holdNextWrite = (): Promise<void> => {
+        const actual = jest.requireActual('node:fs/promises');
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return new Promise((written) => {
+          (writeFile as jest.Mock).mockImplementationOnce(async (...args: unknown[]) => {
+            await actual.writeFile(...args);
+            written();
+            await gate;
+          });
+        });
+      };
+
+      it('does not sweep the file before its row is inserted', async () => {
+        const written = holdNextWrite();
+        const pending = files.write(Buffer.alloc(INLINE_MAX + 1));
+        await written;
+
+        expect(await files.collect()).toMatchObject({ files: 0 });
+        expect(onDisk()).toHaveLength(1);
+
+        release();
+        const { id } = await pending;
+
+        expect(Buffer.from((await files.read(id))!)).toEqual(Buffer.alloc(INLINE_MAX + 1));
+      });
+
+      it('still sweeps real orphans alongside it', async () => {
+        mkdirSync(files.directory, { recursive: true });
+        writeFileSync(join(files.directory, `${ORPHAN_NAME}.bin`), 'junk');
+        const written = holdNextWrite();
+        const pending = files.write(Buffer.alloc(INLINE_MAX + 1));
+        await written;
+
+        expect(await files.collect()).toMatchObject({ files: 1 });
+        expect(onDisk()).not.toContain(`${ORPHAN_NAME}.bin`);
+
+        release();
+        await pending;
+      });
+
+      it('sweeps the file of a write whose insert failed', async () => {
+        const insert = jest.spyOn(files._statements, 'execute').mockImplementationOnce(() => {
+          throw new Error('insert failed');
+        });
+
+        await expect(files.write(Buffer.alloc(INLINE_MAX + 1))).rejects.toThrow('insert failed');
+        insert.mockRestore();
+
+        expect(files._writing.size).toBe(0);
+        expect(onDisk()).toHaveLength(0);
+      });
     });
   });
 

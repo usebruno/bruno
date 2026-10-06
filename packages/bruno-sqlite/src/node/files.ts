@@ -36,6 +36,7 @@ export class FileStore {
   _statements: Statements;
   readonly directory: string;
   _inlineMaxBytes: number;
+  _writing: Set<string> = new Set();
 
   constructor(db: DatabaseSync, statements: Statements, options: FileStoreOptions) {
     this._db = db;
@@ -54,15 +55,15 @@ export class FileStore {
   async write(data: FileData | null, options: FileWriteOptions = {}): Promise<FileEntry> {
     const bytes = toBytes(data);
     const inline = bytes.length <= this._inlineMaxBytes;
-    let fileName: string | null = null;
-
-    if (!inline) {
-      fileName = `${randomUUID()}.bin`;
-      await mkdir(this.directory, { recursive: true });
-      await writeFile(this.pathFor(fileName), bytes);
-    }
+    const fileName = inline ? null : `${randomUUID()}.bin`;
 
     try {
+      if (fileName) {
+        this._writing.add(fileName);
+        await mkdir(this.directory, { recursive: true });
+        await writeFile(this.pathFor(fileName), bytes);
+      }
+
       const result = this._statements.execute('insert_file', {
         content_type: options.contentType ?? null,
         size: bytes.length,
@@ -74,6 +75,8 @@ export class FileStore {
     } catch (err) {
       if (fileName) await this._remove(fileName);
       throw err;
+    } finally {
+      if (fileName) this._writing.delete(fileName);
     }
   }
 
@@ -151,10 +154,6 @@ export class FileStore {
   }
 
   async _sweepOrphans(): Promise<number> {
-    const referenced = new Set(
-      (this._statements.execute('list_file_names') as { file_name: string }[]).map((row) => row.file_name)
-    );
-
     let entries: string[];
     try {
       entries = await readdir(this.directory);
@@ -162,14 +161,17 @@ export class FileStore {
       return 0;
     }
 
-    let removed = 0;
-    for (const name of entries) {
-      if (!SPILLED_FILE_NAME.test(name)) continue;
-      if (referenced.has(name)) continue;
+    const referenced = new Set(
+      (this._statements.execute('list_file_names') as { file_name: string }[]).map((row) => row.file_name)
+    );
+    const orphans = entries.filter(
+      (name) => SPILLED_FILE_NAME.test(name) && !referenced.has(name) && !this._writing.has(name)
+    );
+
+    for (const name of orphans) {
       await this._remove(name);
-      removed += 1;
     }
-    return removed;
+    return orphans.length;
   }
 
   async _remove(fileName: string, absolute = false): Promise<void> {
