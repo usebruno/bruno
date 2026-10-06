@@ -2345,6 +2345,27 @@ export const isScratchCollection = (collection, workspaces) => {
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
 };
 
+export const getWorkspaceCollections = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  if (!activeWorkspace) {
+    return [];
+  }
+
+  const toPathKey = (pathname) => {
+    const key = normalizePath(pathname);
+    return isWindowsOS() ? key.toLowerCase() : key;
+  };
+
+  return collections.filter((collection) => {
+    if (isScratchCollection(collection, workspaces)) {
+      return false;
+    }
+
+    return activeWorkspace.collections?.some(
+      (workspaceCollection) => toPathKey(workspaceCollection.path) === toPathKey(collection.pathname)
+    );
+  });
+};
+
 export const isSelectionEntryCollapsed = (entry) =>
   entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
 
