@@ -1,21 +1,17 @@
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
-import { DB, DatabaseOptions, isDatabaseMigrationError } from './db';
-import { Statements, OnMutation } from './statements';
+import { rmSync } from 'node:fs';
+import { DB, DatabaseOptions, DatabasePragmas, isDatabaseMigrationError } from './db';
+import { Statements } from './statements';
 import { migrations } from '../generated/node/migrations';
 
 export { DB, DatabaseMigrationError, isDatabaseMigrationError } from './db';
-export type { DatabaseOptions } from './db';
+export type { DatabaseOptions, DatabasePragmas } from './db';
 export { Statements } from './statements';
-export type { OnMutation } from './statements';
-export { registerSQLiteIpc } from './ipc';
-export type { IpcMainLike } from './ipc';
 export * from '../shared';
 
 export const version = '0.1.0';
 
 export type CreateDatabaseOptions = DatabaseOptions & {
-  onMutation?: OnMutation;
+  pragmas?: DatabasePragmas;
 };
 
 const IN_MEMORY_PATH = ':memory:';
@@ -33,10 +29,10 @@ const deleteDbFiles = (path: string): void => {
 };
 
 const open = (target: string, options: CreateDatabaseOptions) => {
-  const { onMutation, ...dbOptions } = options;
-  const db = new DB(target, migrations, dbOptions);
+  const { pragmas, ...dbOptions } = options;
+  const db = new DB(target, migrations, dbOptions, pragmas);
   try {
-    return { db, statements: new Statements(db._db!, onMutation) };
+    return { db, statements: new Statements(db._db!) };
   } catch (err) {
     db.close();
     throw err;

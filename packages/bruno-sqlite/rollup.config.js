@@ -4,12 +4,12 @@ const typescript = require('@rollup/plugin-typescript');
 const json = require('@rollup/plugin-json');
 const terser = require('@rollup/plugin-terser').default;
 const dts = require('rollup-plugin-dts').default;
+const os = require('os');
 
 const nodeExternal = ['node:sqlite', 'node:crypto', 'crypto', 'fs', 'path'];
-const webExternal = ['react', 'react-dom', 'react/jsx-runtime', '@tanstack/react-query'];
 
 const jsPlugins = [
-  nodeResolve({ extensions: ['.js', '.ts', '.tsx', '.json'] }),
+  nodeResolve({ extensions: ['.js', '.ts', '.json'] }),
   json(),
   commonjs(),
   typescript({
@@ -17,7 +17,9 @@ const jsPlugins = [
     declaration: false,
     declarationMap: false
   }),
-  terser()
+  terser({
+    maxWorkers: Math.max(1, os.availableParallelism())
+  })
 ];
 
 const jsOutputs = (target) => [
@@ -33,21 +35,9 @@ module.exports = [
     external: nodeExternal
   },
   {
-    input: 'src/web/index.ts',
-    output: jsOutputs('web'),
-    plugins: jsPlugins,
-    external: webExternal
-  },
-  {
     input: 'src/node/index.ts',
     output: { file: 'dist/node/index.d.ts', format: 'es' },
     plugins: [dts()],
     external: nodeExternal
-  },
-  {
-    input: 'src/web/index.ts',
-    output: { file: 'dist/web/index.d.ts', format: 'es' },
-    plugins: [dts()],
-    external: webExternal
   }
 ];

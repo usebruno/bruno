@@ -39,6 +39,10 @@ const StyledWrapper = styled.div`
     &--info {
       color: ${(props) => props.theme.colors.text.yellow};
     }
+
+    &--timing {
+      color: ${(props) => props.theme.text};
+    }
   }
 
   .network-logs-separator {

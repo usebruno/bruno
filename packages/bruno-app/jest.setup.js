@@ -1,3 +1,5 @@
+global.__BRUNO_BENCHMARK__ = false;
+
 global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
