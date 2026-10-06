@@ -70,17 +70,6 @@ const ensureTransientDirectory = () => {
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };
 
-// File-cache OFF keeps its File Index in a throwaway DB, so mount-snapshots.db only ever holds cached data when the cache is ON
-const SESSION_INDEX_FILENAME = 'file-index-session.db';
-
-const removeSessionIndexFiles = (dbPath) => {
-  for (const suffix of ['', '-wal', '-shm']) {
-    try {
-      fs.rmSync(`${dbPath}${suffix}`, { force: true, maxRetries: 3, retryDelay: 100 });
-    } catch (_) {}
-  }
-};
-
 // In WAL mode part of the data lives in the `-wal` file until it is checkpointed, so the on-disk size is both files
 const sizeOnDisk = (dbPath) => {
   let total = 0;
@@ -96,7 +85,6 @@ const sizeOnDisk = (dbPath) => {
 
 class MountManager {
   #index = null;
-  #sessionIndex = null;
   #searchIndex = null;
   #mounts = new Map();
   #activeIndexingCount = 0;
@@ -110,7 +98,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getIndex().entries(existing.collectionPath);
+      existing.state = this.#getPersistentIndex().entries(existing.collectionPath);
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -130,7 +118,11 @@ class MountManager {
 
     entry.emit.loading(true);
     try {
-      const indexOptions = await this.getWatcherIndexOptions(collectionPath, workspacePath);
+      // This is the file-cache ON path, so it always works against the persistent file index
+      const indexOptions = {
+        ...(await this.getWatcherIndexOptions(collectionPath, workspacePath)),
+        fileIndex: this.#getPersistentIndex()
+      };
       entry.state = indexOptions.fileIndex.entries(collectionPath);
       await this.#reconcile(entry, indexOptions);
       await this.#emitTree(collectionUid, entry);
@@ -173,11 +165,6 @@ class MountManager {
       this.#index.close();
       this.#index = null;
     }
-    if (this.#sessionIndex) {
-      this.#sessionIndex.close();
-      removeSessionIndexFiles(this.#sessionIndex.dbPath);
-      this.#sessionIndex = null;
-    }
     if (this.#searchIndex) {
       this.#searchIndex.close();
       this.#searchIndex = null;
@@ -192,8 +179,8 @@ class MountManager {
     return sizeOnDisk(this.#getSearchIndex().dbPath);
   }
 
-  // Indexes the watcher keeps in sync with live edits. The search index is only wired up
-  // (with the workspace its rows are scoped to) when search indexing is enabled.
+  // Indexes the watcher keeps in sync with live edits. The file index only exists while the file cache is ON,
+  // and the search index is only wired up (with the workspace its rows are scoped to) when search indexing is enabled.
   async getWatcherIndexOptions(collectionPath, workspacePath) {
     const searchIndexEnabled = preferencesUtil.isSearchIndexEnabled();
     return {
@@ -256,7 +243,7 @@ class MountManager {
     this.#beginIndexingSession();
     try {
       const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
-      const fileCachePaths = new Set(this.#getIndex().collectionPaths());
+      const fileCachePaths = new Set(this.#getIndex()?.collectionPaths() ?? []);
       const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
         root: path.resolve(collectionPath),
         collectionName
@@ -289,7 +276,6 @@ class MountManager {
   clearCollectionIndex(collectionPath) {
     const root = path.resolve(collectionPath);
     this.#getPersistentIndex().clearCollection(root);
-    this.#sessionIndex?.clearCollection(root);
     this.#getSearchIndex().clearCollection(root);
   }
 
@@ -399,19 +385,9 @@ class MountManager {
     return this.#index;
   }
 
-  #getSessionIndex() {
-    if (!this.#sessionIndex) {
-      const tmpDir = path.join(require('electron').app.getPath('userData'), 'fileindex', 'tmp');
-      fs.mkdirSync(tmpDir, { recursive: true });
-      const dbPath = path.join(tmpDir, SESSION_INDEX_FILENAME);
-      removeSessionIndexFiles(dbPath);
-      this.#sessionIndex = new FileIndex({ dbPath });
-    }
-    return this.#sessionIndex;
-  }
-
+  // null while the file cache is OFF: nothing is cached, files are parsed again whenever they are needed
   #getIndex() {
-    return preferencesUtil.isFileCacheEnabled() ? this.#getPersistentIndex() : this.#getSessionIndex();
+    return preferencesUtil.isFileCacheEnabled() ? this.#getPersistentIndex() : null;
   }
 
   #getSearchIndex() {

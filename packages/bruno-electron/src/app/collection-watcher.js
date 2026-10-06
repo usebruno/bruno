@@ -25,7 +25,7 @@ const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
-const { defaultClassify } = require('../utils/mount');
+const { defaultClassify, hashFile } = require('../utils/mount');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -41,16 +41,21 @@ const searchIndexByCollection = new Map();
 // Writes the search row from the data the watcher just parsed, so a request is never parsed twice
 const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
   const registered = searchIndexByCollection.get(collectionPath);
-  if (!registered || !stamp) return;
+  if (!registered) return;
   const requestPath = path.relative(collectionPath, pathname);
   if (defaultClassify(requestPath)?.type !== 'request') return;
   const { searchIndex, workspacePath, collectionName } = registered;
   const { toRow } = require('../services/search-index/indexer');
   try {
+    // Without a file index (file cache OFF) nobody has taken the file's mtime/hash yet, so read them here
+    const { mtime, hash } = stamp ?? {
+      mtime: fs.statSync(pathname, { bigint: true }).mtimeNs,
+      hash: hashFile(pathname)
+    };
     searchIndex.upsert(toRow(
       collectionPath,
       searchIndex.collectionNameFor(collectionPath) || collectionName,
-      { relativePath: requestPath, mtime: stamp.mtime, hash: stamp.hash, data },
+      { relativePath: requestPath, mtime, hash, data },
       workspacePath
     ));
   } catch (err) {
