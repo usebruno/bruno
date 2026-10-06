@@ -1,3 +1,6 @@
+import { getStaticPropertyName } from './ast-utils';
+import { rewriteMembers, resolvesToBinding, POSTMAN_REGISTRY } from './semantic';
+
 /**
  * Convert Postman header array format to Bruno headers object
  * @param {Object} j - jscodeshift API
@@ -148,32 +151,11 @@ const transformBody = (j, requestOptions) => {
   });
 };
 
-// Postman's response API vs Bruno's axios-shaped response. json()/text() are
-// methods on the Postman response but already-parsed properties on Bruno's.
-const responsePropertyMap = {
-  json: 'data',
-  text: 'data',
-  code: 'status',
-  status: 'statusText'
-};
-
 const PROMISE_CHAIN_METHODS = new Set(['then', 'catch', 'finally']);
 
-/**
- * Get the statically-known property name of a member expression. A computed
- * access with a non-literal key (`p[someVar]`) has no static name — even an
- * Identifier key named `then` is a variable there, not the method.
- * @param {Object} memberExpr - MemberExpression node
- * @returns {string|null}
- */
-const getStaticPropertyName = (memberExpr) => {
-  const property = memberExpr.property;
-
-  if (memberExpr.computed) {
-    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
-  }
-  return property.type === 'Identifier' ? property.name : null;
-};
+// Which parameter of each kind of handler receives the response, and as what type
+const { callback: CALLBACK_PARAM_TYPES, then: THEN_PARAM_TYPES } = POSTMAN_REGISTRY.params['pm.sendRequest'];
+const CALLBACK_RESPONSE_INDEX = CALLBACK_PARAM_TYPES.findIndex(Boolean);
 
 /**
  * Whether an argument node is an explicit absent value, as in `.then(null, onError)`.
@@ -259,10 +241,8 @@ const ensureAsyncContext = (j, path) => {
  * @param {Object} handler - Handler function node owning the parameter
  * @returns {boolean}
  */
-const resolvesToHandlerParam = (path, name, handler) => {
-  const declaringScope = path.scope.lookup(name);
-  return Boolean(declaringScope) && declaringScope.node === handler;
-};
+const resolvesToHandlerParam = (path, name, handler) =>
+  resolvesToBinding(path, { name, scopeNode: handler });
 
 /**
  * Rewrite Postman response access on a handler's response parameter to its Bruno
@@ -273,37 +253,15 @@ const resolvesToHandlerParam = (path, name, handler) => {
  * @param {Object} handlerPath - Path of the function receiving the response: a `.then`
  *   fulfilled handler or a `pm.sendRequest` callback
  * @param {string} responseVarName - Name of the handler's response parameter
+ * @param {string} typeName - Registry type the parameter receives
  */
-const rewriteResponseAccess = (j, handlerPath, responseVarName) => {
-  const handler = handlerPath.value;
-
-  j(handlerPath).find(j.MemberExpression, {
-    object: {
-      type: 'Identifier',
-      name: responseVarName
-    }
-  }).forEach((memberPath) => {
-    const propertyName = getStaticPropertyName(memberPath.value);
-    if (!propertyName) return;
-    const bruProperty = responsePropertyMap[propertyName];
-    if (typeof bruProperty !== 'string') return;
-
-    // skip references shadowed by a nested re-declaration of the name
-    if (!resolvesToHandlerParam(memberPath, responseVarName, handler)) return;
-
-    const replacement = j.memberExpression(j.identifier(responseVarName), j.identifier(bruProperty));
-
-    const parent = memberPath.parent;
-    const isMethodCall = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
-
-    // `json()`/`text()` are methods on the Postman response but plain properties on Bruno's,
-    // so the call has to lose its parentheses: `res.json()` -> `res.data`
-    if (isMethodCall) {
-      j(parent).replaceWith(replacement);
-    } else {
-      j(memberPath).replaceWith(replacement);
-    }
-  });
+const rewriteResponseAccess = (j, handlerPath, responseVarName, typeName) => {
+  rewriteMembers(
+    j,
+    j(handlerPath),
+    { name: responseVarName, scopeNode: handlerPath.value, typeName },
+    POSTMAN_REGISTRY
+  );
 };
 
 /**
@@ -395,13 +353,11 @@ const transformCallback = (j, callbackPath) => {
 
   const params = callback.params;
 
-  // Get the response parameter name (typically the second param)
-  let responseVarName = 'response'; // Default if not found
-  if (params.length >= 2 && params[1].type === 'Identifier') {
-    responseVarName = params[1].name;
-  }
+  const responseParam = params[CALLBACK_RESPONSE_INDEX];
+  const responseVarName
+    = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
 
-  rewriteResponseAccess(j, callbackPath, responseVarName);
+  rewriteResponseAccess(j, callbackPath, responseVarName, CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX]);
 
   // `bru.sendRequest` callbacks may await, so the translated callback is always async
   callback.async = true;
@@ -518,7 +474,7 @@ const sendRequestTransformer = (path, j) => {
     const returnsResponse = returnsParamUnchanged(j, handlerPath);
     const reassignsResponse = isResponseParamReassigned(j, handlerPath);
 
-    rewriteResponseAccess(j, handlerPath, handler.params[0].name);
+    rewriteResponseAccess(j, handlerPath, handler.params[0].name, THEN_PARAM_TYPES[0]);
 
     if (!returnsResponse) break;
     if (reassignsResponse) break;

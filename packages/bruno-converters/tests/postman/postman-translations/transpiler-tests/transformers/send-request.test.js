@@ -612,7 +612,7 @@ describe('Send Request Translation', () => {
                 method: "GET"
             });
 
-            console.log(response.json());
+            console.log(response.data);
         } catch (err) {
             console.error(err);
         }
