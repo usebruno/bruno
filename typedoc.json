@@ -1,0 +1,18 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Bruno Script API",
+  "entryPoints": ["packages/bruno-js/types/script-api.d.ts"],
+  "tsconfig": "packages/bruno-js/tsconfig.script-api-docs.json",
+  "out": "docs-dist/script-api",
+  "plugin": ["./scripts/typedoc-script-api-plugin.mjs"],
+  "readme": "none",
+  "disableSources": true,
+  "excludeExternals": true,
+  "categorizeByGroup": false,
+  "categoryOrder": ["bru", "req", "res", "Tests & assertions", "bru.grpc", "*"],
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": false
+  },
+  "treatWarningsAsErrors": true
+}

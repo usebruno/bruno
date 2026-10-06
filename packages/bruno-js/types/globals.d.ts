@@ -44,13 +44,22 @@ export interface Response extends BrunoResponse {
   (path: string, ...filters: Array<object | ((item: any) => any)>): any;
 }
 
-/** The request of the gRPC call, as `bru.grpc.request`. */
+/**
+ * The request of the gRPC call, as `bru.grpc.request`.
+ * @category bru.grpc
+ */
 export interface GrpcRequest extends BrunoGrpcRequest {}
 
-/** What the gRPC server has answered so far, as `bru.grpc.response`. */
+/**
+ * What the gRPC server has answered so far, as `bru.grpc.response`.
+ * @category bru.grpc
+ */
 export interface GrpcResponse extends BrunoGrpcResponse {}
 
-/** The gRPC call a hook runs in. */
+/**
+ * The gRPC call a hook runs in, as `bru.grpc`.
+ * @category bru.grpc
+ */
 export interface Grpc {
   /**
    * The call's request: target, method, metadata and the messages sent.
@@ -73,6 +82,7 @@ export interface Grpc {
  * requests from a script.
  *
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category bru
  */
 export declare const bru: Bru;
 
@@ -80,6 +90,7 @@ export declare const bru: Bru;
  * The HTTP request.
  *
  * @context pre-request post-response tests
+ * @category req
  */
 export declare const req: Request;
 
@@ -87,6 +98,7 @@ export declare const req: Request;
  * The HTTP response.
  *
  * @context post-response tests
+ * @category res
  */
 export declare const res: Response;
 
@@ -105,6 +117,7 @@ export declare const res: Response;
  *   expect(res.getStatus()).to.equal(200);
  * });
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare function test(name: string, fn: () => void | Promise<void>): Promise<void>;
 
@@ -117,6 +130,7 @@ export declare function test(name: string, fn: () => void | Promise<void>): Prom
  * expect(res.getStatus()).to.equal(200);
  * expect(res.body).to.have.property('id');
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare const expect: Chai.ExpectStatic;
 
@@ -128,5 +142,6 @@ export declare const expect: Chai.ExpectStatic;
  * @example
  * assert.equal(res.getStatus(), 200);
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare const assert: Chai.AssertStatic;

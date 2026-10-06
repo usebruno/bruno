@@ -6,7 +6,7 @@
     "summary": "Bruno's scripting API: variables, environments, cookies, the collection runner, and sending requests from a script.",
     "description": "",
     "examples": [],
-    "category": null,
+    "category": "bru",
     "params": [],
     "returns": null,
     "contexts": [
@@ -4976,7 +4976,7 @@
     "summary": "The HTTP request.",
     "description": "",
     "examples": [],
-    "category": null,
+    "category": "req",
     "params": [],
     "returns": null,
     "contexts": [
@@ -6622,7 +6622,7 @@
     "summary": "The HTTP response.",
     "description": "",
     "examples": [],
-    "category": null,
+    "category": "res",
     "params": [
       {
         "name": "path",
@@ -7535,7 +7535,7 @@
     "examples": [
       "test('responds with 200', () => {\n  expect(res.getStatus()).to.equal(200);\n});"
     ],
-    "category": null,
+    "category": "Tests & assertions",
     "params": [
       {
         "name": "name",
@@ -7579,7 +7579,7 @@
     "examples": [
       "expect(res.getStatus()).to.equal(200);\nexpect(res.body).to.have.property('id');"
     ],
-    "category": null,
+    "category": "Tests & assertions",
     "params": [
       {
         "name": "val",
@@ -7623,7 +7623,7 @@
     "examples": [
       "assert.equal(res.getStatus(), 200);"
     ],
-    "category": null,
+    "category": "Tests & assertions",
     "params": [
       {
         "name": "expression",

@@ -6,6 +6,7 @@
  * requests from a script.
  *
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category bru
  */
 export declare const bru: Bru;
 
@@ -13,6 +14,7 @@ export declare const bru: Bru;
  * The HTTP request.
  *
  * @context pre-request post-response tests
+ * @category req
  */
 export declare const req: Request;
 
@@ -20,6 +22,7 @@ export declare const req: Request;
  * The HTTP response.
  *
  * @context post-response tests
+ * @category res
  */
 export declare const res: Response;
 
@@ -38,6 +41,7 @@ export declare const res: Response;
  *   expect(res.getStatus()).to.equal(200);
  * });
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare function test(name: string, fn: () => void | Promise<void>): Promise<void>;
 
@@ -50,6 +54,7 @@ export declare function test(name: string, fn: () => void | Promise<void>): Prom
  * expect(res.getStatus()).to.equal(200);
  * expect(res.body).to.have.property('id');
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare const expect: Chai.ExpectStatic;
 
@@ -61,12 +66,15 @@ export declare const expect: Chai.ExpectStatic;
  * @example
  * assert.equal(res.getStatus(), 200);
  * @context pre-request post-response tests grpc:before-call-start grpc:before-message-send grpc:after-message-receive grpc:after-call-end
+ * @category Tests & assertions
  */
 export declare const assert: Chai.AssertStatic;
 
 /**
  * Bruno's scripting API, available to every script as `bru`: variables at every scope, the
  * collection runner, cookies, and sending requests from a script.
+ *
+ * @category bru
  */
 export interface Bru {
   /**
@@ -478,6 +486,8 @@ export interface Bru {
  * Read and change the URL, method, headers, body and settings. Changes only take effect in a
  * pre-request script, before the request goes out. Variables are interpolated after the
  * pre-request script runs, so there its values still contain their `{{variables}}`.
+ *
+ * @category req
  */
 export interface Request {
   /**
@@ -748,6 +758,8 @@ export interface Request {
  * `res` is also a function: `res('data.items[0].id')` queries the response body with a path
  * expression, the same as `res.body.data.items[0].id` but `undefined` instead of an error when a
  * step is missing.
+ *
+ * @category res
  */
 export interface Response {
   /**
@@ -890,6 +902,8 @@ export interface Response {
 
 /**
  * The response of a request sent with `bru.sendRequest()`.
+ *
+ * @category bru
  */
 export interface SendRequestResponse {
   /**
@@ -915,6 +929,8 @@ export interface SendRequestResponse {
  *
  * Reads come straight from the app's cookie jar. Writes return a promise, or call the callback
  * when one is passed. `jar()` reaches the cookies of any URL.
+ *
+ * @category bru
  */
 export interface CookieList {
   /**
@@ -1141,6 +1157,8 @@ export interface CookieList {
 
 /**
  * Controls for the collection runner.
+ *
+ * @category bru
  */
 export interface Runner {
   /**
@@ -1159,6 +1177,8 @@ export interface Runner {
 
 /**
  * Helpers for formatting payloads.
+ *
+ * @category bru
  */
 export interface ScriptUtils {
   /**
@@ -1173,6 +1193,8 @@ export interface ScriptUtils {
 
 /**
  * The response of a collection request run with `bru.runRequest()`.
+ *
+ * @category bru
  */
 export interface RunRequestResponse {
   /**
@@ -1203,6 +1225,8 @@ export interface RunRequestResponse {
 
 /**
  * The `test()` results of the current script so far.
+ *
+ * @category bru
  */
 export interface TestResults {
   /**
@@ -1217,6 +1241,8 @@ export interface TestResults {
 
 /**
  * The results of the request's Assert tab.
+ *
+ * @category bru
  */
 export interface AssertionResults {
   /**
@@ -1230,7 +1256,9 @@ export interface AssertionResults {
 }
 
 /**
- * The gRPC call a hook runs in.
+ * The gRPC call a hook runs in, as `bru.grpc`.
+ *
+ * @category bru.grpc
  */
 export interface Grpc {
   /**
@@ -1253,6 +1281,8 @@ export interface Grpc {
 
 /**
  * A path parameter of the request, such as `id` in `/users/:id`.
+ *
+ * @category req
  */
 export interface PathParam {
   /**
@@ -1274,6 +1304,8 @@ export interface PathParam {
  *
  * Keys match case-insensitively, as HTTP header names do. Headers disabled in the request's
  * Headers tab are in the list with `disabled: true` and are not sent.
+ *
+ * @category req
  */
 export interface HeaderList {
   /**
@@ -1494,6 +1526,8 @@ export interface HeaderList {
 
 /**
  * The read-only header list of a response.
+ *
+ * @category res
  */
 export interface ReadOnlyHeaderList {
   /**
@@ -1644,6 +1678,8 @@ export interface ReadOnlyHeaderList {
 
 /**
  * The size of a response, in bytes.
+ *
+ * @category res
  */
 export interface ResponseSize {
   /**
@@ -1662,6 +1698,8 @@ export interface ResponseSize {
 
 /**
  * A cookie to write to the jar. `domain` defaults to the URL's host and `path` to `/`.
+ *
+ * @category bru
  */
 export interface CookieInput {
   /**
@@ -1705,6 +1743,8 @@ export interface CookieInput {
 /**
  * Cookies of any URL. Every method takes the URL first, which may contain `{{variables}}`, and
  * returns a promise, or calls `callback` instead when one is passed.
+ *
+ * @category bru
  */
 export interface CookieJar {
   /**
@@ -1783,6 +1823,8 @@ export interface CookieJar {
 
 /**
  * A cookie in the cookie jar.
+ *
+ * @category bru
  */
 export interface Cookie {
   /**
@@ -1817,6 +1859,8 @@ export interface Cookie {
 
 /**
  * Pass and fail counts of a set of results.
+ *
+ * @category bru
  */
 export interface ResultsSummary {
   /**
@@ -1839,6 +1883,8 @@ export interface ResultsSummary {
 
 /**
  * One `test()` result.
+ *
+ * @category bru
  */
 export interface TestResult {
   /**
@@ -1865,6 +1911,8 @@ export interface TestResult {
 
 /**
  * One result of the request's Assert tab.
+ *
+ * @category bru
  */
 export interface AssertionResult {
   /**
@@ -1895,6 +1943,8 @@ export interface AssertionResult {
 
 /**
  * The request of the gRPC call, as `bru.grpc.request`.
+ *
+ * @category bru.grpc
  */
 export interface GrpcRequest {
   /**
@@ -1958,6 +2008,8 @@ export interface GrpcRequest {
 
 /**
  * What the gRPC server has answered so far, as `bru.grpc.response`.
+ *
+ * @category bru.grpc
  */
 export interface GrpcResponse {
   /**
@@ -2007,6 +2059,8 @@ export interface GrpcResponse {
 
 /**
  * A header of the request or the response.
+ *
+ * @category req
  */
 export interface Header {
   /**
@@ -2025,6 +2079,8 @@ export interface Header {
 
 /**
  * gRPC metadata, as a list of `{ key, value, disabled? }` entries. Keys match case-insensitively.
+ *
+ * @category bru.grpc
  */
 export interface GrpcMetadataList {
   /**
@@ -2201,6 +2257,8 @@ export interface GrpcMetadataList {
 
 /**
  * The messages of a gRPC call, in the order they were sent or received. Read-only.
+ *
+ * @category bru.grpc
  */
 export interface GrpcMessageList {
   /**
@@ -2283,6 +2341,8 @@ export interface GrpcMessageList {
 
 /**
  * A gRPC message: its payload and when it was sent or received.
+ *
+ * @category bru.grpc
  */
 export interface GrpcMessage {
   /**
@@ -2301,6 +2361,8 @@ export interface GrpcMessage {
 
 /**
  * The read-only metadata of a gRPC response.
+ *
+ * @category bru.grpc
  */
 export interface ReadOnlyGrpcMetadataList {
   /**
@@ -2443,6 +2505,8 @@ export interface ReadOnlyGrpcMetadataList {
 
 /**
  * An entry of gRPC metadata.
+ *
+ * @category bru.grpc
  */
 export interface MetadataEntry {
   /**

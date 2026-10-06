@@ -98,6 +98,9 @@ const createGenerator = (program) => {
   const publicTypes = new Map();
   const namesInUse = new Map();
   const pending = [];
+  // The `@category` of the global or type being walked. A type the walk discovers is filed under
+  // it in the API reference's navigation, unless it names its own `@category`.
+  let currentHome = null;
 
   // ── Where a declaration comes from ───────────────────────────────────
 
@@ -225,7 +228,7 @@ const createGenerator = (program) => {
       fail(`two public types are named ${symbol.name}: ${locationOf(existing.declarations[0])} and ${locationOf(symbol.declarations[0])}`);
     }
     namesInUse.set(symbol.name, symbol);
-    const entry = { name: symbol.name, symbol, type };
+    const entry = { name: symbol.name, symbol, type, home: currentHome };
     publicTypes.set(symbol, entry);
     pending.push(entry);
   };
@@ -389,6 +392,12 @@ const createGenerator = (program) => {
     const { symbol, type, name } = entry;
     const doc = readDoc(symbol);
     validateDoc(doc, name, { requireCategory: false });
+    if (!doc.category) {
+      doc.category = entry.home;
+      doc.tags.push({ name: 'category', text: entry.home });
+    }
+    const outerHome = currentHome;
+    currentHome = doc.category;
     const isObject = (type.flags & ts.TypeFlags.Object) !== 0;
     const properties = isObject ? checker.getPropertiesOfType(type) : [];
     const callSignatures = isObject ? checker.getSignaturesOfType(type, ts.SignatureKind.Call) : [];
@@ -412,6 +421,7 @@ const createGenerator = (program) => {
       };
       describedTypes.set(entry, described);
     }
+    currentHome = outerHome;
     return described;
   };
 
@@ -427,9 +437,10 @@ const createGenerator = (program) => {
       .sort((a, b) => position(a) - position(b))
       .map((symbol) => {
         const doc = readDoc(symbol);
-        validateDoc(doc, symbol.name, { requireCategory: false });
+        validateDoc(doc, symbol.name, { requireCategory: true });
         if (!doc.contexts) fail(`global ${symbol.name} has no @context`);
         const type = checker.getTypeOfSymbol(symbol);
+        currentHome = doc.category;
         collectType(type, symbol.name);
         const signatures = checker.getSignaturesOfType(type, ts.SignatureKind.Call);
         return {
@@ -557,7 +568,7 @@ const createGenerator = (program) => {
       const scope = {
         contexts: global.doc.contexts,
         runtimes: global.doc.runtimes || RUNTIMES,
-        category: null
+        category: global.doc.category
       };
       if (global.signatures.length) {
         for (const signature of global.signatures) {

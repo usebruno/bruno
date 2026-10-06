@@ -78,3 +78,7 @@ input, and `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, 
 autocomplete and hover data. Run it after changing the script API's JSDoc; CI fails when they are
 stale. The run also fails on the convention breaches above, an unresolved type name, or a type
 from outside bruno-js that the API exposes.
+
+`npm run docs:script-api` builds the HTML API reference from `types/script-api.d.ts` into
+`docs-dist/script-api/` with TypeDoc (`typedoc.json`). `scripts/typedoc-script-api-plugin.mjs`
+turns the `@context` and `@runtime` tags into sentences for the reader.
