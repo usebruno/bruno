@@ -37,7 +37,7 @@ import DeleteCollectionItems from '../DeleteCollectionItems';
 import IgnoreCollectionItem from '../IgnoreCollectionItem';
 import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
-import { isItemARequest, isItemAFolder, scrollToTheActiveTab } from 'utils/tabs';
+import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
@@ -325,8 +325,6 @@ const CollectionItemRow = ({
   const handleClick = (event) => {
     if (handleSelectionClick(event)) return;
     if (event && event.detail != 1) return;
-    // scroll to the active tab
-    setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
     const isApp = item.type === 'app';
     if (isRequest || isApp) {
