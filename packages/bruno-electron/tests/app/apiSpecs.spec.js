@@ -8,6 +8,14 @@ jest.mock('electron', () => ({
   ipcMain: { emit: jest.fn() }
 }));
 
+jest.mock('../../src/store/default-workspace', () => ({
+  defaultWorkspaceManager: {
+    getDefaultWorkspacePath: () => null,
+    getDefaultWorkspaceUid: () => 'default'
+  }
+}));
+
+const yaml = require('js-yaml');
 const { dialog, ipcMain } = require('electron');
 const { openApiSpec, openApiSpecDialog } = require('../../src/app/apiSpecs');
 
@@ -199,5 +207,92 @@ describe('the path openApiSpec reports back', () => {
     expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', {
       message: INVALID_EXTENSION_MESSAGE
     });
+  });
+});
+
+describe('openApiSpec workspace entry', () => {
+  let tmpDir;
+  let workspacePath;
+  let win;
+  let watcher;
+
+  const writeSpecFile = (relativePath, content) => {
+    const filePath = path.join(tmpDir, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+    return filePath;
+  };
+
+  const readSpecs = () => yaml.load(fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')).specs;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-apispec-ws-'));
+    workspacePath = path.join(tmpDir, 'workspace');
+    fs.mkdirSync(workspacePath);
+    fs.writeFileSync(
+      path.join(workspacePath, 'workspace.yml'),
+      ['opencollection: 1.0.0', 'info:', '  name: Test', '  type: workspace', 'collections: []', 'specs: []', 'docs: \'\''].join('\n')
+    );
+    win = { webContents: { send: jest.fn() } };
+    watcher = { hasWatcher: jest.fn().mockReturnValue(false) };
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
+
+  test('stores the filename without its extension as the workspace entry name', async () => {
+    const specPath = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()).toEqual([{ name: 'openapi', path: '../a/openapi.yaml' }]);
+  });
+
+  test('adds two files with the same filename from different folders as two entries', async () => {
+    const first = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\npaths: {}\n');
+    const second = writeSpecFile('b/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Payments API\npaths: {}\n');
+
+    await openApiSpec(win, watcher, first, { workspacePath });
+    await openApiSpec(win, watcher, second, { workspacePath });
+
+    expect(readSpecs().map((s) => s.path)).toEqual([
+      path.relative(workspacePath, first).split(path.sep).join('/'),
+      path.relative(workspacePath, second).split(path.sep).join('/')
+    ]);
+  });
+
+  test('does not add a second entry when the same path is opened twice', async () => {
+    const specPath = writeSpecFile('a/openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders API\npaths: {}\n');
+
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+    await openApiSpec(win, watcher, specPath, { workspacePath });
+
+    expect(readSpecs()).toHaveLength(1);
+  });
+
+  test('reports a missing file instead of writing a workspace entry', async () => {
+    const missing = path.join(tmpDir, 'a', 'missing.yaml');
+
+    await openApiSpec(win, watcher, missing, { workspacePath });
+
+    expect(readSpecs()).toEqual([]);
+    expect(win.webContents.send).toHaveBeenCalledWith('main:display-error', expect.objectContaining({
+      message: `API spec file not found: ${missing}`
+    }));
+  });
+
+  test('keeps watching a listed spec whose file is missing, without an error', async () => {
+    const missing = path.join(tmpDir, 'a', 'gone.yaml');
+    fs.writeFileSync(
+      path.join(workspacePath, 'workspace.yml'),
+      ['opencollection: 1.0.0', 'info:', '  name: Test', '  type: workspace', 'collections: []', 'specs:', '  - name: gone', '    path: ../a/gone.yaml', 'docs: \'\''].join('\n')
+    );
+
+    await openApiSpec(win, watcher, missing, { workspacePath });
+
+    expect(win.webContents.send).not.toHaveBeenCalledWith('main:display-error', expect.anything());
+    expect(ipcMain.emit).toHaveBeenCalledWith('main:apispec-opened', win, missing, expect.any(String), workspacePath);
+    expect(readSpecs()).toEqual([{ name: 'gone', path: '../a/gone.yaml' }]);
   });
 });

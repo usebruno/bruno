@@ -7,7 +7,9 @@ import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import apiSpecReducer, {
   clearApiSpecDraft,
-  closeApiSpecFile,
+  removeApiSpecFromWorkspace,
+  deleteApiSpec,
+  removeApiSpec,
   openApiSpec,
   openApiSpecTab,
   saveApiSpecToFile,
@@ -15,7 +17,7 @@ import apiSpecReducer, {
   updateApiSpecDraft
 } from 'providers/ReduxStore/slices/apiSpec';
 import { dropApiSpecTabsMissingFrom } from 'providers/ReduxStore/slices/workspaces/actions';
-import tabsReducer from 'providers/ReduxStore/slices/tabs';
+import tabsReducer, { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { getApiSpecTabUid } from 'utils/api-specs';
 
 const SCRATCH_UID = 'scratch-collection';
@@ -371,7 +373,7 @@ describe('removing an API spec from a workspace', () => {
       .spyOn(workspaceActions, 'loadWorkspaceApiSpecs')
       .mockReturnValue(() => Promise.resolve());
 
-    await store.dispatch(closeApiSpecFile({ uid: 'runtime-uid' }));
+    await store.dispatch(removeApiSpecFromWorkspace({ uid: 'runtime-uid' }));
 
     expect(store.getState().tabs.tabs.map((tab) => tab.collectionUid)).toEqual([SCRATCH_B]);
 
@@ -529,5 +531,112 @@ describe('opening an API spec from the file dialog', () => {
 
     await expect(store.dispatch(openApiSpec())).rejects.toThrow('EACCES: permission denied');
     expect(store.getState().tabs.tabs).toHaveLength(0);
+  });
+});
+
+describe('removing or deleting an API spec from its row', () => {
+  const ROW_SCRATCH_UID = 'scratch-ws1';
+
+  const spec = (uid) => ({ uid, name: uid, pathname: `/ws/${uid}.yaml`, filename: `${uid}.yaml` });
+
+  const specTab = (uid) => ({
+    uid: getApiSpecTabUid(ROW_SCRATCH_UID, `/ws/${uid}.yaml`),
+    collectionUid: ROW_SCRATCH_UID,
+    type: 'api-spec',
+    apiSpecPathname: `/ws/${uid}.yaml`
+  });
+
+  const stateWithWorkspace = (apiSpecs, openTabs = []) => ({
+    apiSpec: { apiSpecs },
+    tabs: { tabs: openTabs, activeTabUid: openTabs[0]?.uid || null, recentlyClosedTabs: [] },
+    workspaces: {
+      activeWorkspaceUid: 'ws1',
+      workspaces: [{ uid: 'ws1', pathname: '/ws', scratchCollectionUid: ROW_SCRATCH_UID }]
+    }
+  });
+
+  const runThunks = (getState) => {
+    const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+    return dispatch;
+  };
+
+  describe.each([
+    ['deleteApiSpec', deleteApiSpec, 'renderer:delete-api-spec'],
+    ['removeApiSpecFromWorkspace', removeApiSpecFromWorkspace, 'renderer:remove-api-spec']
+  ])('%s thunk', (_, thunk, channel) => {
+    let loadSpy;
+    let originalIpcRenderer;
+
+    beforeEach(() => {
+      originalIpcRenderer = window.ipcRenderer;
+      window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+      const workspaceActions = require('providers/ReduxStore/slices/workspaces/actions');
+      loadSpy = jest
+        .spyOn(workspaceActions, 'loadWorkspaceApiSpecs')
+        .mockImplementation((uid) => ({ type: 'test/loadWorkspaceApiSpecs', uid }));
+    });
+
+    afterEach(() => {
+      loadSpy.mockRestore();
+      window.ipcRenderer = originalIpcRenderer;
+    });
+
+    it(`calls ${channel} with the spec path and workspace path`, async () => {
+      const getState = () => stateWithWorkspace([spec('a')]);
+
+      await thunk({ uid: 'a' })(runThunks(getState), getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(channel, '/ws/a.yaml', '/ws');
+    });
+
+    it('closes the open tab of the removed spec, drops it from state and reloads workspace specs', async () => {
+      const getState = () => stateWithWorkspace([spec('a'), spec('b')], [specTab('a'), specTab('b')]);
+      const dispatch = runThunks(getState);
+
+      await thunk({ uid: 'a' })(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledWith(closeTabs({ tabUids: [specTab('a').uid], reopenable: false }));
+      expect(dispatch).toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
+      expect(dispatch).toHaveBeenCalledWith({ type: 'test/loadWorkspaceApiSpecs', uid: 'ws1' });
+    });
+
+    it('closes no tab when the removed spec is not open', async () => {
+      const getState = () => stateWithWorkspace([spec('a'), spec('b')], [specTab('b')]);
+      const dispatch = runThunks(getState);
+
+      await thunk({ uid: 'a' })(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: closeTabs.type }));
+      expect(dispatch).toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
+    });
+
+    it('still closes the tab and drops the spec when the main process reports a partial result, and hands the result back', async () => {
+      window.ipcRenderer.invoke.mockResolvedValue({ workspaceUpdated: false });
+      const getState = () => stateWithWorkspace([spec('a')], [specTab('a')]);
+      const dispatch = runThunks(getState);
+
+      const result = await thunk({ uid: 'a' })(dispatch, getState);
+
+      expect(result).toEqual({ workspaceUpdated: false });
+      expect(dispatch).toHaveBeenCalledWith(closeTabs({ tabUids: [specTab('a').uid], reopenable: false }));
+      expect(dispatch).toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
+    });
+
+    it('changes nothing in state when IPC fails', async () => {
+      window.ipcRenderer.invoke.mockRejectedValue(new Error('EACCES'));
+      const getState = () => stateWithWorkspace([spec('a')], [specTab('a')]);
+      const dispatch = runThunks(getState);
+
+      await expect(thunk({ uid: 'a' })(dispatch, getState)).rejects.toThrow('EACCES');
+
+      expect(dispatch).not.toHaveBeenCalledWith(removeApiSpec({ uid: 'a' }));
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: closeTabs.type }));
+    });
+
+    it('rejects without calling IPC when the spec is not loaded', async () => {
+      await expect(thunk({ uid: 'missing' })(jest.fn(), () => stateWithWorkspace([]))).rejects.toThrow('API Spec not found');
+
+      expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    });
   });
 });

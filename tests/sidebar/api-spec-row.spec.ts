@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import * as path from 'path';
-import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
+import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators, openApiSpecFromDialog } from '../utils/page/openapi/render-spec';
 
 const FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const SPEC_A = { file: path.join(FIXTURES, 'openapi-simple.json'), name: 'Simple Test API' };
@@ -110,7 +110,8 @@ test.describe('API Spec sidebar row', () => {
   });
 
   test('Row actions menu opens from the actions icon', async ({ page, electronApp }) => {
-    const { sidebarRow, sidebarRowActions, sidebarRowRemoveMenuItem } = buildApiSpecPanelLocators(page);
+    const { sidebarRow, sidebarRowActions } = buildApiSpecPanelLocators(page);
+    const { menuItem } = buildApiSpecRowMenuLocators(page);
     await openBothSpecs(page, electronApp);
 
     await test.step('Actions icon is hidden while the row is neither hovered nor focused', async () => {
@@ -128,13 +129,13 @@ test.describe('API Spec sidebar row', () => {
     });
 
     await test.step('Menu is open', async () => {
-      await expect(sidebarRowRemoveMenuItem()).toBeVisible();
+      await expect(menuItem('remove')).toBeVisible();
     });
 
     await test.step('Actions icon stays visible with the mouse off the row while the menu is open', async () => {
       await page.mouse.move(0, 0);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-      await expect(sidebarRowRemoveMenuItem()).toBeVisible();
+      await expect(menuItem('remove')).toBeVisible();
       await expect(sidebarRowActions(SPEC_A.name)).toHaveAttribute('aria-expanded', 'true');
       await expect(sidebarRowActions(SPEC_A.name)).toBeVisible();
     });
