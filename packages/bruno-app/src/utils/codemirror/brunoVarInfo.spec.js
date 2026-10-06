@@ -1,4 +1,5 @@
 import { interpolate } from '@usebruno/common';
+import { within } from '@testing-library/dom';
 import RealCodeMirror from 'codemirror';
 import store from 'providers/ReduxStore';
 import {
@@ -510,7 +511,7 @@ describe('renderVarInfo', () => {
 
       const containerDiv = result;
       const header = containerDiv.querySelector('.var-info-header');
-      const scopeBadge = containerDiv.querySelector('[data-testid="var-info-scope-badge"]');
+      const scopeBadge = within(containerDiv).getByTestId('var-info-scope-badge');
       const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
       const warningNote = containerDiv.querySelector('.var-warning-note');
       const valueContainer = containerDiv.querySelector('.var-value-container');
@@ -535,7 +536,7 @@ describe('renderVarInfo', () => {
     it('should show warning for unknown dynamic variable', () => {
       const { warningNote, scopeBadge } = setupDynamicRender('$unknownFaker');
 
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Dynamic');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('Unknown dynamic variable');
     });
@@ -543,7 +544,7 @@ describe('renderVarInfo', () => {
     it('should show time-based note for $timestamp variable', () => {
       const { readOnlyNote, scopeBadge } = setupDynamicRender('$timestamp');
 
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Dynamic');
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
     });
@@ -551,7 +552,7 @@ describe('renderVarInfo', () => {
     it('should show time-based note for $isoTimestamp variable', () => {
       const { readOnlyNote, scopeBadge } = setupDynamicRender('$isoTimestamp');
 
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Dynamic');
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
     });
@@ -584,23 +585,23 @@ describe('renderVarInfo', () => {
       );
 
       // Guessed scope shows up as the header badge, same as any other variable.
-      const scopeBadge = result.querySelector('[data-testid="var-info-scope-badge"]');
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Request');
+      const scopeBadge = within(result).getByTestId('var-info-scope-badge');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
       expect(switcher).not.toBeNull();
 
       switcher.querySelector('.var-add-to-toggle').click();
 
-      expect(switcher.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
-      expect(switcher.querySelector('[data-testid="var-info-add-to-option-collection"]')).not.toBeNull();
-      expect(switcher.querySelector('[data-testid="var-info-add-to-option-environment"]')).not.toBeNull();
-      expect(switcher.querySelector('[data-testid="var-info-add-to-option-global"]')).not.toBeNull();
+      expect(within(switcher).queryByTestId('var-info-add-to-option-request')).not.toBeNull();
+      expect(within(switcher).queryByTestId('var-info-add-to-option-collection')).not.toBeNull();
+      expect(within(switcher).queryByTestId('var-info-add-to-option-environment')).not.toBeNull();
+      expect(within(switcher).queryByTestId('var-info-add-to-option-global')).not.toBeNull();
       // Folder is not offered as a creatable scope yet.
-      expect(switcher.querySelector('[data-testid="var-info-add-to-option-folder"]')).toBeNull();
+      expect(within(switcher).queryByTestId('var-info-add-to-option-folder')).toBeNull();
 
       const activeRow = switcher.querySelector('.var-add-to-option-active');
-      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
+      expect(within(activeRow).queryByTestId('var-info-add-to-option-request')).not.toBeNull();
     });
 
     it('resolves the Environment scope against the real active environment, not whichever environment is being displayed', () => {
@@ -660,7 +661,7 @@ describe('renderVarInfo', () => {
       switcher.querySelector('.var-add-to-toggle').click();
 
       const activeRow = switcher.querySelector('.var-add-to-option-active');
-      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-folder"]')).not.toBeNull();
+      expect(within(activeRow).queryByTestId('var-info-add-to-option-folder')).not.toBeNull();
     });
 
     it('repoints the scope badge when a different scope is picked, without saving immediately', () => {
@@ -679,13 +680,13 @@ describe('renderVarInfo', () => {
         }
       );
 
-      const scopeBadge = result.querySelector('[data-testid="var-info-scope-badge"]');
-      const scopeBadgeLabel = () => scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent;
+      const scopeBadge = within(result).getByTestId('var-info-scope-badge');
+      const scopeBadgeLabel = () => within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent;
       expect(scopeBadgeLabel()).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
       switcher.querySelector('.var-add-to-toggle').click();
-      switcher.querySelector('[data-testid="var-info-add-to-option-collection"]').click();
+      within(switcher).getByTestId('var-info-add-to-option-collection').click();
 
       expect(scopeBadgeLabel()).toBe('Collection');
       // Picking an existing scope only repoints where the next blur-save writes to.
@@ -740,13 +741,13 @@ describe('renderVarInfo', () => {
       const valueContainer = result.querySelector('.var-value-container');
       switcher.querySelector('.var-add-to-toggle').click();
 
-      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      const createLink = within(switcher).queryByTestId('var-info-add-to-create-env-button');
       expect(createLink).not.toBeNull();
       createLink.click();
 
-      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      const nameInput = within(switcher).getByTestId('var-info-add-to-create-env-name-input');
       nameInput.value = 'Dev';
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-submit').click();
 
       await jest.runAllTimersAsync();
       await Promise.resolve();
@@ -761,7 +762,7 @@ describe('renderVarInfo', () => {
 
       // The row is restored with the newly created environment's name in its label, not the
       // stale pre-creation "no environment" label.
-      const environmentRow = switcher.querySelector('[data-testid="var-info-add-to-option-environment"]');
+      const environmentRow = within(switcher).queryByTestId('var-info-add-to-option-environment');
       expect(environmentRow).not.toBeNull();
       expect(environmentRow.querySelector('.var-add-to-option-label').textContent).toBe('Collection Environment (Dev)');
 
@@ -816,17 +817,17 @@ describe('renderVarInfo', () => {
       const valueContainer = result.querySelector('.var-value-container');
       switcher.querySelector('.var-add-to-toggle').click();
 
-      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      const createLink = within(switcher).queryByTestId('var-info-add-to-create-env-button');
       createLink.click();
 
       // Tick Secret before creating the environment.
-      const secretCheckbox = switcher.querySelector('[data-testid="var-info-add-to-secret-checkbox"]');
+      const secretCheckbox = within(switcher).getByTestId('var-info-add-to-secret-checkbox');
       secretCheckbox.checked = true;
       secretCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
 
-      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      const nameInput = within(switcher).getByTestId('var-info-add-to-create-env-name-input');
       nameInput.value = 'Dev';
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-submit').click();
 
       await jest.runAllTimersAsync();
       await Promise.resolve();
@@ -871,17 +872,17 @@ describe('renderVarInfo', () => {
 
       const switcher = result.querySelector('.var-add-to-switcher');
       switcher.querySelector('.var-add-to-toggle').click();
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-button').click();
 
-      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      const nameInput = within(switcher).getByTestId('var-info-add-to-create-env-name-input');
       nameInput.value = 'Prod:Env';
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-submit').click();
 
       await Promise.resolve();
       await Promise.resolve();
 
       expect(addEnvironment).not.toHaveBeenCalled();
-      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      const errorNote = within(switcher).getByTestId('var-info-add-to-error');
       expect(errorNote.textContent).not.toBe('');
     });
 
@@ -917,17 +918,17 @@ describe('renderVarInfo', () => {
 
       const switcher = result.querySelector('.var-add-to-switcher');
       switcher.querySelector('.var-add-to-toggle').click();
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-button').click();
 
-      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      const nameInput = within(switcher).getByTestId('var-info-add-to-create-env-name-input');
       nameInput.value = 'Dev';
-      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+      within(switcher).getByTestId('var-info-add-to-create-env-submit').click();
 
       await Promise.resolve();
       await Promise.resolve();
 
       expect(addEnvironment).not.toHaveBeenCalled();
-      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      const errorNote = within(switcher).getByTestId('var-info-add-to-error');
       expect(errorNote.textContent).toBe('Environment already exists');
     });
 
@@ -994,7 +995,7 @@ describe('renderVarInfo', () => {
       );
 
       const cmEditor = result.querySelector('.var-value-container')._cmEditor;
-      const valueDisplay = result.querySelector('[data-testid="var-info-value-editable"]');
+      const valueDisplay = within(result).queryByTestId('var-info-value-editable');
 
       // Reference a secret variable — masking should turn on.
       cmEditor.getValue = () => '{{secretVar}}';
@@ -1089,7 +1090,7 @@ describe('renderVarInfo', () => {
 
       const containerDiv = result;
       const header = containerDiv.querySelector('.var-info-header');
-      const scopeBadge = containerDiv.querySelector('[data-testid="var-info-scope-badge"]');
+      const scopeBadge = within(containerDiv).getByTestId('var-info-scope-badge');
       const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
       const warningNote = containerDiv.querySelector('.var-warning-note');
       const valueContainer = containerDiv.querySelector('.var-value-container');
@@ -1103,7 +1104,7 @@ describe('renderVarInfo', () => {
         '$oauth2.credentials.access_token': 'test-token-123'
       });
 
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('OAuth2');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('OAuth2');
     });
 
     it('should show read-only note for valid OAuth2 variables', () => {
@@ -1127,7 +1128,7 @@ describe('renderVarInfo', () => {
     it('should show warning for OAuth2 variable when token is not found', () => {
       const { warningNote, scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {});
 
-      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('OAuth2');
+      expect(within(scopeBadge).getByTestId('var-info-scope-badge-label').textContent).toBe('OAuth2');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('OAuth2 token not found');
     });
