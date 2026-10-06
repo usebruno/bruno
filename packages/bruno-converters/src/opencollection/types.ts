@@ -192,7 +192,7 @@ export interface BrunoConfig {
     config?: {
       protocol?: string;
       hostname?: string;
-      port?: number;
+      port?: number | string;
       auth?: {
         disabled?: boolean;
         username?: string;

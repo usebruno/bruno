@@ -139,7 +139,7 @@ const ProxySettings = ({ collection }) => {
       updateProxy({
         config: {
           ...currentProxyConfig.config,
-          port: port && !containsVariable(port) ? Number(port) : port
+          port: port || ''
         }
       });
     }

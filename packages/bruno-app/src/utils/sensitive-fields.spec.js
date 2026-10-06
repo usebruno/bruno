@@ -434,6 +434,20 @@ describe('environment table usage flags', () => {
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
   });
 
+  it('ignores a partial unparseable request while scanning the collection', () => {
+    const variable = tokenVariable('env-token');
+    const collection = collectionWithEnvVariables(requestWithAuthValue('auth.bearer.token', '{{token}}'), [variable]);
+    collection.items.push({
+      uid: 'broken-parse',
+      type: 'http-request',
+      request: {},
+      partial: true,
+      error: { message: 'parse failed' }
+    });
+
+    expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
+  });
+
   it('does not flag a secret environment variable, and flags a non-secret environment variable that wins over a collection variable', () => {
     const secretVariable = tokenVariable('secret-token', { secret: true, value: '' });
     const plainVariable = tokenVariable('plain-token');

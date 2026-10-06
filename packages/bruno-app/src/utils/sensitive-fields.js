@@ -238,7 +238,7 @@ const collectSensitiveFieldValues = (collection) => {
   });
 
   flattenItems(collection?.items || []).forEach((item) => {
-    if (!isItemARequest(item)) {
+    if (!isItemARequest(item) || item.partial) {
       return;
     }
     fields.push(...readSensitiveValues({ request: resolveInheritedAuth(item, collection) }, item, 'request'));

@@ -10,11 +10,13 @@ interface OldProxyAuth {
   password?: string;
 }
 
+export type ProxyPort = number | string | null;
+
 interface OldProxyConfig {
   enabled?: true | false | 'global';
   protocol?: string;
   hostname?: string;
-  port?: number | null;
+  port?: ProxyPort;
   auth?: OldProxyAuth;
   bypassProxy?: string;
 }
@@ -31,11 +33,26 @@ interface NewProxyConfig {
   config: {
     protocol: string;
     hostname: string;
-    port: number | null;
+    port: ProxyPort;
     auth: NewProxyAuth;
     bypassProxy: string;
   };
 }
+
+/** Collection proxy ports may be numeric or a {{variable}} template string. */
+export const normalizeProxyPort = (port: unknown): ProxyPort => {
+  if (port === null || port === undefined || port === '') {
+    return null;
+  }
+  if (typeof port === 'number') {
+    return port;
+  }
+  if (typeof port === 'string') {
+    const trimmed = port.trim();
+    return trimmed === '' ? null : trimmed;
+  }
+  return null;
+};
 
 export const transformProxyConfig = (proxy: OldProxyConfig | NewProxyConfig | null | undefined): NewProxyConfig | OldProxyConfig => {
   proxy = proxy || {};
@@ -49,7 +66,7 @@ export const transformProxyConfig = (proxy: OldProxyConfig | NewProxyConfig | nu
       config: {
         protocol: oldProxy.protocol || 'http',
         hostname: oldProxy.hostname || '',
-        port: oldProxy.port || null,
+        port: normalizeProxyPort(oldProxy.port),
         auth: {
           username: oldProxy.auth?.username || '',
           password: oldProxy.auth?.password || ''
@@ -88,5 +105,9 @@ export const transformProxyConfig = (proxy: OldProxyConfig | NewProxyConfig | nu
     return newProxy;
   }
 
-  return proxy;
+  const newProxy = proxy as NewProxyConfig;
+  if (newProxy.config) {
+    newProxy.config.port = normalizeProxyPort(newProxy.config.port);
+  }
+  return newProxy;
 };
