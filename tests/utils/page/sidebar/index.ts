@@ -1,4 +1,4 @@
-import { Locator, Page } from '../../../../playwright';
+import { expect, Locator, Page, test } from '../../../../playwright';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -74,6 +74,9 @@ export const buildSidebarLocators = (page: Page) => {
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar'),
+    searchToggle: () => page.getByTestId('sidebar-search-toggle'),
+    searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchClear: () => page.getByTestId('sidebar-search-clear'),
 
     // Modals opened from a sidebar row's "..." menu.
     renameItemModal: {
@@ -109,4 +112,37 @@ export const buildSidebarLocators = (page: Page) => {
       fileNameInput: (): Locator => page.locator('#file-name')
     }
   };
+};
+
+/**
+ * Open the collection sidebar search (if it is closed) and filter by request name.
+ */
+export const searchSidebarRequests = async (page: Page, query: string) => {
+  const sidebar = buildSidebarLocators(page);
+
+  await test.step(`Search sidebar requests for "${query}"`, async () => {
+    if (!(await sidebar.searchInput().isVisible())) {
+      await sidebar.searchToggle().click();
+    }
+    await expect(sidebar.searchInput()).toBeVisible();
+    await sidebar.searchInput().fill(query);
+  });
+};
+
+/**
+ * Clear the collection sidebar search so every request is listed again.
+ */
+export const clearSidebarSearch = async (page: Page) => {
+  const sidebar = buildSidebarLocators(page);
+
+  await test.step('Clear sidebar request search', async () => {
+    if (await sidebar.searchClear().isVisible()) {
+      await sidebar.searchClear().click();
+    } else if (await sidebar.searchInput().isVisible()) {
+      await sidebar.searchInput().fill('');
+    }
+    if (await sidebar.searchInput().isVisible()) {
+      await expect(sidebar.searchInput()).toHaveValue('');
+    }
+  });
 };

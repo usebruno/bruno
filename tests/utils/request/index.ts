@@ -5,7 +5,7 @@ export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
   sendButton: () => page.getByTestId('send-arrow-icon'),
-  methodDropdown: () => page.getByTestId('request-method-selector'),
+  methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
   requestNameInput: () => page.getByPlaceholder('Request Name'),
   requestTestId: () => page.getByTestId('request-name'),
@@ -46,6 +46,11 @@ export const buildRequestLocators = (page: Page) => ({
     requestConflict: (name: string) => page.getByTestId(`request-header-conflict-${name.toLowerCase()}`),
     defaultConflictTooltip: (name: string) => page.getByTestId(`default-header-conflict-tooltip-${name.toLowerCase()}`),
     requestConflictTooltip: (name: string) => page.getByTestId(`request-header-conflict-tooltip-${name.toLowerCase()}`)
+  },
+  queryParams: {
+    rowByName: (name: string) => page.getByTestId('query-params-table').locator(`tbody tr[data-row-name="${name}"]`),
+    valueByName: (name: string) =>
+      page.getByTestId('query-params-table').locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-value')
   }
 });
 
