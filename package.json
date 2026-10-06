@@ -28,6 +28,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@types/adm-zip": "^0.5.8",
+    "@types/chai": "^4.3.20",
     "@types/jest": "^29.5.11",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash-es": "^4.17.12",
@@ -49,7 +50,8 @@
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
-    "ts-jest": "^29.2.6"
+    "ts-jest": "^29.2.6",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "setup": "node ./scripts/setup.js",
@@ -70,6 +72,7 @@
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:schema-types": "npm run build --workspace=packages/bruno-schema-types",
+    "generate:script-api": "node ./scripts/generate-script-api.js",
     "build:electron": "node ./scripts/build-electron.js",
     "build:electron:mac": "./scripts/build-electron.sh mac",
     "build:electron:win": "./scripts/build-electron.sh win",

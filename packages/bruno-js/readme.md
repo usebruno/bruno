@@ -69,3 +69,12 @@ by accident.
 - **Optional trailing arguments behind a rest parameter** (`reduce(fn, ...rest)`): give the method
   a `@type {(fn: …, initialValue?: *, context?: *) => *}` and describe the parameters with
   untyped `@param name - text` lines. JSDoc `@overload` loses the optional markers.
+
+### Regenerating
+
+`npm run generate:script-api` (from the repo root) reads the JSDoc, starting from the globals in
+`types/globals.d.ts`, and writes two committed files: `types/script-api.d.ts`, the API reference's
+input, and `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, the editor's
+autocomplete and hover data. Run it after changing the script API's JSDoc; CI fails when they are
+stale. The run also fails on the convention breaches above, an unresolved type name, or a type
+from outside bruno-js that the API exposes.

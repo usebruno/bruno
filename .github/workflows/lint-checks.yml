@@ -24,3 +24,6 @@ jobs:
         run: npm run lint
         env:
           ESLINT_PLUGIN_DIFF_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}
+
+      - name: Script API Check
+        run: npm run generate:script-api -- --check
