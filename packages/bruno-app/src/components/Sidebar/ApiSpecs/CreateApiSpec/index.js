@@ -263,18 +263,14 @@ const CreateApiSpec = ({ onClose }) => {
       ...sourceMemoryRef.current,
       [currentKey]: {
         apiSpecName: formik.values.apiSpecName,
-        apiSpecLocation: formik.values.apiSpecLocation,
-        nameEdited: apiSpecNameEditedRef.current,
-        locationEdited: apiSpecLocationEditedRef.current
+        nameEdited: apiSpecNameEditedRef.current
       }
     };
 
     const remembered = sourceMemoryRef.current[nextKey];
     apiSpecNameEditedRef.current = Boolean(remembered?.nameEdited);
-    apiSpecLocationEditedRef.current = Boolean(remembered?.locationEdited);
 
     formik.setFieldValue('apiSpecName', remembered?.apiSpecName || '');
-    formik.setFieldValue('apiSpecLocation', remembered?.apiSpecLocation || defaultApiSpecLocation || '');
     formik.setFieldValue('importFrom', importFrom);
     formik.setFieldValue('collectionSource', collectionSource);
 

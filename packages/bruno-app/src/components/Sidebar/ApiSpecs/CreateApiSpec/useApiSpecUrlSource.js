@@ -1,12 +1,11 @@
 import { useRef, useState } from 'react';
-import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
+import { fetchAndValidateApiSpecFromUrl, getFetchErrorMessage } from 'utils/importers/common';
 import { isHttpUrl } from 'utils/url/index';
 import {
   INVALID_URL_ERROR,
   deriveApiSpecNameFromUrl,
   detectApiSpecExtension,
-  getApiSpecRejectionReason,
-  getFetchErrorMessage
+  getApiSpecRejectionReason
 } from './apiSpecSources';
 
 const useApiSpecUrlSource = () => {

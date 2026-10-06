@@ -30,6 +30,7 @@ jest.mock('providers/ReduxStore/slices/app', () => ({
 }));
 
 jest.mock('utils/importers/common', () => ({
+  ...jest.requireActual('utils/importers/common'),
   fetchAndValidateApiSpecFromUrl: jest.fn()
 }));
 
@@ -232,7 +233,7 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Flights API'));
   });
 
-  it('remembers each source\'s name and location, and each collection tab\'s pick, on return', async () => {
+  it('remembers each source\'s name and each collection tab\'s pick, and keeps the picked location', async () => {
     const user = userEvent.setup();
     browseDirectory
       .mockReturnValueOnce(Promise.resolve('/home/dev/elsewhere/outside-collection'))
@@ -259,7 +260,7 @@ describe('CreateApiSpec — collection source', () => {
 
     await user.click(screen.getByLabelText('Blank Spec'));
     expect(screen.getByLabelText('Name')).toHaveValue('');
-    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/workspaces/team/apispec');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/Documents/specs');
 
     await user.click(screen.getByLabelText('From Bruno Collection'));
     expect(screen.getByLabelText('Name')).toHaveValue('Petstore');
@@ -699,36 +700,30 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('filesystem-name');
   });
 
-  it('keeps a location picked in one source or collection tab out of every other', async () => {
+  it('keeps the picked location when switching sources and collection tabs', async () => {
     const user = userEvent.setup();
     browseDirectory
-      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/blank'))
-      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/url'))
-      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/workspace'));
+      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/picked'))
+      .mockReturnValueOnce(Promise.resolve('/home/dev/specs/changed'));
     renderModal();
+    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
 
     await user.click(screen.getByLabelText('Location'));
-    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/blank'));
+    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked'));
 
     await chooseSource(user, 'From Spec URL');
-    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
-    await user.click(screen.getByLabelText('Location'));
-    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/url'));
-
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
     await chooseSource(user, 'From Bruno Collection');
-    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
-    await user.click(screen.getByLabelText('Location'));
-    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/workspace'));
-
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
     await chooseTab(user, 'From file system');
-    expect(screen.getByLabelText('Location')).toHaveValue(DEFAULT_LOCATION);
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
 
+    await user.click(screen.getByLabelText('Location'));
+    await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/changed'));
     await chooseTab(user, 'From workspace');
-    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/workspace');
-    await chooseSource(user, 'From Spec URL');
-    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/url');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/changed');
     await chooseSource(user, 'Blank Spec');
-    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/blank');
+    expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/changed');
   });
 
   it('creates a blank spec without content from the URL or collection visited before', async () => {
