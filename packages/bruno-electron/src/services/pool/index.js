@@ -25,8 +25,6 @@ class Pool {
     return this.#pool.exec(type, [args]);
   }
 
-  // Callers that need the same file at the same moment (indexer, mount) share one job
-  // instead of parsing it twice. Keyed by absolute path, so it only applies to per-file jobs.
   runOnce(type, args) {
     const key = `${type}:${path.resolve(args.collectionPath, args.relativePath)}`;
     const pending = this.#inflight.get(key);

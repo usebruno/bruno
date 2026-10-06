@@ -26,6 +26,7 @@ const toRow = (collectionPath, collectionName, { relativePath, mtime, hash, data
   requestType: data?.request?.method || null,
   requestUrl: data?.request?.url || null,
   requestProtocol: data?.type || 'http-request',
+  requestSeq: Number.isFinite(data?.seq) ? data.seq : null,
   workspacePath,
   mtime,
   hash

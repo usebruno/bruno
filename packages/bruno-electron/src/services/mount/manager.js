@@ -81,6 +81,19 @@ const removeSessionIndexFiles = (dbPath) => {
   }
 };
 
+// In WAL mode part of the data lives in the `-wal` file until it is checkpointed, so the on-disk size is both files
+const sizeOnDisk = (dbPath) => {
+  let total = 0;
+  for (const suffix of ['', '-wal']) {
+    try {
+      total += fs.statSync(`${dbPath}${suffix}`).size;
+    } catch (err) {
+      if (err?.code !== 'ENOENT') throw err;
+    }
+  }
+  return total;
+};
+
 class MountManager {
   #index = null;
   #sessionIndex = null;
@@ -172,21 +185,11 @@ class MountManager {
   }
 
   getCacheSize() {
-    try {
-      return fs.statSync(this.#getPersistentIndex().dbPath).size;
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return 0;
-      throw err;
-    }
+    return sizeOnDisk(this.#getPersistentIndex().dbPath);
   }
 
   getSearchIndexSize() {
-    try {
-      return fs.statSync(this.#getSearchIndex().dbPath).size;
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return 0;
-      throw err;
-    }
+    return sizeOnDisk(this.#getSearchIndex().dbPath);
   }
 
   // Indexes the watcher keeps in sync with live edits. The search index is only wired up

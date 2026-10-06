@@ -104,7 +104,10 @@ class FileIndex {
   clear() {
     this.#db.exec('DELETE FROM file_index_entries');
     // VACUUM so the file actually shrinks after the DELETE
+    // in WAL mode that only reaches the main file
+    // once the log is checkpointed, so truncate it too
     this.#db.exec('VACUUM');
+    this.#db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   }
 
   clearCollection(collectionPath) {

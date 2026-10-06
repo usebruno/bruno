@@ -7,6 +7,7 @@ import {
   IconX
 } from '@tabler/icons';
 import path from 'path';
+import useLeadingThrottle from 'hooks/useLeadingThrottle';
 import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
 import { indexActiveWorkspaceCollections, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -34,10 +35,12 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
   const virtuosoRef = useRef(null);
-  const debounceTimeoutRef = useRef(null);
   const searchRequestIdRef = useRef(0);
   const hasMountedForSearchRef = useRef(false);
   const queryRef = useRef('');
+  const searchIndexBuildingRef = useRef(false);
+  const wasSearchIndexBuildingRef = useRef(false);
+  const lastQueriedRef = useRef('');
   const pollIntervalRef = useRef(null);
   const dispatch = useDispatch();
   const store = useStore();
@@ -318,13 +321,26 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   };
 
   queryRef.current = query;
+  searchIndexBuildingRef.current = searchIndexBuilding;
+
+  // The first call queries the index immediately and calls made within the next 3 s are ignored; the refresh
+  // interval in the effect below picks up whatever was typed meanwhile. It searches the input as it is at call time.
+  const throttledFetchIndexResults = useLeadingThrottle(() => {
+    const currentQuery = queryRef.current.trim();
+    if (!currentQuery) return;
+    // Once the index is complete, repeating the same text would return the same rows
+    if (!searchIndexBuildingRef.current && currentQuery === lastQueriedRef.current) return;
+    lastQueriedRef.current = currentQuery;
+    setIsSearching(true);
+    fetchIndexResults(currentQuery);
+  }, SEARCH_CONFIG.INDEX_THROTTLE_DELAY);
 
   const handleQueryChange = (e) => {
     setQuery(e.target.value);
+    setSelectedIndex(0);
   };
 
   const clearSearch = () => {
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     setQuery('');
   };
 
@@ -339,57 +355,60 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
 
       return () => clearTimeout(timeoutId);
     }
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-  }, [isOpen]);
+    throttledFetchIndexResults.cancel();
+    lastQueriedRef.current = '';
+    wasSearchIndexBuildingRef.current = false;
+  }, [isOpen, throttledFetchIndexResults]);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
 
-    if (query.trim() && searchIndexEnabled && !hasMountedForSearchRef.current) {
+    const stopIndexRefresh = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      throttledFetchIndexResults.cancel();
+      lastQueriedRef.current = '';
+      wasSearchIndexBuildingRef.current = false;
+    };
+
+    performLocalSearch(query);
+
+    if (!query.trim()) {
+      stopIndexRefresh();
+      fetchIndexResults(query);
+      return;
+    }
+
+    // Without a search index there is nothing to query
+    if (!searchIndexEnabled) {
+      stopIndexRefresh();
+      setExternalResults([]);
+      return;
+    }
+
+    if (!hasMountedForSearchRef.current) {
       hasMountedForSearchRef.current = true;
       dispatch(indexActiveWorkspaceCollections());
     }
 
-    if (query.trim() && searchIndexBuilding) {
-      performLocalSearch(query);
-      setIsSearching(true);
-      if (!pollIntervalRef.current) {
-        fetchIndexResults(query);
-        pollIntervalRef.current = setInterval(() => {
-          const currentQuery = queryRef.current.trim();
-          if (!currentQuery) return;
-          fetchIndexResults(currentQuery);
-        }, 3000);
-      }
-      return;
+    // The index just finished building: the final search must not be swallowed by the throttle window
+    if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
+      throttledFetchIndexResults.cancel();
+      lastQueriedRef.current = '';
     }
+    wasSearchIndexBuildingRef.current = searchIndexBuilding;
 
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+    throttledFetchIndexResults();
+    if (!pollIntervalRef.current) {
+      pollIntervalRef.current = setInterval(throttledFetchIndexResults, SEARCH_CONFIG.INDEX_REFRESH_INTERVAL);
     }
-
-    if (!query.trim()) {
-      performLocalSearch(query);
-      fetchIndexResults(query);
-      setSelectedIndex(0);
-      return;
-    }
-
-    setIsSearching(true);
-    debounceTimeoutRef.current = setTimeout(() => {
-      performLocalSearch(query);
-      fetchIndexResults(query);
-      setSelectedIndex(0);
-    }, SEARCH_CONFIG.DEBOUNCE_DELAY);
-
-    return () => clearTimeout(debounceTimeoutRef.current);
-  }, [isOpen, query, performLocalSearch, fetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuilding]);
+  }, [isOpen, query, performLocalSearch, fetchIndexResults, throttledFetchIndexResults, dispatch, searchIndexEnabled, searchIndexBuilding]);
 
   useEffect(() => {
     if (results.length > 0) {

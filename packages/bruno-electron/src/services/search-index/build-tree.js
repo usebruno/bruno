@@ -40,6 +40,8 @@ const buildFolderTree = (collectionPath, rows) => {
       type: row.requestProtocol || 'http-request',
       filename: path.basename(row.requestPath),
       pathname: absolutePath,
+      // the index reads integers back as BigInt; a missing seq reads as 1, the same default the file parsers apply
+      seq: row.requestSeq == null ? 1 : Number(row.requestSeq),
       request: { method: row.requestType, url: row.requestUrl }
     });
   }

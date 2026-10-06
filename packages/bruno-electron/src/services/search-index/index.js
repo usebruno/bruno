@@ -32,6 +32,15 @@ const MIGRATIONS = [
     up: `
       ALTER TABLE search_index_entries ADD COLUMN workspace_path TEXT;
     `
+  },
+  {
+    version: 4,
+    // Rows written before request_seq existed have no sequence. Zeroing mtime/hash makes the next index
+    // run treat them as changed, so each one is re-read (from the file cache when possible) and gets its seq.
+    up: `
+      ALTER TABLE search_index_entries ADD COLUMN request_seq INTEGER;
+      UPDATE search_index_entries SET mtime = 0, hash = '';
+    `
   }
 ];
 
@@ -40,7 +49,7 @@ const SELECT_ROW = `
   folder_path AS folderPath, folder_name AS folderName,
   request_path AS requestPath, request_name AS requestName,
   request_type AS requestType, request_url AS requestUrl,
-  request_protocol AS requestProtocol, workspace_path AS workspacePath
+  request_protocol AS requestProtocol, request_seq AS requestSeq, workspace_path AS workspacePath
 `;
 
 class SearchIndex {
@@ -76,6 +85,7 @@ class SearchIndex {
       requestType,
       requestUrl,
       requestProtocol,
+      requestSeq,
       workspacePath,
       mtime,
       hash
@@ -85,9 +95,9 @@ class SearchIndex {
       `
       INSERT INTO search_index_entries (
         collection_path, collection_name, folder_path, folder_name,
-        request_path, request_name, request_type, request_url, request_protocol, workspace_path, mtime, hash
+        request_path, request_name, request_type, request_url, request_protocol, request_seq, workspace_path, mtime, hash
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(collection_path, request_path) DO UPDATE SET
         collection_name = excluded.collection_name,
         folder_path = excluded.folder_path,
@@ -96,6 +106,7 @@ class SearchIndex {
         request_type = excluded.request_type,
         request_url = excluded.request_url,
         request_protocol = excluded.request_protocol,
+        request_seq = excluded.request_seq,
         workspace_path = excluded.workspace_path,
         mtime = excluded.mtime,
         hash = excluded.hash
@@ -109,6 +120,7 @@ class SearchIndex {
       requestType ?? null,
       requestUrl ?? null,
       requestProtocol ?? null,
+      requestSeq ?? null,
       workspacePath ?? null,
       mtime,
       hash
