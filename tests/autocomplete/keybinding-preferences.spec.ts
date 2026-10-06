@@ -26,14 +26,15 @@ const pressCtrlShiftSpace = async (page: Page) => {
 };
 
 const resetTriggerAutocompleteBinding = async (page: Page) => {
+  const { keybindings } = buildCommonLocators(page).preferences;
   await openPreferences(page);
   await selectPreferencesTab(page, 'Keybindings');
 
   // Wait for the list to render first: `isVisible()` doesn't wait, so checking the reset button
   // earlier could miss it and silently leave the shortcut rebound for the rest of the worker.
-  await expect(page.getByTestId(`keybinding-row-${ACTION}`)).toBeVisible();
+  await expect(keybindings.row(ACTION)).toBeVisible();
 
-  const resetButton = page.getByTestId(`keybinding-reset-${ACTION}`);
+  const resetButton = keybindings.resetButton(ACTION);
   if (await resetButton.isVisible()) {
     await resetButton.click();
     await expect(resetButton).toHaveCount(0);
@@ -68,17 +69,18 @@ test.describe('Variable autocomplete — keybinding preferences', () => {
     });
 
     await test.step('rebind "Trigger Autocomplete" to Ctrl+Shift+Space in Preferences', async () => {
+      const { keybindings } = buildCommonLocators(page).preferences;
       await openPreferences(page);
       await selectPreferencesTab(page, 'Keybindings');
 
-      await page.getByTestId(`keybinding-row-${ACTION}`).click();
-      await expect(page.getByTestId(`keybinding-input-${ACTION}`)).toHaveClass(/shortcut-input--editing/);
+      await keybindings.row(ACTION).click();
+      await expect(keybindings.input(ACTION)).toHaveClass(/shortcut-input--editing/);
 
       await pressCtrlShiftSpace(page);
 
       // Commits immediately on keyup; the editing state clears and no error is shown.
-      await expect(page.getByTestId(`keybinding-input-${ACTION}`)).not.toHaveClass(/shortcut-input--editing/);
-      await expect(page.getByTestId(`keybinding-input-${ACTION}`)).not.toHaveClass(/shortcut-input--error/);
+      await expect(keybindings.input(ACTION)).not.toHaveClass(/shortcut-input--editing/);
+      await expect(keybindings.input(ACTION)).not.toHaveClass(/shortcut-input--error/);
 
       await closePreferences(page);
     });

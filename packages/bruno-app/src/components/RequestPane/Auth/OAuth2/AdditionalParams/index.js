@@ -202,6 +202,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     value
                   })}
                   collection={collection}
+                  item={item}
                   onSave={handleSave}
                   readOnly={disabled}
                   isCompact
@@ -219,6 +220,7 @@ const AdditionalParams = ({ item = {}, request, updateAuth, collection, handleSa
                     value
                   })}
                   collection={collection}
+                  item={item}
                   onSave={handleSave}
                   readOnly={disabled}
                 />

@@ -11,6 +11,7 @@ import {
 import {
   authFieldEditor,
   buildAutocompleteLocators,
+  maskedCharacters,
   pasteIntoEditor,
   pressAutocompleteShortcut,
   readEditorValue,
@@ -19,7 +20,7 @@ import {
 } from '../utils/page/autocomplete';
 
 const expectFullyMasked = async (editor: Locator, realValue: string) => {
-  await expect(editor.getByTestId('masked-character')).toHaveCount(realValue.length);
+  await expect(maskedCharacters(editor)).toHaveCount(realValue.length);
   if (realValue.length > 0) {
     await expect(editor.locator('.CodeMirror-line').first()).not.toContainText(realValue);
   }
@@ -39,8 +40,9 @@ test.describe('Variable autocomplete — insertion correctness', () => {
     await openRequest(page, 'autocomplete-insertion-partial', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget } = buildAutocompleteLocators(page);
 
     await valueEditor.click();
@@ -62,8 +64,9 @@ test.describe('Variable autocomplete — insertion correctness', () => {
     await openRequest(page, 'autocomplete-insertion-lone-brace', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget } = buildAutocompleteLocators(page);
 
     await test.step('no auto-closed brace: `{` with nothing after the cursor', async () => {
@@ -96,8 +99,9 @@ test.describe('Variable autocomplete — insertion correctness', () => {
     await openRequest(page, 'autocomplete-insertion-shortcut-paths', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget } = buildAutocompleteLocators(page);
 
     await test.step('shortcut inserts `{{` when field is empty', async () => {
@@ -135,8 +139,9 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await openRequest(page, 'autocomplete-dropdown-esc', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget } = buildAutocompleteLocators(page);
 
     await valueEditor.click();
@@ -155,8 +160,9 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await openRequest(page, 'autocomplete-dropdown-blur', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget } = buildAutocompleteLocators(page);
 
     await valueEditor.click();
@@ -175,8 +181,9 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await openRequest(page, 'autocomplete-dropdown-arrows', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget, variableItems, activeItem } = buildAutocompleteLocators(page);
 
     await valueEditor.click();
@@ -187,7 +194,7 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     const count = await variableItems().count();
     expect(count).toBeGreaterThan(1);
 
-    const nameOf = (item: Locator) => item.locator('.CodeMirror-hint-variable-name').innerText();
+    const nameOf = (item: Locator) => item.getByTestId('autocomplete-variable-name').innerText();
 
     // Starts on the first hint in the list.
     expect(await nameOf(activeItem().first())).toBe(await nameOf(variableItems().nth(0)));
@@ -209,8 +216,9 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await openRequest(page, 'autocomplete-dropdown-enter', 'req');
     await selectRequestPaneTab(page, 'Vars');
 
-    const row = buildCommonLocators(page).table('request-vars-req').row(0);
-    const valueEditor = buildCommonLocators(page).table('request-vars-req').rowValueEditor(row);
+    const { table } = buildCommonLocators(page);
+    const row = table('request-vars-req').row(0);
+    const valueEditor = table('request-vars-req').rowValueEditor(row);
     const { widget, activeItem } = buildAutocompleteLocators(page);
 
     await valueEditor.click();
@@ -220,7 +228,7 @@ test.describe('Variable autocomplete dropdown interaction', () => {
 
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
-    const activeName = await activeItem().first().locator('.CodeMirror-hint-variable-name').innerText();
+    const activeName = await activeItem().first().getByTestId('autocomplete-variable-name').innerText();
 
     await page.keyboard.press('Enter');
     await expect(widget()).toHaveCount(0);

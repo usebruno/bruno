@@ -1,4 +1,4 @@
-import { test } from '../../playwright';
+import { test, expect } from '../../playwright';
 import {
   closeAllCollections,
   createCollection,
@@ -16,6 +16,7 @@ import {
 import { buildRequestLocators } from '../utils/request';
 import {
   authFieldEditor,
+  readEditorValue,
   expectSingleBraceOpensAutocomplete,
   expectSingleBraceDoesNotOpenAutocomplete
 } from '../utils/page/autocomplete';
@@ -85,7 +86,11 @@ test.describe('single `{` trigger surfaces', () => {
 
     await test.step('AWS Sig v4 — Secret Access Key (also a masked field)', async () => {
       await selectAuthMode(page, 'AWS Sig v4');
-      await expectSingleBraceOpensAutocomplete(page, authFieldEditor(page, 'Secret Access Key'));
+      const secretEditor = authFieldEditor(page, 'Secret Access Key');
+      await expectSingleBraceOpensAutocomplete(page, secretEditor);
+      // the `{` landed in the secret field, not in Access Key ID above it
+      await expect.poll(() => readEditorValue(secretEditor)).toContain('{');
+      await expect.poll(() => readEditorValue(authFieldEditor(page, 'Access Key ID'))).not.toContain('{');
       await page.keyboard.press('Escape');
     });
   });

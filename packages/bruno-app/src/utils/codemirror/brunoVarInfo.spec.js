@@ -510,7 +510,7 @@ describe('renderVarInfo', () => {
 
       const containerDiv = result;
       const header = containerDiv.querySelector('.var-info-header');
-      const scopeBadge = containerDiv.querySelector('.var-scope-badge');
+      const scopeBadge = containerDiv.querySelector('[data-testid="var-info-scope-badge"]');
       const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
       const warningNote = containerDiv.querySelector('.var-warning-note');
       const valueContainer = containerDiv.querySelector('.var-value-container');
@@ -535,7 +535,7 @@ describe('renderVarInfo', () => {
     it('should show warning for unknown dynamic variable', () => {
       const { warningNote, scopeBadge } = setupDynamicRender('$unknownFaker');
 
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('Dynamic');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('Unknown dynamic variable');
     });
@@ -543,7 +543,7 @@ describe('renderVarInfo', () => {
     it('should show time-based note for $timestamp variable', () => {
       const { readOnlyNote, scopeBadge } = setupDynamicRender('$timestamp');
 
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('Dynamic');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
     });
@@ -551,7 +551,7 @@ describe('renderVarInfo', () => {
     it('should show time-based note for $isoTimestamp variable', () => {
       const { readOnlyNote, scopeBadge } = setupDynamicRender('$isoTimestamp');
 
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('Dynamic');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Dynamic');
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates current timestamp on each request');
     });
@@ -584,8 +584,8 @@ describe('renderVarInfo', () => {
       );
 
       // Guessed scope shows up as the header badge, same as any other variable.
-      const scopeBadge = result.querySelector('.var-scope-badge');
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('Request');
+      const scopeBadge = result.querySelector('[data-testid="var-info-scope-badge"]');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
       expect(switcher).not.toBeNull();
@@ -679,8 +679,8 @@ describe('renderVarInfo', () => {
         }
       );
 
-      const scopeBadge = result.querySelector('.var-scope-badge');
-      const scopeBadgeLabel = () => scopeBadge.querySelector('.var-scope-badge-label').textContent;
+      const scopeBadge = result.querySelector('[data-testid="var-info-scope-badge"]');
+      const scopeBadgeLabel = () => scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent;
       expect(scopeBadgeLabel()).toBe('Request');
 
       const switcher = result.querySelector('.var-add-to-switcher');
@@ -1089,7 +1089,7 @@ describe('renderVarInfo', () => {
 
       const containerDiv = result;
       const header = containerDiv.querySelector('.var-info-header');
-      const scopeBadge = containerDiv.querySelector('.var-scope-badge');
+      const scopeBadge = containerDiv.querySelector('[data-testid="var-info-scope-badge"]');
       const readOnlyNote = containerDiv.querySelector('.var-readonly-note');
       const warningNote = containerDiv.querySelector('.var-warning-note');
       const valueContainer = containerDiv.querySelector('.var-value-container');
@@ -1103,7 +1103,7 @@ describe('renderVarInfo', () => {
         '$oauth2.credentials.access_token': 'test-token-123'
       });
 
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('OAuth2');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('OAuth2');
     });
 
     it('should show read-only note for valid OAuth2 variables', () => {
@@ -1127,7 +1127,7 @@ describe('renderVarInfo', () => {
     it('should show warning for OAuth2 variable when token is not found', () => {
       const { warningNote, scopeBadge } = setupOAuth2Render('$oauth2.credentials.access_token', {});
 
-      expect(scopeBadge.querySelector('.var-scope-badge-label').textContent).toBe('OAuth2');
+      expect(scopeBadge.querySelector('[data-testid="var-info-scope-badge-label"]').textContent).toBe('OAuth2');
       expect(warningNote).not.toBeNull();
       expect(warningNote.textContent).toContain('OAuth2 token not found');
     });

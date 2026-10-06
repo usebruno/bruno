@@ -101,6 +101,7 @@ const Headers = ({ collection, folder }) => {
           onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
           autocomplete={headerAutoCompleteList}
           collection={collection}
+          item={folder}
           placeholder={!value ? 'Name' : ''}
         />
       )

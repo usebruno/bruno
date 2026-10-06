@@ -104,6 +104,7 @@ const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'var-scope-badge-label';
+  labelSpan.setAttribute('data-testid', 'var-info-scope-badge-label');
   labelSpan.textContent = label;
   scopeBadge.appendChild(labelSpan);
 };

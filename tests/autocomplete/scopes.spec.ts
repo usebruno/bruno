@@ -20,10 +20,11 @@ import { buildAutocompleteLocators, pressAutocompleteShortcut, setEditorState } 
 
 const VAR_NAME = 'shadowvar';
 
-/** Save the Vars pane in Folder Settings / Collection Settings (shared "Save" button). */
-const saveVarsPane = async (page: Page) => {
-  await page.getByRole('button', { name: 'Save', exact: true }).first().click();
-  await expect(buildToastLocators(page).byMessage(/(Folder|Collection) Settings saved successfully/).first()).toBeVisible();
+/** Save the Vars pane in Folder Settings / Collection Settings and wait for the confirmation toast. */
+const saveVarsPane = async (page: Page, scope: 'folder' | 'collection') => {
+  await buildCommonLocators(page).varsPanel(scope).saveButton().click();
+  const settings = scope === 'folder' ? 'Folder' : 'Collection';
+  await expect(buildToastLocators(page).byMessage(new RegExp(`${settings} Settings saved successfully`)).first()).toBeVisible();
 };
 
 /** Set the URL bar to `{{shadowvar` and reopen the autocomplete dropdown via the shortcut. */
@@ -41,7 +42,7 @@ const expectSingleWinningEntry = async (page: Page, scope: string) => {
   const { itemByName } = buildAutocompleteLocators(page);
   const matches = itemByName(VAR_NAME);
   await expect(matches).toHaveCount(1);
-  await expect(matches.first().locator('.CodeMirror-hint-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
+  await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
   await page.keyboard.press('Escape');
 };
 
@@ -73,7 +74,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       await page.keyboard.type(VAR_NAME);
       await table('collection-vars-req').rowValueEditor(row).click();
       await page.keyboard.type('from-collection');
-      await saveVarsPane(page);
+      await saveVarsPane(page, 'collection');
 
       await openFolderRequest(page, COLLECTION_NAME, FOLDER_NAME, REQUEST_NAME);
       await reopenOnUrlBar(page);
@@ -100,7 +101,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       await page.keyboard.type(VAR_NAME);
       await table('folder-vars-req').rowValueEditor(row).click();
       await page.keyboard.type('from-folder');
-      await saveVarsPane(page);
+      await saveVarsPane(page, 'folder');
 
       await openFolderRequest(page, COLLECTION_NAME, FOLDER_NAME, REQUEST_NAME);
       await reopenOnUrlBar(page);
@@ -147,7 +148,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       await page.keyboard.type('collscope');
       await table('collection-vars-req').rowValueEditor(collRow).click();
       await page.keyboard.type('coll-value');
-      await saveVarsPane(page);
+      await saveVarsPane(page, 'collection');
 
       await createEnvironment(page, 'distinct-env');
       await addEnvironmentVariables(page, [{ name: 'envscope', value: 'env-value' }]);
@@ -160,7 +161,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       await page.keyboard.type('folderscope');
       await table('folder-vars-req').rowValueEditor(folderRow).click();
       await page.keyboard.type('folder-value');
-      await saveVarsPane(page);
+      await saveVarsPane(page, 'folder');
 
       await openFolderRequest(page, COLLECTION_NAME, FOLDER_NAME, REQUEST_NAME);
       await selectRequestPaneTab(page, 'Vars');
@@ -191,7 +192,7 @@ test.describe('Variable autocomplete — scopes and shadowing', () => {
       for (const [name, scope] of expected) {
         const matches = itemByName(name);
         await expect(matches).toHaveCount(1);
-        await expect(matches.first().locator('.CodeMirror-hint-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
+        await expect(matches.first().getByTestId('autocomplete-variable-icon')).toHaveClass(new RegExp(`CodeMirror-hint-variable-icon-${scope}\\b`));
       }
     });
   });

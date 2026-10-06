@@ -10,14 +10,19 @@ export const buildAutocompleteLocators = (page: Page) => {
   return {
     widget,
     items: () => widget().locator('.CodeMirror-hint'),
-    variableItems: () => widget().locator('.CodeMirror-hint-variable'),
+    variableItems: () => widget().getByTestId('autocomplete-variable-item'),
     activeItem: () => widget().locator('.CodeMirror-hint-active'),
     itemByName: (name: string) =>
       widget()
-        .locator('.CodeMirror-hint-variable')
-        .filter({ has: page.locator('.CodeMirror-hint-variable-name', { hasText: name }) })
+        .getByTestId('autocomplete-variable-item')
+        .filter({ has: page.getByTestId('autocomplete-variable-name').filter({ hasText: name }) })
   };
 };
+
+/**
+ * @param editor - The `.CodeMirror` element for the masked field
+ */
+export const maskedCharacters = (editor: Locator) => editor.getByTestId('masked-character');
 
 /**
  * Click into a CodeMirror-based field, type a single `{`, and assert the variable-autocomplete
@@ -125,6 +130,5 @@ export const authFieldEditor = (page: Page, labelText: string) =>
     .pane()
     .locator('label')
     .filter({ hasText: new RegExp(`^${labelText}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror')
-    .first();
+    .locator('xpath=following-sibling::div[1]')
+    .locator('.CodeMirror');

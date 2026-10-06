@@ -126,6 +126,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           onChange={onChange}
           onRun={() => {}}
           collection={collection}
+          item={item}
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={!value ? 'Name' : ''}
@@ -147,6 +148,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           onChange={onChange}
           onRun={() => {}}
           collection={collection}
+          item={item}
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={!value ? 'Value' : ''}
@@ -177,6 +179,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
           onChange={onChange}
           onRun={() => {}}
           collection={collection}
+          item={item}
           variablesAutocomplete={true}
           readOnly={!editMode}
           placeholder={!value ? 'Value' : ''}

@@ -209,6 +209,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                     onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                     onRun={handleRun}
                     collection={collection}
+                    item={item}
                     readOnly={disabled}
                     isCompact
                   />
@@ -227,6 +228,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                     onChange={(val) => handleChange('tokenQueryKey', val)}
                     onRun={handleRun}
                     collection={collection}
+                    item={item}
                     readOnly={disabled}
                     isCompact
                   />

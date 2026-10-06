@@ -772,11 +772,13 @@ const renderVariableHint = (li, self, completion) => {
   const icon = document.createElement('span');
   const colorClass = SCOPE_ICON_COLOR_CLASS[completion.scope] || 'muted';
   icon.className = `CodeMirror-hint-variable-icon CodeMirror-hint-variable-icon-${colorClass}`;
+  icon.setAttribute('data-testid', 'autocomplete-variable-icon');
   icon.innerHTML = SCOPE_ICON[completion.scope] || '';
 
   const fullName = completion.displayText;
   const label = document.createElement('span');
   label.className = 'CodeMirror-hint-variable-name';
+  label.setAttribute('data-testid', 'autocomplete-variable-name');
   label.textContent = truncateHintLabel(fullName);
   // Only when cut off: a title on the label would otherwise cover the row-level scope tooltip below.
   if (label.textContent !== fullName) {
@@ -785,6 +787,7 @@ const renderVariableHint = (li, self, completion) => {
 
   li.innerHTML = '';
   li.classList.add('CodeMirror-hint-variable');
+  li.setAttribute('data-testid', 'autocomplete-variable-item');
   li.appendChild(icon);
   li.appendChild(label);
   li.title = SCOPE_LABEL[completion.scope] || '';
@@ -969,7 +972,9 @@ export const showRootHints = (cm, showHintsFor = []) => {
 /**
  * Bruno AutoComplete Helper - Main function with context awareness
  * @param {Object} cm - CodeMirror instance
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array<{name: string, scope: string}>} allVariables - All available variables: a plain
+ *   `{ name: value }` object (no scope info, e.g. the inline variable-value editor in brunoVarInfo.js) or an array of
+ *   `{ name, scope }` entries (the request editors, which show a scope icon per hint)
  * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
  * @returns {Object|null} Hint object or null

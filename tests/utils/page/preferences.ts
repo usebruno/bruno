@@ -19,6 +19,13 @@ export const buildPreferencesLocators = (page: Page) => ({
     /** The "Request Timeout (in ms)" field on the General tab */
     requestTimeoutInput: () => page.locator('input[name="timeout"]')
   },
+  /** Locators on the Keybindings tab, each takes the action id (e.g. `triggerAutocomplete`) */
+  keybindings: {
+    row: (action: string) => page.getByTestId(`keybinding-row-${action}`),
+    input: (action: string) => page.getByTestId(`keybinding-input-${action}`),
+    editButton: (action: string) => page.getByTestId(`keybinding-edit-${action}`),
+    resetButton: (action: string) => page.getByTestId(`keybinding-reset-${action}`)
+  },
   /** The open Preferences tab in the tab bar */
   openTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
   /** Close control on the open Preferences tab */
