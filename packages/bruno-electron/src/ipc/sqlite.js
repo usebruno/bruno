@@ -9,7 +9,7 @@ const requireUid = (value, name) => {
 };
 
 const requireFileId = (value) => {
-  if (!Number.isInteger(value) || value <= 0) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error('id must be a positive integer');
   }
   return value;

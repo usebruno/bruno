@@ -111,7 +111,7 @@ describe('registerSqliteIpc', () => {
       expect(files[method]).toHaveBeenCalledWith(7);
     });
 
-    it.each([undefined, {}, { id: 0 }, { id: -1 }, { id: 1.5 }, { id: '7' }, { id: null }])(
+    it.each([undefined, {}, { id: 0 }, { id: -1 }, { id: 1.5 }, { id: '7' }, { id: null }, { id: 2 ** 53 }, { id: 1e300 }])(
       'rejects %p without touching the store',
       (params) => {
         expect(() => invoke(channel, params)).toThrow('id must be a positive integer');
