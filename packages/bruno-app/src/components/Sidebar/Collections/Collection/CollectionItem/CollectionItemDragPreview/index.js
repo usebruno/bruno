@@ -22,16 +22,30 @@ function getItemStyles({ x, y }) {
 
 // Builds the "N folders, M requests and K apps"-style summary for a multi-item drag.
 function getMultiDragLabel(multiSelectedItems) {
-  const folders = multiSelectedItems.filter((i) => i.type === 'folder').length;
-  const apps = multiSelectedItems.filter((i) => i.type === 'app').length;
-  const requests = multiSelectedItems.filter((i) => i.type && i.type.includes('request')).length;
-  const collections = multiSelectedItems.filter((i) => !i.type || i.type === 'collection').length;
+  const itemsCount = multiSelectedItems.reduce(
+    (acc, i) => {
+      if (i.type === 'folder') {
+        acc.folder++;
+      } else if (i.type === 'app') {
+        acc.app++;
+      } else if (i.type && i.type.includes('request')) {
+        acc.request++;
+      } else if (!i.type || i.type === 'collection') {
+        acc.collection++;
+      }
+      return acc;
+    },
+    { folder: 0, app: 0, request: 0, collection: 0 }
+  );
 
   const parts = [];
-  if (collections > 0) parts.push(`${collections} collection${collections > 1 ? 's' : ''}`);
-  if (folders > 0) parts.push(`${folders} folder${folders > 1 ? 's' : ''}`);
-  if (apps > 0) parts.push(`${apps} app${apps > 1 ? 's' : ''}`);
-  if (requests > 0) parts.push(`${requests} request${requests > 1 ? 's' : ''}`);
+  const keyOrder = ['collection', 'folder', 'app', 'request'];
+  for (const key of keyOrder) {
+    const value = itemsCount[key];
+    if (value > 0) {
+      parts.push(`${value} ${key}${value > 1 ? 's' : ''}`);
+    }
+  }
 
   if (parts.length === 0) return `${multiSelectedItems.length} items`;
   return parts.join(', ').replace(/, ([^,]*)$/, ' and $1');
@@ -60,7 +74,7 @@ export const CollectionItemDragPreview = () => {
   if (!isDragging) return null;
   if (!item) return null;
 
-  const validTypes = ['collection', 'collection-item', 'disabled-drag'];
+  const validTypes = ['collection', 'collection-item'];
   if (!validTypes.includes(itemType)) return null;
 
   const { x, y } = clientOffset || {};
@@ -84,7 +98,7 @@ export const CollectionItemDragPreview = () => {
   return (
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className="p-2">
-        <div className="flex items-center gap-2 border border-gray-500/10 rounded-md px-2 py-1 drag-preview">
+        <div className="flex items-center gap-2 border rounded-md px-2 py-1 drag-preview">
           {Icon && <Icon size={16} />}
           {label}
         </div>

@@ -21,10 +21,11 @@ import type {
   BrunoFolderRoot,
   BrunoKeyValue
 } from './types';
-import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
+import { HTTP_SCRIPT_KEYS, normalizeTags } from '@usebruno/common';
 
 export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
   const info = folder.info || {};
+  const tags = normalizeTags(info.tags);
 
   const brunoFolder: BrunoItem = {
     uid: uuid(),
@@ -33,7 +34,7 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
     seq: info.seq || 1
   };
 
-  if (folder.request || folder.docs) {
+  if (folder.request || folder.docs || tags.length) {
     const root: BrunoFolderRoot = {};
 
     if (folder.request) {
@@ -61,14 +62,11 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
 
     root.meta = {
       name: info.name || 'Untitled Folder',
-      seq: info.seq || 1
+      seq: info.seq || 1,
+      ...(tags.length ? { tags } : {})
     };
 
     brunoFolder.root = root;
-  }
-
-  if (info.tags?.length) {
-    brunoFolder.tags = info.tags;
   }
 
   if (folder.items?.length) {
@@ -88,8 +86,9 @@ export const toOpenCollectionFolder = (folder: BrunoItem): Folder => {
     info.seq = folder.seq;
   }
 
-  if (folder.tags?.length) {
-    info.tags = folder.tags;
+  const tags = normalizeTags(folder.root?.meta?.tags);
+  if (tags.length) {
+    info.tags = tags;
   }
 
   const ocFolder: Folder = {

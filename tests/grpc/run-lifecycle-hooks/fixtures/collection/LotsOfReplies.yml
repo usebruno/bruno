@@ -17,7 +17,7 @@ grpc:
 runtime:
   scripts:
     - type: grpc:before-call-start
-      code: bru.setVar('replyCount', '');
+      code: bru.deleteVar('replyCount');
     - type: grpc:after-call-end
       code: |-
         test('the hook sees the one message the server stream sent', () => {
