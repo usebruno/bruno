@@ -1,4 +1,4 @@
-import { newHttpRequest } from './actions';
+import { newHttpRequest, tryResponseExample } from './actions';
 
 const mockUuid = jest.fn();
 
@@ -96,6 +96,97 @@ describe('collection actions', () => {
           requestPaneTab: 'body'
         })
       });
+    });
+  });
+
+  describe('tryResponseExample', () => {
+    const exampleRequest = {
+      url: 'http://localhost:8081/api/echo/anything/:id?verbose=true',
+      method: 'POST',
+      headers: [{ uid: 'h1', name: 'Content-Type', value: 'application/json', enabled: true }],
+      params: [
+        { uid: 'p1', name: 'verbose', value: 'true', type: 'query', enabled: true },
+        { uid: 'p2', name: 'id', value: '42', type: 'path', enabled: true }
+      ],
+      body: { mode: 'json', json: '{"name":"bruno"}' }
+    };
+
+    const buildState = ({ transientNames = [] } = {}) => ({
+      collections: {
+        tempDirectories: { 'collection-uid': '/tmp/transient/collection' },
+        collections: [
+          {
+            uid: 'collection-uid',
+            pathname: '/bruno/collection',
+            format: 'yml',
+            items: [
+              {
+                uid: 'item-uid',
+                type: 'http-request',
+                name: 'Get User',
+                pathname: '/bruno/collection/get-user.yml',
+                request: { method: 'GET', url: exampleRequest.url, auth: { mode: 'bearer', bearer: { token: 'abc' } } },
+                examples: [{ uid: 'example-uid', name: 'Success', type: 'http-request', request: exampleRequest }]
+              },
+              ...transientNames.map((name, index) => ({
+                uid: `transient-${index}`,
+                type: 'http-request',
+                name,
+                isTransient: true,
+                pathname: `/tmp/transient/collection/${name}.yml`,
+                request: { method: 'GET', url: '' }
+              }))
+            ]
+          }
+        ]
+      }
+    });
+
+    it('creates a transient request from the example and queues an auto-sent open task', async () => {
+      const getState = () => buildState();
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      await tryResponseExample({ itemUid: 'item-uid', collectionUid: 'collection-uid', exampleUid: 'example-uid' })(dispatch, getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:new-request',
+        expect.stringContaining('Untitled 1.yml'),
+        expect.objectContaining({
+          name: 'Untitled 1',
+          isTransient: true,
+          request: expect.objectContaining({
+            method: 'POST',
+            url: exampleRequest.url,
+            headers: exampleRequest.headers,
+            params: exampleRequest.params,
+            body: exampleRequest.body,
+            auth: { mode: 'inherit' }
+          })
+        })
+      );
+
+      const queuedTask = dispatch.mock.calls.map(([action]) => action).find((action) => action?.type === 'app/insertTaskIntoQueue');
+      expect(queuedTask.payload).toEqual(
+        expect.objectContaining({
+          type: 'OPEN_REQUEST',
+          collectionUid: 'collection-uid',
+          preview: false,
+          autoSend: true
+        })
+      );
+    });
+
+    it('numbers the request after the transient requests already open', async () => {
+      const getState = () => buildState({ transientNames: ['Untitled 1', 'Untitled 2'] });
+      const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, getState) : action));
+
+      await tryResponseExample({ itemUid: 'item-uid', collectionUid: 'collection-uid', exampleUid: 'example-uid' })(dispatch, getState);
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+        'renderer:new-request',
+        expect.stringContaining('Untitled 3.yml'),
+        expect.objectContaining({ name: 'Untitled 3' })
+      );
     });
   });
 });

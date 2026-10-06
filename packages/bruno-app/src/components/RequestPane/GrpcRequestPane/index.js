@@ -6,7 +6,6 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcScript from 'components/RequestPane/GrpcScript';
 import GrpcAuth from './GrpcAuth/index';
-import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
@@ -151,13 +150,6 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
 
   let rightContent = null;
   switch (requestPaneTab) {
-    case 'auth':
-      rightContent = (
-        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-          <GrpcAuthMode item={item} collection={collection} />
-        </div>
-      );
-      break;
     case 'docs':
       rightContent = (
         <div ref={rightContentRef} className="flex items-center gap-2">

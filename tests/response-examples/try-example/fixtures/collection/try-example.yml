@@ -1,0 +1,23 @@
+info:
+  name: try-example
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/anything/try?version={{apiVersion}}
+  params:
+    - name: version
+      value: "{{apiVersion}}"
+      type: query
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-Api-Token
+      value: "{{apiToken}}"
+  body:
+    type: json
+    data: |-
+      {
+        "message": "Hello World"
+      }

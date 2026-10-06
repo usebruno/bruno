@@ -1,51 +1,31 @@
-const path = require('path');
-const { app, ipcMain } = require('electron');
-const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
+const { ipcMain } = require('electron');
+const { getStatements } = require('../services/sqlite');
 
-let ipc = null;
-
-class SqliteEventModel {
-  _db = null;
-  _statements = null;
-  _window = null;
-  constructor(window) {
-    this._window = window;
-    const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
-      onMutation: (event) => {
-        this._window?.webContents?.send(SQLITE_MUTATION_CHANNEL, event);
-      }
-    });
-    this._db = db;
-    this._statements = statements;
-    registerSQLiteIpc(ipcMain, statements);
+const requireUid = (value, name) => {
+  if (typeof value !== 'string' || value === '') {
+    throw new Error(`${name} must be a non-empty string`);
   }
-
-  get statements() {
-    return this._statements;
-  }
-
-  shutdown() {
-    if (this._db) {
-      this._db.close();
-      this._db = null;
-      this._statements = null;
-      this._window = null;
-    }
-  }
-}
-
-const registerSqliteIpc = (window) => {
-  if (ipc) return;
-  ipc = new SqliteEventModel(window);
+  return value;
 };
 
-const shutdown = () => {
-  if (ipc) {
-    ipc.shutdown();
-    ipc = null;
-  }
+const registerSqliteIpc = () => {
+  ipcMain.handle('datastore:file-index:file_index_size', () => {
+    return getStatements().execute('file_index_size');
+  });
+
+  ipcMain.handle('datastore:file-index:file_index_clear', () => {
+    return getStatements().execute('file_index_clear');
+  });
+
+  ipcMain.handle('datastore:runner_responses:get_runner_response', (_event, params) => {
+    const request_uid = requireUid(params?.request_uid, 'request_uid');
+    return getStatements().execute('get_runner_response', { request_uid });
+  });
+
+  ipcMain.handle('datastore:runner_responses:delete_runner_responses_for_collection', (_event, params) => {
+    const collection_uid = requireUid(params?.collection_uid, 'collection_uid');
+    return getStatements().execute('delete_runner_responses_for_collection', { collection_uid });
+  });
 };
 
-const getStatements = () => (ipc ? ipc.statements : null);
-
-module.exports = { registerSqliteIpc, shutdown, getStatements };
+module.exports = { registerSqliteIpc };

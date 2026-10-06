@@ -1,4 +1,5 @@
-import { Locator, Page } from '../../../../playwright';
+import { Locator, Page, expect, test } from '../../../../playwright';
+import { collectionSlug } from '../../../../packages/bruno-app/src/utils/collections/collectionSlug';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -10,9 +11,10 @@ export const buildSidebarLocators = (page: Page) => {
     page.locator('.item-name').and(page.getByTitle(name, { exact: true }));
 
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
-  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
+  const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
+  const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
-  const collectionScope = (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`);
+  const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
   return {
@@ -26,15 +28,12 @@ export const buildSidebarLocators = (page: Page) => {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     collectionExact: (name: string) => page.locator('#sidebar-collection-name').and(page.getByTitle(name, { exact: true })),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    item,
+    folder: item,
+    request: item,
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+      return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
@@ -68,6 +67,8 @@ export const buildSidebarLocators = (page: Page) => {
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     collectionScope,
+    collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
+    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
@@ -109,4 +110,82 @@ export const buildSidebarLocators = (page: Page) => {
       fileNameInput: (): Locator => page.locator('#file-name')
     }
   };
+};
+
+/**
+ * Walks the sidebar to a folder and returns its row, expanding the collection and every parent
+ * folder on the way — a collapsed node keeps its children out of the DOM entirely, so a nested
+ * folder is unreachable until its ancestors are open. The target folder itself is left as it is.
+ * @param page - The Playwright page object
+ * @param collectionName - The collection holding the folder
+ * @param folderPath - Folder names from the collection root down to the target folder
+ * @returns The target folder's `.collection-item-name` row, ready to click, hover or double-click
+ */
+export const revealFolderRow = async (
+  page: Page,
+  collectionName: string,
+  folderPath: string[]
+): Promise<Locator> => {
+  return await test.step(`Reveal folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    const locators = buildSidebarLocators(page);
+
+    const collectionChevron = locators.collectionChevron(collectionName);
+    await expect(collectionChevron).toBeVisible();
+    const isCollectionExpanded = await collectionChevron.evaluate((el: HTMLElement) =>
+      el.classList.contains('rotate-90')
+    );
+    if (!isCollectionExpanded) {
+      await collectionChevron.click();
+    }
+
+    // The sidebar is a flat, virtualized list: rows are siblings rather than nested wrappers, so
+    // each level is scoped by `data-collection-id` / `data-parent-name` instead of DOM ancestry.
+    let scope = locators.collectionScope(collectionName);
+    for (const folderName of folderPath.slice(0, -1)) {
+      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+      await expect(row).toBeVisible();
+
+      const chevron = row.getByTestId('folder-chevron');
+      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+      if (!isExpanded) {
+        await chevron.click();
+      }
+      scope = locators.folderScope(folderName);
+    }
+
+    const targetRow = scope
+      .locator('.collection-item-name')
+      .filter({ hasText: folderPath[folderPath.length - 1] })
+      .first();
+    await expect(targetRow).toBeVisible();
+    return targetRow;
+  });
+};
+
+export const MIN_SIDEBAR_WIDTH = 220;
+export const MAX_SIDEBAR_WIDTH = 600;
+
+/**
+ * Drags the sidebar's edge until the sidebar is `width` wide, and waits until the layout has
+ * settled at that width. The sidebar ignores drags of under 3px, so `width` must be at least that
+ * far from the current width, or equal to it.
+ * @param page - The Playwright page object
+ * @param width - The sidebar width to drag to, between MIN_SIDEBAR_WIDTH and MAX_SIDEBAR_WIDTH
+ * @returns void
+ */
+export const dragSidebarToWidth = async (page: Page, width: number) => {
+  const locators = buildSidebarLocators(page);
+  const handleBox = await locators.dragHandle().boundingBox();
+  expect(handleBox).not.toBeNull();
+
+  // The main pane overlaps the handle's right side, so grab it at its left edge.
+  const y = handleBox!.y + handleBox!.height / 2;
+  await page.mouse.move(handleBox!.x + 1, y);
+  await page.mouse.down();
+  // The sidebar sets its width to the pointer's x plus 2px.
+  await page.mouse.move(width - 2, y, { steps: 5 });
+  await page.mouse.up();
+
+  await expect.poll(() => locators.sidebarContainer().evaluate((node: HTMLElement) => node.offsetWidth)).toBe(width);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 };

@@ -4,14 +4,19 @@ const Wrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.base};
 
   .auth-mode-selector {
-    background: transparent;
+    font-size: ${(props) => props.theme.font.size.sm};
+    padding: 0.2rem 0px;
+    border-radius: 3px;
+    border: solid 1px ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
 
     .auth-mode-label {
       color: ${(props) => props.theme.primary.text};
+      padding: 0 0.5rem;
 
       .caret {
-        color: rgb(140, 140, 140);
-        fill: rgb(140, 140, 140);
+        color: ${(props) => props.theme.colors.text.muted};
+        fill: ${(props) => props.theme.colors.text.muted};
       }
     }
   }

@@ -478,6 +478,43 @@ describe('hydrateSnapshotLookups', () => {
       { type: 'variables', accessor: 'type', permanent: true }
     ]);
   });
+
+  it('tidies up the api spec paths saved for a workspace and drops the empty ones', () => {
+    const snapshot = {
+      workspaces: [
+        {
+          pathname: '/workspaces/main',
+          apiSpecTabs: ['C:\\workspaces\\main\\petstore.yaml', '/workspaces/main/orders.yaml/', '/', ''],
+          activeApiSpecTabPathname: 'C:\\workspaces\\main\\petstore.yaml'
+        }
+      ]
+    };
+
+    const workspace = hydrateSnapshotLookups(snapshot).workspacesByPath['/workspaces/main'];
+
+    expect(workspace.apiSpecTabs).toEqual(['C:/workspaces/main/petstore.yaml', '/workspaces/main/orders.yaml']);
+    expect(workspace.activeApiSpecTabPathname).toBe('C:/workspaces/main/petstore.yaml');
+  });
+
+  it('opens no api spec tabs when the saved list is not a list', () => {
+    const snapshot = {
+      workspaces: [{ pathname: '/workspaces/main', apiSpecTabs: '/workspaces/main/petstore.yaml' }]
+    };
+
+    expect(hydrateSnapshotLookups(snapshot).workspacesByPath['/workspaces/main'].apiSpecTabs).toEqual([]);
+  });
+
+  it('leaves no api spec tab active when the saved path is unusable', () => {
+    const unusablePaths = [{ pathname: '/workspaces/main/petstore.yaml' }, '/'];
+
+    unusablePaths.forEach((activeApiSpecTabPathname) => {
+      const snapshot = {
+        workspaces: [{ pathname: '/workspaces/main', activeApiSpecTabPathname }]
+      };
+
+      expect(hydrateSnapshotLookups(snapshot).workspacesByPath['/workspaces/main'].activeApiSpecTabPathname).toBeNull();
+    });
+  });
 });
 
 describe('deserializeTab', () => {

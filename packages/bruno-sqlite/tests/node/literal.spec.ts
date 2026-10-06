@@ -51,8 +51,7 @@ describe('literal', () => {
       {
         name: 'get_thing_by_slug',
         type: 'one',
-        sql: 'SELECT id, name, note\nFROM things\nWHERE slug = ? AND note != \'n/a\'\nLIMIT 1',
-        tables: ['things']
+        sql: 'SELECT id, name, note\nFROM things\nWHERE slug = ? AND note != \'n/a\'\nLIMIT 1'
       }
     ];
 

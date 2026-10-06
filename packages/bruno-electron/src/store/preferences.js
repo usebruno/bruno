@@ -55,7 +55,7 @@ const defaultPreferences = {
   },
   beta: {
     'openapi-sync': false,
-    'mock-server': false
+    'mock-server': true
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -357,6 +357,14 @@ class PreferencesStore {
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
+    }
+
+    const hasExistingPreferences = Object.keys(preferences).length > 0;
+    const mockServerDefaultApplied = get(preferences, '_migrations.mockServerBetaOnByDefault', false);
+    if (hasExistingPreferences && !mockServerDefaultApplied) {
+      preferences.beta = { ...preferences.beta, 'mock-server': true };
+      preferences._migrations = { ...preferences._migrations, mockServerBetaOnByDefault: true };
+      this.store.set('preferences', preferences);
     }
 
     // Migrate from defaultCollectionLocation to defaultLocation

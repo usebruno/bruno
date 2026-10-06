@@ -3,6 +3,7 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -423,7 +424,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     disabledHeaders,
     name: item.name,
     pathname: item.pathname,
-    tags: item.tags || [],
+    tags: getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(requestTreePath)),
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings,
     responseType: 'arraybuffer'
