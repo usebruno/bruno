@@ -19,8 +19,7 @@ const SOAP_ENVELOPE_PREFIX = 'soap';
 const SOAP_ENVELOPE_NAMESPACE = 'http://schemas.xmlsoap.org/soap/envelope/';
 const RESERVED_PREFIXES = new Set([SOAP_ENVELOPE_PREFIX, 'xml', 'xmlns']);
 
-// The XML parser decodes entities, so values read from the WSDL must be re-escaped
-// before they are written back into a double-quoted attribute
+// Re-escape special characters before writing them into an attribute
 const escapeXmlAttribute = (value) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
 // --- Inlined from src/common/index.js ---
@@ -176,7 +175,6 @@ class WSDLParser {
   }
 
   collectPrefixDeclarations(schemas) {
-    // Definitions come first so a WSDL-wide prefix wins over a schema-local one
     for (const [prefix, namespace] of this.namespaces) {
       this.prefixDeclarations.push({ prefix, namespace });
     }
