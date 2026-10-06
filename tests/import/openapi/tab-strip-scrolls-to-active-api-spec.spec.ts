@@ -8,6 +8,7 @@ import {
   removeAllApiSpecsFromWorkspace
 } from '../../utils/page/openapi/render-spec';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { activeTabIsInStrip } from '../../utils/page/tab-strip';
 
 const SPEC_COUNT = 12;
 const specTitle = (index: number) => `Scroll Spec ${String(index).padStart(2, '0')}`;
@@ -34,15 +35,6 @@ paths:
 
 const verticalPosition = (page: Page) =>
   page.evaluate(() => Math.round(document.scrollingElement?.scrollTop ?? 0));
-
-const activeTabIsInStrip = async (page: Page) => {
-  const locators = buildCommonLocators(page);
-  const strip = await locators.tabs.scrollContainer().boundingBox();
-  const tab = await locators.tabs.activeRequestTab().boundingBox();
-  if (!strip || !tab) return false;
-
-  return tab.x >= strip.x - 1 && tab.x + tab.width <= strip.x + strip.width + 1;
-};
 
 test.describe('API spec tabs keep the active tab in view', () => {
   test.setTimeout(120000);

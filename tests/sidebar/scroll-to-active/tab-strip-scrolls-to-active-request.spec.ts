@@ -1,6 +1,6 @@
-import { test, expect, closeElectronApp, Page } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators, openRequest, waitForReadyPage } from '../../utils/page';
+import { activeTabIsInStrip, buildCommonLocators, openRequest, waitForReadyPage } from '../../utils/page';
 import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'TabStripCol';
@@ -12,15 +12,6 @@ const buildCollectionOnDisk = (dir: string) => {
   for (let index = 1; index <= REQUEST_COUNT; index += 1) {
     writeBruRequest(dir, reqName(index), { seq: index });
   }
-};
-
-const activeTabIsInStrip = async (page: Page) => {
-  const locators = buildCommonLocators(page);
-  const strip = await locators.tabs.scrollContainer().boundingBox();
-  const tab = await locators.tabs.activeRequestTab().boundingBox();
-  if (!strip || !tab) return false;
-
-  return tab.x >= strip.x - 1 && tab.x + tab.width <= strip.x + strip.width + 1;
 };
 
 test.describe('Request tab strip scroll-to-active', () => {

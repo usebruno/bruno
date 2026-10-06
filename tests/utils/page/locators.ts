@@ -85,7 +85,6 @@ export const buildCommonLocators = (page: Page) => ({
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
     leftChevron: () => page.getByLabel('Left Chevron'),
-    rightChevron: () => page.getByLabel('Right Chevron'),
     scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
