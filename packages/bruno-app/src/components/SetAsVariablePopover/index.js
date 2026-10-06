@@ -6,7 +6,7 @@ import Dropdown from 'components/Dropdown';
 import Button from 'ui/Button';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
-import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope } from 'utils/variables';
+import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope, getScopeVariableNames } from 'utils/variables';
 import { replaceSelectionWithVariable } from 'utils/codemirror/selection';
 import { variableNameRegex } from 'utils/common/regex';
 import { SCOPE_ICON, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
@@ -114,6 +114,15 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
   };
 
   const selectedScope = scopes.find((scope) => scope.type === scopeType) || null;
+  const existingVariableNames = scopeType
+    ? getScopeVariableNames({
+        scopeType,
+        state: { collections: { collections }, globalEnvironments },
+        collection: selection.collection,
+        item: selection.item
+      })
+    : new Set();
+  const overwrites = !!name && !!selectedScope && existingVariableNames.has(name);
   const nameError = name && !variableNameRegex.test(name) ? INVALID_NAME_ERROR : null;
   const canSave = !!name && !nameError && !!selectedScope && !saving;
 
@@ -212,6 +221,12 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
         {nameError ? (
           <div className="var-set-error" data-testid="set-as-variable-name-error">
             {nameError}
+          </div>
+        ) : null}
+
+        {!nameError && overwrites ? (
+          <div className="var-set-warning" data-testid="set-as-variable-overwrite-warning">
+            {`Replaces the existing "${name}" in ${selectedScope.label}`}
           </div>
         ) : null}
 
@@ -330,7 +345,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
             Cancel
           </Button>
           <Button size="sm" disabled={!canSave} onClick={handleSave} data-testid="set-as-variable-save">
-            Set Variable
+            {overwrites ? 'Overwrite' : 'Set Variable'}
           </Button>
         </div>
       </StyledWrapper>

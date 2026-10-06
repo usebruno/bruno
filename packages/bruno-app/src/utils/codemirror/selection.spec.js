@@ -7,14 +7,21 @@ const createEditor = ({
   selections = [{ anchor: pos(0, 4), head: pos(0, 9) }],
   readOnly = false,
   clickedChar = pos(0, 6),
-  range = null
+  range = null,
+  document = null
 } = {}) => ({
   somethingSelected: () => !!selection,
   getSelection: () => selection,
   listSelections: () => selections,
   getOption: (name) => (name === 'readOnly' ? readOnly : undefined),
   coordsChar: () => clickedChar,
-  getRange: jest.fn(() => (range === null ? selection : range)),
+  getRange: jest.fn((a, b) => {
+    if (document !== null) {
+      const line = document.split('\n')[a.line] ?? '';
+      return line.slice(a.ch, b.ch);
+    }
+    return range === null ? selection : range;
+  }),
   replaceRange: jest.fn()
 });
 
@@ -108,6 +115,31 @@ describe('replaceSelectionWithVariable', () => {
 
     expect(replaceSelectionWithVariable(selectionFor(editor, { editable: false }), 'apiKey')).toBe(false);
     expect(editor.replaceRange).not.toHaveBeenCalled();
+  });
+
+  it('replaces the whole reference when the selection sits inside existing braces', () => {
+    const editor = createEditor({ document: '{{base_url}}/posts', selection: 'base_url' });
+    const selection = selectionFor(editor, { from: pos(0, 2), to: pos(0, 10), text: 'base_url' });
+
+    expect(replaceSelectionWithVariable(selection, 'host')).toBe(true);
+    // Without swallowing the braces this would produce {{{{host}}}}.
+    expect(editor.replaceRange).toHaveBeenCalledWith('{{host}}', pos(0, 0), pos(0, 12));
+  });
+
+  it('leaves a bare selection alone', () => {
+    const editor = createEditor({ document: 'https://example.com', selection: 'https' });
+    const selection = selectionFor(editor, { from: pos(0, 0), to: pos(0, 5), text: 'https' });
+
+    expect(replaceSelectionWithVariable(selection, 'scheme')).toBe(true);
+    expect(editor.replaceRange).toHaveBeenCalledWith('{{scheme}}', pos(0, 0), pos(0, 5));
+  });
+
+  it('does not swallow a lone closing brace pair', () => {
+    const editor = createEditor({ document: 'value}}', selection: 'value' });
+    const selection = selectionFor(editor, { from: pos(0, 0), to: pos(0, 5), text: 'value' });
+
+    replaceSelectionWithVariable(selection, 'v');
+    expect(editor.replaceRange).toHaveBeenCalledWith('{{v}}', pos(0, 0), pos(0, 5));
   });
 
   it('does nothing for a dom selection that carries no editor', () => {

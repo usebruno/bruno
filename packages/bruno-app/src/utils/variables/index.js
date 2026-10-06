@@ -142,3 +142,33 @@ export const createEnvironmentForScope = ({ scope, name, collectionUid, store })
 
   return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
 };
+
+const enabledNames = (variables) =>
+  new Set((variables || []).filter((variable) => variable.enabled && variable.name).map((variable) => variable.name));
+
+// Names already defined in a scope, so the UI can tell the user a save would overwrite one.
+export const getScopeVariableNames = ({ scopeType, state, collection, item }) => {
+  const scopeInfo = buildScopeInfo({ scopeType, state, collection, item });
+  if (!scopeInfo) {
+    return new Set();
+  }
+
+  const { type, data } = scopeInfo;
+
+  if (type === VARIABLE_ADD_SCOPES.ENVIRONMENT || type === VARIABLE_ADD_SCOPES.GLOBAL) {
+    return enabledNames(data.environment?.variables);
+  }
+
+  if (type === VARIABLE_ADD_SCOPES.REQUEST) {
+    const request = data.item?.draft?.request || data.item?.request;
+    return enabledNames(request?.vars?.req);
+  }
+
+  if (type === VARIABLE_ADD_SCOPES.FOLDER) {
+    const root = data.folder?.draft || data.folder?.root;
+    return enabledNames(root?.request?.vars?.req);
+  }
+
+  const collectionRoot = data.collection?.draft?.root || data.collection?.root;
+  return enabledNames(collectionRoot?.request?.vars?.req);
+};

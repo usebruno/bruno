@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import SetAsVariableMenu from 'components/SetAsVariableMenu';
 import SetAsVariablePopover from 'components/SetAsVariablePopover';
 import { getCodeMirrorSelectionPayload } from 'utils/codemirror/selection';
@@ -11,6 +12,12 @@ const isInsideFloatingUi = (target) => !!target?.closest?.('[data-tippy-root]');
 
 export function SetAsVariableProvider({ children }) {
   const [state, setState] = useState(CLOSED);
+  const activeTabUid = useSelector((reduxState) => reduxState.tabs.activeTabUid);
+
+  // The open callbacks are deliberately dependency-free so the context value never changes
+  // identity; a ref keeps the active tab reachable from inside them without that cost.
+  const activeTabUidRef = useRef(activeTabUid);
+  activeTabUidRef.current = activeTabUid;
 
   const close = useCallback(() => setState(CLOSED), []);
 
@@ -30,6 +37,7 @@ export function SetAsVariableProvider({ children }) {
       view: 'menu',
       selection: {
         surface: 'codemirror',
+        tabUid: activeTabUidRef.current,
         x: event.clientX,
         y: event.clientY,
         text: payload.text,
@@ -59,6 +67,7 @@ export function SetAsVariableProvider({ children }) {
       view: 'menu',
       selection: {
         surface: 'dom',
+        tabUid: activeTabUidRef.current,
         x: event.clientX,
         y: event.clientY,
         text,
@@ -82,10 +91,12 @@ export function SetAsVariableProvider({ children }) {
   return (
     <SetAsVariableContext.Provider value={value}>
       {children}
-      {state.view === 'menu' ? (
+      {state.view === 'menu' && state.selection.tabUid === activeTabUid ? (
         <SetAsVariableMenu selection={state.selection} onNewVariable={showPopover} onClose={dismissMenu} />
       ) : null}
-      {state.view === 'popover' ? <SetAsVariablePopover selection={state.selection} onClose={close} /> : null}
+      {state.view === 'popover' && state.selection.tabUid === activeTabUid ? (
+        <SetAsVariablePopover selection={state.selection} onClose={close} />
+      ) : null}
     </SetAsVariableContext.Provider>
   );
 }

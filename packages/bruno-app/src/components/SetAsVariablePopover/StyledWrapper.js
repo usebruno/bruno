@@ -338,6 +338,12 @@ const StyledWrapper = styled.div`
     margin-top: 0.25rem;
   }
 
+  .var-set-warning {
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.warning};
+    margin-top: 0.25rem;
+  }
+
   .var-set-footer {
     display: flex;
     align-items: center;

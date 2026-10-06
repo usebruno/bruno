@@ -38,6 +38,25 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
   };
 };
 
+const BRACE_LENGTH = 2;
+
+// Selecting the name inside an existing `{{var}}` would otherwise nest the braces into
+// `{{{{var}}}}`; swallow the surrounding pair so the reference is replaced, not wrapped.
+const expandOverWrappingBraces = (editor, from, to) => {
+  if (from.ch < BRACE_LENGTH) {
+    return { from, to };
+  }
+
+  const openingFrom = { line: from.line, ch: from.ch - BRACE_LENGTH };
+  const closingTo = { line: to.line, ch: to.ch + BRACE_LENGTH };
+
+  if (editor.getRange(openingFrom, from) !== '{{' || editor.getRange(to, closingTo) !== '}}') {
+    return { from, to };
+  }
+
+  return { from: openingFrom, to: closingTo };
+};
+
 export const replaceSelectionWithVariable = (selection, variableName) => {
   const { editor, editable, from, to, text } = selection || {};
 
@@ -49,6 +68,7 @@ export const replaceSelectionWithVariable = (selection, variableName) => {
     return false;
   }
 
-  editor.replaceRange(`{{${variableName}}}`, from, to);
+  const range = expandOverWrappingBraces(editor, from, to);
+  editor.replaceRange(`{{${variableName}}}`, range.from, range.to);
   return true;
 };
