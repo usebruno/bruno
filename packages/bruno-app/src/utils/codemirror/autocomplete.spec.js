@@ -24,6 +24,9 @@ import {
   WORD_PATTERN
 } from './autocomplete';
 
+// API hints are completion objects; the rest are plain strings.
+const hintTexts = (result) => result.list.map((hint) => (typeof hint === 'string' ? hint : hint.text));
+
 describe('Bruno Autocomplete', () => {
   let mockedCodemirror;
 
@@ -182,7 +185,7 @@ describe('Bruno Autocomplete', () => {
           });
 
           expect(result).toBeTruthy();
-          expect(result.list).toEqual(expect.arrayContaining(expected));
+          expect(hintTexts(result)).toEqual(expect.arrayContaining(expected));
         });
       });
 
@@ -208,7 +211,7 @@ describe('Bruno Autocomplete', () => {
           });
 
           expect(result).toBeTruthy();
-          expect(result.list).toEqual(expect.arrayContaining(expected));
+          expect(hintTexts(result)).toEqual(expect.arrayContaining(expected));
         });
       });
 
@@ -222,7 +225,7 @@ describe('Bruno Autocomplete', () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining([
             'getUrl()',
             'getMethod()',
@@ -247,13 +250,58 @@ describe('Bruno Autocomplete', () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining([
             'setNextRequest(requestName)',
             'skipRequest()',
             'stopExecution()'
           ])
         );
+      });
+    });
+
+    describe('API hint docs', () => {
+      const apiHints = (line, showHintsFor) => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+        mockedCodemirror.getLine.mockReturnValue(line);
+        mockedCodemirror.getRange.mockReturnValue(line);
+
+        return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor });
+      };
+
+      it('narrows the hints to the editor\'s script context', () => {
+        expect(hintTexts(apiHints('req.on', ['req', 'bru']))).toContain('onFail(callback)');
+        expect(apiHints('req.on', ['req', 'res', 'bru'])).toBeNull();
+      });
+
+      it('renders a hint row with the member\'s summary', () => {
+        const result = apiHints('bru.setEnv', ['bru']);
+        const hint = result.list.find((item) => item.text === 'setEnvVar(key, value)');
+        const row = document.createElement('li');
+
+        hint.render(row, result, hint);
+
+        expect(hint.entry.path).toBe('bru.setEnvVar');
+        expect(row.querySelector('.CodeMirror-hint-api-name').textContent).toBe('setEnvVar(key, value)');
+        expect(row.querySelector('.CodeMirror-hint-api-summary').textContent).toBe(hint.entry.summary);
+      });
+
+      it('shows the highlighted hint\'s docs beside the list until it closes', () => {
+        const { signal } = jest.requireActual('codemirror');
+        const result = apiHints('bru.setEnv', ['bru']);
+        const hint = result.list.find((item) => item.text === 'setEnvVar(key, value)');
+        const list = document.createElement('ul');
+        const row = document.createElement('li');
+        list.appendChild(row);
+        document.body.appendChild(list);
+        const details = () => document.querySelector('[data-testid="autocomplete-hint-details"]');
+
+        signal(result, 'select', hint, row);
+        expect(details().textContent).toContain('bru.setEnvVar(key: string, value: any): void');
+
+        signal(result, 'close');
+        expect(details()).toBeNull();
+        list.remove();
       });
     });
 
@@ -273,35 +321,35 @@ describe('Bruno Autocomplete', () => {
       it('offers only the request model before the call has produced a response', () => {
         const result = grpcHints('bru.grpc.', 'before-call-start');
 
-        expect(result.list).toEqual(['request']);
+        expect(hintTexts(result)).toEqual(['request']);
       });
 
       it('offers both models once a message has been received', () => {
         const result = grpcHints('bru.grpc.', 'after-message-receive');
 
-        expect(result.list).toEqual(expect.arrayContaining(['request', 'response']));
+        expect(hintTexts(result)).toEqual(expect.arrayContaining(['request', 'response']));
       });
 
       it('offers the metadata write methods only in before-call-start', () => {
         const writable = grpcHints('bru.grpc.request.metadata.', 'before-call-start');
         const readOnly = grpcHints('bru.grpc.request.metadata.', 'after-call-end');
 
-        expect(writable.list).toEqual(expect.arrayContaining(['get(key)', 'upsert(key, value)', 'clear()']));
-        expect(readOnly.list).toEqual(expect.arrayContaining(['get(key)']));
-        expect(readOnly.list).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
+        expect(hintTexts(writable)).toEqual(expect.arrayContaining(['get(name)', 'upsert(key, value)', 'clear()']));
+        expect(hintTexts(readOnly)).toEqual(expect.arrayContaining(['get(name)']));
+        expect(hintTexts(readOnly)).not.toEqual(expect.arrayContaining(['upsert(key, value)']));
       });
 
       it('offers request.message only in before-message-send', () => {
-        expect(grpcHints('bru.grpc.request.', 'before-message-send').list).toContain('message');
-        expect(grpcHints('bru.grpc.request.', 'before-call-start').list).not.toContain('message');
+        expect(hintTexts(grpcHints('bru.grpc.request.', 'before-message-send'))).toContain('message');
+        expect(hintTexts(grpcHints('bru.grpc.request.', 'before-call-start'))).not.toContain('message');
       });
 
       it('offers response.message only in after-message-receive', () => {
-        expect(grpcHints('bru.grpc.response.', 'after-message-receive').list).toContain('message');
+        expect(hintTexts(grpcHints('bru.grpc.response.', 'after-message-receive'))).toContain('message');
 
         const afterCallEnd = grpcHints('bru.grpc.response.', 'after-call-end');
-        expect(afterCallEnd.list).toContain('statusCode');
-        expect(afterCallEnd.list).not.toContain('message');
+        expect(hintTexts(afterCallEnd)).toContain('statusCode');
+        expect(hintTexts(afterCallEnd)).not.toContain('message');
       });
 
       it('does not leak gRPC hints into an HTTP script editor', () => {
@@ -369,7 +417,7 @@ describe('Bruno Autocomplete', () => {
         const result = getAutoCompleteHints(mockedCodemirror, {}, [], options);
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining(['url', 'method'])
         );
       });
@@ -463,7 +511,7 @@ describe('Bruno Autocomplete', () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
+        expect(hintTexts(result)).toEqual(
           expect.arrayContaining(['getHeader(name)', 'getHeaders()'])
         );
       });
@@ -479,8 +527,8 @@ describe('Bruno Autocomplete', () => {
         });
 
         expect(result).toBeTruthy();
-        expect(result.list).toEqual(
-          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(data)'])
+        expect(hintTexts(result)).toEqual(
+          expect.arrayContaining(['deleteHeader(name)', 'deleteHeaders(headers)'])
         );
       });
 
@@ -916,11 +964,11 @@ describe('Bruno Autocomplete', () => {
         const hintCall = mockedCodemirror.showHint.mock.calls[0][0];
         const hintResult = hintCall.hint();
 
-        expect(hintResult).toEqual({
+        expect(hintResult).toEqual(expect.objectContaining({
           list: expect.any(Array),
           from: mockCursor,
           to: mockCursor
-        });
+        }));
         expect(hintResult.list.length).toBeGreaterThan(0);
 
         jest.useRealTimers();

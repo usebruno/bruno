@@ -1,195 +1,7 @@
 import { mockDataFunctions } from '@usebruno/common';
-import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
+import { API_HINT_GROUPS, API_ROOTS, getApiEntries, getHintTexts, renderApiDoc } from 'utils/codemirror/scriptApi';
 
 const CodeMirror = require('codemirror');
-
-// Static API hints - Bruno JavaScript API (subgrouped by category)
-const STATIC_API_HINTS = {
-  req: [
-    'req',
-    'req.url',
-    'req.method',
-    'req.headers',
-    'req.body',
-    'req.timeout',
-    'req.getUrl()',
-    'req.setUrl(url)',
-    'req.getHost()',
-    'req.getPath()',
-    'req.getQueryString()',
-    'req.getMethod()',
-    'req.getAuthMode()',
-    'req.setMethod(method)',
-    'req.getHeader(name)',
-    'req.getHeaders()',
-    'req.setHeader(name, value)',
-    'req.setHeaders(data)',
-    'req.deleteHeader(name)',
-    'req.deleteHeaders(data)',
-    'req.getBody()',
-    'req.setBody(data)',
-    'req.setMaxRedirects(maxRedirects)',
-    'req.getTimeout()',
-    'req.setTimeout(timeout)',
-    'req.getExecutionMode()',
-    'req.getName()',
-    'req.getPathParams()',
-    'req.getTags()',
-    'req.disableParsingResponseJson()',
-    'req.onFail(function(err) {})',
-    'req.headerList',
-    'req.headerList.get(name)',
-    'req.headerList.one(name)',
-    'req.headerList.all()',
-    'req.headerList.idx(index)',
-    'req.headerList.count()',
-    'req.headerList.has(name)',
-    'req.headerList.has(name, value)',
-    'req.headerList.find(fn)',
-    'req.headerList.filter(fn)',
-    'req.headerList.indexOf(item)',
-    'req.headerList.each(fn)',
-    'req.headerList.map(fn)',
-    'req.headerList.reduce(fn, initialValue)',
-    'req.headerList.toObject()',
-    'req.headerList.toString()',
-    'req.headerList.toJSON()',
-    'req.headerList.add(headerObj)',
-    'req.headerList.upsert(headerObj)',
-    'req.headerList.remove(predicate)',
-    'req.headerList.clear()',
-    'req.headerList.populate(items)',
-    'req.headerList.repopulate(items)',
-    'req.headerList.assimilate(source, prune)'
-  ],
-  res: [
-    'res',
-    'res.status',
-    'res.statusText',
-    'res.headers',
-    'res.body',
-    'res.responseTime',
-    'res.url',
-    'res.getStatus()',
-    'res.getStatusText()',
-    'res.getHeader(name)',
-    'res.getHeaders()',
-    'res.getBody()',
-    'res.setBody(data)',
-    'res.getResponseTime()',
-    'res.getSize()',
-    'res.getSize().header',
-    'res.getSize().body',
-    'res.getSize().total',
-    'res.getUrl()',
-    'res.headerList',
-    'res.headerList.get(name)',
-    'res.headerList.one(name)',
-    'res.headerList.all()',
-    'res.headerList.idx(index)',
-    'res.headerList.count()',
-    'res.headerList.has(name)',
-    'res.headerList.has(name, value)',
-    'res.headerList.find(fn)',
-    'res.headerList.filter(fn)',
-    'res.headerList.indexOf(item)',
-    'res.headerList.each(fn)',
-    'res.headerList.map(fn)',
-    'res.headerList.reduce(fn, initialValue)',
-    'res.headerList.toObject()',
-    'res.headerList.toString()',
-    'res.headerList.toJSON()'
-  ],
-  bru: [
-    'bru',
-    'bru.cwd()',
-    'bru.getEnvName()',
-    'bru.getProcessEnv(key)',
-    'bru.hasEnvVar(key)',
-    'bru.getEnvVar(key)',
-    'bru.getFolderVar(key)',
-    'bru.getCollectionVar(key)',
-    'bru.setCollectionVar(key, value)',
-    'bru.hasCollectionVar(key)',
-    'bru.deleteCollectionVar(key)',
-    'bru.deleteAllCollectionVars()',
-    'bru.getAllCollectionVars()',
-    'bru.setEnvVar(key, value)',
-    'bru.deleteEnvVar(key)',
-    'bru.getAllEnvVars()',
-    'bru.deleteAllEnvVars()',
-    'bru.hasVar(key)',
-    'bru.getVar(key)',
-    'bru.setVar(key,value)',
-    'bru.deleteVar(key)',
-    'bru.deleteAllVars()',
-    'bru.getAllVars()',
-    'bru.setNextRequest(requestName)',
-    'bru.getRequestVar(key)',
-    'bru.runRequest(requestPathName)',
-    'bru.sendRequest(requestConfig)',
-    'bru.sendRequest(requestConfig, callback)',
-    'bru.getAssertionResults()',
-    'bru.getTestResults()',
-    'bru.sleep(ms)',
-    'bru.getCollectionName()',
-    'bru.isSafeMode()',
-    'bru.getOauth2CredentialVar(key)',
-    'bru.hasGlobalEnvVar(key)',
-    'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)',
-    'bru.deleteGlobalEnvVar(key)',
-    'bru.getAllGlobalEnvVars()',
-    'bru.deleteAllGlobalEnvVars()',
-    'bru.runner',
-    'bru.runner.setNextRequest(requestName)',
-    'bru.runner.skipRequest()',
-    'bru.runner.stopExecution()',
-    'bru.interpolate(str)',
-    'bru.cookies',
-    'bru.cookies.get(name)',
-    'bru.cookies.has(name)',
-    'bru.cookies.has(name, value)',
-    'bru.cookies.one(name)',
-    'bru.cookies.all()',
-    'bru.cookies.count()',
-    'bru.cookies.idx(index)',
-    'bru.cookies.indexOf(item)',
-    'bru.cookies.find(fn)',
-    'bru.cookies.filter(fn)',
-    'bru.cookies.each(fn)',
-    'bru.cookies.map(fn)',
-    'bru.cookies.reduce(fn, initialValue)',
-    'bru.cookies.toObject()',
-    'bru.cookies.toString()',
-    'bru.cookies.add(cookieObj)',
-    'bru.cookies.upsert(cookieObj)',
-    'bru.cookies.remove(name)',
-    'bru.cookies.delete(name)',
-    'bru.cookies.clear()',
-    'bru.cookies.jar()',
-    'bru.cookies.jar().getCookie(url, name, callback)',
-    'bru.cookies.jar().getCookies(url, callback)',
-    'bru.cookies.jar().setCookie(url, name, value, callback)',
-    'bru.cookies.jar().setCookie(url, cookieObject, callback)',
-    'bru.cookies.jar().setCookies(url, cookiesArray, callback)',
-    'bru.cookies.jar().clear(callback)',
-    'bru.cookies.jar().deleteCookies(url, callback)',
-    'bru.cookies.jar().deleteCookie(url, name, callback)',
-    'bru.cookies.jar().hasCookie(url, name, callback)',
-    'bru.utils',
-    'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)',
-    'bru.resetOauth2Credential(credentialId)'
-  ],
-  ...GRPC_API_HINTS
-};
-
-// The values `showHintsFor` accepts.
-const HINT_GROUPS = Object.keys(STATIC_API_HINTS);
-
-// The globals every hint starts with.
-const HINT_ROOTS = ['bru', 'req', 'res'];
 
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
@@ -257,12 +69,10 @@ const transformVariablesToHints = (allVariables = {}) => {
  * @param {string[]} showHintsFor - Array of hint groups to show
  */
 const addApiHintsToSet = (apiHints, showHintsFor) => {
-  HINT_GROUPS.forEach((group) => {
-    if (showHintsFor.includes(group)) {
-      STATIC_API_HINTS[group].forEach((hint) => {
-        generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
-      });
-    }
+  getApiEntries(showHintsFor).forEach((entry) => {
+    getHintTexts(entry).forEach((hint) => {
+      generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
+    });
   });
 };
 
@@ -386,7 +196,7 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  const isApiHint = HINT_ROOTS.some(
+  const isApiHint = API_ROOTS.some(
     (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
   );
 
@@ -548,7 +358,7 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
+    const hasApiHints = showHintsFor.some((group) => API_HINT_GROUPS.includes(group));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
@@ -620,6 +430,99 @@ const createStandardHintList = (filteredHints, from, to) => {
 };
 
 /**
+ * Renders an API hint row: the hint text, then the member's summary.
+ * @param {HTMLElement} element - The row
+ * @param {Object} data - The hint list
+ * @param {Object} completion - The hint
+ */
+const renderApiHint = (element, data, completion) => {
+  element.classList.add('CodeMirror-hint-api');
+
+  const name = document.createElement('span');
+  name.className = 'CodeMirror-hint-api-name';
+  name.textContent = completion.displayText;
+  element.appendChild(name);
+
+  if (completion.entry.summary) {
+    const summary = document.createElement('span');
+    summary.className = 'CodeMirror-hint-api-summary';
+    summary.textContent = completion.entry.summary;
+    element.appendChild(summary);
+  }
+};
+
+const DETAILS_GAP_PX = 4;
+
+/**
+ * Places the detail panel beside the hint list, on the right when it fits, level with the row.
+ * @param {HTMLElement} panel
+ * @param {HTMLElement} row - The highlighted hint row
+ */
+const positionDetailsPanel = (panel, row) => {
+  const list = row.parentNode.getBoundingClientRect();
+  const rowBox = row.getBoundingClientRect();
+  const fitsRight = list.right + DETAILS_GAP_PX + panel.offsetWidth <= window.innerWidth;
+  const left = fitsRight ? list.right + DETAILS_GAP_PX : list.left - DETAILS_GAP_PX - panel.offsetWidth;
+  const top = Math.min(rowBox.top, window.innerHeight - panel.offsetHeight - DETAILS_GAP_PX);
+
+  panel.style.left = `${Math.max(0, left)}px`;
+  panel.style.top = `${Math.max(0, top)}px`;
+};
+
+/**
+ * Shows the docs of the highlighted API hint in a panel beside the hint list, for as long as the
+ * list is open.
+ * @param {Object} hintResult - The `{ list, from, to }` object handed to `showHint`
+ */
+const attachApiDetailsPanel = (hintResult) => {
+  let panel = null;
+
+  const hidePanel = () => {
+    panel?.remove();
+    panel = null;
+  };
+
+  CodeMirror.on(hintResult, 'select', (completion, row) => {
+    hidePanel();
+    if (!completion?.entry || !row?.parentNode) return;
+
+    panel = document.createElement('div');
+    panel.className = 'CodeMirror-hint-details';
+    panel.setAttribute('data-testid', 'autocomplete-hint-details');
+    panel.appendChild(renderApiDoc(completion.entry));
+    document.body.appendChild(panel);
+    positionDetailsPanel(panel, row);
+  });
+  CodeMirror.on(hintResult, 'close', hidePanel);
+};
+
+/**
+ * Create the hint list for the API context. A hint that names a documented member is rendered with
+ * its summary, and its docs show beside the list while it is highlighted.
+ * @param {string[]} filteredHints - Filtered hints: segments after `word`'s last dot, or whole hints
+ * @param {string} word - The word being completed
+ * @param {Object} from - Start position
+ * @param {Object} to - End position
+ * @param {string[]} showHintsFor - Allowed hint types
+ * @returns {Object} Hint object with list and positions
+ */
+const createApiHintList = (filteredHints, word, from, to, showHintsFor) => {
+  const entriesByHint = new Map(
+    getApiEntries(showHintsFor).flatMap((entry) => getHintTexts(entry).map((hint) => [hint, entry]))
+  );
+  const prefix = word.slice(0, word.lastIndexOf('.') + 1);
+
+  const list = filteredHints.map((hint) => {
+    const entry = entriesByHint.get(hint) || entriesByHint.get(`${prefix}${hint}`);
+    return entry ? { text: hint, displayText: hint, entry, render: renderApiHint } : hint;
+  });
+
+  const hintResult = { list, from, to };
+  attachApiDetailsPanel(hintResult);
+  return hintResult;
+};
+
+/**
  * Show root-level API hints when the editor is empty
  * @param {Object} cm - CodeMirror instance
  * @param {string[]} showHintsFor - Array of hint groups to show (e.g., ['req', 'res', 'bru'])
@@ -633,7 +536,7 @@ export const showRootHints = (cm, showHintsFor = []) => {
     return false;
   }
 
-  const hints = HINT_ROOTS.filter((root) => showHintsFor.includes(root));
+  const hints = API_ROOTS.filter((root) => showHintsFor.includes(root));
 
   if (hints.length === 0) return false;
 
@@ -684,6 +587,10 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return createVariableHintList(filteredHints, from, to);
   }
 
+  if (context === 'api') {
+    return createApiHintList(filteredHints, word, from, to, showHintsFor);
+  }
+
   return createStandardHintList(filteredHints, from, to);
 };
 
@@ -704,7 +611,7 @@ const handleClickForAutocomplete = (cm, options) => {
   let allHints = [];
 
   // Add API hints if enabled
-  const hasApiHints = showHintsFor.some((group) => HINT_GROUPS.includes(group));
+  const hasApiHints = showHintsFor.some((group) => API_HINT_GROUPS.includes(group));
   if (hasApiHints) {
     allHints = [...allHints, ...categorizedHints.api];
   }
@@ -731,11 +638,7 @@ const handleClickForAutocomplete = (cm, options) => {
   // Defer showHint to ensure editor is focused
   setTimeout(() => {
     cm.showHint({
-      hint: () => ({
-        list: allHints,
-        from: cursor,
-        to: cursor
-      }),
+      hint: () => createApiHintList(allHints, '', cursor, cursor, showHintsFor),
       completeSingle: false
     });
   }, 0);

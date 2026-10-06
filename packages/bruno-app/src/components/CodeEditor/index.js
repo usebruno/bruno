@@ -11,6 +11,8 @@ import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
+import { API_HINT_GROUPS } from 'utils/codemirror/scriptApi';
+import './brunoApiInfo';
 import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
 import { buildAutocompleteContext } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
@@ -45,6 +47,12 @@ window.JSHINT = JSHINT;
 const NORMAL_GUTTERS = ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'];
 const TAB_SIZE = 2;
 
+// API docs on hover, for the editors that offer script API hints.
+const brunoApiInfoOption = (props, degraded) => {
+  const showHintsFor = props.showHintsFor || [];
+  return !degraded && showHintsFor.some((group) => API_HINT_GROUPS.includes(group)) ? { showHintsFor } : false;
+};
+
 const buildCodeMirrorOptions = ({
   profile,
   props,
@@ -69,6 +77,7 @@ const buildCodeMirrorOptions = ({
       collection: props.collection,
       item: props.item
     } : false,
+    brunoApiInfo: brunoApiInfoOption(props, degraded),
     keyMap: 'sublime',
     autoCloseBrackets: !degraded,
     matchBrackets: !degraded,
@@ -103,6 +112,7 @@ const applyEditorProfile = (
     collection: props.collection,
     item: props.item
   } : false);
+  editor.setOption('brunoApiInfo', brunoApiInfoOption(props, degraded));
   editor.setOption('mode', degraded ? null : (props.mode || 'application/ld+json'));
 
   if (degraded) {
@@ -607,6 +617,8 @@ class CodeEditor extends React.Component {
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
       this.cleanupResizeRefresh?.();
+      // Closes an open API docs tooltip, which lives outside the editor.
+      this.editor.setOption('brunoApiInfo', false);
 
       const wrapper = this.editor.getWrapperElement();
       wrapper?.parentNode?.removeChild(wrapper);
