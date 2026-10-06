@@ -385,28 +385,23 @@ export const saveMultipleCollections = (collectionDrafts) => async (dispatch, ge
         const collection = findCollectionByUid(collections, collectionUid);
         if (!collection) return;
 
-        const collectionCopy = cloneDeep(collection);
-        const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-        const brunoConfigToSave = collectionCopy.draft?.brunoConfig;
+        const collectionRootToSave = transformCollectionRootToSave(collection);
+        const brunoConfigToSave = collection.draft?.brunoConfig;
 
-        // In the bru format these two calls write different files: 'renderer:save-collection-root'
-        // writes the root (scripts, tests, headers, ...) to collection.bru and
-        // 'renderer:update-bruno-config' writes the config (proxy, client certs, ...) to bruno.json.
-        // In the yml format both calls rewrite the single opencollection.yml, which holds root and
-        // config together. So each call must receive the same draft-aware root and config, and they
-        // must run sequentially; otherwise whichever write lands last discards the other's changes.
+        // In yml both calls rewrite the single opencollection.yml (root + config), unlike bru where they
+        // write collection.bru and bruno.json. Pass the same draft-aware data to both and await sequentially.
         await ipcRenderer.invoke(
           'renderer:save-collection-root',
-          collectionCopy.pathname,
+          collection.pathname,
           collectionRootToSave,
-          brunoConfigToSave || collectionCopy.brunoConfig
+          brunoConfigToSave || collection.brunoConfig
         );
 
         if (brunoConfigToSave) {
           await ipcRenderer.invoke(
             'renderer:update-bruno-config',
             brunoConfigToSave,
-            collectionCopy.pathname,
+            collection.pathname,
             collectionRootToSave
           );
         }
@@ -2846,29 +2841,24 @@ export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent
   }
 
   const { ipcRenderer } = window;
-  const collectionCopy = cloneDeep(collection);
-  const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-  const brunoConfigToSave = brunoConfig || collectionCopy.draft?.brunoConfig;
+  const collectionRootToSave = transformCollectionRootToSave(collection);
+  const brunoConfigToSave = brunoConfig || collection.draft?.brunoConfig;
 
   try {
-    // In the bru format these two calls write different files: 'renderer:save-collection-root'
-    // writes the root (scripts, tests, headers, ...) to collection.bru and
-    // 'renderer:update-bruno-config' writes the config (proxy, client certs, ...) to bruno.json.
-    // In the yml format both calls rewrite the single opencollection.yml, which holds root and
-    // config together. So each call must receive the same draft-aware root and config, and they
-    // must run sequentially; otherwise whichever write lands last discards the other's changes.
+    // In yml both calls rewrite the single opencollection.yml (root + config), unlike bru where they
+    // write collection.bru and bruno.json. Pass the same draft-aware data to both and await sequentially.
     await ipcRenderer.invoke(
       'renderer:save-collection-root',
-      collectionCopy.pathname,
+      collection.pathname,
       collectionRootToSave,
-      brunoConfigToSave || collectionCopy.brunoConfig
+      brunoConfigToSave || collection.brunoConfig
     );
 
     if (brunoConfigToSave) {
       await ipcRenderer.invoke(
         'renderer:update-bruno-config',
         brunoConfigToSave,
-        collectionCopy.pathname,
+        collection.pathname,
         collectionRootToSave
       );
     }
