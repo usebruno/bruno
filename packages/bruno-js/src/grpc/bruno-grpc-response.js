@@ -2,7 +2,7 @@ const GrpcMetadataList = require('./grpc-metadata-list');
 const GrpcMessageList = require('./grpc-message-list');
 const GrpcMessage = require('./grpc-message');
 
-/**
+/*
  * Reached from hooks as `bru.grpc.response`.
  *
  * `messages`, `metadata` and `trailers` are the same list types `bru.grpc.request` uses, always
@@ -19,14 +19,57 @@ class BrunoGrpcResponse {
    *   Supplied only by `afterMessageReceive`
    */
   constructor(response, { message } = {}) {
+    /**
+     * The gRPC status code: `0` for OK. `undefined` while the call is still open.
+     * @type {number | undefined}
+     * @readonly
+     * @category Status
+     */
     this.statusCode = response.statusCode;
+    /**
+     * The gRPC status message. `undefined` while the call is still open.
+     * @type {string | undefined}
+     * @readonly
+     * @category Status
+     */
     this.statusText = response.statusText;
+    /**
+     * The messages received so far.
+     * @readonly
+     * @category Messages
+     */
     this.messages = new GrpcMessageList(response.messages);
     // Read-only snapshots of the [{ name, value }] display rows
+    /**
+     * The metadata the server sent before its first message.
+     * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}
+     * @readonly
+     * @category Metadata
+     */
     this.metadata = new GrpcMetadataList(response.metadata);
+    /**
+     * The metadata the server sent when it ended the call. Empty while the call is still open.
+     * @type {import('./grpc-metadata-list').ReadOnlyGrpcMetadataList}
+     * @readonly
+     * @category Metadata
+     */
     this.trailers = new GrpcMetadataList(response.trailers);
+    /**
+     * How long the call took, in milliseconds. `undefined` while the call is still open.
+     * @type {number | undefined}
+     * @readonly
+     * @category Status
+     */
     this.duration = response.duration;
 
+    /**
+     * The message just received; also the last entry of `messages`.
+     * @type {GrpcMessage}
+     * @readonly
+     * @context grpc:after-message-receive
+     * @category Messages
+     */
+    this.message;
     // Assigned conditionally, as on the request, so `afterCallEnd` has no such property at all.
     if (message) {
       this.message = new GrpcMessage(message);

@@ -1,7 +1,7 @@
 const ReadOnlyPropertyList = require('../readonly-property-list');
 const { liveHeaderEntries, projectHeaderEntries, snapshotHeaderEntries } = require('../utils/header-entries');
 
-/**
+/*
  * GrpcMetadataList — `bru.grpc.request.metadata`, `bru.grpc.response.metadata`,
  * `bru.grpc.response.trailers`.
  *
@@ -15,6 +15,24 @@ const { liveHeaderEntries, projectHeaderEntries, snapshotHeaderEntries } = requi
  * It used to take a `readMetadata` accessor returning the `{ name: value }` map.
  *
  * Keep quickjs shim up to date on any updates to this class
+ */
+
+/**
+ * An entry of gRPC metadata.
+ * @typedef {object} MetadataEntry
+ * @property {string} key - The metadata key, in the case it was written in.
+ * @property {*} value - Its value.
+ * @property {boolean} [disabled] - `true` for an entry switched off in the request's Metadata tab. It is not sent.
+ */
+
+/**
+ * The read-only metadata of a gRPC response.
+ * @typedef {Omit<GrpcMetadataList, 'upsert' | 'add' | 'remove' | 'clear'>} ReadOnlyGrpcMetadataList
+ */
+
+/**
+ * gRPC metadata, as a list of `{ key, value, disabled? }` entries. Keys match case-insensitively.
+ * @extends {ReadOnlyPropertyList<MetadataEntry>}
  */
 class GrpcMetadataList extends ReadOnlyPropertyList {
   #request;
@@ -39,13 +57,18 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
     this.#request = snapshot ? null : source;
   }
 
+  /** @protected */
   _readOnlyMessage(method) {
     return `metadata.${method}() is not available once the call has been sent — change metadata in the beforeCallStart hook`;
   }
 
   // ── Transform override ────────────────────────────────────────────────
 
-  /** `key: value` per line — how metadata travels as HTTP/2 headers. Skips disabled entries. */
+  /**
+   * Convert the enabled entries to `key: value` lines, the way metadata travels as HTTP/2 headers.
+   * @returns {string} One line per entry.
+   * @category Transform
+   */
   toString() {
     return this.all()
       .filter((entry) => !entry.disabled)
@@ -56,11 +79,14 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   // ── Write methods (edit the entries, then project into the headers map) ──
 
   /**
-   * Insert a key, or update it in place when it already exists under any casing. The key ends
-   * up enabled.
+   * Set a metadata entry, replacing one with the same key in any case. The entry ends up enabled.
    *
-   * @param {string} key
-   * @param {*} value
+   * @param {string} key - The metadata key.
+   * @param {*} value - Its value.
+   * @example
+   * bru.grpc.request.metadata.upsert('x-request-id', bru.getVar('requestId'));
+   * @context grpc:before-call-start
+   * @category Write
    */
   upsert(key, value) {
     this._assertWritable('upsert');
@@ -73,10 +99,11 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
   }
 
   /**
-   * Upsert an entry from the `{ key, value, disabled? }` shape `all()` returns, so an entry read
-   * from one list can be handed straight to another.
+   * Set a metadata entry from an entry object, such as one read from another list.
    *
-   * @param {object} item
+   * @param {MetadataEntry} item - The entry. `disabled: true` keeps it from being sent.
+   * @context grpc:before-call-start
+   * @category Write
    */
   add(item) {
     this._assertWritable('add');
@@ -90,7 +117,9 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
 
   /**
    * Remove the entry with the given key, enabled or disabled.
-   * @param {string} key
+   * @param {string} key - The metadata key.
+   * @context grpc:before-call-start
+   * @category Write
    */
   remove(key) {
     this._assertWritable('remove');
@@ -106,7 +135,11 @@ class GrpcMetadataList extends ReadOnlyPropertyList {
     projectHeaderEntries(entries, this.#request.headers);
   }
 
-  /** Remove every entry, enabled and disabled. */
+  /**
+   * Remove every entry, enabled and disabled.
+   * @context grpc:before-call-start
+   * @category Write
+   */
   clear() {
     this._assertWritable('clear');
 
