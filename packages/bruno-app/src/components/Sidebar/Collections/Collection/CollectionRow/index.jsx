@@ -44,7 +44,6 @@ import { isTabForItemActive } from 'src/selectors/tab';
 import RenameCollection from '../RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from '../CloneCollection';
-import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from '../GenerateDocumentation';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -149,8 +148,6 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
 
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
-    setTimeout(scrollToTheActiveTab, 50);
 
     ensureCollectionIsMounted();
 
