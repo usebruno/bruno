@@ -200,6 +200,8 @@ const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const SINGLE_BRACE_PATTERN = /\{$/;
+// Rest of a variable name that sits after the cursor, e.g. `i.host` in `{{my.ap|i.host}}`
+const NAME_TAIL_PATTERN = /^[\w$.-]*/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
 const VARIABLE_SCOPE_DISPLAY_ORDER = [
@@ -836,6 +838,14 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
   const closingSuffix = '}'.repeat(countMissingClosingBraces(textAfterCursor));
 
   const wordStart = { line: to.line, ch: to.ch - word.length };
+
+  // The cursor can sit in the middle of a name (`{{my.ap|i.host}}`). A hint that replaces the whole
+  // word must also swallow the rest of that name, otherwise `i.host}}` is left behind after the
+  // inserted text. Closing braces are then counted from what follows the name, not the cursor.
+  const nameTail = (textAfterCursor || '').match(NAME_TAIL_PATTERN)[0];
+  const nameEnd = { line: to.line, ch: to.ch + nameTail.length };
+  const fullReplaceSuffix = '}'.repeat(countMissingClosingBraces((textAfterCursor || '').slice(nameTail.length)));
+
   const lowerWord = word.toLowerCase();
   const containsWord = (name) => !!word && name.toLowerCase().includes(lowerWord);
 
@@ -864,8 +874,9 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
 
     // If the current word is a substring of the hint, replace the entire word with the hint.
     if (containsWord(hint)) {
+      hintObject.text = `${hint}${fullReplaceSuffix}`;
       hintObject.from = wordStart;
-      hintObject.to = to;
+      hintObject.to = nameEnd;
     }
 
     return hintObject;

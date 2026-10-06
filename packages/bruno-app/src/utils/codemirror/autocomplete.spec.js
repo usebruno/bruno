@@ -517,6 +517,32 @@ describe('Bruno Autocomplete', () => {
         expect(finalText).toBe('{{my.api.host}}');
       });
 
+      describe('cursor in the middle of an existing name', () => {
+        const pickMyApiHost = (line, cursorCh) => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+
+          const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'my.api.host', scope: 'collection' }], [], {
+            showHintsFor: ['variables']
+          });
+          const hint = result.list.find((h) => h.displayText === 'my.api.host');
+          return line.slice(0, hint.from.ch) + hint.text + line.slice(hint.to.ch);
+        };
+
+        it('does not leave the rest of the name behind (`{{my.ap|i.host}}`)', () => {
+          expect(pickMyApiHost('{{my.api.host}}', 7)).toBe('{{my.api.host}}');
+        });
+
+        it('still adds the closing braces when none follow the name (`{{my.ap|i.host`)', () => {
+          expect(pickMyApiHost('{{my.api.host', 7)).toBe('{{my.api.host}}');
+        });
+
+        it('keeps text that follows the name (`{{my.ap|i.host}}/path`)', () => {
+          expect(pickMyApiHost('{{my.api.host}}/path', 7)).toBe('{{my.api.host}}/path');
+        });
+      });
+
       it('replaces the whole typed word when a substring match picks a process.env variable (`{{env.`)', () => {
         const partialVariables = [{ name: 'process.env.FOO', scope: 'process.env' }];
         const line = '{{env.';
