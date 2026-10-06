@@ -42,6 +42,14 @@ describe.each(['nodevm', 'quickjs'])('req.setBody() in a pre-request script on %
     expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
   });
 
+  it('keeps every byte of a Buffer body set without options when Content-Type is application/json', async () => {
+    const request = makeRequest({ headers: { 'content-type': 'application/json' } });
+
+    await runRequestScript(runtime, `req.setBody(Buffer.from(${JSON.stringify(BINARY_BYTES)}))`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
   it('keeps only the bytes inside a sliced Buffer body', async () => {
     const request = makeRequest();
 

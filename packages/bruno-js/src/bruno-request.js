@@ -204,9 +204,10 @@ class BrunoRequest {
    *  - We set the body property as the data itself
    *
    * If the user wants to override this behavior, they can pass the raw option as true
+   * A Buffer is always set as-is, since it already holds the exact bytes to send
    */
   setBody(data, options = {}) {
-    if (options.raw) {
+    if (options.raw || Buffer.isBuffer(data)) {
       this.req.data = data;
       this.body = data;
       return;
