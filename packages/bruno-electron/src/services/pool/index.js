@@ -8,6 +8,9 @@ const JobType = Object.freeze({
 
 const WORKER_FILE = path.join(__dirname, 'worker.js');
 
+// A parse that runs longer than this is given up (its worker is stopped), so one bad file cannot hold a worker forever
+const PARSE_TIMEOUT_MS = 30000;
+
 class Pool {
   #pool;
   #inflight = new Map();
@@ -30,7 +33,8 @@ class Pool {
     const pending = this.#inflight.get(key);
     if (pending) return pending;
 
-    const job = Promise.resolve(this.run(type, args)).finally(() => this.#inflight.delete(key));
+    const task = this.run(type, args);
+    const job = Promise.resolve(task.timeout?.(PARSE_TIMEOUT_MS) ?? task).finally(() => this.#inflight.delete(key));
     this.#inflight.set(key, job);
     return job;
   }

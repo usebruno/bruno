@@ -165,6 +165,11 @@ const StyledWrapper = styled.div`
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
     opacity: 0.8;
+
+    &.error {
+      color: ${(props) => props.theme.colors.text.danger};
+      opacity: 1;
+    }
   }
   .result-content {
     flex: 1;

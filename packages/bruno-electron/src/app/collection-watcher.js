@@ -43,15 +43,24 @@ const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
   const registered = searchIndexByCollection.get(collectionPath);
   if (!registered) return;
   const requestPath = path.relative(collectionPath, pathname);
-  if (defaultClassify(requestPath)?.type !== 'request') return;
+  const isRequest = defaultClassify(requestPath)?.type === 'request';
   const { searchIndex, workspacePath, collectionName } = registered;
-  const { toRow } = require('../services/search-index/indexer');
+  const { toRow, toMetaRow } = require('../services/search-index/indexer');
   try {
     // Without a file index (file cache OFF) nobody has taken the file's mtime/hash yet, so read them here
-    const { mtime, hash } = stamp ?? {
+    const readStamp = () => stamp ?? {
       mtime: fs.statSync(pathname, { bigint: true }).mtimeNs,
       hash: hashFile(pathname)
     };
+
+    if (!isRequest) {
+      // collection and folder files carry the names and order the index keeps for them
+      const metaRow = toMetaRow(collectionPath, { relativePath: requestPath, data });
+      if (metaRow) searchIndex.upsertMeta({ ...metaRow, ...readStamp() });
+      return;
+    }
+
+    const { mtime, hash } = readStamp();
     searchIndex.upsert(toRow(
       collectionPath,
       searchIndex.collectionNameFor(collectionPath) || collectionName,
@@ -63,10 +72,44 @@ const upsertSearchIndexEntry = (collectionPath, pathname, data, stamp) => {
   }
 };
 
+// A folder was created: it is searchable straight away, even before it holds a request
+const upsertSearchIndexFolder = (collectionPath, pathname) => {
+  const registered = searchIndexByCollection.get(collectionPath);
+  if (!registered) return;
+  const { isIndexedFolder, withParentFolders } = require('../services/search-index/indexer');
+  const folderPath = path.relative(collectionPath, pathname);
+  if (!isIndexedFolder(folderPath)) return;
+  try {
+    registered.searchIndex.addFolders({
+      collectionPath,
+      collectionName: registered.searchIndex.collectionNameFor(collectionPath) || registered.collectionName,
+      workspacePath: registered.workspacePath,
+      folderPaths: withParentFolders([folderPath])
+    });
+  } catch (err) {
+    console.error('[collection-watcher] search index folder update failed for', pathname, err);
+  }
+};
+
+// A folder was removed: it and the folders inside it are no longer searchable
+const removeSearchIndexFolder = (collectionPath, pathname) => {
+  const registered = searchIndexByCollection.get(collectionPath);
+  if (!registered) return;
+  const folderPath = path.relative(collectionPath, pathname);
+  if (!folderPath) return;
+  try {
+    registered.searchIndex.removeFolderTree(collectionPath, folderPath);
+  } catch (err) {
+    console.error('[collection-watcher] search index folder removal failed for', pathname, err);
+  }
+};
+
 const removeFromSearchIndex = (collectionPath, pathname) => {
   const registered = searchIndexByCollection.get(collectionPath);
   if (!registered) return;
-  registered.searchIndex.remove(collectionPath, path.relative(collectionPath, pathname));
+  const relativePath = path.relative(collectionPath, pathname);
+  registered.searchIndex.remove(collectionPath, relativePath);
+  registered.searchIndex.removeMeta(collectionPath, relativePath);
 };
 
 const stageToCache = (collectionPath, pathname, data) => {
@@ -473,6 +516,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+  upsertSearchIndexFolder(collectionPath, pathname);
+
   let name = path.basename(pathname);
   let seq;
 
@@ -708,6 +753,8 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     if (path.normalize(pathname) === path.normalize(envDirectory)) {
       return;
     }
+
+    removeSearchIndexFolder(collectionPath, pathname);
 
     let format;
     try {

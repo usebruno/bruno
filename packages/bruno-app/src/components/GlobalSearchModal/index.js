@@ -1,4 +1,5 @@
 import {
+  IconAlertCircle,
   IconBook,
   IconBox,
   IconFileText,
@@ -187,6 +188,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
           path: `${row.collectionName}/${row.requestPath}`,
           matchType: MATCH_TYPES.REQUEST,
           method: row.requestType,
+          // set when the request file could not be parsed
+          error: row.requestError,
           collectionUid: collection.uid
         };
       })
@@ -450,8 +453,10 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
         aria-label={`${result.name}, ${typeLabel || result.type}${result.method ? `, ${result.method}` : ''}`}
         tabIndex={-1}
       >
-        <div className="result-icon">
-          {getResultIcon(result.type)}
+        <div className={`result-icon ${result.error ? 'error' : ''}`} title={result.error || undefined}>
+          {result.error
+            ? <IconAlertCircle size={18} stroke={1.5} data-testid="search-result-error-icon" />
+            : getResultIcon(result.type)}
         </div>
         <div className="result-content">
           <div className="result-info">
