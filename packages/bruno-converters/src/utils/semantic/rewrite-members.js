@@ -36,10 +36,13 @@ const rewriteMembers = (j, root, binding, registry) => {
     const isMethodCall
       = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
 
-    // a member that is a method in the source API but a plain property in Bruno loses its
-    // parentheses along with its name: `res.json()` -> `res.data`
+    // A member that is a method on one side and a plain property on the other changes arity
+    // along with its name: `res.json()` -> `res.data` drops the call, `res.data` -> `res.json()`
+    // adds one back.
     if (spec.call === 'drop' && isMethodCall) {
       j(parent).replaceWith(replacement);
+    } else if (spec.call === 'add' && !isMethodCall) {
+      j(memberPath).replaceWith(j.callExpression(replacement, []));
     } else {
       j(memberPath).replaceWith(replacement);
     }

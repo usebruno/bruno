@@ -1,4 +1,9 @@
 const j = require('jscodeshift');
+import { rewriteMembers, BRUNO_REGISTRY } from './semantic';
+
+// Which parameter of the callback receives the response, and as what type
+const { callback: CALLBACK_PARAM_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
+const CALLBACK_RESPONSE_INDEX = CALLBACK_PARAM_TYPES.findIndex(Boolean);
 
 /**
  * Content-Type constants for body mode detection
@@ -186,68 +191,35 @@ const transformBody = (requestOptions, contentType) => {
 
 /**
  * Transform callback function to Postman format
- * @param {Object} callback - Callback function expression
- * @returns {Object} - Transformed callback function
+ * @param {Object} callbackPath - Path of the callback argument
+ * @returns {Object|null} - Transformed callback function, or null if not a function
  */
-const transformCallback = (callback) => {
+const transformCallback = (callbackPath) => {
+  const callback = callbackPath.value;
   if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
 
   const params = callback.params;
   const callbackBody = callback.body;
 
-  // Get the response parameter name (typically the second param)
-  let responseVarName = 'response'; // Default if not found
-  if (params.length >= 2 && params[1].type === 'Identifier') {
-    responseVarName = params[1].name;
-  }
+  const responseParam = params[CALLBACK_RESPONSE_INDEX];
+  const responseVarName
+    = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
 
   let errorVarName = 'error'; // Default if not found
   if (params.length >= 1 && params[0].type === 'Identifier') {
     errorVarName = params[0].name;
   }
 
-  // Define translations for callback response properties (Bruno -> Postman)
-  const responsePropertyMap = {
-    data: 'json', // response.data -> response.json()
-    status: 'code', // response.status -> response.code
-    statusText: 'status' // response.statusText -> response.status
-  };
-
-  // Process the callback body to transform response property references
-  j(callbackBody).find(j.MemberExpression, {
-    object: {
-      type: 'Identifier',
-      name: responseVarName
-    }
-  }).forEach((memberPath) => {
-    const property = memberPath.node.property;
-
-    // Handle property access
-    if (property.type === 'Identifier' && responsePropertyMap[property.name]) {
-      const pmProperty = responsePropertyMap[property.name];
-
-      if (property.name === 'data') {
-        // response.data -> response.json() (convert to method call)
-        j(memberPath).replaceWith(
-          j.callExpression(
-            j.memberExpression(
-              j.identifier(responseVarName),
-              j.identifier(pmProperty)
-            ),
-            []
-          )
-        );
-      } else {
-        // Regular property replacement (status -> code, statusText -> status)
-        j(memberPath).replaceWith(
-          j.memberExpression(
-            j.identifier(responseVarName),
-            j.identifier(pmProperty)
-          )
-        );
-      }
-    }
-  });
+  rewriteMembers(
+    j,
+    j(callbackPath),
+    {
+      name: responseVarName,
+      scopeNode: callback,
+      typeName: CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX]
+    },
+    BRUNO_REGISTRY
+  );
 
   // Create the callback - Postman uses regular functions
   const bodyStatements = callbackBody.type === 'BlockStatement' ? callbackBody.body : [j.returnStatement(callbackBody)];
@@ -331,6 +303,7 @@ const bruSendRequestTransformer = (path) => {
 
   const requestOptions = args[0];
   const callback = args[1];
+  const callbackPath = path.get('arguments', 1);
 
   // Transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
@@ -354,7 +327,7 @@ const bruSendRequestTransformer = (path) => {
   // Transform callback if present
   let transformedArgs = [requestOptions];
   if (callback) {
-    const transformedCallback = transformCallback(callback);
+    const transformedCallback = transformCallback(callbackPath);
     if (transformedCallback) {
       transformedArgs.push(transformedCallback);
     } else {

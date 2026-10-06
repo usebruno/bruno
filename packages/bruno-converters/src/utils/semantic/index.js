@@ -29,5 +29,6 @@ export const applySemanticTypes = (j, ast, registry = POSTMAN_REGISTRY) => {
 };
 
 export { default as POSTMAN_REGISTRY } from './postman-registry';
+export { default as BRUNO_REGISTRY } from './bruno-registry';
 export { default as rewriteMembers } from './rewrite-members';
 export { resolvesToBinding } from './type-environment';
