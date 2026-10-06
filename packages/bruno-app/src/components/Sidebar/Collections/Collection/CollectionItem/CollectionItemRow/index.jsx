@@ -67,6 +67,7 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections/index';
@@ -141,6 +142,8 @@ const CollectionItemRow = ({
 
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
+
+  const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
@@ -419,6 +422,7 @@ const CollectionItemRow = ({
           id: 'new-request',
           leftSection: IconFilePlus,
           label: 'New Request',
+          shortcut: getKeybindingDisplayText('newRequest'),
           onClick: () => setNewRequestModalOpen(true)
         },
         {
@@ -447,6 +451,7 @@ const CollectionItemRow = ({
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
+        shortcut: getKeybindingDisplayText('cloneItem'),
         onClick: handleCloneItem
       });
     }
@@ -455,6 +460,7 @@ const CollectionItemRow = ({
       id: 'copy',
       leftSection: IconCopy,
       label: 'Copy',
+      shortcut: getKeybindingDisplayText('copyItem'),
       onClick: handleCopyItem
     });
 
@@ -463,6 +469,7 @@ const CollectionItemRow = ({
         id: 'paste',
         leftSection: IconClipboard,
         label: 'Paste',
+        shortcut: getKeybindingDisplayText('pasteItem'),
         onClick: handlePasteItem
       });
     }
@@ -472,6 +479,7 @@ const CollectionItemRow = ({
         id: 'rename',
         leftSection: IconEdit,
         label: 'Rename',
+        shortcut: getKeybindingDisplayText('renameItem'),
         onClick: () => setRenameItemModalOpen(true)
       }
     );
@@ -543,6 +551,7 @@ const CollectionItemRow = ({
           id: 'open-terminal',
           leftSection: IconTerminal2,
           label: 'Open in Terminal',
+          shortcut: getKeybindingDisplayText('openTerminal'),
           onClick: async () => {
             const folderCwd = item.pathname || collectionPathname;
             await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
@@ -565,18 +574,6 @@ const CollectionItemRow = ({
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
   });
-
-  if (searchText && searchText.length) {
-    if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
-        return null;
-      }
-    } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
-        return null;
-      }
-    }
-  }
 
   const handleDoubleClick = (event) => {
     dispatch(makeTabPermanent({ uid: tabUidForItem || item.uid }));
@@ -703,6 +700,18 @@ const CollectionItemRow = ({
     setIsKeyboardFocused(false);
     dispatch(setFocusedSidebarPath(null));
   };
+
+  if (searchText && searchText.length) {
+    if (isItemARequest(item)) {
+      if (!doesRequestMatchSearchText(item, searchText)) {
+        return null;
+      }
+    } else {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+        return null;
+      }
+    }
+  }
 
   return (
     <StyledWrapper className={className}>
