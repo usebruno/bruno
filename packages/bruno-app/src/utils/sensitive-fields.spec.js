@@ -490,7 +490,7 @@ describe('environment table usage flags', () => {
     const variable = tokenVariable('env-token');
     const collection = collectionWithEnvVariables(null, [variable], {
       brunoConfig: {
-        proxy: { config: { auth: { password: '{{token}}' } } }
+        proxy: { inherit: false, config: { auth: { password: '{{token}}' } } }
       }
     });
 

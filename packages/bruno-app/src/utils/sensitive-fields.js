@@ -57,13 +57,16 @@ const warning = (scope, variableName, warningMessage) => ({
 /** Earlier scope wins: request, folder, environment, collection, then global. */
 const SCOPE_ORDER = ['request', 'folder', 'environment', 'collection', 'global'];
 
+/** {{name}} in a field value. The group is the name. */
+const VARIABLE_INTERPOLATION = /\{\{([^}]+)\}\}/g;
+
 /** Names inside {{ }} in a field value. */
 export const extractSensitiveVarNames = (value) => {
   if (typeof value !== 'string' || value.length === 0) {
     return [];
   }
 
-  return Array.from(value.matchAll(/\{\{([^}]+)\}\}/g), (match) => match[1]).filter(Boolean);
+  return Array.from(value.matchAll(VARIABLE_INTERPOLATION), (match) => match[1]).filter(Boolean);
 };
 
 /** Uses the passed scope, or infers it from the item. */
@@ -71,13 +74,10 @@ const resolveFieldScope = (item, scope) => {
   if (scope) {
     return scope;
   }
-  // No item means this field belongs to the collection.
-  if (item?.type === 'folder' && item?.uid) {
-    return 'folder';
-  }
   if (item?.uid) {
-    return 'request';
+    return item.type === 'folder' ? 'folder' : 'request';
   }
+  // No item means this field belongs to the collection.
   return 'collection';
 };
 
@@ -146,21 +146,27 @@ export const resolveSensitiveVariable = (variableName, { collection, item, scope
 
   const fieldScope = resolveFieldScope(item, scope);
   const candidates = {
-    request: fieldScope === 'request' ? resolveEnabledVariable(readVars(item), variableName) : null,
-    folder: fieldScope === 'request' || fieldScope === 'folder'
-      ? findNearestFolderVariable(collection, item, variableName)
-      : null,
-    environment: findCollectionEnvironmentVariable(collection, variableName),
-    collection: resolveEnabledVariable(readVars(collection?.draft?.root || collection?.root), variableName),
-    global: findGlobalEnvironmentVariable(collection, variableName)
+    request: () => (
+      fieldScope === 'request' ? resolveEnabledVariable(readVars(item), variableName) : null
+    ),
+    folder: () => (
+      fieldScope === 'request' || fieldScope === 'folder'
+        ? findNearestFolderVariable(collection, item, variableName)
+        : null
+    ),
+    environment: () => findCollectionEnvironmentVariable(collection, variableName),
+    collection: () => resolveEnabledVariable(readVars(collection?.draft?.root || collection?.root), variableName),
+    global: () => findGlobalEnvironmentVariable(collection, variableName)
   };
 
-  const winningScope = SCOPE_ORDER.find((candidateScope) => candidates[candidateScope]);
-  if (!winningScope) {
-    return null;
+  for (const candidateScope of SCOPE_ORDER) {
+    const variable = candidates[candidateScope]();
+    if (variable) {
+      return toResolvedVariable(candidateScope, variable);
+    }
   }
 
-  return toResolvedVariable(winningScope, candidates[winningScope]);
+  return null;
 };
 
 /** True when the winning row is a secret collection-environment or global-environment variable. */
@@ -169,7 +175,7 @@ const isSecretEnvironmentVariable = (resolved) => (
 );
 
 /** True when the field has text outside {{name}}. */
-const hasPlaintextOutsideVariables = (value) => value.replace(/\{\{[^}]+\}\}/g, '').trim().length > 0;
+const hasPlaintextOutsideVariables = (value) => value.replace(VARIABLE_INTERPOLATION, '').trim().length > 0;
 
 /** Text outside {{name}} warns, even when the variable is a secret. */
 export const classifySensitiveValue = (value, context = {}) => {
@@ -243,21 +249,23 @@ const collectSensitiveFieldValues = (collection) => {
 
 /** Uses the viewed environment's rows, including unsaved edits, for the warning check. */
 const replaceEnvironment = (environments, environment) => {
-  const next = (environments || []).map((candidate) => (
+  const updatedEnvironments = (environments || []).map((candidate) => (
     candidate.uid === environment.uid ? { ...candidate, variables: environment.variables } : candidate
   ));
-  if (!next.some((candidate) => candidate.uid === environment.uid)) {
-    next.push(environment);
+  if (!updatedEnvironments.some((candidate) => candidate.uid === environment.uid)) {
+    updatedEnvironments.push(environment);
   }
-  return next;
+  return updatedEnvironments;
 };
 
 /** Ids of the non-secret rows in this scope that a sensitive field sends. */
 const collectSentVariableUids = (collection, scopeType) => {
   const uids = new Set();
+  const sensitiveFields = collectSensitiveFieldValues(collection);
 
-  for (const field of collectSensitiveFieldValues(collection)) {
-    for (const variableName of extractSensitiveVarNames(field.value)) {
+  for (const field of sensitiveFields) {
+    const variableNames = extractSensitiveVarNames(field.value);
+    for (const variableName of variableNames) {
       const resolved = resolveSensitiveVariable(variableName, {
         collection,
         item: field.item,

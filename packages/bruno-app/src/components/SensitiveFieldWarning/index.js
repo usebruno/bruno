@@ -14,7 +14,7 @@ const SensitiveFieldWarning = ({ fieldName, warningMessage }) => {
           anchorId={tooltipId}
           className="tooltip-mod sensitive-field-tooltip"
           positionStrategy="fixed"
-          place="left"
+          place="bottom"
           content={(
             <div>
               <p>
