@@ -13,15 +13,9 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
     return null;
   }
 
-  const [range] = editor.listSelections() || [];
-  if (!range) {
-    return null;
-  }
-
-  const { anchor, head } = range;
-  const reversed = comparePositions(anchor, head) > 0;
-  const from = reversed ? head : anchor;
-  const to = reversed ? anchor : head;
+  // `from`/`to` are already normalised by CodeMirror, so a backwards drag needs no handling here.
+  const from = editor.getCursor('from');
+  const to = editor.getCursor('to');
 
   if (event && typeof editor.coordsChar === 'function') {
     const clicked = editor.coordsChar({ left: event.clientX, top: event.clientY });

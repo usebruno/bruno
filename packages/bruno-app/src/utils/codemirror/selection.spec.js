@@ -4,7 +4,8 @@ const pos = (line, ch) => ({ line, ch });
 
 const createEditor = ({
   selection = 'token',
-  selections = [{ anchor: pos(0, 4), head: pos(0, 9) }],
+  from = pos(0, 4),
+  to = pos(0, 9),
   readOnly = false,
   clickedChar = pos(0, 6),
   range = null,
@@ -12,7 +13,7 @@ const createEditor = ({
 } = {}) => ({
   somethingSelected: () => !!selection,
   getSelection: () => selection,
-  listSelections: () => selections,
+  getCursor: (which) => (which === 'from' ? from : to),
   getOption: (name) => (name === 'readOnly' ? readOnly : undefined),
   coordsChar: () => clickedChar,
   getRange: jest.fn((a, b) => {
@@ -51,8 +52,8 @@ describe('getCodeMirrorSelectionPayload', () => {
     });
   });
 
-  it('normalises a backwards drag so from precedes to', () => {
-    const editor = createEditor({ selections: [{ anchor: pos(2, 9), head: pos(1, 4) }], clickedChar: pos(2, 0) });
+  it('takes CodeMirror\'s normalised selection ends, so a backwards drag needs no handling', () => {
+    const editor = createEditor({ from: pos(1, 4), to: pos(2, 9), clickedChar: pos(2, 0) });
     const payload = getCodeMirrorSelectionPayload(editor, event);
 
     expect(payload.from).toEqual(pos(1, 4));

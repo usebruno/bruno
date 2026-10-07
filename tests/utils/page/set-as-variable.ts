@@ -1,8 +1,8 @@
 import { expect, Locator, Page, test } from '../../../playwright';
 
 export const buildSetAsVariableLocators = (page: Page) => ({
-  menu: () => page.getByTestId('set-as-variable-menu'),
-  menuAction: () => page.getByTestId('set-as-variable-new'),
+  menu: () => page.getByTestId('set-as-variable-menu-dropdown'),
+  menuAction: () => page.getByTestId('set-as-variable-menu-new'),
   popover: () => page.getByTestId('set-as-variable-popover'),
   value: () => page.getByTestId('set-as-variable-value'),
   copyButton: () => page.getByTestId('set-as-variable-copy'),

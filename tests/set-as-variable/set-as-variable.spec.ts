@@ -191,7 +191,7 @@ test.describe('Set as variable', () => {
     await expect(request.urlLine()).toContainText('https://example.com/posts');
   });
 
-  test('copies the selected value from the form', async ({ page, createTmpDir, installFakeClipboard }) => {
+  test('copies the typed variable name', async ({ page, createTmpDir, installFakeClipboard }) => {
     const { sidebar, request, setAsVariable } = buildCommonLocators(page);
     const clipboard = await installFakeClipboard(page);
 
@@ -201,8 +201,15 @@ test.describe('Set as variable', () => {
     await setRequestUrlAndSave(page, 'https://example.com/posts');
 
     await openSetAsVariablePopover(page, request.urlLine(), 10);
-    await setAsVariable.copyButton().click();
 
-    expect(await clipboard.copiedText()).toBe('https');
+    await test.step('Copy is unavailable until a name is typed', async () => {
+      await expect(setAsVariable.copyButton()).toBeDisabled();
+    });
+
+    await test.step('Copy puts the typed name on the clipboard', async () => {
+      await setAsVariable.nameInput().fill('scheme');
+      await setAsVariable.copyButton().click();
+      expect(await clipboard.copiedText()).toBe('scheme');
+    });
   });
 });

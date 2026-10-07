@@ -1,6 +1,5 @@
 import React from 'react';
-import Tippy from '@tippyjs/react';
-import StyledWrapper from './StyledWrapper';
+import MenuDropdown from 'ui/MenuDropdown';
 
 const anchorStyle = (selection) => ({
   position: 'fixed',
@@ -12,24 +11,16 @@ const anchorStyle = (selection) => ({
 });
 
 const SetAsVariableMenu = ({ selection, onNewVariable, onClose }) => (
-  <Tippy
-    visible={true}
-    interactive={true}
+  <MenuDropdown
+    items={[{ id: 'new', label: 'Set as variable', onClick: onNewVariable }]}
     placement="bottom-start"
-    animation={false}
-    arrow={false}
+    opened={true}
+    onChange={(isOpen) => !isOpen && onClose()}
     appendTo={document.body}
-    onClickOutside={onClose}
-    render={(attrs) => (
-      <StyledWrapper className="tippy-box" tabIndex={-1} data-testid="set-as-variable-menu" {...attrs}>
-        <button type="button" className="var-set-bar" onClick={onNewVariable} data-testid="set-as-variable-new">
-          Set as variable
-        </button>
-      </StyledWrapper>
-    )}
+    data-testid="set-as-variable-menu"
   >
     <div style={anchorStyle(selection)} />
-  </Tippy>
+  </MenuDropdown>
 );
 
 export default SetAsVariableMenu;

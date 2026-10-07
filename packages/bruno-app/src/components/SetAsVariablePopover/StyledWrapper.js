@@ -48,9 +48,14 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.dropdown.mutedText};
     cursor: pointer;
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: ${(props) => props.theme.dropdown.color};
       background: ${(props) => props.theme.dropdown.hoverBg};
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
   }
 

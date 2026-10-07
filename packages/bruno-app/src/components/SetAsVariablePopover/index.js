@@ -208,10 +208,11 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
           />
           <button
             type="button"
+            disabled={!name}
             className={`var-set-copy-button ${copied ? 'is-copied' : ''}`}
-            title={copied ? 'Copied' : 'Copy value'}
-            aria-label={copied ? 'Copied' : 'Copy value'}
-            onClick={() => copyToClipboard(selection.text)}
+            title={copied ? 'Copied' : 'Copy name'}
+            aria-label={copied ? 'Copied' : 'Copy name'}
+            onClick={() => copyToClipboard(name)}
             data-testid="set-as-variable-copy"
           >
             {copied ? <IconCheck size={14} strokeWidth={1.5} /> : <IconCopy size={14} strokeWidth={1.5} />}
