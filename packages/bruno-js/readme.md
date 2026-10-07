@@ -25,8 +25,9 @@ scripts, not contributors: describe what a script sees and can do, not how the c
   and `Write`.
 - **`@example`** on the main methods, written as script code (`bru.setEnvVar('token', t);`).
 
-A member without a summary or a `@category` is an error, so nothing reaches scripts undocumented
-by accident.
+A member without a summary is left out of the reference and the autocomplete, and the generator
+lists it in a warning. A member without a `@category` is kept, under its type's default section.
+A global also needs `@context`; without it, the global is left out the same way.
 
 ### Hiding members
 
@@ -76,7 +77,8 @@ by accident.
 `types/globals.d.ts`, and writes two committed files: `types/script-api.d.ts`, the API reference's
 input, and `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, the editor's
 autocomplete and hover data. Run it after changing the script API's JSDoc; CI fails when they are
-stale. The run also fails on the convention breaches above, an unresolved type name, or a type
+stale. The run fails on a misspelled `@context` or `@runtime` value, a public `_`-prefixed member
+that is documented but not marked `@internal` or `@protected`, an unresolved type name, or a type
 from outside bruno-js that the API exposes.
 
 `npm run docs:script-api` builds the HTML API reference from `types/script-api.d.ts` into

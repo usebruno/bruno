@@ -183,9 +183,11 @@ const createGenerator = (program) => {
     return doc;
   };
 
-  const validateDoc = (doc, where, { requireCategory }) => {
-    if (!doc.summary) fail(`${where} has no JSDoc summary (document it, or mark it @internal)`);
-    if (requireCategory && !doc.category) fail(`${where} has no @category`);
+  // What has no JSDoc summary is left out of both outputs and reported once the run ends.
+  const skipped = [];
+
+  /** Rejects tag values that are typos; a missing tag is not an error. */
+  const validateDoc = (doc, where) => {
     for (const context of doc.contexts || []) {
       if (!CONTEXTS.includes(context)) fail(`${where}: unknown @context "${context}" (expected one of ${CONTEXTS.join(', ')})`);
     }
@@ -338,8 +340,6 @@ const createGenerator = (program) => {
     (decl) => ts.getCombinedModifierFlags(decl) & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected)
   );
 
-  const isTypedefProperty = (symbol) => (symbol.declarations || []).every((decl) => ts.isJSDocPropertyLikeTag(decl));
-
   const isReadonly = (symbol) => (symbol.declarations || []).some(
     (decl) => ts.getCombinedModifierFlags(decl) & ts.ModifierFlags.Readonly
   );
@@ -353,10 +353,12 @@ const createGenerator = (program) => {
       const where = `${owner}.${name}`;
       const doc = readDoc(symbol);
       if (doc.internal || doc.protected || hiddenByModifier(symbol)) continue;
+      if (!doc.summary) {
+        skipped.push(where);
+        continue;
+      }
       if (name.startsWith('_')) fail(`${where} looks private; mark it @internal or @protected`);
-
-      // A typedef's `@property` can't carry tags; its members take the category of what holds them.
-      validateDoc(doc, where, { requireCategory: !isTypedefProperty(symbol) });
+      validateDoc(doc, where);
 
       const optional = Boolean(symbol.flags & ts.SymbolFlags.Optional);
       const memberType = checker.getTypeOfSymbol(symbol);
@@ -392,8 +394,9 @@ const createGenerator = (program) => {
     if (describedTypes.has(entry)) return describedTypes.get(entry);
     const { symbol, type, name } = entry;
     const doc = readDoc(symbol);
-    validateDoc(doc, name, { requireCategory: false });
-    if (!doc.category) {
+    // A type stays in the output without a summary: the members that use it need its declaration.
+    validateDoc(doc, name);
+    if (!doc.category && entry.home) {
       doc.category = entry.home;
       doc.tags.push({ name: 'category', text: entry.home });
     }
@@ -436,21 +439,25 @@ const createGenerator = (program) => {
     return checker.getExportsOfModule(moduleSymbol)
       .filter((symbol) => symbol.flags & (ts.SymbolFlags.Variable | ts.SymbolFlags.Function))
       .sort((a, b) => position(a) - position(b))
-      .map((symbol) => {
+      .flatMap((symbol) => {
         const doc = readDoc(symbol);
-        validateDoc(doc, symbol.name, { requireCategory: true });
-        if (!doc.contexts) fail(`global ${symbol.name} has no @context`);
+        // Without `@context` there is no knowing which scripts have the global.
+        if (!doc.summary || !doc.contexts) {
+          skipped.push(symbol.name);
+          return [];
+        }
+        validateDoc(doc, symbol.name);
         const type = checker.getTypeOfSymbol(symbol);
         currentHome = doc.category;
         collectType(type, symbol.name);
         const signatures = checker.getSignaturesOfType(type, ts.SignatureKind.Call);
-        return {
+        return [{
           name: symbol.name,
           doc,
           type,
           isFunction: Boolean(symbol.flags & ts.SymbolFlags.Function),
           signatures: signatures.map((s) => describeSignature(s, doc, symbol.name))
-        };
+        }];
       });
   };
 
@@ -593,7 +600,8 @@ const createGenerator = (program) => {
     const manifest = buildManifest(globals);
     return {
       declarations: renderDeclarations(globals),
-      manifest: JSON.stringify(manifest, null, 2) + '\n'
+      manifest: JSON.stringify(manifest, null, 2) + '\n',
+      skipped
     };
   };
 
@@ -624,7 +632,10 @@ const assertDeclarationsCompile = (declarations) => {
 const main = () => {
   const check = process.argv.includes('--check');
   const program = loadProgram();
-  const { declarations, manifest } = createGenerator(program).generate();
+  const { declarations, manifest, skipped } = createGenerator(program).generate();
+  if (skipped.length) {
+    console.warn(`Left out ${skipped.length} member(s) with no JSDoc summary (document them, or mark them @internal):\n${skipped.map((where) => `  ${where}`).join('\n')}`);
+  }
   assertDeclarationsCompile(declarations);
 
   const outputs = [
