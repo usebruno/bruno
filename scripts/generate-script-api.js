@@ -347,9 +347,28 @@ const createGenerator = (program) => {
     (decl) => ts.getCombinedModifierFlags(decl) & ts.ModifierFlags.Readonly
   );
 
+  /**
+   * The member names of the type an `Omit<T, …>` or `Pick<T, …>` alias is made from, in T's order.
+   * TypeScript orders a mapped type's members by internal type ids, which shift with every file the
+   * program loads (such as the other packages' built `dist`), so the output would not be stable.
+   */
+  const sourceMemberOrder = (type) => {
+    const decl = type.aliasSymbol && type.aliasSymbol.declarations && type.aliasSymbol.declarations[0];
+    if (!decl) return null;
+    const node = ts.isJSDocTypedefTag(decl) ? decl.typeExpression && decl.typeExpression.type : ts.isTypeAliasDeclaration(decl) ? decl.type : null;
+    if (!node || !ts.isTypeReferenceNode(node) || !['Omit', 'Pick'].includes(node.typeName.getText()) || !node.typeArguments) return null;
+    return checker.getPropertiesOfType(checker.getTypeFromTypeNode(node.typeArguments[0])).map((symbol) => symbol.name);
+  };
+
+  const propertiesInOrder = (type) => {
+    const properties = checker.getPropertiesOfType(type);
+    const order = sourceMemberOrder(type);
+    return order ? [...properties].sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name)) : properties;
+  };
+
   const describeMembers = (type, owner) => {
     const members = [];
-    for (const symbol of checker.getPropertiesOfType(type)) {
+    for (const symbol of propertiesInOrder(type)) {
       const name = symbol.name;
       // `#private` members surface as `#name` (or `__#…` in older compilers); well-known symbols as `__@…`.
       if (name.startsWith('#') || name.startsWith('__#') || name.startsWith('__@')) continue;

@@ -1531,13 +1531,6 @@ export interface HeaderList {
  */
 export interface ReadOnlyHeaderList {
   /**
-   * Convert the enabled headers to HTTP format: one `Name: value` line per header.
-   *
-   * @returns The header lines, each ending in a newline; `''` when there are none.
-   * @category Transform
-   */
-  toString(): string;
-  /**
    * Convert the headers to a `{ name: value }` object.
    *
    * An enabled header wins over a disabled one of the same name.
@@ -1552,6 +1545,13 @@ export interface ReadOnlyHeaderList {
    * @category Transform
    */
   toObject(excludeDisabled?: boolean, caseSensitive?: boolean, multiValue?: boolean, sanitizeKeys?: boolean): Record<string, any>;
+  /**
+   * Convert the enabled headers to HTTP format: one `Name: value` line per header.
+   *
+   * @returns The header lines, each ending in a newline; `''` when there are none.
+   * @category Transform
+   */
+  toString(): string;
   /**
    * Get the value of the entry with the given key.
    *
@@ -2373,13 +2373,6 @@ export interface ReadOnlyGrpcMetadataList {
    */
   toString(): string;
   /**
-   * Convert the list to a `{ key: value }` object. With several entries of a key, the last wins.
-   *
-   * @returns The values, by key.
-   * @category Transform
-   */
-  toObject(): Record<string, any>;
-  /**
    * Get the value of the entry with the given key.
    *
    * With several entries of that key, the last enabled one wins.
@@ -2494,6 +2487,13 @@ export interface ReadOnlyGrpcMetadataList {
    * @category Iteration
    */
   reduce(fn: (accumulator: any, item: MetadataEntry, index: number) => any, initialValue?: any, context?: any): any;
+  /**
+   * Convert the list to a `{ key: value }` object. With several entries of a key, the last wins.
+   *
+   * @returns The values, by key.
+   * @category Transform
+   */
+  toObject(): Record<string, any>;
   /**
    * Get the entries for `JSON.stringify()`; the same as `all()`.
    *
