@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 
-const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type, isBodyNotLoaded }) => {
+const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type, isLoaded }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const hasBody = Boolean(data || dataBuffer) || isBodyNotLoaded;
+  const hasBody = Boolean(data || dataBuffer) || isLoaded;
 
   return (
     <div className="tl-block">

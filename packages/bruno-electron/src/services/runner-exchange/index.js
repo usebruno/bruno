@@ -1,9 +1,9 @@
 const { copyFile, writeFile } = require('node:fs/promises');
-const { MAX_RENDERABLE_RESPONSE_BYTES } = require('@usebruno/common');
 const { safeParseJSON, safeStringifyJSON, parseDataFromResponse } = require('../../utils/common');
 const { getStatements, getFiles } = require('../sqlite');
 
 const JSON_CONTENT_TYPE = 'application/json';
+const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 const getContentType = (headers) => {
   const entries = headers && typeof headers === 'object' ? Object.entries(headers) : [];
@@ -124,6 +124,7 @@ const clearAllRunnerResponses = async () => {
 };
 
 module.exports = {
+  MAX_RENDERABLE_RESPONSE_BYTES,
   storeRunnerExchange,
   readRunnerExchange,
   saveRunnerResponseBody,

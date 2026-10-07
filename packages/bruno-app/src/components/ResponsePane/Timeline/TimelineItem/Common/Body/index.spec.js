@@ -10,7 +10,7 @@ describe('Timeline BodyBlock', () => {
   beforeEach(() => QueryResponse.mockClear());
 
   it('renders the response view for a body held back for size', () => {
-    render(<BodyBlock item={{ uid: 'item-1' }} data={null} dataBuffer="" type="response" isBodyNotLoaded />);
+    render(<BodyBlock item={{ uid: 'item-1' }} data={null} dataBuffer="" type="response" isLoaded />);
 
     expect(screen.getByTestId('query-response')).toBeInTheDocument();
   });

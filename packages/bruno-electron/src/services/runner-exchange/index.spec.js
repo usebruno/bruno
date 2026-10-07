@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { LARGE_RESPONSE_BYTES, MAX_RENDERABLE_RESPONSE_BYTES } = require('@usebruno/common');
 
 jest.mock('electron', () => ({
   ipcMain: { handle: jest.fn(), on: jest.fn() },
@@ -13,6 +12,8 @@ jest.mock('electron', () => ({
 }));
 
 jest.mock('../sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn() }));
+
+const { MAX_RENDERABLE_RESPONSE_BYTES } = require('./index');
 
 const EVENT_DATA = { collectionUid: 'col-1', itemUid: 'item-1' };
 
@@ -138,7 +139,7 @@ describe('runner-exchange service', () => {
     };
 
     it('returns a body that is large but still renderable on demand', async () => {
-      await storeWithBodySize(LARGE_RESPONSE_BYTES + 1);
+      await storeWithBodySize(20 * 1024 * 1024);
 
       const { responseReceived } = await readRunnerExchange('run-1');
 

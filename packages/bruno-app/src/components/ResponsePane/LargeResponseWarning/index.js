@@ -5,7 +5,7 @@ import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common/index';
 import Button from 'ui/Button/index';
-import { MAX_RENDERABLE_RESPONSE_BYTES } from '@usebruno/common';
+import { MAX_RENDERABLE_RESPONSE_BYTES } from 'utils/common/constants';
 
 const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const { ipcRenderer } = window;
