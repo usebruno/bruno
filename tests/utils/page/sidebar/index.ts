@@ -60,6 +60,8 @@ export const buildSidebarLocators = (page: Page) => {
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
+    scopedRequest: (collectionName: string, requestName: string) =>
+      collectionScope(collectionName).locator('.collection-item-name', { hasText: requestName }),
     scopedItem: function (collectionName: string, itemName: string) {
       return this.collectionScope(collectionName).locator('.item-name').and(page.getByTitle(itemName, { exact: true }));
     },
