@@ -71,6 +71,13 @@ const RequestTabs = () => {
     return () => resizeObserver.disconnect();
   }, [activeTabUid, activeTab, collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
 
+  useEffect(() => {
+    const activeTabElement = tabsRef.current?.querySelector('.request-tab.active');
+    if (typeof activeTabElement?.scrollIntoView !== 'function') return;
+
+    activeTabElement.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [activeTabUid]);
+
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       'active': tab.uid === activeTabUid,
