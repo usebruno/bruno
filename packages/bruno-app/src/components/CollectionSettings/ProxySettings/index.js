@@ -136,10 +136,14 @@ const ProxySettings = ({ collection }) => {
 
   const handlePortChange = (port) => {
     if (validatePortOnChange(port)) {
+      let storedPort = '';
+      if (port) {
+        storedPort = containsVariable(port) ? port : Number(port);
+      }
       updateProxy({
         config: {
           ...currentProxyConfig.config,
-          port: port || ''
+          port: storedPort
         }
       });
     }

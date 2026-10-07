@@ -1796,16 +1796,19 @@ export const resolveEnabledVariable = (variables, variableName) => {
   return matches[matches.length - 1];
 };
 
+const readItemRequestVars = (treeItem) => get(treeItem?.draft || treeItem?.root || treeItem, 'request.vars.req', []);
+
 // Get the scope and raw value of a variable by checking all scopes in priority order
-export const getVariableScope = (variableName, collection, item) => {
+export const getVariableScope = (variableName, collection, item, options = {}) => {
   if (!variableName || !collection) {
     return null;
   }
 
+  const { skipRequestScope = false } = options;
+
   // 1. Check Request Variables (highest priority)
-  if (item) {
-    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+  if (item && !skipRequestScope) {
+    const requestVar = resolveEnabledVariable(readItemRequestVars(item), variableName);
     if (requestVar) {
       return {
         type: 'request',
@@ -1824,10 +1827,7 @@ export const getVariableScope = (variableName, collection, item) => {
     }
 
     if (pathItem.type === 'folder') {
-      // Check draft first, then fall back to root
-      const folderRoot = pathItem.draft || pathItem.root;
-      const folderVars = get(folderRoot, 'request.vars.req', []);
-      const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
+      const folderVar = resolveEnabledVariable(readItemRequestVars(pathItem), variableName);
       if (folderVar) {
         return {
           type: 'folder',
@@ -1861,10 +1861,8 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 4. Check Collection Variables
-  // Check draft first, then fall back to root
   const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
-  const collectionVars = get(collectionRoot, 'request.vars.req', []);
-  const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
+  const collectionVar = resolveEnabledVariable(readItemRequestVars(collectionRoot), variableName);
   if (collectionVar) {
     return {
       type: 'collection',

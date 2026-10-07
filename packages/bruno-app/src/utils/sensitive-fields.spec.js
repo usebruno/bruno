@@ -55,7 +55,7 @@ const folderWithVars = (uid, requestVars, items = []) => ({
 
 describe('extractSensitiveVarNames', () => {
   it('returns each referenced name in source order', () => {
-    expect(extractSensitiveVarNames('Bearer {{ token }}-{{suffix}}')).toEqual([' token ', 'suffix']);
+    expect(extractSensitiveVarNames('Bearer {{ token }}-{{suffix}}')).toEqual(['token', 'suffix']);
   });
 
   it('returns nothing for a plain value or an empty interpolation', () => {
@@ -430,6 +430,14 @@ describe('environment table usage flags', () => {
   it('flags the non-secret environment variable that a sensitive field sends', () => {
     const variable = tokenVariable('env-token');
     const collection = collectionWithEnvVariables(requestWithAuthValue('auth.bearer.token', '{{token}}'), [variable]);
+
+    expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
+  });
+
+  it('does not throw when clientCertificates.certs is null', () => {
+    const variable = tokenVariable('env-token');
+    const collection = collectionWithEnvVariables(requestWithAuthValue('auth.bearer.token', '{{token}}'), [variable]);
+    collection.brunoConfig = { clientCertificates: { certs: null } };
 
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [variable] })]).toEqual(['env-token']);
   });
