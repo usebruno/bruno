@@ -11,6 +11,7 @@ const { sanitizeName, validateName } = require('@usebruno/common').utils;
 const DEFAULT_GITIGNORE = [
   '# Secrets',
   '.env*',
+  '!.env.sample*',
   '',
   '# Dependencies',
   'node_modules',
