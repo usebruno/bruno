@@ -1,6 +1,7 @@
 import get from 'lodash/get';
 import { resolveInheritedAuth } from 'utils/auth';
 import {
+  createVariableScopeScanContext,
   flattenItems,
   getVariableScope,
   isItemARequest
@@ -92,14 +93,15 @@ const mapScopeInfoToResolved = (scopeInfo) => {
 };
 
 /** Saved variable used for this name. Skips runtime and process.env. */
-export const resolveSensitiveVariable = (variableName, { collection, item, scope } = {}) => {
+export const resolveSensitiveVariable = (variableName, { collection, item, scope, scanContext } = {}) => {
   if (!variableName || !collection) {
     return null;
   }
 
   const fieldScope = resolveFieldScope(item, scope);
   const scopeInfo = getVariableScope(variableName, collection, fieldScope === 'collection' ? null : item, {
-    skipRequestScope: fieldScope === 'folder' || fieldScope === 'collection'
+    skipRequestScope: fieldScope === 'folder' || fieldScope === 'collection',
+    scanContext
   });
   return mapScopeInfoToResolved(scopeInfo);
 };
@@ -154,7 +156,7 @@ const usesCollectionProxyPassword = (proxy) => (
 );
 
 /** Auth, proxy password, and certificate values that can be sent. */
-const collectSensitiveFieldValues = (collection) => {
+const collectSensitiveFieldValues = (collection, scanContext = null) => {
   const fields = [];
   const brunoConfig = collection?.draft?.brunoConfig || collection?.brunoConfig || {};
   const proxy = get(brunoConfig, 'proxy');
@@ -176,7 +178,11 @@ const collectSensitiveFieldValues = (collection) => {
     if (!isItemARequest(item) || item.partial) {
       return;
     }
-    fields.push(...readSensitiveValues({ request: resolveInheritedAuth(item, collection) }, item, 'request'));
+    fields.push(...readSensitiveValues(
+      { request: resolveInheritedAuth(item, collection, scanContext) },
+      item,
+      'request'
+    ));
   });
 
   return fields;
@@ -207,7 +213,8 @@ const replaceEnvironment = (environments, environment) => {
 /** Ids of the non-secret rows in this scope that a sensitive field sends. */
 const collectSentVariableUids = (collection, scopeType) => {
   const uids = new Set();
-  const sensitiveFields = collectSensitiveFieldValues(collection);
+  const scanContext = createVariableScopeScanContext(collection);
+  const sensitiveFields = collectSensitiveFieldValues(collection, scanContext);
 
   for (const field of sensitiveFields) {
     const variableNames = extractSensitiveVarNames(field.value);
@@ -215,7 +222,8 @@ const collectSentVariableUids = (collection, scopeType) => {
       const resolved = resolveSensitiveVariable(variableName, {
         collection,
         item: field.item,
-        scope: field.scope
+        scope: field.scope,
+        scanContext
       });
       const row = resolved?.variable;
       const isSentInThisScope = resolved?.type === scopeType && row?.uid && !row.secret;
