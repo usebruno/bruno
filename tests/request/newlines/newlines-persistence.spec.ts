@@ -1,14 +1,18 @@
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { createCollection, openCollection } from '../../utils/page';
+import { createCollection, openCollection, selectRequestPaneTab, waitForReadyPage } from '../../utils/page';
 import { getTableCell } from '../../utils/page/locators';
 
 test('should persist request with newlines across app restarts', async ({ createTmpDir, launchElectronApp }) => {
+  // Two full app launches plus a restart; waitForReadyPage alone allows 45s each,
+  // so the 30s default budget is too small on a slow or loaded CI runner.
+  test.setTimeout(120_000);
+
   const userDataPath = await createTmpDir('newlines-persistence-userdata');
   const collectionPath = await createTmpDir('newlines-persistence-collection');
 
   // Create collection and request
   const app1 = await launchElectronApp({ userDataPath });
-  const page = await app1.firstWindow();
+  const page = await waitForReadyPage(app1);
 
   await createCollection(page, 'newlines-persistence', collectionPath);
 
@@ -25,18 +29,18 @@ test('should persist request with newlines across app restarts', async ({ create
 
   await page.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
-  await page.getByRole('tab', { name: 'Params' }).click();
+  await selectRequestPaneTab(page, 'Params');
   const paramRow = page.locator('table tbody tr').first();
   await getTableCell(paramRow, 0).getByRole('textbox').fill('queryParamKey');
 
-  await page.getByRole('tab', { name: 'Headers' }).click();
+  await selectRequestPaneTab(page, 'Headers');
   const headerRow = page.locator('table tbody tr').first();
   await getTableCell(headerRow, 0).locator('.CodeMirror').click();
   await getTableCell(headerRow, 0).locator('textarea').fill('headerKey');
   await getTableCell(headerRow, 1).locator('.CodeMirror').click();
   await getTableCell(headerRow, 1).locator('textarea').fill('header\nValue');
 
-  await page.getByRole('tab', { name: 'Vars' }).click();
+  await selectRequestPaneTab(page, 'Vars');
   const preReqRow = page.locator('table').first().locator('tbody tr').first();
   await getTableCell(preReqRow, 0).getByRole('textbox').fill('preRequestVar');
   // Wait for table to stabilize after fill (new empty row may be appended)
@@ -58,21 +62,21 @@ test('should persist request with newlines across app restarts', async ({ create
 
   // Verify persistence after restart
   const app2 = await launchElectronApp({ userDataPath });
-  const page2 = await app2.firstWindow();
+  const page2 = await waitForReadyPage(app2);
 
   await page2.getByTestId('collections').locator('.collection-name').filter({ hasText: 'newlines-persistence' }).click();
   await page2.locator('.collection-item-name').filter({ hasText: 'persistence-test' }).dblclick();
 
   // Verify params persisted
-  await page2.getByRole('tab', { name: 'Params' }).click();
+  await selectRequestPaneTab(page2, 'Params');
   await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify headers persisted
-  await page2.getByRole('tab', { name: 'Headers' }).click();
+  await selectRequestPaneTab(page2, 'Headers');
   await expect(page2.locator('table tbody tr')).toHaveCount(2);
 
   // Verify vars persisted
-  await page2.getByRole('tab', { name: 'Vars' }).click();
+  await selectRequestPaneTab(page2, 'Vars');
   await expect(page2.locator('table').first().locator('tbody tr')).toHaveCount(2);
   await expect(page2.locator('table').nth(1).locator('tbody tr')).toHaveCount(2);
 

@@ -1,11 +1,11 @@
 const { marshallToVm } = require('../utils');
+const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 const addBrunoRequestShimToContext = (vm, req) => {
   const reqObject = vm.newObject();
 
   const url = marshallToVm(req.getUrl(), vm);
   const method = marshallToVm(req.getMethod(), vm);
-  const headers = marshallToVm(req.getHeaders(), vm);
   const body = marshallToVm(req.getBody(), vm);
   const timeout = marshallToVm(req.getTimeout(), vm);
   const name = marshallToVm(req.getName(), vm);
@@ -14,7 +14,6 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   vm.setProp(reqObject, 'url', url);
   vm.setProp(reqObject, 'method', method);
-  vm.setProp(reqObject, 'headers', headers);
   vm.setProp(reqObject, 'body', body);
   vm.setProp(reqObject, 'timeout', timeout);
   vm.setProp(reqObject, 'name', name);
@@ -23,12 +22,28 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   url.dispose();
   method.dispose();
-  headers.dispose();
   body.dispose();
   timeout.dispose();
   name.dispose();
   pathParams.dispose();
   tags.dispose();
+
+  // req.headers — plain headers object for backward-compatible bracket access
+  const headersVal = marshallToVm(req.getHeaders(), vm);
+  vm.setProp(reqObject, 'headers', headersVal);
+  headersVal.dispose();
+
+  // req.headerList — PropertyList bridge for structured header operations
+  const headerListObj = vm.newObject();
+  const { evalCode: headersEvalCode } = createPropertyListBridge(vm, req.headerList, headerListObj, {
+    globalPath: 'globalThis.req.headerList',
+    syncReadMethods: ['get', 'has', 'count', 'indexOf', 'toObject', 'toString'],
+    syncReadObjectMethods: ['one', 'all', 'toJSON'],
+    syncWriteMethods: ['add', 'upsert', 'remove', 'clear', 'populate', 'repopulate', 'assimilate'],
+    withIterators: true
+  });
+  vm.setProp(reqObject, 'headerList', headerListObj);
+  headerListObj.dispose();
 
   let getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(req.getUrl(), vm);
@@ -133,11 +148,22 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getBody', getBody);
   getBody.dispose();
 
-  let setBody = vm.newFunction('setBody', function (data, options = {}) {
+  // Wrapped by req.setBody below, which sends Buffers to _setBinaryBody instead: vm.dump turns a Buffer into { type: 'Buffer', data: [...] }
+  let setBody = vm.newFunction('_setBody', function (data, options) {
     req.setBody(vm.dump(data), vm.dump(options));
   });
-  vm.setProp(reqObject, 'setBody', setBody);
+  vm.setProp(reqObject, '_setBody', setBody);
   setBody.dispose();
+
+  // Slicing the view here rather than in the VM keeps one more copy of the body off the VM's heap
+  let setBinaryBody = vm.newFunction('_setBinaryBody', function (arrayBuffer, byteOffset, byteLength, options) {
+    const start = vm.getNumber(byteOffset);
+    const end = start + vm.getNumber(byteLength);
+    const data = vm.getArrayBuffer(arrayBuffer).consume((bytes) => Buffer.from(bytes.value.subarray(start, end)));
+    req.setBody(data, vm.dump(options));
+  });
+  vm.setProp(reqObject, '_setBinaryBody', setBinaryBody);
+  setBinaryBody.dispose();
 
   let setMaxRedirects = vm.newFunction('setMaxRedirects', function (maxRedirects) {
     req.setMaxRedirects(vm.dump(maxRedirects));
@@ -177,6 +203,23 @@ const addBrunoRequestShimToContext = (vm, req) => {
 
   vm.setProp(vm.global, 'req', reqObject);
   reqObject.dispose();
+
+  // Evaluate iterator code after req is on global (iterators reference globalThis.req.headerList)
+  // Wrapped in a block to avoid const redeclaration conflicts with other evalCode blocks
+  if (headersEvalCode) {
+    vm.evalCode(`{ ${headersEvalCode} }`);
+  }
+
+  // Buffer is only defined once the bundled libraries load, which expression evaluation skips
+  vm.evalCode(`
+    globalThis.req.setBody = (data, options) => {
+      if (globalThis.Buffer?.isBuffer(data)) {
+        globalThis.req._setBinaryBody(data.buffer, data.byteOffset, data.byteLength, options);
+        return;
+      }
+      globalThis.req._setBody(data, options);
+    };
+  `);
 };
 
 module.exports = addBrunoRequestShimToContext;

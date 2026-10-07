@@ -51,6 +51,30 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.globals.set("test", "value");');
   });
 
+  it('should translate bru.hasGlobalEnvVar', () => {
+    const code = 'bru.hasGlobalEnvVar("token");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.has("token");');
+  });
+
+  it('should translate bru.deleteGlobalEnvVar', () => {
+    const code = 'bru.deleteGlobalEnvVar("token");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.unset("token");');
+  });
+
+  it('should translate bru.deleteAllGlobalEnvVars', () => {
+    const code = 'bru.deleteAllGlobalEnvVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.clear();');
+  });
+
+  it('should translate bru.getAllGlobalEnvVars', () => {
+    const code = 'const globals = bru.getAllGlobalEnvVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const globals = pm.globals.toObject();');
+  });
+
   // Collection variables tests
   it('should translate bru.getCollectionVar', () => {
     const code = 'bru.getCollectionVar("baseUrl");';

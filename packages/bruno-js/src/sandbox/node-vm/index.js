@@ -3,10 +3,11 @@ const path = require('node:path');
 const { get } = require('lodash');
 const lodash = require('lodash');
 const { wrapConsoleWithSerializers } = require('./console');
-const { ScriptError } = require('./utils');
-const { createCustomRequire } = require('./cjs-loader');
+const { ScriptError, resolveVmFilename } = require('./utils');
+const { createCustomRequire, runWithScriptContext, getSharedNpmContext, attachRunLoaderState } = require('./cjs-loader');
 const { safeGlobals } = require('./constants');
 const { mixinTypedArrays } = require('../mixins/typed-arrays');
+const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 /**
  * Executes a script in a Node.js VM context with enhanced security and module loading
@@ -16,10 +17,17 @@ const { mixinTypedArrays } = require('../mixins/typed-arrays');
  * @param {Object} options.context - The execution context with Bruno objects
  * @param {string} options.collectionPath - Path to the collection directory
  * @param {Object} options.scriptingConfig - Scripting configuration options
- * @returns {Promise<void>}
+ * @param {string} [options.scriptPath] - Path to the source file for accurate stack traces
+ * @returns {Promise<Object>} Execution results including variables and test results
  * @throws {ScriptError} When script execution fails
  */
-async function runScriptInNodeVm({ script, context, collectionPath, scriptingConfig }) {
+async function runScriptInNodeVm({
+  script,
+  context,
+  collectionPath,
+  scriptingConfig,
+  scriptPath
+}) {
   if (script.trim().length === 0) {
     return;
   }
@@ -36,35 +44,114 @@ async function runScriptInNodeVm({ script, context, collectionPath, scriptingCon
 
     // Build the script context with Bruno objects and globals
     const scriptContext = buildScriptContext(context, scriptingConfig);
-
-    // Create truly isolated context - scriptContext becomes the global object
-    // Scripts can ONLY access what's explicitly in scriptContext
-    const isolatedContext = vm.createContext(scriptContext);
-
-    // Add global/globalThis pointing to the isolated context (not host global)
-    // This allows libraries that reference 'global' to work while maintaining isolation
-    scriptContext.global = scriptContext;
-    scriptContext.globalThis = scriptContext;
-
-    // Create module cache for CJS modules
     const localModuleCache = new Map();
+    const cacheModules = get(scriptingConfig, 'cacheModules', false) === true;
 
-    // Add require() function for CJS module loading
+    // cacheModules: one shared VM realm for scripts + npm modules so instanceof
+    // matches. Per-run bru/req/res/require resolve via ALS facades on that realm.
+    // Otherwise: fresh isolated context per script (default).
+    let vmContext;
+    if (cacheModules) {
+      vmContext = getSharedNpmContext();
+    } else {
+      vmContext = vm.createContext(scriptContext);
+      scriptContext.global = scriptContext;
+      scriptContext.globalThis = scriptContext;
+    }
+
     scriptContext.require = createCustomRequire({
       collectionPath,
-      isolatedContext,
+      isolatedContext: vmContext,
       currentModuleDir: collectionPath,
       localModuleCache,
-      additionalContextRootsAbsolute
+      additionalContextRootsAbsolute,
+      cacheModules
     });
+    // Stashed for shared npm requires that outlive this run's createCustomRequire closure.
+    // Symbol key so runWithScriptContext does not publish these as sandbox globals.
+    attachRunLoaderState(scriptContext, { localModuleCache, vmContext });
 
-    // Execute the script in the isolated context
-    const wrappedScript = `(async function(){ ${script} \n})();`;
-    const compiledScript = new vm.Script(wrappedScript, {
-      filename: path.join(collectionPath, 'script.js')
-    });
+    // cacheModules: onFail runs after the script's ALS store exits, so re-bind
+    // registered callbacks to this run's context (bru/req/... facades).
+    let restoreOnFail;
+    if (cacheModules && typeof scriptContext.req?.onFail === 'function') {
+      const req = scriptContext.req;
+      const originalOnFail = req.onFail;
+      req.onFail = (callback) => {
+        if (typeof callback !== 'function') {
+          return originalOnFail.call(req, callback);
+        }
+        return originalOnFail.call(req, (error) => runWithScriptContext(scriptContext, () => callback(error)));
+      };
+      restoreOnFail = () => {
+        req.onFail = originalOnFail;
+      };
+    }
 
-    await compiledScript.runInContext(isolatedContext);
+    try {
+      const vmFilename = resolveVmFilename(scriptPath, collectionPath);
+
+      // Execute the script in the isolated context
+      const wrappedScript = wrapScriptInClosure(script, SANDBOX.NODEVM);
+      let compiledScript;
+      try {
+        compiledScript = new vm.Script(wrappedScript, {
+          filename: vmFilename
+        });
+      } catch (error) {
+        // V8 puts "filename:line" as the first line of syntax error stacks.
+        // Parse it so the error formatter can map to the correct source location.
+        const firstLine = error.stack?.split('\n')[0];
+        const match = firstLine?.match(/^(.+):(\d+)$/);
+        if (match && match[1] === vmFilename) {
+          error.__callSites = [{
+            filePath: vmFilename,
+            line: parseInt(match[2], 10),
+            column: null,
+            functionName: null
+          }];
+        }
+        throw error;
+      }
+
+      // Capture structured call sites for error-formatter line mapping
+      const originalPrepareStackTrace = Error.prepareStackTrace;
+      Error.prepareStackTrace = (error, callSites) => {
+        error.__callSites = callSites
+          .filter((site) => site.getFileName() === vmFilename)
+          .map((site) => ({
+            filePath: site.getFileName(),
+            line: site.getLineNumber(),
+            column: site.getColumnNumber(),
+            functionName: site.getFunctionName() || null
+          }));
+
+        return error.toString() + '\n' + callSites
+          .map((site) => `    at ${site}`)
+          .join('\n');
+      };
+
+      try {
+        const runScript = () => compiledScript.runInContext(vmContext, {
+          displayErrors: true
+        });
+        if (cacheModules) {
+          await runWithScriptContext(scriptContext, runScript);
+        } else {
+          await runScript();
+        }
+      } catch (error) {
+        // V8 invokes prepareStackTrace lazily on first .stack access.
+        // Reading .stack here so custom handler runs and populates error.__callSites
+        // (used later by the error formatter to map stack frames to the .bru/.yml script)
+        void error.stack;
+        throw error;
+      } finally {
+        Error.prepareStackTrace = originalPrepareStackTrace;
+      }
+    } finally {
+      restoreOnFail?.();
+    }
   } catch (error) {
     throw new ScriptError(error, script);
   }

@@ -24,5 +24,11 @@
       "password": ""
     },
     "bypassProxy": ""
+  },
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
   }
 }

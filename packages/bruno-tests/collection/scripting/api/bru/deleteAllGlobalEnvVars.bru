@@ -26,6 +26,12 @@ tests {
     expect(valB).to.be.undefined;
   });
 
+  test("should not throw when called on empty scope", function() {
+    expect(function() {
+      bru.deleteAllGlobalEnvVars();
+    }).to.not.throw();
+  });
+
   // Restore global env vars for subsequent requests
   for (const [key, value] of Object.entries(savedGlobalEnvVars)) {
     bru.setGlobalEnvVar(key, value);

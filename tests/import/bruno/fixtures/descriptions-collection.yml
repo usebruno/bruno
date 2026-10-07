@@ -1,0 +1,154 @@
+opencollection: "1.0.0"
+info:
+  name: descriptions-imported-yml
+
+config:
+  environments:
+    - name: test_env
+      variables:
+        - name: envHost
+          value: http://localhost:3000
+          description: Single-line env desc
+        - name: envToken
+          value: abc123
+          description: |-
+            Env line one
+            Env line two
+        - name: envPlain
+          value: no-desc
+
+request:
+  headers:
+    - name: X-Collection-Version
+      value: "2.0"
+      description: Single-line collection header desc
+    - name: X-Collection-Multi
+      value: value
+      description: |-
+        Collection header line one
+        Collection header line two
+    - name: X-Collection-Plain
+      value: plain-value
+  variables:
+    - name: baseUrl
+      value: https://example.com
+      description: Single-line collection var desc
+    - name: apiKey
+      value: abc123
+      description: |-
+        Collection var line one
+        Collection var line two
+    - name: plain
+      value: no-desc
+
+items:
+  - info:
+      type: folder
+      name: folder
+      seq: 1
+    request:
+      headers:
+        - name: X-Folder-Version
+          value: "1.0"
+          description: Single-line folder header desc
+        - name: X-Folder-Multi
+          value: value
+          description: |-
+            Folder header line one
+            Folder header line two
+        - name: X-Folder-Plain
+          value: plain
+      variables:
+        - name: folderBaseUrl
+          value: https://folder.example.com
+          description: Single-line folder var desc
+        - name: folderApiKey
+          value: folder-key
+          description: |-
+            Folder var line one
+            Folder var line two
+        - name: folderPlain
+          value: no-desc
+    items:
+      - info:
+          type: http
+          name: request
+          seq: 1
+        http:
+          method: POST
+          url: https://example.com/api
+          headers:
+            - name: X-Version
+              value: "2.0"
+              description: Single-line header desc
+            - name: X-Multi
+              value: value
+              description: |-
+                Header line one
+                Header line two
+            - name: X-Plain
+              value: plain-value
+          params:
+            - name: q
+              value: search
+              type: query
+              description: Single-line query desc
+            - name: page
+              value: "1"
+              type: query
+              description: |-
+                Multi-line query desc line one
+                Multi-line query desc line two
+            - name: plain-query
+              value: value
+              type: query
+          body:
+            type: multipart-form
+            data:
+              - name: username
+                type: text
+                value: alice
+                description: Single-line field desc
+              - name: email
+                type: text
+                value: alice@example.com
+                description: |-
+                  Multi-line field desc line one
+                  Multi-line field desc line two
+              - name: plain-field
+                type: text
+                value: value
+        runtime:
+          variables:
+            - name: reqBaseUrl
+              value: https://example.com
+              description: Single-line req var desc
+            - name: reqApiKey
+              value: req-key
+              description: |-
+                Req var line one
+                Req var line two
+            - name: reqPlain
+              value: no-desc
+      - info:
+          type: http
+          name: form-request
+          seq: 2
+        http:
+          method: POST
+          url: https://example.com/form
+          body:
+            type: form-urlencoded
+            data:
+              - name: username
+                value: alice
+                description: Single-line form desc
+              - name: email
+                value: alice@example.com
+                description: |-
+                  Multi-line form desc line one
+                  Multi-line form desc line two
+              - name: plain-form
+                value: value
+
+bundled: true

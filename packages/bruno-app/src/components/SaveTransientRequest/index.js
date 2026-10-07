@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import SearchInput from 'components/SearchInput';
@@ -14,17 +14,18 @@ import FolderBreadcrumbs from './FolderBreadcrumbs';
 import useCollectionFolderTree from 'hooks/useCollectionFolderTree';
 import { removeSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { newFolder, closeTabs, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { newFolder, closeTabs, mountCollection, createCollection, browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import { resolveRequestFilename } from 'utils/common/platform';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { transformRequestToSaveToFilesystem, findCollectionByUid, findItemInCollection, areItemsLoading } from 'utils/collections';
 import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import { itemSchema } from '@usebruno/schema';
 import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
+import get from 'lodash/get';
 
-const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose }) => {
+const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOpen = false, onClose, closeAfterSave = false }) => {
   const dispatch = useDispatch();
 
   const latestCollection = useSelector((state) =>
@@ -39,12 +40,17 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const allCollections = useSelector((state) => state.collections.collections);
   const isScratchCollection = activeWorkspace?.scratchCollectionUid === collection?.uid;
+  const preferences = useSelector((state) => state.app.preferences);
+  const isDefaultWorkspace = activeWorkspace?.type === 'default';
+  const defaultCollectionLocation = isDefaultWorkspace
+    ? get(preferences, 'general.defaultLocation', '')
+    : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const availableCollections = useMemo(() => {
     if (!isScratchCollection || !activeWorkspace) return [];
 
     return (activeWorkspace.collections || []).map((wc) => {
-      const fullCollection = allCollections.find((c) => c.pathname === wc.path);
+      const fullCollection = allCollections.find((c) => normalizePath(c.pathname) === normalizePath(wc.path));
       // Use stable deterministic UID based on path to avoid duplicate Redux entries
       const stableUid = wc.path ? `pending-${wc.path.replace(/[^a-zA-Z0-9]/g, '-')}` : uuid();
       return fullCollection || { ...wc, uid: stableUid, mountStatus: 'unmounted' };
@@ -66,7 +72,9 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
   const [showFilesystemName, setShowFilesystemName] = useState(false);
   const [isEditingFolderFilename, setIsEditingFolderFilename] = useState(false);
   const [pendingFolderNavigation, setPendingFolderNavigation] = useState(null);
-  const newFolderInputRef = useRef(null);
+
+  // State for new collection creation
+  const [newCollection, setNewCollection] = useState({ show: false, name: '', location: '', format: DEFAULT_COLLECTION_FORMAT });
 
   const [selectedTargetCollectionPath, setSelectedTargetCollectionPath] = useState(null);
   const [isSelectingCollection, setIsSelectingCollection] = useState(isScratchCollection);
@@ -111,6 +119,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     setPendingFolderNavigation(null);
     setSelectedTargetCollectionPath(null);
     setIsSelectingCollection(isScratchCollection);
+    // Reset new collection state
+    setNewCollection({ show: false, name: '', location: '', format: DEFAULT_COLLECTION_FORMAT });
   }, [item?.name, isScratchCollection, reset]);
 
   useEffect(() => {
@@ -118,12 +128,6 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       resetForm();
     }
   }, [isOpen, item, resetForm]);
-
-  useEffect(() => {
-    if (showNewFolderInput && newFolderInputRef.current) {
-      newFolderInputRef.current.focus();
-    }
-  }, [showNewFolderInput]);
 
   useEffect(() => {
     if (pendingFolderNavigation) {
@@ -197,9 +201,30 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
       const sanitizedFilename = sanitizeName(trimmedName);
 
-      const itemToSave = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
+      const hasFileModeEdit = latestItem.draft?.raw != null && latestItem.draft.raw !== latestItem.raw;
+      let baseItem;
+      if (hasFileModeEdit) {
+        const rawSourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
+        try {
+          const parsed = await ipcRenderer.invoke(
+            'renderer:convert-to-json',
+            latestItem,
+            latestItem.draft.raw,
+            rawSourceFormat
+          );
+          baseItem = { ...latestItem, ...parsed, uid: latestItem.uid, pathname: latestItem.pathname };
+        } catch (err) {
+          toast.error(formatIpcError(err) || 'Invalid request content - fix it in file mode before saving');
+          return;
+        }
+      } else {
+        baseItem = latestItem.draft ? { ...latestItem, ...latestItem.draft } : { ...latestItem };
+      }
+
+      const itemToSave = { ...baseItem };
       itemToSave.name = sanitizedFilename;
       delete itemToSave.draft;
+      delete itemToSave.raw;
 
       const transformedItem = transformRequestToSaveToFilesystem(itemToSave);
       await itemSchema.validate(transformedItem);
@@ -209,7 +234,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
       const targetPathname = path.join(targetDirname, targetFilename);
 
-      await ipcRenderer.invoke('renderer:save-transient-request', {
+      const saveResult = await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
@@ -218,15 +243,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         sourceFormat
       });
 
-      dispatch(
-        insertTaskIntoQueue({
-          uid: uuid(),
-          type: 'OPEN_REQUEST',
-          collectionUid: targetCollection.uid,
-          itemPathname: targetPathname,
-          preview: false
-        })
-      );
+      // use the path resolved by the handler.
+      const savedPathname = saveResult?.newPathname || targetPathname;
+
+      if (!closeAfterSave) {
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid: targetCollection.uid,
+            itemPathname: savedPathname,
+            preview: false
+          })
+        );
+      }
 
       dispatch(closeTabs({ tabUids: [item.uid] }));
 
@@ -298,6 +328,48 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     }
   };
 
+  // New Collection handlers
+  const handleShowNewCollection = () => {
+    setNewCollection({ show: true, name: '', location: defaultCollectionLocation, format: DEFAULT_COLLECTION_FORMAT });
+  };
+
+  const handleCancelNewCollection = () => {
+    setNewCollection({ show: false, name: '', location: '', format: DEFAULT_COLLECTION_FORMAT });
+  };
+
+  const handleBrowseCollectionLocation = () => {
+    dispatch(browseDirectory())
+      .then((dirPath) => {
+        if (typeof dirPath === 'string') {
+          setNewCollection((prev) => ({ ...prev, location: dirPath }));
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleCreateNewCollection = async () => {
+    const trimmedName = newCollection.name.trim();
+    if (!trimmedName) {
+      toast.error('Collection name is required');
+      return;
+    }
+    if (!validateName(trimmedName)) {
+      toast.error(validateNameError(trimmedName));
+      return;
+    }
+    if (!newCollection.location) {
+      toast.error('Location is required');
+      return;
+    }
+    try {
+      await dispatch(createCollection(trimmedName, sanitizeName(trimmedName), newCollection.location, { format: newCollection.format, source: 'save-transient-request', entryPoint: 'save-transient-request' }));
+      toast.success('Collection created!');
+      handleCancelNewCollection();
+    } catch (err) {
+      toast.error(err?.message || 'An error occurred while creating the collection');
+    }
+  };
+
   const handleFolderClick = (folderUid) => {
     navigateIntoFolder(folderUid);
     setSearchText('');
@@ -312,16 +384,19 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
     return null;
   }
 
+  const showNewFolderFooterButton = !showNewFolderInput && !isSelectingCollection && (filteredFolders.length > 0 && !searchText.trim());
+
   return (
     <StyledWrapper>
       <Modal
-        size="md"
+        size="sm"
         title={isSelectingCollection ? 'Select Collection' : 'Save Request'}
         handleCancel={handleCancel}
         handleConfirm={handleConfirm}
         confirmText="Save"
         cancelText="Cancel"
         hideFooter={true}
+        dataTestId="save-transient-request-modal"
       >
         <div className="save-request-form">
           <div className="form-section">
@@ -330,6 +405,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
             </label>
             <input
               id="request-name"
+              data-testid="save-transient-request-name"
               type="text"
               className="form-input textbox"
               autoComplete="off"
@@ -377,7 +453,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
             {isSelectingCollection ? (
               <div className="collection-list">
-                {availableCollections.length > 0 ? (
+                {availableCollections.length > 0 || newCollection.show ? (
                   <ul className="collection-list-items">
                     {availableCollections.map((coll) => {
                       const collPath = coll.path || coll.pathname;
@@ -392,10 +468,127 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                         />
                       );
                     })}
+                    {newCollection.show && (
+                      <li className="new-collection-item">
+                        <div className="new-collection-field">
+                          <label className="new-collection-label">
+                            Collection name
+                          </label>
+                          <input
+                            ref={(node) => node?.focus()}
+                            type="text"
+                            className="new-collection-input"
+                            placeholder="Enter collection name"
+                            value={newCollection.name}
+                            onChange={(e) => setNewCollection((prev) => ({ ...prev, name: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleCreateNewCollection();
+                              } else if (e.key === 'Escape') {
+                                e.stopPropagation();
+                                handleCancelNewCollection();
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="new-collection-field">
+                          <label className="new-collection-label flex items-center">
+                            Location
+                            <Help width={250} placement="top">
+                              <p>
+                                Bruno stores your collections on your computer's filesystem.
+                              </p>
+                              <p className="mt-2">
+                                Choose the location where you want to store this collection.
+                              </p>
+                            </Help>
+                          </label>
+                          <div className="new-collection-location-row">
+                            <input
+                              type="text"
+                              className="new-collection-input cursor-pointer"
+                              placeholder="Select location"
+                              value={newCollection.location}
+                              readOnly
+                              onClick={handleBrowseCollectionLocation}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              color="secondary"
+                              size="sm"
+                              rounded="sm"
+                              onClick={handleBrowseCollectionLocation}
+                            >
+                              Browse
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="new-collection-field">
+                          <label className="new-collection-label flex items-center">
+                            File Format
+                            <Help width={300} placement="top">
+                              <p>
+                                Choose the file format for storing requests in this collection.
+                              </p>
+                              <p className="mt-2">
+                                <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                              </p>
+                              <p className="mt-1">
+                                <strong>BRU:</strong> Bruno's native file format (.bru files)
+                              </p>
+                            </Help>
+                          </label>
+                          <select
+                            className="new-collection-select"
+                            value={newCollection.format}
+                            onChange={(e) => setNewCollection((prev) => ({ ...prev, format: e.target.value }))}
+                          >
+                            <option value="yml">OpenCollection (YAML)</option>
+                            <option value="bru">BRU Format (.bru)</option>
+                          </select>
+                        </div>
+
+                        <div className="new-collection-actions-footer">
+                          <Button
+                            type="button"
+                            color="secondary"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelNewCollection}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            color="primary"
+                            size="sm"
+                            onClick={handleCreateNewCollection}
+                          >
+                            Create
+                          </Button>
+                        </div>
+                      </li>
+                    )}
                   </ul>
                 ) : (
                   <div className="collection-empty-state">
-                    No collections available in workspace. Please add a collection to the workspace first.
+                    <p>No Collections Yet</p>
+                    <p className="collection-empty-state-subtitle">Collections help you organize your requests. Create your first one to save this request.</p>
+                    <Button
+                      type="button"
+                      color="primary"
+                      variant="outline"
+                      icon={<IconFolder size={16} strokeWidth={1.5} />}
+                      onClick={handleShowNewCollection}
+                      className="mt-4"
+                    >
+                      New collection
+                    </Button>
                   </div>
                 )}
               </div>
@@ -448,7 +641,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                           </div>
                           <div className="new-folder-input-row">
                             <input
-                              ref={newFolderInputRef}
+                              ref={(node) => node?.focus()}
                               type="text"
                               className="new-folder-input"
                               placeholder="Untitled new folder"
@@ -573,7 +766,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                     </ul>
                   ) : (
                     <div className="folder-empty-state">
-                      {searchText.trim() ? 'No folders found' : 'No folders available'}
+                      <div className="flex flex-col items-center">
+                        <span>
+                          {searchText.trim() ? 'No folders found' : 'No folders available' }
+                        </span>
+                        <Button
+                          type="button"
+                          color="primary"
+                          variant="ghost"
+                          icon={<IconFolder size={16} strokeWidth={1.5} />}
+                          onClick={handleShowNewFolder}
+                        >
+                          New Folder
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -584,7 +790,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
         <div className="custom-modal-footer">
           <div className="footer-left">
-            {!showNewFolderInput && !isSelectingCollection && (
+            {showNewFolderFooterButton && (
               <Button
                 type="button"
                 color="primary"
@@ -595,13 +801,24 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
                 New Folder
               </Button>
             )}
+            {isSelectingCollection && !newCollection.show && availableCollections.length > 0 && (
+              <Button
+                type="button"
+                color="primary"
+                variant="ghost"
+                icon={<IconFolder size={16} strokeWidth={1.5} />}
+                onClick={handleShowNewCollection}
+              >
+                New collection
+              </Button>
+            )}
           </div>
           <div className="footer-right">
             <Button type="button" color="secondary" variant="ghost" onClick={handleCancel}>
               Cancel
             </Button>
             {!isSelectingCollection && (
-              <Button type="button" color="primary" onClick={handleConfirm}>
+              <Button type="button" color="primary" onClick={handleConfirm} data-testid="save-transient-request-submit">
                 Save
               </Button>
             )}

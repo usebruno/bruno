@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import usePrevious from 'hooks/usePrevious';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useDebounce from 'hooks/useDebounce';
+import { EnvironmentSelectionProvider } from 'hooks/useEnvironmentSelection';
 import EnvironmentDetails from './EnvironmentDetails';
 import { IconDownload, IconUpload, IconSearch, IconPlus, IconCheck, IconX, IconFileAlert } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -13,6 +15,8 @@ import DotEnvFileDetails from 'components/Environments/DotEnvFileDetails';
 import ColorBadge from 'components/ColorBadge';
 import { isEqual } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import { addGlobalEnvironment, renameGlobalEnvironment, selectGlobalEnvironment, setGlobalEnvironmentDraft, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import {
   saveWorkspaceDotEnvVariables,
@@ -20,6 +24,7 @@ import {
   createWorkspaceDotEnvFile,
   deleteWorkspaceDotEnvFile
 } from 'providers/ReduxStore/slices/workspaces/actions';
+import { setEnvVarSearchQuery, setEnvVarSearchExpanded } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import classnames from 'classnames';
@@ -39,9 +44,25 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', tab: activeEnvTab, query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', tab: activeEnvTab, expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const envListSearchInputRef = useRef(null);
+
+  // Scroll persistence for the environments list — key follows the standard
+  // `persisted::<activeTabUid>::<key>` format so clearPersistedScope works.
+  const envListRef = useRef(null);
+  const [envListScroll, setEnvListScroll] = usePersistedState({
+    key: `persisted::${activeTabUid}::workspace-envs-scroll-${workspace?.uid ?? 'global'}`,
+    default: 0
+  });
+  useTrackScroll({ ref: envListRef, onChange: setEnvListScroll, initialValue: envListScroll });
   const [isCreatingInline, setIsCreatingInline] = useState(false);
   const [renamingEnvUid, setRenamingEnvUid] = useState(null);
   const [newEnvName, setNewEnvName] = useState('');
@@ -64,6 +85,9 @@ const EnvironmentList = ({
   const dotEnvInputRef = useRef(null);
   const dotEnvCreateContainerRef = useRef(null);
 
+  const debouncedEnvSearchQuery = useDebounce(envSearchQuery, 300);
+  const envSearchInputRef = useRef(null);
+
   const dotEnvFiles = useSelector((state) => {
     const ws = state.workspaces.workspaces.find((w) => w.uid === workspace?.uid);
     return ws?.dotEnvFiles || EMPTY_ARRAY;
@@ -72,6 +96,8 @@ const EnvironmentList = ({
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
+  const globalEnvironmentDraftUid = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft?.environmentUid);
+
   const handleDotEnvModifiedChange = useCallback((modified) => {
     setIsDotEnvModified(modified);
     if (modified) {
@@ -79,10 +105,10 @@ const EnvironmentList = ({
         environmentUid: `dotenv:${selectedDotEnvFile}`,
         variables: []
       }));
-    } else {
+    } else if (globalEnvironmentDraftUid?.startsWith('dotenv:')) {
       dispatch(clearGlobalEnvironmentDraft());
     }
-  }, [dispatch, selectedDotEnvFile]);
+  }, [dispatch, selectedDotEnvFile, globalEnvironmentDraftUid]);
 
   useEffect(() => {
     if (dotEnvFiles.length === 0) {
@@ -488,12 +514,20 @@ const EnvironmentList = ({
 
     if (selectedEnvironment) {
       return (
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          setIsModified={setIsModified}
-          originalEnvironmentVariables={originalEnvironmentVariables}
-          collection={collection}
-        />
+        <EnvironmentSelectionProvider environments={environments} onSelect={handleEnvironmentClick}>
+          <EnvironmentDetails
+            environment={selectedEnvironment}
+            setIsModified={setIsModified}
+            originalEnvironmentVariables={originalEnvironmentVariables}
+            collection={collection}
+            searchQuery={envSearchQuery}
+            setSearchQuery={setEnvSearchQuery}
+            isSearchExpanded={isEnvSearchExpanded}
+            setIsSearchExpanded={setIsEnvSearchExpanded}
+            debouncedSearchQuery={debouncedEnvSearchQuery}
+            searchInputRef={envSearchInputRef}
+          />
+        </EnvironmentSelectionProvider>
       );
     }
 
@@ -525,20 +559,6 @@ const EnvironmentList = ({
         )}
 
         <div className="sidebar">
-          <div className="sidebar-header">
-            <h2 className="title">Variables</h2>
-          </div>
-
-          <div className="search-container">
-            <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="search-input"
-            />
-          </div>
 
           <div className="sections-container">
             <CollapsibleSection
@@ -547,23 +567,76 @@ const EnvironmentList = ({
               onToggle={() => setEnvironmentsExpanded(!environmentsExpanded)}
               actions={(
                 <>
-                  <button type="button" className="btn-action" onClick={() => handleCreateEnvClick()} title="Create environment">
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => {
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleCreateEnvClick();
+                    }}
+                    title="Create environment"
+                    data-testid="create-environment"
+                  >
                     <IconPlus size={14} strokeWidth={1.5} />
                   </button>
-                  <button type="button" className="btn-action" onClick={() => handleImportClick()} title="Import environment">
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => {
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleImportClick();
+                    }}
+                    title="Import environment"
+                    data-testid="import-environment-btn"
+                  >
                     <IconDownload size={14} strokeWidth={1.5} />
                   </button>
-                  <button type="button" className="btn-action" onClick={() => handleExportClick()} title="Export environment">
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => {
+                      if (!environmentsExpanded) {
+                        setEnvironmentsExpanded(true);
+                      }
+                      handleExportClick();
+                    }}
+                    title="Export environment"
+                  >
                     <IconUpload size={14} strokeWidth={1.5} />
                   </button>
                 </>
               )}
             >
-              <div className="environments-list">
+              <div className="env-list-search">
+                <IconSearch size={13} strokeWidth={1.5} className="env-list-search-icon" />
+                <input
+                  ref={envListSearchInputRef}
+                  type="text"
+                  placeholder="Search environments..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="env-list-search-input"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                {searchText && (
+                  <button className="env-list-search-clear" title="Clear search" onClick={() => setSearchText('')} onMouseDown={(e) => e.preventDefault()}>
+                    <IconX size={12} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
+              <div className="environments-list" ref={envListRef}>
                 {filteredEnvironments.map((env) => (
                   <div
                     key={env.uid}
                     id={env.uid}
+                    data-testid="workspace-env-list-item"
                     className={classnames('environment-item', {
                       active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
                       renaming: renamingEnvUid === env.uid,
@@ -635,6 +708,7 @@ const EnvironmentList = ({
                       ref={inputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="env-create-name-input"
                       value={newEnvName}
                       onChange={handleEnvNameChange}
                       onKeyDown={handleEnvNameKeyDown}
@@ -650,6 +724,7 @@ const EnvironmentList = ({
                         onClick={handleSaveNewEnv}
                         onMouseDown={(e) => e.preventDefault()}
                         title="Save"
+                        data-testid="env-create-save"
                       >
                         <IconCheck size={14} strokeWidth={2} />
                       </button>
@@ -677,6 +752,7 @@ const EnvironmentList = ({
 
             <CollapsibleSection
               title=".env Files"
+              testId="dotenv-files-section"
               expanded={dotEnvExpanded}
               onToggle={() => setDotEnvExpanded(!dotEnvExpanded)}
               badge={dotEnvFiles.length}
@@ -685,6 +761,7 @@ const EnvironmentList = ({
                   className="btn-action"
                   onClick={handleCreateDotEnvInlineClick}
                   title="Create .env file"
+                  data-testid="create-dotenv-file"
                 >
                   <IconPlus size={14} strokeWidth={1.5} />
                 </button>
@@ -694,6 +771,7 @@ const EnvironmentList = ({
                 {dotEnvFiles.map((file) => (
                   <div
                     key={file.filename}
+                    data-testid="dotenv-file-item"
                     className={classnames('environment-item', {
                       active: activeView === 'dotenv' && selectedDotEnvFile === file.filename
                     })}
@@ -709,6 +787,7 @@ const EnvironmentList = ({
                       ref={dotEnvInputRef}
                       type="text"
                       className="environment-name-input"
+                      data-testid="dotenv-name-input"
                       value={newDotEnvName}
                       onChange={handleDotEnvNameChange}
                       onKeyDown={handleDotEnvNameKeyDown}

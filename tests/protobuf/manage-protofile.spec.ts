@@ -1,7 +1,13 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page';
+import { selectEnvironment } from '../utils/page/actions';
 
 test.describe('manage protofile', () => {
+  test.beforeAll(async ({ pageWithUserData: page }) => {
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' }).click();
+    await selectEnvironment(page, 'GrpcEnv');
+  });
+
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
@@ -93,7 +99,10 @@ test.describe('manage protofile', () => {
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
     await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    await page.getByRole('button', { name: 'Don\'t Save' }).click();
+    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    // Wait for actionability
+    await expect(dontSaveBtn).toBeVisible();
+    await dontSaveBtn.click();
   });
 
   test('product.proto fails to load methods when selected', async ({ pageWithUserData: page }) => {
@@ -112,7 +121,7 @@ test.describe('manage protofile', () => {
     await page.locator('div').filter({ hasText: /^product\.proto\.\/protos\/services\/product\.proto$/ }).first().click();
 
     // Verify the error message is visible (auto-retrying)
-    await expect(page.getByText('Failed to load gRPC methods: Unknown error').first()).toBeVisible();
+    await expect(page.getByText(/^Failed to load gRPC methods/).first()).toBeVisible();
 
     // Check that methods dropdown is not visible when loading fails
     const methodsDropdown = page.getByTestId('grpc-methods-dropdown');
@@ -120,8 +129,10 @@ test.describe('manage protofile', () => {
 
     const requestTab = page.getByRole('tab', { name: 'gRPC sayHello' });
     await requestTab.hover();
-    await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-    await page.getByRole('button', { name: 'Don\'t Save' }).click();
+    await requestTab.getByTestId('request-tab-close-icon').click();
+    const dontSaveBtn = page.getByRole('button', { name: 'Don\'t Save' });
+    await expect(dontSaveBtn).toBeVisible();
+    await dontSaveBtn.click();
   });
 
   test('product.proto successfully loads methods once import path is provided', async ({ pageWithUserData: page }) => {

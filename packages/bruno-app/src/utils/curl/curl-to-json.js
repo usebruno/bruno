@@ -173,8 +173,8 @@ const curlToJson = (curlCommand) => {
       requestJson.headers = {};
     }
     requestJson.headers['Content-Type'] = 'multipart/form-data';
-  } else if (request.isDataBinary) {
-    Object.assign(requestJson, getFilesString(request));
+  } else if (request.isDataBinary && (typeof request.data === 'string' && request.data.startsWith('@'))) {
+    Object.assign(requestJson, getFilesString(request)); // file case
   } else if (typeof request.data === 'string' || typeof request.data === 'number') {
     Object.assign(requestJson, getDataString(request));
   }

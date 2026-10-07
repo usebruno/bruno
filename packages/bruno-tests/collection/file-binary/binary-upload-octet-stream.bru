@@ -1,0 +1,32 @@
+meta {
+  name: binary upload octet-stream
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{localhost}}/api/file-binary/binary-upload-octet-stream
+  body: file
+  auth: none
+}
+
+body:file {
+  file: @file(file.txt) @contentType(application/octet-stream)
+}
+
+assert {
+  res.status: eq 200
+  res.body.bytesReceived: eq 23
+  res.body.sha256: eq ddf1d7c7f9889618e0066558caa2ab5d0a691ce4cb73fcdd6543e0e1d386d61f
+  res.body.contentType: eq application/octet-stream
+  res.body.looksLikeSerializedNodeStream: eq false
+}
+
+tests {
+  test("non-json file body is uploaded byte-exact", function() {
+    const body = res.getBody();
+    expect(body.bytesReceived).to.equal(23);
+    expect(body.sha256).to.equal("ddf1d7c7f9889618e0066558caa2ab5d0a691ce4cb73fcdd6543e0e1d386d61f");
+    expect(body.looksLikeSerializedNodeStream).to.equal(false);
+  });
+}

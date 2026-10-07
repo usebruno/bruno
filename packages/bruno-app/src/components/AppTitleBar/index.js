@@ -5,10 +5,12 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -50,6 +52,14 @@ const AppTitleBar = () => {
   useEffect(() => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
+
+    ipcRenderer.invoke('renderer:window-is-fullscreen')
+      .then((fullscreen) => {
+        setIsFullScreen(fullscreen);
+      })
+      .catch((error) => {
+        console.error('Error getting initial fullscreen state:', error);
+      });
 
     const removeEnterFullScreenListener = ipcRenderer.on('main:enter-full-screen', () => {
       setIsFullScreen(true);
@@ -137,22 +147,36 @@ const AppTitleBar = () => {
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
+    if (workspaceUid === activeWorkspaceUid) return;
+
     dispatch(switchWorkspace(workspaceUid));
     toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
     try {
-      await dispatch(openWorkspaceDialog());
-      toast.success('Workspace opened successfully');
+      const result = await dispatch(openWorkspaceDialog());
+      if (result) {
+        toast.success('Workspace opened successfully');
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to open workspace');
     }
   };
 
-  const handleCreateWorkspace = () => {
-    setCreateWorkspaceModalOpen(true);
-  };
+  const handleCreateWorkspace = useCallback(async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    try {
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
+  }, [preferences, dispatch]);
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
@@ -171,6 +195,7 @@ const AppTitleBar = () => {
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebarCollapse());
+    setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, !sidebarCollapsed);
   };
 
   const handleToggleDevtools = () => {
@@ -240,7 +265,7 @@ const AppTitleBar = () => {
     );
 
     return items;
-  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
     <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>

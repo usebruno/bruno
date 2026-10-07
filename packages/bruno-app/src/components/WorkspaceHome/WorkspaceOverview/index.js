@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
-import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { setIsCreatingCollection, setIsOpeningCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import toast from 'react-hot-toast';
-import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
+import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
@@ -16,19 +19,24 @@ import StyledWrapper from './StyledWrapper';
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
+  const { sidebarCollapsed, isCreatingCollection } = useSelector((state) => state.app);
 
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [importData, setImportData] = useState(null);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
   const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
 
   const handleCreateCollection = async () => {
+    if (isCreatingCollection) {
+      return;
+    }
+
     if (!workspace?.pathname) {
       toast.error('Workspace path not found');
       return;
@@ -37,7 +45,11 @@ const WorkspaceOverview = ({ workspace }) => {
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
-      setCreateCollectionModalOpen(true);
+      if (sidebarCollapsed) {
+        dispatch(toggleSidebarCollapse());
+        setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, false);
+      }
+      dispatch(setIsCreatingCollection(true));
     } catch (error) {
       console.error('Error ensuring collections folder exists:', error);
       toast.error('Error preparing workspace for collection creation');
@@ -45,10 +57,7 @@ const WorkspaceOverview = ({ workspace }) => {
   };
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => {
-      console.error(err);
-      toast.error('An error occurred while opening the collection');
-    });
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleImportCollection = () => {
@@ -74,9 +83,10 @@ const WorkspaceOverview = ({ workspace }) => {
       : importCollection(convertedCollection, collectionLocation, options);
 
     dispatch(importAction)
-      .then(() => {
+      .then((importedItem) => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
+        handleImportResolved(convertedCollection, importedItem);
       });
   };
 
@@ -87,10 +97,6 @@ const WorkspaceOverview = ({ workspace }) => {
 
   return (
     <StyledWrapper>
-      {createCollectionModalOpen && (
-        <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} />
-      )}
-
       {importCollectionModalOpen && (
         <ImportCollection
           onClose={() => setImportCollectionModalOpen(false)}
@@ -102,6 +108,9 @@ const WorkspaceOverview = ({ workspace }) => {
         <ImportCollectionLocation
           rawData={importData.rawData}
           format={importData.type}
+          sourceUrl={importData.sourceUrl}
+          filePath={importData.filePath}
+          rawContent={importData.rawContent}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
@@ -118,6 +127,14 @@ const WorkspaceOverview = ({ workspace }) => {
           onClose={handleCloseGitModal}
           onFinish={handleCloseGitModal}
           collectionRepositoryUrl={gitRepositoryUrl}
+        />
+      )}
+      {postmanPackagePrompt && (
+        <PostmanPackageReport
+          key={postmanPackagePrompt.collectionPath}
+          report={postmanPackagePrompt.report}
+          collectionPath={postmanPackagePrompt.collectionPath}
+          onClose={clearPostmanPackagePrompt}
         />
       )}
 
@@ -142,6 +159,7 @@ const WorkspaceOverview = ({ workspace }) => {
                 size="sm"
                 icon={<IconPlus size={14} strokeWidth={1.5} />}
                 onClick={handleCreateCollection}
+                disabled={isCreatingCollection}
               >
                 Create Collection
               </Button>
@@ -171,7 +189,7 @@ const WorkspaceOverview = ({ workspace }) => {
         </div>
 
         <div className="overview-docs">
-          <WorkspaceDocs workspace={workspace} />
+          <WorkspaceDocs key={workspace?.uid} workspace={workspace} />
         </div>
       </div>
     </StyledWrapper>

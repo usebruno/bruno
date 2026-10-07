@@ -1,0 +1,10 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{collectionPath}}/bru", "{{collectionPath}}/yml"],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

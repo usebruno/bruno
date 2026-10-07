@@ -9,6 +9,7 @@ const Wrapper = styled.div`
     border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
     line-height: 1rem;
     transition: all 0.15s ease;
+    height: 24px;
 
     &:hover {
       border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder};
@@ -73,7 +74,7 @@ const Wrapper = styled.div`
     border-top: 0.0625rem solid ${(props) => props.theme.dropdown.separator};
     z-index: 10;
     margin: 0;
-    
+
     &:hover {
       background-color: ${(props) => props.theme.dropdown.bg + ' !important'};
     }
@@ -116,11 +117,26 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
+  .no-environment {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .environment-list {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(75vh - 8rem); 
+    max-height: calc(75vh - 8rem);
     padding-bottom: 2.625rem;
+  }
+
+  .env-list-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: ${(props) => props.theme.dropdown.bg};
+    display: flex;
+    align-items: center;
+    padding: 0 4px 6px 4px;
+    margin: 0;
   }
 
   .dropdown-item-list {

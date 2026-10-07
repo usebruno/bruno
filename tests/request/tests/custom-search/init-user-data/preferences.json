@@ -1,5 +1,10 @@
 {
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/request/collections/custom-search"],
-  "preferences": {}
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

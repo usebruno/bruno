@@ -49,10 +49,10 @@ test.describe.serial('Create and Delete Response Examples', () => {
       await page.getByRole('button', { name: 'Create Example' }).click();
       await expect(page.getByTestId('name-error')).toBeVisible();
       await expect(page.getByTestId('name-error')).toHaveText('Example name is required');
-    });
 
-    await test.step('Create example with valid name', async () => {
-      await page.getByTestId('create-example-name-input').fill('Required Name');
+      await page.getByTestId('create-example-name-input').clear();
+      await page.getByTestId('create-example-name-input').fill('New Required Name');
+      await expect(page.getByRole('button', { name: 'Create Example' })).toBeEnabled();
       await page.getByRole('button', { name: 'Create Example' }).click();
 
       // Modal should close and example should be created
@@ -77,7 +77,7 @@ test.describe.serial('Create and Delete Response Examples', () => {
     });
 
     await test.step('Test form reset', async () => {
-      await page.locator('#send-request').getByRole('img').nth(2).click();
+      await page.getByTestId('send-arrow-icon').click();
       await clickResponseAction(page, 'response-bookmark-btn');
 
       await page.getByTestId('create-example-name-input').fill('Test Name');

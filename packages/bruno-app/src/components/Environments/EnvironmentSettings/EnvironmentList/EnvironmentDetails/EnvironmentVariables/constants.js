@@ -5,7 +5,10 @@ const sensitiveFields = [
   'request.auth.wsse.password',
   'request.auth.ntlm.password',
   'request.auth.awsv4.secretAccessKey',
-  'request.auth.bearer.token'
+  'request.auth.bearer.token',
+  'request.auth.akamaiEdgegrid.accessToken',
+  'request.auth.akamaiEdgegrid.clientToken',
+  'request.auth.akamaiEdgegrid.clientSecret'
 ];
 
 export { sensitiveFields };

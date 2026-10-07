@@ -13,7 +13,7 @@ const DotEnvRawView = ({
 }) => {
   return (
     <>
-      <div className="raw-editor-container">
+      <div className="raw-editor-container" data-testid="dotenv-raw-editor">
         <CodeEditor
           collection={collection}
           item={item}

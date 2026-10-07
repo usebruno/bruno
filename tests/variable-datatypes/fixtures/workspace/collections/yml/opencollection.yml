@@ -1,0 +1,22 @@
+opencollection: "1.0.0"
+info:
+  name: datatypes-yml
+
+request:
+  variables:
+    - name: localhost
+      value: http://localhost:8081
+    - name: coll_str
+      value: collection_string
+    - name: coll_num
+      value:
+        type: number
+        data: "100"
+    - name: coll_bool
+      value:
+        type: boolean
+        data: "false"
+    - name: coll_obj
+      value:
+        type: object
+        data: '{"scope":"collection"}'

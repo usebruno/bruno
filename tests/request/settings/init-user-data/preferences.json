@@ -1,6 +1,14 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/request/settings/collection"
-  ]
+    "{{collectionPath}}/requests-settings-bru",
+    "{{collectionPath}}/requests-settings-yml",
+    "{{collectionPath}}/encode-url-default-behaviour-bru"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
 }

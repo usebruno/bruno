@@ -2,6 +2,10 @@
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/custom-ca-certs/tests/wss-success/fixtures/wss-collection"],
   "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
     "request": {
       "sslVerification": true,
       "customCaCertificate": {

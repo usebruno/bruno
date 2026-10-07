@@ -5,24 +5,45 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
+import classnames from 'classnames';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { PLACEHOLDER } from 'utils/graphql/queryBuilder';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { IconWand } from '@tabler/icons';
-
 import onHasCompletion from './onHasCompletion';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
+import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 
 const CodeMirror = require('codemirror');
 
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
+
+const createSafeGraphQLLinter = () => {
+  // Get the original GraphQL lint helper registered by codemirror-graphql
+  const originalLinter = CodeMirror.helpers?.lint?.graphql?.[0];
+
+  return (text, options) => {
+    try {
+      if (originalLinter) {
+        return originalLinter(text, options);
+      }
+      return [];
+    } catch (error) {
+      // Log the error but don't crash - return empty lint results
+      // This can happen if the schema has validation issues
+      console.warn('GraphQL lint error (schema may be invalid):', error.message);
+      return [];
+    }
+  };
+};
 
 export default class QueryEditor extends React.Component {
   constructor(props) {
@@ -33,9 +54,24 @@ export default class QueryEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchBarRef = createRef();
+
+    this.state = {
+      searchBarVisible: false
+    };
   }
 
   componentDidMount() {
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs.
+     */
+    const runShortcut = () => { };
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -57,6 +93,7 @@ export default class QueryEditor extends React.Component {
         minFoldSize: 4
       },
       lint: {
+        getAnnotations: createSafeGraphQLLinter(),
         schema: this.props.schema,
         validationRules: this.props.validationRules ?? null,
         // linting accepts string or FragmentDefinitionNode[]
@@ -85,16 +122,6 @@ export default class QueryEditor extends React.Component {
         'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
         'Shift-Ctrl-C': () => {
           if (this.props.onCopyQuery) {
             this.props.onCopyQuery();
@@ -116,20 +143,14 @@ export default class QueryEditor extends React.Component {
             this.props.onMergeQuery();
           }
         },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent'
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          isReadOnly: () => this.props.readOnly
+        }),
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut
       }
     }));
     if (editor) {
@@ -140,7 +161,14 @@ export default class QueryEditor extends React.Component {
     }
     this.addOverlay();
 
-    setupLinkAware(editor);
+    setupLinkAware(editor, { onLinkClick: undefined });
+    this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
+
+    // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+    const cmInput = editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -156,21 +184,16 @@ export default class QueryEditor extends React.Component {
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      // TODO: temporary fix for keeping cursor state when auto save and new line insertion collide PR#7098
-      const nextValue = this.props.value ?? '';
-      const currentValue = this.editor.getValue();
-      if (this.editor.hasFocus?.() && currentValue !== nextValue) {
-        this.cachedValue = currentValue;
-      } else {
-        this.cachedValue = nextValue;
-        this.editor.setValue(nextValue);
-      }
+      const cursor = this.editor.getCursor();
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    let variables = getAllVariables(this.props.collection);
+    const variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
@@ -183,19 +206,37 @@ export default class QueryEditor extends React.Component {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();
       }
+      this.cleanupResizeRefresh?.();
       this.editor.off('change', this._onEdit);
       this.editor.off('keyup', this._onKeyUp);
       this.editor.off('hasCompletion', this._onHasCompletion);
+      this.editor.off('beforeChange', this._onBeforeChange);
+      // Remove the CodeMirror DOM element so React 18 Strict Mode's
+      // unmount-remount cycle doesn't leave an orphaned instance behind.
+      const wrapper = this.editor.getWrapperElement();
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
       this.editor = null;
     }
   }
 
   beautifyRequestBody = () => {
     try {
-      const prettyQuery = format(this.props.value, {
+      if (!this.editor) return;
+      const currentValue = this.editor.getValue();
+      if (!currentValue || !currentValue.trim()) return;
+
+      // Temporarily fill empty selection sets so prettier can parse the query
+      // First preserve empty input objects (e.g. input: {}), then fill empty selection sets
+      let sanitized = currentValue.replace(/(:\s*)\{\s*\}/g, '$1{ __empty: true }');
+      sanitized = sanitized.replace(/\{\s*\}/g, `{ ${PLACEHOLDER} }`);
+      let prettyQuery = format(sanitized, {
         parser: 'graphql',
         plugins: [prettierPluginGraphql]
       });
+      prettyQuery = prettyQuery.replace(new RegExp(`^\\s*${PLACEHOLDER}\\n`, 'gm'), '');
+      prettyQuery = prettyQuery.replace(/\{\s*__empty:\s*true\s*\}/g, '{}');
 
       this.editor.setValue(prettyQuery);
       toast.success('Query prettified');
@@ -213,27 +254,30 @@ export default class QueryEditor extends React.Component {
     // this.editor.setOption('mode', 'brunovariables');
   };
 
+  setEditorNode = (node) => {
+    this._node = node;
+  };
+
   render() {
     return (
-      <>
-        <StyledWrapper
-          className="h-full w-full  flex flex-col relative graphiql-container"
-          aria-label="Query Editor"
-          font={this.props.font}
-          fontSize={this.props.fontSize}
-          ref={(node) => {
-            this._node = node;
-          }}
-        >
-          <button
-            className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
-            onClick={this.beautifyRequestBody}
-            title="prettify"
-          >
-            <IconWand size={20} strokeWidth={1.5} />
-          </button>
-        </StyledWrapper>
-      </>
+      <StyledWrapper
+        className={classnames('h-full w-full flex flex-col relative graphiql-container', {
+          'search-bar-visible': this.state.searchBarVisible
+        })}
+        aria-label="Query Editor"
+        font={this.props.font}
+        fontSize={this.props.fontSize}
+      >
+        <CodeMirrorSearch
+          ref={this.searchBarRef}
+          visible={this.state.searchBarVisible}
+          editor={this.editor}
+          readOnly={this.props.readOnly}
+          onClose={() => this.setState({ searchBarVisible: false })}
+        />
+        {/* CodeMirror owns this node's children, so React must not render into it. */}
+        <div className="editor-container" ref={this.setEditorNode} />
+      </StyledWrapper>
     );
   }
 

@@ -1,0 +1,15 @@
+meta {
+  name: set-global-var
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setGlobalEnvVar("globalToken", "VALUE_global_nonsecret_e2e_42");
+}

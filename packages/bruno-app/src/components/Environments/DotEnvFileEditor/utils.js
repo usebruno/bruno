@@ -1,17 +1,8 @@
 import { uuid } from 'utils/common';
+import { utils } from '@usebruno/common';
 
 export const variablesToRaw = (variables) => {
-  return variables
-    .filter((v) => v.name && v.name.trim() !== '')
-    .map((v) => {
-      const value = v.value || '';
-      if (value.includes('\n') || value.includes('"') || value.includes('\'')) {
-        const escapedValue = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
-        return `${v.name}="${escapedValue}"`;
-      }
-      return `${v.name}=${value}`;
-    })
-    .join('\n');
+  return utils.jsonToDotenv(variables);
 };
 
 export const rawToVariables = (rawContent) => {
@@ -37,9 +28,16 @@ export const rawToVariables = (rawContent) => {
     const name = trimmedLine.substring(0, equalIndex).trim();
     let value = trimmedLine.substring(equalIndex + 1);
 
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
+    if (value.startsWith('\'') && value.endsWith('\'')) {
+      // Single-quoted values are fully literal in dotenv — no unescaping
       value = value.slice(1, -1);
-      value = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    } else if (value.startsWith('`') && value.endsWith('`')) {
+      // Backtick-quoted values are fully literal in dotenv — no unescaping
+      value = value.slice(1, -1);
+    } else if (value.startsWith('"') && value.endsWith('"')) {
+      // Double-quoted values: unescape \", \n, and \r (the escapes we produce)
+      value = value.slice(1, -1);
+      value = value.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
     }
 
     if (name) {

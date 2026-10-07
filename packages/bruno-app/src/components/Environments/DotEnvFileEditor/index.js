@@ -4,6 +4,7 @@ import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
+import useDeferredLoading from 'hooks/useDeferredLoading';
 
 import StyledWrapper from './StyledWrapper';
 import DotEnvTableView from './DotEnvTableView';
@@ -31,6 +32,7 @@ const DotEnvFileEditor = ({
   const [rawValue, setRawValue] = useState(initialRawValue);
   const [prevViewMode, setPrevViewMode] = useState(viewMode);
   const [isSaving, setIsSaving] = useState(false);
+  const showSaving = useDeferredLoading(isSaving, 200);
 
   const formikRef = useRef(null);
 
@@ -311,7 +313,7 @@ const DotEnvFileEditor = ({
           onChange={handleRawChange}
           onSave={handleSaveRaw}
           onReset={handleReset}
-          isSaving={isSaving}
+          isSaving={showSaving}
         />
       </StyledWrapper>
     );
@@ -335,7 +337,7 @@ const DotEnvFileEditor = ({
         onRemoveVar={handleRemoveVar}
         onSave={handleSave}
         onReset={handleReset}
-        isSaving={isSaving}
+        isSaving={showSaving}
       />
     </StyledWrapper>
   );

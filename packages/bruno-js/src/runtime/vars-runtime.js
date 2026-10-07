@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
@@ -37,7 +38,21 @@ class VarsRuntime {
 
     const promptVariables = request?.promptVariables || {};
     const certsAndProxyConfig = request?.certsAndProxyConfig;
-    const bru = new Bru(this.runtime, envVariables, runtimeVariables, processEnvVars, undefined, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, undefined, promptVariables, certsAndProxyConfig);
+    const bru = new Bru({
+      runtime: this.runtime,
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      collectionVariables,
+      folderVariables,
+      requestVariables,
+      globalEnvironmentVariables,
+      oauth2CredentialVariables,
+      promptVariables,
+      certsAndProxyConfig,
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
+    });
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -73,10 +88,10 @@ class VarsRuntime {
     }
 
     return {
-      envVariables,
-      runtimeVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       error
     };
   }

@@ -58,7 +58,7 @@ describe('LinuxProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://secure-proxy.usebruno.com:8443',
+        https_proxy: 'http://secure-proxy.usebruno.com:8443',
         no_proxy: 'localhost,127.0.0.1',
         source: 'linux-system'
       });
@@ -84,16 +84,42 @@ describe('LinuxProxyResolver', () => {
 
       expect(result).toEqual({
         http_proxy: 'http://proxy.usebruno.com:8080',
-        https_proxy: 'https://proxy.usebruno.com:8080',
+        https_proxy: 'http://proxy.usebruno.com:8080',
         no_proxy: null,
         source: 'linux-system'
       });
     });
 
-    it('should handle non-manual proxy mode', async () => {
-      const modeOutput = '\'auto\'';
+    it('should detect PAC URL when gsettings is in auto mode', async () => {
+      mockExecFile
+        .mockResolvedValueOnce({ stdout: '\'auto\'', stderr: '' })
+        .mockResolvedValueOnce({ stdout: '\'http://wpad.usebruno.com/proxy.pac\'', stderr: '' });
 
-      mockExecFile.mockResolvedValueOnce({ stdout: modeOutput, stderr: '' });
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: null,
+        https_proxy: null,
+        no_proxy: null,
+        pac_url: 'http://wpad.usebruno.com/proxy.pac',
+        source: 'linux-system'
+      });
+    });
+
+    it('should fall through when gsettings auto mode has an empty autoconfig-url', async () => {
+      mockExecFile
+        .mockResolvedValueOnce({ stdout: '\'auto\'', stderr: '' })
+        .mockResolvedValueOnce({ stdout: '\'\'', stderr: '' });
+
+      mockExistsSync.mockReturnValue(false);
+
+      await expect(detector.detect()).rejects.toThrow('Linux proxy detection failed');
+    });
+
+    it('should fall through when gsettings mode is none', async () => {
+      mockExecFile.mockResolvedValueOnce({ stdout: '\'none\'', stderr: '' });
+
+      mockExistsSync.mockReturnValue(false);
 
       await expect(detector.detect()).rejects.toThrow('Linux proxy detection failed');
     });

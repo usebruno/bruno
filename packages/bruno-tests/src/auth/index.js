@@ -8,7 +8,11 @@ const authCookie = require('./cookie');
 const authOAuth2PasswordCredentials = require('./oauth2/passwordCredentials');
 const authOAuth2AuthorizationCode = require('./oauth2/authorizationCode');
 const authOAuth2ClientCredentials = require('./oauth2/clientCredentials');
+const authOAuth1 = require('./oauth1');
+const authEdgeGrid = require('./edgegrid');
 
+router.use('/oauth1', authOAuth1);
+router.use('/edgegrid', authEdgeGrid);
 router.use('/oauth2/password_credentials', authOAuth2PasswordCredentials);
 router.use('/oauth2/authorization_code', authOAuth2AuthorizationCode);
 router.use('/oauth2/client_credentials', authOAuth2ClientCredentials);

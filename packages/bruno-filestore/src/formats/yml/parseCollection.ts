@@ -1,5 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
+import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
@@ -7,6 +8,7 @@ import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
+import type { BrunoPresetsExtension } from '../../types';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -25,6 +27,10 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       ignore: []
     };
 
+    if (oc.info?.version != null && oc.info.version !== '') {
+      brunoConfig.version = ensureString(oc.info.version, '');
+    }
+
     const brunoExtension = (oc.extensions as any)?.bruno;
     if (brunoExtension?.ignore && Array.isArray(brunoExtension.ignore)) {
       brunoConfig.ignore = brunoExtension.ignore;
@@ -32,16 +38,19 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
     // presets
     if (brunoExtension?.presets) {
-      const presets = brunoExtension.presets as any;
-      if (presets.request) {
+      const presets = brunoExtension.presets as BrunoPresetsExtension;
+      if (presets.request || presets.defaultEnvironment) {
         brunoConfig.presets = {
-          requestType: presets.request.type || [],
-          requestUrl: presets.request.url || []
+          requestType: presets.request?.type || '',
+          requestUrl: presets.request?.url || ''
         };
+        if (presets.defaultEnvironment) {
+          brunoConfig.presets.defaultEnvironment = presets.defaultEnvironment;
+        }
       }
     }
 
-    // bruno-specific script extensions
+    // bruno-specific extensions
     const brunoExtensions = oc.extensions?.bruno as any;
     if (Array.isArray(brunoExtensions?.scripts?.additionalContextRoots)) {
       const sanitizedRoots = brunoExtensions.scripts.additionalContextRoots
@@ -53,6 +62,19 @@ const parseCollection = (ymlString: string): ParsedCollection => {
           additionalContextRoots: sanitizedRoots
         };
       }
+    }
+    // scripts.flow controls collection/folder/request script execution order
+    // ('sandwich' | 'sequential'); unrecognized values fall back to the runtime default.
+    if (brunoExtensions?.scripts?.flow === 'sandwich' || brunoExtensions?.scripts?.flow === 'sequential') {
+      brunoConfig.scripts = {
+        ...brunoConfig.scripts,
+        flow: brunoExtensions.scripts.flow
+      };
+    }
+
+    const openApiEntries = normalizeOpenApiSyncConfigs(brunoExtensions?.openapi);
+    if (openApiEntries.length > 0) {
+      brunoConfig.openapi = openApiEntries;
     }
 
     // protobuf
@@ -127,14 +149,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
               type: 'cert',
               certFilePath: cert.certificateFilePath,
               keyFilePath: cert.privateKeyFilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           } else if (cert.type === 'pkcs12') {
             return {
               domain: cert.domain,
               type: 'pfx',
               pfxFilePath: cert.pkcs12FilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           }
           return null;

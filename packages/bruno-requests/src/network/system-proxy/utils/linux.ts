@@ -49,6 +49,23 @@ export class LinuxProxyResolver implements ProxyResolver {
   private async getGSettingsProxy(execOpts: ExecFileOptions): Promise<ProxyConfiguration | null> {
     try {
       const mode = await safeExec('gsettings', ['get', 'org.gnome.system.proxy', 'mode'], execOpts);
+
+      // Handle PAC (auto) mode
+      if (mode === '\'auto\'') {
+        const autoConfigUrl = await safeExec('gsettings', ['get', 'org.gnome.system.proxy', 'autoconfig-url'], execOpts);
+        const cleanUrl = (autoConfigUrl || '').replace(/'/g, '').trim();
+        if (cleanUrl) {
+          return {
+            http_proxy: null,
+            https_proxy: null,
+            no_proxy: null,
+            pac_url: cleanUrl,
+            source: 'linux-system'
+          };
+        }
+        return null;
+      }
+
       if (mode !== '\'manual\'') {
         return null;
       }
@@ -66,7 +83,7 @@ export class LinuxProxyResolver implements ProxyResolver {
       const cleanIgnoreHosts = ignoreHosts || '';
 
       const http_proxy = cleanHttpHost && cleanHttpPort ? normalizeProxyUrl(`${cleanHttpHost}:${cleanHttpPort}`) : null;
-      const https_proxy = cleanHttpsHost && cleanHttpsPort ? normalizeProxyUrl(`${cleanHttpsHost}:${cleanHttpsPort}`, 'https') : null;
+      const https_proxy = cleanHttpsHost && cleanHttpsPort ? normalizeProxyUrl(`${cleanHttpsHost}:${cleanHttpsPort}`) : null;
 
       const rawNoProxy = cleanIgnoreHosts !== '[]' ? cleanIgnoreHosts.replace(/[\[\]']/g, '').replace(/,\s*/g, ',') : null;
 
@@ -93,8 +110,22 @@ export class LinuxProxyResolver implements ProxyResolver {
       // 3 = Automatic proxy detection
       // 4 = Use system proxy configuration (environment variables)
 
+      if (proxyType === '2') {
+        const pacUrl = await safeExec('kreadconfig5', ['--group', 'Proxy Settings', '--key', 'Proxy Config Script'], execOpts);
+        const cleanPacUrl = (pacUrl || '').trim();
+        if (cleanPacUrl) {
+          return {
+            http_proxy: null,
+            https_proxy: null,
+            no_proxy: null,
+            pac_url: cleanPacUrl,
+            source: 'linux-system'
+          };
+        }
+        return null;
+      }
+
       if (proxyType !== '1') {
-        // Only handle manual proxy configuration for now
         return null;
       }
 
@@ -107,7 +138,7 @@ export class LinuxProxyResolver implements ProxyResolver {
       const cleanNoProxy = noProxy || '';
 
       const http_proxy = cleanHttpProxy ? normalizeProxyUrl(cleanHttpProxy) : null;
-      const https_proxy = cleanHttpsProxy ? normalizeProxyUrl(cleanHttpsProxy, 'https') : null;
+      const https_proxy = cleanHttpsProxy ? normalizeProxyUrl(cleanHttpsProxy) : null;
 
       return {
         http_proxy,
@@ -210,7 +241,7 @@ export class LinuxProxyResolver implements ProxyResolver {
     const httpProxy = proxies.http_proxy || proxies.all_proxy || null;
     const httpsProxy = proxies.https_proxy || proxies.all_proxy || null;
     const http_proxy = httpProxy ? normalizeProxyUrl(httpProxy) : null;
-    const https_proxy = httpsProxy ? normalizeProxyUrl(httpsProxy, 'https') : null;
+    const https_proxy = httpsProxy ? normalizeProxyUrl(httpsProxy) : null;
     const no_proxy = proxies.no_proxy || null;
 
     if (http_proxy || https_proxy) {

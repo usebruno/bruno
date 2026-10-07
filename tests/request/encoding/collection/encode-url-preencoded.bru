@@ -1,0 +1,15 @@
+meta {
+  name: encode-url-preencoded
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://base.source?name=John%20Doe
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

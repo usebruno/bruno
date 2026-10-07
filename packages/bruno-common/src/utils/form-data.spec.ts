@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { buildFormUrlEncodedPayload, isFormData } from './form-data';
+import { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } from './form-data';
 import FormData from 'form-data';
 
 describe('buildFormUrlEncodedPayload', () => {
@@ -159,5 +159,80 @@ describe('isFormData', () => {
     const formData = new FormData();
     formData.append('key', 'value');
     expect(isFormData(formData)).toBe(true);
+  });
+});
+
+describe('getMediaType', () => {
+  it('should drop parameters from the Content-Type', () => {
+    expect(getMediaType('application/json; charset=utf-8')).toBe('application/json');
+    expect(getMediaType('multipart/mixed; boundary=my-boundary; charset=utf-8')).toBe('multipart/mixed');
+  });
+
+  it('should lowercase the media type', () => {
+    expect(getMediaType('Application/JSON')).toBe('application/json');
+  });
+
+  it('should trim whitespace around the media type', () => {
+    expect(getMediaType('  application/x-www-form-urlencoded ; charset=utf-8')).toBe('application/x-www-form-urlencoded');
+  });
+
+  it('should return an empty string for non-string input', () => {
+    expect(getMediaType(null)).toBe('');
+    expect(getMediaType(undefined)).toBe('');
+    expect(getMediaType(false)).toBe('');
+    expect(getMediaType(123)).toBe('');
+    expect(getMediaType({})).toBe('');
+  });
+
+  it('should return an empty string for an empty Content-Type', () => {
+    expect(getMediaType('')).toBe('');
+  });
+});
+
+describe('extractBoundaryFromContentType', () => {
+  it('should extract boundary from Content-Type header', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary=my-boundary')).toBe('my-boundary');
+  });
+
+  it('should extract boundary with dashes', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW')).toBe('----WebKitFormBoundary7MA4YWxkTrZu0gW');
+  });
+
+  it('should extract boundary case-insensitively', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; BOUNDARY=my-boundary')).toBe('my-boundary');
+    expect(extractBoundaryFromContentType('multipart/mixed; Boundary=my-boundary')).toBe('my-boundary');
+  });
+
+  it('should extract boundary when other params exist', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; charset=utf-8; boundary=my-boundary')).toBe('my-boundary');
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary=my-boundary; charset=utf-8')).toBe('my-boundary');
+  });
+
+  it('should return null when no boundary exists', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed')).toBeNull();
+    expect(extractBoundaryFromContentType('application/json')).toBeNull();
+  });
+
+  it('should return null for non-string input', () => {
+    expect(extractBoundaryFromContentType(null)).toBeNull();
+    expect(extractBoundaryFromContentType(undefined)).toBeNull();
+    expect(extractBoundaryFromContentType(123)).toBeNull();
+    expect(extractBoundaryFromContentType({})).toBeNull();
+  });
+
+  it('should handle empty string', () => {
+    expect(extractBoundaryFromContentType('')).toBeNull();
+  });
+
+  it('should extract boundary from quoted value', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary="my-boundary"')).toBe('my-boundary');
+  });
+
+  it('should extract quoted boundary with spaces', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; boundary="my boundary value"')).toBe('my boundary value');
+  });
+
+  it('should extract quoted boundary when other params exist', () => {
+    expect(extractBoundaryFromContentType('multipart/mixed; charset=utf-8; boundary="my-boundary"')).toBe('my-boundary');
   });
 });

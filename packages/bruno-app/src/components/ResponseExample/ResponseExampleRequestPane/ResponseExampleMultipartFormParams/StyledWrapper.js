@@ -62,10 +62,41 @@ const Wrapper = styled.div`
 
   tr {
     position: relative;
-    
+
     &:hover .delete-button.edit-mode {
       opacity: 1;
       visibility: visible;
+    }
+  }
+
+  .upload-btn,
+  .clear-file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .clear-file-btn:hover {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .value-cell {
+    width: 100%;
+
+    .flex-1 {
+      min-width: 0;
     }
   }
 
@@ -79,7 +110,7 @@ const Wrapper = styled.div`
     border-radius: 4px;
     color: ${(props) => props.theme.colors.text.muted};
     margin-left: 8px;
-    
+
     &:hover {
       color: ${(props) => props.theme.colors.text.red};
     }

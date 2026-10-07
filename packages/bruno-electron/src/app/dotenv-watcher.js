@@ -100,10 +100,9 @@ class DotEnvWatcher {
       this.collectionWatchers.get(collectionPath).close();
     }
 
-    const dotEnvPattern = path.join(collectionPath, '.env*');
-
-    const watcher = chokidar.watch(dotEnvPattern, {
+    const watcher = chokidar.watch(collectionPath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 100
@@ -151,10 +150,9 @@ class DotEnvWatcher {
       this.workspaceWatchers.get(workspacePath).close();
     }
 
-    const dotEnvPattern = path.join(workspacePath, '.env*');
-
-    const watcher = chokidar.watch(dotEnvPattern, {
+    const watcher = chokidar.watch(workspacePath, {
       ...DEFAULT_WATCHER_OPTIONS,
+      disableGlobbing: true,
       awaitWriteFinish: {
         stabilityThreshold: 80,
         pollInterval: 250
@@ -197,15 +195,21 @@ class DotEnvWatcher {
   }
 
   closeAll() {
-    for (const [path, watcher] of this.collectionWatchers) {
-      watcher.close();
-    }
+    const pending = [];
+    const collect = (watcher) => {
+      try {
+        const result = watcher?.close();
+        if (result && typeof result.then === 'function') pending.push(result);
+      } catch (err) {}
+    };
+
+    for (const [path, watcher] of this.collectionWatchers) collect(watcher);
     this.collectionWatchers.clear();
 
-    for (const [path, watcher] of this.workspaceWatchers) {
-      watcher.close();
-    }
+    for (const [path, watcher] of this.workspaceWatchers) collect(watcher);
     this.workspaceWatchers.clear();
+
+    return Promise.allSettled(pending);
   }
 }
 

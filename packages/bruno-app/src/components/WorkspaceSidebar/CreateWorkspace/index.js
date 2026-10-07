@@ -12,32 +12,30 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { multiLineMsg } from 'utils/common/index';
 import { formatIpcError } from 'utils/common/error';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import get from 'lodash/get';
 
 const CreateWorkspace = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const preferences = useSelector((state) => state.app.preferences);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const defaultLocation = get(preferences, 'general.defaultLocation', '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       workspaceName: '',
       workspaceFolderName: '',
-      workspaceLocation: ''
+      workspaceLocation: defaultLocation
     },
     validationSchema: Yup.object({
       workspaceName: Yup.string()
-        .min(1, 'Must be at least 1 character')
+        .trim()
+        .min(1, 'Workspace name can\'t be empty')
         .max(255, 'Must be 255 characters or less')
-        .required('Workspace name is required')
-        .test('unique-name', 'A workspace with this name already exists', function (value) {
-          if (!value) return true;
-
-          return !workspaces.some((w) =>
-            w.name.toLowerCase() === value.toLowerCase());
-        }),
+        .required('Workspace name is required'),
       workspaceFolderName: Yup.string()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
@@ -54,7 +52,7 @@ const CreateWorkspace = ({ onClose }) => {
       try {
         setIsSubmitting(true);
 
-        await dispatch(createWorkspaceAction(values.workspaceName, values.workspaceFolderName, values.workspaceLocation));
+        await dispatch(createWorkspaceAction(values.workspaceName.trim(), values.workspaceFolderName, values.workspaceLocation));
         toast.success('Workspace created!');
         onClose();
       } catch (error) {
@@ -112,10 +110,17 @@ const CreateWorkspace = ({ onClose }) => {
               autoCapitalize="off"
               spellCheck="false"
               onChange={(e) => {
-                formik.handleChange(e);
+                const workspaceName = e.target.value;
                 if (!isEditing) {
-                  formik.setFieldValue('workspaceFolderName', sanitizeName(e.target.value));
+                  formik.setValues((values) => ({
+                    ...values,
+                    workspaceName,
+                    workspaceFolderName: sanitizeName(workspaceName)
+                  }));
+                  return;
                 }
+
+                formik.handleChange(e);
               }}
               value={formik.values.workspaceName || ''}
             />

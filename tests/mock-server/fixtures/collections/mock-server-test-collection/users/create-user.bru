@@ -1,0 +1,52 @@
+meta {
+  name: create-user
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://api.example.com/users
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "New User",
+    "email": "new@example.com"
+  }
+}
+
+example {
+  name: created-201
+
+  request: {
+    url: https://api.example.com/users
+    method: post
+    mode: json
+    body:json: {
+      {
+        "name": "New User",
+        "email": "new@example.com"
+      }
+    }
+  }
+
+  response: {
+    status: {
+      code: 201
+      text: Created
+    }
+
+    body: {
+      type: json
+      content: '''
+        {
+          "id": 2,
+          "name": "New User",
+          "email": "new@example.com"
+        }
+      '''
+    }
+  }
+}

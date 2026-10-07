@@ -1,3 +1,4 @@
+import { Annotation } from './annotation';
 import type { UID } from './uid';
 
 /**
@@ -9,4 +10,5 @@ export interface KeyValue {
   value?: string | null;
   description?: string | null;
   enabled?: boolean;
+  annotations?: Annotation[] | null;
 }

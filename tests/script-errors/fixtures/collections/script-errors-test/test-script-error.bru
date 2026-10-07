@@ -1,0 +1,16 @@
+meta {
+  name: test-script-error
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+tests {
+  test("should pass", function() { expect(true).to.equal(true); });
+  nonExistentFunction();
+}

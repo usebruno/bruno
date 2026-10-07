@@ -6,19 +6,26 @@ import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
+import { getInvalidVariableNames } from 'utils/common/variables';
+import { isEnvironmentValidationError } from 'utils/environments';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
-import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { saveRequest, saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { saveApiSpecToFile, clearApiSpecDraft } from 'providers/ReduxStore/slices/apiSpec';
+import { API_SPEC_TAB_TYPE, findApiSpecByPathname, hasUnsavedApiSpecChanges } from 'utils/api-specs';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
+import toast from 'react-hot-toast';
 
-const SaveRequestsModal = ({ onClose }) => {
+const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
   const tabs = useSelector((state) => state.tabs.tabs);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
+  const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const dispatch = useDispatch();
 
   const allDrafts = useMemo(() => {
@@ -26,7 +33,10 @@ const SaveRequestsModal = ({ onClose }) => {
     const collectionDrafts = [];
     const folderDrafts = [];
     const environmentDrafts = [];
-    const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
+    const appDrafts = [];
+    const apiSpecDrafts = [];
+    const relevantTabs = forceCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
+    const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
 
     Object.keys(tabsByCollection).forEach((collectionUid) => {
       const collection = findCollectionByUid(collections, collectionUid);
@@ -67,6 +77,14 @@ const SaveRequestsModal = ({ onClose }) => {
           });
         });
 
+        const apps = filter(items, (item) => item.type === 'app' && hasRequestChanges(item));
+        each(apps, (draft) => {
+          appDrafts.push({
+            ...draft,
+            collectionUid: collectionUid
+          });
+        });
+
         // Folder drafts
         const folders = filter(items, (item) => item.type === 'folder' && item.draft);
         each(folders, (folder) => {
@@ -78,6 +96,22 @@ const SaveRequestsModal = ({ onClose }) => {
           });
         });
       }
+    });
+
+    const seenApiSpecUids = new Set();
+    relevantTabs.forEach((tab) => {
+      if (tab.type !== API_SPEC_TAB_TYPE) return;
+
+      const apiSpec = findApiSpecByPathname(apiSpecs, tab.apiSpecPathname);
+      if (!hasUnsavedApiSpecChanges(apiSpec) || seenApiSpecUids.has(apiSpec.uid)) return;
+
+      seenApiSpecUids.add(apiSpec.uid);
+      apiSpecDrafts.push({
+        type: 'api-spec',
+        name: apiSpec.name || apiSpec.filename,
+        uid: apiSpec.uid,
+        draft: apiSpec.draft
+      });
     });
 
     // Check for global environment draft
@@ -94,19 +128,61 @@ const SaveRequestsModal = ({ onClose }) => {
       }
     }
 
-    return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...requestDrafts];
-  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft]);
+    return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...appDrafts, ...requestDrafts, ...apiSpecDrafts];
+  }, [collections, tabs, apiSpecs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs, tabUidsToClose]);
 
   const totalDraftsCount = allDrafts.length;
 
   useEffect(() => {
     if (totalDraftsCount === 0) {
-      return dispatch(completeQuitFlow());
+      if (forceCloseTabs) {
+        dispatch(closeTabs({ tabUids: tabUidsToClose }));
+        onClose();
+      } else {
+        dispatch(completeQuitFlow());
+      }
     }
-  }, [totalDraftsCount, dispatch]);
+  }, [totalDraftsCount, dispatch, forceCloseTabs, tabUidsToClose]);
 
   const closeWithoutSave = () => {
-    dispatch(completeQuitFlow());
+    if (forceCloseTabs) {
+      // Discard all draft states before closing tabs
+      allDrafts.forEach((draft) => {
+        switch (draft.type) {
+          case 'collection':
+            dispatch(deleteCollectionDraft({ collectionUid: draft.collectionUid }));
+            break;
+          case 'folder':
+            dispatch(deleteFolderDraft({ collectionUid: draft.collectionUid, folderUid: draft.folderUid }));
+            break;
+          case 'collection-environment':
+            dispatch(clearEnvironmentsDraft({ collectionUid: draft.collectionUid }));
+            break;
+          case 'global-environment':
+            dispatch(clearGlobalEnvironmentDraft());
+            break;
+          case 'api-spec': {
+            const isOpenInASurvivingTab = tabs.some(
+              (tab) =>
+                tab.type === API_SPEC_TAB_TYPE
+                && !tabUidsToClose.includes(tab.uid)
+                && findApiSpecByPathname(apiSpecs, tab.apiSpecPathname)?.uid === draft.uid
+            );
+            if (!isOpenInASurvivingTab) {
+              dispatch(clearApiSpecDraft({ uid: draft.uid }));
+            }
+            break;
+          }
+          default:
+            // Request and app drafts both live on collection items.
+            dispatch(deleteRequestDraft({ collectionUid: draft.collectionUid, itemUid: draft.uid }));
+            break;
+        }
+      });
+      dispatch(closeTabs({ tabUids: tabUidsToClose }));
+    } else {
+      dispatch(completeQuitFlow());
+    }
     onClose();
   };
 
@@ -115,9 +191,33 @@ const SaveRequestsModal = ({ onClose }) => {
       // Separate drafts by type
       const collectionDrafts = allDrafts.filter((d) => d.type === 'collection');
       const folderDrafts = allDrafts.filter((d) => d.type === 'folder');
-      const requestDrafts = allDrafts.filter((d) => isItemARequest(d));
+      const requestDrafts = allDrafts.filter((d) => isItemARequest(d) || d.type === 'app');
+      const transientRequestDrafts = requestDrafts.filter((d) => d.isTransient);
+      const nonTransientRequestDrafts = requestDrafts.filter((d) => !d.isTransient);
       const collectionEnvironmentDrafts = allDrafts.filter((d) => d.type === 'collection-environment');
       const globalEnvironmentDrafts = allDrafts.filter((d) => d.type === 'global-environment');
+
+      const apiSpecDrafts = allDrafts.filter((d) => d.type === 'api-spec');
+      let hasSkippedApiSpecs = false;
+
+      if (apiSpecDrafts.length > 0) {
+        const results = await Promise.allSettled(
+          apiSpecDrafts.map((draft) => dispatch(saveApiSpecToFile({ uid: draft.uid, content: draft.draft, silent: true })))
+        );
+        const failedApiSpecs = [];
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            failedApiSpecs.push(apiSpecDrafts[index]);
+            console.error(`Error saving API spec ${apiSpecDrafts[index].name}:`, result.reason);
+          }
+        });
+
+        if (failedApiSpecs.length > 0) {
+          hasSkippedApiSpecs = true;
+          const failedNames = failedApiSpecs.map((draft) => draft.name).join(', ');
+          toast.error(`Failed to save ${pluralizeWord('API spec', failedApiSpecs.length)}: ${failedNames}`);
+        }
+      }
 
       // Save all collection drafts
       if (collectionDrafts.length > 0) {
@@ -130,21 +230,62 @@ const SaveRequestsModal = ({ onClose }) => {
       }
 
       // Save all request drafts
-      if (requestDrafts.length > 0) {
-        await dispatch(saveMultipleRequests(requestDrafts));
+      if (nonTransientRequestDrafts.length > 0) {
+        await dispatch(saveMultipleRequests(nonTransientRequestDrafts));
       }
 
-      // Save all collection environment drafts
-      for (const draft of collectionEnvironmentDrafts) {
-        await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
+      if (transientRequestDrafts.length > 0) {
+        await Promise.all(
+          transientRequestDrafts.map((draft) =>
+            dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null)
+          )
+        );
+        if (hasSkippedApiSpecs) {
+          return;
+        }
+        onClose();
+        return;
       }
 
-      // Save all global environment drafts
-      for (const draft of globalEnvironmentDrafts) {
-        await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+      // Save environment drafts, skipping any with invalid variable names
+      const allEnvironmentDrafts = [...collectionEnvironmentDrafts, ...globalEnvironmentDrafts];
+      let hasSkippedEnvs = false;
+
+      for (const draft of allEnvironmentDrafts) {
+        const invalidNames = getInvalidVariableNames(draft.variables);
+        if (invalidNames.length > 0) {
+          hasSkippedEnvs = true;
+          toast.error(`Cannot save environment "${draft.name}": invalid variable name(s) — ${invalidNames.join(', ')}`);
+          continue;
+        }
+
+        // Each draft is saved on its own: a rejection here must not abort the drafts queued behind
+        // it, and must not carry past the loop and skip the close/quit below.
+        try {
+          if (draft.type === 'collection-environment') {
+            await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
+          } else {
+            await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+          }
+        } catch (err) {
+          hasSkippedEnvs = true;
+          toast.error(
+            isEnvironmentValidationError(err)
+              ? `Cannot save environment "${draft.name}": ${err.message}`
+              : `Failed to save environment "${draft.name}"`
+          );
+        }
       }
 
-      dispatch(completeQuitFlow());
+      if (hasSkippedEnvs || hasSkippedApiSpecs) {
+        return;
+      }
+
+      if (forceCloseTabs) {
+        dispatch(closeTabs({ tabUids: tabUidsToClose }));
+      } else {
+        dispatch(completeQuitFlow());
+      }
       onClose();
     } catch (error) {
       console.error('Error saving drafts:', error);
@@ -192,6 +333,12 @@ const SaveRequestsModal = ({ onClose }) => {
             case 'global-environment':
               prefix = 'Global Environment: ';
               break;
+            case 'app':
+              prefix = 'App: ';
+              break;
+            case 'api-spec':
+              prefix = 'API Spec: ';
+              break;
             default:
               prefix = 'Request: ';
           }
@@ -218,7 +365,7 @@ const SaveRequestsModal = ({ onClose }) => {
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" color="secondary" variant="ghost" onClick={onClose}>
+          <Button color="secondary" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={closeWithSave}>

@@ -6,7 +6,7 @@
 // Frost: nord7-nord10 (#8fbcbb, #88c0d0, #81a1c1, #5e81ac)
 // Aurora: nord11-nord15 (#bf616a, #d08770, #ebcb8b, #a3be8c, #b48ead)
 
-import { rgba } from 'polished';
+import { rgba, lighten } from 'polished';
 
 const colors = {
   // Polar Night
@@ -60,6 +60,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: lighten(0.15, colors.NORD3),
+  BORDER2: colors.NORD3,
+  BORDER1: colors.NORD2,
+  BORDER0: colors.NORD1
+};
+
 palette.intent = {
   INFO: colors.NORD10,
   SUCCESS: colors.NORD14,
@@ -80,6 +87,12 @@ const nordTheme = {
     text: colors.BRAND,
     strong: colors.BRAND,
     subtle: colors.BRAND
+  },
+
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
   },
 
   accents: {
@@ -149,9 +162,10 @@ const nordTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.NORD3,
-    border1: colors.NORD2,
-    border0: colors.NORD1
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -273,16 +287,14 @@ const nordTheme = {
   },
 
   notifications: {
-    bg: colors.NORD2,
+    bg: colors.NORD0,
     list: {
-      bg: colors.NORD1,
-      borderRight: colors.NORD3,
+      bg: colors.NORD0,
       borderBottom: colors.NORD3,
-      hoverBg: colors.NORD2,
+      hoverBg: colors.NORD3,
       active: {
-        border: colors.NORD8,
         bg: colors.NORD2,
-        hoverBg: colors.NORD2
+        hoverBg: '#5d6b83'
       }
     }
   },
