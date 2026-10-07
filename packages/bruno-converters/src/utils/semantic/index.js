@@ -1,6 +1,7 @@
 import POSTMAN_REGISTRY from './postman-registry';
 import { collectBindings } from './type-environment';
 import rewriteMembers from './rewrite-members';
+import { rewriteDestructuredDeclarations } from './rewrite-patterns';
 
 /**
  * Translates member access on values whose correct translation depends on what the value
@@ -26,9 +27,12 @@ export const applySemanticTypes = (j, ast, registry = POSTMAN_REGISTRY) => {
   collectBindings(j, ast, registry).forEach((binding) => {
     rewriteMembers(j, ast, binding, registry);
   });
+
+  rewriteDestructuredDeclarations(j, ast, registry);
 };
 
 export { default as POSTMAN_REGISTRY } from './postman-registry';
 export { default as BRUNO_REGISTRY } from './bruno-registry';
 export { default as rewriteMembers } from './rewrite-members';
 export { resolvesToBinding } from './type-environment';
+export { rewritePattern } from './rewrite-patterns';

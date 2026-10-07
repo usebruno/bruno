@@ -68,15 +68,15 @@ const isReassigned = (j, ast, binding) => {
 };
 
 /**
- * The type a declaration's initialiser yields, or null when it isn't one the registry knows.
+ * The type an expression yields, or null when it isn't one the registry knows.
  *
- * @param {Object} init - The initialiser node
+ * @param {Object} node - The expression node
  * @param {Object} registry - The API registry
  * @returns {string|null} Type name
  */
-const inferInitialiserType = (init, registry) => {
+export const getProducedType = (node, registry) => {
   // Bruno runs scripts in an async closure, so a produced value commonly arrives awaited
-  const produced = init.type === 'AwaitExpression' ? init.argument : init;
+  const produced = node.type === 'AwaitExpression' ? node.argument : node;
 
   if (produced.type !== 'CallExpression') return null;
 
@@ -102,7 +102,7 @@ export const collectBindings = (j, ast, registry) => {
   ast.find(j.VariableDeclarator).forEach((path) => {
     if (path.value.id.type !== 'Identifier' || !path.value.init) return;
 
-    const typeName = inferInitialiserType(path.value.init, registry);
+    const typeName = getProducedType(path.value.init, registry);
     if (!typeName) return;
 
     const name = path.value.id.name;

@@ -1,5 +1,5 @@
 const j = require('jscodeshift');
-import { rewriteMembers, BRUNO_REGISTRY } from './semantic';
+import { rewriteMembers, rewritePattern, BRUNO_REGISTRY } from './semantic';
 
 // Which parameter of the callback receives the response, and as what type
 const { callback: CALLBACK_PARAM_TYPES } = BRUNO_REGISTRY.params['bru.sendRequest'];
@@ -202,30 +202,38 @@ const transformCallback = (callbackPath) => {
   const callbackBody = callback.body;
 
   const responseParam = params[CALLBACK_RESPONSE_INDEX];
-  const responseVarName
-    = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
+  const responseType = CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX];
 
-  let errorVarName = 'error'; // Default if not found
-  if (params.length >= 1 && params[0].type === 'Identifier') {
-    errorVarName = params[0].name;
+  if (responseParam && responseParam.type === 'ObjectPattern') {
+    rewritePattern(j, responseParam, responseType, BRUNO_REGISTRY);
+  } else {
+    const responseVarName
+      = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
+
+    rewriteMembers(
+      j,
+      j(callbackPath),
+      { name: responseVarName, scopeNode: callback, typeName: responseType },
+      BRUNO_REGISTRY
+    );
   }
-
-  rewriteMembers(
-    j,
-    j(callbackPath),
-    {
-      name: responseVarName,
-      scopeNode: callback,
-      typeName: CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX]
-    },
-    BRUNO_REGISTRY
-  );
 
   // Create the callback - Postman uses regular functions
   const bodyStatements = callbackBody.type === 'BlockStatement' ? callbackBody.body : [j.returnStatement(callbackBody)];
+
+  /**
+   * Postman hands the callback `(error, response)`, so a missing parameter is filled in —
+   * but the ones the script already declares are carried over as they are. Rebuilding them
+   * as identifiers would discard a destructuring pattern and leave its bindings undeclared.
+   */
+  const outputParams = [
+    params[0] || j.identifier('error'),
+    responseParam || j.identifier('response')
+  ];
+
   const functionExpr = j.functionExpression(
     null,
-    [j.identifier(errorVarName), j.identifier(responseVarName)],
+    outputParams,
     j.blockStatement(bodyStatements)
   );
 

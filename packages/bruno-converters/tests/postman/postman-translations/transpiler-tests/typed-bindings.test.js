@@ -131,4 +131,58 @@ describe('Typed bindings', () => {
       expect(translatedCode).toContain('function readFrom(jar) { return jar.get(\'sessionId\'); }');
     });
   });
+
+  describe('destructured bindings', () => {
+    it('should rename the key and keep the local name', () => {
+      const code = 'const { code } = await pm.sendRequest(q);\nconsole.log(code);';
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toContain('const { status: code } = await bru.sendRequest(q);');
+      expect(translatedCode).toContain('console.log(code);');
+    });
+
+    it('should rename several members without one rename feeding the next', () => {
+      const code = 'const { code, status } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { status: code, statusText: status } =');
+    });
+
+    it('should keep an explicit alias', () => {
+      const code = 'const { code: statusCode } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { status: statusCode } =');
+    });
+
+    it('should keep a default value', () => {
+      const code = 'const { code = 0 } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { status: code = 0 } =');
+    });
+
+    it('should rewrite a destructured callback parameter', () => {
+      const code = 'pm.sendRequest(q, (err, { code }) => console.log(code));';
+      expect(translateCode(code)).toContain('(err, { status: code }) => console.log(code)');
+    });
+
+    it('should rewrite a destructured then handler parameter', () => {
+      const code = 'pm.sendRequest(q).then(({ code }) => console.log(code));';
+      expect(translateCode(code)).toContain('.then(({ status: code }) => console.log(code))');
+    });
+
+    it('should skip a member whose arity differs, since a pattern cannot express the call', () => {
+      const code = 'const { json } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { json } =');
+    });
+
+    it('should leave a pattern with a rest element whole', () => {
+      const code = 'const { code, ...rest } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { code, ...rest } =');
+    });
+
+    it('should skip a computed key but still rename its siblings', () => {
+      const code = 'const { [k]: v, code } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { [k]: v, status: code } =');
+    });
+
+    it('should skip a nested pattern but still rename its siblings', () => {
+      const code = 'const { headers: { x }, code } = await pm.sendRequest(q);';
+      expect(translateCode(code)).toContain('const { headers: { x }, status: code } =');
+    });
+  });
 });

@@ -81,4 +81,32 @@ describe('Typed bindings (Bruno -> Postman)', () => {
       expect(translatedCode).toContain('function readFrom(jar) { return jar.getCookie(\'sessionId\'); }');
     });
   });
+
+  describe('destructured bindings', () => {
+    it('should rename the key and keep the local name', () => {
+      const code = 'const { status } = await bru.sendRequest(q);';
+      expect(translateBruToPostman(code)).toContain('const { code: status } = await pm.sendRequest(q);');
+    });
+
+    /**
+     * The pattern used to be discarded and rebuilt as a plain `response` parameter, which left
+     * everything it bound undeclared in the body.
+     */
+    it('should keep a destructured callback parameter instead of replacing it', () => {
+      const code = 'bru.sendRequest(q, (err, { status }) => { console.log(status); });';
+      const translatedCode = translateBruToPostman(code);
+      expect(translatedCode).toContain('function(err, { code: status })');
+      expect(translatedCode).toContain('console.log(status);');
+    });
+
+    it('should still fill in a missing response parameter', () => {
+      const code = 'bru.sendRequest(q, (err) => { console.log(err); });';
+      expect(translateBruToPostman(code)).toContain('function(err, response)');
+    });
+
+    it('should skip a member whose arity differs', () => {
+      const code = 'const { data } = await bru.sendRequest(q);';
+      expect(translateBruToPostman(code)).toContain('const { data } =');
+    });
+  });
 });

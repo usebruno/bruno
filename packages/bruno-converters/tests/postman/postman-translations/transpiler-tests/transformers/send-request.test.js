@@ -1054,10 +1054,10 @@ await bru.sendRequest({
       expect(translatedCode).toBe(`register((await bru.sendRequest({ url: 'https://echo.usebruno.com' })).then);`);
     });
 
-    it('should leave a destructured handler param alone', () => {
+    it('should rewrite a destructured handler param in place, keeping the local name', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`;
       const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ status: code }) => console.log(code));`);
     });
 
     it('should translate a nested sendRequest chain inside an async then handler', () => {

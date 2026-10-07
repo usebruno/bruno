@@ -1,5 +1,5 @@
 import { getStaticPropertyName } from './ast-utils';
-import { rewriteMembers, resolvesToBinding, POSTMAN_REGISTRY } from './semantic';
+import { rewriteMembers, rewritePattern, resolvesToBinding, POSTMAN_REGISTRY } from './semantic';
 
 /**
  * Convert Postman header array format to Bruno headers object
@@ -354,10 +354,16 @@ const transformCallback = (j, callbackPath) => {
   const params = callback.params;
 
   const responseParam = params[CALLBACK_RESPONSE_INDEX];
-  const responseVarName
-    = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
+  const responseType = CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX];
 
-  rewriteResponseAccess(j, callbackPath, responseVarName, CALLBACK_PARAM_TYPES[CALLBACK_RESPONSE_INDEX]);
+  if (responseParam && responseParam.type === 'ObjectPattern') {
+    rewritePattern(j, responseParam, responseType, POSTMAN_REGISTRY);
+  } else {
+    const responseVarName
+      = responseParam && responseParam.type === 'Identifier' ? responseParam.name : 'response';
+
+    rewriteResponseAccess(j, callbackPath, responseVarName, responseType);
+  }
 
   // `bru.sendRequest` callbacks may await, so the translated callback is always async
   callback.async = true;
@@ -466,8 +472,18 @@ const sendRequestTransformer = (path, j) => {
     if (!hasFulfilledHandler) continue;
 
     if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') break;
-    // rewriting response access requires a plain identifier param — destructuring can't be tracked
-    if (handler.params.length === 0 || handler.params[0].type !== 'Identifier') break;
+    if (handler.params.length === 0) break;
+
+    /**
+     * A destructured param is unpacked in place, but what it leaves bound are plain values
+     * rather than the response, so nothing can be said about what this link forwards.
+     */
+    if (handler.params[0].type === 'ObjectPattern') {
+      rewritePattern(j, handler.params[0], THEN_PARAM_TYPES[0], POSTMAN_REGISTRY);
+      break;
+    }
+
+    if (handler.params[0].type !== 'Identifier') break;
 
     const handlerPath = link.callPath.get('arguments', 0);
 
