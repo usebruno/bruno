@@ -1,0 +1,1048 @@
+/*
+ * Bruno theme for the script API reference (typedoc.json `customCss`).
+ *
+ * Follows docs.usebruno.com (Mintlify, "mint" theme): Bruno's orange primary, the warm gray
+ * scale, Inter, a blurred top bar, a pill-highlighted sidebar, rounded code cards and callouts.
+ * TypeDoc's own stylesheet sits in `@layer typedoc`, so these unlayered rules win without
+ * `!important`. Colors follow TypeDoc's light/dark/OS switch through `light-dark()`, which reads
+ * the `color-scheme` TypeDoc sets on <html>.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Bruno palette (docs.usebruno.com) */
+  --bru-primary: #f2994a;
+  --bru-primary-light: #ffa94d;
+  --bru-gray-50: #faf7f5;
+  --bru-gray-100: #f5f2f0;
+  --bru-gray-200: #e5e3e0;
+  --bru-gray-300: #d5d2d0;
+  --bru-gray-400: #a5a3a0;
+  --bru-gray-500: #777472;
+  --bru-gray-600: #575452;
+  --bru-gray-700: #454340;
+  --bru-gray-800: #2c2a27;
+  --bru-gray-900: #1e1b19;
+  --bru-gray-950: #110e0c;
+  --bru-background-dark: #0e0c0c;
+
+  /* Semantic tokens */
+  --bru-accent: light-dark(var(--bru-primary), var(--bru-primary-light));
+  --bru-accent-text: light-dark(#c4661a, var(--bru-primary-light));
+  --bru-accent-soft: light-dark(rgb(242 153 74 / 0.1), rgb(255 169 77 / 0.1));
+  --bru-heading: light-dark(var(--bru-gray-900), var(--bru-gray-200));
+  --bru-body: light-dark(var(--bru-gray-600), var(--bru-gray-400));
+  --bru-muted: light-dark(var(--bru-gray-500), var(--bru-gray-500));
+  --bru-nav: light-dark(var(--bru-gray-700), var(--bru-gray-400));
+  --bru-border: light-dark(rgb(17 14 12 / 0.1), rgb(255 255 255 / 0.1));
+  --bru-border-soft: light-dark(rgb(17 14 12 / 0.05), rgb(255 255 255 / 0.06));
+  --bru-hover: light-dark(rgb(87 84 82 / 0.05), rgb(229 227 224 / 0.05));
+  --bru-surface: light-dark(#ffffff, var(--bru-background-dark));
+  --bru-toolbar: light-dark(rgb(255 255 255 / 0.8), rgb(14 12 12 / 0.75));
+  --bru-code-bg: light-dark(var(--bru-gray-50), #161311);
+  --bru-inline-code-bg: light-dark(var(--bru-gray-100), rgb(255 255 255 / 0.06));
+  --bru-font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bru-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --dim-toolbar-contents-height: 4rem;
+  --dim-footer-height: 4.5rem;
+
+  /* TypeDoc tokens, light */
+  --light-color-background: #ffffff;
+  --light-color-background-secondary: var(--bru-gray-50);
+  --light-color-background-active: rgb(242 153 74 / 0.1);
+  --light-color-accent: var(--bru-gray-200);
+  --light-color-active-menu-item: rgb(242 153 74 / 0.1);
+  --light-color-text: var(--bru-gray-700);
+  --light-color-contrast-text: var(--bru-gray-900);
+  --light-color-text-aside: var(--bru-gray-500);
+  --light-color-link: var(--bru-gray-900);
+  --light-color-focus-outline: var(--bru-primary);
+  --light-color-ts-keyword: #cf222e;
+  --light-color-ts-property: #953800;
+  --light-color-ts-method: #953800;
+  --light-color-ts-function: #953800;
+  --light-color-ts-variable: #953800;
+  --light-color-ts-accessor: #953800;
+  --light-color-ts-parameter: var(--bru-gray-700);
+  --light-color-ts-interface: #6639ba;
+  --light-color-ts-class: #6639ba;
+  --light-color-ts-type-alias: #6639ba;
+  --light-color-ts-enum: #6639ba;
+  --light-color-ts-type-parameter: #6639ba;
+
+  /* TypeDoc tokens, dark */
+  --dark-color-background: var(--bru-background-dark);
+  --dark-color-background-secondary: var(--bru-gray-950);
+  --dark-color-background-active: rgb(255 169 77 / 0.1);
+  --dark-color-accent: var(--bru-gray-800);
+  --dark-color-active-menu-item: rgb(255 169 77 / 0.1);
+  --dark-color-text: var(--bru-gray-400);
+  --dark-color-contrast-text: var(--bru-gray-200);
+  --dark-color-text-aside: var(--bru-gray-500);
+  --dark-color-link: var(--bru-gray-200);
+  --dark-color-focus-outline: var(--bru-primary-light);
+  --dark-color-ts-keyword: #ff7b72;
+  --dark-color-ts-property: #ffa657;
+  --dark-color-ts-method: #ffa657;
+  --dark-color-ts-function: #ffa657;
+  --dark-color-ts-variable: #ffa657;
+  --dark-color-ts-accessor: #ffa657;
+  --dark-color-ts-parameter: var(--bru-gray-300);
+  --dark-color-ts-interface: #d2a8ff;
+  --dark-color-ts-class: #d2a8ff;
+  --dark-color-ts-type-alias: #d2a8ff;
+  --dark-color-ts-enum: #d2a8ff;
+  --dark-color-ts-type-parameter: #d2a8ff;
+}
+
+/* ---------- Base ---------- */
+
+body {
+  font-family: var(--bru-font);
+  color: var(--bru-body);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--bru-heading);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgb(242 153 74 / 0.25);
+}
+
+code,
+pre,
+.tsd-signature {
+  font-family: var(--bru-mono);
+}
+
+/* Kind icons are TypeDoc's; Mintlify navigates by name alone. */
+.tsd-kind-icon {
+  display: none;
+}
+
+/* TypeDoc colors the label after a kind icon; let it follow its link instead. */
+.tsd-kind-icon ~ span {
+  color: inherit;
+}
+
+.container {
+  max-width: 92rem;
+  padding: 0 2rem;
+}
+
+/* ---------- Top bar ---------- */
+
+.tsd-page-toolbar {
+  background: var(--bru-toolbar);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--bru-border-soft);
+}
+
+.tsd-toolbar-contents {
+  gap: 1.5rem;
+}
+
+.tsd-toolbar-contents > .title {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--bru-heading);
+  white-space: nowrap;
+}
+
+/* TypeDoc copies the `favicon` file next to this stylesheet. */
+.tsd-toolbar-contents > .title::before {
+  content: '';
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  background: url('favicon.svg') center / contain no-repeat;
+}
+
+.tsd-toolbar-contents > .title:hover {
+  text-decoration: none;
+}
+
+#tsd-toolbar-links {
+  order: 3;
+  flex: 1 1 0;
+  justify-content: flex-end;
+  margin-right: 0;
+  gap: 1.75rem;
+}
+
+#tsd-toolbar-links a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bru-gray-600);
+  color: light-dark(var(--bru-gray-600), var(--bru-gray-400));
+}
+
+#tsd-toolbar-links a:hover {
+  color: var(--bru-heading);
+  text-decoration: none;
+}
+
+/* Search trigger as Mintlify's search pill. */
+#tsd-search-trigger {
+  order: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: min(24rem, 100%);
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: 0.75rem;
+  background: var(--bru-surface);
+  box-shadow: 0 0 0 1px light-dark(rgb(165 163 160 / 0.3), rgb(87 84 82 / 0.3));
+  color: var(--bru-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  opacity: 1;
+  transition: box-shadow 0.15s;
+}
+
+#tsd-search-trigger:hover {
+  box-shadow: 0 0 0 1px light-dark(rgb(87 84 82 / 0.3), rgb(119 116 114 / 0.4));
+}
+
+#tsd-search-trigger:active {
+  background: var(--bru-surface);
+}
+
+#tsd-search-trigger svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--bru-nav);
+}
+
+#tsd-search-trigger::after {
+  content: 'Search the script API...';
+}
+
+#tsd-toolbar-menu-trigger {
+  order: 4;
+  color: var(--bru-nav);
+}
+
+/* ---------- Search dialog ---------- */
+
+#tsd-search[open] {
+  width: 40rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: var(--bru-surface);
+  box-shadow:
+    0 0 0 1px var(--bru-border),
+    0 24px 48px -12px rgb(0 0 0 / 0.25);
+}
+
+#tsd-search-input {
+  height: 3rem;
+  padding: 0 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--bru-code-bg);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--bru-heading);
+}
+
+#tsd-search-input:focus-visible {
+  background: var(--bru-code-bg);
+  color: var(--bru-heading);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--bru-accent);
+}
+
+#tsd-search-results > li,
+#tsd-search-results > li:nth-child(even) {
+  background: transparent;
+  border-radius: 0.75rem;
+}
+
+#tsd-search-results > li > a {
+  padding: 0.6rem 0.75rem;
+  color: var(--bru-heading);
+  font-size: 0.875rem;
+}
+
+#tsd-search-results > li:is(:hover, [aria-selected='true']) {
+  background: var(--bru-accent-soft);
+  color: var(--bru-accent-text);
+}
+
+#tsd-search-results > li:is(:hover, [aria-selected='true']) > a {
+  color: var(--bru-accent-text);
+  text-decoration: none;
+}
+
+#tsd-search-results > li > a mark {
+  color: var(--bru-accent-text);
+}
+
+#tsd-search-status {
+  color: var(--bru-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- Layout ---------- */
+
+@media (min-width: 770px) {
+  .container-main {
+    --dim-container-main-margin-y: 1.75rem;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    column-gap: 2.5rem;
+  }
+
+  .col-content {
+    padding: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container-main {
+    grid-template-columns: 16rem minmax(0, 1fr) 15rem;
+    column-gap: 2.5rem;
+  }
+
+  .page-menu {
+    padding-left: 0;
+  }
+}
+
+.page-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Settings go below the table of contents, as a footnote. */
+.page-menu > .tsd-navigation.settings {
+  order: 2;
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bru-border-soft);
+}
+
+/* ---------- Sidebar ---------- */
+
+.site-menu {
+  font-size: 0.875rem;
+}
+
+.tsd-navigation > a,
+.tsd-navigation a,
+.tsd-navigation summary > span {
+  min-height: 1.875rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  color: var(--bru-nav);
+  line-height: 1.25rem;
+}
+
+.tsd-navigation a:hover {
+  background: var(--bru-hover);
+  color: var(--bru-heading);
+  text-decoration: none;
+}
+
+.tsd-navigation a.current {
+  background: var(--bru-accent-soft);
+  color: var(--bru-accent-text);
+  font-weight: 600;
+}
+
+/* The project link at the top reads as "Overview". */
+.site-menu .tsd-navigation > a {
+  margin-bottom: 0.75rem;
+}
+
+/* Top-level categories as Mintlify group headers. */
+#tsd-nav-container > li > .tsd-accordion > .tsd-accordion-summary {
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 0.75rem;
+  margin: 1rem 0 0.25rem;
+  font-weight: 600;
+  color: var(--bru-heading);
+}
+
+#tsd-nav-container > li:first-child > .tsd-accordion > .tsd-accordion-summary {
+  margin-top: 0;
+}
+
+/* TypeDoc gives the label a near-full width, which squeezes the chevron beside it. */
+#tsd-nav-container > li > .tsd-accordion > .tsd-accordion-summary > span {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  font-weight: 600;
+  color: var(--bru-heading);
+}
+
+.site-menu .tsd-accordion > .tsd-accordion-summary > svg {
+  order: 2;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--bru-muted);
+}
+
+.site-menu .tsd-accordion > .tsd-accordion-summary > a {
+  padding: 0;
+  min-height: 0;
+  font-weight: 600;
+  color: var(--bru-heading);
+}
+
+.site-menu .tsd-accordion > .tsd-accordion-summary > a:hover {
+  background: none;
+}
+
+.tsd-small-nested-navigation,
+.tsd-nested-navigation {
+  margin-left: 0;
+}
+
+.tsd-small-nested-navigation > li > details,
+.tsd-nested-navigation > li > details {
+  margin-left: 0;
+}
+
+.tsd-nested-navigation .tsd-nested-navigation {
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--bru-border-soft);
+}
+
+.tsd-navigation li {
+  margin: 0;
+}
+
+/* ---------- On this page ---------- */
+
+.tsd-page-navigation > .tsd-accordion-summary,
+.tsd-navigation.settings > .tsd-accordion > .tsd-accordion-summary {
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tsd-page-navigation > .tsd-accordion-summary h3,
+.tsd-navigation.settings h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bru-heading);
+}
+
+.page-menu .tsd-accordion-summary > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--bru-muted);
+}
+
+.tsd-page-navigation-section > summary {
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bru-nav);
+}
+
+.tsd-page-navigation-section > div {
+  margin: 0.125rem 0 0.5rem 0.4rem;
+  border-left: 1px solid var(--bru-border-soft);
+}
+
+.tsd-page-navigation a {
+  padding: 0.25rem 0 0.25rem 0.875rem;
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  font-size: 0.8125rem;
+  color: var(--bru-muted);
+}
+
+.tsd-page-navigation a:hover {
+  color: var(--bru-heading);
+  text-decoration: none;
+}
+
+.tsd-page-navigation a.current {
+  background: none;
+  border-left-color: var(--bru-accent);
+  color: var(--bru-accent-text);
+  font-weight: 500;
+}
+
+.tsd-navigation.settings {
+  font-size: 0.8125rem;
+  color: var(--bru-muted);
+}
+
+.settings-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bru-muted);
+}
+
+.tsd-filter-input svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.tsd-checkbox-background {
+  fill: var(--bru-inline-code-bg);
+  stroke: var(--bru-border);
+}
+
+input[type='checkbox']:checked ~ svg .tsd-checkbox-background {
+  fill: var(--bru-accent);
+  stroke: var(--bru-accent);
+}
+
+input[type='checkbox']:checked ~ svg .tsd-checkbox-checkmark {
+  stroke: #fff;
+}
+
+#tsd-theme {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--bru-border);
+  border-radius: 0.5rem;
+  background: var(--bru-surface);
+  color: var(--bru-heading);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+/* ---------- Page header ---------- */
+
+.tsd-page-title {
+  margin-bottom: 2rem;
+}
+
+/* Breadcrumb as Mintlify's orange eyebrow above the title. */
+.tsd-breadcrumb {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tsd-breadcrumb a,
+.tsd-breadcrumb a:hover {
+  color: var(--bru-accent-text);
+  text-decoration: none;
+}
+
+.tsd-breadcrumb li:after {
+  color: var(--bru-muted);
+}
+
+.tsd-breadcrumb li:last-child:after {
+  content: none;
+}
+
+.tsd-page-title h1 {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+/* ---------- Prose ---------- */
+
+.tsd-typography {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--bru-body);
+}
+
+.tsd-panel.tsd-comment > .tsd-typography:first-child > p:first-child {
+  font-size: 1.125rem;
+  margin-top: 0;
+}
+
+.tsd-typography a:not(.tsd-anchor-icon),
+.tsd-returns-title + p a {
+  font-weight: 600;
+  color: var(--bru-heading);
+  border-bottom: 1px solid var(--bru-accent);
+}
+
+.tsd-typography a:not(.tsd-anchor-icon):hover {
+  border-bottom-width: 2px;
+  text-decoration: none;
+}
+
+.tsd-typography ul {
+  list-style: disc;
+}
+
+.tsd-typography li::marker {
+  color: var(--bru-gray-400);
+}
+
+.tsd-typography strong {
+  color: var(--bru-heading);
+}
+
+.tsd-typography table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.tsd-typography td,
+.tsd-typography th {
+  border: none;
+  border-bottom: 1px solid var(--bru-border-soft);
+  text-align: left;
+}
+
+.tsd-typography thead,
+.tsd-typography tr:nth-child(even) {
+  background: none;
+}
+
+.tsd-typography th {
+  color: var(--bru-heading);
+  font-weight: 600;
+}
+
+/* Inline code */
+:not(pre) > code {
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--bru-border-soft);
+  border-radius: 0.375rem;
+  background: var(--bru-inline-code-bg);
+  color: var(--bru-heading);
+  font-size: 0.85em;
+  font-weight: 500;
+  overflow-wrap: break-word;
+}
+
+/* ---------- Code blocks ---------- */
+
+pre,
+.tsd-signature {
+  border: 1px solid var(--bru-border);
+  border-radius: 1rem;
+  background: var(--bru-code-bg);
+}
+
+pre {
+  margin: 1rem 0 1.25rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+pre > code {
+  background: transparent;
+}
+
+pre > button {
+  top: 0.6rem;
+  right: 0.6rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--bru-border);
+  border-radius: 0.5rem;
+  background: var(--bru-surface);
+  color: var(--bru-nav);
+  font: inherit;
+  font-family: var(--bru-font);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+pre > button:hover {
+  color: var(--bru-heading);
+}
+
+.tsd-signature {
+  margin: 0 0 1rem;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--bru-heading);
+}
+
+.tsd-signatures .tsd-signature,
+.tsd-description .tsd-signatures .tsd-signature {
+  border-width: 1px;
+  border-color: var(--bru-border);
+}
+
+.tsd-signature-symbol {
+  color: var(--bru-muted);
+}
+
+.tsd-signature-type {
+  font-style: normal;
+}
+
+.tsd-signature a {
+  text-decoration: none;
+}
+
+.tsd-signature a.tsd-signature-type,
+.tsd-signature a:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Sections and members ---------- */
+
+.tsd-panel-group {
+  margin: 3rem 0;
+}
+
+.tsd-panel-group > .tsd-accordion-summary {
+  margin-bottom: 1.5rem;
+}
+
+.tsd-panel-group > .tsd-accordion-summary h2,
+.tsd-member-group > .tsd-accordion-summary h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Section chevrons only show on hover or when collapsed, like a plain heading otherwise. */
+.col-content .tsd-accordion[open] > .tsd-accordion-summary > svg:first-child {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.col-content .tsd-accordion > .tsd-accordion-summary:hover > svg:first-child {
+  opacity: 1;
+}
+
+.col-content .tsd-accordion-summary > svg:first-child {
+  width: 1rem;
+  height: 1rem;
+  margin-left: -1.25rem;
+  color: var(--bru-muted);
+}
+
+.tsd-panel {
+  margin-bottom: 2rem;
+}
+
+.tsd-panel.tsd-member {
+  margin-bottom: 0;
+  padding: 2rem 0;
+  border-top: 1px solid var(--bru-border-soft);
+}
+
+.tsd-member-group > section > .tsd-panel.tsd-member:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.tsd-panel > h3,
+.tsd-member .tsd-anchor + h3 {
+  margin: 0 0 1rem;
+  padding: 0;
+  font-family: var(--bru-mono);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--bru-heading);
+}
+
+.tsd-anchor-icon {
+  color: var(--bru-muted);
+}
+
+.tsd-description > .tsd-typography:first-child > p:first-child {
+  margin-top: 0;
+}
+
+/* Parameters and returns, like Mintlify's ParamField / ResponseField */
+.tsd-parameters-title,
+.tsd-returns-title,
+.tsd-type-parameters-title {
+  margin: 1.75rem 0 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--bru-border-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--bru-heading);
+}
+
+.tsd-returns-title > .tsd-signature-type:first-child {
+  margin-left: 0.5rem;
+}
+
+.tsd-returns-title + p {
+  margin: 0.75rem 0 0;
+  line-height: 1.75;
+}
+
+ul.tsd-parameter-list,
+ul.tsd-type-parameter-list {
+  list-style: none;
+  padding: 0;
+}
+
+ul.tsd-parameter-list > li,
+ul.tsd-type-parameter-list > li {
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--bru-border-soft);
+}
+
+/* Drop the bare ": " between name and type; the type renders as a pill. */
+ul.tsd-parameter-list > li > span:first-child {
+  font-size: 0;
+}
+
+ul.tsd-parameter-list > li > span:first-child > * {
+  font-size: 0.8125rem;
+}
+
+ul.tsd-parameter-list .tsd-kind-parameter {
+  margin-right: 0.5rem;
+  font-family: var(--bru-mono);
+  font-weight: 600;
+  color: var(--bru-accent-text);
+}
+
+ul.tsd-parameter-list > li > span:first-child > :not(.tsd-kind-parameter),
+.tsd-returns-title > :is(.tsd-signature-type, .tsd-signature-symbol) {
+  font-family: var(--bru-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+ul.tsd-parameter-list > li > span:first-child > :not(.tsd-kind-parameter, a),
+.tsd-returns-title > :is(.tsd-signature-type, .tsd-signature-symbol):not(a) {
+  color: var(--bru-muted);
+}
+
+ul.tsd-parameter-list .tsd-comment p {
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+}
+
+/* ---------- Block tags as Mintlify callouts ---------- */
+
+.tsd-tag-context,
+.tsd-tag-runtime,
+.tsd-tag-deprecated {
+  --callout: var(--bru-gray-500);
+  margin: 1.25rem 0;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--callout) 25%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--callout) 7%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.tsd-tag-runtime {
+  --callout: #f59e0b;
+}
+
+.tsd-tag-deprecated {
+  --callout: #ef4444;
+}
+
+.tsd-tag-context > h4,
+.tsd-tag-runtime > h4,
+.tsd-tag-deprecated > h4 {
+  margin: 0 0 0.125rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tsd-tag-runtime > h4 {
+  color: light-dark(#b45309, #fcd34d);
+}
+
+.tsd-tag-deprecated > h4 {
+  color: light-dark(#b91c1c, #fca5a5);
+}
+
+.tsd-tag-context > p,
+.tsd-tag-runtime > p,
+.tsd-tag-deprecated > p {
+  margin: 0;
+}
+
+.tsd-tag-example > h4 {
+  margin: 1.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+code.tsd-tag {
+  border: 1px solid var(--bru-border);
+  border-radius: 9999px;
+  background: var(--bru-accent-soft);
+  color: var(--bru-accent-text);
+  font-family: var(--bru-font);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* ---------- Index lists and overview cards ---------- */
+
+.tsd-index-panel .tsd-index-list {
+  gap: 0.25rem 1rem;
+}
+
+a.tsd-index-link {
+  font-family: var(--bru-mono);
+  font-size: 0.8125rem;
+  color: var(--bru-nav);
+}
+
+a.tsd-index-link:hover {
+  color: var(--bru-accent-text);
+  text-decoration: none;
+}
+
+.tsd-index-heading {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* The overview page lists each global's types as Mintlify cards. */
+dl.tsd-member-summaries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+dt.tsd-member-summary {
+  position: relative;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--bru-border);
+  border-radius: 1rem;
+  transition: border-color 0.15s;
+}
+
+dt.tsd-member-summary:hover {
+  border-color: var(--bru-accent);
+}
+
+dt.tsd-member-summary .tsd-member-summary-name {
+  padding: 0;
+  font-weight: 600;
+}
+
+dt.tsd-member-summary .tsd-member-summary-name > a:not(.tsd-anchor-icon) {
+  color: var(--bru-heading);
+}
+
+dt.tsd-member-summary .tsd-member-summary-name > a:not(.tsd-anchor-icon)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+dt.tsd-member-summary .tsd-member-summary-name > a:hover {
+  text-decoration: none;
+}
+
+dt.tsd-member-summary .tsd-anchor-icon {
+  display: none;
+}
+
+dd.tsd-member-summary {
+  margin: 0;
+}
+
+dd.tsd-member-summary:empty {
+  display: none;
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--bru-border-soft);
+  padding: 1.5rem 2rem;
+  font-size: 0.875rem;
+  color: var(--bru-muted);
+}
+
+footer > p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 92rem;
+}
+
+footer a {
+  color: var(--bru-muted);
+}
+
+footer a:hover {
+  color: var(--bru-heading);
+  text-decoration: none;
+}
+
+/* ---------- Scrollbars ---------- */
+
+* {
+  scrollbar-color: var(--bru-border) transparent;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 769px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .tsd-toolbar-contents {
+    gap: 0.75rem;
+  }
+
+  #tsd-search-trigger {
+    width: 2.25rem;
+    padding: 0;
+    justify-content: center;
+    margin-left: auto;
+  }
+
+  #tsd-search-trigger::after {
+    content: none;
+  }
+
+  .col-sidebar {
+    padding: 1.5rem;
+    background: var(--bru-surface);
+  }
+
+  .tsd-page-title h1 {
+    font-size: 1.5rem;
+  }
+}

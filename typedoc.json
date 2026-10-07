@@ -6,6 +6,17 @@
   "out": "docs-dist/script-api",
   "plugin": ["./scripts/typedoc-script-api-plugin.mjs"],
   "readme": "none",
+  "customCss": "./scripts/script-api-docs/theme.css",
+  "favicon": "./scripts/script-api-docs/bruno.svg",
+  "lightHighlightTheme": "github-light",
+  "darkHighlightTheme": "github-dark",
+  "navigationLinks": {
+    "Docs": "https://docs.usebruno.com",
+    "GitHub": "https://github.com/usebruno/bruno",
+    "Discord": "https://discord.com/invite/KgcZUncpjq"
+  },
+  "hideGenerator": true,
+  "customFooterHtml": "<span>© Bruno</span><a href=\"https://docs.usebruno.com\">Documentation</a><a href=\"https://github.com/usebruno/bruno\">GitHub</a><a href=\"https://discord.com/invite/KgcZUncpjq\">Discord</a>",
   "disableSources": true,
   "excludeExternals": true,
   "categorizeByGroup": false,
