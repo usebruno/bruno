@@ -21,7 +21,7 @@ import { AUTH_MODE_LABELS } from '../../utils/constants';
 import { addVarsRow } from '../../utils/request';
 
 const PLAINTEXT_WARNING = 'Store sensitive info as a secret variable or in a .env file';
-const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security.';
+const ENVIRONMENT_FIELD_WARNING = 'Mark the environment variable as secret for better security';
 const ENVIRONMENT_ROW_WARNING = 'This variable is used in sensitive fields. Add it as a secret for security';
 
 const requestVariableWarning = (name: string) => (
