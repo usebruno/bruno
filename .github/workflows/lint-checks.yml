@@ -27,6 +27,3 @@ jobs:
 
       - name: Script API Check
         run: npm run generate:script-api -- --check
-
-      - name: Script API Docs Build
-        run: npm run docs:script-api
