@@ -267,35 +267,6 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
   });
 };
 
-export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionCopy = cloneDeep(collection);
-
-    // Transform collection root (uses draft if exists)
-    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-    const { ipcRenderer } = window;
-
-    ipcRenderer
-      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
-      .then(() => {
-        toast.success('Collection Settings saved successfully');
-        dispatch(saveCollectionDraft({ collectionUid }));
-      })
-      .then(resolve)
-      .catch((err) => {
-        toast.error('Failed to save collection settings!');
-        reject(err);
-      });
-  });
-};
-
 export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2433,7 +2404,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save collection root to persist the changes
-          return dispatch(saveCollectionRoot(collectionUid))
+          return dispatch(saveCollectionSettings(collectionUid))
             .then(resolve)
             .catch(reject);
         }
