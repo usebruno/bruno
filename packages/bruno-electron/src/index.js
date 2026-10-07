@@ -57,6 +57,7 @@ const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
 const sqliteService = require('./services/sqlite');
+const { clearAllRunnerResponses } = require('./services/runner-exchange');
 const { registerWsdlIpc } = require('./ipc/wsdl');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -544,6 +545,7 @@ app.on('ready', async () => {
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
   sqliteService.openDatabase();
+  clearAllRunnerResponses().catch((err) => console.warn('[runner] failed to clear stored responses', err));
   registerSqliteIpc();
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
@@ -583,6 +585,8 @@ app.on('before-quit', (event) => {
     } catch {}
 
     try { await require('./ipc/mount').shutdown({ force: true }); } catch { }
+
+    try { await clearAllRunnerResponses(); } catch {}
 
     try { await sqliteService.reclaimDiskSpace(); } catch {}
 
