@@ -17,7 +17,8 @@ const ts = require('typescript');
  *   - packages/bruno-js/types/script-api.d.ts: one flattened interface per
  *     public type, the input of the API reference site
  *   - packages/bruno-app/src/utils/codemirror/generated/script-api-manifest.json:
- *     one entry per member path, for editor autocomplete and hover
+ *     one entry per member path, for editor autocomplete and hover. It is not
+ *     committed: CI and `npm run setup` generate it before bruno-app is built.
  *   Both come from the same walk, so they cannot disagree.
  *
  *   tsc's own declaration emit is not used: for JS input it drops subclass
@@ -25,7 +26,8 @@ const ts = require('typescript');
  *   methods and keeps internal base classes in the hierarchy.
  *
  * Options:
- *   --check   Fail instead of writing when either output is out of date
+ *   --check   Fail instead of writing when the committed script-api.d.ts is
+ *             out of date
  */
 
 const ROOT = path.resolve(__dirname, '..');
@@ -638,22 +640,20 @@ const main = () => {
   }
   assertDeclarationsCompile(declarations);
 
+  if (check) {
+    if (!fs.existsSync(DTS_OUT) || fs.readFileSync(DTS_OUT, 'utf8') !== declarations) {
+      console.error(`${path.relative(ROOT, DTS_OUT)} is out of date.`);
+      console.error('Run `npm run generate:script-api` and commit the result.');
+      process.exit(1);
+    }
+    console.log(`${path.relative(ROOT, DTS_OUT)} is up to date.`);
+    return;
+  }
+
   const outputs = [
     [DTS_OUT, declarations],
     [MANIFEST_OUT, manifest]
   ];
-
-  if (check) {
-    const stale = outputs.filter(([file, content]) => !fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== content);
-    if (stale.length) {
-      console.error(`Script API outputs are out of date:\n${stale.map(([file]) => `  ${path.relative(ROOT, file)}`).join('\n')}`);
-      console.error('Run `npm run generate:script-api` and commit the result.');
-      process.exit(1);
-    }
-    console.log('Script API outputs are up to date.');
-    return;
-  }
-
   for (const [file, content] of outputs) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, content);

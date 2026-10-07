@@ -1,10 +1,14 @@
-import scriptApiManifest from './generated/script-api-manifest.json';
+import scriptApiManifest from 'script-api-manifest';
 
 /*
  * The script API (`bru`, `req`, `res`, `test`, `expect`, …) as documented in @usebruno/js, read
  * from the manifest scripts/generate-script-api.js generates from its JSDoc. Each entry is one
  * member path with its signature, docs, the script contexts it exists in and the runtimes that
  * provide it.
+ *
+ * The manifest is not committed: `npm run generate:script-api` writes it to ./generated, as CI and
+ * `npm run setup` do. Without it, `script-api-manifest` resolves to an empty list (see
+ * rsbuild.config.mjs), so editors offer no API hints or docs but everything else works.
  */
 
 // The globals API hints start from; `showHintsFor` names them as hint groups.

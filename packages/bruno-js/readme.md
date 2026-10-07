@@ -74,10 +74,15 @@ A global also needs `@context`; without it, the global is left out the same way.
 ### Regenerating
 
 `npm run generate:script-api` (from the repo root) reads the JSDoc, starting from the globals in
-`types/globals.d.ts`, and writes two committed files: `types/script-api.d.ts`, the API reference's
-input, and `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, the editor's
-autocomplete and hover data. Run it after changing the script API's JSDoc; CI fails when they are
-stale. The run fails on a misspelled `@context` or `@runtime` value, a public `_`-prefixed member
+`types/globals.d.ts`, and writes two files:
+
+- `types/script-api.d.ts`, the API reference's input. It is committed: run the generator after
+  changing the script API's JSDoc, and CI fails when it is stale.
+- `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`, the editor's autocomplete
+  and hover data. It is not committed: CI and `npm run setup` generate it before bruno-app is
+  built. Without it the app still builds, and script editors offer no API hints or docs.
+
+The run fails on a misspelled `@context` or `@runtime` value, a public `_`-prefixed member
 that is documented but not marked `@internal` or `@protected`, an unresolved type name, or a type
 from outside bruno-js that the API exposes.
 

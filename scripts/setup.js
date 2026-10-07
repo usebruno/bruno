@@ -113,6 +113,9 @@ async function setup() {
     // Bundle JS sandbox libraries
     execCommand('npm run sandbox:bundle-libraries --workspace=packages/bruno-js', 'Bundling JS sandbox libraries');
 
+    // The script editor's API hints and docs read this generated, uncommitted manifest
+    execCommand('npm run generate:script-api', 'Generating script API manifest');
+
     console.log(`\n${icons.success} Setup completed successfully!\n`);
   } catch (error) {
     console.error(`\n${icons.error} Setup failed:`);

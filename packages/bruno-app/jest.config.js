@@ -16,7 +16,9 @@ module.exports = {
     '^pageComponents/(.*)$': '<rootDir>/src/pageComponents/$1',
     '^providers/(.*)$': '<rootDir>/src/providers/$1',
     '^utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^test-utils/(.*)$': '<rootDir>/src/test-utils/$1'
+    '^test-utils/(.*)$': '<rootDir>/src/test-utils/$1',
+    // The specs check autocomplete against the real API, so they need the generated manifest.
+    '^script-api-manifest$': '<rootDir>/src/utils/codemirror/generated/script-api-manifest.json'
   },
   clearMocks: true,
   moduleDirectories: ['node_modules', 'src'],
