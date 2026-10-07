@@ -1,14 +1,13 @@
-const fs = require('fs');
-const path = require('path');
 const { describe, it, expect } = require('@jest/globals');
+const { generateScriptApi } = require('../../../scripts/generate-script-api');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const TestRuntime = require('../src/runtime/test-runtime');
 const GrpcScriptRuntime = require('../src/grpc/grpc-script-runtime');
 
 /*
  * Checks the documented script API against what scripts really get, in every context and in both
- * runtimes. The manifest is generated from the JSDoc by scripts/generate-script-api.js and is read
- * here as a data file, not imported.
+ * runtimes. The manifest is generated in memory from the current JSDoc by
+ * scripts/generate-script-api.js, so the test needs no generated file on disk.
  *
  * - Documented but missing: a member the manifest lists for a context that the script can't reach.
  * - Wrong runtime tag: QuickJS (Safe Mode) must expose exactly the members without
@@ -16,8 +15,7 @@ const GrpcScriptRuntime = require('../src/grpc/grpc-script-runtime');
  * - Undocumented: a member a script can reach that is neither documented nor known to be internal.
  */
 
-const MANIFEST_PATH = path.join(__dirname, '..', '..', 'bruno-app', 'src', 'utils', 'codemirror', 'generated', 'script-api-manifest.json');
-const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+const { manifest } = generateScriptApi();
 
 const RUNTIMES = ['nodevm', 'quickjs'];
 

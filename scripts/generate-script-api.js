@@ -9,6 +9,7 @@ const ts = require('typescript');
  *
  * Usage:
  *   node scripts/generate-script-api.js [--check]
+ *   require('./generate-script-api').generateScriptApi()   (the outputs in memory)
  *
  * Description:
  *   Walks the script API outward from the globals declared in
@@ -602,7 +603,7 @@ const createGenerator = (program) => {
     const manifest = buildManifest(globals);
     return {
       declarations: renderDeclarations(globals),
-      manifest: JSON.stringify(manifest, null, 2) + '\n',
+      manifest,
       skipped
     };
   };
@@ -631,10 +632,15 @@ const assertDeclarationsCompile = (declarations) => {
   }
 };
 
+/**
+ * Runs the walk without writing anything: the declarations' text, the manifest's entries and the
+ * members left out for having no JSDoc summary.
+ */
+const generateScriptApi = () => createGenerator(loadProgram()).generate();
+
 const main = () => {
   const check = process.argv.includes('--check');
-  const program = loadProgram();
-  const { declarations, manifest, skipped } = createGenerator(program).generate();
+  const { declarations, manifest, skipped } = generateScriptApi();
   if (skipped.length) {
     console.warn(`Left out ${skipped.length} member(s) with no JSDoc summary (document them, or mark them @internal):\n${skipped.map((where) => `  ${where}`).join('\n')}`);
   }
@@ -652,7 +658,7 @@ const main = () => {
 
   const outputs = [
     [DTS_OUT, declarations],
-    [MANIFEST_OUT, manifest]
+    [MANIFEST_OUT, JSON.stringify(manifest, null, 2) + '\n']
   ];
   for (const [file, content] of outputs) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -661,9 +667,13 @@ const main = () => {
   }
 };
 
-try {
-  main();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 }
+
+module.exports = { generateScriptApi };
