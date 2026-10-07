@@ -1,4 +1,5 @@
 import { useTheme } from 'providers/Theme';
+import { MAX_RENDERABLE_RESPONSE_BYTES } from '@usebruno/common';
 import { formatSize } from 'utils/common';
 import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
@@ -43,6 +44,7 @@ const ResponseMeta = ({ code, statusText, duration, size }) => {
 
 const Response = ({ collection, response, item }) => {
   let { status, statusCode, statusText, dataBuffer, headers, data, error, duration, size } = response || {};
+  const isBodyNotLoaded = size > MAX_RENDERABLE_RESPONSE_BYTES;
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
@@ -64,6 +66,7 @@ const Response = ({ collection, response, item }) => {
         headers={headers}
         item={item}
         type="response"
+        isBodyNotLoaded={isBodyNotLoaded}
       />
     </>
   );

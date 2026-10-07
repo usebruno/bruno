@@ -5,10 +5,12 @@ import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common/index';
 import Button from 'ui/Button/index';
+import { MAX_RENDERABLE_RESPONSE_BYTES } from '@usebruno/common';
 
 const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const { ipcRenderer } = window;
   const response = item.response || {};
+  const isDownloadOnly = responseSize > MAX_RENDERABLE_RESPONSE_BYTES;
 
   const downloadResponseToFile = () => {
     return new Promise((resolve, reject) => {
@@ -57,6 +59,14 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
             Handling responses over <span className="size-highlight supported-size">{formatSize(10 * 1024 * 1024)}</span> could degrade performance.
             <br />
             Size of current response: <span className="size-highlight current-size">{formatSize(responseSize)}</span>
+            {isDownloadOnly ? (
+              <>
+                <br />
+                <span data-testid="large-response-download-only">
+                  Responses over <span className="size-highlight">{formatSize(MAX_RENDERABLE_RESPONSE_BYTES)}</span> can only be downloaded.
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
       </div>
@@ -65,6 +75,8 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           icon={<IconEye size={18} strokeWidth={1.5} />}
           iconPosition="left"
           onClick={onRevealResponse}
+          disabled={isDownloadOnly}
+          data-testid="large-response-view"
           title="Show response content"
           color="secondary"
           size="sm"
@@ -75,7 +87,8 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           icon={<IconDownload size={18} strokeWidth={1.5} />}
           iconPosition="left"
           onClick={downloadResponseToFile}
-          disabled={!response.dataBuffer}
+          disabled={!response.dataBuffer && !response.storedRequestUid}
+          data-testid="large-response-download"
           title="Download response to file"
           color="secondary"
           size="sm"
@@ -86,7 +99,8 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
           icon={<IconCopy size={18} strokeWidth={1.5} />}
           iconPosition="left"
           onClick={copyResponse}
-          disabled={!response.data}
+          disabled={isDownloadOnly || !response.data}
+          data-testid="large-response-copy"
           title="Copy response to clipboard"
           color="secondary"
           size="sm"

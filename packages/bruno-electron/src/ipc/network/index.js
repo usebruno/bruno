@@ -46,6 +46,7 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
+const { saveRunnerResponseBody } = require('../../services/runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -1839,7 +1840,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            sendRunnerRequestSent({ requestUid, requestSent, eventData });
+            await sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1926,7 +1927,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              sendRunnerResponseReceived({
+              await sendRunnerResponseReceived({
                 requestUid,
                 responseReceived: {
                   status: response.status,
@@ -1940,6 +1941,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
+                disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson),
                 eventData
               });
             } catch (error) {
@@ -1974,7 +1976,7 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                sendRunnerResponseReceived({
+                await sendRunnerResponseReceived({
                   requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
@@ -2257,6 +2259,10 @@ const registerNetworkIpc = (mainWindow) => {
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      if (filePath && !response.dataBuffer && typeof response.storedRequestUid === 'string') {
+        await saveRunnerResponseBody(response.storedRequestUid, filePath);
+        return { success: true, filePath };
+      }
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');
