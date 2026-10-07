@@ -7,7 +7,7 @@ jest.mock('electron', () => ({
   }
 }));
 
-jest.mock('../sqlite', () => ({ getStatements: jest.fn() }));
+jest.mock('../../services/sqlite', () => ({ getStatements: jest.fn() }));
 
 const EVENT_DATA = { collectionUid: 'col-1', itemUid: 'item-1' };
 
@@ -32,7 +32,7 @@ describe('runner-exchange', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    ({ getStatements } = require('../sqlite'));
+    ({ getStatements } = require('../../services/sqlite'));
     ({ createRunnerExchangeEmitters } = require('./runner-exchange'));
     mainWindow = { webContents: { send: jest.fn() } };
     error = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -108,8 +108,15 @@ describe('runner-exchange', () => {
   });
 
   describe('when the database is unavailable', () => {
+    let warn;
+
     beforeEach(() => {
-      getStatements.mockReturnValue(null);
+      warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      getStatements.mockImplementation(jest.requireActual('../../services/sqlite').getStatements);
+    });
+
+    afterEach(() => {
+      warn.mockRestore();
     });
 
     it('carries the full request payload on the event instead', () => {
@@ -118,6 +125,9 @@ describe('runner-exchange', () => {
       sendRunnerRequestSent({ requestUid: 'run-1', requestSent: REQUEST_SENT, eventData: EVENT_DATA });
 
       expect(lastEvent().requestSent).toEqual(REQUEST_SENT);
+      expect(warn).toHaveBeenCalledWith(
+        '[sqlite] the database is unavailable, skipped statement "upsert_runner_response"'
+      );
     });
 
     it('carries the full response payload on the event instead', () => {

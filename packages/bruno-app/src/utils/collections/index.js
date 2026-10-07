@@ -1162,11 +1162,12 @@ export const hasRequestChanges = (item) => {
   const originalItem = cloneDeep(item);
   const draftItem = cloneDeep(item.draft);
 
-  // Remove examples from both items for comparison
   delete originalItem.examples;
   delete originalItem.draft;
+  delete originalItem.unresolvedVariables;
   delete draftItem.examples;
   delete draftItem.draft;
+  delete draftItem.unresolvedVariables;
 
   return !isEqual(originalItem, draftItem);
 };
@@ -2419,6 +2420,27 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+export const getWorkspaceCollections = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  if (!activeWorkspace) {
+    return [];
+  }
+
+  const toPathKey = (pathname) => {
+    const key = normalizePath(pathname);
+    return isWindowsOS() ? key.toLowerCase() : key;
+  };
+
+  return collections.filter((collection) => {
+    if (isScratchCollection(collection, workspaces)) {
+      return false;
+    }
+
+    return activeWorkspace.collections?.some(
+      (workspaceCollection) => toPathKey(workspaceCollection.path) === toPathKey(collection.pathname)
+    );
+  });
 };
 
 export const isSelectionEntryCollapsed = (entry) =>
