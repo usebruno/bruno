@@ -369,30 +369,40 @@ app.on('ready', async () => {
     }
     mainWindow.show();
   });
-  const devPort = process.env.BRUNO_DEV_PORT || 3000;
+  let devPort = null;
+  if (isDev) {
+    try {
+      // Dev-only require: the packaged app does not include scripts/dev-port.js.
+      devPort = require('../../../scripts/dev-port').resolveDevPort(process.env.BRUNO_DEV_PORT);
+    } catch (err) {
+      console.error(`${err.message} Refusing to load the dev window.`);
+    }
+  }
   const url = isDev
-    ? `http://localhost:${devPort}`
+    ? (devPort === null ? null : `http://localhost:${devPort}`)
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
         protocol: 'file:',
         slashes: true
       });
 
-  mainWindow.loadURL(url).catch((reason) => {
-    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
-    console.error('Original message:', reason);
-    if (isDev) {
-      console.error(
-        'Could not connect to Next.Js dev server, is it running?'
-        + ' Start the dev server using "npm run dev:web" and restart electron'
-      );
-    } else {
-      console.error(
-        'If you are using an official production build: the above error is most likely a bug! '
-        + ' Please report this under: https://github.com/usebruno/bruno/issues'
-      );
-    }
-  });
+  if (url) {
+    mainWindow.loadURL(url).catch((reason) => {
+      console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+      console.error('Original message:', reason);
+      if (isDev) {
+        console.error(
+          'Could not connect to the dev server, is it running?'
+          + ' Start the dev server using "npm run dev:web" and restart electron'
+        );
+      } else {
+        console.error(
+          'If you are using an official production build: the above error is most likely a bug! '
+          + ' Please report this under: https://github.com/usebruno/bruno/issues'
+        );
+      }
+    });
+  }
 
   let boundsTimeout;
   const handleBoundsChange = () => {
