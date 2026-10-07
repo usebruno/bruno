@@ -907,19 +907,19 @@ export interface Response {
  */
 export interface SendRequestResponse {
   /**
-   * - The HTTP status code.
+   * The HTTP status code.
    */
   status: number;
   /**
-   * - The HTTP status text.
+   * The HTTP status text.
    */
   statusText: string;
   /**
-   * - The response headers, with lower-case names.
+   * The response headers, with lower-case names.
    */
   headers: Record<string, string | string[]>;
   /**
-   * - The response body, parsed as JSON when it is JSON.
+   * The response body, parsed as JSON when it is JSON.
    */
   data: any;
 }
@@ -1162,15 +1162,15 @@ export interface CookieList {
  */
 export interface Runner {
   /**
-   * - Skip the current request. Call it from a pre-request script; the request is not sent and is reported as skipped.
+   * Skip the current request. Call it from a pre-request script; the request is not sent and is reported as skipped.
    */
   skipRequest(): void;
   /**
-   * - Stop the collection run once the current request finishes. No further requests are run.
+   * Stop the collection run once the current request finishes. No further requests are run.
    */
   stopExecution(): void;
   /**
-   * - Choose the request the runner runs next, by its name. `null` ends the run after the current request.
+   * Choose the request the runner runs next, by its name. `null` ends the run after the current request.
    */
   setNextRequest(requestName: string | null): void;
 }
@@ -1182,11 +1182,11 @@ export interface Runner {
  */
 export interface ScriptUtils {
   /**
-   * - Minify JSON: strip all whitespace from a JSON string, or serialize an object without any. Throws on invalid JSON.
+   * Minify JSON: strip all whitespace from a JSON string, or serialize an object without any. Throws on invalid JSON.
    */
   minifyJson(json: string | object): string;
   /**
-   * - Minify an XML string by removing the whitespace between tags. Throws on invalid XML.
+   * Minify an XML string by removing the whitespace between tags. Throws on invalid XML.
    */
   minifyXml(xml: string): string;
 }
@@ -1198,27 +1198,27 @@ export interface ScriptUtils {
  */
 export interface RunRequestResponse {
   /**
-   * - The HTTP status code, or `'skipped'` for a request that can't be run from a script (WebSocket and gRPC requests).
+   * The HTTP status code, or `'skipped'` for a request that can't be run from a script (WebSocket and gRPC requests).
    */
   status: string | number;
   /**
-   * - The HTTP status text, or why the request was skipped.
+   * The HTTP status text, or why the request was skipped.
    */
   statusText: string;
   /**
-   * - The response headers.
+   * The response headers.
    */
   headers: Record<string, string | string[]>;
   /**
-   * - The response body.
+   * The response body.
    */
   data: any;
   /**
-   * - How long the request took, in milliseconds.
+   * How long the request took, in milliseconds.
    */
   duration: number;
   /**
-   * - The size of the response, in bytes.
+   * The size of the response, in bytes.
    */
   size: number;
 }
@@ -1230,11 +1230,11 @@ export interface RunRequestResponse {
  */
 export interface TestResults {
   /**
-   * - Pass and fail counts.
+   * Pass and fail counts.
    */
   summary: ResultsSummary;
   /**
-   * - One entry per test, in the order they finished.
+   * One entry per test, in the order they finished.
    */
   results: TestResult[];
 }
@@ -1246,11 +1246,11 @@ export interface TestResults {
  */
 export interface AssertionResults {
   /**
-   * - Pass and fail counts.
+   * Pass and fail counts.
    */
   summary: ResultsSummary;
   /**
-   * - One entry per assertion.
+   * One entry per assertion.
    */
   results: AssertionResult[];
 }
@@ -1286,15 +1286,15 @@ export interface Grpc {
  */
 export interface PathParam {
   /**
-   * - The parameter's name, without the leading `:`.
+   * The parameter's name, without the leading `:`.
    */
   name: string;
   /**
-   * - Its value.
+   * Its value.
    */
   value: string;
   /**
-   * - Always `'path'`.
+   * Always `'path'`.
    */
   type: string;
 }
@@ -1683,15 +1683,15 @@ export interface ReadOnlyHeaderList {
  */
 export interface ResponseSize {
   /**
-   * - The size of the status line and headers.
+   * The size of the status line and headers.
    */
   header: number;
   /**
-   * - The size of the body as received.
+   * The size of the body as received.
    */
   body: number;
   /**
-   * - `header + body`.
+   * `header + body`.
    */
   total: number;
 }
@@ -1703,39 +1703,39 @@ export interface ResponseSize {
  */
 export interface CookieInput {
   /**
-   * - The cookie's name.
+   * The cookie's name.
    */
   key: string;
   /**
-   * - Its value.
+   * Its value.
    */
   value: string;
   /**
-   * - The domain to send it to.
+   * The domain to send it to.
    */
   domain?: string;
   /**
-   * - The path to send it to.
+   * The path to send it to.
    */
   path?: string;
   /**
-   * - Only send it over HTTPS.
+   * Only send it over HTTPS.
    */
   secure?: boolean;
   /**
-   * - Hide it from browser scripts.
+   * Hide it from browser scripts.
    */
   httpOnly?: boolean;
   /**
-   * - When it expires. Without it, it never does.
+   * When it expires. Without it, it never does.
    */
   expires?: string | number | Date;
   /**
-   * - How many seconds it lives.
+   * How many seconds it lives.
    */
   maxAge?: number;
   /**
-   * - The SameSite policy.
+   * The SameSite policy.
    */
   sameSite?: "none" | "strict" | "lax";
 }
@@ -1748,75 +1748,75 @@ export interface CookieInput {
  */
 export interface CookieJar {
   /**
-   * - Get the cookie with the given name that would be sent to the URL, or `null`.
+   * Get the cookie with the given name that would be sent to the URL, or `null`.
    */
   getCookie(url: string, name: string): Promise<Cookie | null>;
   /**
-   * - Get the cookie with the given name that would be sent to the URL, or `null`.
+   * Get the cookie with the given name that would be sent to the URL, or `null`.
    */
   getCookie(url: string, name: string, callback: (error: Error | null, cookie?: Cookie | null | undefined) => void): void;
   /**
-   * - Get every cookie that would be sent to the URL.
+   * Get every cookie that would be sent to the URL.
    */
   getCookies(url: string): Promise<Cookie[]>;
   /**
-   * - Get every cookie that would be sent to the URL.
+   * Get every cookie that would be sent to the URL.
    */
   getCookies(url: string, callback: (error: Error | null, cookies?: Cookie[] | undefined) => void): void;
   /**
-   * - Set a cookie for the URL, from a cookie object or a name and value.
+   * Set a cookie for the URL, from a cookie object or a name and value.
    */
   setCookie(url: string, cookie: CookieInput): Promise<void>;
   /**
-   * - Set a cookie for the URL, from a cookie object or a name and value.
+   * Set a cookie for the URL, from a cookie object or a name and value.
    */
   setCookie(url: string, cookie: CookieInput, callback: (error?: Error | undefined) => void): void;
   /**
-   * - Set a cookie for the URL, from a cookie object or a name and value.
+   * Set a cookie for the URL, from a cookie object or a name and value.
    */
   setCookie(url: string, name: string, value: string): Promise<void>;
   /**
-   * - Set a cookie for the URL, from a cookie object or a name and value.
+   * Set a cookie for the URL, from a cookie object or a name and value.
    */
   setCookie(url: string, name: string, value: string, callback: (error?: Error | undefined) => void): void;
   /**
-   * - Set several cookies for the URL.
+   * Set several cookies for the URL.
    */
   setCookies(url: string, cookies: CookieInput[]): Promise<void>;
   /**
-   * - Set several cookies for the URL.
+   * Set several cookies for the URL.
    */
   setCookies(url: string, cookies: CookieInput[], callback: (error?: Error | undefined) => void): void;
   /**
-   * - Check whether a cookie with the given name would be sent to the URL.
+   * Check whether a cookie with the given name would be sent to the URL.
    */
   hasCookie(url: string, name: string): Promise<boolean>;
   /**
-   * - Check whether a cookie with the given name would be sent to the URL.
+   * Check whether a cookie with the given name would be sent to the URL.
    */
   hasCookie(url: string, name: string, callback: (error: Error | null, exists?: boolean | undefined) => void): void;
   /**
-   * - Delete the cookie with the given name for the URL.
+   * Delete the cookie with the given name for the URL.
    */
   deleteCookie(url: string, name: string): Promise<void>;
   /**
-   * - Delete the cookie with the given name for the URL.
+   * Delete the cookie with the given name for the URL.
    */
   deleteCookie(url: string, name: string, callback: (error?: Error | undefined) => void): void;
   /**
-   * - Delete every cookie that would be sent to the URL.
+   * Delete every cookie that would be sent to the URL.
    */
   deleteCookies(url: string): Promise<void>;
   /**
-   * - Delete every cookie that would be sent to the URL.
+   * Delete every cookie that would be sent to the URL.
    */
   deleteCookies(url: string, callback: (error?: Error | undefined) => void): void;
   /**
-   * - Delete every cookie in the jar, for every URL.
+   * Delete every cookie in the jar, for every URL.
    */
   clear(): Promise<void>;
   /**
-   * - Delete every cookie in the jar, for every URL.
+   * Delete every cookie in the jar, for every URL.
    */
   clear(callback: (error?: Error | undefined) => void): void;
 }
@@ -1828,31 +1828,31 @@ export interface CookieJar {
  */
 export interface Cookie {
   /**
-   * - The cookie's name.
+   * The cookie's name.
    */
   key: string;
   /**
-   * - Its value.
+   * Its value.
    */
   value: string;
   /**
-   * - The domain it is sent to.
+   * The domain it is sent to.
    */
   domain?: string;
   /**
-   * - The path it is sent to.
+   * The path it is sent to.
    */
   path?: string;
   /**
-   * - Whether it is only sent over HTTPS.
+   * Whether it is only sent over HTTPS.
    */
   secure?: boolean;
   /**
-   * - Whether it is hidden from browser scripts.
+   * Whether it is hidden from browser scripts.
    */
   httpOnly?: boolean;
   /**
-   * - When it expires; `'Infinity'` for a session cookie.
+   * When it expires; `'Infinity'` for a session cookie.
    */
   expires?: Date | "Infinity";
 }
@@ -1864,19 +1864,19 @@ export interface Cookie {
  */
 export interface ResultsSummary {
   /**
-   * - How many results there are.
+   * How many results there are.
    */
   total: number;
   /**
-   * - How many passed.
+   * How many passed.
    */
   passed: number;
   /**
-   * - How many failed.
+   * How many failed.
    */
   failed: number;
   /**
-   * - How many were skipped.
+   * How many were skipped.
    */
   skipped: number;
 }
@@ -1888,23 +1888,23 @@ export interface ResultsSummary {
  */
 export interface TestResult {
   /**
-   * - The outcome.
+   * The outcome.
    */
   status: "pass" | "fail" | "skip";
   /**
-   * - The name the test was declared with.
+   * The name the test was declared with.
    */
   description: string;
   /**
-   * - The expected value, for a failed assertion.
+   * The expected value, for a failed assertion.
    */
   expected?: any;
   /**
-   * - The actual value, for a failed assertion.
+   * The actual value, for a failed assertion.
    */
   actual?: any;
   /**
-   * - The failure message.
+   * The failure message.
    */
   error?: string;
 }
@@ -1916,27 +1916,27 @@ export interface TestResult {
  */
 export interface AssertionResult {
   /**
-   * - The outcome.
+   * The outcome.
    */
   status: "pass" | "fail";
   /**
-   * - The expression asserted on, such as `res.status`.
+   * The expression asserted on, such as `res.status`.
    */
   lhsExpr: string;
   /**
-   * - The assertion as written, such as `eq 200`.
+   * The assertion as written, such as `eq 200`.
    */
   rhsExpr: string;
   /**
-   * - The assertion's operator, such as `eq`.
+   * The assertion's operator, such as `eq`.
    */
   operator: string;
   /**
-   * - The value the expression was compared with.
+   * The value the expression was compared with.
    */
   rhsOperand: any;
   /**
-   * - The failure message.
+   * The failure message.
    */
   error?: string;
 }
@@ -2064,15 +2064,15 @@ export interface GrpcResponse {
  */
 export interface Header {
   /**
-   * - The header's name, in the case it was written in.
+   * The header's name, in the case it was written in.
    */
   key: string;
   /**
-   * - The header's value; an array of values for a repeated response header.
+   * The header's value; an array of values for a repeated response header.
    */
   value: any;
   /**
-   * - `true` for a header switched off in the request's Headers tab. It is not sent.
+   * `true` for a header switched off in the request's Headers tab. It is not sent.
    */
   disabled?: boolean;
 }
@@ -2510,15 +2510,15 @@ export interface ReadOnlyGrpcMetadataList {
  */
 export interface MetadataEntry {
   /**
-   * - The metadata key, in the case it was written in.
+   * The metadata key, in the case it was written in.
    */
   key: string;
   /**
-   * - Its value.
+   * Its value.
    */
   value: any;
   /**
-   * - `true` for an entry switched off in the request's Metadata tab. It is not sent.
+   * `true` for an entry switched off in the request's Metadata tab. It is not sent.
    */
   disabled?: boolean;
 }

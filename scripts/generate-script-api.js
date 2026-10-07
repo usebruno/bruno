@@ -144,7 +144,8 @@ const createGenerator = (program) => {
 
   /** Reads the JSDoc of a symbol or a signature. */
   const readDoc = (source) => {
-    const text = partsToString(source.getDocumentationComment(checker));
+    // A typedef `@property`'s comment keeps the `- ` that separates it from the name, as `@param` and `@returns` text does.
+    const text = partsToString(source.getDocumentationComment(checker)).replace(/^-\s+/, '');
     const [summary = '', ...rest] = text.split(/\n\s*\n/);
     const doc = {
       text,
