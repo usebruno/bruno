@@ -17,9 +17,9 @@ class PriorityTaskQueue {
     const priority = priorityOf(task);
     const tasks = this.#tasksByPriority.get(priority);
     if (tasks) {
-      tasks.push(task);
+      tasks.items.push(task);
     } else {
-      this.#tasksByPriority.set(priority, [task]);
+      this.#tasksByPriority.set(priority, { items: [task], head: 0 });
     }
     if (this.#maxPriority === undefined || priority > this.#maxPriority) {
       this.#maxPriority = priority;
@@ -32,11 +32,16 @@ class PriorityTaskQueue {
       return undefined;
     }
     const tasks = this.#tasksByPriority.get(this.#maxPriority);
-    const task = tasks.shift();
+    const task = tasks.items[tasks.head];
+    tasks.items[tasks.head] = undefined;
+    tasks.head++;
     this.#size--;
-    if (tasks.length === 0) {
+    if (tasks.head === tasks.items.length) {
       this.#tasksByPriority.delete(this.#maxPriority);
       this.#maxPriority = this.#tasksByPriority.size > 0 ? Math.max(...this.#tasksByPriority.keys()) : undefined;
+    } else if (tasks.head * 2 >= tasks.items.length) {
+      tasks.items.splice(0, tasks.head);
+      tasks.head = 0;
     }
     return task;
   }
@@ -47,7 +52,7 @@ class PriorityTaskQueue {
 
   contains(task) {
     const tasks = this.#tasksByPriority.get(priorityOf(task));
-    return tasks ? tasks.includes(task) : false;
+    return tasks ? tasks.items.includes(task, tasks.head) : false;
   }
 
   clear() {
