@@ -15,20 +15,6 @@ interface ParsedCollection {
   brunoConfig: Record<string, any>;
 }
 
-const normalizeCollectionProxyPort = (port: unknown): number | string => {
-  if (port === null || port === undefined || port === '') {
-    return '';
-  }
-  if (typeof port === 'number') {
-    return port;
-  }
-  if (typeof port === 'string') {
-    const trimmed = port.trim();
-    return trimmed === '' ? '' : trimmed;
-  }
-  return '';
-};
-
 const parseCollection = (ymlString: string): ParsedCollection => {
   try {
     const oc: OpenCollection = parseYml(ymlString);
@@ -131,7 +117,7 @@ const parseCollection = (ymlString: string): ParsedCollection => {
           config: {
             protocol: proxyConfig.config.protocol || 'http',
             hostname: proxyConfig.config.hostname || '',
-            port: normalizeCollectionProxyPort(proxyConfig.config.port),
+            port: proxyConfig.config.port || '',
             auth: {
               username: proxyConfig.config.auth?.username || '',
               password: proxyConfig.config.auth?.password || ''

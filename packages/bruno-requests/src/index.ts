@@ -12,8 +12,7 @@ export { WsClient } from './ws/ws-client';
 export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';
-export { transformProxyConfig, normalizeProxyPort } from './utils/proxy-util';
-export type { ProxyPort } from './utils/proxy-util';
+export { transformProxyConfig } from './utils/proxy-util';
 export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';

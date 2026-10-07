@@ -46,14 +46,9 @@ const ProxySettings = ({ collection }) => {
     return true;
   };
 
-  const containsVariable = (value) => /\{\{/.test(value);
-
   const validatePortOnChange = (port) => {
     if (!port || port === '') {
       return true; // Allow empty port during typing
-    }
-    if (containsVariable(port)) {
-      return true;
     }
     const portNum = Number(port);
     if (isNaN(portNum)) {
@@ -134,16 +129,13 @@ const ProxySettings = ({ collection }) => {
     }
   };
 
-  const handlePortChange = (port) => {
+  const handlePortChange = (e) => {
+    const port = e.target.value ? Number(e.target.value) : '';
     if (validatePortOnChange(port)) {
-      let storedPort = '';
-      if (port) {
-        storedPort = containsVariable(port) ? port : Number(port);
-      }
       updateProxy({
         config: {
           ...currentProxyConfig.config,
-          port: storedPort
+          port
         }
       });
     }
@@ -328,19 +320,21 @@ const ProxySettings = ({ collection }) => {
               </div>
             </div>
             <div className="mb-3 flex items-center">
-              <label className="settings-label">
+              <label className="settings-label" htmlFor="port">
                 Port
               </label>
-              <div className="single-line-editor-wrapper">
-                <SingleLineEditor
-                  value={currentProxyConfig.config?.port === undefined || currentProxyConfig.config?.port === null ? '' : String(currentProxyConfig.config.port)}
-                  theme={storedTheme}
-                  onSave={handleSave}
-                  onChange={handlePortChange}
-                  collection={collection}
-                  isCompact
-                />
-              </div>
+              <input
+                id="port"
+                type="number"
+                name="port"
+                className="block textbox"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                onChange={handlePortChange}
+                value={currentProxyConfig.config?.port || ''}
+              />
             </div>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="auth.disabled">

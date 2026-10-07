@@ -1867,8 +1867,8 @@ const getRequestTreePathForScope = (collection, item, scanContext) => {
   return getTreePathFromCollectionToItem(collection, item);
 };
 
-const variableScopeCacheKey = (variableName, item, skipRequestScope) => (
-  `${item?.uid ?? ''}|${skipRequestScope ? 1 : 0}|${variableName}`
+const variableScopeCacheKey = (variableName, item) => (
+  `${item?.uid ?? ''}|${variableName}`
 );
 
 // Get the scope and raw value of a variable by checking all scopes in priority order
@@ -1880,7 +1880,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
   const { skipRequestScope = false, scanContext = null } = options;
 
   if (scanContext?.resolutionCache) {
-    const cacheKey = variableScopeCacheKey(variableName, item, skipRequestScope);
+    const cacheKey = variableScopeCacheKey(variableName, item);
     if (scanContext.resolutionCache.has(cacheKey)) {
       return scanContext.resolutionCache.get(cacheKey);
     }
@@ -1888,7 +1888,7 @@ export const getVariableScope = (variableName, collection, item, options = {}) =
 
   const storeScopeResult = (result) => {
     if (scanContext?.resolutionCache) {
-      scanContext.resolutionCache.set(variableScopeCacheKey(variableName, item, skipRequestScope), result);
+      scanContext.resolutionCache.set(variableScopeCacheKey(variableName, item), result);
     }
     return result;
   };
