@@ -29,3 +29,9 @@ DELETE FROM runner_responses WHERE collection_uid = @collection_uid;
 
 -- name: list_runner_response_files_for_collection :many
 SELECT request_file_id, response_file_id, body_file_id FROM runner_responses WHERE collection_uid = @collection_uid;
+
+-- name: list_runner_response_files :many
+SELECT request_file_id, response_file_id, body_file_id FROM runner_responses;
+
+-- name: delete_runner_responses :exec
+DELETE FROM runner_responses;

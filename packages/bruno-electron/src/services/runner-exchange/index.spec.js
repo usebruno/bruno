@@ -40,6 +40,7 @@ describe('runner-exchange service', () => {
   let storeRunnerExchange;
   let saveRunnerResponseBody;
   let clearRunnerResponses;
+  let clearAllRunnerResponses;
 
   const roundTrip = async ({ requestSent, responseReceived, disableParsingResponseJson }) => {
     if (requestSent) {
@@ -61,7 +62,7 @@ describe('runner-exchange service', () => {
     opened = createDatabase(':memory:', { filesDir, inlineMaxBytes: INLINE_MAX });
     getStatements.mockReturnValue(opened.statements);
     getFiles.mockReturnValue(opened.files);
-    ({ readRunnerExchange, storeRunnerExchange, saveRunnerResponseBody, clearRunnerResponses } = require('./index'));
+    ({ readRunnerExchange, storeRunnerExchange, saveRunnerResponseBody, clearRunnerResponses, clearAllRunnerResponses } = require('./index'));
   });
 
   afterEach(() => {
@@ -279,6 +280,19 @@ describe('runner-exchange service', () => {
       await clearRunnerResponses('col-1');
 
       expect(await readRunnerExchange('run-1')).toBeNull();
+      expect(fileRowCount()).toBe(0);
+      expect(fs.readdirSync(filesDir)).toHaveLength(0);
+    });
+
+    it('clears every collection and its files at once', async () => {
+      const body = JSON.stringify({ items: Array.from({ length: 20 }, (_, i) => ({ id: i })) });
+      await roundTrip({ requestSent: REQUEST_SENT, responseReceived: responseWithBody(body) });
+      await storeRunnerExchange({ requestUid: 'run-2', eventData: { collectionUid: 'col-2' }, responseReceived: responseWithBody('{"other":true}') });
+
+      await clearAllRunnerResponses();
+
+      expect(await readRunnerExchange('run-1')).toBeNull();
+      expect(await readRunnerExchange('run-2')).toBeNull();
       expect(fileRowCount()).toBe(0);
       expect(fs.readdirSync(filesDir)).toHaveLength(0);
     });

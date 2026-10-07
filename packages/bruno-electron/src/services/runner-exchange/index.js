@@ -106,17 +106,27 @@ const saveRunnerResponseBody = async (requestUid, filePath) => {
   }
 };
 
+const removeStoredFiles = (rows) => {
+  const ids = rows.flatMap((row) => [row.request_file_id, row.response_file_id, row.body_file_id]).filter(Boolean);
+  return Promise.all(ids.map((id) => getFiles().remove(id)));
+};
+
 const clearRunnerResponses = async (collectionUid) => {
   const rows = getStatements().execute('list_runner_response_files_for_collection', { collection_uid: collectionUid });
   getStatements().execute('delete_runner_responses_for_collection', { collection_uid: collectionUid });
+  await removeStoredFiles(rows);
+};
 
-  const ids = rows.flatMap((row) => [row.request_file_id, row.response_file_id, row.body_file_id]).filter(Boolean);
-  await Promise.all(ids.map((id) => getFiles().remove(id)));
+const clearAllRunnerResponses = async () => {
+  const rows = getStatements().execute('list_runner_response_files');
+  getStatements().execute('delete_runner_responses');
+  await removeStoredFiles(rows);
 };
 
 module.exports = {
   storeRunnerExchange,
   readRunnerExchange,
   saveRunnerResponseBody,
-  clearRunnerResponses
+  clearRunnerResponses,
+  clearAllRunnerResponses
 };
