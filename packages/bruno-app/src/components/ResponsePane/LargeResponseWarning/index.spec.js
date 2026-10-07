@@ -81,4 +81,13 @@ describe('LargeResponseWarning', () => {
 
     expect(button('download')).toBeDisabled();
   });
+
+  it('surfaces a save failure from main', async () => {
+    invoke.mockRejectedValue({ error: { message: 'disk full' } });
+    renderWarning({ item: storedItem, responseSize: DOWNLOAD_ONLY_SIZE });
+
+    fireEvent.click(button('download'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('disk full'));
+  });
 });

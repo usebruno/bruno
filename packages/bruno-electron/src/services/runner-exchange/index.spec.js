@@ -184,6 +184,16 @@ describe('runner-exchange service', () => {
     it('still returns the request', async () => {
       expect((await readRunnerExchange('run-1')).requestSent).toEqual(REQUEST_SENT);
     });
+
+    it('still saves the body via the stored request uid', async () => {
+      const { responseReceived } = await readRunnerExchange('run-1');
+      const destination = path.join(filesDir, 'saved', 'oversize.json');
+      fs.mkdirSync(path.dirname(destination));
+
+      await saveRunnerResponseBody(responseReceived.storedRequestUid, destination);
+
+      expect(fs.readFileSync(destination, 'utf8')).toBe(body);
+    });
   });
 
   describe('saving the body to a file', () => {
@@ -294,6 +304,21 @@ describe('runner-exchange service', () => {
 
       expect(await readRunnerExchange('run-1')).toBeNull();
       expect(await readRunnerExchange('run-2')).toBeNull();
+      expect(fileRowCount()).toBe(0);
+      expect(fs.readdirSync(filesDir)).toHaveLength(0);
+    });
+
+    it('clears a download-only body file too', async () => {
+      const body = JSON.stringify({ items: Array.from({ length: 20 }, (_, i) => ({ id: i })) });
+      await roundTrip({ requestSent: REQUEST_SENT, responseReceived: responseWithBody(body) });
+      const { stat } = opened.files;
+      jest.spyOn(opened.files, 'stat').mockImplementation((id) => ({ ...stat.call(opened.files, id), size: MAX_RENDERABLE_RESPONSE_BYTES + 1 }));
+
+      expect((await readRunnerExchange('run-1')).responseReceived.storedRequestUid).toBe('run-1');
+
+      await clearAllRunnerResponses();
+
+      expect(await readRunnerExchange('run-1')).toBeNull();
       expect(fileRowCount()).toBe(0);
       expect(fs.readdirSync(filesDir)).toHaveLength(0);
     });

@@ -13,7 +13,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
   const isDownloadOnly = responseSize > MAX_RENDERABLE_RESPONSE_BYTES;
 
   const downloadResponseToFile = () => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       ipcRenderer
         .invoke('renderer:save-response-to-file', response, item.requestSent.url, item.pathname)
         .then((result) => {
@@ -24,7 +24,7 @@ const LargeResponseWarning = ({ item, responseSize, onRevealResponse }) => {
         })
         .catch((err) => {
           toast.error(get(err, 'error.message') || 'Something went wrong!');
-          reject(err);
+          resolve();
         });
     });
   };
