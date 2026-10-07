@@ -5,7 +5,7 @@ jest.mock('platform', () => ({
   }
 }));
 
-import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath } from './path';
+import { getRelativePath, getBasename, getAbsoluteFilePath, getRelativePathWithinBasePath, isPathExternalToBasePath } from './path';
 
 describe('Path Utilities - Windows Platform', () => {
   describe('getRelativePath', () => {
@@ -420,6 +420,33 @@ describe('Path Utilities - Windows Platform', () => {
         const result = getRelativePath('C:\\Users\\John\\Projects', 'C:\\Users\\John\\Projects\\файл.txt', true);
         expect(result).toBe('файл.txt');
       });
+    });
+  });
+
+  describe('isPathExternalToBasePath', () => {
+    it('should return false for a collection inside the base path', () => {
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', 'C:\\Users\\John\\Workspace\\collections\\api')).toBe(false);
+    });
+
+    it('should be case-insensitive when matching the base path', () => {
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', 'C:\\users\\john\\workspace\\collections\\api')).toBe(false);
+    });
+
+    it('should return true for a collection outside the base path', () => {
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', 'C:\\Users\\John\\Downloads\\api')).toBe(true);
+    });
+
+    it('should return true for collections on a different drive', () => {
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', 'D:\\api')).toBe(true);
+    });
+
+    it('should return true for a sibling whose name is a prefix of the base path', () => {
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', 'C:\\Users\\John\\Workspace-other\\api')).toBe(true);
+    });
+
+    it('should return false when either input is missing', () => {
+      expect(isPathExternalToBasePath('', 'C:\\Users\\John\\Workspace\\api')).toBe(false);
+      expect(isPathExternalToBasePath('C:\\Users\\John\\Workspace', '')).toBe(false);
     });
   });
 });

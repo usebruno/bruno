@@ -1,0 +1,5 @@
+name: workspace_qa
+extends: workspace_staging
+variables:
+  - name: workspace_overridden
+    value: from_workspace_qa

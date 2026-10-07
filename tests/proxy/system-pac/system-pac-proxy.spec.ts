@@ -31,7 +31,7 @@ function gnomeProxySchemaAvailable(): boolean {
   }
 }
 
-test.describe('System Proxy with PAC', () => {
+test.describe.serial('System Proxy with PAC', () => {
   test.skip(
     process.platform !== 'linux',
     'Linux-only: relies on gsettings to set OS-level PAC'

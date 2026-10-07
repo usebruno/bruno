@@ -57,6 +57,24 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.globals.has("token");');
   });
 
+  it('should translate bru.deleteGlobalEnvVar', () => {
+    const code = 'bru.deleteGlobalEnvVar("token");';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.unset("token");');
+  });
+
+  it('should translate bru.deleteAllGlobalEnvVars', () => {
+    const code = 'bru.deleteAllGlobalEnvVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('pm.globals.clear();');
+  });
+
+  it('should translate bru.getAllGlobalEnvVars', () => {
+    const code = 'const globals = bru.getAllGlobalEnvVars();';
+    const translatedCode = translateBruToPostman(code);
+    expect(translatedCode).toBe('const globals = pm.globals.toObject();');
+  });
+
   // Collection variables tests
   it('should translate bru.getCollectionVar', () => {
     const code = 'bru.getCollectionVar("baseUrl");';
@@ -64,8 +82,7 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.collectionVariables.get("baseUrl");');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate bru.setCollectionVar', () => {
+  it('should translate bru.setCollectionVar', () => {
     const code = 'bru.setCollectionVar("baseUrl", "https://api.example.com");';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.collectionVariables.set("baseUrl", "https://api.example.com");');
@@ -77,22 +94,19 @@ describe('Bruno to Postman Variables Translation', () => {
     expect(translatedCode).toBe('pm.collectionVariables.has("baseUrl");');
   });
 
-  // TODO: Restore once UI update fixes are live for deleteCollectionVar
-  it.skip('should translate bru.deleteCollectionVar', () => {
+  it('should translate bru.deleteCollectionVar', () => {
     const code = 'bru.deleteCollectionVar("baseUrl");';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.collectionVariables.unset("baseUrl");');
   });
 
-  // TODO: Restore once UI update fixes are live for getAllCollectionVars
-  it.skip('should translate bru.getAllCollectionVars', () => {
+  it('should translate bru.getAllCollectionVars', () => {
     const code = 'const vars = bru.getAllCollectionVars();';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('const vars = pm.collectionVariables.toObject();');
   });
 
-  // TODO: Restore once UI update fixes are live for deleteAllCollectionVars
-  it.skip('should translate bru.deleteAllCollectionVars', () => {
+  it('should translate bru.deleteAllCollectionVars', () => {
     const code = 'bru.deleteAllCollectionVars();';
     const translatedCode = translateBruToPostman(code);
     expect(translatedCode).toBe('pm.collectionVariables.clear();');

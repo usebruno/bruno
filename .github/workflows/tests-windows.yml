@@ -6,10 +6,13 @@ on:
   pull_request:
     branches: [main, 'release/v*']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-test:
     name: Unit Tests (Windows)
-    if: false # @TODO: Temporarily disabled. Remove this once the tests are fixed.
     timeout-minutes: 60
     runs-on: windows-latest
     permissions:
@@ -56,9 +59,39 @@ jobs:
           comment_mode: off
           check_run: false
 
+  cli-test-cache-modules:
+    name: CLI Tests with experimental-cache-modules (Windows)
+    runs-on: windows-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          shell: pwsh
+
+      - name: Run CLI Tests
+        uses: ./.github/actions/tests/run-cli-tests
+        with:
+          shell: pwsh
+          experimental_cache_modules: 'true'
+
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: always()
+        with:
+          check_name: CLI Test Results with experimental-cache-modules (Windows)
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: off
+          check_run: false
+
   e2e-test:
     name: Playwright E2E Tests (Windows)
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -101,11 +134,17 @@ jobs:
       - name: Setup CA Certificates
         uses: ./.github/actions/ssl/windows/setup-ca-certs
 
+      - name: Setup Client Certificates
+        uses: ./.github/actions/ssl/windows/setup-client-certs
+
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/windows/run-basic-ssl-cli-tests
 
       - name: Run Custom CA Certs CLI Tests
         uses: ./.github/actions/ssl/windows/run-custom-ca-certs-cli-tests
+
+      - name: Run Client Certs CLI Tests
+        uses: ./.github/actions/ssl/windows/run-client-certs-cli-tests
 
       - name: Run Custom CA Certs E2E Tests
         uses: ./.github/actions/ssl/windows/run-ssl-e2e-tests

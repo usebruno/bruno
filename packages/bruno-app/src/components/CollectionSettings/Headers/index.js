@@ -7,6 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -15,6 +16,7 @@ import Button from 'ui/Button';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useFocusTableRow } from 'hooks/useFocusTableRow';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -29,7 +31,14 @@ const Headers = ({ collection }) => {
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `collection-headers-scroll-${collection.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, selector: '.collection-settings-content', onChange: setScroll, initialValue: scroll });
+  const { focusRow, onFocusRowHandled } = useFocusTableRow({ uid: collection.uid, tableId: 'collection-headers' });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.collection-settings-content',
+    onChange: setScroll,
+    initialValue: scroll,
+    restoreOnMount: !focusRow
+  });
 
   // Get column widths from Redux
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -65,13 +74,20 @@ const Headers = ({ collection }) => {
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave: handleSave,
+    collection,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -99,7 +115,8 @@ const Headers = ({ collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -131,6 +148,7 @@ const Headers = ({ collection }) => {
       </div>
       <EditableTable
         tableId="collection-headers"
+        testId="collection-headers"
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}
@@ -139,6 +157,8 @@ const Headers = ({ collection }) => {
         columnWidths={collectionHeadersWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-headers', widths)}
         initialScroll={scroll}
+        focusRow={focusRow}
+        onFocusRowHandled={onFocusRowHandled}
       />
       <div className="flex justify-end mt-2">
         <button className="text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>

@@ -1,0 +1,6 @@
+opencollection: '1.0.0'
+
+info:
+  name: ws-multi-message-yml
+
+bundled: false

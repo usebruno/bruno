@@ -1,8 +1,10 @@
 const ScriptRuntime = require('./runtime/script-runtime');
+const GrpcScriptRuntime = require('./grpc/grpc-script-runtime');
 const TestRuntime = require('./runtime/test-runtime');
 const VarsRuntime = require('./runtime/vars-runtime');
 const AssertRuntime = require('./runtime/assert-runtime');
 const { runScriptInNodeVm } = require('./sandbox/node-vm');
+const { trackUnresolvedVariables, getUnresolvedVariableCollector } = require('./unresolved-variables');
 const {
   formatErrorWithContext,
   formatErrorWithContextV2,
@@ -21,10 +23,13 @@ const {
 
 module.exports = {
   ScriptRuntime,
+  GrpcScriptRuntime,
   TestRuntime,
   VarsRuntime,
   AssertRuntime,
   runScriptInNodeVm,
+  trackUnresolvedVariables,
+  getUnresolvedVariableCollector,
   formatErrorWithContext,
   formatErrorWithContextV2,
   SCRIPT_TYPES,

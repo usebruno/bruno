@@ -10,9 +10,11 @@ import {
   IconKeyboard,
   IconZoomQuestion,
   IconSquareLetterB,
-  IconDatabase
+  IconDatabase,
+  IconCertificate
 } from '@tabler/icons';
 
+import IconSparkles from 'components/Icons/IconSparkles';
 import Support from './Support';
 import General from './General';
 import Themes from './Themes';
@@ -20,6 +22,9 @@ import Proxy from './ProxySettings';
 import Display from './Display';
 import Keybindings from './Keybindings';
 import Beta from './Beta';
+import AI from './AI';
+
+import ClientCertSettings from './ClientCertSettings';
 
 import StyledWrapper from './StyledWrapper';
 import Cache from './Cache/index';
@@ -64,12 +69,20 @@ const Preferences = () => {
         return <Beta />;
       }
 
+      case 'ai': {
+        return <AI />;
+      }
+
       case 'support': {
         return <Support />;
       }
 
       case 'cache': {
         return <Cache />;
+      }
+
+      case 'clientCert': {
+        return <ClientCertSettings />;
       }
     }
   };
@@ -94,9 +107,17 @@ const Preferences = () => {
             <IconUserCircle size={16} strokeWidth={1.5} />
             Proxy
           </div>
+          <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+            <IconCertificate size={16} strokeWidth={1.5} />
+            Client Certificates
+          </div>
           <div className={getTabClassname('keybindings')} role="tab" onClick={() => setTab('keybindings')}>
             <IconKeyboard size={16} strokeWidth={1.5} />
             Keybindings
+          </div>
+          <div className={getTabClassname('ai')} role="tab" onClick={() => setTab('ai')}>
+            <IconSparkles size={16} strokeWidth={1.5} />
+            AI
           </div>
           <div className={getTabClassname('cache')} role="tab" onClick={() => setTab('cache')}>
             <IconDatabase size={16} strokeWidth={1.5} />

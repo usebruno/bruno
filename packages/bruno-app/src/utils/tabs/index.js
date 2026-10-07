@@ -12,9 +12,8 @@ export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.uid === item.uid);
 };
 
-export const scrollToTheActiveTab = () => {
-  const activeTab = document.querySelector('.request-tab.active');
-  if (activeTab) {
-    activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+export const getActiveScriptTab = (scriptPaneTab, requestScript) => {
+  if (scriptPaneTab) return scriptPaneTab;
+  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
+  return hasPreRequestScript ? 'pre-request' : 'post-response';
 };

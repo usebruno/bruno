@@ -46,6 +46,7 @@ export const palette = {
     OVERLAY0: '#444444'
   },
   border: {
+    BORDER3: '#555555',
     BORDER2: '#444444',
     BORDER1: '#333333',
     BORDER0: '#2a2a2a'
@@ -105,6 +106,12 @@ const darkTheme = {
     text: palette.primary.TEXT,
     strong: palette.primary.STRONG,
     subtle: palette.primary.SUBTLE
+  },
+
+  ws: {
+    activeMessage: {
+      label: palette.primary.TEXT
+    }
   },
 
   accents: {
@@ -174,6 +181,7 @@ const darkTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: palette.border.BORDER3,
     border2: palette.border.BORDER2,
     border1: palette.border.BORDER1,
     border0: palette.border.BORDER0
@@ -303,16 +311,14 @@ const darkTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: palette.background.BASE,
     list: {
-      bg: '3D3D3D',
-      borderRight: '#4f4f4f',
-      borderBottom: '#545454',
-      hoverBg: '#434343',
+      bg: palette.background.BASE,
+      borderBottom: palette.border.BORDER0,
+      hoverBg: colors.GRAY_3,
       active: {
-        border: '#569cd6',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
+        bg: palette.background.SURFACE0,
+        hoverBg: colors.GRAY_4
       }
     }
   },

@@ -200,12 +200,19 @@ const createWorkspaceConfig = (workspaceName) => ({
 });
 
 const normalizeWorkspaceConfig = (config) => {
+  // Coerce `specs` to an array once. A malformed workspace.yml (e.g. `specs`
+  // authored as a map) would otherwise flow through as a non-array and crash
+  // both the renderer sidebar (.map) and the write paths (.findIndex/.filter).
+  const specs = Array.isArray(config.specs) ? config.specs : [];
   return {
     ...config,
     name: config.info?.name,
     type: config.info?.type,
     collections: config.collections || [],
-    apiSpecs: config.specs || []
+    specs,
+    // Distinct array (not an alias of `specs`) so a later in-place mutation of
+    // one field can't silently change the other.
+    apiSpecs: [...specs]
   };
 };
 
@@ -556,7 +563,7 @@ const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
   });
 };
 
-const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => {
+const resolveWorkspaceCollectionPaths = (workspacePath, rawCollections) => {
   const seenPaths = new Set();
 
   return (rawCollections || [])
@@ -568,12 +575,18 @@ const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => 
         : path.resolve(workspacePath, collectionPath);
       return { ...collection, path: absolute };
     })
-    .map((collection) => {
-      if (!collection.path) return null;
+    .filter((collection) => {
+      if (!collection.path) return false;
       const normalizedPath = path.normalize(collection.path);
-      if (seenPaths.has(normalizedPath)) return null;
+      if (seenPaths.has(normalizedPath)) return false;
       seenPaths.add(normalizedPath);
+      return true;
+    });
+};
 
+const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => {
+  return resolveWorkspaceCollectionPaths(workspacePath, rawCollections)
+    .map((collection) => {
       if (isValidCollectionDirectory(collection.path)) return collection;
       if (collection.remote) return { ...collection, notFoundLocally: true };
       return null;
@@ -584,6 +597,14 @@ const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => 
 const getWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
   return resolveAndFilterWorkspaceCollections(workspacePath, config.collections);
+};
+
+const getUnopenableWorkspaceCollections = (workspacePath) => {
+  const config = readWorkspaceConfig(workspacePath);
+
+  return resolveWorkspaceCollectionPaths(workspacePath, config.collections)
+    .filter((collection) => !collection.remote && !isValidCollectionDirectory(collection.path))
+    .map((collection) => ({ name: collection.name, path: collection.path }));
 };
 
 const getWorkspaceApiSpecs = (workspacePath) => {
@@ -686,6 +707,7 @@ module.exports = {
   validateWorkspacePath,
   validateWorkspaceDirectory,
   createWorkspaceConfig,
+  normalizeWorkspaceConfig,
   readWorkspaceConfig,
   writeWorkspaceConfig,
   validateWorkspaceConfig,
@@ -697,6 +719,7 @@ module.exports = {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   getWorkspaceApiSpecs,
   addApiSpecToWorkspace,

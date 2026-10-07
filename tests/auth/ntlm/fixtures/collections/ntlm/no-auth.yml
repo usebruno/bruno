@@ -1,0 +1,10 @@
+info:
+  name: no-auth
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{process.env.NTLM_BASE_URL}}/api"
+  auth:
+    type: none

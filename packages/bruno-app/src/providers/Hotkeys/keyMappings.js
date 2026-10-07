@@ -1,3 +1,5 @@
+import { isLinuxOS, isMacOS } from 'utils/common/platform';
+
 export const KEY_BINDING_SECTIONS = [
   {
     heading: 'Tabs',
@@ -78,6 +80,94 @@ export const KEY_BINDING_SECTIONS = [
   }
 ];
 
+export const KEY_BINDING_SEPARATOR = '+bind+';
+
+// Linux has no bindings of its own and shares the 'windows' set.
+export const getKeyBindingOS = () => (isMacOS() ? 'mac' : 'windows');
+
+// Linux is separate for display only: its Meta key is labelled Super, not Win.
+export const getKeyBindingDisplayOS = () => (isLinuxOS() ? 'linux' : getKeyBindingOS());
+
+const BINDING_OS_BY_DISPLAY_OS = { mac: 'mac', windows: 'windows', linux: 'windows' };
+
+export const MODIFIER_SYMBOLS = {
+  mac: {
+    command: '⌘',
+    ctrl: '⌃',
+    alt: '⌥',
+    shift: '⇧'
+  },
+  windows: {
+    ctrl: 'Ctrl',
+    alt: 'Alt',
+    shift: 'Shift',
+    command: 'Win'
+  },
+  linux: {
+    ctrl: 'Ctrl',
+    alt: 'Alt',
+    shift: 'Shift',
+    command: 'Super'
+  }
+};
+
+// Display only; stored bindings keep their own order. macOS follows Apple's HIG;
+// Windows/Linux match Electron's native menus (drawn by Chromium).
+const DISPLAY_MODIFIER_ORDER = {
+  mac: ['ctrl', 'alt', 'shift', 'command'],
+  windows: ['command', 'alt', 'ctrl', 'shift']
+};
+
+export const fromKeysString = (keysStr) => (keysStr ? keysStr.split(KEY_BINDING_SEPARATOR).filter(Boolean) : []);
+
+export const orderKeysForDisplay = (keysArr, os) => {
+  const modifierOrder = DISPLAY_MODIFIER_ORDER[os] || DISPLAY_MODIFIER_ORDER.windows;
+  const rank = (key) => {
+    const index = modifierOrder.indexOf(key);
+    return index === -1 ? modifierOrder.length : index;
+  };
+  return [...keysArr].sort((a, b) => rank(a) - rank(b));
+};
+
+export const formatSingleKeyForDisplay = (key, os) => {
+  if (MODIFIER_SYMBOLS[os]?.[key]) return MODIFIER_SYMBOLS[os][key];
+  if (key.length === 1) return key.toUpperCase();
+
+  const SPECIAL_LABELS = {
+    enter: os === 'mac' ? '↩' : 'Enter',
+    backspace: os === 'mac' ? '⌫' : 'Backspace',
+    tab: os === 'mac' ? '⇥' : 'Tab',
+    delete: os === 'mac' ? '⌦' : 'Delete',
+    esc: os === 'mac' ? '⎋' : 'Esc',
+    space: os === 'mac' ? '␣' : 'Space',
+    arrowup: '↑',
+    arrowdown: '↓',
+    arrowleft: '←',
+    arrowright: '→',
+    pageup: 'PageUp',
+    pagedown: 'PageDown',
+    home: 'Home',
+    end: 'End'
+  };
+
+  return SPECIAL_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+};
+
+export const formatKeysForDisplay = (keysArr, os, separator = ' + ') => {
+  if (!keysArr?.length) return '';
+  return orderKeysForDisplay(keysArr, os).map((key) => formatSingleKeyForDisplay(key, os)).join(separator);
+};
+
+export const getKeyBindingForActionByOS = (action, userKeyBindings, os) => {
+  const merged = getMergedKeyBindings(userKeyBindings);
+  return merged?.[action]?.[os] || '';
+};
+
+export const getKeyBindingDisplayTextByOS = (action, userKeyBindings, displayOS, separator) => {
+  const keysStr = getKeyBindingForActionByOS(action, userKeyBindings, BINDING_OS_BY_DISPLAY_OS[displayOS]);
+  return formatKeysForDisplay(fromKeysString(keysStr), displayOS, separator);
+};
+
 /**
  * Converts keybindings from storage format (+bind+) to Mousetrap format (+)
  * Storage format uses +bind+ as separator to avoid conflicts with the actual + key
@@ -91,7 +181,7 @@ export const toMousetrapCombo = (keysStr) => {
   if (!keysStr) return null;
 
   // Split by +bind+ separator
-  const parts = keysStr.split('+bind+').filter(Boolean);
+  const parts = fromKeysString(keysStr);
 
   // Convert arrow key names from browser format to Mousetrap format
   const converted = parts.map((part) => {
@@ -155,19 +245,6 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
     return null;
   }
 
-  const combos = [];
-
-  // Detect current OS and use appropriate bindings only
-  const isMac = navigator.platform.toLowerCase().includes('mac');
-
-  if (isMac && actionBindings.mac) {
-    const combo = toMousetrapCombo(actionBindings.mac);
-    if (combo) combos.push(combo);
-  } else if (!isMac && actionBindings.windows) {
-    const combo = toMousetrapCombo(actionBindings.windows);
-    if (combo) combos.push(combo);
-  }
-
-  // console.log('[keyMappings] getKeyBindingsForActionAllOS:', action, '->', combos);
-  return combos.length > 0 ? combos : null;
+  const combo = toMousetrapCombo(actionBindings[getKeyBindingOS()]);
+  return combo ? [combo] : null;
 };

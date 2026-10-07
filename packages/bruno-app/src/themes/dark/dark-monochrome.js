@@ -40,6 +40,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: colors.GRAY_5,
+  BORDER2: colors.GRAY_4,
+  BORDER1: colors.GRAY_3,
+  BORDER0: colors.GRAY_2
+};
+
 palette.intent = {
   INFO: '#8a8a8a',
   SUCCESS: '#a3a3a3',
@@ -129,9 +136,10 @@ const darkMonochromeTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_4,
-    border1: colors.GRAY_3,
-    border0: colors.GRAY_2
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -212,6 +220,12 @@ const darkMonochromeTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.TEXT
+    }
+  },
+
   request: {
     methods: {
       get: '#a3a3a3',
@@ -258,16 +272,14 @@ const darkMonochromeTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.BG,
     list: {
-      bg: '3D3D3D',
-      borderRight: '#4f4f4f',
+      bg: colors.BG,
       borderBottom: '#545454',
-      hoverBg: '#434343',
+      hoverBg: colors.GRAY_3,
       active: {
-        border: '#a3a3a3',
-        bg: '#4f4f4f',
-        hoverBg: '#4f4f4f'
+        bg: colors.GRAY_2,
+        hoverBg: colors.GRAY_4
       }
     }
   },

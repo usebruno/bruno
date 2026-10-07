@@ -1,0 +1,113 @@
+{
+  "info": {
+    "_postman_id": "68dee704-cc87-496a-9715-6e60158709dd",
+    "name": "NTLM",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529",
+    "_collection_link": "https://go.postman.co/collection/56331529-68dee704-cc87-496a-9715-6e60158709dd?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Inherited",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Own Auth",
+      "request": {
+        "auth": {
+          "type": "ntlm",
+          "ntlm": [
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "NTLM_USER_2",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "ntlm",
+    "ntlm": [
+      {
+        "key": "workstation",
+        "value": "my-pc",
+        "type": "string"
+      },
+      {
+        "key": "domain",
+        "value": "example.com",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "pass",
+        "type": "string"
+      },
+      {
+        "key": "username",
+        "value": "NTLM_user",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

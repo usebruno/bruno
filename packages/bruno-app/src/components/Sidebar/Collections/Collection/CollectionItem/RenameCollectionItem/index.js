@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
+import { getItemTypeLabel } from 'utils/collections';
 import { renameItem, saveRequest, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import path from 'utils/common/path';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
@@ -24,6 +25,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
   const [isEditing, toggleEditing] = useState(false);
   const itemName = item?.name;
   const itemType = item?.type;
+  const itemTypeLabel = getItemTypeLabel(item);
   const itemFilename = item?.filename ? path.parse(item?.filename).name : '';
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -106,14 +108,14 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
       <StyledWrapper>
         <Modal
           size="md"
-          title={`Rename ${isFolder ? 'Folder' : 'Request'}`}
+          title={`Rename ${itemTypeLabel}`}
           handleCancel={onClose}
           hideFooter
         >
           <form className="bruno-form" onSubmit={formik.handleSubmit}>
             <div className="flex flex-col mt-2">
               <label htmlFor="name" className="block font-medium">
-                {isFolder ? 'Folder' : 'Request'} Name
+                {itemTypeLabel} Name
               </label>
               <input
                 id="collection-item-name"
@@ -131,7 +133,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                 }}
                 value={formik.values.name || ''}
               />
-              {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
+              {formik.touched.name && formik.errors.name ? <div className="text-red-500" data-testid="form-error">{formik.errors.name}</div> : null}
             </div>
 
             {showFilesystemName && (
@@ -198,7 +200,7 @@ const RenameCollectionItem = ({ collectionUid, item, onClose }) => {
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
+                  <div className="text-red-500" data-testid="form-error">{formik.errors.filename}</div>
                 ) : null}
               </div>
             )}

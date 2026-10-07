@@ -1,0 +1,20 @@
+meta {
+  name: set-typed-global-vars
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Typed values persist with their dataType annotation in Local.yml's variables list.
+  bru.setGlobalEnvVar("global_num", 42);
+  bru.setGlobalEnvVar("global_bool", true);
+  bru.setGlobalEnvVar("global_obj", { scope: "global" });
+  // Plain string — no dataType materialized.
+  bru.setGlobalEnvVar("global_str", "hello");
+}

@@ -17,11 +17,6 @@ test.describe('Response Example - Multipart Form File Chips', () => {
     }
   });
 
-  // `pageWithUserData` reuses the Electron app across tests in the same worker
-  // (it doesn't pass `closePrevious: true`), so we can't assume a clean DOM
-  // between tests. This helper is idempotent: it only toggles the chevron when
-  // the examples list isn't already expanded, so re-running it after a
-  // previous test leaves things in either state still works.
   const openMultipartExample = async (page: Page) => {
     await page.locator('#sidebar-collection-name').getByText('collection').click();
 
@@ -45,11 +40,6 @@ test.describe('Response Example - Multipart Form File Chips', () => {
     });
 
     await test.step('All three files are present', async () => {
-      // The cell can be in one of three layout modes (inline chips, `+N more`
-      // overflow, or a fully collapsed `N files` summary) depending on the
-      // value-column width. CI Linux runners often have a small display that
-      // pushes the cell into the collapsed mode, so we read both inline chips
-      // and any overflow-dropdown rows to cover every case.
       const summary = page.getByTestId('multipart-file-summary');
       const more = page.getByTestId('multipart-file-more');
       const inlineNames = await page.getByTestId('multipart-file-chip').allTextContents();

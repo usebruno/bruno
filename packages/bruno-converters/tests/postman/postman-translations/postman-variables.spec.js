@@ -34,9 +34,33 @@ describe('postmanTranslations - variables commands', () => {
     expect(result).toContain('.to.be.true');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  test.skip('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
+  test('should translate pm.collectionVariables.set to bru.setCollectionVar', () => {
     const inputScript = 'pm.collectionVariables.set(\'key\', \'value\');';
     expect(postmanTranslation(inputScript)).toBe('bru.setCollectionVar(\'key\', \'value\');');
+  });
+
+  test('should translate pm.collectionVariables.unset to bru.deleteCollectionVar', () => {
+    const inputScript = 'pm.collectionVariables.unset(\'key\');';
+    expect(postmanTranslation(inputScript)).toBe('bru.deleteCollectionVar(\'key\');');
+  });
+
+  test('should translate pm.collectionVariables.clear to bru.deleteAllCollectionVars', () => {
+    const inputScript = 'pm.collectionVariables.clear();';
+    expect(postmanTranslation(inputScript)).toBe('bru.deleteAllCollectionVars();');
+  });
+
+  test('should translate pm.collectionVariables.toObject to bru.getAllCollectionVars', () => {
+    const inputScript = 'const vars = pm.collectionVariables.toObject();';
+    expect(postmanTranslation(inputScript)).toBe('const vars = bru.getAllCollectionVars();');
+  });
+
+  test('should translate pm.globals.unset to bru.deleteGlobalEnvVar', () => {
+    const inputScript = 'pm.globals.unset(\'token\');';
+    expect(postmanTranslation(inputScript)).toBe('bru.deleteGlobalEnvVar(\'token\');');
+  });
+
+  test('should translate pm.globals.clear to bru.deleteAllGlobalEnvVars', () => {
+    const inputScript = 'pm.globals.clear();';
+    expect(postmanTranslation(inputScript)).toBe('bru.deleteAllGlobalEnvVars();');
   });
 });

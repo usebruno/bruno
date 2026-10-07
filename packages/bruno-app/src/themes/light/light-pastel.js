@@ -58,6 +58,13 @@ const colors = {
 
 export const palette = {};
 
+palette.border = {
+  BORDER3: colors.GRAY_5,
+  BORDER2: colors.GRAY_4,
+  BORDER1: colors.GRAY_3,
+  BORDER0: colors.GRAY_2
+};
+
 palette.intent = {
   INFO: colors.BLUE,
   SUCCESS: colors.GREEN,
@@ -147,9 +154,10 @@ const lightPastelTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_4,
-    border1: colors.GRAY_3,
-    border0: colors.GRAY_2
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
@@ -228,6 +236,12 @@ const lightPastelTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   request: {
     methods: {
       get: '#3c9d7c', // Soft emerald - success
@@ -271,16 +285,14 @@ const lightPastelTheme = {
   },
 
   notifications: {
-    bg: colors.WHITE,
+    bg: colors.BACKGROUND,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: 'transparent',
+      bg: colors.BACKGROUND,
       borderBottom: colors.GRAY_4,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
         bg: colors.GRAY_3,
-        hoverBg: colors.GRAY_3
+        hoverBg: colors.GRAY_5
       }
     }
   },

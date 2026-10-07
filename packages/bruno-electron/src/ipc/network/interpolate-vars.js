@@ -1,8 +1,26 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { isFormData } = require('@usebruno/common').utils;
+const { isFormData, getMediaType } = require('@usebruno/common').utils;
+const { getUnresolvedVariableCollector } = require('@usebruno/js');
+const { isBinaryRequestBody } = require('../../utils/common');
 
-const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -26,6 +44,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
+  const onUnresolved = getUnresolvedVariableCollector(request);
   // we clone envVars because we don't want to modify the original object
   envVariables = cloneDeep(envVariables);
 
@@ -63,7 +82,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     };
 
     return interpolate(str, combinedVars, {
-      escapeJSONStrings
+      escapeJSONStrings,
+      onUnresolved
     });
   };
 
@@ -79,6 +99,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   const contentType = getContentType(request.headers);
+  const mediaType = getMediaType(contentType);
   const isGraphqlRequest = request.mode === 'graphql';
 
   // gRPC: interpolate entire body (JSON message template and any other keys).
@@ -116,7 +137,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       buffers or streams depending on size. Even if the selected file's content type is JSON, the
       transport object itself must not be interpolated.
     */
-    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
+    if (mediaType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
@@ -132,14 +153,16 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           request.data = JSON.parse(parsed);
         } catch (err) {}
       }
-    } else if (contentType === 'application/x-www-form-urlencoded') {
-      if (request.data && Array.isArray(request.data)) {
+    } else if (mediaType === 'application/x-www-form-urlencoded') {
+      if (typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (request.data && Array.isArray(request.data)) {
         request.data = request.data.map((d) => ({
           ...d,
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType.startsWith('multipart/')) {
+    } else if (mediaType.startsWith('multipart/')) {
       if (request?.data && typeof request.data === 'string') {
         request.data = _interpolate(request.data);
       } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
@@ -180,7 +203,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
+          if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
           return '/' + existingPathParam.value;
@@ -201,7 +224,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               name = name.replace(/^[('"`]+/, '');
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
+                if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
               }
@@ -367,6 +390,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for edgegrid auth
+  if (request.edgeGridConfig) {
+    request.edgeGridConfig.accessToken = _interpolate(request.edgeGridConfig.accessToken) || '';
+    request.edgeGridConfig.clientToken = _interpolate(request.edgeGridConfig.clientToken) || '';
+    request.edgeGridConfig.clientSecret = _interpolate(request.edgeGridConfig.clientSecret) || '';
+    request.edgeGridConfig.nonce = _interpolate(request.edgeGridConfig.nonce) || '';
+    request.edgeGridConfig.timestamp = _interpolate(request.edgeGridConfig.timestamp) || '';
+    request.edgeGridConfig.baseURL = _interpolate(request.edgeGridConfig.baseURL) || '';
+    request.edgeGridConfig.headersToSign = _interpolate(request.edgeGridConfig.headersToSign) || '';
   }
 
   // interpolate vars for oauth1config auth

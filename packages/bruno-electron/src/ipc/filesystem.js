@@ -4,6 +4,7 @@ const { pathToFileURL } = require('node:url');
 
 const {
   browseDirectory,
+  browseDirectories,
   browseFiles,
   normalizeAndResolvePath,
   isFile,
@@ -15,6 +16,14 @@ const registerFilesystemIpc = (mainWindow) => {
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
       return await browseDirectory(mainWindow);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:browse-directories', async () => {
+    try {
+      return await browseDirectories(mainWindow);
     } catch (error) {
       return Promise.reject(error);
     }

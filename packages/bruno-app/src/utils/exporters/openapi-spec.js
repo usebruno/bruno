@@ -4,8 +4,8 @@ import { isValidUrl } from 'utils/url/index';
 const xml2js = require('xml2js');
 
 export const exportApiSpec = ({ variables, items, name, environments }) => {
-  // Filter out transient items and grpc requests
-  items = items.filter((item) => !['grpc-request'].includes(item.type) && !item.isTransient);
+  // Filter only include http-request and graphql-request items that aren't transient
+  items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
 
   const components = {
     schemas: {},
@@ -109,6 +109,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     return componentId;
   };
 
+  const restoreUnresolvedPlaceholders = (value) => value.replace(/%7B%7B(.*?)%7D%7D/gi, '{{$1}}');
+
   // Resolve a raw request URL to a path and optional operation-level server override.
   // Checks for request-level baseUrl overrides (vars.req), then {{baseUrl}} placeholder,
   // then known baseUrl sources. Falls back to full resolution for unknown URLs.
@@ -127,7 +129,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     // URL uses {{baseUrl}} placeholder — strip it and resolve remaining path
     if (rawUrl.startsWith('{{baseUrl}}')) {
       const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
-      return { url: interpolate(path, {}), operationLevelServer: null };
+      return { url: interpolate(path, variables), operationLevelServer: null };
     }
 
     // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
@@ -135,7 +137,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
       if (rawUrl.startsWith(source.baseUrl)) {
         const rawPath = rawUrl.slice(source.baseUrl.length);
         const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-        return { url: interpolate(path, {}), operationLevelServer: null };
+        return { url: interpolate(path, source.vars || variables), operationLevelServer: null };
       }
     }
 
@@ -143,7 +145,10 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     const resolvedUrl = interpolate(rawUrl, variables);
     if (isValidUrl(resolvedUrl)) {
       const urlDetails = new URL(resolvedUrl);
-      return { url: urlDetails.pathname, operationLevelServer: buildServerEntry(urlDetails.origin, variables) };
+      return {
+        url: restoreUnresolvedPlaceholders(urlDetails.pathname),
+        operationLevelServer: buildServerEntry(urlDetails.origin, variables)
+      };
     }
 
     return { url: rawUrl, operationLevelServer: null };
@@ -171,14 +176,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
         ...params?.filter((p) => p?.type !== 'path').map((param) => ({
           name: param?.name,
           in: 'query',
-          description: '',
+          description: param?.description || '',
           required: param?.enabled,
           example: param?.value
         })),
         ...headers?.map((header) => ({
           name: header?.name,
           in: 'header',
-          description: '',
+          description: header?.description || '',
           required: header?.enabled,
           example: header?.value
         })),
@@ -306,11 +311,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'multipartForm':
             if (!body?.multipartForm) break;
             const multipartFormComponentId = getItemComponentId();
-            let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[multipartFormComponentId] = generateProperyShape(multipartFormToKeyValue);
+            {
+              const multipartFormProps = {};
+              body.multipartForm.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                multipartFormProps[f.name] = prop;
+              });
+              components.schemas[multipartFormComponentId] = { type: 'object', properties: multipartFormProps };
+            }
             components.requestBodies[multipartFormComponentId] = {
               content: {
                 'multipart/form-data': {
@@ -329,11 +338,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'formUrlEncoded':
             if (!body?.formUrlEncoded) break;
             const formUrlEncodedComponentId = getItemComponentId();
-            let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[formUrlEncodedComponentId] = generateProperyShape(formUrlEncodedToKeyValue);
+            {
+              const formUrlEncodedProps = {};
+              body.formUrlEncoded.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                formUrlEncodedProps[f.name] = prop;
+              });
+              components.schemas[formUrlEncodedComponentId] = { type: 'object', properties: formUrlEncodedProps };
+            }
             components.requestBodies[formUrlEncodedComponentId] = {
               content: {
                 'application/x-www-form-urlencoded': {

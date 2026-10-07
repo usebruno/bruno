@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -8,6 +9,7 @@ const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
+const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
 
 class TestRuntime {
   constructor(props) {
@@ -50,22 +52,25 @@ class TestRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     if (!testsFile || !testsFile.length) {
       return {
         request,
-        envVariables,
-        runtimeVariables,
-        globalEnvironmentVariables,
+        envVariables: null,
+        runtimeVariables: null,
+        collectionVariables: null,
+        globalEnvironmentVariables: null,
         results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -77,7 +82,8 @@ class TestRuntime {
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
-      jwt: jsonwebtoken
+      jwt: jsonwebtoken,
+      __bruSetScope: createScopeSetter(bru)
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
@@ -95,14 +101,12 @@ class TestRuntime {
       };
     }
 
-    if (runRequestByItemPathname) {
-      context.bru.runRequest = runRequestByItemPathname;
-    }
+    bindRunRequest(bru, runRequestByItemPathname);
 
     let scriptError = null;
 
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
+    if (this.runtime === SANDBOX.NODEVM) {
+      try {
         await runScriptInNodeVm({
           script: testsFile,
           context,
@@ -110,28 +114,35 @@ class TestRuntime {
           scriptingConfig,
           scriptPath
         });
-      } else {
-        // default runtime is `quickjs`
+      } catch (error) {
+        scriptError = error;
+      }
+      await waitForPendingTests();
+    } else {
+      // default runtime is `quickjs`
+      try {
         await executeQuickJsVmAsync({
           script: testsFile,
           context: context,
           collectionPath,
           scriptPath
         });
+      } catch (error) {
+        scriptError = error;
       }
-    } catch (error) {
-      scriptError = error;
     }
 
     const result = {
       request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      stopExecution: bru.stopExecution,
+      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     };
 
     if (scriptError) {

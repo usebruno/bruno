@@ -11,6 +11,7 @@ import { BrunoError } from 'utils/common/error';
 import { isOpenApiSpec } from './openapi-collection';
 import { isPostmanCollection } from './postman-collection';
 import { isInsomniaCollection } from './insomnia-collection';
+import { valueToString } from '@usebruno/common/utils';
 
 export const validateSchema = async (collections = []) => {
   collections = Array.isArray(collections) ? collections : [collections];
@@ -57,12 +58,24 @@ export const updateUidsInCollection = (_collection) => {
         each(get(example, 'response.headers'), (header) => (header.uid = uuid()));
       });
 
+      each(get(item, 'root.request.headers'), (header) => (header.uid = header.uid || uuid()));
+      each(get(item, 'root.request.vars.req'), (v) => (v.uid = v.uid || uuid()));
+      each(get(item, 'root.request.vars.res'), (v) => (v.uid = v.uid || uuid()));
+
       if (item.items && item.items.length) {
         updateItemUids(item.items);
       }
     });
   };
   updateItemUids(collection.items);
+
+  const updateRootUids = (root) => {
+    if (!root) return;
+    each(get(root, 'request.headers'), (header) => (header.uid = header.uid || uuid()));
+    each(get(root, 'request.vars.req'), (v) => (v.uid = v.uid || uuid()));
+    each(get(root, 'request.vars.res'), (v) => (v.uid = v.uid || uuid()));
+  };
+  updateRootUids(collection.root);
 
   const updateEnvUids = (envs = []) => {
     each(envs, (env) => {
@@ -98,6 +111,7 @@ export const transformItemsInCollection = (collection) => {
         item.type = `${item.type}-request`;
         const isGrpcRequest = item.type === 'grpc-request';
         const isWSRequest = item.type === 'ws-request';
+        item.request.url = valueToString(item.request.url);
 
         if (item.request.query) {
           item.request.params = item.request.query.map((queryItem) => ({
@@ -136,6 +150,10 @@ export const transformItemsInCollection = (collection) => {
             example.type = `${example.type}-request`;
             const isGrpcExample = example.type === 'grpc-request';
             const isWSExample = example.type === 'ws-request';
+
+            if (example.request) {
+              example.request.url = valueToString(example.request.url);
+            }
 
             if (example.request && example.request.query) {
               example.request.params = example.request.query.map((queryItem) => ({
@@ -224,7 +242,7 @@ export const fetchAndValidateApiSpecFromUrl = ({ url }) => {
     ipcRenderer
       .invoke('renderer:fetch-api-spec', url)
       .then(async (res) => {
-        const data = await jsyaml.load(res);
+        const data = await jsyaml.load(res, { schema: jsyaml.JSON_SCHEMA });
         const specType = getCollectionSpecType(data);
         resolve({ data, specType, rawContent: res });
       })
@@ -233,4 +251,38 @@ export const fetchAndValidateApiSpecFromUrl = ({ url }) => {
         reject(new BrunoError('Failed to fetch API specification: ' + err.message));
       });
   });
+};
+
+export const getFetchErrorMessage = (error, url) => {
+  const raw = String(error?.message || '');
+
+  let host = 'that URL';
+  try {
+    host = new URL(url).host;
+  } catch (parseError) {
+    host = 'that URL';
+  }
+
+  if (raw.includes('ECONNREFUSED')) {
+    return `Nothing is listening at ${host}. Check the URL, or start the server.`;
+  }
+
+  if (raw.includes('ENOTFOUND') || raw.includes('EAI_AGAIN')) {
+    return `Could not find ${host}. Check the address for a typo.`;
+  }
+
+  if (raw.includes('ETIMEDOUT') || raw.includes('ECONNABORTED') || raw.includes('timeout')) {
+    return `${host} took too long to respond.`;
+  }
+
+  if (raw.includes('CERT') || raw.includes('self signed') || raw.includes('DEPTH_ZERO')) {
+    return `The certificate for ${host} could not be verified.`;
+  }
+
+  const status = raw.match(/status code (\d{3})/);
+  if (status) {
+    return `${host} responded with ${status[1]}.`;
+  }
+
+  return `Could not fetch a specification from ${host}.`;
 };

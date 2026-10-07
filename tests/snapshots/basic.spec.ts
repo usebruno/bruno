@@ -265,6 +265,12 @@ test.describe('Snapshot: Workspace State', () => {
   });
 
   test('workspace collection sorting persists across workspace switches and restart', async ({ launchElectronApp, createTmpDir }) => {
+    // Heaviest restart test in this file (4 collections across 2 workspaces, sort
+    // toggles, multiple snapshot-file polls, then a full restart). It needs the same
+    // extended budget as the other multi-collection restart tests, otherwise it runs
+    // out of time mid-restart on slower runners (e.g. Windows CI, especially when the
+    // job doesn't set CI=true and the default collapses to 30s).
+    test.setTimeout(60000);
     const userDataPath = await createTmpDir('snap-ws-collection-sorting');
 
     const defaultColZPath = await createTmpDir('default-col-zulu');

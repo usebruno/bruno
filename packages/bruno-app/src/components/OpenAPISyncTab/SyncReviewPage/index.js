@@ -88,6 +88,7 @@ const SyncReviewPage = ({
 }) => {
   const dispatch = useDispatch();
   const tabUiState = useSelector((state) => state.openapiSync?.tabUiState?.[collectionUid] || {});
+  const [preserveValues, setPreserveValues] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSpecDiffModal, setShowSpecDiffModal] = useState(false);
   const [isOpeningSpecDiff, setIsOpeningSpecDiff] = useState(false);
@@ -210,7 +211,8 @@ const SyncReviewPage = ({
       newToCollection: filteredAddedEndpoints,
       specUpdates: filteredSpecChanges,
       resolvedConflicts: specUpdatedEndpoints.filter((ep) => ep.conflict && decisions[ep.id] === 'accept-incoming'),
-      localChangesToReset: localUpdatedEndpoints.filter((ep) => decisions[ep.id] === 'accept-incoming')
+      localChangesToReset: localUpdatedEndpoints.filter((ep) => decisions[ep.id] === 'accept-incoming'),
+      preserveValues
     });
   };
 
@@ -238,6 +240,21 @@ const SyncReviewPage = ({
             </div>
             {(specDrift?.unifiedDiff || decidableEndpoints.length > 0) && (
               <div className="bulk-actions">
+                <div className="preserve-values-control">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-pressed={preserveValues}
+                    className={`preserve-toggle ${preserveValues ? 'active' : ''}`}
+                    onClick={() => setPreserveValues((v) => !v)}
+                  >
+                    <span className="preserve-toggle-knob" />
+                  </button>
+                  <span className="preserve-values-label">Preserve values</span>
+                  <Help icon="info" size={12} placement="top" width={260}>
+                    When enabled, your edited values are preserved during sync. When disabled, all values are updated to match the OpenAPI spec.
+                  </Help>
+                </div>
                 {specDrift?.unifiedDiff && (
                   <button
                     className="bulk-btn"
@@ -329,6 +346,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Keep Current', accept: 'Update' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />
@@ -353,6 +371,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Skip', accept: 'Add' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />
@@ -377,6 +396,7 @@ const SyncReviewPage = ({
                       showDecisions={true}
                       decisionLabels={{ keep: 'Keep', accept: 'Delete' }}
                       collectionUid={collectionUid}
+                      preserveValues={preserveValues}
                     />
                   )}
                 />
