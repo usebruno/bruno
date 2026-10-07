@@ -8,17 +8,18 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
     return null;
   }
 
-  const text = editor.getSelection();
+  // getSelection() concatenates every range; read the text back so it matches the range we replace.
+  const from = editor.getCursor('from');
+  const to = editor.getCursor('to');
+  const text = editor.getRange(from, to);
+
   if (!text || !text.trim()) {
     return null;
   }
 
-  // `from`/`to` are already normalised by CodeMirror, so a backwards drag needs no handling here.
-  const from = editor.getCursor('from');
-  const to = editor.getCursor('to');
-
   if (event && typeof editor.coordsChar === 'function') {
-    const clicked = editor.coordsChar({ left: event.clientX, top: event.clientY });
+    // clientX/clientY are viewport-relative; CodeMirror defaults to page.
+    const clicked = editor.coordsChar({ left: event.clientX, top: event.clientY }, 'window');
     if (clicked && !isPositionWithinRange(clicked, from, to)) {
       return null;
     }
@@ -34,8 +35,7 @@ export const getCodeMirrorSelectionPayload = (editor, event) => {
 
 const BRACE_LENGTH = 2;
 
-// Selecting the name inside an existing `{{var}}` would otherwise nest the braces into
-// `{{{{var}}}}`; swallow the surrounding pair so the reference is replaced, not wrapped.
+// Swallow a wrapping pair so selecting inside `{{var}}` replaces the reference instead of nesting it.
 const expandOverWrappingBraces = (editor, from, to) => {
   if (from.ch < BRACE_LENGTH) {
     return { from, to };

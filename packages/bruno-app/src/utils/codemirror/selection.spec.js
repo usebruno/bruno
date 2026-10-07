@@ -15,7 +15,7 @@ const createEditor = ({
   getSelection: () => selection,
   getCursor: (which) => (which === 'from' ? from : to),
   getOption: (name) => (name === 'readOnly' ? readOnly : undefined),
-  coordsChar: () => clickedChar,
+  coordsChar: jest.fn(() => clickedChar),
   getRange: jest.fn((a, b) => {
     if (document !== null) {
       const line = document.split('\n')[a.line] ?? '';
@@ -58,6 +58,26 @@ describe('getCodeMirrorSelectionPayload', () => {
 
     expect(payload.from).toEqual(pos(1, 4));
     expect(payload.to).toEqual(pos(2, 9));
+  });
+
+  it('takes its text from the primary range, not every range of a multi-cursor selection', () => {
+    // getSelection() would concatenate all ranges; the stored value must match the range we replace.
+    const editor = createEditor({
+      document: '{"a": "foo", "b": "foo"}',
+      selection: 'foo\nfoo',
+      from: pos(0, 7),
+      to: pos(0, 10),
+      clickedChar: pos(0, 8)
+    });
+
+    expect(getCodeMirrorSelectionPayload(editor, event).text).toBe('foo');
+  });
+
+  it('hit-tests the click in window coordinates, which is what clientX/clientY are', () => {
+    const editor = createEditor();
+    getCodeMirrorSelectionPayload(editor, event);
+
+    expect(editor.coordsChar).toHaveBeenCalledWith({ left: 10, top: 20 }, 'window');
   });
 
   it('returns null when the right-click lands outside the selection', () => {

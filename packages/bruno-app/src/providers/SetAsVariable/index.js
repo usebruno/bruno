@@ -14,8 +14,7 @@ export function SetAsVariableProvider({ children }) {
   const [state, setState] = useState(CLOSED);
   const activeTabUid = useSelector((reduxState) => reduxState.tabs.activeTabUid);
 
-  // The open callbacks are deliberately dependency-free so the context value never changes
-  // identity; a ref keeps the active tab reachable from inside them without that cost.
+  // A ref, so the open callbacks stay dependency-free and the context value keeps its identity.
   const activeTabUidRef = useRef(activeTabUid);
   activeTabUidRef.current = activeTabUid;
 

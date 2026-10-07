@@ -73,8 +73,7 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
   }
 };
 
-// `addEnvironment` only writes the file through IPC. The store is updated later, once the
-// filesystem watcher picks up the new file and dispatches it in.
+// `addEnvironment` only writes the file; the store updates when the watcher picks it up.
 export const waitForEnvironmentByName = ({ store, collectionUid, name }) => {
   const findEnvironment = () => {
     const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
@@ -111,8 +110,7 @@ const isDuplicateEnvironmentName = (environments, name) =>
 export const createEnvironmentForScope = ({ scope, name, collectionUid, store }) => {
   const trimmedName = (name || '').trim();
 
-  // The main process sanitizes the name into a filename; a name it would rewrite makes the
-  // name-based wait below time out, so reject it up front rather than reporting a false failure.
+  // A name the main process would sanitize never matches the wait below, so reject it up front.
   if (!validateName(trimmedName)) {
     return Promise.reject(new Error(validateNameError(trimmedName)));
   }
@@ -146,7 +144,7 @@ export const createEnvironmentForScope = ({ scope, name, collectionUid, store })
 const enabledNames = (variables) =>
   new Set((variables || []).filter((variable) => variable.enabled && variable.name).map((variable) => variable.name));
 
-// Names already defined in a scope, so the UI can tell the user a save would overwrite one.
+// Names already defined in a scope, so the UI can warn before overwriting one.
 export const getScopeVariableNames = ({ scopeType, state, collection, item }) => {
   const scopeInfo = buildScopeInfo({ scopeType, state, collection, item });
   if (!scopeInfo) {
