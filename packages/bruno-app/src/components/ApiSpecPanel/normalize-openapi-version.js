@@ -4,7 +4,7 @@ const normalizeOpenApiObject = (spec) => {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return spec;
 
   const version = typeof spec.openapi === 'string' ? spec.openapi.trim() : '';
-  if (!/^3\.2\.\d+$/.test(version)) return spec;
+  if (!/^3\.2\.\d+(?:[-+].*)?$/.test(version)) return spec;
 
   return { ...spec, openapi: '3.1.0' };
 };
@@ -22,6 +22,8 @@ const normalizeOpenApiVersionForSwagger = (spec) => {
       return spec;
     }
   }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return spec;
 
   const normalized = normalizeOpenApiObject(parsed);
   return normalized === parsed ? spec : normalized;
