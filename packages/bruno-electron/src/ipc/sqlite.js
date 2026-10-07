@@ -1,107 +1,46 @@
-const fs = require('node:fs');
-const path = require('path');
-const { app, ipcMain } = require('electron');
-const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
+const { ipcMain } = require('electron');
+const { getStatements, getFiles } = require('../services/sqlite');
 
-let ipc = null;
-
-const LEGACY_FILE_INDEX_DB = 'mount-snapshots.db';
-const LEGACY_FILE_INDEX_SUFFIXES = ['', '-journal', '-wal', '-shm'];
-
-const removeLegacyFileIndex = () => {
-  const legacyPath = path.join(app.getPath('userData'), LEGACY_FILE_INDEX_DB);
-  if (!fs.existsSync(legacyPath)) return;
-
-  for (const suffix of LEGACY_FILE_INDEX_SUFFIXES) {
-    try {
-      fs.rmSync(legacyPath + suffix, { force: true, maxRetries: 3 });
-    } catch (err) {
-      console.warn(`failed to remove ${LEGACY_FILE_INDEX_DB}${suffix}: `, err);
-    }
+const requireUid = (value, name) => {
+  if (typeof value !== 'string' || value === '') {
+    throw new Error(`${name} must be a non-empty string`);
   }
+  return value;
 };
 
-class SqliteEventModel {
-  _db = null;
-  _statements = null;
-  _window = null;
-  constructor(window) {
-    this._window = window;
-    const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
-      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' },
-      onMutation: (event) => {
-        this._window?.webContents?.send(SQLITE_MUTATION_CHANNEL, event);
-      }
-    });
-    this._db = db;
-    this._statements = statements;
-    removeLegacyFileIndex();
-    registerSQLiteIpc(ipcMain, statements);
+const requireFileId = (value) => {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error('id must be a positive integer');
   }
-
-  get statements() {
-    return this._statements;
-  }
-
-  get db() {
-    return this._db;
-  }
-
-  shutdown() {
-    if (this._db) {
-      this._db.close();
-      this._db = null;
-      this._statements = null;
-      this._window = null;
-    }
-  }
-
-  async reclaimDiskSpace({
-    pagesBatchSize = 500,
-    pagesBatchDelayMs = 30,
-    maxReclaimDurationMs = 4000,
-    busyTimeoutMs = 500
-  } = {}) {
-    const raw = this._db?._db;
-    if (!raw) return;
-
-    try {
-      raw.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
-
-      if (raw.prepare('PRAGMA auto_vacuum').get().auto_vacuum !== 2) {
-        raw.exec('VACUUM');
-      }
-
-      const start = Date.now();
-      while (Date.now() - start < maxReclaimDurationMs) {
-        if (raw.prepare('PRAGMA freelist_count').get().freelist_count === 0) break;
-        try {
-          raw.exec(`PRAGMA incremental_vacuum(${pagesBatchSize})`);
-        } catch (err) { }
-        await new Promise((resolve) => setTimeout(resolve, pagesBatchDelayMs));
-      }
-    } catch (err) {
-      console.warn('failed to reclaim disk space: ', err);
-    }
-  }
-}
-
-const registerSqliteIpc = (window) => {
-  if (ipc) return;
-  ipc = new SqliteEventModel(window);
+  return value;
 };
 
-const shutdown = () => {
-  if (ipc) {
-    ipc.shutdown();
-    ipc = null;
-  }
+const registerSqliteIpc = () => {
+  ipcMain.handle('datastore:file-index:file_index_size', () => {
+    return getStatements().execute('file_index_size');
+  });
+
+  ipcMain.handle('datastore:file-index:file_index_clear', () => {
+    return getStatements().execute('file_index_clear');
+  });
+
+  ipcMain.handle('datastore:runner_responses:get_runner_response', (_event, params) => {
+    const request_uid = requireUid(params?.request_uid, 'request_uid');
+    return getStatements().execute('get_runner_response', { request_uid });
+  });
+
+  ipcMain.handle('datastore:runner_responses:delete_runner_responses_for_collection', (_event, params) => {
+    const collection_uid = requireUid(params?.collection_uid, 'collection_uid');
+    return getStatements().execute('delete_runner_responses_for_collection', { collection_uid });
+  });
+
+  ipcMain.handle('datastore:files:stat', (_event, params) => {
+    return getFiles().stat(requireFileId(params?.id));
+  });
+
+  ipcMain.handle('datastore:files:read', (_event, params) => {
+    return getFiles().read(requireFileId(params?.id));
+  });
 };
 
-const getStatements = () => (ipc ? ipc.statements : null);
-
-const getDatabase = () => (ipc ? ipc.db : null);
-
-const reclaimDiskSpace = (options) => (ipc ? ipc.reclaimDiskSpace(options) : Promise.resolve());
-
-module.exports = { registerSqliteIpc, shutdown, getStatements, getDatabase, reclaimDiskSpace };
+module.exports = { registerSqliteIpc };

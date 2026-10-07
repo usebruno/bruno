@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -52,7 +53,8 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
 
@@ -202,7 +204,8 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

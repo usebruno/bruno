@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { IconSend } from '@tabler/icons';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { isMacOS } from 'utils/common/platform';
-import { getKeyBindingDisplayTextByOS } from 'providers/Hotkeys/keyMappings';
+import { getKeyBindingDisplayTextByOS, getKeyBindingDisplayOS } from 'providers/Hotkeys/keyMappings';
 
 const KEY_BINDING_ACTIONS = [
   { label: 'Send Request', action: 'sendRequest' },
@@ -12,8 +11,7 @@ const KEY_BINDING_ACTIONS = [
 ];
 
 const Placeholder = () => {
-  const isMac = isMacOS();
-  const os = isMac ? 'mac' : 'windows';
+  const os = getKeyBindingDisplayOS();
   const preferences = useSelector((state) => state.app.preferences);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const keyBindingActions = useMemo(() => {
