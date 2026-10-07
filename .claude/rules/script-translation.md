@@ -5,6 +5,7 @@ paths:
   - "packages/bruno-converters/tests/postman/postman-translations/**"
   - "packages/bruno-converters/tests/postman/round-trip/**"
   - "packages/bruno-converters/tests/bruno/bruno-to-postman-translations/**"
+  - "packages/bruno-converters/tests/utils/semantic-registries.spec.js"
 ---
 
 # Script Translation (Postman ↔ Bruno)
@@ -57,15 +58,26 @@ An addition is not finished until all five are done:
 4. **the mirror entry in the other registry**
 5. **a case in `tests/postman/round-trip/scripts.spec.js`**
 
-Items 4 and 5 carry the weight. Nothing mechanically links the two registries; the round-trip
-spec — which asserts a script survives Postman → Bruno → Postman byte-identical — is the only
-thing that catches a one-sided addition.
+Item 4 carries the weight, and nothing in the engine links the two registries — they are two
+hand-written files describing one set of facts in opposite polarity. Two specs stand in for that
+missing link, and both must stay green:
+
+- `tests/utils/semantic-registries.spec.js` checks the registries against each other directly —
+  that every type is paired, every `to` resolves back to the member it came from, and every `call`
+  inverts (`drop` ↔ `add`). A one-sided or mis-polarised edit fails here, naming the member.
+- `tests/postman/round-trip/scripts.spec.js` asserts a script survives Postman → Bruno → Postman
+  byte-identical, which is what proves the engine agrees with the data.
+
+A member that deliberately **does not** round trip — because it collapses onto one the other API
+already has — belongs in `ONE_WAY_MEMBERS` in the invariant spec, with its reason. That list is
+checked both ways: an undeclared collapse fails, and so does a stale exemption for a member that
+has since gained a true inverse.
 
 ## Traps
 
 - **Many-to-one mappings make the inverse ambiguous.** `json` and `text` both map to `data`, so
   the reverse direction has to *choose* which one `data` goes back to. Adding another collapsing
-  pair means making that choice and recording why in the registry comment.
+  pair means making that choice and declaring the losing member in `ONE_WAY_MEMBERS`.
 - **A member carrying `call` is skipped by destructuring.** A pattern has no call site in reach,
   so `rewrite-patterns.js` leaves those properties alone — `const { json } = res` stays
   untranslated. Non-obvious, and it lives in a different file from the registry.
@@ -104,7 +116,8 @@ producer, or when a key is not statically known. Interprocedural flow is not sup
 
 - [ ] Mapping is in the destination the fixed-dotted-path question points to
 - [ ] Mirror entry added to the other direction's registry or map, or its absence stated
-- [ ] Round-trip case added when a registry type changed
+- [ ] Round-trip case added when a registry type changed, and
+      `tests/utils/semantic-registries.spec.js` still green
 - [ ] Any new guard fails by leaving the source text alone, never by guessing
 - [ ] Scope resolution compares scope **nodes**, never bare names
 - [ ] `npm test --workspace=packages/bruno-converters` green — the existing suites are the
