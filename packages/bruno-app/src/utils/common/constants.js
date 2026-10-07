@@ -32,6 +32,16 @@ export const AUTOCOMPLETE_SCOPES = {
   OAUTH2: 'oauth2'
 };
 
+/**
+ * Which keystrokes open the variable autocomplete dropdown in a field (passed as the editors'
+ * `variableAutocomplete` prop). Ctrl+Space (the manual trigger) works in every mode.
+ */
+export const AUTOCOMPLETE_TRIGGER = {
+  SINGLE_BRACE: 'singleBrace', // `{` opens it (and `{{` still does)
+  DOUBLE_BRACE: 'doubleBrace', // only `{{` opens it
+  OFF: 'off' // typing never opens the variable list
+};
+
 export const SCOPE_LABEL = {
   [AUTOCOMPLETE_SCOPES.REQUEST]: 'Request',
   [AUTOCOMPLETE_SCOPES.FOLDER]: 'Folder',

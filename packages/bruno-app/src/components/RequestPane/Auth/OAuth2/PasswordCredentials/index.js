@@ -99,7 +99,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
             <label className="block min-w-[140px]">{label}</label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
-                enableSingleBraceTrigger
                 value={value}
                 theme={storedTheme}
                 onSave={handleSave}
@@ -164,7 +163,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <label className="block min-w-[140px]">Token ID</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
-            enableSingleBraceTrigger
             value={oAuth['credentialsId'] || ''}
             theme={storedTheme}
             onSave={handleSave}
@@ -202,7 +200,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 <label className="block min-w-[140px]">Header Prefix</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
-                    enableSingleBraceTrigger
                     value={oAuth['tokenHeaderPrefix'] || ''}
                     theme={storedTheme}
                     onSave={handleSave}
@@ -221,7 +218,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
-                    enableSingleBraceTrigger
                     value={oAuth['tokenQueryKey'] || ''}
                     theme={storedTheme}
                     onSave={handleSave}
@@ -249,7 +245,6 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
         <label className="block min-w-[140px]">Refresh Token URL</label>
         <div className="single-line-editor-wrapper flex-1">
           <SingleLineEditor
-            enableSingleBraceTrigger
             value={get(request, 'auth.oauth2.refreshTokenUrl', '')}
             theme={storedTheme}
             onSave={handleSave}

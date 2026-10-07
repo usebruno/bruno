@@ -36,7 +36,6 @@ const BearerAuth = ({ collection }) => {
       <label className="block mb-1">Token</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={bearerToken}
           theme={storedTheme}
           onSave={handleSave}

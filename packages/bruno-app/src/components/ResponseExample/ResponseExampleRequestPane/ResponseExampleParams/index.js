@@ -119,7 +119,6 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}
@@ -141,7 +140,6 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}
@@ -172,7 +170,6 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={value || ''}
           theme={storedTheme}
           onSave={() => {}}

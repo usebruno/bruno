@@ -9,6 +9,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import { COPY_FEEDBACK_MS, JSON_MODE, OBJECT_CELL_MAX_HEIGHT } from '../constants';
 import { holdsVariableReference, isObjectOrArray, valueToEditorText } from '../utils';
 import StyledWrapper from './StyledWrapper';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const VariableValue = ({
   value,
@@ -75,9 +76,10 @@ const VariableValue = ({
           containOverscroll
           docKey={cellDocKey}
           persistenceScope={persistenceScope}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       ) : (
-        <SingleLineEditor {...editorProps} />
+        <SingleLineEditor {...editorProps} variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE} />
       )}
     </div>
   );

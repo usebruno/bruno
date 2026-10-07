@@ -67,7 +67,6 @@ const NTLMAuth = ({ collection }) => {
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={ntlmAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -80,7 +79,6 @@ const NTLMAuth = ({ collection }) => {
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={ntlmAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -95,7 +93,6 @@ const NTLMAuth = ({ collection }) => {
       <label className="block mb-1">Domain</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={ntlmAuth.domain || ''}
           theme={storedTheme}
           onSave={handleSave}

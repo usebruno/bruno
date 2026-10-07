@@ -94,7 +94,6 @@ const Headers = ({ collection, folder }) => {
       width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={value || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -112,7 +111,6 @@ const Headers = ({ collection, folder }) => {
       placeholder: 'Value',
       render: ({ value, onChange }) => (
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={value || ''}
           theme={storedTheme}
           onSave={handleSave}

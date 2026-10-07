@@ -34,6 +34,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { version as appVersion } from '../../../../package.json';
 import { filterUnclaimedHeaders, getInheritedHeaders } from './getInheritedHeaders';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -433,6 +434,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       collection={collection}
       item={item}
       readOnly
+      variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
     />
   );
 
@@ -463,7 +465,6 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             collection={collection}
             item={item}
             placeholder={!value ? 'Name' : ''}
-            enableSingleBraceTrigger
           />
         );
       }
@@ -488,7 +489,6 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
             collection={collection}
             item={item}
             placeholder={!value ? 'Value' : ''}
-            enableSingleBraceTrigger
           />
         );
       }

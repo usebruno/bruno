@@ -78,7 +78,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           item={item}
           readOnly={disabled}
           isCompact
-          enableSingleBraceTrigger
         />
       </div>
 
@@ -93,7 +92,6 @@ const ApiKeyAuth = ({ item, collection, updateAuth, request, save, disabled }) =
           collection={collection}
           item={item}
           isCompact
-          enableSingleBraceTrigger
           readOnly={disabled}
         />
       </div>

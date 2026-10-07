@@ -1,6 +1,6 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
-import { AUTOCOMPLETE_SCOPES, SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
+import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
 import { SCOPE_ICON_COLOR_CLASS } from 'utils/codemirror/autocompleteScopes';
 
 const CodeMirror = require('codemirror');
@@ -200,6 +200,13 @@ const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const SINGLE_BRACE_PATTERN = /\{$/;
+
+/**
+ * @param {Object} [options] - setupAutoComplete options
+ * @returns {string} The field's AUTOCOMPLETE_TRIGGER mode. Callers that don't pass one (code editors,
+ *   the variable popover) get `{{` only, never the single-`{` trigger.
+ */
+const getTriggerMode = (options = {}) => options.variableAutocomplete || AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE;
 // Rest of a variable name that sits after the cursor, e.g. `i.host` in `{{my.ap|i.host}}`
 const NAME_TAIL_PATTERN = /^[\w$.-]*/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
@@ -535,9 +542,9 @@ const extractWordFromLine = (currentLine, cursorPosition) => {
 /**
  * Get current word being typed at cursor position with context information
  * @param {Object} cm - CodeMirror instance
- * @param {Object} options - Configuration options. options.enableSingleBraceTrigger gates
- *   the single-`{` trigger check below (only on for the surfaces that pass
- *   enableSingleBraceTrigger — URL bar, query/path params, headers, auth fields).
+ * @param {Object} options - Configuration options. options.variableAutocomplete (an
+ *   AUTOCOMPLETE_TRIGGER value) gates the single-`{` trigger check below: only fields in
+ *   SINGLE_BRACE mode get it.
  * @returns {Object|null} Word information with context or null
  */
 const getCurrentWordWithContext = (cm, options = {}) => {
@@ -569,7 +576,7 @@ const getCurrentWordWithContext = (cm, options = {}) => {
   }
 
   // Check for the single-`{` trigger
-  if (options.enableSingleBraceTrigger && SINGLE_BRACE_PATTERN.test(currentString)) {
+  if (getTriggerMode(options) === AUTOCOMPLETE_TRIGGER.SINGLE_BRACE && SINGLE_BRACE_PATTERN.test(currentString)) {
     return {
       word: '',
       from: cursor,
@@ -997,9 +1004,15 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
+  // OFF: typing never opens the variable list (Ctrl+Space forces SINGLE_BRACE, so it still does)
+  if (context === 'variables' && getTriggerMode(options) === AUTOCOMPLETE_TRIGGER.OFF) {
+    return null;
+  }
+
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
 
-  const allowEmptyWord = context === 'variables' && !!options.enableSingleBraceTrigger;
+  // `{{` opens the list straight away, before any name is typed
+  const allowEmptyWord = context === 'variables';
   const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor, { allowEmptyWord });
 
   if (filteredHints.length === 0) {
@@ -1098,7 +1111,7 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
 
   if (!hints) {
-    const wordInfo = getCurrentWordWithContext(cm);
+    const wordInfo = getCurrentWordWithContext(cm, options);
     if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
@@ -1128,8 +1141,8 @@ const triggerAutocompleteAtCaret = (cm, options = {}) => {
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
 
-  // for shortcuts force enableSingleBraceTrigger.
-  const forcedOptions = { ...options, enableSingleBraceTrigger: true };
+  // the manual shortcut works in every mode, including OFF
+  const forcedOptions = { ...options, variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE };
 
   const existingHints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, forcedOptions);
   if (existingHints) {

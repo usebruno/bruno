@@ -50,7 +50,6 @@ const DigestAuth = ({ collection }) => {
       <label className="block mb-1">Username</label>
       <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={digestAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -63,7 +62,6 @@ const DigestAuth = ({ collection }) => {
       <label className="block mb-1">Password</label>
       <div className="single-line-editor-wrapper flex items-center">
         <SingleLineEditor
-          enableSingleBraceTrigger
           value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}

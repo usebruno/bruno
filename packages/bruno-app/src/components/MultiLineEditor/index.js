@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
 import { getAllVariables, getAllVariablesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
@@ -191,7 +192,7 @@ class MultiLineEditor extends Component {
       showHintsFor: ['variables'],
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
-      enableSingleBraceTrigger: !!this.props.enableSingleBraceTrigger
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(

@@ -4,6 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { useTheme } from 'providers/Theme/index';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat, inheritedTags = [] }) => {
   const { displayedTheme } = useTheme();
@@ -63,6 +64,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         onRun={handleKeyDown}
         onSave={onSave}
         data-testid="tag-input"
+        variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
       />
       {error && <span className="text-xs text-red-500" data-testid="tag-error">{error}</span>}
       <ul className="flex flex-wrap gap-1">

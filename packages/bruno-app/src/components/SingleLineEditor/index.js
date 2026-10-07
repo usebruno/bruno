@@ -5,6 +5,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { getAllVariables, getAllVariablesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 
@@ -84,7 +85,7 @@ class SingleLineEditor extends Component {
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
       showHintsOnClick: this.props.showHintsOnClick,
-      enableSingleBraceTrigger: !!this.props.enableSingleBraceTrigger
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
