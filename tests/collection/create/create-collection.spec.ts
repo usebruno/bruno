@@ -90,7 +90,7 @@ test.describe('Create collection', () => {
 });
 
 test.describe('Create Collection through sidebar', () => {
-  test('TC-1054: Verify the Collection created in default with Untitled Collection (n) with gear icon', async ({ launchElectronApp, createTmpDir }) => {
+  test('TC-1054: Verify the Collection created in default with Untitled Collection (n) with gear icon', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
     const wsLocation = await createTmpDir('verify-default-collection');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);

@@ -117,7 +117,7 @@ export const buildSidebarLocators = (page: Page) => {
 
 /**
 /**
- * Open the collection sidebar search (if it is closed) and filter by request name.
+ * Open the sidebar search (if it is closed) and filter by request name.
  */
 export const searchSidebarRequests = async (page: Page, query: string) => {
   const sidebar = buildSidebarLocators(page);
@@ -132,7 +132,7 @@ export const searchSidebarRequests = async (page: Page, query: string) => {
 };
 
 /**
- * Clear the collection sidebar search so every request is listed again.
+ * Clear the sidebar search so every request is listed again.
  */
 export const clearSidebarSearch = async (page: Page) => {
   const sidebar = buildSidebarLocators(page);
