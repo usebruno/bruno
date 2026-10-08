@@ -1204,12 +1204,29 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
       : outputMessage;
     const message = wsdlData.messages.get(outputMessageName);
     if (message && message.parts && message.parts.length > 0) {
-      const part = message.parts[0];
-      const rootElement = findRootElement(part, wsdlData);
-      if (rootElement) {
-        const namespaces = new NamespaceContext(wsdlData.namespaces);
-        const renderer = new SampleRenderer(wsdlData, namespaces);
-        const payload = renderer.render(rootElement, 2);
+      // Determine which parts the output soap:body binding selects
+      const outputBody = bindingOperation
+        ? Object.entries(bindingOperation.output || {}).find(([key]) => key === 'body' || key.endsWith(':body'))?.[1]
+        : null;
+      const body = Array.isArray(outputBody) ? outputBody[0] : outputBody;
+      const boundPartNames = body && typeof body.parts === 'string'
+        ? new Set(body.parts.trim().split(/\s+/).filter(Boolean))
+        : null;
+      const responseParts = boundPartNames
+        ? message.parts.filter(({ name }) => boundPartNames.has(name))
+        : message.parts;
+
+      const namespaces = new NamespaceContext(wsdlData.namespaces);
+      const renderer = new SampleRenderer(wsdlData, namespaces);
+      const payload = responseParts
+        .map((part) => {
+          const rootElement = findRootElement(part, wsdlData);
+          return rootElement ? renderer.render(rootElement, 2) : '';
+        })
+        .filter(Boolean)
+        .join('');
+
+      if (payload) {
         const responseXml = buildEnvelope(payload, soapVersion, namespaces);
 
         example = {
