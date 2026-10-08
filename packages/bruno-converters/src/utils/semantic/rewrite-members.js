@@ -1,12 +1,32 @@
-import { getStaticPropertyName } from '../ast-utils';
+import { getStaticPropertyName, warnOnStatement } from '../ast-utils';
 import { resolvesToBinding } from './type-environment';
 
 /**
- * Rewrites member access on a typed binding to the Bruno equivalent the registry declares.
+ * Rebuilds the access under a new member name, keeping it optional when it already was.
+ * `jar?.get(...)` short-circuits on a missing jar, and a plain member expression in its
+ * place would throw where the original returned undefined.
+ *
+ * The parser spells an optional access as a MemberExpression carrying `optional`, not as a
+ * node type of its own, so the flag is copied rather than the builder being swapped.
+ */
+const buildMember = (j, node, objectName, memberName) => {
+  const member = j.memberExpression(j.identifier(objectName), j.identifier(memberName));
+  member.optional = Boolean(node.optional);
+
+  return member;
+};
+
+/**
+ * Rewrites member access on a typed binding to the equivalent the registry declares.
  *
  * Matching paths are collected before any replacement is applied. Some maps rename one
  * member onto another member's name — `code -> status` alongside `status -> statusText` —
  * so a pass that replaced as it walked would re-match what it had just written.
+ *
+ * A member the registry marks unsupported is left as it stands and its statement flagged.
+ * That is what keeps it apart from a member another one is renamed onto: `jar.clear()` in
+ * the output is the translation of `deleteCookies`, and the untranslatable Bruno `clear`
+ * is the one carrying a comment.
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} root - jscodeshift Collection to search within
@@ -29,8 +49,15 @@ const rewriteMembers = (j, root, binding, registry) => {
     });
 
   targets.forEach((memberPath) => {
-    const spec = members[getStaticPropertyName(memberPath.value)];
-    const replacement = j.memberExpression(j.identifier(binding.name), j.identifier(spec.to));
+    const propertyName = getStaticPropertyName(memberPath.value);
+    const spec = members[propertyName];
+
+    if (spec.unsupported) {
+      warnOnStatement(j, memberPath, `bruno-converter: ${propertyName} — ${spec.unsupported}`);
+      return;
+    }
+
+    const replacement = buildMember(j, memberPath.value, binding.name, spec.to);
 
     const parent = memberPath.parent;
     const isMethodCall

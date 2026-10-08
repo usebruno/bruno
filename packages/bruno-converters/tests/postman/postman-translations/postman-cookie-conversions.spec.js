@@ -95,7 +95,7 @@ describe('postmanTranslations - cookie API conversions', () => {
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.setCookie('https://example.com', 'user', 'john');
-      const userCookie = jar.getCookie('https://example.com', 'user');
+      const userCookie = jar.getCookie('https://example.com', 'user').value;
     `;
 
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
@@ -115,6 +115,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
     const expectedOutput = `
       const jar = bru.cookies.jar();
+      // bruno-converter: Bruno yields the cookie object where Postman yields the value string
       jar.getCookie('https://api.example.com', 'authToken', (error, cookie) => {
         if (error) {
           console.error('Error getting cookie:', error);
@@ -141,6 +142,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
     const expectedOutput = `
       const jar = bru.cookies.jar();
+      // bruno-converter: Postman yields a PropertyList with .get()/.count(); Bruno yields an array
       jar.getCookies('https://api.example.com', (error, cookies) => {
         if (error) {
           console.error('Error getting cookies:', error);
@@ -169,6 +171,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
     const expectedOutput = `
       const jar = bru.cookies.jar();
+      // bruno-converter: Postman yields the cookie it set; Bruno's setCookie resolves to nothing
       jar.setCookie('https://api.example.com', {
         key: 'sessionId',
         value: 'abc123',
@@ -274,11 +277,13 @@ describe('postmanTranslations - cookie API conversions', () => {
       });
       
       // Get specific cookie
+      // bruno-converter: Bruno yields the cookie object where Postman yields the value string
       cookieJar.getCookie('https://example.com', 'auth', (err, authCookie) => {
         console.log('Auth cookie:', authCookie);
       });
       
       // Get all cookies
+      // bruno-converter: Postman yields a PropertyList with .get()/.count(); Bruno yields an array
       cookieJar.getCookies('https://example.com', (err, allCookies) => {
         console.log('Total cookies:', allCookies.length);
       });
@@ -309,6 +314,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
       bru.cookies.jar().setCookie('https://other.com', 'temp', 'value');
 
+      // bruno-converter: Postman yields a PropertyList with .get()/.count(); Bruno yields an array
       jar.getCookies('https://api.com', (err, cookies) => {
         console.log(cookies);
       });

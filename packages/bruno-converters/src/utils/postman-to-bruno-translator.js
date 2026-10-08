@@ -1,6 +1,6 @@
 import sendRequestTransformer from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
-import { applySemanticTypes } from './semantic';
+import { applySemanticTypes, POSTMAN_REGISTRY } from './semantic';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
 import { buildStatusAssertionEntries } from './postman-status-assertions';
@@ -742,7 +742,7 @@ function translateCode(code) {
   preprocessAliases(ast);
 
   // Translate member access on values the registry can type (sendRequest responses, cookie jars)
-  applySemanticTypes(j, ast);
+  applySemanticTypes(j, ast, POSTMAN_REGISTRY);
 
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);

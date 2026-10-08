@@ -71,7 +71,7 @@ module layout), `electron-ipc.md` (IPC handlers + startup), `redux-store.md` (sl
 `sqlite.md` (`@usebruno/sqlite` — migrations, statements, per-statement IPC), `testing.md` (e2e
 patterns & gotchas), `cross-platform.md` (Windows file/process/path pitfalls), `dsl-changes.md`
 (on-disk `.bru`/`.yml` format & backward compat), `script-translation.md` (Postman↔Bruno script
-rewriting — where a mapping belongs: flat map, transform, or semantic registry), `feature-parity.md`
+rewriting — where a mapping belongs: flat map, transform, or correspondence table), `feature-parity.md`
 (co-related features — app↔CLI twins, converter/shim/level/protocol pairs), `conventions.md` (readability, reuse,
 replacement & pre-submit hygiene).
 

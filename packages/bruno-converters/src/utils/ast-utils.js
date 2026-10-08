@@ -108,3 +108,33 @@ export function getStaticPropertyName(memberExpr) {
   }
   return property.type === 'Identifier' ? property.name : null;
 }
+
+/**
+ * Attaches a leading line comment to a node, flagging something the translation could not
+ * carry across. Re-attaching the same text is a no-op, so a node reached by more than one
+ * pass is not annotated twice.
+ *
+ * @param {Object} node - The node to annotate
+ * @param {string} text - Comment text, without the leading slashes
+ */
+export function attachWarning(node, text) {
+  const value = ` ${text}`;
+  node.comments = node.comments || [];
+
+  if (node.comments.some((comment) => comment.value === value)) return;
+
+  node.comments.push({ type: 'CommentLine', value, leading: true, trailing: false });
+}
+
+/**
+ * Attaches a warning to the statement a node sits in, which is where a reader looking at
+ * the translated script will see it.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} path - Path of the node being flagged
+ * @param {string} text - Comment text, without the leading slashes
+ */
+export function warnOnStatement(j, path, text) {
+  const statement = j(path).closest(j.Statement).paths()[0];
+  if (statement) attachWarning(statement.value, text);
+}

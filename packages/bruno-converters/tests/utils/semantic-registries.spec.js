@@ -1,125 +1,168 @@
 import { POSTMAN_REGISTRY, BRUNO_REGISTRY } from '../../src/utils/semantic';
+import CORRESPONDENCE from '../../src/utils/semantic/correspondence';
+import COERCIONS from '../../src/utils/semantic/coercions';
+import derive from '../../src/utils/semantic/derive';
 
 /**
- * The two registries describe the same member mappings in opposite directions, and nothing in
- * the engine links them — each is hand-written. These are the invariants that make a one-sided
- * or mis-polarised edit fail here, naming what is wrong, rather than surfacing later as a
- * confusing diff in tests/postman/round-trip/scripts.spec.js.
+ * Both registries are derived from one correspondence table, so a one-sided or mis-polarised
+ * mapping is no longer possible to write — the mirror tests that used to live here are now
+ * assertions about `derive` itself rather than about two hand-written files agreeing.
+ *
+ * What is still worth pinning: the derivation really does invert, the vocabulary stays
+ * within what the engine implements, and a malformed row fails loudly instead of silently
+ * dropping a member.
  */
 
-/** Types naming the same concept on either side. A new type pair must be added here. */
-const TYPE_PAIRS = {
-  PostmanResponse: 'BrunoResponse',
-  PostmanCookieJar: 'BrunoCookieJar'
-};
+const INVERSE_CALL = { drop: 'add', add: 'drop', undefined: undefined };
 
-/**
- * Members that deliberately do not round trip, because more than one of them collapses onto a
- * single member of the other API and only one can win the way back.
- */
-const ONE_WAY_MEMBERS = [
-  {
-    type: 'PostmanResponse',
-    member: 'text',
-    reason: 'text() and json() both map to `data`, which translates back to json()'
-  }
-];
-
-const INVERSE_CALL = { drop: 'add', add: 'drop' };
-
-const isOneWay = (type, member) =>
-  ONE_WAY_MEMBERS.some((entry) => entry.type === type && entry.member === member);
-
-const DIRECTIONS = [
-  { label: 'postman', registry: POSTMAN_REGISTRY },
-  { label: 'bruno', registry: BRUNO_REGISTRY }
-];
+const TYPE_PAIRS = Object.fromEntries(
+  Object.values(CORRESPONDENCE.typePairs).map((pair) => [pair.postman, pair.bruno])
+);
 
 describe('semantic registries', () => {
-  describe.each(DIRECTIONS)('$label registry', ({ registry }) => {
-    const declaredTypes = Object.keys(registry.types);
-
-    const referencedTypes = [
-      ...Object.values(registry.producers),
-      ...Object.values(registry.params).flatMap((byKind) => Object.values(byKind).flat())
-    ].filter(Boolean);
-
-    it('should only name types it declares', () => {
-      const unknown = referencedTypes.filter((type) => !registry.types[type]);
-      expect(unknown).toEqual([]);
-    });
-
-    it('should declare no type the engine cannot reach', () => {
-      const unreachable = declaredTypes.filter((type) => !referencedTypes.includes(type));
-      expect(unreachable).toEqual([]);
-    });
-
-    // The vocabulary is narrow on purpose: an entry stays safe to add without reading the
-    // engine only while it cannot say anything the engine does not implement.
-    it('should describe members with `to` and `call` alone', () => {
-      const malformed = declaredTypes.flatMap((type) =>
-        Object.entries(registry.types[type])
-          .filter(
-            ([, spec]) =>
-              typeof spec.to !== 'string'
-              || Object.keys(spec).some((key) => key !== 'to' && key !== 'call')
-              || ('call' in spec && spec.call !== 'drop' && spec.call !== 'add')
-          )
-          .map(([member]) => `${type}.${member}`)
-      );
-
-      expect(malformed).toEqual([]);
-    });
-  });
-
-  describe('the two registries as mirrors', () => {
+  describe('derivation', () => {
     it('should pair every declared type', () => {
       expect(Object.keys(POSTMAN_REGISTRY.types).sort()).toEqual(Object.keys(TYPE_PAIRS).sort());
       expect(Object.keys(BRUNO_REGISTRY.types).sort()).toEqual(Object.values(TYPE_PAIRS).sort());
     });
 
-    it.each(Object.entries(TYPE_PAIRS))('should mirror %s onto %s', (postmanType, brunoType) => {
-      const forward = POSTMAN_REGISTRY.types[postmanType];
+    it.each(Object.entries(TYPE_PAIRS))('should invert %s onto %s', (postmanType, brunoType) => {
       const back = BRUNO_REGISTRY.types[brunoType];
 
-      Object.entries(forward).forEach(([member, spec]) => {
+      Object.entries(POSTMAN_REGISTRY.types[postmanType]).forEach(([member, spec]) => {
+        // a member with no counterpart has nothing to invert, by declaration
+        if (spec.unsupported) return;
+
         const where = `${postmanType}.${member} -> ${spec.to}`;
         const inverse = back[spec.to];
 
-        // a member may collapse onto another, but it must never point at nothing
         expect([where, Boolean(inverse)]).toEqual([where, true]);
 
-        if (isOneWay(postmanType, member)) {
-          // a one-way member that starts round tripping should lose its exemption
-          expect([where, inverse.to]).not.toEqual([where, member]);
+        // `text` and `json` both map onto `data`, so only one of them has a way back
+        if (inverse.to !== member) {
+          const row = findRow(postmanType, member);
+          expect([where, row.direction]).toEqual([where, 'pm->bru']);
           return;
         }
 
-        expect([where, inverse.to]).toEqual([where, member]);
         expect([where, inverse.call]).toEqual([where, INVERSE_CALL[spec.call]]);
       });
     });
 
-    it('should mirror back every member the reverse direction declares', () => {
-      Object.entries(TYPE_PAIRS).forEach(([postmanType, brunoType]) => {
-        Object.entries(BRUNO_REGISTRY.types[brunoType]).forEach(([member, spec]) => {
-          const where = `${brunoType}.${member} -> ${spec.to}`;
-          const inverse = POSTMAN_REGISTRY.types[postmanType][spec.to];
+    it('should only name types it declares', () => {
+      [POSTMAN_REGISTRY, BRUNO_REGISTRY].forEach((registry) => {
+        const referenced = [
+          ...Object.values(registry.producers),
+          ...Object.values(registry.params).flatMap((byKind) => Object.values(byKind).flat())
+        ].filter(Boolean);
 
-          expect([where, Boolean(inverse)]).toEqual([where, true]);
-          expect([where, inverse.to]).toEqual([where, member]);
-          expect([where, inverse.call]).toEqual([where, INVERSE_CALL[spec.call]]);
-        });
+        expect(referenced.filter((type) => !registry.types[type])).toEqual([]);
       });
     });
 
-    it('should exempt only members that exist', () => {
-      const stale = ONE_WAY_MEMBERS.filter(({ type, member }) => {
-        const types = POSTMAN_REGISTRY.types[type] || BRUNO_REGISTRY.types[type];
-        return !types || !types[member];
+    // The vocabulary is narrow on purpose: an entry stays safe to add without reading the
+    // engine only while it cannot say anything the engine does not implement.
+    const VERDICT_KEYS = ['to', 'call', 'yields', 'unsupported'];
+
+    it('should describe members only in the vocabulary the engine implements', () => {
+      const malformed = eachMember(([where, spec]) => {
+        const keys = Object.keys(spec);
+        if (keys.some((key) => !VERDICT_KEYS.includes(key))) return where;
+        if (spec.unsupported) return keys.length === 1 ? null : where;
+        if (typeof spec.to !== 'string') return where;
+        if ('call' in spec && !['drop', 'add'].includes(spec.call)) return where;
+        return null;
       });
 
-      expect(stale).toEqual([]);
+      expect(malformed).toEqual([]);
+    });
+
+    it('should name only coercions that exist', () => {
+      const missing = eachMember(([where, spec]) =>
+        spec.yields && spec.yields.coerce && !COERCIONS[spec.yields.coerce] ? where : null
+      );
+
+      expect(missing).toEqual([]);
+    });
+
+    it('should give every coercion both a builder and a description', () => {
+      Object.entries(COERCIONS).forEach(([name, coercion]) => {
+        expect([name, typeof coercion.build]).toEqual([name, 'function']);
+        expect([name, typeof coercion.describes]).toEqual([name, 'string']);
+      });
+    });
+  });
+
+  /**
+   * A member with no counterpart is emitted unchanged, so it reads in the output exactly
+   * like a member something else was renamed onto. `bru.cookies.jar().clear()` is the live
+   * case: Bruno's `deleteCookies` becomes Postman's `clear`, while Bruno's own `clear` has
+   * no counterpart at all. The warning comment is the only thing telling the two apart, so
+   * every collision has to be a declared one rather than a member nobody classified.
+   */
+  /**
+   * A member with no counterpart is emitted unchanged, so it reads in the output exactly
+   * like a member something else was renamed onto. `bru.cookies.jar().clear()` is the live
+   * case: Bruno's `deleteCookies` becomes Postman's `clear`, while Bruno's own `clear` has
+   * no counterpart at all, and only the warning comment tells the two apart.
+   *
+   * Pinning the set here means a new collision cannot arrive unnoticed — adding one is
+   * fine, but it has to be looked at, because the comment is load-bearing from then on.
+   */
+  it('should collide with a rename target only where we know about it', () => {
+    const collisions = [POSTMAN_REGISTRY, BRUNO_REGISTRY].flatMap((registry) =>
+      Object.entries(registry.types).flatMap(([typeName, members]) => {
+        const renamedOnto = new Set(Object.values(members).map((spec) => spec.to).filter(Boolean));
+
+        return Object.entries(members)
+          .filter(([name, spec]) => spec.unsupported && renamedOnto.has(name))
+          .map(([name]) => `${typeName}.${name}`);
+      })
+    );
+
+    expect(collisions).toEqual(['BrunoCookieJar.clear']);
+  });
+
+  describe('a malformed row', () => {
+    const deriveWith = (row) =>
+      () => derive({ typePairs: { T: { postman: 'P', bruno: 'B', members: [row] } }, entryPoints: [] }, 'pm');
+
+    it('should be rejected when it names no member', () => {
+      expect(deriveWith({ unsupported: 'why' })).toThrow(/names no member/);
+    });
+
+    it('should be rejected when one-sided without a reason', () => {
+      expect(deriveWith({ bru: 'onlyHere' })).toThrow(/must say why it is unsupported/);
+    });
+
+    it('should be rejected when paired and marked unsupported', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', unsupported: 'why' })).toThrow(/paired and marked unsupported/);
+    });
+
+    it('should be rejected when it gives one kind without the other', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', pmKind: 'method' })).toThrow(/without the other/);
+    });
+
+    it('should be rejected when it names a coercion that does not exist', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { coerce: 'nope' } })).toThrow(/does not exist/);
+    });
+
+    it('should be rejected when its yield says something the engine cannot act on', () => {
+      expect(deriveWith({ pm: 'a', bru: 'b', pmToBru: { wrapped: true } })).toThrow(/expected one of coerce, lost/);
     });
   });
 });
+
+const findRow = (postmanType, member) =>
+  Object.values(CORRESPONDENCE.typePairs)
+    .find((pair) => pair.postman === postmanType)
+    .members.find((row) => row.pm === member);
+
+const eachMember = (check) =>
+  [POSTMAN_REGISTRY, BRUNO_REGISTRY].flatMap((registry) =>
+    Object.entries(registry.types).flatMap(([typeName, members]) =>
+      Object.entries(members)
+        .map(([name, spec]) => check([`${typeName}.${name}`, spec]))
+        .filter(Boolean)
+    )
+  );

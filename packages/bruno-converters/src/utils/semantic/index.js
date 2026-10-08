@@ -1,7 +1,16 @@
-import POSTMAN_REGISTRY from './postman-registry';
-import { collectBindings } from './type-environment';
+import CORRESPONDENCE from './correspondence';
+import derive from './derive';
+import { collectBindings, resolvesToBinding } from './type-environment';
 import rewriteMembers from './rewrite-members';
-import { rewriteDestructuredDeclarations } from './rewrite-patterns';
+import rewriteYields from './rewrite-yields';
+import { rewriteDestructuredDeclarations, rewritePattern } from './rewrite-patterns';
+
+/**
+ * Both directions are derived from the one correspondence table, so neither can carry a
+ * mapping the other lacks.
+ */
+export const POSTMAN_REGISTRY = derive(CORRESPONDENCE, 'pm');
+export const BRUNO_REGISTRY = derive(CORRESPONDENCE, 'bru');
 
 /**
  * Translates member access on values whose correct translation depends on what the value
@@ -16,23 +25,22 @@ import { rewriteDestructuredDeclarations } from './rewrite-patterns';
  *   r.code                                 ->   r.status
  *   r.json()                               ->   r.data
  *
- * Runs before `processTransformations`, so the registry is keyed on Postman's names while
- * they are still Postman's.
+ * Yields are adapted before members are renamed, so both read the registry under the names
+ * the script arrived with.
+ *
+ * Runs before `processTransformations`, so those names are still the source API's.
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift Collection
- * @param {Object} [registry] - The API registry, defaulting to Postman's
+ * @param {Object} registry - The API registry for the direction being translated
  */
-export const applySemanticTypes = (j, ast, registry = POSTMAN_REGISTRY) => {
+export const applySemanticTypes = (j, ast, registry) => {
   collectBindings(j, ast, registry).forEach((binding) => {
+    rewriteYields(j, ast, binding, registry);
     rewriteMembers(j, ast, binding, registry);
   });
 
   rewriteDestructuredDeclarations(j, ast, registry);
 };
 
-export { default as POSTMAN_REGISTRY } from './postman-registry';
-export { default as BRUNO_REGISTRY } from './bruno-registry';
-export { default as rewriteMembers } from './rewrite-members';
-export { resolvesToBinding } from './type-environment';
-export { rewritePattern } from './rewrite-patterns';
+export { rewriteMembers, rewritePattern, resolvesToBinding };

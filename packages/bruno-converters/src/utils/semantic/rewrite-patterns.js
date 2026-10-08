@@ -33,7 +33,8 @@ export const rewritePattern = (j, pattern, typeName, registry) => {
     if (property.value.type === 'ObjectPattern' || property.value.type === 'ArrayPattern') return;
 
     const spec = members[property.key.name];
-    if (!spec) return;
+    // nothing to rename: the member is unknown here, or declared to have no counterpart
+    if (!spec || !spec.to) return;
 
     /**
      * A member that is a method on one side and a plain property on the other can't be

@@ -15,8 +15,8 @@ exported: `postman-to-bruno-translator.js` one way, `bruno-to-postman-translator
 Both are **parity twins** — see `.claude/rules/feature-parity.md`.
 
 There are four places a mapping can live, and picking the wrong one is the common mistake. A
-mapping added to the flat map when it belonged in the registry will pass its own test and still
-not fire on real scripts.
+mapping added to the flat map when it belonged in the correspondence table will pass its own test
+and still not fire on real scripts.
 
 ## Where a mapping goes
 
@@ -24,7 +24,7 @@ not fire on real scripts.
 |---|---|
 | `simpleTranslations` (both translators) | anything reachable by a **fixed dotted path** — `pm.environment.get` → `bru.getEnvVar` |
 | `complexTransformations` (both translators) | anything needing **argument reshaping, several statements, or a condition** |
-| `src/utils/semantic/*-registry.js` | **members of a value held in a variable or parameter**, where the receiver's name is arbitrary |
+| `src/utils/semantic/correspondence.js` | **members of a value held in a variable or parameter**, where the receiver's name is arbitrary |
 | `src/postman/postman-translations.js` regex map | **nothing new.** It is the fallback for scripts that fail to parse |
 
 **The question that decides it: can you write a fixed dotted path that uniquely identifies this
@@ -41,58 +41,63 @@ r.code        // no fixed path exists — `r` could be named anything
 The flat map cannot match that, and the alias-inlining in `preprocessAliases` cannot help either:
 it resolves aliases by substituting the aliased expression at every use site, which is only valid
 for a side-effect-free global like `pm.response`. A call cannot be duplicated. Those members
-belong to the registry, which types the binding instead of erasing it.
+belong to the correspondence table, which types the binding instead of erasing it.
 
-## Adding a registry entry
+## One table, two registries
 
-The registry vocabulary is deliberately two words — `to` (rename) and `call` (`'drop'` / `'add'`,
-when a member is a method on one side and a plain property on the other). **Needing anything else
-means it is not a registry entry**; that narrowness is what makes an entry safe to add without
-reading the engine.
+`correspondence.js` is the only place either direction's facts are written. `derive.js` builds
+`POSTMAN_REGISTRY` and `BRUNO_REGISTRY` from it, so the two directions **cannot disagree about
+which members pair up** — the inverse property holds by construction, not by a spec keeping two
+hand-written files matched. An addition is one row, not two.
 
-An addition is not finished until all five are done:
+A row pairs the two names and says how else the sides differ:
 
-1. `producers` — if a new call yields a typed value
-2. `types` — the member map
-3. `params` — if a callback or handler receives the value
-4. **the mirror entry in the other registry**
-5. **a case in `tests/postman/round-trip/scripts.spec.js`**
+| Key | Meaning |
+|---|---|
+| `pm` / `bru` | the member name on each side |
+| `pmKind` / `bruKind` | `'method'` or `'property'` — given together, and only when they differ |
+| `direction` | `'pm->bru'` or `'bru->pm'` when the row applies one way only |
+| `pmToBru` / `bruToPm` | what becomes of the value the member yields, in that direction |
+| `unsupported` | on a row naming **one** side: why that member has no counterpart |
 
-Item 4 carries the weight, and nothing in the engine links the two registries — they are two
-hand-written files describing one set of facts in opposite polarity. Two specs stand in for that
-missing link, and both must stay green:
+`pmToBru` / `bruToPm` carry exactly one of `{ coerce: '<name>' }` — an expression from
+`coercions.js` recovers the shape the source expects — or `{ lost: '<reason>' }`, when nothing
+bridges the two shapes and the statement is flagged instead.
 
-- `tests/utils/semantic-registries.spec.js` checks the registries against each other directly —
-  that every type is paired, every `to` resolves back to the member it came from, and every `call`
-  inverts (`drop` ↔ `add`). A one-sided or mis-polarised edit fails here, naming the member.
-- `tests/postman/round-trip/scripts.spec.js` asserts a script survives Postman → Bruno → Postman
-  byte-identical, which is what proves the engine agrees with the data.
+`derive.js` throws on a row outside that vocabulary. A malformed row is a mistake in the table
+rather than a condition to translate around, so it fails at import instead of quietly dropping
+the member.
 
-A member that deliberately **does not** round trip — because it collapses onto one the other API
-already has — belongs in `ONE_WAY_MEMBERS` in the invariant spec, with its reason. That list is
-checked both ways: an undeclared collapse fails, and so does a stale exemption for a member that
-has since gained a true inverse.
+## Adding a row
 
-## Traps
+1. Add the row to the right type pair in `correspondence.js`
+2. If a new call brings a typed value into a script, add an `ENTRY_POINTS` entry
+3. If the member's result has a different shape on the two sides, say so with `coerce` or `lost`
+4. **A case in `tests/postman/round-trip/scripts.spec.js`**
 
-- **Many-to-one mappings make the inverse ambiguous.** `json` and `text` both map to `data`, so
-  the reverse direction has to *choose* which one `data` goes back to. Adding another collapsing
-  pair means making that choice and declaring the losing member in `ONE_WAY_MEMBERS`.
-- **A member carrying `call` is skipped by destructuring.** A pattern has no call site in reach,
-  so `rewrite-patterns.js` leaves those properties alone — `const { json } = res` stays
-  untranslated. Non-obvious, and it lives in a different file from the registry.
-- **Never map to a member the target does not have.** Leaving it untranslated is the better
-  failure: it stays visible in the output. A wrong mapping reads as working.
-- **Entries are global to the type.** There is no per-call-site control.
+There is no mirror entry to remember and no `ONE_WAY_MEMBERS` list: a member that translates only
+one way says `direction` on its own row. `tests/utils/semantic-registries.spec.js` checks that the
+derivation still inverts, that the vocabulary stays within what the engine implements, and that a
+malformed row is rejected.
 
-## The two rewrite strategies
+## Three rewrite strategies
 
-Both are driven from `applySemanticTypes` and read the same registry, but they differ in what
-they have to track:
+`applySemanticTypes` drives all three over the bindings `type-environment.js` collects.
+`rewriteMembers` and `rewritePattern` are **also called directly** by
+`send-request-transformer.js` and `bruno-send-request-transformer.js`, which type a handler's
+parameter without going through binding collection — a change to either has two sets of callers.
 
-- **`rewrite-members.js`** rewrites `r.code` → `r.status`. It must resolve every reference
-  through `path.scope.lookup`, comparing the declaring scope **node** against the binding's — a
-  bare name is not enough, or a shadowed parameter gets rewritten with the real one.
+- **`rewrite-yields.js`** adapts what a member *produces*, where the value is produced rather than
+  at every later read, so no reference needs visiting:
+  `await jar.get(u, n)` → `(await jar.get(u, n)).value`. It acts only where the result is observed;
+  a discarded result needs no adaptation. Two shapes leave nowhere to hang an expression and are
+  flagged instead: a callback, where the value arrives as a parameter, and a plain property, which
+  has no call at all.
+- **`rewrite-members.js`** rewrites `r.code` → `r.status`. It must resolve every reference through
+  `path.scope.lookup`, comparing the declaring scope **node** against the binding's — a bare name
+  is not enough, or a shadowed parameter gets rewritten along with the real one. It also preserves
+  `?.`: the parser spells an optional access as a MemberExpression carrying `optional`, so the flag
+  is copied rather than the builder swapped.
 - **`rewrite-patterns.js`** rewrites `{ code }` → `{ status: code }`. The rename stays inside the
   pattern and aliases back to the local name, so no reference is visited and no scope tracking is
   needed.
@@ -101,22 +106,48 @@ Matching nodes are **collected before any replacement is applied**. Maps rename 
 another member's name (`code → status` beside `status → statusText`), so a pass that replaced as
 it walked would re-match its own output.
 
+## Traps
+
+- **Many-to-one mappings make the inverse ambiguous.** `json` and `text` both map to `data`, so the
+  reverse direction has to *choose* which one `data` goes back to. The losing member carries
+  `direction: 'pm->bru'`.
+- **An unsupported member can collide with a rename target.** Bruno's `deleteCookies` becomes
+  Postman's `clear`, while Bruno's own `clear` has no counterpart — both read as `clear` in the
+  output, and only the warning comment tells them apart. The known collisions are pinned in
+  `tests/utils/semantic-registries.spec.js`; a new one has to be looked at, because the comment is
+  load-bearing from then on.
+- **A member carrying `call` is skipped by destructuring.** A pattern has no call site in reach, so
+  `rewrite-patterns.js` leaves those properties alone — `const { json } = res` stays untranslated.
+  Non-obvious, and it lives in a different file from the table.
+- **Never map to a member the target does not have.** Leaving it untranslated is the better
+  failure: it stays visible in the output. A wrong mapping reads as working.
+- **Entries are global to the type.** There is no per-call-site control.
+- **Member inventories are not yet exhaustive.** `BrunoCookieJar` is complete against the jar
+  handle in `@usebruno/requests`; `PostmanResponse` is not. A member absent from a type is one
+  nobody has classified, and it passes through silently — which is what `unsupported` exists to
+  stop, one member at a time.
+- **`params.then` is derived for both directions but read by only one.**
+  `send-request-transformer.js` walks promise chains; its Bruno twin handles the callback form
+  alone, so `bru.sendRequest(q).then(res => res.status)` is still untranslated going back.
+
 ## When the value is uncertain, emit nothing
 
-Every guard in `type-environment.js` resolves the same way, and new ones must too. A missed
-translation leaves the original text in the output, where it is visible and greppable; a wrong one
-silently changes what the script does.
+A missed translation leaves the original text in the output, where it is visible and greppable; a
+wrong one silently changes what the script does. New guards must resolve the same way.
 
-Bindings are dropped — not guessed at — when the name is declared twice in one scope (the AST
-library models function scope, not block scope, so a `const` inside an `if` is indistinguishable
-from one beside it), when the binding is ever reassigned, when the initialiser is not a known
-producer, or when a key is not statically known. Interprocedural flow is not supported at all.
+`type-environment.js` drops a binding — rather than guessing — when the name is declared twice in
+one scope (the AST library models function scope, not block scope, so a `const` inside an `if` is
+indistinguishable from one beside it), when the binding is ever reassigned, or when the initialiser
+is not a known producer. Members reached through a key that is not statically known are skipped
+separately, by `rewrite-members.js` and `rewrite-patterns.js`. Interprocedural flow is not
+supported at all.
 
 ## Checklist
 
 - [ ] Mapping is in the destination the fixed-dotted-path question points to
-- [ ] Mirror entry added to the other direction's registry or map, or its absence stated
-- [ ] Round-trip case added when a registry type changed, and
+- [ ] One row in `correspondence.js`, not an edit to each direction
+- [ ] A shape difference in what a member yields declared with `coerce` or `lost`, never left silent
+- [ ] Round-trip case added when a type pair changed, and
       `tests/utils/semantic-registries.spec.js` still green
 - [ ] Any new guard fails by leaving the source text alone, never by guessing
 - [ ] Scope resolution compares scope **nodes**, never bare names

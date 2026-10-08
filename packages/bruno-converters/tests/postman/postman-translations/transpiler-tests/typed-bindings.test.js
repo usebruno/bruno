@@ -185,4 +185,88 @@ describe('Typed bindings', () => {
       expect(translateCode(code)).toContain('const { headers: { x }, status: code } =');
     });
   });
+
+  /**
+   * Where the two jars agree on the call but not on what it yields, the adaptation goes at
+   * the call rather than at every later read, so the references need no visiting at all.
+   */
+  describe('values whose shape differs from the member that yields them', () => {
+    it('should take the value off the cookie Bruno yields', () => {
+      const code = `
+        const jar = pm.cookies.jar();
+        const token = await jar.get('https://a.com', 'sid');
+        console.log(token.toUpperCase());
+      `;
+      const translatedCode = translateCode(code);
+
+      expect(translatedCode).toContain('const token = (await jar.getCookie(\'https://a.com\', \'sid\')).value;');
+      expect(translatedCode).toContain('console.log(token.toUpperCase());');
+    });
+
+    it('should leave a discarded result alone', () => {
+      const code = `
+        const jar = pm.cookies.jar();
+        await jar.get('https://a.com', 'sid');
+      `;
+      const translatedCode = translateCode(code);
+
+      expect(translatedCode).toContain('await jar.getCookie(\'https://a.com\', \'sid\');');
+      expect(translatedCode).not.toContain('bruno-converter');
+    });
+
+    it('should flag the callback form, where the value arrives as a parameter', () => {
+      const code = `
+        const jar = pm.cookies.jar();
+        jar.get('https://a.com', 'sid', (err, value) => console.log(value));
+      `;
+      const translatedCode = translateCode(code);
+
+      expect(translatedCode).toContain('(err, value) => console.log(value)');
+      expect(translatedCode).toContain('// bruno-converter: Bruno yields the cookie object');
+    });
+
+    it('should flag a property whose shape differs, having no call to adapt', () => {
+      const code = `
+        const r = await pm.sendRequest(q);
+        console.log(r.headers.get('content-type'));
+      `;
+      const translatedCode = translateCode(code);
+
+      expect(translatedCode).toContain('console.log(r.headers.get(\'content-type\'));');
+      expect(translatedCode).toContain('// bruno-converter: Postman headers is a HeaderList');
+    });
+
+    it('should flag a list whose shape no expression recovers', () => {
+      const code = `
+        const jar = pm.cookies.jar();
+        const all = await jar.getAll('https://a.com');
+      `;
+      const translatedCode = translateCode(code);
+
+      expect(translatedCode).toContain('const all = await jar.getCookies(\'https://a.com\');');
+      expect(translatedCode).toContain('// bruno-converter: Postman yields a PropertyList');
+    });
+  });
+
+  /**
+   * `jar?.get(...)` returns undefined when there is no jar. A plain member expression in
+   * its place throws instead, so the optional access has to survive the rename.
+   */
+  describe('optional access', () => {
+    it('should stay optional through a jar rename', () => {
+      const code = `
+        const jar = pm.cookies.jar();
+        jar?.unset('https://a.com', 'sid');
+      `;
+      expect(translateCode(code)).toContain('jar?.deleteCookie(\'https://a.com\', \'sid\');');
+    });
+
+    it('should stay optional through a response rename', () => {
+      const code = `
+        const r = await pm.sendRequest(q);
+        console.log(r?.code);
+      `;
+      expect(translateCode(code)).toContain('console.log(r?.status);');
+    });
+  });
 });
