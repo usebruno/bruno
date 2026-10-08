@@ -331,7 +331,7 @@ describe('wsdl-to-bruno', () => {
         </xsd:element>
       `);
 
-      expect(body).toContain('<SignRequest><swedishId>string</swedishId></SignRequest>');
+      expect(body).toContain('<tns:SignRequest><swedishId>string</swedishId></tns:SignRequest>');
     });
 
     it('stops expanding a group that references itself', async () => {
@@ -351,7 +351,7 @@ describe('wsdl-to-bruno', () => {
         </xsd:element>
       `);
 
-      expect(body).toContain('<SignRequest><label>string</label></SignRequest>');
+      expect(body).toContain('<tns:SignRequest><label>string</label></tns:SignRequest>');
     });
   });
 
@@ -390,7 +390,7 @@ describe('wsdl-to-bruno', () => {
         <xsd:element name="SignRequest" type="tns:StringType"/>
       `);
 
-      expect(body).toContain('<SignRequest lang="?">string</SignRequest>');
+      expect(body).toContain('<tns:SignRequest lang="?">string</tns:SignRequest>');
     });
   });
 

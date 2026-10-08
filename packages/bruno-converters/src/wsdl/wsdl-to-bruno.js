@@ -212,7 +212,15 @@ class SampleRenderer {
   }
 
   tagFor(el) {
-    // Return just the name without namespace prefix to match expected test output
+    const ns = el.namespace || '';
+    // Global elements (declared at schema level and referenced by message
+    // parts) are emitted with their namespace prefix so document-style SOAP
+    // bodies carry the correctly-qualified element. Local elements retain the
+    // schema's qualification rules (unqualified by default).
+    if (ns && this.model.elements.has(`${ns}:${el.name}`)) {
+      const prefix = this.namespaces.prefixFor(ns);
+      return `${prefix}:${el.name}`;
+    }
     return el.name;
   }
 
