@@ -45,7 +45,7 @@ npm run test:codegen
 2. Playwright Inspector opens in a separate window
 3. You interact with the Bruno UI
 4. Actions are recorded and converted to test code
-5. The generated test file is saved in `e2e-tests/`
+5. The generated test file is saved in `tests/`
 
 ### Codegen Workflow
 
@@ -97,20 +97,24 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 ### Directory Structure
 
 ```
-e2e-tests/
-├── 001-sanity-tests/          # Basic functionality tests
-│   ├── 001-home-screen.spec.ts
-│   └── 002-create-new-collection-and-new-request.spec.ts
-├── 002-feature-tests/         # Specific feature tests
-├── 003-integration-tests/     # Complex workflow tests
-└── bruno-testbench/           # Test utilities and helpers
+tests/
+├── common/                             # Basic functionality tests
+│   ├── home-screen.spec.ts
+│   └── create-new-collection.spec.ts
+├── feature-a/                          # Specific feature tests
+├── utils/                              # Test utilities and helpers
+│   ├── page/
+│   │   ├── locators.ts                # common locators and merged sub feature locators
+│   │   ├── actions.ts                 # common actions
+│   │   ├── feature-a.ts               # Feature A specific locator builder and actions
+│   │   └── feature-b.ts               # Feature B specific locator builder and actions
 ```
 
 ### Naming Conventions
 
 - **Files**: Use descriptive names with `.spec.ts` extension
 - **Tests**: Use clear, descriptive test names
-- **Folders**: Use numbered prefixes for ordering
+- **Folders**: Use for grouping the tests
 
 ### Test File Template
 
@@ -167,10 +171,10 @@ test('Test with multiple fixtures', async ({ page, createTmpDir, electronApp }) 
 npm run test:e2e
 
 # Run specific test file
-npx playwright test e2e-tests/001-sanity-tests/001-home-screen.spec.ts
+npx playwright test tests/common/home-screen.spec.ts
 
 # Run tests in a specific folder
-npx playwright test e2e-tests/001-sanity-tests/
+npx playwright test tests/folder-a/
 ```
 
 ### Advanced Options
@@ -192,113 +196,253 @@ npx playwright test --debug
 npx playwright test --trace on
 ```
 
-### CI/CD Integration
-
-```bash
-# Install browsers for CI
-npx playwright install
-
-# Run tests in CI mode
-npm run test:e2e
-```
-
 ## Best Practices
 
-### 1. Use Semantic Selectors
+### 1. Centralize Locators and Actions in Page Modules
+
+**Never inline raw `page.locator(...)` / `page.getByTestId(...)` selectors in a spec.** Locators and the interactions that use them live in **page modules** under `tests/utils/page/*`, and specs consume them through the shared builders and exported actions. This keeps selectors single-sourced, so a UI change is fixed in one place instead of across every spec.
+
+**A page module owns one section.** Each file under `tests/utils/page/*` covers a single UI section/domain and exports *both* a locator builder and the actions for that section, co-located. [`mounting.ts`](../tests/utils/page/mounting.ts) is the reference shape — `buildCollectionTreeLocators(page)` lives alongside its actions (`waitForCollectionMount`, `openCollectionFromPath`, `getCollectionTreeStructure`, …) in one file.
+
+**New section → new file → link into common.** Create a new page module for a new section rather than growing the inline object in `locators.ts`, then map its locator builder into `buildCommonLocators` so specs get it for free. This is **required** for every new page module.
+
+A spec builds locators once and destructures the groups it needs — no per-section imports at the call site:
+
+```typescript
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../utils/page';
+
+test('should rename a request via the sidebar', async ({ page, createTmpDir }) => {
+  const { sidebar, actions, dropdown } = buildCommonLocators(page);
+  const testDir = await createTmpDir('rename-test');
+
+  await createCollection(page, 'My Collection', testDir);
+  await createRequest(page, 'Test Request', 'My Collection');
+
+  await sidebar.request('Test Request').hover();
+  await actions.collectionItemActions('Test Request').click();
+  await dropdown.item('Rename').click();
+
+  await closeAllCollections(page);
+});
+```
+
+Defining a new page module (locator builder **and** its actions in one file):
+
+```typescript
+// tests/utils/page/notifications.ts — one file owns the "notifications" section
+import { test, Page } from '../../../playwright';
+
+export const buildNotificationLocators = (page: Page) => ({
+  toast: (text: string) => page.getByTestId('notification-toast').filter({ hasText: text }),
+  dismissButton: () => page.getByTestId('notification-dismiss')
+});
+
+export const dismissNotification = async (page: Page, text: string) => {
+  await test.step(`Dismiss notification "${text}"`, async () => {
+    const notifications = buildNotificationLocators(page);
+    await notifications.toast(text).waitFor({ state: 'visible' });
+    await notifications.dismissButton().click();
+  });
+};
+```
+
+Then link the builder into `buildCommonLocators` so every spec can reach it:
+
+```typescript
+// tests/utils/page/locators.ts
+import { buildNotificationLocators } from './notifications';
+
+export const buildCommonLocators = (page: Page) => ({
+  runner: () => page.getByTestId('run-button'),
+  sidebar: { /* … */ },
+  notifications: buildNotificationLocators(page),   // now buildCommonLocators(page).notifications
+  // …
+});
+```
+
+**Scope of enforcement:**
+
+- **Strict for new tests** — any new spec must go through this pattern; no direct selectors, no duplicated inline queries.
+- **Lenient for existing tests** — small tweaks to an existing spec need not refactor its existing selectors. But if you rewrite or substantially modify a large portion of a spec, extract its selectors and interactions into a page module as part of the change.
+- **Don't retro-link existing modules right now** — some already-extracted modules (e.g. [`mounting.ts`](../tests/utils/page/mounting.ts)) aren't wired into `buildCommonLocators` yet; leave them until their specs are next reworked. The rules above apply going forward, not as a migration mandate.
+- **Long-term goal** — every section is a page module and every module is reachable from `buildCommonLocators`, so locators and actions stay consistent and single-sourced.
+
+### 2. Use Semantic Selectors
+
+Applies to the selectors written *inside* a page module (`locators.ts` or a section file), not the spec.
 
 **Preferred:**
 
 ```typescript
-await page.getByRole('button', { name: 'Create' }).click();
-await page.getByLabel('Collection Name').fill('test');
-await page.getByText('Success message').toBeVisible();
+page.getByTestId('collection-name');
+page.getByRole('button', { name: 'Create' });
+page.getByLabel('Collection Name');
 ```
 
 **Avoid:**
 
 ```typescript
-await page.locator('.btn-primary').click();
-await page.locator('#collection-name').fill('test');
+page.locator('.btn-primary');
+page.locator('#collection-name');
 ```
 
-### 2. Create Isolated Tests
+### 3. Keep `defaultPreferences` in Sync with App Preferences
 
-Each test should be independent and not rely on other tests:
+E2E launches seed a fresh userData dir from the `defaultPreferences` mock in [`playwright/index.ts`](../playwright/index.ts) (merged into any `init-user-data/preferences.json`). **Whenever you add or change a key in the app's `preferences.json` schema/defaults, add a matching default to that mock** — otherwise tests run against unset preferences and diverge from real app behaviour.
 
 ```typescript
-test('should create collection', async ({ page, createTmpDir }) => {
-  const testDir = await createTmpDir('collection-test');
+// playwright/index.ts
+const defaultPreferences = {
+  preferences: {
+    onboarding: {
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: version
+    }
+    // ← add the default for any new preferences.json key here
+  }
+};
+```
 
-  // Test creates its own data
-  await page.getByLabel('Create Collection').click();
-  await page.getByLabel('Name').fill('test-collection');
-  await page.getByLabel('Location').fill(testDir);
+### 4. Create Isolated Tests
 
-  // Clean up happens automatically via createTmpDir
+Each test should be independent and not rely on other tests — its own temp dir, its own data, deterministic cleanup:
+
+```typescript
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../utils/page';
+
+test('should create a collection', async ({ page, createTmpDir }) => {
+  const { sidebar } = buildCommonLocators(page);
+  const testDir = await createTmpDir('collection-test');   // isolated per test
+
+  await createCollection(page, 'test-collection', testDir);
+  await expect(sidebar.collection('test-collection')).toBeVisible();
+
+  await closeAllCollections(page);   // deterministic cleanup
 });
 ```
 
-### 3. Add Meaningful Assertions
+### 5. Add Meaningful Assertions
 
-Always verify the expected outcomes:
+Always verify the expected outcome through locators from a page module:
 
 ```typescript
-test('should save request successfully', async ({ page }) => {
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '../utils/page';
+
+test('should save a request', async ({ page, createTmpDir }) => {
+  const { tabs } = buildCommonLocators(page);
+  const testDir = await createTmpDir('save-test');
+
   // Arrange
-  await page.getByLabel('Create Collection').click();
+  await createCollection(page, 'Save Test', testDir);
+  await createRequest(page, 'Get Ping', 'Save Test', { url: 'http://localhost:8081/ping', method: 'GET' });
 
   // Act
-  await page.getByRole('button', { name: 'Save' }).click();
+  await saveRequest(page);
 
-  // Assert
-  await expect(page.getByText('Request saved successfully')).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'GET request' })).toBeVisible();
+  // Assert — the tab is open and no longer shows the unsaved-changes indicator
+  await expect(tabs.requestTab('Get Ping')).toBeVisible();
+  await expect(tabs.draftIndicator()).toBeHidden();
+
+  await closeAllCollections(page);
 });
 ```
 
-### 4. Handle Async Operations
+### 6. Keep Assertions in Specs, Not Actions
+
+`expect(...)` belongs in the spec, that's where the test's intent and its pass/fail criteria must be visible. Action helpers in `tests/utils/page/*` perform interactions and synchronize state; they must **not** assert the test's expectations. An action that asserts hides pass/fail logic behind a reusable helper and forces every caller to accept that one expectation.
+
+**Actions synchronize with `waitFor`; specs verify with `expect`.** When an action needs the UI to reach a state before its next step (a modal to open, a spinner to clear), wait with Playwright's wait utilities like `locator.waitFor({ state })`, `page.waitForLoadState()` etc., not `expect`. `waitFor` synchronizes so the next action is reliable; `expect` decides whether the test passes and stays in the spec.
 
 ```typescript
-test('should wait for network requests', async ({ page }) => {
-  // Wait for specific network request
-  await page.waitForResponse((response) => response.url().includes('/api/endpoint'));
+// tests/utils/page/collection.ts — the action WAITS, it does not assert
+export const openRenameModal = async (page: Page, requestName: string) => {
+  await test.step(`Open rename modal for "${requestName}"`, async () => {
+    const { sidebar, actions, dropdown } = buildCommonLocators(page);
+    await sidebar.request(requestName).hover();
+    await actions.collectionItemActions(requestName).click();
+    await dropdown.item('Rename').click();
+    // Synchronization, not assertion — wait until the modal is ready to interact with
+    await page.locator('.bruno-modal').filter({ hasText: 'Rename Request' }).waitFor({ state: 'visible' });
+  });
+};
+```
 
-  // Or wait for element to be stable
-  await page.waitForSelector('[data-testid="loading"]', { state: 'hidden' });
+```typescript
+// the spec OWNS the assertion
+test('renames a request', async ({ page, createTmpDir }) => {
+  const { modal } = buildCommonLocators(page);
+  // … arrange: create collection + request …
+
+  await openRenameModal(page, 'Test Request');
+
+  await expect(modal.title('Rename Request')).toBeVisible();   // expect lives here, in the spec
 });
 ```
 
-### 5. Use Test Data Management
+### 7. Handle Async Operations
+
+Prefer auto-retrying assertions and action helpers that encapsulate the wait; never wait on a raw inline selector.
 
 ```typescript
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, sendRequestAndWaitForResponse } from '../utils/page';
+
+test('should wait for async operations', async ({ page }) => {
+  const { response } = buildCommonLocators(page);
+
+  // Action helpers wrap "do the thing + wait for its result"
+  await sendRequestAndWaitForResponse(page, 200);
+
+  // Auto-retrying assertions wait until the condition holds — no hardcoded sleeps
+  await expect(response.statusCode()).toContainText('200');
+  await expect(response.pane()).toBeVisible();
+
+  // page.waitForResponse targets the network (not the DOM), so it's fine to use directly.
+  // Avoid page.waitForSelector('[data-testid="…"]') — wait on a locator from a page module instead.
+});
+```
+
+### 8. Use Test Data Management
+
+```typescript
+import { test, expect } from '../../playwright';
+import { buildCommonLocators, openCollection } from '../utils/page';
+
 test('should work with test data', async ({ page, createTmpDir }) => {
+  const { sidebar } = buildCommonLocators(page);
   const testDir = await createTmpDir('test-data');
 
   // Create test files
   await fs.writeFile(path.join(testDir, 'test.bru'), testContent);
 
-  // Use in test
-  await page.getByLabel('Open Collection').click();
-  await page.getByText(testDir).click();
+  // Use in test — actions/locators come from page modules, not raw selectors
+  await openCollection(page, 'test-data');
+  await expect(sidebar.collection('test-data')).toBeVisible();
 });
 ```
 
 ## Examples
 
+All examples use `buildCommonLocators` for locators and the exported action helpers from `tests/utils/page` — see [Best Practices §1](#1-centralize-locators-and-actions-in-page-modules).
+
 ### Example 1: Basic Collection Creation
 
 ```typescript
 import { test, expect } from '../../playwright';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../utils/page';
 
 test('should create a new collection', async ({ page, createTmpDir }) => {
+  const { sidebar } = buildCommonLocators(page);
   const testDir = await createTmpDir('new-collection');
 
-  await page.getByLabel('Create Collection').click();
-  await page.getByLabel('Name').fill('My Test Collection');
-  await page.getByLabel('Location').fill(testDir);
-  await page.getByRole('button', { name: 'Create' }).click();
+  await createCollection(page, 'My Test Collection', testDir);
 
-  await expect(page.getByText('My Test Collection')).toBeVisible();
+  await expect(sidebar.collection('My Test Collection')).toBeVisible();
+  await closeAllCollections(page);
 });
 ```
 
@@ -306,28 +450,29 @@ test('should create a new collection', async ({ page, createTmpDir }) => {
 
 ```typescript
 import { test, expect } from '../../playwright';
+import {
+  buildCommonLocators,
+  createCollection,
+  createRequest,
+  sendRequestAndWaitForResponse,
+  closeAllCollections
+} from '../utils/page';
 
-test('should create and execute HTTP request', async ({ page, createTmpDir }) => {
+test('should create and execute an HTTP request', async ({ page, createTmpDir }) => {
+  const { response } = buildCommonLocators(page);
   const testDir = await createTmpDir('request-test');
 
-  // Create collection
-  await page.getByLabel('Create Collection').click();
-  await page.getByLabel('Name').fill('Request Test');
-  await page.getByLabel('Location').fill(testDir);
-  await page.getByRole('button', { name: 'Create' }).click();
+  await createCollection(page, 'Request Test', testDir);
+  await createRequest(page, 'Ping', 'Request Test', {
+    url: 'http://localhost:8081/ping',
+    method: 'GET'
+  });
 
-  // Create request
-  await page.locator('#create-new-tab').getByRole('img').click();
-  await page.getByPlaceholder('Request Name').fill('Test Request');
-  await page.locator('#new-request-url .CodeMirror').click();
-  await page.locator('textarea').fill('http://localhost:8081/ping');
-  await page.getByRole('button', { name: 'Create' }).click();
+  // Sends the active request and asserts the status code in one step
+  await sendRequestAndWaitForResponse(page, 200);
 
-  // Execute request
-  await page.getByTestId('send-arrow-icon').click();
-
-  // Verify response
-  await expect(page.getByRole('main')).toContainText('200 OK');
+  await expect(response.statusCode()).toContainText('200');
+  await closeAllCollections(page);
 });
 ```
 
@@ -335,29 +480,25 @@ test('should create and execute HTTP request', async ({ page, createTmpDir }) =>
 
 ```typescript
 import { test, expect } from '../../playwright';
+import {
+  buildCommonLocators,
+  createCollection,
+  createEnvironment,
+  addEnvironmentVariable,
+  closeAllCollections
+} from '../utils/page';
 
 test('should create and use environment variables', async ({ page, createTmpDir }) => {
+  const { environment } = buildCommonLocators(page);
   const testDir = await createTmpDir('env-test');
 
-  // Setup collection
-  await page.getByLabel('Create Collection').click();
-  await page.getByLabel('Name').fill('Environment Test');
-  await page.getByLabel('Location').fill(testDir);
-  await page.getByRole('button', { name: 'Create' }).click();
+  await createCollection(page, 'Environment Test', testDir);
 
-  // Create environment
-  await page.getByRole('button', { name: 'Environments' }).click();
-  await page.getByRole('button', { name: 'Add Environment' }).click();
-  await page.getByLabel('Environment Name').fill('Development');
-  await page.getByRole('button', { name: 'Create' }).click();
+  await createEnvironment(page, 'Development');
+  await addEnvironmentVariable(page, { name: 'API_URL', value: 'http://localhost:3000' });
 
-  // Add variable
-  await page.getByRole('button', { name: 'Add Variable' }).click();
-  await page.getByLabel('Variable Name').fill('API_URL');
-  await page.getByLabel('Variable Value').fill('http://localhost:3000');
-  await page.getByRole('button', { name: 'Save' }).click();
-
-  await expect(page.getByText('API_URL')).toBeVisible();
+  await expect(environment.varRow('API_URL')).toBeVisible();
+  await closeAllCollections(page);
 });
 ```
 
@@ -377,10 +518,14 @@ test('should create and use environment variables', async ({ page, createTmpDir 
 
 2. **Tests Timing Out**
 
+   First find out *why* it's slow - a timeout is usually a symptom, not the problem. Replace hardcoded waits with auto-retrying assertions, wait on the app-ready signal (`[data-app-state="loaded"]`), and use action helpers that wait for their own result. Bumping the timeout hides the real issue and slows the suite for everyone.
+
+   Only raise the timeout when the test genuinely does long-running work (large import, a slow real endpoint) - and scope it to that test, not globally:
+
    ```typescript
-   // Increase timeout for specific test
-   test('slow test', async ({ page }) => {
-     test.setTimeout(60000); // 60 seconds
+   // Justified: this test imports a very large collection that legitimately takes ~40s.
+   test('imports a large collection', async ({ page }) => {
+     test.setTimeout(60000); // 60s — the work is genuinely long, not a masked flake
      // Test steps
    });
    ```
@@ -412,7 +557,7 @@ test('should create and use environment variables', async ({ page, createTmpDir 
 npx playwright test --debug
 
 # Run specific test in debug mode
-npx playwright test --debug e2e-tests/001-sanity-tests/001-home-screen.spec.ts
+npx playwright test --debug tests/common/home-screen.spec.ts
 ```
 
 ### Trace Analysis
@@ -431,11 +576,11 @@ The Playwright configuration is in `playwright.config.ts`:
 
 ```typescript
 export default defineConfig({
-  testDir: './e2e-tests',
-  fullyParallel: false,
+  testDir: './tests',
+  fullyParallel: tue,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? undefined : 1,
+  retries: process.env.CI ? 2 : 0,
+  workers: undefined,
 
   projects: [
     {

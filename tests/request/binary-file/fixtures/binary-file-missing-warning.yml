@@ -1,0 +1,41 @@
+opencollection: 1.0.0
+info:
+  name: Binary body type
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ''
+      port: ''
+      auth:
+        username: ''
+        password: ''
+      bypassProxy: ''
+items:
+  - info:
+      name: Binary body - missing file
+      type: http
+      seq: 2
+    http:
+      method: POST
+      url: https://api.com/users
+      body:
+        type: file
+        data:
+          - filePath: ./missing-payload.bin
+            contentType: ''
+            selected: true
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+bundled: true
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+    exportedUsing: Bruno

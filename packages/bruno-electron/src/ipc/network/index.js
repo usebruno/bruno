@@ -10,23 +10,30 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2, trackUnresolvedVariables, getUnresolvedVariableCollector } = require('@usebruno/js');
+const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor } = require('@usebruno/requests');
+const {
+  addDigestInterceptor,
+  addEdgeGridInterceptor,
+  applySentHeadersToRequest,
+  measureResponseTime
+} = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
-const { makeAxiosInstance } = require('./axios-instance');
+const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
+const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
+const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
+const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, isBinaryRequestBody } = require('../../utils/common');
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -37,7 +44,10 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
-const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const { easterEggResponse } = require('../../utils/woof');
+const { createRunnerExchangeEmitters } = require('./runner-exchange');
+const { saveRunnerResponseBody } = require('../../services/runner-exchange');
+const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -57,6 +67,7 @@ const saveCookies = (url, headers) => {
   }
 };
 
+// Duplicated as getJsSandboxRuntime in utils/collection.js; keep the two in sync.
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
@@ -71,6 +82,12 @@ const getJsSandboxRuntime = (collection) => {
 const hasStreamHeaders = (headers) => {
   const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
   return headerSplit.indexOf('text/event-stream') > -1;
+};
+
+const buildResponseBodyFromStreamChunks = (sseChunks, headers, disableParsingResponseJson) => {
+  const dataBuffer = Buffer.concat(sseChunks);
+  const { data } = parseDataFromResponse({ data: dataBuffer, headers }, disableParsingResponseJson);
+  return { data, dataBuffer };
 };
 
 const promisifyStream = async (stream, abortController, closeOnFirst) => {
@@ -128,12 +145,15 @@ const configureRequest = async (
   // Get followRedirects setting, default to true for backward compatibility
   const followRedirects = request.settings?.followRedirects ?? true;
 
+  // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+  const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
   // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
   // Ensure it's a valid number
   if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-    requestMaxRedirects = 5; // Default to 5 redirects
+    requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
   }
 
   // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
@@ -145,18 +165,20 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-  let axiosInstance = makeAxiosInstance({
+  const axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
     proxyConfig,
     requestMaxRedirects,
     httpsAgentRequestFields,
     interpolationOptions,
-    followRedirects
+    followRedirects,
+    forwardAuthorizationHeader
   });
 
   if (request.ntlmConfig) {
-    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+    const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+    axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
     delete request.ntlmConfig;
   }
 
@@ -308,6 +330,11 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
+  if (request.edgeGridConfig) {
+    addEdgeGridInterceptor(axiosInstance, request);
+    delete request.edgeGridConfig;
+  }
+
   // Get timeout from request settings, fallback to global preference
   const resolvedSettings = resolveInheritedSettings(request.settings || {});
   request.timeout = resolvedSettings.timeout;
@@ -348,8 +375,12 @@ const configureRequest = async (
     const urlObj = new URL(request.url);
 
     // Interpolate key and value as they can be variables before adding to the URL.
-    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
-    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+    const apiKeyInterpolationOptions = {
+      ...interpolationOptions,
+      onUnresolved: getUnresolvedVariableCollector(request)
+    };
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, apiKeyInterpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, apiKeyInterpolationOptions);
 
     urlObj.searchParams.set(key, value);
     request.url = urlObj.toString();
@@ -418,7 +449,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       collection.globalEnvironmentVariables
     );
 
-    const response = await axiosInstance(request);
+    const response = await axiosInstance(refreshExplicitHeaderNames(request));
 
     return {
       status: response.status,
@@ -449,6 +480,8 @@ const registerNetworkIpc = (mainWindow) => {
       args
     });
   };
+
+  const { sendRunnerRequestSent, sendRunnerResponseReceived } = createRunnerExchangeEmitters(mainWindow);
 
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
@@ -499,6 +532,42 @@ const registerNetworkIpc = (mainWindow) => {
       ...(scriptResult || {}),
       results
     };
+  };
+
+  const sendVariableUpdates = (result, { collectionUid, requestUid, collection }) => {
+    if (result.runtimeVariables) {
+      mainWindow.webContents.send('main:runtime-variables-update', {
+        runtimeVariables: result.runtimeVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+
+    if (result.envVariables) {
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+
+    if (result.globalEnvironmentVariables) {
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: result.globalEnvironmentVariables,
+        requestUid,
+        collectionUid
+      });
+      collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
+    }
+
+    if (result.collectionVariables) {
+      mainWindow.webContents.send('main:collection-variables-update', {
+        collectionVariables: result.collectionVariables,
+        requestUid,
+        collectionUid
+      });
+      applyCollectionVarsToCollectionRoot(collection, result.collectionVariables);
+    }
   };
 
   const resetOauth2Credentials = ({ oauth2CredentialsToReset, request, collectionUid }) => {
@@ -552,25 +621,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookies = await getDomainsWithCookies();
@@ -579,6 +630,14 @@ const registerNetworkIpc = (mainWindow) => {
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
+
+    if (!hasExplicitScheme(request.url)) {
+      // The scheme must be present before encoding. Without a `://`, encodeUrl
+      // treats a `host:port` authority as a path segment and percent-encodes the
+      // port colon (localhost:6000 → localhost%3A6000), which then resolves to a
+      // bogus host once configureRequest prepends http://.
+      request.url = `http://${request.url}`;
+    }
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -597,26 +656,28 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
+    const mediaType = getMediaType(contentType);
+
+    if (mediaType === 'application/x-www-form-urlencoded') {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
-      } else if (typeof request.data !== 'string') {
+      } else if (typeof request.data !== 'string' && !isBinaryRequestBody(request.data)) {
         request.data = qs.stringify(request.data, { arrayFormat: 'repeat' });
       }
-      // if `data` is of string type - return as-is (assumes already encoded)
+      // string and file (Buffer/stream) bodies are sent as-is (assumed already encoded)
     }
 
-    const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
-    if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
-      if (typeof request.data !== 'string' && !isFormData(request.data)) {
+    if (mediaType.startsWith('multipart/')) {
+      if (typeof request.data !== 'string' && !isFormData(request.data) && !isBinaryRequestBody(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const existingBoundary = extractBoundaryFromContentType(contentType);
+        let form = createFormData(request.data, collectionPath, existingBoundary);
         request.data = form;
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
           const formHeaders = form.getHeaders();
-          const existingBoundary = extractBoundaryFromContentType(contentType);
           if (existingBoundary) {
             formHeaders['content-type'] = contentType;
           } else {
@@ -630,7 +691,6 @@ const registerNetworkIpc = (mainWindow) => {
         extend(request.headers, form.getHeaders());
       }
     }
-
     return scriptResult;
   };
 
@@ -647,6 +707,7 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    applySentHeadersToRequest(request, response);
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
@@ -662,24 +723,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          runtimeVariables: result.runtimeVariables,
-          persistentEnvVariables: result.persistentEnvVariables,
-          requestUid,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:persistent-env-variables-update', {
-          persistentEnvVariables: result.persistentEnvVariables,
-          collectionUid
-        });
-
-        mainWindow.webContents.send('main:global-environment-variables-update', {
-          globalEnvironmentVariables: result.globalEnvironmentVariables
-        });
-
-        collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
+        sendVariableUpdates(result, { collectionUid, requestUid, collection });
       }
 
       if (result?.error) {
@@ -707,25 +751,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:persistent-env-variables-update', {
-        persistentEnvVariables: scriptResult.persistentEnvVariables,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-      });
-
-      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
-
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookiesPost = await getDomainsWithCookies();
@@ -734,12 +760,14 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    // Nested bru.runRequest() invocations have no item.requestUid; mint one.
-    const requestUid = item.requestUid || uuid();
+    // Nested bru.runRequest() invocations have no item.requestUid; inherit the parent's
+    // so script-driven variable updates aren't dropped by the renderer's requestUid gate.
+    const requestUid = item.requestUid || parentRequestUid || uuid();
+    let unresolvedVariables = null;
 
     const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
       return new Promise(async (resolve, reject) => {
@@ -790,7 +818,7 @@ const registerNetworkIpc = (mainWindow) => {
           const startedAt = Date.now();
           let res, err;
           try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData });
+            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
           } catch (e) {
             err = e;
           }
@@ -815,7 +843,8 @@ const registerNetworkIpc = (mainWindow) => {
                     data: res.data,
                     dataBuffer: res.dataBuffer,
                     size: res.size,
-                    duration: res.duration
+                    duration: res.duration,
+                    timeline: res.timeline
                   }
                 : null,
               error: err || (res?.error ? { message: res.error } : null),
@@ -867,6 +896,29 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
+    if (!runInBackground || parentUnresolvedVariables) {
+      unresolvedVariables = trackUnresolvedVariables(request, parentUnresolvedVariables);
+    }
+
+    let reportedUnresolvedCount = 0;
+    const reportUnresolvedVariables = () => {
+      if (runInBackground || unresolvedVariables.size === reportedUnresolvedCount) return;
+
+      reportedUnresolvedCount = unresolvedVariables.size;
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'unresolved-variables',
+        unresolvedVariables: [...unresolvedVariables],
+        itemUid: item.uid,
+        requestUid,
+        collectionUid
+      });
+    };
+
+    // Every good boy deserves a response.
+    if (request.method && request.method.toUpperCase() === 'WOOF') {
+      return easterEggResponse(request);
+    }
+
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
     // flag to see if the stream needs to be handled as an actual stream or
@@ -876,6 +928,7 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
+    scriptingConfig.cacheModules = false;
 
     try {
       request.signal = abortController.signal;
@@ -894,7 +947,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
       request.certsAndProxyConfig = certsAndProxyConfig;
-
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -916,6 +968,9 @@ const registerNetworkIpc = (mainWindow) => {
 
       if (preRequestError?.partialResults) {
         preRequestScriptResult = preRequestError.partialResults;
+        // Forward any variable mutations the script made before throwing so the UI
+        // and disk stay in sync with the partial test results we're about to render.
+        sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
       }
 
       emitScriptedRequestEvents('pre-request', preRequestScriptResult);
@@ -944,6 +999,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -1014,18 +1070,18 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       let response, responseTime, axiosDataStream;
+      const sseChunks = [];
+      reportUnresolvedVariables();
       try {
         /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+        response = await axiosInstance(refreshExplicitHeaderNames(request));
         isResponseStream = hasStreamHeaders(response.headers);
 
         if (!isResponseStream) {
           response.data = await promisifyStream(response.data);
+          completeOpenHop(response.config);
         }
-
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
+        responseTime = measureResponseTime(response.config.metadata);
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -1042,16 +1098,16 @@ const registerNetworkIpc = (mainWindow) => {
         }
         if (error?.response) {
           response = error.response;
-
-          // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
-          response.headers.delete('request-duration');
           isResponseStream = hasStreamHeaders(response.headers);
           if (!isResponseStream) {
             response.data = await promisifyStream(response.data);
+            completeOpenHop(response.config);
           }
+          responseTime = measureResponseTime(response.config.metadata);
         } else {
-          await executeRequestOnFailHandler(request, error);
+          await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+          });
 
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
@@ -1113,6 +1169,8 @@ const registerNetworkIpc = (mainWindow) => {
         // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
         if (postResponseError?.partialResults) {
           postResponseScriptResult = postResponseError.partialResults;
+          // Forward any variable mutations the script made before throwing.
+          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
         }
 
         emitScriptedRequestEvents('post-response', postResponseScriptResult);
@@ -1207,24 +1265,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            runtimeVariables: testResults.runtimeVariables,
-            requestUid,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:persistent-env-variables-update', {
-            persistentEnvVariables: testResults.persistentEnvVariables,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:global-environment-variables-update', {
-            globalEnvironmentVariables: testResults.globalEnvironmentVariables
-          });
-
-          collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
+          sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
           resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
           !runInBackground && notifyScriptExecution({
@@ -1243,7 +1284,26 @@ const registerNetworkIpc = (mainWindow) => {
         }
       };
       if (isResponseStream) {
-        axiosDataStream.on('close', () => runPostScripts().then());
+        axiosDataStream.on('close', () => {
+          completeOpenHop(response.config);
+          response.responseTime = measureResponseTime(response.config.metadata);
+          try {
+            const { data, dataBuffer } = buildResponseBodyFromStreamChunks(
+              sseChunks,
+              response.headers,
+              request.__brunoDisableParsingResponseJson
+            );
+            response.data = data;
+            response.dataBuffer = dataBuffer;
+          } catch (error) {
+            console.error('Error rebuilding response body from SSE chunks:', error);
+          }
+          runPostScripts()
+            .finally(reportUnresolvedVariables)
+            .catch((error) => {
+              console.error('Error running post-response scripts for SSE stream:', error);
+            });
+        });
       } else {
         await runPostScripts();
       }
@@ -1254,6 +1314,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: response.headers,
         data: response.data,
         stream: isResponseStream ? axiosDataStream : null,
+        sseChunks: isResponseStream ? sseChunks : null,
         cancelTokenUid: cancelTokenUid,
         dataBuffer: response.dataBuffer.toString('base64'),
         size: Buffer.byteLength(response.dataBuffer),
@@ -1273,6 +1334,8 @@ const registerNetworkIpc = (mainWindow) => {
         timeline: error?.timeline,
         requestSent
       };
+    } finally {
+      reportUnresolvedVariables();
     }
   };
 
@@ -1332,6 +1395,8 @@ const registerNetworkIpc = (mainWindow) => {
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
       stream.on('data', (newData) => {
+        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
+        response.sseChunks?.push(newData);
         seq += 1;
 
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
@@ -1398,6 +1463,7 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid, collection);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      scriptingConfig.cacheModules = false;
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
@@ -1496,7 +1562,8 @@ const registerNetworkIpc = (mainWindow) => {
                       data: res.data,
                       dataBuffer: res.dataBuffer,
                       size: res.size,
-                      duration: res.duration
+                      duration: res.duration,
+                      timeline: res.timeline
                     }
                   : null,
                 error: err || (res?.error ? { message: res.error } : null),
@@ -1546,13 +1613,13 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // Filter requests based on tags
-        if (tags && tags.include && tags.exclude) {
-          const includeTags = tags.include ? tags.include : [];
-          const excludeTags = tags.exclude ? tags.exclude : [];
-          folderRequests = folderRequests.filter(({ tags: requestTags = [], draft }) => {
-            requestTags = draft?.tags || requestTags || [];
-            return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
-          });
+        const includeTags = tags?.include || [];
+        const excludeTags = tags?.exclude || [];
+        if (includeTags.length || excludeTags.length) {
+          const effectiveTagsByUid = getEffectiveTagsByUid(collection);
+          folderRequests = folderRequests.filter((request) =>
+            isRequestTagsIncluded(effectiveTagsByUid.get(request.uid) || [], includeTags, excludeTags)
+          );
         }
 
         // Filter requests based on selectedRequestUids (for "Configure requests to run")
@@ -1608,11 +1675,11 @@ const registerNetworkIpc = (mainWindow) => {
             });
           };
 
-          let timeStart;
-          let timeEnd;
+          const requestUid = uuid();
 
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'request-queued',
+            requestUid,
             ...eventData
           });
 
@@ -1636,8 +1703,6 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
-
-          const requestUid = uuid();
 
           const promptVars = await extractPromptVariablesForRequest({ request, collection, envVars, runtimeVariables, processEnvVars });
 
@@ -1697,6 +1762,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (preRequestError?.partialResults) {
               preRequestScriptResult = preRequestError.partialResults;
+              sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
             }
 
             preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
@@ -1774,11 +1840,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'request-sent',
-              requestSent,
-              ...eventData
-            });
+            await sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
@@ -1831,7 +1893,6 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            timeStart = Date.now();
             let response, responseTime;
             try {
               if (delay && !Number.isNaN(delay) && delay > 0) {
@@ -1847,15 +1908,14 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               /** @type {import('axios').AxiosResponse} */
-              response = await axiosInstance(request);
+              response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
-              timeEnd = Date.now();
+              completeOpenHop(response.config);
+              response.responseTime = measureResponseTime(response.config.metadata);
 
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.dataBuffer = dataBuffer;
-              response.responseTime = response.headers.get('request-duration');
-              response.headers.delete('request-duration');
 
               // save cookies
               if (preferencesUtil.shouldStoreCookies()) {
@@ -1867,13 +1927,13 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
+              await sendRunnerResponseReceived({
+                requestUid,
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
                   headers: response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
@@ -1881,7 +1941,8 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
-                ...eventData
+                disableParsingResponseJson: Boolean(request.__brunoDisableParsingResponseJson),
+                eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
@@ -1891,9 +1952,9 @@ const registerNetworkIpc = (mainWindow) => {
 
               if (error?.response) {
                 error.response.data = await promisifyStream(error.response.data, currentAbortController, false);
+                completeOpenHop(error.response.config);
+                error.response.responseTime = measureResponseTime(error.response.config.metadata);
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
-                error.response.responseTime = error.response.headers.get('request-duration');
-                error.response.headers.delete('request-duration');
                 error.response.data = data;
                 error.response.dataBuffer = dataBuffer;
 
@@ -1902,12 +1963,11 @@ const registerNetworkIpc = (mainWindow) => {
                   saveCookies(request.url, error.response.headers);
                 }
 
-                timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: error.response.headers,
-                  duration: timeEnd - timeStart,
+                  duration: error.response.responseTime,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
@@ -1916,14 +1976,16 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'response-received',
+                await sendRunnerResponseReceived({
+                  requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  ...eventData
+                  eventData
                 });
               } else {
-                await executeRequestOnFailHandler(request, error);
+                await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
+                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+                });
 
                 // if it's not a network error, don't continue
                 throw error;
@@ -1955,6 +2017,7 @@ const registerNetworkIpc = (mainWindow) => {
             // (e.g., if 2 tests pass then script throws, we still want to show those 2 passing tests)
             if (postResponseError?.partialResults) {
               postResponseScriptResult = postResponseError.partialResults;
+              sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
             }
 
             postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
@@ -2056,24 +2119,17 @@ const registerNetworkIpc = (mainWindow) => {
                 nextRequestName = testResults.nextRequestName;
               }
 
+              if (testResults?.stopExecution) {
+                stopRunnerExecution = true;
+              }
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,
                 ...eventData
               });
 
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: testResults.envVariables,
-                runtimeVariables: testResults.runtimeVariables,
-                collectionUid
-              });
-
-              mainWindow.webContents.send('main:global-environment-variables-update', {
-                globalEnvironmentVariables: testResults.globalEnvironmentVariables
-              });
-
-              collection.globalEnvironmentVariables = testResults.globalEnvironmentVariables;
-
+              sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
               resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
               notifyScriptExecution({
@@ -2131,12 +2187,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-        mainWindow.webContents.send('main:run-folder-event', {
-          type: 'testrun-ended',
-          collectionUid,
-          folderUid,
-          runCompletionTime: new Date().toISOString()
-        });
+        if (!stopRunnerExecution) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'testrun-ended',
+            collectionUid,
+            folderUid,
+            runCompletionTime: new Date().toISOString()
+          });
+        }
       } catch (error) {
         console.log('error', error);
         deleteCancelToken(cancelTokenUid);
@@ -2201,6 +2259,10 @@ const registerNetworkIpc = (mainWindow) => {
       const dirPath = path.dirname(pathname);
       const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      if (filePath && !response.dataBuffer && typeof response.storedRequestUid === 'string') {
+        await saveRunnerResponseBody(response.storedRequestUid, filePath);
+        return { success: true, filePath };
+      }
       if (filePath) {
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');
@@ -2222,14 +2284,19 @@ const registerNetworkIpc = (mainWindow) => {
  * Executes the custom error handler if it exists on the request
  * @param {Object} request - The request object that may contain an onFailHandler
  * @param {Error} error - The error that occurred
+ * @param {Function} onResult - Callback for handling the script result
  */
-const executeRequestOnFailHandler = async (request, error) => {
+const executeRequestOnFailHandler = async (request, error, onResult) => {
   if (!request || typeof request.onFailHandler !== 'function') {
     return;
   }
 
   try {
-    await request.onFailHandler(error);
+    const result = await request.onFailHandler(error);
+    if (result && typeof onResult === 'function') {
+      onResult(result);
+    }
+    return result;
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.
@@ -2248,3 +2315,6 @@ module.exports.configureRequest = configureRequest;
 module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
+module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
+module.exports.promisifyStream = promisifyStream;
+module.exports.hasStreamHeaders = hasStreamHeaders;

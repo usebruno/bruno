@@ -1,5 +1,6 @@
 import Headers from '../Common/Headers/index';
 import BodyBlock from '../Common/Body/index';
+import { sentHeadersFromTimeline } from 'utils/timeline';
 
 const safeStringifyJSONIfNotString = (obj) => {
   if (obj === null || obj === undefined) return '';
@@ -11,15 +12,20 @@ const safeStringifyJSONIfNotString = (obj) => {
   }
 };
 
-const Request = ({ collection, request, item }) => {
+const Request = ({ collection, request, item, response }) => {
   let { headers, data, dataBuffer, error } = request || {};
+
+  const sentHeaders = sentHeadersFromTimeline(response?.timeline);
+  /** In case of `bru.sendRequest` it builds its own entry in timeline,
+   * so to show the headers sent in new request we need headers not sentHeaders */
+  const displayedHeaders = sentHeaders.length ? sentHeaders : headers;
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
 
   return (
     <>
-      <Headers headers={headers} />
+      <Headers headers={displayedHeaders} variant="request" />
       <BodyBlock
         collection={collection}
         data={data}

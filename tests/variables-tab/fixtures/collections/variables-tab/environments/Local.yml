@@ -1,0 +1,27 @@
+name: Local
+
+variables:
+  - name: api_url
+    value: https://api.example.com
+  - name: page_size
+    value:
+      type: number
+      data: "25"
+  - name: feature_enabled
+    value:
+      type: boolean
+      data: "true"
+  - name: feature_flags
+    value:
+      type: object
+      data: '{"beta":true,"rollout":"partial"}'
+  - name: derived_url
+    value: "{{api_url}}/v1"
+  - name: legacy_url
+    value: https://legacy.example.com
+    disabled: true
+  - secret: true
+    name: api_token
+  - secret: true
+    name: secret_profile
+    type: object

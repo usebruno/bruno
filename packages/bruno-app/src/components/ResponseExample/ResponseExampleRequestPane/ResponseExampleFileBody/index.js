@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -7,6 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
@@ -76,6 +77,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
         uid: row.uid,
         filePath: newFilePath,
         contentType: '',
+        description: '',
         selected: true
       };
       // Auto-detect content type from file extension
@@ -116,15 +118,23 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     }));
   }, [editMode, dispatch, item.uid, collection.uid, exampleUid, params]);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave: () => {},
+    collection,
+    item,
+    readOnly: !editMode
+  });
+
   const columns = [
     {
       key: 'filePath',
       name: 'File',
       isKeyField: true,
       placeholder: 'File',
-      width: '50%',
+      width: '30%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ row, value, onChange }) => (
         <FilePickerEditor
           isSingleFilePicker={true}
           value={value || ''}
@@ -139,7 +149,7 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
       key: 'contentType',
       name: 'Content-Type',
       placeholder: 'Auto',
-      width: '30%',
+      width: '20%',
       readOnly: !editMode,
       render: ({ value, onChange }) => (
         <SingleLineEditor
@@ -158,9 +168,9 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     {
       key: 'selected',
       name: 'Selected',
-      width: '20%',
+      width: '15%',
       readOnly: !editMode,
-      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+      render: ({ row, rowIndex }) => (
         <div className="flex items-center justify-center pl-4">
           <RadioButton
             key={row.uid}
@@ -175,12 +185,14 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
           />
         </div>
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     filePath: '',
     contentType: '',
+    description: '',
     selected: false
   };
 

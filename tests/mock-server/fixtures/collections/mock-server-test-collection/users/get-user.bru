@@ -1,0 +1,67 @@
+meta {
+  name: get-user
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/users/1
+}
+
+example {
+  name: success-200
+
+  request: {
+    url: https://api.example.com/users/1
+    method: get
+    mode: none
+  }
+
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+
+    headers: {
+      x-custom-header: test-value
+    }
+
+    body: {
+      type: json
+      content: '''
+        {
+          "id": 1,
+          "name": "John Doe",
+          "email": "john@example.com"
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: not-found-404
+
+  request: {
+    url: https://api.example.com/users/1
+    method: get
+    mode: none
+  }
+
+  response: {
+    status: {
+      code: 404
+      text: Not Found
+    }
+
+    body: {
+      type: json
+      content: '''
+        {
+          "error": "User not found"
+        }
+      '''
+    }
+  }
+}

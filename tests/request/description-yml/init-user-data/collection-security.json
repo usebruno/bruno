@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{collectionPath}}",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

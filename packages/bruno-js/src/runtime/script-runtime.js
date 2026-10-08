@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -51,12 +52,13 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -89,10 +91,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildRequestScriptResult = () => ({
       request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      persistentEnvVariables: bru.persistentEnvVariables,
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -100,6 +102,18 @@ class ScriptRuntime {
       stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
+
+    const attachScriptResultToOnFailHandler = () => {
+      if (typeof request.onFailHandler !== 'function') {
+        return;
+      }
+
+      const onFailHandler = request.onFailHandler;
+      request.onFailHandler = async (error) => {
+        await onFailHandler(error);
+        return buildRequestScriptResult();
+      };
+    };
 
     // Track script errors to attach partial results before re-throwing
     // This ensures that any test() calls that passed before the error are preserved
@@ -118,6 +132,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)
@@ -126,6 +141,7 @@ class ScriptRuntime {
         throw scriptError;
       }
 
+      attachScriptResultToOnFailHandler();
       return buildRequestScriptResult();
     }
 
@@ -146,6 +162,7 @@ class ScriptRuntime {
       throw scriptError;
     }
 
+    attachScriptResultToOnFailHandler();
     return buildRequestScriptResult();
   }
 
@@ -185,13 +202,14 @@ class ScriptRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
+    const { __brunoTestResults, test, waitForPendingTests } = createBruTestResultMethods(bru, assertionResults, chai);
 
     const context = {
       bru,
@@ -225,10 +243,10 @@ class ScriptRuntime {
     // Extracted to avoid duplication across runtime branches
     const buildResponseScriptResult = () => ({
       response,
-      envVariables: cleanJson(envVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -254,6 +272,7 @@ class ScriptRuntime {
       } catch (error) {
         scriptError = error;
       }
+      await waitForPendingTests();
 
       // If script errored, attach partial results so callers can display passed tests
       // before the error occurred (e.g., 2 tests pass, then script throws)

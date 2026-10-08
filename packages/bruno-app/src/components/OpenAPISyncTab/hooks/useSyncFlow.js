@@ -14,7 +14,7 @@ const useSyncFlow = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const performSync = async (selections = { localOnlyIds: [], endpointDecisions: {} }, mode = 'sync') => {
+  const performSync = async (selections = { localOnlyIds: [], endpointDecisions: {} }, mode = 'sync', preserveValues = true) => {
     setShowConfirmModal(false);
     setIsSyncing(true);
     setError(null);
@@ -71,7 +71,8 @@ const useSyncFlow = ({
         localOnlyToRemove,
         driftedToReset,
         mode,
-        endpointDecisions: decisions
+        endpointDecisions: decisions,
+        preserveValues
       });
 
       setPendingSyncMode(null);
@@ -102,7 +103,7 @@ const useSyncFlow = ({
   const handleApplySync = (selections) => {
     const mode = pendingSyncMode || 'sync';
     setPendingSyncMode(null);
-    performSync(selections, mode);
+    performSync(selections, mode, selections?.preserveValues ?? true);
   };
 
   const cancelConfirmModal = () => {

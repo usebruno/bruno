@@ -1,17 +1,22 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
+import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
+import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
+import { getAllVariables } from 'utils/collections';
+import { setFolderVars, moveFolderVar } from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -27,6 +32,8 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
 
+  const resolvableVariables = useMemo(() => getAllVariables(collection, folder), [collection, folder]);
+
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setFolderVars({
       collectionUid: collection.uid,
@@ -35,6 +42,10 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
       type: varType
     }));
   }, [dispatch, collection.uid, folder.uid, varType]);
+
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveFolderVar({ type: varType, collectionUid: collection.uid, folderUid: folder.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid, folder.uid]);
 
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
@@ -45,13 +56,22 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    collection,
+    item: folder,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
-      width: '40%'
+      width: '25%'
     },
     {
       key: 'value',
@@ -62,23 +82,44 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          collection={collection}
-          item={folder}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+        <VarValueCell
+          editor={(
+            <MultiLineEditor
+              value={valueToString(value)}
+              name={`${rowIndex}.value`}
+              theme={storedTheme}
+              onSave={onSave}
+              onChange={onChange}
+              collection={collection}
+              item={folder}
+              placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+            />
+          )}
+          renderTypeSelector={!isLastEmptyRow && varType === 'request'
+            ? ({ compact }) => (
+                <DataTypeSelector
+                  compact={compact}
+                  variable={row}
+                  theme={storedTheme}
+                  resolvableVariables={resolvableVariables}
+                  onChange={(fields) => {
+                    const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                    handleVarsChange(updated);
+                  }}
+                />
+              )
+            : null}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 
@@ -86,9 +127,14 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="folder-vars"
+        testId={`folder-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
+        rows={vars || []}
         onChange={handleVarsChange}
+        reorderable
+        onReorder={handleReorder}
+        sortStorageKey={`folder-vars-sort::${folder.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={folderVarsWidths}

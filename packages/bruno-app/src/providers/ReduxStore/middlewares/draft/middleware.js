@@ -32,6 +32,7 @@ const actionsToIntercept = [
   'collections/updateRequestGraphqlVariables',
   'collections/updateRequestScript',
   'collections/updateResponseScript',
+  'collections/updateGrpcScript',
   'collections/updateRequestTests',
   'collections/updateRequestMethod',
   'collections/addAssertion',
@@ -43,6 +44,7 @@ const actionsToIntercept = [
   'collections/deleteVar',
   'collections/moveVar',
   'collections/updateRequestDocs',
+  'collections/updateAppCode',
   'collections/runRequestEvent', // TODO: This doesn't necessarily related to a draft state, need to rethink.
 
   // Folder-level actions
@@ -54,12 +56,15 @@ const actionsToIntercept = [
   'collections/updateFolderVar',
   'collections/deleteFolderVar',
   'collections/setFolderVars',
+  'collections/moveFolderVar',
   'collections/updateFolderRequestScript',
   'collections/updateFolderResponseScript',
   'collections/updateFolderTests',
   'collections/updateFolderAuth',
   'collections/updateFolderAuthMode',
   'collections/updateFolderDocs',
+  'collections/addFolderTag',
+  'collections/deleteFolderTag',
 
   // Collection-level actions
   'collections/addCollectionHeader',
@@ -70,6 +75,7 @@ const actionsToIntercept = [
   'collections/updateCollectionVar',
   'collections/deleteCollectionVar',
   'collections/setCollectionVars',
+  'collections/moveCollectionVar',
   'collections/updateCollectionAuth',
   'collections/updateCollectionAuthMode',
   'collections/updateCollectionRequestScript',

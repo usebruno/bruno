@@ -1,30 +1,44 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
-import { cloneDeep, has } from 'lodash';
+import { getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { cloneDeep, isEqual } from 'lodash';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 
 const initialState = {
   globalEnvironments: [],
   activeGlobalEnvironmentUid: null,
-  globalEnvironmentDraft: null
+  globalEnvironmentDraft: null,
+  _scriptGlobalEnvBaseline: null
 };
 
+// Properties prefixed with `_` (e.g. `_scriptGlobalEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const globalEnvironmentsSlice = createSlice({
   name: 'global-environments',
   initialState,
   reducers: {
     updateGlobalEnvironments: (state, action) => {
-      state.globalEnvironments = action.payload?.globalEnvironments;
-      state.activeGlobalEnvironmentUid = action.payload?.activeGlobalEnvironmentUid;
+      const newEnvs = action.payload?.globalEnvironments || [];
+      const incomingActiveUid = action.payload?.activeGlobalEnvironmentUid ?? null;
+
+      const resolvedActiveUid = incomingActiveUid && newEnvs.some((e) => e?.uid === incomingActiveUid)
+        ? incomingActiveUid
+        : null;
+
+      state.globalEnvironments = newEnvs;
+      state.activeGlobalEnvironmentUid = resolvedActiveUid;
     },
     _addGlobalEnvironment: (state, action) => {
-      const { name, uid, variables = [], color } = action.payload;
+      const { name, uid, variables = [], color, extends: inheritedGlobalEnvironmentName } = action.payload;
       if (name?.length) {
         state.globalEnvironments.push({
           uid,
           name,
           variables,
-          color
+          color,
+          extends: inheritedGlobalEnvironmentName
         });
       }
     },
@@ -34,6 +48,15 @@ export const globalEnvironmentsSlice = createSlice({
         const environment = state.globalEnvironments.find((env) => env?.uid == globalEnvironmentUid);
         if (environment) {
           environment.variables = variables;
+        }
+      }
+    },
+    _saveGlobalEnvironmentExtends: (state, action) => {
+      const { environmentUid, extends: inheritedEnvironmentName } = action.payload;
+      if (environmentUid) {
+        const environment = state.globalEnvironments.find((env) => env?.uid == environmentUid);
+        if (environment) {
+          environment.extends = inheritedEnvironmentName;
         }
       }
     },
@@ -47,12 +70,13 @@ export const globalEnvironmentsSlice = createSlice({
       }
     },
     _copyGlobalEnvironment: (state, action) => {
-      const { name, uid, variables } = action.payload;
+      const { name, uid, variables, extends: inheritedGlobalEnvironmentName } = action.payload;
       if (name?.length && uid) {
         state.globalEnvironments.push({
           uid,
           name,
-          variables
+          variables,
+          extends: inheritedGlobalEnvironmentName
         });
       }
     },
@@ -83,6 +107,12 @@ export const globalEnvironmentsSlice = createSlice({
     clearGlobalEnvironmentDraft: (state) => {
       state.globalEnvironmentDraft = null;
     },
+    _setScriptGlobalEnvBaseline: (state, action) => {
+      state._scriptGlobalEnvBaseline = action.payload;
+    },
+    _clearScriptGlobalEnvBaseline: (state) => {
+      state._scriptGlobalEnvBaseline = null;
+    },
     _updateGlobalEnvironmentColor: (state, action) => {
       const { environmentUid, color } = action.payload;
       if (environmentUid) {
@@ -96,13 +126,16 @@ export const {
   updateGlobalEnvironments,
   _addGlobalEnvironment,
   _saveGlobalEnvironment,
+  _saveGlobalEnvironmentExtends,
   _renameGlobalEnvironment,
   _copyGlobalEnvironment,
   _selectGlobalEnvironment,
   _deleteGlobalEnvironment,
   _updateGlobalEnvironmentColor,
   setGlobalEnvironmentDraft,
-  clearGlobalEnvironmentDraft
+  clearGlobalEnvironmentDraft,
+  _setScriptGlobalEnvBaseline,
+  _clearScriptGlobalEnvBaseline
 } = globalEnvironmentsSlice.actions;
 
 const getWorkspaceContext = (state) => {
@@ -111,23 +144,23 @@ const getWorkspaceContext = (state) => {
   return { workspaceUid, workspacePath: workspace?.pathname };
 };
 
-export const addGlobalEnvironment = ({ name, variables = [], color }) => (dispatch, getState) => {
+export const addGlobalEnvironment = ({ name, variables = [], color, extends: inheritedGlobalEnvironmentName }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const uid = uuid();
-    const environment = { name, uid, variables };
+    const environment = { name, uid, variables, extends: inheritedGlobalEnvironmentName };
     const { ipcRenderer } = window;
     const state = getState();
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables, color, workspaceUid, workspacePath }))
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { name, uid, variables, color, extends: inheritedGlobalEnvironmentName, workspaceUid, workspacePath }))
       .then((result) => {
         const finalUid = result?.uid || uid;
         const finalName = result?.name || name;
         const finalVariables = result?.variables || variables;
         const finalColor = result?.color || color;
-        dispatch(_addGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables, color: finalColor }));
+        dispatch(_addGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables, color: finalColor, extends: inheritedGlobalEnvironmentName }));
         return finalUid;
       })
       .then((finalUid) => dispatch(selectGlobalEnvironment({ environmentUid: finalUid })))
@@ -146,17 +179,18 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
       return reject(new Error('Base environment not found'));
     }
     const uid = uuid();
-    const environment = { uid, name, variables: baseEnv.variables };
+    const inheritedGlobalEnvironmentName = baseEnv.extends;
+    const environment = { uid, name, variables: baseEnv.variables, extends: inheritedGlobalEnvironmentName };
     const { ipcRenderer } = window;
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables, workspaceUid, workspacePath }))
+      .then(() => ipcRenderer.invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables, extends: inheritedGlobalEnvironmentName, workspaceUid, workspacePath }))
       .then((result) => {
         const finalUid = result?.uid || uid;
         const finalName = result?.name || name;
         const finalVariables = result?.variables || baseEnv.variables;
-        dispatch(_copyGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables }));
+        dispatch(_copyGlobalEnvironment({ name: finalName, uid: finalUid, variables: finalVariables, extends: inheritedGlobalEnvironmentName }));
       })
       .then(resolve)
       .catch(reject);
@@ -218,6 +252,17 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
       return reject(new Error('Environment not found'));
     }
 
+    // Guarded here rather than only in the editor panes, because cmd+S, autosave and the
+    // save-all-drafts hotkey reach this thunk directly and `environmentSchema` accepts any name.
+    const invalidNames = getInvalidVariableNames(variables);
+    if (invalidNames.length > 0) {
+      return reject(new Error(invalidVariableNamesError(invalidNames)));
+    }
+
+    if (writesCollidingSecrets(variables, environment.variables)) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
+    }
+
     const environmentToSave = { ...environment, variables };
     const { ipcRenderer } = window;
 
@@ -227,6 +272,7 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
         environmentUid,
         variables,
         color: environment.color,
+        extends: environment.extends,
         workspaceUid,
         workspacePath
       }))
@@ -265,57 +311,96 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
 };
 
 export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
+  if (!globalEnvironmentVariables) return;
+
+  const state = getState();
+
+  const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
+  const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+  const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
+
+  if (!environment || !environmentUid) return;
+
+  const { inheritedVariables } = resolveEnvironmentInheritance({
+    environments: globalEnvironments,
+    targetEnvironment: environment
+  });
+
+  const skipKeys = ['__name__'];
+
+  // add inherited variables names to `skipKeys` to avoid the `create new variable` path
+  // except the variables whose values have been updated.
+  // An inherited row holds the value as the file spells it — a string — while the script reports it
+  // parsed by its `dataType`, so the inherited value has to be parsed to compare.
+  Object.entries(globalEnvironmentVariables).forEach(([key, value]) => {
+    if (inheritedVariables.find((iv) => (iv.name === key) && isEqual(parseValueByDataType(iv.value, iv.dataType), value))) {
+      skipKeys.push(key);
+    }
+  });
+
+  const draft = state?.globalEnvironments?.globalEnvironmentDraft;
+  if (draft && draft.environmentUid === environmentUid && draft.variables) {
+    const baseline = {};
+    environment.variables?.forEach((v) => {
+      if (v.enabled) baseline[v.name] = v.value;
+    });
+    dispatch(_setScriptGlobalEnvBaseline(baseline));
+
+    dispatch(_saveGlobalEnvironment({ environmentUid, variables: draft.variables }));
+    dispatch(clearGlobalEnvironmentDraft());
+  }
+
+  const updatedState = getState();
+  const updatedEnv = updatedState?.globalEnvironments?.globalEnvironments?.find((env) => env?.uid == environmentUid);
+  const baseline = updatedState?.globalEnvironments?._scriptGlobalEnvBaseline;
+  let variables = cloneDeep(updatedEnv?.variables || []);
+
+  variables = applyScriptEnvVars(variables, globalEnvironmentVariables, baseline, { skipKeys, inheritedVariables });
+
+  // Re-infer dataType only for vars the script actually modified — preserves draft-only type edits
+  // when a script does a structurally-equal no-op write.
+  const modifiedKeys = getScriptModifiedKeys(globalEnvironmentVariables, baseline, { skipKeys });
+  variables.forEach((v) => {
+    if (!modifiedKeys.has(v.name)) return;
+    const inferred = getDataTypeFromValue(globalEnvironmentVariables[v.name]);
+    if (inferred === 'string') {
+      delete v.dataType;
+    } else {
+      v.dataType = inferred;
+    }
+  });
+
+  dispatch(_saveGlobalEnvironment({ environmentUid, variables }));
+
+  const { ipcRenderer } = window;
+  const { workspaceUid, workspacePath } = getWorkspaceContext(state);
+  environmentSchema
+    .validate({ ...environment, variables })
+    .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
+      environmentUid,
+      variables,
+      color: environment.color,
+      extends: environment.extends,
+      workspaceUid,
+      workspacePath
+    }))
+    .catch((err) => console.error('Failed to persist global environment:', err));
+};
+
+export const saveGlobalEnvironmentExtends = ({ environmentUid, extends: inheritedGlobalEnvironmentName }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    if (!globalEnvironmentVariables) resolve();
-
     const state = getState();
     const { workspaceUid, workspacePath } = getWorkspaceContext(state);
-    const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
-    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
-    const environment = globalEnvironments?.find((env) => env?.uid == environmentUid);
 
-    if (!environment || !environmentUid) {
-      return resolve();
-    }
-
-    let variables = cloneDeep(environment?.variables);
-
-    // "globalEnvironmentVariables" will include only the enabled variables and newly added variables created using the script.
-    // Update the value of each variable if it's present in "globalEnvironmentVariables", otherwise keep the existing value.
-    variables = variables?.map?.((variable) => ({
-      ...variable,
-      value: has(globalEnvironmentVariables, variable?.name)
-        ? globalEnvironmentVariables[variable?.name]
-        : variable?.value
-    }));
-
-    Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
-      const isAnExistingVariable = variables?.find((v) => v?.name == key);
-      if (!isAnExistingVariable) {
-        variables.push({
-          uid: uuid(),
-          name: key,
-          value,
-          type: 'text',
-          secret: false,
-          enabled: true
-        });
-      }
-    });
-
-    const environmentToSave = { ...environment, variables };
-
-    environmentSchema
-      .validate(environmentToSave)
-      .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
+    ipcRenderer
+      .invoke('renderer:save-global-environment-extends', {
         environmentUid,
-        variables,
-        color: environment.color,
+        extends: inheritedGlobalEnvironmentName,
         workspaceUid,
         workspacePath
-      }))
-      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
+      })
+      .then(() => dispatch(_saveGlobalEnvironmentExtends({ environmentUid, extends: inheritedGlobalEnvironmentName })))
       .then(resolve)
       .catch(reject);
   });

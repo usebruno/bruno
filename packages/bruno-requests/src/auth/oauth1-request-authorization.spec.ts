@@ -1123,6 +1123,29 @@ describe('applyOAuth1ToRequest', () => {
       expect(req1.headers['Authorization']).not.toBe(req2.headers['Authorization']);
     });
 
+    it('should include form body params when the Content-Type media type is mixed case', () => {
+      const req1 = {
+        url: 'https://example.com/resource',
+        method: 'POST',
+        headers: { 'Content-Type': 'Application/X-WWW-Form-Urlencoded; charset=UTF-8' } as Record<string, string>,
+        data: 'foo=bar',
+        oauth1config: { ...baseOAuth1Config }
+      };
+
+      const req2 = {
+        url: 'https://example.com/resource',
+        method: 'POST',
+        headers: { 'Content-Type': 'Application/X-WWW-Form-Urlencoded; charset=UTF-8' } as Record<string, string>,
+        data: 'foo=baz',
+        oauth1config: { ...baseOAuth1Config }
+      };
+
+      applyOAuth1ToRequest(req1);
+      applyOAuth1ToRequest(req2);
+
+      expect(req1.headers['Authorization']).not.toBe(req2.headers['Authorization']);
+    });
+
     it('should handle case-insensitive Content-Type header key', () => {
       const req1 = {
         url: 'https://example.com/resource',

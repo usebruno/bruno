@@ -3,6 +3,7 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getEffectiveTags, getOwnTags, getInheritedTagsFromTreePath } = require('@usebruno/common');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -90,6 +91,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
+        break;
+      case 'akamai-edgegrid':
+        axiosRequest.edgeGridConfig = {
+          accessToken: get(collectionAuth, 'akamaiEdgegrid.accessToken'),
+          clientToken: get(collectionAuth, 'akamaiEdgegrid.clientToken'),
+          clientSecret: get(collectionAuth, 'akamaiEdgegrid.clientSecret'),
+          nonce: get(collectionAuth, 'akamaiEdgegrid.nonce'),
+          timestamp: get(collectionAuth, 'akamaiEdgegrid.timestamp'),
+          baseURL: get(collectionAuth, 'akamaiEdgegrid.baseURL'),
+          headersToSign: get(collectionAuth, 'akamaiEdgegrid.headersToSign'),
+          maxBodySize: get(collectionAuth, 'akamaiEdgegrid.maxBodySize')
+        };
         break;
       case 'oauth2':
         const grantType = get(collectionAuth, 'oauth2.grantType');
@@ -345,6 +358,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'akamai-edgegrid':
+        axiosRequest.edgeGridConfig = {
+          accessToken: get(request, 'auth.akamaiEdgegrid.accessToken'),
+          clientToken: get(request, 'auth.akamaiEdgegrid.clientToken'),
+          clientSecret: get(request, 'auth.akamaiEdgegrid.clientSecret'),
+          nonce: get(request, 'auth.akamaiEdgegrid.nonce'),
+          timestamp: get(request, 'auth.akamaiEdgegrid.timestamp'),
+          baseURL: get(request, 'auth.akamaiEdgegrid.baseURL'),
+          headersToSign: get(request, 'auth.akamaiEdgegrid.headersToSign'),
+          maxBodySize: get(request, 'auth.akamaiEdgegrid.maxBodySize')
+        };
+        break;
     }
   }
 
@@ -399,7 +424,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     disabledHeaders,
     name: item.name,
     pathname: item.pathname,
-    tags: item.tags || [],
+    tags: getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(requestTreePath)),
     pathParams: request.params?.filter((param) => param.type === 'path'),
     settings,
     responseType: 'arraybuffer'
@@ -526,6 +551,10 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
   axiosRequest.oauth2Credentials = request.oauth2Credentials;
+  axiosRequest.__explicitHeaderNames = Object.keys(axiosRequest.headers || {}).filter((name) => {
+    const value = axiosRequest.headers[name];
+    return value !== undefined && value !== null && value !== false;
+  });
 
   return axiosRequest;
 };

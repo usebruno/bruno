@@ -1,0 +1,18 @@
+info:
+  name: binary-preview-unknown-binary
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "application/octet-stream",
+        "contentBase64": "AAECAwQFBgcI/v38"
+      }

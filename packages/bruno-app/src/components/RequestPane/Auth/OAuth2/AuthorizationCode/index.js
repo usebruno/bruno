@@ -15,10 +15,14 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 
-const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
+const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder, disabled }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const { storedTheme } = useTheme();
+  const { storedTheme, theme } = useTheme();
+  const tooltipStyle = {
+    backgroundColor: theme?.background?.surface0,
+    color: theme?.text
+  };
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
@@ -46,9 +50,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
-  const handleSave = () => { save(); };
+  const handleSave = () => {
+    save();
+  };
 
   const handleChange = (key, value) => {
+    if (disabled) {
+      return;
+    }
     dispatch(
       updateAuth({
         mode: 'oauth2',
@@ -110,6 +119,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
   };
 
   const handleUseSystemBrowserToggle = (e) => {
+    if (disabled) {
+      return;
+    }
     const newValue = e.target.checked;
     dispatch(
       savePreferences({
@@ -156,6 +168,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
               collection={collection}
               item={item}
               placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
+              readOnly={disabled}
               isCompact
             />
           </div>
@@ -169,6 +182,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             checked={Boolean(useSystemBrowser)}
             onChange={handleUseSystemBrowserToggle}
             className="cursor-pointer"
+            disabled={disabled}
           />
           <label
             className="block cursor-pointer"
@@ -182,13 +196,23 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         </div>
       </div>
       {inputsConfig.map((input) => {
-        const { key, label, isSecret } = input;
+        const { key, label, isSecret, tooltip } = input;
         const value = oAuth[key] || '';
         const { showWarning, warningMessage } = isSensitive(value);
 
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
-            <label className="block min-w-[140px]">{label}</label>
+            <label className="min-w-[140px] flex items-center gap-4">
+              {label}
+              {tooltip && (
+                <div className="relative group cursor-pointer inline-flex items-center">
+                  <IconHelp size={16} className="text-gray-500" />
+                  <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 top-full mt-1 w-max p-2 text-xs rounded-md transition-opacity duration-200 z-10" style={tooltipStyle}>
+                    {tooltip}
+                  </span>
+                </div>
+              )}
+            </label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
                 value={value}
@@ -199,6 +223,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                readOnly={disabled}
                 isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
@@ -231,6 +256,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           type="checkbox"
           checked={Boolean(oAuth?.['pkce'])}
           onChange={handlePKCEToggle}
+          disabled={disabled}
         />
       </div>
       <div className="flex items-center gap-2.5 mt-2">
@@ -270,6 +296,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
+            readOnly={disabled}
             isCompact
           />
         </div>
@@ -295,7 +322,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
       {
         tokenPlacement === 'header'
           ? (
-              <div className="flex items-center gap-4 w-full" key="input-token-prefix">
+              <div className="flex items-center gap-4 w-full" key="input-token-prefix" data-testid="token-header-prefix">
                 <label className="block min-w-[140px]">Header Prefix</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
@@ -305,13 +332,14 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                     onRun={handleRun}
                     collection={collection}
+                    readOnly={disabled}
                     isCompact
                   />
                 </div>
               </div>
             )
           : (
-              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
+              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key" data-testid="token-query-param-key">
                 <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
@@ -321,6 +349,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenQueryKey', val)}
                     onRun={handleRun}
                     collection={collection}
+                    readOnly={disabled}
                     isCompact
                   />
                 </div>
@@ -346,6 +375,7 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
+            readOnly={disabled}
             isCompact
           />
         </div>
@@ -365,12 +395,13 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           checked={Boolean(autoFetchToken)}
           onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
           className="cursor-pointer ml-1"
+          disabled={disabled}
         />
         <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
               Automatically fetch a new token when you try to access a resource and don't have one.
             </span>
           </div>
@@ -384,13 +415,13 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
           checked={Boolean(autoRefreshToken)}
           onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
           className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={isAutoRefreshDisabled}
+          disabled={isAutoRefreshDisabled || disabled}
         />
         <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
               Automatically refresh your token using the refresh URL when it expires.
             </span>
           </div>
@@ -402,8 +433,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         collection={collection}
         updateAuth={updateAuth}
         handleSave={handleSave}
+        disabled={disabled}
       />
-      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} disabled={disabled} />
     </StyledWrapper>
   );
 };

@@ -140,7 +140,7 @@ const ProxySettings = ({ close }) => {
             Mode
           </label>
           <div className="flex items-center">
-            <label className="flex items-center cursor-pointer">
+            <label className="flex items-center cursor-pointer" data-testid="off-proxy-mode">
               <input
                 type="radio"
                 name="mode"
@@ -154,7 +154,7 @@ const ProxySettings = ({ close }) => {
               />
               Off
             </label>
-            <label className="flex items-center ml-4 cursor-pointer">
+            <label className="flex items-center ml-4 cursor-pointer" data-testid="manual-proxy-mode">
               <input
                 type="radio"
                 name="mode"
@@ -169,7 +169,7 @@ const ProxySettings = ({ close }) => {
               />
               On
             </label>
-            <label className="flex items-center ml-4 cursor-pointer">
+            <label className="flex items-center ml-4 cursor-pointer" data-testid="system-proxy-mode">
               <input
                 type="radio"
                 name="mode"
@@ -184,7 +184,7 @@ const ProxySettings = ({ close }) => {
               />
               System Proxy
             </label>
-            <label className="flex items-center ml-4 cursor-pointer">
+            <label className="flex items-center ml-4 cursor-pointer" data-testid="pac-proxy-mode">
               <input
                 type="radio"
                 name="mode"

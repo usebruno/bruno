@@ -1,0 +1,83 @@
+name: Long
+
+variables:
+  - name: long_var_01
+    value: value-01
+  - name: long_var_02
+    value: value-02
+  - name: long_var_03
+    value: value-03
+  - name: long_var_04
+    value: value-04
+  - name: long_var_05
+    value: value-05
+  - name: long_var_06
+    value: value-06
+  - name: long_var_07
+    value: value-07
+  - name: long_var_08
+    value: value-08
+  - name: long_var_09
+    value: value-09
+  - name: long_var_10
+    value: value-10
+  - name: long_var_11
+    value: value-11
+  - name: long_var_12
+    value: value-12
+  - name: long_var_13
+    value: value-13
+  - name: long_var_14
+    value: value-14
+  - name: long_var_15
+    value: value-15
+  - name: long_var_16
+    value: value-16
+  - name: long_var_17
+    value: value-17
+  - name: long_var_18
+    value: value-18
+  - name: long_var_19
+    value: value-19
+  - name: long_var_20
+    value: value-20
+  - name: long_var_21
+    value: value-21
+  - name: long_var_22
+    value: value-22
+  - name: long_var_23
+    value: value-23
+  - name: long_var_24
+    value: value-24
+  - name: long_var_25
+    value: value-25
+  - name: long_var_26
+    value: value-26
+  - name: long_var_27
+    value: value-27
+  - name: long_var_28
+    value: value-28
+  - name: long_var_29
+    value: value-29
+  - name: long_var_30
+    value: value-30
+  - name: long_var_31
+    value: value-31
+  - name: long_var_32
+    value: value-32
+  - name: long_var_33
+    value: value-33
+  - name: long_var_34
+    value: value-34
+  - name: long_var_35
+    value: value-35
+  - name: long_var_36
+    value: value-36
+  - name: long_var_37
+    value: value-37
+  - name: long_var_38
+    value: value-38
+  - name: long_var_39
+    value: value-39
+  - name: long_var_40
+    value: value-40

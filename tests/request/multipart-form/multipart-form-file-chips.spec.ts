@@ -67,7 +67,7 @@ test.describe('Multipart Form - Multiple File Upload', () => {
 
   // Reset the form to a single empty row before each test.
   test.beforeEach(async ({ page }) => {
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     await expect(table.container()).toBeVisible();
 
     let rowCount = await table.allRows().count();
@@ -86,7 +86,7 @@ test.describe('Multipart Form - Multiple File Upload', () => {
       (global as any).__mockFilePaths = paths;
     }, files);
 
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     await table.allRows().last().getByTestId('multipart-file-upload').click();
   };
 

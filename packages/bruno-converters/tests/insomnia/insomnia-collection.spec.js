@@ -137,7 +137,8 @@ const expectedOutput = {
           type: 'http-request',
           uid: 'mockeduuidvalue123456',
           settings: {
-            encodeUrl: false
+            encodeUrl: false,
+            forwardAuthorizationHeader: false
           }
         },
         {
@@ -166,7 +167,8 @@ const expectedOutput = {
           type: 'http-request',
           uid: 'mockeduuidvalue123456',
           settings: {
-            encodeUrl: false
+            encodeUrl: false,
+            forwardAuthorizationHeader: false
           }
         }
       ],
@@ -202,7 +204,8 @@ const expectedOutput = {
           type: 'http-request',
           uid: 'mockeduuidvalue123456',
           settings: {
-            encodeUrl: true
+            encodeUrl: true,
+            forwardAuthorizationHeader: false
           }
         },
         {
@@ -231,7 +234,8 @@ const expectedOutput = {
           type: 'http-request',
           uid: 'mockeduuidvalue123456',
           settings: {
-            encodeUrl: true
+            encodeUrl: true,
+            forwardAuthorizationHeader: false
           }
         }
       ],

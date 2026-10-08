@@ -17,11 +17,12 @@ import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
-import { wsdlToBruno } from '@usebruno/converters';
+import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
 import get from 'lodash/get';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
 const STATUS = {
   LOADING: 'loading',
@@ -69,7 +70,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, groupingType) => {
+const convertCollection = async (format, rawData, groupingType, filePath) => {
   let collection;
   let issues = [];
 
@@ -78,7 +79,7 @@ const convertCollection = async (format, rawData, groupingType) => {
       collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
       break;
     case 'wsdl':
-      collection = await wsdlToBruno(rawData);
+      collection = await convertWsdlToBruno(rawData, filePath);
       break;
     case 'postman': {
       const result = await postmanToBruno(rawData);
@@ -154,7 +155,7 @@ export const BulkImportCollectionLocation = ({
   const [applyToGlobal, setApplyToGlobal] = useState(true);
   const [applyToCollection, setApplyToCollection] = useState(false);
   const [groupingType, setGroupingType] = useState('tags');
-  const [collectionFormat, setCollectionFormat] = useState('bru');
+  const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
   const [renamedCollectionNames, setRenamedCollectionNames] = useState({});
   const [renamedEnvironmentNames, setRenamedEnvironmentNames] = useState({});
   const [importIssues, setImportIssues] = useState({});
@@ -307,7 +308,10 @@ export const BulkImportCollectionLocation = ({
         const collectedIssues = {};
         for (const item of selectedItems) {
           try {
-            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType);
+            const filePath = item._fileData.type === 'wsdl' && item._fileData.file
+              ? window.ipcRenderer.getFilePath(item._fileData.file)
+              : undefined;
+            const { collection, issues } = await convertCollection(item._fileData.type, item._fileData.data, groupingType, filePath);
             if (collection) {
               // Preserve the synthetic UID so status tracking, rename tracking,
               // and UI rendering all use the same key
@@ -585,6 +589,7 @@ export const BulkImportCollectionLocation = ({
       <Modal
         size="md"
         title="Bulk Import"
+        dataTestId="bulk-import-collection-location-modal"
         confirmText={importStarted ? 'Close' : 'Import'}
         confirmDisabled={Boolean(!selectedCollections?.length)}
         handleConfirm={onSubmit}
@@ -836,6 +841,7 @@ export const BulkImportCollectionLocation = ({
                   <div className="font-semibold mb-2">Location</div>
                   <input
                     id="collection-location"
+                    data-testid="bulk-import-collection-location-input"
                     type="text"
                     placeholder="Select a location to save the collection"
                     name="collectionLocation"
@@ -878,6 +884,7 @@ export const BulkImportCollectionLocation = ({
                   <select
                     id="format"
                     name="format"
+                    data-testid="bulk-import-collection-format-selector"
                     className="block textbox mt-2 w-full"
                     value={collectionFormat}
                     onChange={(e) => setCollectionFormat(e.target.value)}

@@ -8,12 +8,19 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, restoreTabs } from '../tabs';
+import { addTab, closeTabs, focusTab, restoreTabs } from '../tabs';
+import {
+  API_SPEC_TAB_TYPE,
+  findApiSpecByPathname,
+  getApiSpecPathKey,
+  getApiSpecTabUid,
+  hasUnsavedApiSpecChanges
+} from 'utils/api-specs';
 import {
   setSnapshotReady,
   startSnapshotHydrationSession,
@@ -22,11 +29,14 @@ import {
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
-import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups } from 'utils/snapshot';
+import { hydrateMockServerInstances } from 'utils/mock-server/mock-server-instances';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
 import toast from 'react-hot-toast';
+import { closeAiSidebar } from '../chat';
 
 const { ipcRenderer } = window;
 let snapshotHydrationTimer = null;
+let startupWorkspaceRestorePending = true;
 const SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS = 5 * 60 * 1000;
 
 const COLLECTION_SORT_ORDER_BY_WORKSPACE_SORTING = {
@@ -69,8 +79,8 @@ const transformCollection = async (collection, type) => {
       return processOpenCollection(collection);
     }
     case 'wsdl': {
-      const { wsdlToBruno } = await import('@usebruno/converters');
-      return wsdlToBruno(collection);
+      const { convertWsdlToBruno } = await import('utils/importers/wsdl-collection');
+      return convertWsdlToBruno(collection);
     }
     default:
       throw new Error(`Unsupported collection type: ${type}`);
@@ -353,15 +363,15 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   const openCollectionsFunction = (collectionPaths, workspacePath) => {
-    return dispatch(openMultipleCollections(collectionPaths, { workspacePath }));
+    return dispatch(openMultipleCollections(collectionPaths, { workspacePath, dontSendDisplayErrors: true }));
   };
 
   let updatedWorkspace = null;
   let openedCollectionPaths = [];
+  const unopenedCollectionPaths = new Set();
 
   try {
-    const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
-    await dispatch(loadWorkspaceCollections(workspace.uid, shouldRefreshCollections));
+    await dispatch(loadWorkspaceCollections(workspace.uid, true));
     updatedWorkspace = await dispatch((_, getState) => getState().workspaces.workspaces.find((w) => w.uid === workspace.uid));
 
     if (updatedWorkspace?.collections?.length > 0) {
@@ -386,12 +396,25 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
         if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
           console.warn('Some workspace collections failed to open during switch:', openResult.failed);
+          openResult.failed.forEach((failure) => unopenedCollectionPaths.add(normalizePath(failure.path)));
         }
 
         if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
           console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
+          openResult.invalid.forEach((invalidPath) => unopenedCollectionPaths.add(normalizePath(invalidPath)));
         }
       }
+    }
+
+    const unopenableCollections = await dispatch(loadUnopenableWorkspaceCollections(workspace.uid));
+
+    unopenableCollections
+      .filter((collection) => collection?.path)
+      .forEach((collection) => unopenedCollectionPaths.add(normalizePath(collection.path)));
+
+    if (unopenedCollectionPaths.size > 0) {
+      const unopenedCount = unopenedCollectionPaths.size;
+      toast.error(`Failed to open ${unopenedCount} collection${unopenedCount === 1 ? '' : 's'}`);
     }
 
     // Load API specs for this workspace
@@ -534,6 +557,33 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
   };
 };
 
+export const dropApiSpecTabsMissingFrom = (workspaceUid, pathnames) => (dispatch, getState) => {
+  const state = getState();
+  const scratchCollectionUid = state.workspaces.workspaces
+    .find((workspace) => workspace.uid === workspaceUid)?.scratchCollectionUid;
+
+  if (!scratchCollectionUid) {
+    return;
+  }
+
+  const workspacePathKeys = new Set(
+    (pathnames || []).map((pathname) => getApiSpecPathKey(pathname)).filter(Boolean)
+  );
+
+  const tabUids = state.tabs.tabs
+    .filter((tab) => (
+      tab.type === API_SPEC_TAB_TYPE
+      && tab.collectionUid === scratchCollectionUid
+      && !workspacePathKeys.has(getApiSpecPathKey(tab.apiSpecPathname))
+      && !hasUnsavedApiSpecChanges(findApiSpecByPathname(state.apiSpec.apiSpecs, tab.apiSpecPathname))
+    ))
+    .map((tab) => tab.uid);
+
+  if (tabUids.length) {
+    dispatch(closeTabs({ tabUids, reopenable: false }));
+  }
+};
+
 export const loadWorkspaceApiSpecs = (workspaceUid) => {
   return async (dispatch, getState) => {
     try {
@@ -549,11 +599,15 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
         apiSpecs: apiSpecs
       }));
 
+      dispatch(dropApiSpecTabsMissingFrom(workspaceUid, apiSpecs.map((apiSpec) => apiSpec?.path)));
+
       const allApiSpecs = getState().apiSpec.apiSpecs;
-      const alreadyOpenApiSpecs = allApiSpecs.map((a) => a.pathname);
+      // Compare by normalized path so a spec already loaded under a native (Windows)
+      // path isn't treated as "not open" and needlessly re-opened.
+      const alreadyOpenApiSpecs = allApiSpecs.map((a) => normalizePath(a.pathname));
 
       for (const apiSpec of apiSpecs) {
-        if (apiSpec.path && !alreadyOpenApiSpecs.includes(apiSpec.path)) {
+        if (apiSpec.path && !alreadyOpenApiSpecs.includes(normalizePath(apiSpec.path))) {
           try {
             await ipcRenderer.invoke('renderer:open-api-spec-file', apiSpec.path, workspace.pathname);
           } catch (error) {
@@ -569,10 +623,10 @@ export const loadWorkspaceApiSpecs = (workspaceUid) => {
 
 export const switchWorkspace = (workspaceUid) => {
   return async (dispatch, getState) => {
+    dispatch(closeAiSidebar());
     clearSnapshotHydrationTimeout();
     dispatch(setSnapshotReady(false));
     dispatch(clearSnapshotHydrationSession());
-
     try {
       dispatch(setActiveWorkspace(workspaceUid));
 
@@ -604,6 +658,10 @@ export const switchWorkspace = (workspaceUid) => {
       const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
       const { updatedWorkspace, openedCollectionPaths } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
+      if (workspace.pathname) {
+        await dispatch(hydrateMockServerInstances(workspace.pathname, workspaceUid));
+      }
+
       const latestWorkspace = updatedWorkspace || getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       const workspaceCollectionPaths = [...new Map(
         (latestWorkspace?.collections || [])
@@ -623,10 +681,66 @@ export const switchWorkspace = (workspaceUid) => {
       );
       await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
 
+      // Restore each collection's workspace-scoped selected environment, so the same
+      // collection open under two workspaces restores its own environment per workspace.
+      await Promise.all(collections.map((collection) => {
+        const collectionSnapshotState = getCollectionSnapshotFromLookups(
+          collection.pathname,
+          snapshotLookups,
+          workspace.pathname || null
+        );
+        return dispatch(hydrateCollectionWithUiStateSnapshot(
+          collectionSnapshotState
+            ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+            : { pathname: collection.pathname, hasSnapshotEntry: false }
+        ));
+      }));
+
+      let requestedWorkspaceTabType = null;
+      let requestedApiSpecTabUid = null;
+
       // Add workspace tabs
       if (scratchCollection?.uid) {
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
+
+        const workspaceApiSpecPathsByKey = new Map(
+          (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])
+            .map((apiSpec) => normalizePath(apiSpec?.path))
+            .filter(Boolean)
+            .map((apiSpecPath) => [getApiSpecPathKey(apiSpecPath), apiSpecPath])
+        );
+        const reopenedApiSpecTabUids = new Set();
+
+        (workspaceSnapshot?.apiSpecTabs || []).forEach((apiSpecPathname) => {
+          const workspaceApiSpecPath = workspaceApiSpecPathsByKey.get(getApiSpecPathKey(apiSpecPathname));
+          if (!workspaceApiSpecPath) return;
+
+          const uid = getApiSpecTabUid(scratchCollection.uid, workspaceApiSpecPath);
+          if (!uid) return;
+
+          reopenedApiSpecTabUids.add(uid);
+          dispatch(addTab({
+            uid,
+            collectionUid: scratchCollection.uid,
+            type: API_SPEC_TAB_TYPE,
+            apiSpecPathname: workspaceApiSpecPath,
+            tabName: path.basename(workspaceApiSpecPath)
+          }));
+        });
+
+        const activeApiSpecTabUid = getApiSpecTabUid(scratchCollection.uid, workspaceSnapshot?.activeApiSpecTabPathname);
+        requestedApiSpecTabUid = reopenedApiSpecTabUids.has(activeApiSpecTabUid) ? activeApiSpecTabUid : null;
+        requestedWorkspaceTabType = workspaceSnapshot?.activeWorkspaceTabType;
+        const requestedWorkspaceTabSuffix = WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType];
+        if (requestedWorkspaceTabSuffix) {
+          const requestedWorkspaceTabUid = `${scratchCollection.uid}-${requestedWorkspaceTabSuffix}`;
+          dispatch(addTab({
+            uid: requestedWorkspaceTabUid,
+            collectionUid: scratchCollection.uid,
+            type: requestedWorkspaceTabType
+          }));
+        }
       }
 
       // Restore active collection from snapshot using lastActiveCollectionPathname
@@ -659,12 +773,16 @@ export const switchWorkspace = (workspaceUid) => {
 
         if (activeTab) {
           dispatch(addTab(activeTab));
-        } else if (scratchCollection?.uid) {
+        } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
           dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         }
-      } else if (scratchCollection?.uid) {
+      } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+      }
+
+      if (requestedApiSpecTabUid) {
+        dispatch(focusTab({ uid: requestedApiSpecTabUid }));
       }
 
       const openWorkspaceCollectionPaths = new Set(
@@ -722,9 +840,7 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
 
       let collections = [];
 
-      if (!workspace.pathname) {
-        collections = [];
-      } else {
+      if (workspace.pathname) {
         const rawCollections = await ipcRenderer.invoke('renderer:load-workspace-collections', workspace.pathname);
 
         collections = rawCollections.map((collection) => {
@@ -746,6 +862,26 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
       dispatch(updateWorkspaceLoadingState({ workspaceUid, loadingState: 'error' }));
       throw error;
     }
+  };
+};
+
+export const loadUnopenableWorkspaceCollections = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace?.pathname) {
+      return [];
+    }
+
+    const unopenableCollections = await ipcRenderer
+      .invoke('renderer:load-unopenable-workspace-collections', workspace.pathname)
+      .catch((error) => {
+        console.warn('Failed to identify which workspace collections cannot be opened', error);
+        return [];
+      });
+
+    dispatch(updateWorkspace({ uid: workspaceUid, unopenableCollections }));
+
+    return unopenableCollections;
   };
 };
 
@@ -790,29 +926,59 @@ export const loadLastOpenedWorkspaces = () => {
   };
 };
 
+export const restoreActiveWorkspaceFromSnapshot = () => {
+  return async (dispatch, getState) => {
+    startupWorkspaceRestorePending = false;
+
+    try {
+      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+      const activeWorkspacePath = snapshot?.activeWorkspacePath;
+      const { workspaces } = getState().workspaces;
+
+      if (activeWorkspacePath) {
+        const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
+        const matchingWorkspace = workspaces.find(
+          (workspace) => normalizePath(workspace.pathname || '') === normalizedActiveWorkspacePath
+        );
+
+        if (matchingWorkspace) {
+          await dispatch(switchWorkspace(matchingWorkspace.uid));
+          return;
+        }
+      }
+
+      const defaultWorkspace = workspaces.find((workspace) => workspace.type === 'default');
+      if (defaultWorkspace) {
+        await dispatch(switchWorkspace(defaultWorkspace.uid));
+      }
+    } catch (err) {
+      const defaultWorkspace = getState().workspaces.workspaces.find((workspace) => workspace.type === 'default');
+      if (defaultWorkspace) {
+        await dispatch(switchWorkspace(defaultWorkspace.uid));
+      }
+    }
+  };
+};
+
 export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfig) => {
   return async (dispatch, getState) => {
+    const deferSwitchToStartupRestore = startupWorkspaceRestorePending;
     dispatch(createWorkspace({
       uid: workspaceUid,
       pathname: workspacePath,
       ...workspaceConfig
     }));
 
+    let snapshot = null;
     try {
       await dispatch(loadWorkspaceCollections(workspaceUid));
     } catch (error) {
     }
 
-    const state = getState();
-    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
-
-    let shouldSwitch = false;
     try {
-      const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
-      const activeWorkspacePath = snapshot?.activeWorkspacePath;
-      const normalizedWorkspacePath = normalizePath(workspacePath || '');
-
+      snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
       const currentState = getState();
+
       if (!currentState.app.snapshotReady && snapshot?.extras?.devTools) {
         const { open } = snapshot.extras.devTools;
         if (open) {
@@ -823,33 +989,33 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
         const { activeTab = 'terminal' } = snapshot.extras.devTools;
         dispatch(setActiveDevToolsTab(activeTab));
       }
+    } catch (err) {
+    }
+
+    if (deferSwitchToStartupRestore) {
+      return;
+    }
+
+    const state = getState();
+    const activeWorkspaceUid = state.workspaces.activeWorkspaceUid;
+    let shouldSwitch = false;
+
+    try {
+      const activeWorkspacePath = snapshot?.activeWorkspacePath;
+      const normalizedWorkspacePath = normalizePath(workspacePath || '');
 
       if (activeWorkspacePath) {
         const normalizedActiveWorkspacePath = normalizePath(activeWorkspacePath);
         shouldSwitch = normalizedWorkspacePath === normalizedActiveWorkspacePath;
-
-        // If the snapshot points to a workspace that no longer exists on disk,
-        // fall back to the default workspace instead of leaving stale active state.
-        if (!shouldSwitch && workspaceConfig.type === 'default') {
-          const lastOpenedWorkspacePaths = await ipcRenderer.invoke('renderer:get-last-opened-workspaces').catch(() => []);
-          const normalizedLastOpenedWorkspacePaths = new Set(
-            (Array.isArray(lastOpenedWorkspacePaths) ? lastOpenedWorkspacePaths : [])
-              .map((pathname) => normalizePath(pathname))
-          );
-          const hasActiveWorkspacePath = normalizedLastOpenedWorkspacePaths.has(normalizedActiveWorkspacePath);
-
-          if (!hasActiveWorkspacePath) {
-            shouldSwitch = true;
-          }
-        }
       } else {
         shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
       }
     } catch (err) {
       shouldSwitch = !activeWorkspaceUid || workspaceConfig.type === 'default';
     }
+
     if (shouldSwitch) {
-      dispatch(switchWorkspace(workspaceUid));
+      await dispatch(switchWorkspace(workspaceUid));
     }
   };
 };
@@ -871,6 +1037,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
     if (activeWorkspaceUid === workspaceUid) {
       try {
         await dispatch(loadWorkspaceCollections(workspaceUid, true));
+        await dispatch(loadUnopenableWorkspaceCollections(workspaceUid));
 
         const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
         const openCollections = getState().collections.collections.map((c) => normalizePath(c.pathname));
@@ -943,10 +1110,6 @@ export const createCollectionInWorkspace = (collectionName, collectionFolderName
   };
 };
 
-export const openCollectionInWorkspace = () => {
-  return (dispatch) => dispatch(openCollection());
-};
-
 const handleWorkspaceAction = async (action, workspaceUid, ...args) => {
   try {
     await action(workspaceUid, ...args);
@@ -993,7 +1156,20 @@ export const closeWorkspaceAction = (workspaceUid) => {
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
+
+      if (workspace.scratchCollectionUid) {
+        dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
+      }
+
+      const wasActive = getState().workspaces.activeWorkspaceUid === workspaceUid;
       dispatch(removeWorkspace(workspaceUid));
+
+      if (wasActive) {
+        const defaultWorkspace = getState().workspaces.workspaces.find((w) => w.type === 'default');
+        if (defaultWorkspace) {
+          await dispatch(switchWorkspace(defaultWorkspace.uid));
+        }
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;
@@ -1342,11 +1518,20 @@ export const mountScratchCollection = (workspaceUid) => {
         ignore: ['node_modules', '.git']
       };
 
-      await ipcRenderer.invoke('renderer:add-collection-watcher', {
-        collectionPath: tempDirectoryPath,
-        collectionUid: scratchCollectionUid,
-        brunoConfig
-      });
+      const fileCacheEnabled = state.app?.preferences?.cache?.file?.enabled;
+      if (fileCacheEnabled) {
+        await ipcRenderer.invoke('renderer:mount-collection-v2', {
+          collectionUid: scratchCollectionUid,
+          collectionPathname: tempDirectoryPath,
+          brunoConfig
+        });
+      } else {
+        await ipcRenderer.invoke('renderer:add-collection-watcher', {
+          collectionPath: tempDirectoryPath,
+          collectionUid: scratchCollectionUid,
+          brunoConfig
+        });
+      }
 
       // Map scratch collection to workspace so getProcessEnvVars can resolve workspace .env values
       if (workspace.pathname) {

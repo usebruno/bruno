@@ -1,9 +1,10 @@
 // Keys must match getEntryKind() in buildEntries.js.
+// `kind` is a stable identifier used for data-testids (e.g. timeline-badge-pre).
 export const ENTRY_KINDS = {
-  main: { chipLabel: 'Main', badgeLabel: 'main', badgeClass: 'tl-badge tl-badge--main' },
-  oauth: { chipLabel: 'OAuth', badgeLabel: 'oauth2.0', badgeClass: 'tl-badge tl-badge--oauth2' },
-  pre: { chipLabel: 'Pre-Request', badgeLabel: 'sendRequest', badgeClass: 'tl-badge tl-badge--scripted' },
-  post: { chipLabel: 'Post-Response', badgeLabel: 'runRequest', badgeClass: 'tl-badge tl-badge--run-request' }
+  main: { kind: 'main', chipLabel: 'Request', badgeLabel: 'request', badgeClass: 'tl-badge tl-badge--main' },
+  oauth: { kind: 'oauth', chipLabel: 'OAuth', badgeLabel: 'oauth2.0', badgeClass: 'tl-badge tl-badge--oauth2' },
+  pre: { kind: 'pre', chipLabel: 'Pre-Request', badgeLabel: 'sendRequest', badgeClass: 'tl-badge tl-badge--scripted' },
+  post: { kind: 'post', chipLabel: 'Post-Response', badgeLabel: 'runRequest', badgeClass: 'tl-badge tl-badge--run-request' }
 };
 
 export const FILTER_CHIPS = [

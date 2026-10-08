@@ -1,8 +1,16 @@
 require('dotenv').config({ path: process.env.DOTENV_PATH });
 
+const isBenchmark = process.env.BRUNO_BENCHMARK === 'true';
+
 const config = {
   appId: 'com.usebruno.app',
-  productName: 'Bruno',
+  productName: isBenchmark ? 'Bruno Benchmark' : 'Bruno',
+  extraMetadata: {
+    brunoBuild: {
+      benchmark: isBenchmark,
+      builtAt: new Date().toISOString()
+    }
+  },
   electronVersion: '37.6.1',
   directories: {
     buildResources: 'resources',
@@ -39,6 +47,7 @@ const config = {
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     notarize: false,
+    requirements: 'resources/app-requirements.txt',
     protocols: [
       {
         name: 'Bruno',
@@ -110,6 +119,10 @@ const config = {
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 

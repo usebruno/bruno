@@ -1,0 +1,87 @@
+opencollection: "1.0.0"
+info:
+  name: datatypes-imported
+
+config:
+  environments:
+    - name: test_env
+      variables:
+        - name: env_num
+          value:
+            type: number
+            data: "100"
+        - name: env_bool
+          value:
+            type: boolean
+            data: "true"
+        - name: env_obj
+          value:
+            type: object
+            data: '{"scope":"env"}'
+        - name: env_str
+          value: env_string
+
+items:
+  - info:
+      type: folder
+      name: folder
+      seq: 1
+    request:
+      variables:
+        - name: fold_num
+          value:
+            type: number
+            data: "42"
+        - name: fold_bool
+          value:
+            type: boolean
+            data: "true"
+        - name: fold_obj
+          value:
+            type: object
+            data: '{"k":1}'
+        - name: fold_str
+          value: folder_string
+    items:
+      - info:
+          type: http
+          name: request
+          seq: 1
+        http:
+          url: '{{localhost}}/api/echo/everything'
+          method: GET
+        runtime:
+          variables:
+            - name: req_num
+              value:
+                type: number
+                data: "7"
+            - name: req_bool
+              value:
+                type: boolean
+                data: "false"
+            - name: req_obj
+              value:
+                type: object
+                data: '{"nested":"yes"}'
+            - name: req_str
+              value: request_string
+
+request:
+  variables:
+    - name: coll_num
+      value:
+        type: number
+        data: "99"
+    - name: coll_bool
+      value:
+        type: boolean
+        data: "true"
+    - name: coll_obj
+      value:
+        type: object
+        data: '{"scope":"collection"}'
+    - name: coll_str
+      value: collection_string
+
+bundled: true
