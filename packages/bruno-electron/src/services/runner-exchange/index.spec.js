@@ -11,7 +11,7 @@ jest.mock('electron', () => ({
   }
 }));
 
-jest.mock('../sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn() }));
+jest.mock('../sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn(), withSecureDelete: jest.fn((callback) => callback()) }));
 
 const { MAX_RENDERABLE_RESPONSE_BYTES } = require('./index');
 
@@ -22,11 +22,12 @@ const REQUEST_SENT = { method: 'GET', url: 'https://example.com/userinfo', heade
 describe('runner-exchange service', () => {
   let getStatements;
   let getFiles;
+  let withSecureDelete;
   let error;
 
   beforeEach(() => {
     jest.resetModules();
-    ({ getStatements, getFiles } = require('../sqlite'));
+    ({ getStatements, getFiles, withSecureDelete } = require('../sqlite'));
     error = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -321,6 +322,19 @@ describe('runner-exchange service', () => {
       expect(await readRunnerExchange('run-1')).toBeNull();
       expect(fileRowCount()).toBe(0);
       expect(fs.readdirSync(filesDir)).toHaveLength(0);
+    });
+
+    it('deletes the rows and files under secure delete', async () => {
+      let rowsDuringScrub;
+      withSecureDelete.mockImplementationOnce(async (callback) => {
+        await callback();
+        rowsDuringScrub = fileRowCount();
+      });
+      await roundTrip({ requestSent: REQUEST_SENT, responseReceived: responseWithBody('{"ok":true}') });
+
+      await clearAllRunnerResponses();
+
+      expect(rowsDuringScrub).toBe(0);
     });
 
     it('leaves another collection alone', async () => {
