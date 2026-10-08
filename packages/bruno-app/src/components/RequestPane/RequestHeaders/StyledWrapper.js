@@ -98,11 +98,22 @@ const Wrapper = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
 
-    &:hover {
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      line-height: 0;
       color: ${(props) => props.theme.colors.text.muted};
+
+      &:hover {
+        color: ${(props) => props.theme.colors.text.muted};
+      }
     }
   }
 
