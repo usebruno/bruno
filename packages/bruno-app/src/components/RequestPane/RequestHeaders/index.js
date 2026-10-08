@@ -400,14 +400,10 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
         place="top-end"
       >
-        <button
-          type="button"
-          aria-label={row.omittable
-            ? 'Automatically added at runtime'
-            : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
-        >
-          <IconInfoCircle size={18} strokeWidth={1.5} aria-hidden="true" />
-        </button>
+        <IconInfoCircle
+          size={16}
+          strokeWidth={1.5}
+        />
       </HeaderHint>
     );
   }, [navigateToHeaderSource]);
