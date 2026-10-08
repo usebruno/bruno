@@ -6,8 +6,8 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { clearSidebarSelection, expandCollection, expandItem } from 'providers/ReduxStore/slices/collections';
+import { buildSidebarEntries, getSelectionInfo, getSidebarRevealTargets } from 'utils/collections/index';
 import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
@@ -91,12 +91,31 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
     : null;
 
+  // Reveal the active tab in the tree: open whatever hides its row, then scroll to it.
   useEffect(() => {
-    if (activeRowIndex === null) return;
+    if (activeRowIndex === null) {
+      // An item inside a collapsed folder has no row at all, because
+      // flattenSidebarTree walks past a collapsed subtree. Opening the folders on
+      // its path makes the row exist, and this effect then scrolls to it on the
+      // next render -- which is the behaviour an already-open folder gets today.
+      // Not while searching: there the tree is filtered rather than collapsed, so
+      // an active tab that merely does not match the query also has no row, and
+      // expanding its folders would rearrange the tree mid-query.
+      if (debouncedSearchText) return;
+      const targets = getSidebarRevealTargets(collections, activeTabUid);
+      if (!targets) return;
+      if (targets.expandCollection) {
+        dispatch(expandCollection(targets.collectionUid));
+      }
+      targets.itemUids.forEach((itemUid) => {
+        dispatch(expandItem({ collectionUid: targets.collectionUid, itemUid }));
+      });
+      return;
+    }
     if (lastScrolledTabUidRef.current === activeTabUid) return;
     virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
     lastScrolledTabUidRef.current = activeTabUid;
-  }, [activeTabUid, activeRowIndex]);
+  }, [activeTabUid, activeRowIndex, collections, debouncedSearchText, dispatch]);
 
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.

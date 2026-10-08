@@ -2064,6 +2064,38 @@ const getSelectionEntryType = (item) => {
 // Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
 export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
 
+// What has to be expanded for `itemUid` to have a sidebar row.
+//
+// `flattenSidebarTree` walks past a collapsed subtree without emitting rows for
+// anything inside it, so an item under a closed folder has no row at all - and
+// the sidebar cannot scroll to a row that does not exist. Returns the collection
+// (only when the collection itself is closed) and the item's closed ancestors,
+// outermost first, so expanding them in order makes the row appear. An item that
+// is already visible needs nothing, and yields null.
+//
+// Every ancestor is a folder today, since `getTreePathFromCollectionToItem` walks
+// `items` and examples hang off `examples` instead. `isCollectionItemCollapsed` is
+// still what decides, rather than reading `.collapsed`, because it is this
+// codebase's definition of collapsed -- a folder defaults to expanded, a request
+// to collapsed -- so the answer stays right if a request ever becomes a parent.
+export const getSidebarRevealTargets = (collections, itemUid) => {
+  if (!itemUid) return null;
+
+  const collection = (collections || []).find((c) => findItemInCollection(c, itemUid));
+  if (!collection) return null;
+
+  const path = getTreePathFromCollectionToItem(collection, { uid: itemUid });
+  const collapsedAncestors = path.slice(0, -1).filter((node) => isCollectionItemCollapsed(node));
+
+  if (!collection.collapsed && !collapsedAncestors.length) return null;
+
+  return {
+    collectionUid: collection.uid,
+    expandCollection: Boolean(collection.collapsed),
+    itemUids: collapsedAncestors.map((node) => node.uid)
+  };
+};
+
 // Indexes every example by uid in a single pass over all collections, since examples are nested
 // within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
 // callers whose selection contains no examples never pay for it.

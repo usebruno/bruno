@@ -16,7 +16,8 @@ import {
   getUniqueTagsFromItems,
   getCollectionVersion,
   isCollectionItemCollapsed,
-  getWorkspaceCollections
+  getWorkspaceCollections,
+  getSidebarRevealTargets
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -1009,5 +1010,73 @@ describe('getWorkspaceCollections', () => {
 
       expect(listFor()).toEqual([]);
     });
+  });
+});
+
+describe('getSidebarRevealTargets', () => {
+  // `uid` is what the sidebar indexes rows by; `request` with no `items` is what
+  // makes isItemARequest true, and a folder is `type: 'folder'` carrying `items`.
+  const request = (uid) => ({ uid, name: uid, type: 'http-request', request: {} });
+  const folder = (uid, items, collapsed) => ({ uid, name: uid, type: 'folder', collapsed, items });
+
+  it('returns null for a request whose folders are already open', () => {
+    const collections = [{ uid: 'col1', items: [folder('outer', [folder('inner', [request('req1')])])] }];
+
+    expect(getSidebarRevealTargets(collections, 'req1')).toBeNull();
+  });
+
+  it('names every closed folder on the path, outermost first', () => {
+    const collections = [
+      { uid: 'col1', items: [folder('outer', [folder('inner', [request('req1')], true)], true)] }
+    ];
+
+    expect(getSidebarRevealTargets(collections, 'req1')).toEqual({
+      collectionUid: 'col1',
+      expandCollection: false,
+      itemUids: ['outer', 'inner']
+    });
+  });
+
+  it('names only the folder that is closed', () => {
+    const collections = [
+      { uid: 'col1', items: [folder('outer', [folder('inner', [request('req1')])], true)] }
+    ];
+
+    expect(getSidebarRevealTargets(collections, 'req1')).toEqual({
+      collectionUid: 'col1',
+      expandCollection: false,
+      itemUids: ['outer']
+    });
+  });
+
+  it('asks for the collection when the collection itself is closed', () => {
+    const collections = [{ uid: 'col1', collapsed: true, items: [request('req1')] }];
+
+    expect(getSidebarRevealTargets(collections, 'req1')).toEqual({
+      collectionUid: 'col1',
+      expandCollection: true,
+      itemUids: []
+    });
+  });
+
+  it('picks the collection that holds the item', () => {
+    const collections = [
+      { uid: 'col1', items: [request('other')] },
+      { uid: 'col2', items: [folder('outer', [request('req1')], true)] }
+    ];
+
+    expect(getSidebarRevealTargets(collections, 'req1')).toEqual({
+      collectionUid: 'col2',
+      expandCollection: false,
+      itemUids: ['outer']
+    });
+  });
+
+  it('returns null when the uid belongs to no collection, or is missing', () => {
+    const collections = [{ uid: 'col1', items: [request('req1')] }];
+
+    expect(getSidebarRevealTargets(collections, 'nope')).toBeNull();
+    expect(getSidebarRevealTargets(collections, undefined)).toBeNull();
+    expect(getSidebarRevealTargets(undefined, 'req1')).toBeNull();
   });
 });
