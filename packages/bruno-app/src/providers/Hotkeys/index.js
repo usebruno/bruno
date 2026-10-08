@@ -405,7 +405,11 @@ export const HotkeysProvider = (props) => {
   useEffect(() => {
     bindAction('triggerAutocomplete', (e) => {
       const cm = document.activeElement?.closest('.CodeMirror')?.CodeMirror;
-      cm?.brunoTriggerAutocomplete?.();
+      if (!cm?.brunoTriggerAutocomplete) {
+        // Not in an autocomplete-enabled field.
+        return;
+      }
+      cm.brunoTriggerAutocomplete();
       return false;
     });
 

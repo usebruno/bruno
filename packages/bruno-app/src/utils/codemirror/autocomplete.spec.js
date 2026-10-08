@@ -31,6 +31,7 @@ import {
   calculateSingleBraceInsertText,
   truncateHintLabel
 } from './autocomplete';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 describe('Bruno Autocomplete', () => {
   let mockedCodemirror;
@@ -159,19 +160,20 @@ describe('Bruno Autocomplete', () => {
         );
       });
     });
-    describe('Single-brace trigger (enableSingleBraceTrigger)', () => {
+    describe('Trigger modes (variableAutocomplete)', () => {
       const scopedVariables = [
         { name: 'envVar', scope: 'environment' },
         { name: 'requestVar', scope: 'request' }
       ];
 
-      it('does not trigger on a bare `{` when enableSingleBraceTrigger is off', () => {
+      it('does not trigger on a bare `{` in DOUBLE_BRACE mode', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 4 });
         mockedCodemirror.getLine.mockReturnValue('{env');
         mockedCodemirror.getRange.mockReturnValue('{env');
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
-          showHintsFor: ['variables']
+          showHintsFor: ['variables'],
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE
         });
 
         expect(result).toBeNull();
@@ -184,7 +186,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -204,7 +206,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -217,16 +219,88 @@ describe('Bruno Autocomplete', () => {
         expect(finalText).toBe('{{envVar}}');
       });
 
-      it('does not affect bare `{{` on surfaces that never enabled the single-`{` trigger', () => {
+      it('DOUBLE_BRACE opens the full list immediately at `{{`', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
         mockedCodemirror.getLine.mockReturnValue('{{');
         mockedCodemirror.getRange.mockReturnValue('{{');
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
-          showHintsFor: ['variables']
+          showHintsFor: ['variables'],
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE
         });
 
-        expect(result).toBeNull();
+        expect(result).toBeTruthy();
+        expect(result.list).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ displayText: 'envVar' }),
+            expect.objectContaining({ displayText: 'requestVar' })
+          ])
+        );
+      });
+
+      it('DOUBLE_BRACE still completes `{{` + letters', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 5 });
+        mockedCodemirror.getLine.mockReturnValue('{{env');
+        mockedCodemirror.getRange.mockReturnValue('{{env');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list).toEqual(
+          expect.arrayContaining([expect.objectContaining({ displayText: 'envVar' })])
+        );
+      });
+
+      it('falls back to DOUBLE_BRACE when no mode is passed (opens at `{{`, not at `{`)', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        mockedCodemirror.getLine.mockReturnValue('{{');
+        mockedCodemirror.getRange.mockReturnValue('{{');
+
+        const doubleResult = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables']
+        });
+        expect(doubleResult).toBeTruthy();
+        expect(doubleResult.list.length).toBeGreaterThan(0);
+
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 1 });
+        mockedCodemirror.getLine.mockReturnValue('{');
+        mockedCodemirror.getRange.mockReturnValue('{');
+
+        const singleResult = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables']
+        });
+        expect(singleResult).toBeNull();
+      });
+
+      it('SINGLE_BRACE also opens at `{{` + letters', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 5 });
+        mockedCodemirror.getLine.mockReturnValue('{{env');
+        mockedCodemirror.getRange.mockReturnValue('{{env');
+
+        const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+          showHintsFor: ['variables'],
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
+        });
+
+        expect(result).toBeTruthy();
+      });
+
+      it('OFF never opens the variable list while typing', () => {
+        [['{', 1], ['{{', 2], ['{{env', 5]].forEach(([line, ch]) => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
+
+          const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
+            showHintsFor: ['variables'],
+            variableAutocomplete: AUTOCOMPLETE_TRIGGER.OFF
+          });
+
+          expect(result).toBeNull();
+        });
       });
 
       it('stops reopening once a third (or later) `{` is typed past a valid `{{`', () => {
@@ -237,7 +311,7 @@ describe('Bruno Autocomplete', () => {
 
           const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
             showHintsFor: ['variables'],
-            enableSingleBraceTrigger: true
+            variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
           });
 
           expect(result).toBeNull();
@@ -252,7 +326,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -268,7 +342,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -287,7 +361,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -309,7 +383,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeNull();
@@ -323,7 +397,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -341,7 +415,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, scopedVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -359,7 +433,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -426,7 +500,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -445,7 +519,7 @@ describe('Bruno Autocomplete', () => {
 
         const result = getAutoCompleteHints(mockedCodemirror, partialVariables, [], {
           showHintsFor: ['variables'],
-          enableSingleBraceTrigger: true
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
         });
 
         expect(result).toBeTruthy();
@@ -540,6 +614,31 @@ describe('Bruno Autocomplete', () => {
 
         it('keeps text that follows the name (`{{my.ap|i.host}}/path`)', () => {
           expect(pickMyApiHost('{{my.api.host}}/path', 7)).toBe('{{my.api.host}}/path');
+        });
+
+        it('replaces the existing name when `{{` was just typed in front of it (`{{|api.host}}`)', () => {
+          const pick = (line, cursorCh, mode) => {
+            mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: cursorCh });
+            mockedCodemirror.getLine.mockReturnValue(line);
+            mockedCodemirror.getRange.mockReturnValue(line.slice(0, cursorCh));
+
+            const result = getAutoCompleteHints(mockedCodemirror, [{ name: 'userId', scope: 'collection' }], [], {
+              showHintsFor: ['variables'],
+              variableAutocomplete: mode
+            });
+            const hint = result.list.find((h) => h.displayText === 'userId');
+            const from = hint.from || result.from;
+            const to = hint.to || result.to;
+            return line.slice(0, from.ch) + hint.text + line.slice(to.ch);
+          };
+
+          [AUTOCOMPLETE_TRIGGER.SINGLE_BRACE, AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE].forEach((mode) => {
+            expect(pick('{{api.host}}', 2, mode)).toBe('{{userId}}');
+            expect(pick('{{api.host}}/path', 2, mode)).toBe('{{userId}}/path');
+            expect(pick('{{api.host', 2, mode)).toBe('{{userId}}');
+            // nothing after the caret: unchanged behaviour
+            expect(pick('{{', 2, mode)).toBe('{{userId}}');
+          });
         });
       });
 
@@ -1403,6 +1502,28 @@ describe('Bruno Autocomplete', () => {
         cleanupFn = setupAutoComplete(mockedCodemirror, {
           getAllVariables: () => [{ name: 'envVar', scope: 'environment' }],
           showHintsFor: ['variables']
+        });
+        mockedCodemirror.brunoTriggerAutocomplete();
+
+        expect(mockedCodemirror.replaceRange).toHaveBeenCalledWith('{{', cursor, cursor);
+        expect(mockedCodemirror.showHint).toHaveBeenCalledTimes(1);
+      });
+
+      it('still works in OFF mode: Ctrl+Space only suppresses typing-triggered hints', () => {
+        const cursor = { line: 0, ch: 0 };
+        let line = '';
+        mockedCodemirror.getCursor.mockReturnValue(cursor);
+        mockedCodemirror.getLine.mockImplementation(() => line);
+        mockedCodemirror.getRange.mockImplementation(() => line);
+        mockedCodemirror.replaceRange.mockImplementation((text) => {
+          line = text;
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 2 });
+        });
+
+        cleanupFn = setupAutoComplete(mockedCodemirror, {
+          getAllVariables: () => [{ name: 'envVar', scope: 'environment' }],
+          showHintsFor: ['variables'],
+          variableAutocomplete: AUTOCOMPLETE_TRIGGER.OFF
         });
         mockedCodemirror.brunoTriggerAutocomplete();
 

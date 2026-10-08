@@ -29,7 +29,8 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES, SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
+import { VARIABLE_ADD_SCOPES, SCOPE_LABEL } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 

@@ -11,7 +11,6 @@ import BulkEditor from 'components/BulkEditor';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import StyledWrapper from './StyledWrapper';
-import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
@@ -143,7 +142,6 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
           collection={collection}
           readOnly={!editMode}
           placeholder={!value ? 'Key' : ''}
-          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     },
@@ -166,7 +164,6 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
           item={item}
           readOnly={!editMode}
           placeholder={!value ? 'Value' : ''}
-          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     }

@@ -1,6 +1,7 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
-import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_ICON, SCOPE_LABEL } from 'utils/common/constants';
+import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_LABEL } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
 import { SCOPE_ICON_COLOR_CLASS } from 'utils/codemirror/autocompleteScopes';
 
 const CodeMirror = require('codemirror');
@@ -857,7 +858,7 @@ const createVariableHintList = (filteredHints, from, to, variableScopes = {}, te
   const fullReplaceSuffix = '}'.repeat(countMissingClosingBraces((textAfterCursor || '').slice(nameTail.length)));
 
   const lowerWord = word.toLowerCase();
-  const containsWord = (name) => !!word && name.toLowerCase().includes(lowerWord);
+  const containsWord = (name) => name.toLowerCase().includes(lowerWord);
 
   const pathPrefix = word.slice(0, word.lastIndexOf('.') + 1);
 
