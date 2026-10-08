@@ -43,6 +43,7 @@ const storeRunnerExchange = async ({
     getStatements().execute('upsert_runner_response', {
       request_uid: requestUid,
       collection_uid: eventData.collectionUid,
+      iteration_index: eventData.iterationIndex ?? 0,
       request_file_id: requestFileId,
       response_file_id: responseFileId,
       body_file_id: bodyFileId

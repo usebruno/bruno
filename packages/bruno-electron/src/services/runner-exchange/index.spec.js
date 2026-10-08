@@ -72,6 +72,23 @@ describe('runner-exchange service', () => {
     fs.rmSync(filesDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 
+  describe('iteration index', () => {
+    const storedIterationIndex = (requestUid) =>
+      opened.db._db.prepare('SELECT iteration_index FROM runner_responses WHERE request_uid = ?').get(requestUid).iteration_index;
+
+    it('stores the iteration the request ran in', async () => {
+      await storeRunnerExchange({ requestUid: 'run-1', eventData: { ...EVENT_DATA, iterationIndex: 2 }, requestSent: REQUEST_SENT });
+
+      expect(storedIterationIndex('run-1')).toBe(2);
+    });
+
+    it('stores the first iteration when the run has no iterations', async () => {
+      await storeRunnerExchange({ requestUid: 'run-1', eventData: EVENT_DATA, requestSent: REQUEST_SENT });
+
+      expect(storedIterationIndex('run-1')).toBe(0);
+    });
+  });
+
   it('returns null when nothing was stored', async () => {
     expect(await readRunnerExchange('missing')).toBeNull();
   });
