@@ -1,33 +1,11 @@
 import get from 'lodash/get';
-
-const getAncestorFoldersForItem = (collection, item) => {
-  const targetUid = item?.uid;
-  if (!targetUid || !collection?.items) {
-    return [];
-  }
-
-  const findFolders = (items, ancestors) => {
-    for (const treeItem of items) {
-      if (treeItem.uid === targetUid) {
-        return treeItem.type === 'folder' ? [...ancestors, treeItem] : ancestors;
-      }
-      if (treeItem.items?.length) {
-        const nextAncestors = treeItem.type === 'folder' ? [...ancestors, treeItem] : ancestors;
-        const found = findFolders(treeItem.items, nextAncestors);
-        if (found) {
-          return found;
-        }
-      }
-    }
-    return null;
-  };
-
-  return findFolders(collection.items, []) ?? [];
-};
+import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 
 // Display order: collection, then each folder from the outside in.
 export const getInheritedHeaderSources = (collection, item) => {
-  const folders = getAncestorFoldersForItem(collection, item);
+  const folders = getTreePathFromCollectionToItem(collection, item).filter(
+    (treeItem) => treeItem.type === 'folder'
+  );
 
   return [
     {
