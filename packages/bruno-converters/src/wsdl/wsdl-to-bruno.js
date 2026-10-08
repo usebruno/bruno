@@ -265,7 +265,7 @@ class SampleRenderer {
     }
 
     // Anonymous complex type on the element that extends a base type
-    if (el.baseType) {
+    if (el.baseType && el.derivation !== 'restriction') {
       const baseComplex = this.findComplexTypeByString(el.baseType, el.baseTypeNamespace);
       if (baseComplex) {
         return {
@@ -1014,13 +1014,16 @@ class WSDLParser {
       this.services.set(service.name, {
         name: service.name,
         ports: ports.map((port) => {
-          // Extract SOAP version from soap:address
+          // Extract SOAP version and address from the soap*:address key
           let soapVersion = null;
+          let detectedAddress = '';
           for (const key of Object.keys(port)) {
             if (key.endsWith(':address')) {
               const prefix = key.replace(/:address$/, '');
               const nsUri = this.namespaces.get(prefix);
               soapVersion = this.soapVersionFromNamespace(nsUri);
+              const addr = Array.isArray(port[key]) ? port[key][0] : port[key];
+              detectedAddress = addr?.location || '';
               break;
             }
           }
@@ -1028,7 +1031,7 @@ class WSDLParser {
           return {
             name: port.name,
             binding: port.binding,
-            address: this.extractAddress(port),
+            address: detectedAddress || this.extractAddress(port),
             soapVersion: soapVersion
           };
         })
