@@ -2618,7 +2618,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const entryArchivePath = archivePath ? path.join(archivePath, entry.name) : entry.name;
 
             if (entry.isDirectory()) {
-              if (!ignoredDirectories.includes(entry.name)) {
+              if (!ignoredDirectories.includes(entry.name.toLowerCase())) {
                 addDirectoryToArchive(fullPath, entryArchivePath);
               }
             } else {
