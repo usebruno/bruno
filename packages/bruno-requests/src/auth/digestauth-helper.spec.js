@@ -131,6 +131,28 @@ describe('Digest Auth challenge parsing', () => {
     expect(getField(authorization, 'nonce')).toBe('abc123');
   });
 
+  test('hashes the unescaped value of a quoted-string and escapes it again in the header', async () => {
+    const authorization = await getAuthorizationForChallenge(
+      'Digest realm="say \\"hi\\", C:\\\\ok", nonce="abc123"'
+    );
+
+    expect(authorization).toContain('realm="say \\"hi\\", C:\\\\ok"');
+    const ha1 = md5('user:say "hi", C:\\ok:pass');
+    expect(getField(authorization, 'response')).toBe(md5(`${ha1}:abc123:${md5('GET:/resource')}`));
+  });
+
+  test('reads auth-param names that use the full token character set', async () => {
+    const authorization = await getAuthorizationForChallenge(
+      'Digest realm="test", nonce="abc123", x+flag=yes, ext.v1!="z", qop="auth"'
+    );
+
+    expect(getField(authorization, 'qop')).toBe('auth');
+    const cnonce = getField(authorization, 'cnonce');
+    const nc = getField(authorization, 'nc');
+    const ha1 = md5('user:test:pass');
+    expect(getField(authorization, 'response')).toBe(md5(`${ha1}:abc123:${nc}:${cnonce}:auth:${md5('GET:/resource')}`));
+  });
+
   test('ignores params of a following challenge', async () => {
     const authorization = await getAuthorizationForChallenge(
       'Digest realm="digest-realm", nonce="abc123", Basic realm="basic-realm"'

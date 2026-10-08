@@ -6,10 +6,21 @@ function isStrPresent(str) {
 }
 
 // Matches an auth-scheme name or an auth-param (RFC 7235): name=token or
-// name="quoted-string". Quoted values may contain commas (e.g. realm="Example, Inc."
-// or qop="auth,auth-int") and backslash-escaped quotes, so the header can't simply
-// be split on ','. The lookbehind keeps matching linear on long unbroken tokens.
-const AUTH_CHALLENGE_TOKEN_REGEX = /(?<![\w-])([\w-]+)(?:\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^\s,]*)))?/g;
+// name="quoted-string". Names use the full token character set (RFC 7230), so an
+// extension such as x+flag=yes is not mistaken for a new scheme. Quoted values may
+// contain commas (e.g. realm="Example, Inc." or qop="auth,auth-int") and
+// backslash-escaped quotes, so the header can't simply be split on ','. The
+// lookbehind keeps matching linear on long unbroken tokens.
+const AUTH_CHALLENGE_TOKEN_REGEX = /(?<![\w!#$%&'*+.^`|~-])([\w!#$%&'*+.^`|~-]+)(?:\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^\s,]*)))?/g;
+
+// A quoted-string's value is its text with each quoted-pair (\x) read as x.
+function unquote(quotedValue) {
+  return quotedValue.replace(/\\(.)/g, '$1');
+}
+
+function quote(value) {
+  return `"${String(value).replace(/[\\"]/g, '\\$&')}"`;
+}
 
 // Reads the params of the first challenge only. Repeated WWW-Authenticate headers
 // are joined with ', ', so a following challenge (e.g. `, Basic realm="..."`)
@@ -24,7 +35,7 @@ function parseDigestChallenge(header) {
       }
       continue;
     }
-    params[key.toLowerCase()] = quotedValue ?? tokenValue;
+    params[key.toLowerCase()] = quotedValue === undefined ? tokenValue : unquote(quotedValue);
   }
   return params;
 }
@@ -113,10 +124,10 @@ export function addDigestInterceptor(axiosInstance, request) {
         }
 
         const headerFields = [
-          `username="${username}"`,
-          `realm="${authDetails.realm}"`,
-          `nonce="${authDetails.nonce}"`,
-          `uri="${uri}"`,
+          `username=${quote(username)}`,
+          `realm=${quote(authDetails.realm)}`,
+          `nonce=${quote(authDetails.nonce)}`,
+          `uri=${quote(uri)}`,
           `response="${response}"`
         ];
 
@@ -125,7 +136,7 @@ export function addDigestInterceptor(axiosInstance, request) {
         }
 
         if (authDetails.opaque) {
-          headerFields.push(`opaque="${authDetails.opaque}"`);
+          headerFields.push(`opaque=${quote(authDetails.opaque)}`);
         }
 
         const authorizationHeader = `Digest ${headerFields.join(', ')}`;
