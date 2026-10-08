@@ -354,4 +354,181 @@ describe('wsdl-to-bruno', () => {
       expect(body).toContain('<SignRequest><label>string</label></SignRequest>');
     });
   });
+
+  describe('complex type inheritance', () => {
+    it('extends a complex type via xs:complexContent/xs:extension', async () => {
+      const body = await generateRequestBody(`
+        <xsd:complexType name="BaseType">
+          <xsd:sequence>
+            <xsd:element name="baseField" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+        <xsd:complexType name="ExtendedType">
+          <xsd:complexContent>
+            <xsd:extension base="tns:BaseType">
+              <xsd:sequence>
+                <xsd:element name="extendedField" type="xsd:string"/>
+              </xsd:sequence>
+            </xsd:extension>
+          </xsd:complexContent>
+        </xsd:complexType>
+        <xsd:element name="SignRequest" type="tns:ExtendedType"/>
+      `);
+
+      expect(body).toContain('<baseField>string</baseField><extendedField>string</extendedField>');
+    });
+
+    it('extends a complex type via xs:simpleContent/xs:extension', async () => {
+      const body = await generateRequestBody(`
+        <xsd:complexType name="StringType">
+          <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+              <xsd:attribute name="lang" type="xsd:string"/>
+            </xsd:extension>
+          </xsd:simpleContent>
+        </xsd:complexType>
+        <xsd:element name="SignRequest" type="tns:StringType"/>
+      `);
+
+      expect(body).toContain('<SignRequest lang="?">string</SignRequest>');
+    });
+  });
+
+  describe('SOAP version detection', () => {
+    const wsdlWithSchema = (schemaBody, bindingTransport) => `<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="SignService"
+  targetNamespace="http://example.com/sign"
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:tns="http://example.com/sign">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/sign">
+      ${schemaBody}
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="SignRequestMessage">
+    <wsdl:part name="parameters" element="tns:SignRequest"/>
+  </wsdl:message>
+  <wsdl:portType name="SignPortType">
+    <wsdl:operation name="Sign">
+      <wsdl:input message="tns:SignRequestMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="SignBinding" type="tns:SignPortType">
+    <soap:binding style="document" transport="${bindingTransport}"/>
+    <wsdl:operation name="Sign">
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="SignService">
+    <wsdl:port name="SignPort" binding="tns:SignBinding">
+      <soap:address location="http://example.com/sign"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>`;
+
+    it('generates SOAP 1.1 headers for soap/http transport', async () => {
+      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'http://schemas.xmlsoap.org/soap/http');
+      const collection = await wsdlToBruno(wsdl);
+      const headers = collection.items[0].items[0].request.headers;
+      const contentType = headers.find((h) => h.name === 'Content-Type');
+      const soapAction = headers.find((h) => h.name === 'SOAPAction');
+      expect(contentType.value).toBe('text/xml; charset=utf-8');
+      expect(soapAction).toBeDefined();
+    });
+
+    it('generates SOAP 1.2 headers for soap12/http transport', async () => {
+      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'http://www.w3.org/2005/08/addressing/soap/1.2/http');
+      const collection = await wsdlToBruno(wsdl);
+      const headers = collection.items[0].items[0].request.headers;
+      const contentType = headers.find((h) => h.name === 'Content-Type');
+      expect(contentType.value).toContain('application/soap+xml');
+      expect(contentType.value).toContain('action=');
+    });
+  });
+
+  describe('response examples', () => {
+    const wsdlWithOutput = (schemaBody) => `<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="SignService"
+  targetNamespace="http://example.com/sign"
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:tns="http://example.com/sign">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://example.com/sign">
+      ${schemaBody}
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="SignRequestMessage">
+    <wsdl:part name="parameters" element="tns:SignRequest"/>
+  </wsdl:message>
+  <wsdl:message name="SignResponseMessage">
+    <wsdl:part name="parameters" element="tns:SignResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="SignPortType">
+    <wsdl:operation name="Sign">
+      <wsdl:input message="tns:SignRequestMessage"/>
+      <wsdl:output message="tns:SignResponseMessage"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="SignBinding" type="tns:SignPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Sign">
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="SignService">
+    <wsdl:port name="SignPort" binding="tns:SignBinding">
+      <soap:address location="http://example.com/sign"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>`;
+
+    it('generates a response example when operation has output', async () => {
+      const wsdl = wsdlWithOutput(`
+        <xsd:element name="SignRequest">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="id" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+        <xsd:element name="SignResponse">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="result" type="xsd:boolean"/>
+              <xsd:element name="message" type="xsd:string"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      `);
+      const collection = await wsdlToBruno(wsdl);
+      const request = collection.items[0].items[0];
+      expect(request.examples).toBeDefined();
+      expect(request.examples.length).toBe(1);
+      const example = request.examples[0];
+      expect(example.name).toBe('Risposta esempio');
+      expect(example.response.status).toBe(200);
+      expect(example.response.statusText).toBe('OK');
+      expect(example.response.body.content).toContain('<result>true</result>');
+      expect(example.response.body.content).toContain('<message>string</message>');
+    });
+
+    it('does not generate response example when operation has no output', async () => {
+      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>');
+      const collection = await wsdlToBruno(wsdl);
+      const request = collection.items[0].items[0];
+      expect(request.examples).toBeUndefined();
+    });
+  });
 });

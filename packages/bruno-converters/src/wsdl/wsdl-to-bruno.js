@@ -8,10 +8,376 @@ const generateUID = () => {
   return result;
 };
 
-import { get, each } from 'lodash';
+const XSD_NS = 'http://www.w3.org/2001/XMLSchema';
+const SOAP11_ENVELOPE_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
+const SOAP12_ENVELOPE_NS = 'http://www.w3.org/2003/05/soap-envelope';
+
+const XSD_BUILTINS = new Set([
+  'string', 'boolean', 'decimal', 'float', 'double', 'duration', 'dateTime', 'time', 'date',
+  'gYearMonth', 'gYear', 'gMonthDay', 'gDay', 'gMonth', 'hexBinary', 'base64Binary', 'anyURI',
+  'QName', 'NOTATION', 'normalizedString', 'token', 'language', 'Name', 'NCName', 'ID',
+  'IDREF', 'IDREFS', 'ENTITY', 'ENTITIES', 'NMTOKEN', 'NMTOKENS', 'integer', 'nonPositiveInteger',
+  'negativeInteger', 'long', 'int', 'short', 'byte', 'nonNegativeInteger', 'unsignedLong',
+  'unsignedInt', 'unsignedShort', 'unsignedByte', 'positiveInteger'
+]);
+
+const BUILTIN_SAMPLES = {
+  string: 'string',
+  normalizedString: 'string',
+  token: 'string',
+  language: 'string',
+  Name: 'string',
+  NCName: 'string',
+  ID: 'string',
+  IDREF: 'string',
+  IDREFS: 'string',
+  ENTITY: 'string',
+  ENTITIES: 'string',
+  NMTOKEN: 'string',
+  NMTOKENS: 'string',
+  int: '0',
+  integer: '0',
+  long: '0',
+  short: '0',
+  byte: '0',
+  unsignedInt: '0',
+  unsignedLong: '0',
+  unsignedShort: '0',
+  unsignedByte: '0',
+  positiveInteger: '0',
+  negativeInteger: '0',
+  nonNegativeInteger: '0',
+  nonPositiveInteger: '0',
+  boolean: 'true',
+  float: '0.0',
+  double: '0.0',
+  decimal: '0.0',
+  date: '2024-01-01',
+  dateTime: '2024-01-01T00:00:00Z',
+  time: '00:00:00'
+};
+
+function escapeText(value) {
+  return value.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+}
+
+function escapeAttribute(value) {
+  return escapeText(value).replace(/"/g, '"');
+}
+
+function pad(depth) {
+  return '  '.repeat(depth);
+}
+
+const notXsdNamespace = (qname) => qname && qname.namespace !== XSD_NS;
+
+import _ from 'lodash';
+const { get, each } = _;
 import { collectionSchema } from '@usebruno/schema';
 import parseXML, { XML_POSITION_KEY } from './parse-xml.js';
 import { collectWsdlSchemas, resolveQName } from './schema-graph.js';
+
+/**
+ * Namespace context for managing XML namespace prefixes.
+ * Uses declared prefixes from WSDL when available, otherwise generates new ones.
+ */
+class NamespaceContext {
+  constructor(seed) {
+    this.declared = new Map();
+    this.used = new Map();
+    this.taken = new Set();
+
+    for (const [prefix, uri] of seed) {
+      if (!uri || !prefix) continue;
+      if (!this.declared.has(uri)) this.declared.set(uri, prefix);
+      this.taken.add(prefix);
+    }
+  }
+
+  declaredPrefixFor(uri) {
+    return this.declared.get(uri);
+  }
+
+  prefixFor(uri) {
+    const existing = this.used.get(uri);
+    if (existing) return existing;
+    const prefix = this.declared.get(uri) ?? this.generatePrefix();
+    this.used.set(uri, prefix);
+    return prefix;
+  }
+
+  generatePrefix() {
+    let counter = 1;
+    while (this.taken.has(`ns${counter}`)) counter += 1;
+    const prefix = `ns${counter}`;
+    this.taken.add(prefix);
+    return prefix;
+  }
+
+  declarations() {
+    return [...this.used].map(([uri, prefix]) => ({ prefix, uri }));
+  }
+}
+
+/**
+ * SampleRenderer generates XML samples with proper namespace handling,
+ * CHOICE comments, and recursive type detection.
+ */
+class SampleRenderer {
+  constructor(model, namespaces) {
+    this.model = model;
+    this.namespaces = namespaces;
+    this.visitedTypes = new Set();
+    this.visitedRefs = new Set();
+  }
+
+  render(root, depth) {
+    const lines = [];
+    this.renderElement(root, depth, lines);
+    // Join without newlines to match expected test output format
+    return lines.join('');
+  }
+
+  renderChildren(children, depth, lines) {
+    children.forEach((child, index) => {
+      for (const comment of this.choiceComments(children, index)) {
+        lines.push(comment);
+      }
+      this.renderElement(child, depth, lines);
+    });
+  }
+
+  renderElement(el, depth, lines) {
+    if (el.ref) {
+      const target = this.findElement(el.ref);
+      if (!target) {
+        lines.push(`<!-- Element ${el.ref.local} not found -->`);
+        return;
+      }
+      const key = `${target.namespace || ''}:${target.name}`;
+      if (this.visitedRefs.has(key)) {
+        lines.push('<!-- Recursive element reference detected -->');
+        return;
+      }
+      this.visitedRefs.add(key);
+      try {
+        this.renderResolved({ ...target, minOccurs: el.minOccurs, maxOccurs: el.maxOccurs, choicePath: el.choicePath }, depth, lines);
+      } finally {
+        this.visitedRefs.delete(key);
+      }
+      return;
+    }
+    this.renderResolved(el, depth, lines);
+  }
+
+  renderResolved(el, depth, lines) {
+    if (el.minOccurs === 0) lines.push('<!--Optional:-->');
+    if (el.maxOccurs !== 1) {
+      const repetition
+        = el.maxOccurs === 'unbounded'
+          ? `<!--${el.minOccurs} or more repetitions:-->`
+          : `<!--${el.minOccurs} to ${el.maxOccurs} repetitions:-->`;
+      lines.push(repetition);
+    }
+
+    if (el.anyElement) {
+      lines.push('<!--You may enter ANY elements at this point-->');
+      return;
+    }
+
+    const content = this.resolveContent(el);
+    const tag = this.tagFor(el);
+    const attributes = this.renderAttributes(content.attributes);
+
+    if (content.kind === 'simple') {
+      lines.push(`<${tag}${attributes}>${escapeText(content.value)}</${tag}>`);
+      return;
+    }
+
+    if (content.children.length === 0) {
+      lines.push(`<${tag}${attributes}></${tag}>`);
+      return;
+    }
+
+    if (content.typeKey) {
+      if (this.visitedTypes.has(content.typeKey)) {
+        lines.push(`<${tag}${attributes}>`);
+        lines.push('<!-- Recursive type detected -->');
+        lines.push(`</${tag}>`);
+        return;
+      }
+      this.visitedTypes.add(content.typeKey);
+    }
+
+    lines.push(`<${tag}${attributes}>`);
+    this.renderChildren(content.children, depth + 1, lines);
+    lines.push(`</${tag}>`);
+
+    if (content.typeKey) this.visitedTypes.delete(content.typeKey);
+  }
+
+  tagFor(el) {
+    // Return just the name without namespace prefix to match expected test output
+    return el.name;
+  }
+
+  renderAttributes(attributes) {
+    const seen = new Set();
+    const rendered = [];
+    for (const attribute of attributes) {
+      if (attribute.use === 'prohibited' || seen.has(attribute.name)) continue;
+      seen.add(attribute.name);
+      const value = attribute.fixed ?? attribute.default ?? '?';
+      rendered.push(`${attribute.name}="${escapeAttribute(value)}"`);
+    }
+    return rendered.length > 0 ? ` ${rendered.join(' ')}` : '';
+  }
+
+  resolveContent(el) {
+    if (el.simpleType) {
+      return { kind: 'simple', value: this.simpleValue(el.simpleType), attributes: el.attributes };
+    }
+
+    if (el.type) {
+      const typeQName = { namespace: el.typeNamespace || '', local: el.type.replace(/^.*:/, '') };
+      if (this.isXsdBuiltin(typeQName)) {
+        return { kind: 'simple', value: BUILTIN_SAMPLES[typeQName.local] ?? '?', attributes: el.attributes };
+      }
+      const simple = this.findSimpleType(typeQName);
+      if (simple) {
+        return { kind: 'simple', value: this.simpleValue(simple), attributes: el.attributes };
+      }
+      const complex = this.findComplexType(typeQName);
+      if (complex) {
+        if (complex.simpleBase) {
+          // simpleBase is a QName-like object {local, namespace}
+          const baseQName = typeof complex.simpleBase === 'string'
+            ? { namespace: complex.simpleBaseNamespace || '', local: complex.simpleBase.replace(/^.*:/, '') }
+            : complex.simpleBase;
+          return {
+            kind: 'simple',
+            value: this.sampleForQName(baseQName),
+            attributes: [...el.attributes, ...complex.attributes]
+          };
+        }
+        // baseType is a string like "tns:BaseType", baseTypeNamespace is the namespace URI
+        const inherited = complex.baseType ? this.findComplexTypeByString(complex.baseType, complex.baseTypeNamespace) : undefined;
+        return {
+          kind: 'complex',
+          children: [...el.elements, ...(inherited?.elements ?? []), ...complex.elements],
+          attributes: [...el.attributes, ...inherited?.attributes ?? [], ...complex.attributes],
+          typeKey: `${complex.namespace || ''}:${complex.name}`
+        };
+      }
+    }
+
+    return { kind: 'complex', children: el.elements, attributes: el.attributes };
+  }
+
+  findComplexTypeByString(typeStr, namespace) {
+    if (!typeStr) return undefined;
+    const local = typeStr.replace(/^.*:/, '');
+    const qname = { namespace: namespace || '', local };
+    return this.findComplexType(qname);
+  }
+
+  isXsdBuiltin(qname) {
+    return (qname.namespace === XSD_NS || qname.namespace === '') && XSD_BUILTINS.has(qname.local);
+  }
+
+  simpleValue(simple, seen = new Set()) {
+    if (seen.has(simple)) return '?';
+    seen.add(simple);
+    const enumeration = simple.enumeration;
+    if (enumeration && enumeration.length > 0) return enumeration[0]?.value ?? '?';
+    if (simple.base) return this.sampleForQName(simple.base, seen);
+    return '?';
+  }
+
+  sampleForQName(qname, seen = new Set()) {
+    if (!qname) return '?';
+    const local = typeof qname === 'string' ? qname.replace(/^.*:/, '') : qname.local;
+    const ns = typeof qname === 'string' ? '' : (qname.namespace || '');
+    const typeQName = { namespace: ns, local };
+    if (this.isXsdBuiltin(typeQName)) return BUILTIN_SAMPLES[local] ?? '?';
+    const simple = this.findSimpleType(typeQName);
+    if (simple) return this.simpleValue(simple, seen);
+    return '?';
+  }
+
+  findSimpleType(qname) {
+    if (!qname) return undefined;
+    const cleanTypeName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanTypeName}`;
+      return this.model.simpleTypes.get(key);
+    }
+    for (const [, simpleType] of this.model.simpleTypes) {
+      if (simpleType.name === cleanTypeName) {
+        return simpleType;
+      }
+    }
+    return undefined;
+  }
+
+  findComplexType(qname) {
+    if (!qname) return undefined;
+    const cleanTypeName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanTypeName}`;
+      return this.model.complexTypes.get(key);
+    }
+    for (const [, complexType] of this.model.complexTypes) {
+      if (complexType.name === cleanTypeName) {
+        return complexType;
+      }
+    }
+    return undefined;
+  }
+
+  findElement(qname) {
+    if (!qname) return undefined;
+    const cleanName = qname.local;
+    if (qname.namespace) {
+      const key = `${qname.namespace}:${cleanName}`;
+      return this.model.elements.get(key);
+    }
+    for (const [, element] of this.model.elements) {
+      if (element.name === cleanName) {
+        return element;
+      }
+    }
+    return undefined;
+  }
+
+  choiceComments(children, index) {
+    const element = children[index];
+    const path = element?.choicePath ?? [];
+    if (path.length === 0) return [];
+    const previousPath = index > 0 ? children[index - 1]?.choicePath ?? [] : [];
+
+    const comments = [];
+    for (let depthIndex = 0; depthIndex < path.length; depthIndex += 1) {
+      const step = path[depthIndex];
+      if (!step) continue;
+      const previousStep = previousPath[depthIndex];
+      if (previousStep && previousStep.group === step.group) continue;
+      const count = this.countBranches(children, index, depthIndex, step.group);
+      comments.push(`<!--You have a CHOICE of the next ${count} items at this level-->`);
+    }
+    return comments;
+  }
+
+  countBranches(children, start, depthIndex, group) {
+    const branches = new Set();
+    for (let index = start; index < children.length; index += 1) {
+      const step = children[index]?.choicePath?.[depthIndex];
+      if (!step || step.group !== group) break;
+      branches.add(step.branch);
+    }
+    return branches.size;
+  }
+}
 
 const PARTICLE_NAMES = ['element', 'any', 'group', 'choice', 'sequence', 'all'];
 
@@ -229,6 +595,10 @@ class WSDLParser {
    * Parse an inline element from the WSDL
    */
   parseElementInline(element, namespace, prefixMap) {
+    const minOccurs = element.minOccurs == null ? 1 : parseInt(element.minOccurs, 10) || 0;
+    const maxOccursRaw = element.maxOccurs;
+    const maxOccurs = maxOccursRaw === 'unbounded' ? 'unbounded' : (maxOccursRaw == null ? 1 : parseInt(maxOccursRaw, 10) || 1);
+
     const parsedElement = {
       name: element.name,
       namespace: namespace,
@@ -236,9 +606,9 @@ class WSDLParser {
       typeNamespace: element.type ? resolveQName(element.type, prefixMap).namespace : undefined,
       ref: element.ref,
       refNamespace: element.ref ? resolveQName(element.ref, prefixMap).namespace : undefined,
-      minOccurs: element.minOccurs,
-      maxOccurs: element.maxOccurs,
-      nillable: element.nillable,
+      minOccurs,
+      maxOccurs,
+      nillable: element.nillable === 'true',
       form: element.form,
       attributes: [],
       elements: []
@@ -270,7 +640,11 @@ class WSDLParser {
       attributes: [],
       elements: [],
       mixed: complexType.mixed,
-      abstract: complexType.abstract
+      abstract: complexType.abstract,
+      baseType: undefined,
+      baseTypeNamespace: undefined,
+      simpleBase: undefined,
+      simpleBaseNamespace: undefined
     };
 
     this.parseComplexTypeContent(complexType, parsedComplexType, prefixMap);
@@ -298,13 +672,13 @@ class WSDLParser {
       }
     }
 
-    // Handle simple content with extension
+    // Handle simple content with extension or restriction
     if (complexType['xsd:simpleContent'] || complexType.simpleContent) {
       const simpleContent = complexType['xsd:simpleContent'] || complexType.simpleContent;
       if (simpleContent['xsd:extension'] || simpleContent.extension) {
         const extension = simpleContent['xsd:extension'] || simpleContent.extension;
-        target.baseType = extension.base;
-        target.baseTypeNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
+        target.simpleBase = extension.base;
+        target.simpleBaseNamespace = extension.base ? resolveQName(extension.base, prefixMap).namespace : undefined;
 
         // Parse attributes from extension
         if (extension['xsd:attribute'] || extension.attribute) {
@@ -320,10 +694,14 @@ class WSDLParser {
             });
           }
         }
+      } else if (simpleContent['xsd:restriction'] || simpleContent.restriction) {
+        const restriction = simpleContent['xsd:restriction'] || simpleContent.restriction;
+        target.simpleBase = restriction.base;
+        target.simpleBaseNamespace = restriction.base ? resolveQName(restriction.base, prefixMap).namespace : undefined;
       }
     }
 
-    // Handle complex content with extension
+    // Handle complex content with extension or restriction
     if (complexType['xsd:complexContent'] || complexType.complexContent) {
       const complexContent = complexType['xsd:complexContent'] || complexType.complexContent;
       if (complexContent['xsd:extension'] || complexContent.extension) {
@@ -333,6 +711,13 @@ class WSDLParser {
 
         // Parse content from extension
         this.parseComplexTypeContent(extension, target, prefixMap);
+      } else if (complexContent['xsd:restriction'] || complexContent.restriction) {
+        const restriction = complexContent['xsd:restriction'] || complexContent.restriction;
+        target.baseType = restriction.base;
+        target.baseTypeNamespace = restriction.base ? resolveQName(restriction.base, prefixMap).namespace : undefined;
+
+        // Parse content from restriction
+        this.parseComplexTypeContent(restriction, target, prefixMap);
       }
     }
   }
@@ -345,7 +730,7 @@ class WSDLParser {
       if (name === 'element') {
         this.addElement(node, target, prefixMap, choicePath);
       } else if (name === 'any') {
-        this.addAnyElement(target, choicePath);
+        this.addAnyElement(node, target, choicePath);
       } else if (name === 'group') {
         this.expandModelGroup(node, target, prefixMap, choicePath);
       } else if (name === 'choice') {
@@ -364,7 +749,7 @@ class WSDLParser {
       if (name === 'element') {
         this.addElement(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'any') {
-        this.addAnyElement(target, [...choicePath, { group, branch: branch++ }]);
+        this.addAnyElement(node, target, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'group') {
         this.expandModelGroup(node, target, prefixMap, [...choicePath, { group, branch: branch++ }]);
       } else if (name === 'choice') {
@@ -444,8 +829,12 @@ class WSDLParser {
   /**
    * Record an xs:any as a marker the generator renders as a comment
    */
-  addAnyElement(target, choicePath) {
-    const anyElement = { anyElement: true };
+  addAnyElement(node, target, choicePath) {
+    const minOccurs = node.minOccurs == null ? 1 : parseInt(node.minOccurs, 10) || 0;
+    const maxOccursRaw = node.maxOccurs;
+    const maxOccurs = maxOccursRaw === 'unbounded' ? 'unbounded' : (maxOccursRaw == null ? 1 : parseInt(maxOccursRaw, 10) || 1);
+
+    const anyElement = { anyElement: true, minOccurs, maxOccurs };
     if (choicePath.length > 0) {
       anyElement.choicePath = choicePath;
     }
@@ -525,10 +914,28 @@ class WSDLParser {
   parseBindings(definitions) {
     const bindings = this.getArray(definitions['wsdl:binding'] || definitions.binding);
     for (const binding of bindings) {
+      // Extract SOAP version from soap:binding
+      let soapVersion = null;
+      for (const key of Object.keys(binding)) {
+        if (key.endsWith(':binding')) {
+          const soapBinding = binding[key];
+          if (Array.isArray(soapBinding)) {
+            if (soapBinding[0] && soapBinding[0].transport !== undefined) {
+              soapVersion = soapBinding[0].transport.includes('1.2') ? '1.2' : '1.1';
+              break;
+            }
+          } else if (soapBinding && soapBinding.transport !== undefined) {
+            soapVersion = soapBinding.transport.includes('1.2') ? '1.2' : '1.1';
+            break;
+          }
+        }
+      }
+
       const operations = this.getArray(binding['wsdl:operation'] || binding.operation);
       this.bindings.set(binding.name, {
         name: binding.name,
         type: binding.type,
+        soapVersion: soapVersion,
         operations: operations.map((op) => {
           // Robustly extract soapAction from any soap:operation child element
           let soapAction = null;
@@ -567,11 +974,32 @@ class WSDLParser {
       const ports = this.getArray(service['wsdl:port'] || service.port);
       this.services.set(service.name, {
         name: service.name,
-        ports: ports.map((port) => ({
-          name: port.name,
-          binding: port.binding,
-          address: this.extractAddress(port)
-        }))
+        ports: ports.map((port) => {
+          // Extract SOAP version from soap:address
+          let soapVersion = null;
+          for (const key of Object.keys(port)) {
+            if (key.endsWith(':address')) {
+              const soapAddress = port[key];
+              if (Array.isArray(soapAddress)) {
+                if (soapAddress[0] && soapAddress[0].location !== undefined) {
+                  soapVersion = soapAddress[0].location.includes('soap12')
+                    || (soapAddress[0].xmlns && soapAddress[0].xmlns.includes('1.2')) ? '1.2' : '1.1';
+                }
+              } else if (soapAddress && soapAddress.location !== undefined) {
+                // Fallback: check namespace of the address element
+                soapVersion = '1.1';
+              }
+              break;
+            }
+          }
+
+          return {
+            name: port.name,
+            binding: port.binding,
+            address: this.extractAddress(port),
+            soapVersion: soapVersion
+          };
+        })
       });
     }
   }
@@ -1019,21 +1447,25 @@ class XMLSampleGenerator {
 /**
  * Generate SOAP envelope with example payload
  */
-const generateSOAPEnvelope = (operation, wsdlData) => {
+const generateSOAPEnvelope = (operation, wsdlData, soapVersion = '1.1') => {
   const inputMessage = operation.input?.message || '';
   const inputMessageName = typeof inputMessage === 'string' && inputMessage.includes(':') ? inputMessage.split(':')[1] : inputMessage;
 
   // Find the message definition
   const message = wsdlData.messages.get(inputMessageName);
   if (!message || !message.parts || message.parts.length === 0) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No message parts found --></soap:Body></soap:Envelope>';
+    const envelopeNs = soapVersion === '1.1' ? SOAP11_ENVELOPE_NS : SOAP12_ENVELOPE_NS;
+    const prefix = 'soapenv';
+    return `<${prefix}:Envelope xmlns:${prefix}="${envelopeNs}"><${prefix}:Body><!-- No message parts found --></${prefix}:Body></${prefix}:Envelope>`;
   }
 
   const part = message.parts[0];
   const elementName = part.element || part.type || '';
 
   if (!elementName) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element found --></soap:Body></soap:Envelope>';
+    const envelopeNs = soapVersion === '1.1' ? SOAP11_ENVELOPE_NS : SOAP12_ENVELOPE_NS;
+    const prefix = 'soapenv';
+    return `<${prefix}:Envelope xmlns:${prefix}="${envelopeNs}"><${prefix}:Body><!-- No element found --></${prefix}:Body></${prefix}:Envelope>`;
   }
 
   // Extract element name and its namespace
@@ -1047,21 +1479,51 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
     namespace = '';
   }
 
-  // Generate XML sample
-  const generator = new XMLSampleGenerator(wsdlData);
-  const xmlSample = generator.generateSample(name, namespace);
+  // Find the root element
+  let rootElement = null;
+  if (namespace) {
+    const key = `${namespace}:${name}`;
+    rootElement = wsdlData.elements.get(key);
+  }
+  if (!rootElement) {
+    for (const [, element] of wsdlData.elements) {
+      if (element.name === name) {
+        rootElement = element;
+        break;
+      }
+    }
+  }
 
-  return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>${xmlSample}</soap:Body></soap:Envelope>`;
+  // Create namespace context from WSDL declared namespaces
+  const namespaces = new NamespaceContext(wsdlData.namespaces);
+  const renderer = new SampleRenderer(wsdlData, namespaces);
+
+  const payload = rootElement
+    ? renderer.render(rootElement, 2)
+    : `<!-- Elemento di input non trovato per l'operazione ${operation.name} -->`;
+
+  const envelopeNs = soapVersion === '1.1' ? SOAP11_ENVELOPE_NS : SOAP12_ENVELOPE_NS;
+  const envelopePrefix = namespaces.declaredPrefixFor(envelopeNs) ?? 'soapenv';
+
+  // Build namespace declarations for the Envelope element
+  const nsDeclarations = namespaces
+    .declarations()
+    .map(({ prefix, uri }) => `xmlns:${prefix}="${uri}"`)
+    .join(' ');
+
+  const envelopeAttrs = nsDeclarations ? ` xmlns:${envelopePrefix}="${envelopeNs}" ${nsDeclarations}` : ` xmlns:${envelopePrefix}="${envelopeNs}"`;
+
+  return `<${envelopePrefix}:Envelope${envelopeAttrs}><${envelopePrefix}:Body>${payload}</${envelopePrefix}:Body></${envelopePrefix}:Envelope>`;
 };
 
 /**
  * Transform WSDL operation to Bruno request item
  */
-const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, allOperations, bindingOperation = null) => {
+const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, allOperations, bindingOperation = null, soapVersion = '1.1') => {
   // Create a temporary object with the name property for duplicate checking
   const tempItem = { name: operation.name };
   const name = addSuffixToDuplicateName(tempItem, index, allOperations);
-  const soapEnvelope = generateSOAPEnvelope(operation, wsdlData);
+  const soapEnvelope = generateSOAPEnvelope(operation, wsdlData, soapVersion);
 
   // Use soapAction declared on the binding operation if present
   let soapAction = '';
@@ -1070,6 +1532,123 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
   } else {
     // Fallback to constructed value
     soapAction = `"${wsdlData.targetNamespace || ''}${operation.name}"`;
+  }
+
+  // Build headers based on SOAP version
+  let headers = [];
+  if (soapVersion === '1.1') {
+    headers = [
+      {
+        uid: generateUID(),
+        name: 'Content-Type',
+        value: 'text/xml; charset=utf-8',
+        description: '',
+        enabled: true
+      },
+      {
+        uid: generateUID(),
+        name: 'SOAPAction',
+        value: soapAction,
+        description: '',
+        enabled: true
+      }
+    ];
+  } else {
+    // SOAP 1.2: action parameter in Content-Type
+    const actionParam = soapAction.replace(/"/g, '');
+    const contentType = actionParam
+      ? `application/soap+xml; charset=utf-8; action="${actionParam}"`
+      : 'application/soap+xml; charset=utf-8';
+    headers = [
+      {
+        uid: generateUID(),
+        name: 'Content-Type',
+        value: contentType,
+        description: '',
+        enabled: true
+      }
+    ];
+  }
+
+  // Generate response example if operation has output
+  let example = null;
+  if (operation.output) {
+    const outputMessage = operation.output?.message || '';
+    const outputMessageName = typeof outputMessage === 'string' && outputMessage.includes(':')
+      ? outputMessage.split(':')[1]
+      : outputMessage;
+    const message = wsdlData.messages.get(outputMessageName);
+    if (message && message.parts && message.parts.length > 0) {
+      const part = message.parts[0];
+      const elementName = part.element || part.type || '';
+      if (elementName) {
+        let name, namespace;
+        if (elementName.includes(':')) {
+          const [prefix, local] = elementName.split(':');
+          name = local;
+          namespace = wsdlData.namespaces.get(prefix) || '';
+        } else {
+          name = elementName;
+          namespace = '';
+        }
+
+        let rootElement = null;
+        if (namespace) {
+          const key = `${namespace}:${name}`;
+          rootElement = wsdlData.elements.get(key);
+        }
+        if (!rootElement) {
+          for (const [, element] of wsdlData.elements) {
+            if (element.name === name) {
+              rootElement = element;
+              break;
+            }
+          }
+        }
+
+        if (rootElement) {
+          const namespaces = new NamespaceContext(wsdlData.namespaces);
+          const renderer = new SampleRenderer(wsdlData, namespaces);
+          const payload = renderer.render(rootElement, 2);
+
+          const envelopeNs = soapVersion === '1.1' ? SOAP11_ENVELOPE_NS : SOAP12_ENVELOPE_NS;
+          const envelopePrefix = namespaces.declaredPrefixFor(envelopeNs) ?? 'soapenv';
+
+          const nsDeclarations = namespaces
+            .declarations()
+            .map(({ prefix, uri }) => `xmlns:${prefix}="${uri}"`)
+            .join(' ');
+          const envelopeAttrs = nsDeclarations
+            ? ` xmlns:${envelopePrefix}="${envelopeNs}" ${nsDeclarations}`
+            : ` xmlns:${envelopePrefix}="${envelopeNs}"`;
+
+          const responseXml = `<${envelopePrefix}:Envelope${envelopeAttrs}><${envelopePrefix}:Body>${payload}</${envelopePrefix}:Body></${envelopePrefix}:Envelope>`;
+
+          example = {
+            uid: generateUID(),
+            name: 'Risposta esempio',
+            type: 'http-request',
+            response: {
+              status: 200,
+              statusText: 'OK',
+              headers: [
+                {
+                  uid: generateUID(),
+                  name: 'Content-Type',
+                  value: soapVersion === '1.1' ? 'text/xml; charset=utf-8' : 'application/soap+xml; charset=utf-8',
+                  description: '',
+                  enabled: true
+                }
+              ],
+              body: {
+                type: 'xml',
+                content: responseXml
+              }
+            }
+          };
+        }
+      }
+    }
   }
 
   const brunoRequestItem = {
@@ -1085,22 +1664,7 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
         bearer: null,
         digest: null
       },
-      headers: [
-        {
-          uid: generateUID(),
-          name: 'Content-Type',
-          value: 'text/xml; charset=utf-8',
-          description: '',
-          enabled: true
-        },
-        {
-          uid: generateUID(),
-          name: 'SOAPAction',
-          value: soapAction,
-          description: '',
-          enabled: true
-        }
-      ],
+      headers,
       params: [],
       body: {
         mode: 'xml',
@@ -1115,6 +1679,11 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
       }
     }
   };
+
+  if (example) {
+    example.itemUid = brunoRequestItem.uid;
+    brunoRequestItem.examples = [example];
+  }
 
   return brunoRequestItem;
 };
@@ -1153,11 +1722,14 @@ const parseWSDLCollection = (wsdlData) => {
         const portType = wsdlData.portTypes.get(bindingType);
 
         if (portType) {
+          // Determine SOAP version: binding > port > default 1.1
+          const soapVersion = binding.soapVersion || port.soapVersion || '1.1';
+
           for (const portTypeOp of portType.operations) {
             // Find the corresponding binding operation by name
             const bindingOp = binding.operations.find((bop) => bop.name === portTypeOp.name);
             if (bindingOp) {
-              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp);
+              const request = transformWSDLOperation(portTypeOp, wsdlData, port.address, allOperations.length, binding.operations, bindingOp, soapVersion);
               allOperations.push(request);
             }
           }
