@@ -1,6 +1,22 @@
 export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
+      // Validate JSON body before sending
+      const bodyMode = item.draft?.request?.body?.mode ?? item.request?.body?.mode;
+      const bodyJson = item.draft?.request?.body?.json ?? item.request?.body?.json;
+
+      if (bodyMode === 'json' && bodyJson && bodyJson.trim() !== '') {
+        try {
+          // Replace Bruno template variables {{foo}} with a valid placeholder string
+          const withPlaceholders = bodyJson.replace(/\{\{.+?\}\}/g, '"__placeholder__"');
+          // Strip JS-style comments while preserving content inside strings
+          const stripped = withPlaceholders.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m, str) => str || '');
+          JSON.parse(stripped);
+        } catch (e) {
+          return reject(new Error(`Invalid JSON in request body: ${e.message}`));
+        }
+      }
+
       sendHttpRequest(item, collection, environment, runtimeVariables)
         .then((response) => {
           // if there is an error, we return the response object as is
