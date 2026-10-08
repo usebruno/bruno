@@ -1220,8 +1220,28 @@ const transformWSDLOperation = (operation, wsdlData, serviceLocation, index, all
       const renderer = new SampleRenderer(wsdlData, namespaces);
       const payload = responseParts
         .map((part) => {
-          const rootElement = findRootElement(part, wsdlData);
-          return rootElement ? renderer.render(rootElement, 2) : '';
+          if (part.element) {
+            const rootElement = findRootElement(part, wsdlData);
+            return rootElement ? renderer.render(rootElement, 2) : '';
+          }
+          if (part.type) {
+            // WSDL 1.1 allows a literal message part to declare a type instead of a
+            // global element. Render a sample of that declared type using the part name.
+            const typeNs = part.type.includes(':')
+              ? (wsdlData.namespaces.get(part.type.split(':')[0]) || '')
+              : '';
+            const syntheticElement = {
+              name: part.name,
+              type: part.type,
+              typeNamespace: typeNs,
+              minOccurs: 1,
+              maxOccurs: 1,
+              attributes: [],
+              elements: []
+            };
+            return renderer.render(syntheticElement, 2);
+          }
+          return '';
         })
         .filter(Boolean)
         .join('');
