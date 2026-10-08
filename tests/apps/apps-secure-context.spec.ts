@@ -163,17 +163,11 @@ test.describe('Apps - secure context', () => {
               );
             });
           }, 3000);
-          var camera = await withTimeout(function () {
-            return navigator.mediaDevices.getUserMedia({ video: true }).then(function (stream) {
-              stream.getTracks().forEach(function (track) { track.stop(); });
-              return 'granted';
-            });
-          }, 3000);
           return JSON.stringify({
             clipboardRead: clipboardRead,
             clipboardReadPermission: await query('clipboard-read'),
             geolocation: geolocation,
-            camera: camera,
+            camera: await query('camera'),
             clipboardWrite: await query('clipboard-write')
           });
         })()`
@@ -185,7 +179,9 @@ test.describe('Apps - secure context', () => {
       expect(result.clipboardRead).toBe('NotAllowedError');
       expect(result.clipboardReadPermission).toBe('denied');
       expect(result.geolocation).toBe('denied:1');
-      expect(result.camera).toBe('NotAllowedError');
+      // getUserMedia rejects with NotFoundError when the machine has no camera,
+      // which does not show whether the media permission was denied.
+      expect(result.camera).toBe('denied');
       expect(result.clipboardWrite).toBe('granted');
     });
   });
