@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
-import {
-  getMockResponseNameError,
-  getMockResponseNameInputError,
-  isMockResponseNameTaken
-} from 'utils/mock-server/mock-responses';
+import { buildMockResponseNameSchema } from 'utils/mock-server/mock-responses';
 
 const RenameMockResponseModal = ({
   response,
@@ -15,15 +13,17 @@ const RenameMockResponseModal = ({
   isSaving = false
 }) => {
   const inputRef = useRef();
-  const [name, setName] = useState(response?.name || '');
-  const [submitError, setSubmitError] = useState('');
 
-  const trimmedName = name.trim();
-  const inputNameError = getMockResponseNameInputError(name)
-    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName, response?.uid)
-      ? 'A mock response with this name already exists'
-      : null);
-  const nameError = inputNameError || submitError;
+  const formik = useFormik({
+    validateOnMount: true,
+    initialValues: {
+      name: response?.name || ''
+    },
+    validationSchema: Yup.object({
+      name: buildMockResponseNameSchema({ existingResponses, excludeUid: response?.uid })
+    }),
+    onSubmit: (values) => onConfirm(values.name.trim())
+  });
 
   useEffect(() => {
     if (inputRef.current) {
@@ -32,19 +32,9 @@ const RenameMockResponseModal = ({
     }
   }, []);
 
-  const handleConfirm = () => {
-    const validationError = getMockResponseNameError(trimmedName);
-    if (validationError) {
-      setSubmitError(validationError);
-      return;
-    }
-
-    if (isMockResponseNameTaken(existingResponses, trimmedName, response?.uid)) {
-      setSubmitError('A mock response with this name already exists');
-      return;
-    }
-
-    onConfirm(trimmedName);
+  const handleNameChange = (event) => {
+    formik.setFieldTouched('name', true, false);
+    formik.handleChange(event);
   };
 
   return (
@@ -54,31 +44,34 @@ const RenameMockResponseModal = ({
         title="Rename Mock Response"
         confirmText={isSaving ? 'Renaming...' : 'Rename'}
         cancelText="Cancel"
-        handleConfirm={handleConfirm}
+        handleConfirm={() => formik.handleSubmit()}
         handleCancel={onClose}
-        confirmDisabled={isSaving || !trimmedName || Boolean(inputNameError)}
+        confirmDisabled={isSaving || !formik.isValid || !formik.values.name.trim()}
         dataTestId="rename-mock-response-modal"
       >
-        <div>
+        <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>
           <label htmlFor="mock-response-rename-name" className="block font-medium">
             Name
           </label>
           <input
             id="mock-response-rename-name"
+            name="name"
             ref={inputRef}
             type="text"
             className="textbox mt-2 w-full"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setSubmitError('');
-            }}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={formik.values.name}
+            onChange={handleNameChange}
+            onBlur={formik.handleBlur}
             data-testid="mock-response-rename-name-input"
           />
-          {nameError ? (
-            <div className="text-red-500 mt-1">{nameError}</div>
+          {formik.touched.name && formik.errors.name ? (
+            <div className="text-red-500 mt-1">{formik.errors.name}</div>
           ) : null}
-        </div>
+        </form>
       </Modal>
     </Portal>
   );
