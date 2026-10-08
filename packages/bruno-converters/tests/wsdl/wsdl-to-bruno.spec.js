@@ -395,7 +395,7 @@ describe('wsdl-to-bruno', () => {
   });
 
   describe('SOAP version detection', () => {
-    const wsdlWithSchema = (schemaBody, bindingTransport) => `<?xml version="1.0" encoding="UTF-8"?>
+    const wsdlWithSchema = (schemaBody, bindingTag, addressTag) => `<?xml version="1.0" encoding="UTF-8"?>
 <wsdl:definitions name="SignService"
   targetNamespace="http://example.com/sign"
   xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
@@ -417,22 +417,22 @@ describe('wsdl-to-bruno', () => {
     </wsdl:operation>
   </wsdl:portType>
   <wsdl:binding name="SignBinding" type="tns:SignPortType">
-    <soap:binding style="document" transport="${bindingTransport}"/>
+    <${bindingTag}:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
     <wsdl:operation name="Sign">
       <wsdl:input>
-        <soap:body use="literal"/>
+        <${bindingTag}:body use="literal"/>
       </wsdl:input>
     </wsdl:operation>
   </wsdl:binding>
   <wsdl:service name="SignService">
     <wsdl:port name="SignPort" binding="tns:SignBinding">
-      <soap:address location="http://example.com/sign"/>
+      <${addressTag}:address location="http://example.com/sign"/>
     </wsdl:port>
   </wsdl:service>
 </wsdl:definitions>`;
 
-    it('generates SOAP 1.1 headers for soap/http transport', async () => {
-      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'http://schemas.xmlsoap.org/soap/http');
+    it('generates SOAP 1.1 headers for soap:binding', async () => {
+      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'soap', 'soap');
       const collection = await wsdlToBruno(wsdl);
       const headers = collection.items[0].items[0].request.headers;
       const contentType = headers.find((h) => h.name === 'Content-Type');
@@ -441,8 +441,8 @@ describe('wsdl-to-bruno', () => {
       expect(soapAction).toBeDefined();
     });
 
-    it('generates SOAP 1.2 headers for soap12/http transport', async () => {
-      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'http://www.w3.org/2005/08/addressing/soap/1.2/http');
+    it('generates SOAP 1.2 headers for soap12:binding', async () => {
+      const wsdl = wsdlWithSchema('<xsd:element name="SignRequest"><xsd:complexType><xsd:sequence><xsd:element name="id" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>', 'soap12', 'soap12');
       const collection = await wsdlToBruno(wsdl);
       const headers = collection.items[0].items[0].request.headers;
       const contentType = headers.find((h) => h.name === 'Content-Type');
@@ -517,7 +517,7 @@ describe('wsdl-to-bruno', () => {
       expect(request.examples).toBeDefined();
       expect(request.examples.length).toBe(1);
       const example = request.examples[0];
-      expect(example.name).toBe('Risposta esempio');
+      expect(example.name).toBe('Example Response');
       expect(example.response.status).toBe(200);
       expect(example.response.statusText).toBe('OK');
       expect(example.response.body.content).toContain('<result>true</result>');
