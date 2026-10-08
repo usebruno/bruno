@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { darken } from 'polished';
 
 const StyledWrapper = styled.div`
   .api-spec-file-extension {
@@ -17,30 +18,26 @@ const StyledWrapper = styled.div`
   .collection-source-control {
     [role='radiogroup'] {
       height: 1.875rem;
-      padding: 0.125rem;
-      gap: 0.125rem;
+      margin-top: 0.75rem;
+      padding: 2px;
+      gap: 2px;
       box-sizing: border-box;
-      border-radius: 0.375rem;
-      margin-top: 12px;
+      background: ${(props) => props.theme.background.surface1};
+      border-radius: ${(props) => props.theme.border.radius.md};
     }
 
     .segment {
-      height: 1.625rem;
-      box-sizing: border-box;
-      justify-content: center;
-      padding: 0.3125rem 0.5rem;
-      border-radius: 0.309375rem;
-    }
-
-    .segment-label {
-      line-height: 1rem;
-      white-space: nowrap;
+      padding: 0 0.65rem;
+      font-size: ${(props) => props.theme.font.size.sm};
+      font-weight: 500;
+      color: ${(props) => props.theme.text};
+      border-radius: calc(${(props) => props.theme.border.radius.md} - 3px);
     }
 
     .segment.active {
-      background: ${(props) => props.theme.modal.body.bg};
-      border: 0.0625rem solid ${(props) => props.theme.input.border};
-      box-shadow: none;
+      background: ${(props) => darken(0.03, props.theme.background.base)};
+      color: ${(props) => props.theme.button2.color.secondary.text};
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
     }
   }
 
@@ -61,11 +58,8 @@ const StyledWrapper = styled.div`
     font: inherit;
     appearance: none;
 
-    &:hover {
-      border-color: ${(props) => props.theme.input.focusBorder};
-    }
-
-    &:focus-visible {
+    &:focus-visible,
+    &[aria-expanded='true'] {
       outline: none;
       border-color: ${(props) => props.theme.input.focusBorder};
     }

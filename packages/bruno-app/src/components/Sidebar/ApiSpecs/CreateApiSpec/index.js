@@ -327,12 +327,12 @@ const CreateApiSpec = ({ onClose }) => {
         >
           <form className="bruno-form w-[500px] max-w-full" onSubmit={formik.handleSubmit}>
             <label className="block font-semibold mb-2">Source</label>
-            <div className="flex items-center gap-[28px]">
+            <div className="flex items-center gap-4">
               {sourceRadios.map(({ id, value, label }) => (
                 <div key={id} className="flex items-center">
                   <input
                     id={id}
-                    className="cursor-pointer w-[18px] h-[18px]"
+                    className="cursor-pointer"
                     type="radio"
                     name="importFrom"
                     value={value}
