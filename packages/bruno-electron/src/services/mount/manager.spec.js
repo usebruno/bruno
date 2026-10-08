@@ -5,12 +5,11 @@ jest.mock('electron', () => ({
 jest.mock('./file-index', () => ({
   FileIndex: jest.fn().mockImplementation(() => ({
     entries: () => new Map(),
+    entriesWithMetadata: () => new Map(),
     status: async () => ({ added: [], updated: [], removed: [] }),
     stage: jest.fn(),
     transaction: (fn) => fn(),
-    clear: jest.fn(),
-    clearCollection: jest.fn(),
-    close: jest.fn()
+    clearCollection: jest.fn()
   }))
 }));
 jest.mock('../pool', () => ({

@@ -4,7 +4,6 @@ const path = require('node:path');
 const { getPool, JobType } = require('../pool');
 const {
   walk,
-  normalize,
   hashFileAsync,
   resolveDenylist,
   defaultClassify
@@ -162,7 +161,7 @@ const indexUncached = async (searchIndex, collectionPath, collectionName, denyli
   const files = allFiles.filter((f) => f.cls?.type === 'request');
   const metaFiles = allFiles.filter((f) => toMetaRow(collectionPath, { relativePath: f.relativePath }));
   const stored = searchIndex.entriesFor(collectionPath);
-  const cached = fileIndex ? fileIndex.entries(collectionPath) : null;
+  const cached = fileIndex ? fileIndex.entriesWithMetadata(collectionPath) : null;
 
   // Every folder is known to the index, empty ones too, so a folder can be searched for by its name
   searchIndex.syncFolders({
@@ -239,7 +238,7 @@ const activeRuns = new Map();
 
 // onWork is called once the run finds something to read or write (not while it is only checking for changes)
 const indexCollection = (searchIndex, { collectionPath, collectionName, denylist, concurrency = BACKGROUND_INDEX_CONCURRENCY, workspacePath, fileIndex, onWork }) => {
-  const root = normalize(collectionPath);
+  const root = path.resolve(collectionPath);
   const running = activeRuns.get(root);
   if (running) return running;
 
