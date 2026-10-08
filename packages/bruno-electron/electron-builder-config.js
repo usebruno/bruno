@@ -100,6 +100,15 @@ const config = {
       'libasound2' // #1036
     ]
   },
+  // Bundle git so Snap/sandbox installs can find it (#5667)
+  snap: {
+    stagePackages: ['default', 'git'],
+    // electron-builder's app part strips usr/bin, so expose git from git-core
+    environment: {
+      PATH: '$SNAP/usr/lib/git-core:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH',
+      GIT_EXEC_PATH: '$SNAP/usr/lib/git-core'
+    }
+  },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
     icon: 'resources/icons/win/icon.ico',
