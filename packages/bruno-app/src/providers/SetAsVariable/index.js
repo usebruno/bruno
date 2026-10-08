@@ -10,6 +10,18 @@ const CLOSED = { view: 'closed', selection: null };
 
 const isInsideFloatingUi = (target) => !!target?.closest?.('[data-tippy-root]');
 
+const selectionContainsPoint = (domSelection, x, y) => {
+  for (let rangeIndex = 0; rangeIndex < domSelection.rangeCount; rangeIndex++) {
+    for (const rect of domSelection.getRangeAt(rangeIndex).getClientRects()) {
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 export function SetAsVariableProvider({ children }) {
   const [state, setState] = useState(CLOSED);
   const activeTabUid = useSelector((reduxState) => reduxState.tabs.activeTabUid);
@@ -58,6 +70,8 @@ export function SetAsVariableProvider({ children }) {
 
     const text = domSelection.toString();
     if (!text || !text.trim()) return;
+
+    if (!selectionContainsPoint(domSelection, event.clientX, event.clientY)) return;
 
     event.preventDefault();
     dismissActiveVarInfoPopup();
