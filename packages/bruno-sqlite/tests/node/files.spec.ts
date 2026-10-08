@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FileStore } from '../../src/node/files';
@@ -42,6 +42,13 @@ describe('FileStore', () => {
 
       expect(entry).toMatchObject({ size: INLINE_MAX + 1, inline: false });
       expect(onDisk()).toHaveLength(1);
+    });
+
+    (process.platform === 'win32' ? it.skip : it)('keeps the files directory and spilled files private to the owner', async () => {
+      const { id } = await files.write(Buffer.alloc(INLINE_MAX + 1, 0x61));
+
+      expect(statSync(files.directory).mode & 0o777).toBe(0o700);
+      expect(statSync(files.locate(id)!.path!).mode & 0o777).toBe(0o600);
     });
 
     it('lets the schema stamp created_at and updated_at in epoch seconds', async () => {

@@ -60,8 +60,8 @@ export class FileStore {
     try {
       if (fileName) {
         this._writing.add(fileName);
-        await mkdir(this.directory, { recursive: true });
-        await writeFile(this.pathFor(fileName), bytes);
+        await mkdir(this.directory, { recursive: true, mode: 0o700 });
+        await writeFile(this.pathFor(fileName), bytes, { mode: 0o600 });
       }
 
       const result = this._statements.execute('insert_file', {
