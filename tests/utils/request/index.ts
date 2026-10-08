@@ -51,11 +51,7 @@ export const buildRequestLocators = (page: Page) => ({
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
-    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`),
-    defaultConflict: (name: string) => page.getByTestId(`default-header-conflict-${name.toLowerCase()}`),
-    requestConflict: (name: string) => page.getByTestId(`request-header-conflict-${name.toLowerCase()}`),
-    defaultConflictTooltip: (name: string) => page.getByTestId(`default-header-conflict-tooltip-${name.toLowerCase()}`),
-    requestConflictTooltip: (name: string) => page.getByTestId(`request-header-conflict-tooltip-${name.toLowerCase()}`)
+    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
   },
   queryParams: {
     rowByName: (name: string) => page.getByTestId('query-params-table').locator(`tbody tr[data-row-name="${name}"]`),

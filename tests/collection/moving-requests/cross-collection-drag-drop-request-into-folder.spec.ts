@@ -15,7 +15,7 @@ test.describe('Cross-collection drag and drop of a request into a folder', () =>
     await closeAllCollections(page);
   });
 
-  test('Verify drag and drop of a request into a specific folder in the destination collection', async ({
+  test('TC-766: Verify drag and drop of a request into a specific folder in the destination collection', { tag: '@sanity' }, async ({
     page,
     createTmpDir
   }) => {

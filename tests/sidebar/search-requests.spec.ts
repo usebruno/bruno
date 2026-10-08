@@ -11,7 +11,7 @@ import {
   searchSidebarRequests
 } from '../utils/page';
 
-test.describe('Sidebar request search', () => {
+test.describe('TC-365: Search requests in the sidebar', { tag: '@sanity' }, () => {
   test.afterEach(async ({ page }) => {
     await clearSidebarSearch(page);
     await closeAllCollections(page);
