@@ -1958,6 +1958,14 @@ export const isVariableSecret = (scopeInfo) => {
   return false;
 };
 
+/**
+ * Returns variable names and their scopes for autocomplete, without exposing values.
+ * includes `process.env.<KEY>` variables and dynamic functions like `$randomInt`.
+ *
+ * @param {Object} collection - The current collection
+ * @param {Object} [item] - Request or folder used to resolve local variables
+ * @returns {Array<{ name: string, scope: string }>}
+ */
 export const getAllVariablesWithScope = (collection, item) => {
   const {
     globalEnvironmentVariables,

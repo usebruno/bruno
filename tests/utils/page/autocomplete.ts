@@ -25,6 +25,26 @@ export const buildAutocompleteLocators = (page: Page) => {
 export const maskedCharacters = (editor: Locator) => editor.getByTestId('masked-character');
 
 /**
+ * @param page - The page object
+ */
+export const expectAutocompleteStaysClosed = async (page: Page) => {
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await expect(buildAutocompleteLocators(page).widget()).toHaveCount(0);
+};
+
+/**
+ * The `.CodeMirror` element inside a field's container (e.g. a body or script editor wrapper).
+ * @param container - The editor's wrapper locator
+ */
+export const codeMirrorOf = (container: Locator) => container.locator('.CodeMirror').first();
+
+/**
+ * The first rendered text line of a CodeMirror field (masked fields render `*` here, not the real value).
+ * @param editor - The `.CodeMirror` element
+ */
+export const visibleLine = (editor: Locator) => editor.locator('.CodeMirror-line').first();
+
+/**
  * Click into a CodeMirror-based field, type a single `{`, and assert the variable-autocomplete
  * dropdown opens with at least one variable hint.
  * @param page - The page object
@@ -46,12 +66,10 @@ export const expectSingleBraceOpensAutocomplete = async (page: Page, editor: Loc
  * @param editor - The `.CodeMirror` element for the field under test
  */
 export const expectSingleBraceDoesNotOpenAutocomplete = async (page: Page, editor: Locator) => {
-  const { widget } = buildAutocompleteLocators(page);
   await editor.click();
   await page.keyboard.press('End');
   await page.keyboard.type('{');
-  await page.waitForTimeout(300);
-  await expect(widget()).toHaveCount(0);
+  await expectAutocompleteStaysClosed(page);
 };
 
 /**

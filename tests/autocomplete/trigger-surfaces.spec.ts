@@ -16,6 +16,7 @@ import {
 import { buildRequestLocators } from '../utils/request';
 import {
   authFieldEditor,
+  codeMirrorOf,
   readEditorValue,
   expectSingleBraceOpensAutocomplete,
   expectSingleBraceDoesNotOpenAutocomplete
@@ -114,7 +115,7 @@ test.describe('single `{` trigger surfaces', () => {
 
     await test.step('Request body (JSON code editor)', async () => {
       await selectRequestBodyMode(page, 'JSON');
-      const editor = request.bodyEditor().locator('.CodeMirror').first();
+      const editor = codeMirrorOf(request.bodyEditor());
       await expectSingleBraceDoesNotOpenAutocomplete(page, editor);
     });
 
@@ -122,7 +123,7 @@ test.describe('single `{` trigger surfaces', () => {
       await selectRequestPaneTab(page, 'Script');
 
       await selectScriptSubTab(page, 'pre-request');
-      const editor = page.getByTestId('pre-request-script-editor').locator('.CodeMirror').first();
+      const editor = codeMirrorOf(page.getByTestId('pre-request-script-editor'));
       await expectSingleBraceDoesNotOpenAutocomplete(page, editor);
     });
 

@@ -11,6 +11,8 @@ import {
 import { buildRequestLocators } from '../utils/request';
 import {
   buildAutocompleteLocators,
+  codeMirrorOf,
+  expectAutocompleteStaysClosed,
   pressAutocompleteShortcut,
   readEditorValue
 } from '../utils/page/autocomplete';
@@ -37,7 +39,7 @@ test.describe('Variable autocomplete — Ctrl+Space shortcut', () => {
 
     await test.step('Request body (JSON code editor)', async () => {
       await selectRequestBodyMode(page, 'JSON');
-      const editor = request.bodyEditor().locator('.CodeMirror').first();
+      const editor = codeMirrorOf(request.bodyEditor());
       await editor.click();
       await pressAutocompleteShortcut(page);
       await expect(widget()).toBeVisible();
@@ -105,7 +107,7 @@ test.describe('Variable autocomplete — Ctrl+Space shortcut', () => {
 
     await valueEditor.click();
     await page.keyboard.type('{');
-    await expect(widget()).toHaveCount(0);
+    await expectAutocompleteStaysClosed(page);
     const valueBeforeShortcut = await readEditorValue(valueEditor);
 
     await pressAutocompleteShortcut(page);

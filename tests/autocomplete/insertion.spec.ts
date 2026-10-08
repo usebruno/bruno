@@ -16,13 +16,14 @@ import {
   pressAutocompleteShortcut,
   readEditorValue,
   setEditorState,
-  pickHint
+  pickHint,
+  visibleLine
 } from '../utils/page/autocomplete';
 
 const expectFullyMasked = async (editor: Locator, realValue: string) => {
   await expect(maskedCharacters(editor)).toHaveCount(realValue.length);
   if (realValue.length > 0) {
-    await expect(editor.locator('.CodeMirror-line').first()).not.toContainText(realValue);
+    await expect(visibleLine(editor)).not.toContainText(realValue);
   }
 };
 
@@ -197,17 +198,22 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     const nameOf = (item: Locator) => item.getByTestId('autocomplete-variable-name').innerText();
 
     // Starts on the first hint in the list.
-    expect(await nameOf(activeItem().first())).toBe(await nameOf(variableItems().nth(0)));
+    const expectActiveToBe = async (index: number) => {
+      const expectedName = await nameOf(variableItems().nth(index));
+      await expect.poll(() => nameOf(activeItem().first())).toBe(expectedName);
+    };
+
+    await expectActiveToBe(0);
 
     await page.keyboard.press('ArrowDown');
-    expect(await nameOf(activeItem().first())).toBe(await nameOf(variableItems().nth(1)));
+    await expectActiveToBe(1);
 
     await page.keyboard.press('ArrowUp');
-    expect(await nameOf(activeItem().first())).toBe(await nameOf(variableItems().nth(0)));
+    await expectActiveToBe(0);
 
     // ArrowUp from the first hint wraps around to the last one.
     await page.keyboard.press('ArrowUp');
-    expect(await nameOf(activeItem().first())).toBe(await nameOf(variableItems().nth(count - 1)));
+    await expectActiveToBe(count - 1);
   });
 
   test('Enter picks the currently active hint, same as a click would', async ({ page, createTmpDir }) => {

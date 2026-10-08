@@ -9,7 +9,12 @@ import {
   closePreferences,
   buildCommonLocators
 } from '../utils/page';
-import { buildAutocompleteLocators, pressAutocompleteShortcut, setEditorState } from '../utils/page/autocomplete';
+import {
+  buildAutocompleteLocators,
+  expectAutocompleteStaysClosed,
+  pressAutocompleteShortcut,
+  setEditorState
+} from '../utils/page/autocomplete';
 
 const ACTION = 'triggerAutocomplete';
 const NEW_COMBO_KEYS = ['Control', 'Shift', 'Space'];
@@ -90,8 +95,7 @@ test.describe('Variable autocomplete — keybinding preferences', () => {
       await urlEditor.click();
       await setEditorState(urlEditor, 'https://example.com/api', 23);
       await pressAutocompleteShortcut(page);
-      await page.waitForTimeout(300);
-      await expect(widget()).toHaveCount(0);
+      await expectAutocompleteStaysClosed(page);
     });
 
     await test.step('the new Ctrl+Shift+Space combo opens the dropdown', async () => {

@@ -23,7 +23,6 @@ export const buildPreferencesLocators = (page: Page) => ({
   keybindings: {
     row: (action: string) => page.getByTestId(`keybinding-row-${action}`),
     input: (action: string) => page.getByTestId(`keybinding-input-${action}`),
-    editButton: (action: string) => page.getByTestId(`keybinding-edit-${action}`),
     resetButton: (action: string) => page.getByTestId(`keybinding-reset-${action}`)
   },
   /** The open Preferences tab in the tab bar */
