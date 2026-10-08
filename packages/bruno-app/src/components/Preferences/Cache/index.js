@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { IconEraser } from '@tabler/icons';
+import useFileCache from 'hooks/useFileCache';
+import useSearchIndex from 'hooks/useSearchIndex';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
@@ -12,27 +14,15 @@ import { formatSize } from 'utils/common';
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
-  const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
   const dispatch = useDispatch();
   const { theme } = useTheme();
-  const { ipcRenderer } = window;
 
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
   const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
 
-  const [fileCacheSize, setFileCacheSize] = useState(null);
-  const [searchIndexSize, setSearchIndexSize] = useState(null);
-
-  const refreshSizes = useCallback(() => {
-    if (!ipcRenderer) return;
-    ipcRenderer.invoke('renderer:get-file-cache-size').then(setFileCacheSize).catch(() => setFileCacheSize(null));
-    ipcRenderer.invoke('renderer:get-search-index-size').then(setSearchIndexSize).catch(() => setSearchIndexSize(null));
-  }, [ipcRenderer]);
-
-  useEffect(() => {
-    refreshSizes();
-  }, [refreshSizes, fileCacheEnabled, searchIndexEnabled]);
+  const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
+  const { size: searchIndexSize, building: searchIndexBuilding, clear: clearSearchIndex } = useSearchIndex();
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -65,27 +55,22 @@ const Cache = () => {
     }
   };
 
-  const handleClearFileCache = () => {
-    if (!ipcRenderer) return;
-    ipcRenderer
-      .invoke('renderer:clear-file-cache')
-      .then((size) => {
-        setFileCacheSize(size);
-        toast.success('File cache cleared');
-      })
-      .catch(() => toast.error('Failed to clear file cache'));
+  const handleClearFileCache = async () => {
+    try {
+      await clearFileCache();
+      toast.success('File cache cleared');
+    } catch (error) {
+      toast.error('Failed to clear file cache');
+    }
   };
 
-  const handleClearSearchIndex = () => {
-    if (!ipcRenderer) return;
-    ipcRenderer
-      .invoke('renderer:clear-search-index')
-      .then(({ fileCacheSize: fc, searchIndexSize: si }) => {
-        setFileCacheSize(fc);
-        setSearchIndexSize(si);
-        toast.success('Search index cleared');
-      })
-      .catch((err) => toast.error(`Failed to clear search index: ${err?.message || err}`));
+  const handleClearSearchIndex = async () => {
+    try {
+      await clearSearchIndex();
+      toast.success('Search index cleared');
+    } catch (error) {
+      toast.error(`Failed to clear search index: ${error?.message || error}`);
+    }
   };
 
   const handleClearSslSession = () => {

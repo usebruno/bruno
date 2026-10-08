@@ -124,7 +124,7 @@ const ManageWorkspace = () => {
             const isActive = workspace.uid === activeWorkspaceUid;
 
             return (
-              <div key={workspace.uid} className="workspace-item" data-testid={`workspace-item-${workspace.name}`}>
+              <div key={workspace.uid} className="workspace-item" data-testid={`workspace-item-${workspace.uid}`}>
                 <div className="workspace-info">
                   <div className="workspace-name-row">
                     <span className={`workspace-icon ${isDefault ? 'default' : 'regular'}`}>

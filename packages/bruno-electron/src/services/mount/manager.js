@@ -69,19 +69,6 @@ const ensureTransientDirectory = () => {
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };
 
-// In WAL mode part of the data lives in the `-wal` file until it is checkpointed, so the on-disk size is both files
-const sizeOnDisk = (dbPath) => {
-  let total = 0;
-  for (const suffix of ['', '-wal']) {
-    try {
-      total += fs.statSync(`${dbPath}${suffix}`).size;
-    } catch (err) {
-      if (err?.code !== 'ENOENT') throw err;
-    }
-  }
-  return total;
-};
-
 class MountManager {
   #index = null;
   #searchIndex = null;
@@ -97,7 +84,7 @@ class MountManager {
       existing.win = win;
       existing.emit = emit;
       existing.brunoConfig = brunoConfig || existing.brunoConfig;
-      existing.state = this.#getPersistentIndex().entries(existing.collectionPath);
+      existing.state = this.#getPersistentIndex().entries(existing.collectionPath, { denylist: existing.brunoConfig?.ignore });
       await this.#emitTree(collectionUid, existing);
       return existing.tempDirectoryPath;
     }
@@ -122,7 +109,8 @@ class MountManager {
         ...(await this.getWatcherIndexOptions(collectionPath, workspacePath)),
         fileIndex: this.#getPersistentIndex()
       };
-      entry.state = indexOptions.fileIndex.entries(collectionPath);
+      // with the mtime/hash each copy was saved with, so the search index can tell which rows are still current
+      entry.state = indexOptions.fileIndex.entriesWithMetadata(collectionPath, { denylist: brunoConfig?.ignore });
       await this.#reconcile(entry, indexOptions);
       await this.#emitTree(collectionUid, entry);
 
@@ -155,27 +143,18 @@ class MountManager {
     } catch (_) {}
   }
 
-  async shutdown() {
+  async shutdown({ force = false } = {}) {
     await Promise.all(
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
-    await destroyPool().catch(() => {});
-    if (this.#index) {
-      this.#index.close();
-      this.#index = null;
-    }
-    if (this.#searchIndex) {
-      this.#searchIndex.close();
-      this.#searchIndex = null;
-    }
-  }
-
-  getCacheSize() {
-    return sizeOnDisk(this.#getPersistentIndex().dbPath);
+    await destroyPool({ force }).catch(() => {});
+    // both indexes run on the shared database, which the sqlite service closes
+    this.#index = null;
+    this.#searchIndex = null;
   }
 
   getSearchIndexSize() {
-    return sizeOnDisk(this.#getSearchIndex().dbPath);
+    return this.#getSearchIndex().size();
   }
 
   // Indexes the watcher keeps in sync with live edits. The file index only exists while the file cache is ON,
@@ -187,10 +166,6 @@ class MountManager {
       searchIndex: searchIndexEnabled ? this.#getSearchIndex() : null,
       workspacePathname: searchIndexEnabled ? await this.#resolveWorkspacePath(collectionPath, workspacePath) : null
     };
-  }
-
-  clearCache() {
-    this.#getPersistentIndex().clear();
   }
 
   clearSearchIndex() {
@@ -242,12 +217,12 @@ class MountManager {
     if (!preferencesUtil.isSearchIndexEnabled()) return;
     await this.#withIndexingSession(async (onWork) => {
       const priorPaths = new Set(this.#getSearchIndex().collectionPaths());
-      const fileCachePaths = new Set(this.#getIndex()?.collectionPaths() ?? []);
       const resolved = collections.map(({ path: collectionPath, name: collectionName }) => ({
         root: path.resolve(collectionPath),
         collectionName
       }));
-      const isFast = (c) => priorPaths.has(c.root) || fileCachePaths.has(c.root);
+      // collections the search index already knows are quick (most files are skipped), so they go first
+      const isFast = (c) => priorPaths.has(c.root);
       const ordered = [
         ...resolved.filter(isFast),
         ...resolved.filter((c) => !isFast(c))
@@ -425,7 +400,7 @@ class MountManager {
   }
 
   #getPersistentIndex() {
-    if (!this.#index) this.#index = new FileIndex({});
+    if (!this.#index) this.#index = new FileIndex();
     return this.#index;
   }
 
@@ -435,7 +410,7 @@ class MountManager {
   }
 
   #getSearchIndex() {
-    if (!this.#searchIndex) this.#searchIndex = new SearchIndex({});
+    if (!this.#searchIndex) this.#searchIndex = new SearchIndex();
     return this.#searchIndex;
   }
 

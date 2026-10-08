@@ -61,7 +61,8 @@ const {
   generateUniqueName,
   isValidDotEnvFilename,
   scanForBrunoFiles,
-  withFileLock
+  withFileLock,
+  removeGitMetadata
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -2721,6 +2722,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         await extractZip(zipFilePath, { dir: tempDir });
 
         validateNoExternalSymlinks(tempDir, tempDir);
+        await removeGitMetadata(tempDir);
 
         const extractedItems = fs.readdirSync(tempDir);
         let collectionDir = tempDir;

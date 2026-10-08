@@ -1181,11 +1181,12 @@ export const hasRequestChanges = (item) => {
   const originalItem = cloneDeep(item);
   const draftItem = cloneDeep(item.draft);
 
-  // Remove examples from both items for comparison
   delete originalItem.examples;
   delete originalItem.draft;
+  delete originalItem.unresolvedVariables;
   delete draftItem.examples;
   delete draftItem.draft;
+  delete draftItem.unresolvedVariables;
 
   return !isEqual(originalItem, draftItem);
 };
@@ -2362,6 +2363,55 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+export const getWorkspaceCollections = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  if (!activeWorkspace) {
+    return [];
+  }
+
+  const toPathKey = (pathname) => {
+    const key = normalizePath(pathname);
+    return isWindowsOS() ? key.toLowerCase() : key;
+  };
+
+  return collections.filter((collection) => {
+    if (isScratchCollection(collection, workspaces)) {
+      return false;
+    }
+
+    return activeWorkspace.collections?.some(
+      (workspaceCollection) => toPathKey(workspaceCollection.path) === toPathKey(collection.pathname)
+    );
+  });
+};
+
+export const isSelectionEntryCollapsed = (entry) =>
+  entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
+
+export const isSelectionEntryCollapsible = (entry) =>
+  entry.type === 'collection' || entry.type === 'folder' || (entry.type === 'request' && entry.item.examples?.length > 0);
+
+/**
+ * Derives bulk-actions menu state from Redux collections/workspaces and the current sidebar selection.
+ * Filters out scratch collections, then resolves selection via getSelectionInfo.
+ */
+export const getBulkActionsSelection = ({ collections = [], workspaces = [], selectedUids = [] }) => {
+  const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
+  const selectionInfo = getSelectionInfo({ collections: visibleCollections, selectedUids });
+  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp, hasExample } = selectionInfo;
+
+  const collapsibleEntries = effectiveSelection.filter(isSelectionEntryCollapsible);
+  const canCollapse = collapsibleEntries.length > 0;
+
+  return {
+    ...selectionInfo,
+    isPureCollectionSelection: hasCollection && !hasFolder && !hasRequest && !hasApp && !hasExample,
+    canDelete: !hasCollection && (hasFolder || hasRequest || hasApp || hasExample),
+    collapsibleEntries,
+    canCollapse,
+    allCollapsed: canCollapse && collapsibleEntries.every(isSelectionEntryCollapsed)
+  };
 };
 
 const SCOPE_CONFIG = [

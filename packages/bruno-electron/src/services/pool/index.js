@@ -39,8 +39,8 @@ class Pool {
     return job;
   }
 
-  async destroy() {
-    await this.#pool.terminate();
+  async destroy({ force = false } = {}) {
+    await this.#pool.terminate(force);
   }
 }
 
@@ -51,11 +51,11 @@ const getPool = (options) => {
   return shared;
 };
 
-const destroyPool = async () => {
+const destroyPool = async ({ force = false } = {}) => {
   if (!shared) return;
   const pool = shared;
   shared = null;
-  await pool.destroy();
+  await pool.destroy({ force });
 };
 
 module.exports = { Pool, getPool, destroyPool, JobType };

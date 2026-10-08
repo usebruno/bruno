@@ -23,11 +23,14 @@ const SEARCH_INDEX_THROTTLE_MS = 3000;
 // a hair longer than the throttle window, so a refresh tick never lands just inside it and gets dropped
 const SEARCH_INDEX_REFRESH_MS = 3100;
 
+const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
+
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   // The input renders from `searchText` so typing stays instant; everything that has to walk the
   // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows once, not per character.
   const [searchText, setSearchText] = useState('');
-  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS);
+  const trimmedSearchText = searchText.trim();
+  const debouncedSearchText = useDebounce(trimmedSearchText, SEARCH_DEBOUNCE_MS, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
@@ -181,7 +184,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [renderedSidebarEntries, debouncedSearchText]
   );
 
-  const isSearchPending = searchText !== debouncedSearchText || isSearchIndexPending;
+  const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
   const showIndexingText = searchIndexBuilding && isSearchPending;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).

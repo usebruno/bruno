@@ -1,21 +1,18 @@
 import type { DatabaseSync, StatementSync, SupportedValueType } from 'node:sqlite';
-import type { StatementDef } from '../shared/types';
-import type { SQLiteMutationEvent, SQLiteParams } from '../shared/ipc';
+import type { SQLiteParams, StatementDef } from '../shared/types';
 import { statements as statementDefs } from '../generated/node/statements';
-
-export type OnMutation = (event: SQLiteMutationEvent) => void;
 
 export class Statements {
   _prepared: Map<string, StatementSync> = new Map();
   _defs: Map<string, StatementDef> = new Map();
-  _onMutation?: OnMutation;
 
-  constructor(db: DatabaseSync, onMutation?: OnMutation) {
-    this._onMutation = onMutation;
+  constructor(db: DatabaseSync) {
     for (const def of statementDefs) {
       this._defs.set(def.name, def);
       try {
-        this._prepared.set(def.name, db.prepare(def.sql));
+        const prepared = db.prepare(def.sql);
+        if (def.readBigInts) prepared.setReadBigInts(true);
+        this._prepared.set(def.name, prepared);
       } catch (err) {
         console.error(`failed to prepare the statement "${def.name}": `, err);
       }
@@ -33,11 +30,8 @@ export class Statements {
     }
     const args = params as Record<string, SupportedValueType>;
     switch (def.type) {
-      case 'exec': {
-        const result = stmt.run(args);
-        this._onMutation?.({ name: def.name, tables: def.tables });
-        return result;
-      }
+      case 'exec':
+        return stmt.run(args);
       case 'one':
         return stmt.get(args);
       case 'many':

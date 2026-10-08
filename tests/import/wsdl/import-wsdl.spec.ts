@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollection } from '../../utils/page/actions';
+import { closeAllCollections, importCollection, openCollection, openfolder, openRequest, readRequestBody } from '../../utils/page/actions';
 
 test.describe('Import WSDL Collection', () => {
   const testDataDir = path.join(__dirname, 'fixtures');
@@ -126,6 +126,26 @@ test.describe('Import WSDL Collection', () => {
       await page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('CreateUser').click();
       await expect(page.locator('.request-tab.active').getByText('CreateUser')).toBeVisible();
       await expect(page.locator('#request-url').getByText('http://example.com/soap/userservice')).toBeVisible();
+    });
+  });
+
+  test('Import a multi-file WSDL bundle, resolving schemaLocation references', async ({ page, createTmpDir }) => {
+    const wsdlFile = path.join(testDataDir, 'multifile', 'Service.wsdl');
+    await importCollection(page, wsdlFile, await createTmpDir('wsdl-multifile-test'));
+
+    await test.step('Open the imported Submit request', async () => {
+      await openCollection(page, 'MultiFileWSDLService');
+      await openfolder(page, 'MultiFileWSDLService', 'PartyService');
+      await openRequest(page, 'MultiFileWSDLService', 'Submit');
+      await expect(page.locator('.request-tab.active').getByText('Submit')).toBeVisible();
+    });
+
+    await test.step('Verify the body was built from the imported schema documents', async () => {
+      await expect.poll(() => readRequestBody(page)).toBe(
+        '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>'
+        + '<SubmitRequest><party><status>ACTIVE</status></party></SubmitRequest>'
+        + '</soap:Body></soap:Envelope>'
+      );
     });
   });
 });
