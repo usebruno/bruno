@@ -315,6 +315,29 @@ describe('Snippet Generator - Simple Tests', () => {
     require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
   });
 
+  it('uses a CommonJS axios import only for Node axios snippets', async () => {
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
+      convert: jest.fn(() => 'const axios = require(\'axios\').default;')
+    }));
+
+    const nodeAxiosSnippet = await generateSnippet({
+      language: { target: 'node', client: 'axios' },
+      item: testRequest,
+      collection: testCollection,
+      shouldInterpolate: false
+    });
+    const javascriptAxiosSnippet = await generateSnippet({
+      language: { target: 'javascript', client: 'axios' },
+      item: testRequest,
+      collection: testCollection,
+      shouldInterpolate: false
+    });
+
+    expect(nodeAxiosSnippet).toBe('const axios = require(\'axios\');');
+    expect(nodeAxiosSnippet).not.toContain('.default');
+    expect(javascriptAxiosSnippet).toBe('const axios = require(\'axios\').default;');
+  });
+
   it('should interpolate simple headers and body variables', async () => {
     const simpleTestRequest = {
       uid: 'test-123',
