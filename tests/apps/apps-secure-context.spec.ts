@@ -127,8 +127,6 @@ test.describe('Apps - secure context', () => {
       await openAppWith(page, electronApp, createTmpDir, 'permissions', '<div id="out"></div>');
     });
 
-    // guestEval runs with a user gesture. An onload probe would fail clipboard
-    // checks for lack of a gesture, which would not exercise the permission handler.
     const raw = await test.step('Request clipboard, geolocation, and camera from the guest', () =>
       guestEval(
         page,
@@ -173,6 +171,7 @@ test.describe('Apps - secure context', () => {
           }, 3000);
           return JSON.stringify({
             clipboardRead: clipboardRead,
+            clipboardReadPermission: await query('clipboard-read'),
             geolocation: geolocation,
             camera: camera,
             clipboardWrite: await query('clipboard-write')
@@ -184,6 +183,7 @@ test.describe('Apps - secure context', () => {
 
     await test.step('Assert reads and device access are denied', async () => {
       expect(result.clipboardRead).toBe('NotAllowedError');
+      expect(result.clipboardReadPermission).toBe('denied');
       expect(result.geolocation).toBe('denied:1');
       expect(result.camera).toBe('NotAllowedError');
       expect(result.clipboardWrite).toBe('granted');
