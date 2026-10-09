@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const COMPACT_WIDTH_THRESHOLD = 150;
 
-const VarValueCell = ({ editor, renderTypeSelector, trailingContent, onCompactChange }) => {
+const VarValueCell = ({ editor, renderTypeSelector, leadingContent, trailingContent, onCompactChange }) => {
   const [compact, setCompact] = useState(true);
   const [hovered, setHovered] = useState(false);
   const observerRef = useRef(null);
@@ -40,8 +40,11 @@ const VarValueCell = ({ editor, renderTypeSelector, trailingContent, onCompactCh
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div style={{ flex: '1 1 0', minWidth: 0 }}>
-        {editor}
+      <div className="flex items-center min-w-0" style={{ flex: '1 1 0' }}>
+        {leadingContent}
+        <div style={{ flex: '1 1 0', minWidth: 0 }}>
+          {editor}
+        </div>
       </div>
       {compact && trailingContent ? (
         <div className="trailing-area">

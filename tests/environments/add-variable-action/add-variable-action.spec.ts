@@ -149,6 +149,10 @@ test.describe('Environment variables — floating "Add variable" action', () => 
     });
 
     await test.step('Collapsing the own section removes the add row, so the action is hidden', async () => {
+      // The section header is a virtualized row; scroll back up so it is mounted.
+      await envLocators(page).variablesTable().locator('.table-container').evaluate((el) => {
+        el.scrollTop = 0;
+      });
       await page.getByTestId('env-var-section-toggle-own').click();
       await expect(floatingAdd(page)).toBeHidden();
     });
