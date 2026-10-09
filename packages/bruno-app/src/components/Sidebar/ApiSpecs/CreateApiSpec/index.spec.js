@@ -134,11 +134,11 @@ const renderModal = (options) => {
 };
 
 const chooseCollectionSource = async (user) => {
-  await user.click(screen.getByLabelText('From Bruno Collection'));
+  await user.click(screen.getByLabelText('Bruno Collection'));
 };
 
 const chooseFileSystemSource = async (user) => {
-  await user.click(screen.getByRole('radio', { name: 'From file system' }));
+  await user.click(screen.getByRole('radio', { name: 'From filesystem' }));
 };
 
 describe('CreateApiSpec — collection source', () => {
@@ -164,7 +164,7 @@ describe('CreateApiSpec — collection source', () => {
     // The tab is disabled, and the file system field is live without a click.
     expect(screen.getByRole('radio', { name: 'From workspace' })).toBeDisabled();
     expect(screen.queryByTestId('api-spec-collection-trigger')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Choose file...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Select collection folder')).toBeInTheDocument();
   });
 
   it('prefills the name from the collection, sanitized, or from a browsed folder, and loads environments', async () => {
@@ -182,7 +182,7 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Billing- v2'));
 
     await chooseFileSystemSource(user);
-    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await user.click(screen.getByPlaceholderText('Select collection folder'));
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
   });
 
@@ -220,7 +220,7 @@ describe('CreateApiSpec — collection source', () => {
     await user.click(screen.getByTestId(`api-spec-collection-dropdown-${BILLING.uid}`));
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Billing- v2'));
 
-    await user.click(screen.getByLabelText('From Spec URL'));
+    await user.click(screen.getByLabelText('Spec URL'));
     await user.type(screen.getByTestId('api-spec-url'), 'https://example.com/hotels.yaml');
     await user.tab();
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Hotels API'));
@@ -242,13 +242,13 @@ describe('CreateApiSpec — collection source', () => {
     await chooseCollectionSource(user);
 
     await user.click(screen.getByTestId(`api-spec-collection-dropdown-${PETSTORE.uid}`));
-    expect(screen.queryByPlaceholderText('Choose file...')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Select collection folder')).not.toBeInTheDocument();
 
     await chooseFileSystemSource(user);
     expect(screen.queryByTestId('api-spec-collection-trigger')).not.toBeInTheDocument();
-    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await user.click(screen.getByPlaceholderText('Select collection folder'));
     await waitFor(() => expect(
-      screen.getByPlaceholderText('Choose file...')
+      screen.getByPlaceholderText('Select collection folder')
     ).toHaveValue('/home/dev/elsewhere/outside-collection'));
 
     await user.click(screen.getByRole('radio', { name: 'From workspace' }));
@@ -262,7 +262,7 @@ describe('CreateApiSpec — collection source', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('');
     expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/Documents/specs');
 
-    await user.click(screen.getByLabelText('From Bruno Collection'));
+    await user.click(screen.getByLabelText('Bruno Collection'));
     expect(screen.getByLabelText('Name')).toHaveValue('Petstore');
     expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/Documents/specs');
   });
@@ -371,7 +371,7 @@ describe('CreateApiSpec — collection source', () => {
     await chooseFileSystemSource(user);
     expect(screen.queryByText('Collection location is required')).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('From Spec URL'));
+    await user.click(screen.getByLabelText('Spec URL'));
     expect(screen.queryByText('Spec URL is required')).not.toBeInTheDocument();
     expect(screen.queryByText('Name is required')).not.toBeInTheDocument();
   });
@@ -399,7 +399,7 @@ describe('CreateApiSpec — URL source', () => {
   const JSON_SPEC = '{"openapi":"3.1.0","info":{"title":"Hotel Booking API"}}';
 
   const openUrlSource = async (user) => {
-    await user.click(screen.getByLabelText('From Spec URL'));
+    await user.click(screen.getByLabelText('Spec URL'));
   };
 
   const typeUrlAndBlur = async (user, url = SPEC_URL) => {
@@ -576,7 +576,7 @@ describe('CreateApiSpec — URL source', () => {
     expect(screen.getByText('.yaml')).toBeInTheDocument();
     expect(screen.queryByText('.json')).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText('From Spec URL'));
+    await user.click(screen.getByLabelText('Spec URL'));
     expect(screen.getByText('.json')).toBeInTheDocument();
   });
 
@@ -615,7 +615,7 @@ describe('CreateApiSpec — URL source', () => {
   it('fetches on Create when the URL field was never blurred, once a name is typed', async () => {
     renderModal();
 
-    fireEvent.click(screen.getByLabelText('From Spec URL'));
+    fireEvent.click(screen.getByLabelText('Spec URL'));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'hotel' } });
     fireEvent.change(screen.getByTestId('api-spec-url'), { target: { value: SPEC_URL } });
     fireEvent.click(screen.getByText('Create'));
@@ -672,31 +672,31 @@ describe('CreateApiSpec — each source keeps its own data', () => {
 
     await typeName(user, 'blank-name');
 
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     expect(screen.getByLabelText('Name')).toHaveValue('');
     await fetchSpecUrl(user);
     await typeName(user, 'url-name');
 
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     expect(screen.getByLabelText('Name')).toHaveValue('');
     await pickPetstore(user);
     await typeName(user, 'workspace-name');
 
-    await chooseTab(user, 'From file system');
+    await chooseTab(user, 'From filesystem');
     expect(screen.getByLabelText('Name')).toHaveValue('');
-    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await user.click(screen.getByPlaceholderText('Select collection folder'));
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
     await typeName(user, 'filesystem-name');
 
     await chooseTab(user, 'From workspace');
     expect(screen.getByLabelText('Name')).toHaveValue('workspace-name');
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     expect(screen.getByLabelText('Name')).toHaveValue('url-name');
     await chooseSource(user, 'Blank Spec');
     expect(screen.getByLabelText('Name')).toHaveValue('blank-name');
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     expect(screen.getByLabelText('Name')).toHaveValue('workspace-name');
-    await chooseTab(user, 'From file system');
+    await chooseTab(user, 'From filesystem');
     expect(screen.getByLabelText('Name')).toHaveValue('filesystem-name');
   });
 
@@ -711,11 +711,11 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     await user.click(screen.getByLabelText('Location'));
     await waitFor(() => expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked'));
 
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
-    await chooseTab(user, 'From file system');
+    await chooseTab(user, 'From filesystem');
     expect(screen.getByLabelText('Location')).toHaveValue('/home/dev/specs/picked');
 
     await user.click(screen.getByLabelText('Location'));
@@ -730,9 +730,9 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     const user = userEvent.setup();
     renderModal();
 
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     await fetchSpecUrl(user);
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     await pickPetstore(user);
 
     await chooseSource(user, 'Blank Spec');
@@ -748,10 +748,10 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     const user = userEvent.setup();
     renderModal();
 
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     await pickPetstore(user);
 
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     await fetchSpecUrl(user);
     await user.click(screen.getByText('Create'));
 
@@ -763,10 +763,10 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     const user = userEvent.setup();
     renderModal();
 
-    await chooseSource(user, 'From Spec URL');
+    await chooseSource(user, 'Spec URL');
     await fetchSpecUrl(user);
 
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     await pickPetstore(user);
     await user.click(screen.getByText('Create'));
 
@@ -779,11 +779,11 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     browseDirectory.mockReturnValue(Promise.resolve('/home/dev/elsewhere/outside-collection'));
     renderModal();
 
-    await chooseSource(user, 'From Bruno Collection');
+    await chooseSource(user, 'Bruno Collection');
     await pickPetstore(user);
 
-    await chooseTab(user, 'From file system');
-    await user.click(screen.getByPlaceholderText('Choose file...'));
+    await chooseTab(user, 'From filesystem');
+    await user.click(screen.getByPlaceholderText('Select collection folder'));
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
     await user.click(screen.getByText('Create'));
 

@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { darken } from 'polished';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .api-spec-file-extension {
@@ -22,7 +22,7 @@ const StyledWrapper = styled.div`
       padding: 2px;
       gap: 2px;
       box-sizing: border-box;
-      background: ${(props) => props.theme.background.surface1};
+      background: ${(props) => rgba(props.theme.modal.title.color, 0.1)};
       border-radius: ${(props) => props.theme.border.radius.md};
     }
 
@@ -35,7 +35,6 @@ const StyledWrapper = styled.div`
     }
 
     .segment.active {
-      background: ${(props) => darken(0.03, props.theme.background.base)};
       color: ${(props) => props.theme.button2.color.secondary.text};
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
     }

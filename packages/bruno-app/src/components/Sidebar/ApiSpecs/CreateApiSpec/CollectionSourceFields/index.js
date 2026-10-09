@@ -86,7 +86,7 @@ const CollectionSourceFields = ({
               data-testid="api-spec-collection-trigger"
             >
               <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
-                {selectedWorkspaceCollection?.name || 'Select a collection'}
+                {selectedWorkspaceCollection?.name || 'Choose a collection'}
               </span>
               <IconChevronDown className="caret" size={14} strokeWidth={2} />
             </button>
@@ -102,7 +102,7 @@ const CollectionSourceFields = ({
             type="text"
             name="collectionLocation"
             readOnly={true}
-            placeholder="Choose Collection Folder"
+            placeholder="Select collection folder"
             className="block textbox mt-1.5 w-full cursor-pointer"
             autoComplete="off"
             autoCorrect="off"
@@ -135,7 +135,7 @@ const CollectionSourceFields = ({
 
       {environmentNames.length ? (
         <>
-          <label htmlFor="api-spec-environment" className="flex items-center font-semibold mt-3">
+          <label htmlFor="api-spec-environment" className="flex items-center font-semibold mt-5">
             Environment
           </label>
           <MenuDropdown

@@ -376,7 +376,10 @@ const CreateApiSpec = ({ onClose }) => {
               />
             ) : null}
 
-            <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
+            <label
+              htmlFor="api-spec-name"
+              className={`flex items-center font-semibold ${formik.values.importFrom === API_SPEC_SOURCE.BLANK ? 'mt-3' : 'mt-5'}`}
+            >
               Name
             </label>
             <div className="relative">
