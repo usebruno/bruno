@@ -2,14 +2,14 @@ import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useLeadingThrottle from 'hooks/useLeadingThrottle';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { clearSidebarSelection, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections';
 import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
 import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
-import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { applyOpenFolderState, buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { normalizePath } from 'utils/common/path';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import CollectionSearch from './CollectionSearch/index';
@@ -29,6 +29,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // The input renders from `searchText` so typing stays instant; everything that has to walk the
   // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows once, not per character.
   const [searchText, setSearchText] = useState('');
+  const [searchCollapsedUids, setSearchCollapsedUids] = useState(() => new Set());
   const trimmedSearchText = searchText.trim();
   const debouncedSearchText = useDebounce(trimmedSearchText, SEARCH_DEBOUNCE_MS, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
@@ -41,6 +42,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const lastScrolledTabUidRef = useRef(null);
   const hasMountedForSearchRef = useRef(false);
   const pendingTreeFetchUidsRef = useRef(new Set());
+  const expandedTreeUidsRef = useRef(new Set());
+  const fetchedTreeVersionsRef = useRef({});
   const searchTextRef = useRef(searchText);
   searchTextRef.current = searchText;
   const activeWorkspacePathnameRef = useRef(null);
@@ -101,19 +104,36 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   }, SEARCH_INDEX_THROTTLE_MS);
 
   useEffect(() => {
-    const toFetch = sidebarEntries.filter((entry) =>
-      entry.kind === 'loaded'
-      && entry.collection.mountStatus !== 'mounted'
-      && !entry.collection.collapsed
-      && !(entry.collection.uid in indexTreesByUid)
-      && !pendingTreeFetchUidsRef.current.has(entry.collection.uid));
+    const expandedUids = new Set();
+    const refreshOnlyUids = new Set();
+    const toFetch = sidebarEntries.filter((entry) => {
+      const isExpanded = entry.kind === 'loaded'
+        && entry.collection.mountStatus !== 'mounted'
+        && !entry.collection.collapsed;
+      if (!isExpanded) return false;
+
+      const { uid } = entry.collection;
+      expandedUids.add(uid);
+      const needsFullFetch = !(uid in indexTreesByUid) || !expandedTreeUidsRef.current.has(uid);
+      const needsRefresh = !needsFullFetch && fetchedTreeVersionsRef.current[uid] !== (entry.collection.indexTreeVersion || 0);
+      if (needsRefresh) refreshOnlyUids.add(uid);
+      return (needsFullFetch || needsRefresh) && !pendingTreeFetchUidsRef.current.has(uid);
+    });
+    expandedTreeUidsRef.current = expandedUids;
 
     toFetch.forEach((entry) => {
       const { collection } = entry;
+      const refreshOnly = refreshOnlyUids.has(collection.uid);
+      const showLoading = collection.mountStatus === 'unmounted' && !refreshOnly;
       pendingTreeFetchUidsRef.current.add(collection.uid);
+      fetchedTreeVersionsRef.current[collection.uid] = collection.indexTreeVersion || 0;
+      if (showLoading) {
+        dispatch(updateCollectionLoadingState({ collectionUid: collection.uid, isLoading: true }));
+      }
       dispatch(fetchCollectionTreeFromIndex({
         collectionPath: collection.pathname,
-        collectionName: collection.name
+        collectionName: collection.name,
+        skipIndexing: refreshOnly
       }))
         .then(({ items }) => {
           pendingTreeFetchUidsRef.current.delete(collection.uid);
@@ -121,7 +141,14 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         })
         .catch(() => {
           pendingTreeFetchUidsRef.current.delete(collection.uid);
-          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+          if (!refreshOnly) {
+            setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+          }
+        })
+        .finally(() => {
+          if (showLoading) {
+            dispatch(updateCollectionLoadingState({ collectionUid: collection.uid, isLoading: false }));
+          }
         });
     });
 
@@ -174,15 +201,33 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // from the search index - its browse tree, or the matches of the current search.
   const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
     if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
-    const items = indexTreesByUid[entry.collection.uid] || searchTreesByPath[normalizePath(entry.collection.pathname)];
-    if (!items) return entry;
-    return { ...entry, collection: { ...entry.collection, items } };
+    const items = indexTreesByUid[entry.collection.uid] || searchTreesByPath[normalizePath(entry.collection.pathname)] || [];
+    return { ...entry, collection: { ...entry.collection, items: applyOpenFolderState(items, entry.collection.openIndexFolderUids) } };
   }), [sidebarEntries, indexTreesByUid, searchTreesByPath]);
 
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
-    [renderedSidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
+    [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
+
+  const toggleSearchCollapse = useCallback((uid) => {
+    setSearchCollapsedUids((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) {
+        next.delete(uid);
+      } else {
+        next.add(uid);
+      }
+      return next;
+    });
+  }, []);
+
+  const updateSearchText = (text) => {
+    setSearchText(text);
+    if (!text.trim()) {
+      setSearchCollapsedUids(new Set());
+    }
+  };
 
   const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
   const showIndexingText = searchIndexBuilding && isSearchPending;
@@ -266,7 +311,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+        <CollectionSearch searchText={searchText} setSearchText={updateSearchText} />
       )}
 
       {showSearch && showIndexingText && (
@@ -303,6 +348,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             <SidebarRow
               row={row}
               searchText={debouncedSearchText}
+              searchCollapsedUids={searchCollapsedUids}
+              onToggleSearchCollapse={toggleSearchCollapse}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

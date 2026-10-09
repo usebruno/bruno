@@ -8,6 +8,11 @@ SELECT relative_path AS relativePath, data, raw
 FROM file_index_entries
 WHERE collection_path = @collection_path;
 
+-- name: file_index_entry_for_path :one :bigints
+SELECT relative_path AS relativePath, mtime, hash, data, raw
+FROM file_index_entries
+WHERE collection_path = @collection_path AND relative_path = @relative_path;
+
 -- name: file_index_upsert :exec
 INSERT INTO file_index_entries
   (collection_path, relative_path, id, mtime, hash, data, raw, content_bytes, application_version,

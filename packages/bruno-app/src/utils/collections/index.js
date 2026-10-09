@@ -72,6 +72,22 @@ export const flattenItems = (items = []) => {
   return flattenedItems;
 };
 
+export const applyOpenFolderState = (items, openFolderUids) => {
+  if (!openFolderUids?.length) return items;
+
+  const open = new Set(openFolderUids);
+  const apply = (nodes) => nodes.map((node) => {
+    if (node.type !== 'folder') return node;
+    return {
+      ...node,
+      collapsed: !open.has(node.uid),
+      items: apply(node.items || [])
+    };
+  });
+
+  return apply(items);
+};
+
 export const findItem = (items = [], itemUid) => {
   return find(items, (i) => i.uid === itemUid);
 };

@@ -62,6 +62,11 @@ const deriveCollectionFormat = (brunoConfig) => {
   return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
 };
 
+const setIndexFolderOpen = (collection, folderUid, isOpen) => {
+  const others = (collection.openIndexFolderUids || []).filter((uid) => uid !== folderUid);
+  collection.openIndexFolderUids = isOpen ? [...others, folderUid] : others;
+};
+
 const mergeTreeItems = (existingItems, newItems) => {
   if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
   const existingByUid = new Map();
@@ -1123,6 +1128,9 @@ export const collectionsSlice = createSlice({
         if (item && (item.type === 'folder' || isItemARequest(item))) {
           item.collapsed = false;
         }
+        if (collection.mountStatus !== 'mounted') {
+          setIndexFolderOpen(collection, action.payload.itemUid, true);
+        }
       }
     },
     collapseItem: (state, action) => {
@@ -1134,6 +1142,9 @@ export const collectionsSlice = createSlice({
         if (item && (item.type === 'folder' || isItemARequest(item))) {
           item.collapsed = true;
         }
+        if (collection.mountStatus !== 'mounted') {
+          setIndexFolderOpen(collection, action.payload.itemUid, false);
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -1141,6 +1152,16 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (collection.mountStatus !== 'mounted') {
+          if (item && item.type !== 'folder') return;
+          const isOpen = (collection.openIndexFolderUids || []).includes(action.payload.itemUid);
+          setIndexFolderOpen(collection, action.payload.itemUid, !isOpen);
+          if (item) {
+            item.collapsed = isOpen;
+          }
+          return;
+        }
 
         if (item && item.type === 'folder') {
           item.collapsed = !item.collapsed;
@@ -3774,12 +3795,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    indexTreeChanged: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection && collection.mountStatus !== 'mounted') {
+        collection.indexTreeVersion = (collection.indexTreeVersion || 0) + 1;
+      }
+    },
     collectionLoadedFromTree: (state, action) => {
       const { collectionUid, tree } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
       collection.items = mergeTreeItems(collection.items, tree?.items || []);
+      if (collection.mountStatus !== 'mounted') {
+        for (const folderUid of collection.openIndexFolderUids || []) {
+          const folder = findItemInCollection(collection, folderUid);
+          if (folder && folder.type === 'folder') {
+            folder.collapsed = false;
+          }
+        }
+      }
       collection.environments = tree?.environments || [];
       if (tree?.root !== undefined) {
         collection.root = tree.root;
@@ -4266,6 +4301,7 @@ export const {
   updateCollectionMountStatus,
   updateCollectionLoadingState,
   collectionLoadedFromTree,
+  indexTreeChanged,
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,

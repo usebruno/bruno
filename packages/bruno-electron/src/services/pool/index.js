@@ -3,7 +3,8 @@ const os = require('node:os');
 const path = require('node:path');
 
 const JobType = Object.freeze({
-  ParseFile: 'parse-file'
+  ParseFile: 'parse-file',
+  ScanCollection: 'scan-collection'
 });
 
 const WORKER_FILE = path.join(__dirname, 'worker.js');

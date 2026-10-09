@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { posixifyPath } = require('./filesystem');
+
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];

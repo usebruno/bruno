@@ -43,6 +43,7 @@ import {
   applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
+  updateCollectionLoadingState,
   moveCollection,
   deleteItem as _deleteItemFromState,
   brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
@@ -3441,6 +3442,17 @@ export const loadLargeRequest
       });
     };
 
+const restoreCollectionEnvironment = ({ collectionPathname, workspacePathname }) => async (dispatch) => {
+  const collectionSnapshotState = await window.ipcRenderer
+    .invoke('renderer:snapshot:get-collection', collectionPathname, workspacePathname)
+    .catch(() => null);
+  await dispatch(hydrateCollectionWithUiStateSnapshot(
+    collectionSnapshotState
+      ? { pathname: collectionPathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+      : { pathname: collectionPathname, hasSnapshotEntry: false }
+  ));
+};
+
 export const mountCollection
   = ({ collectionUid, collectionPathname, brunoConfig, skipTabRestore = false, workspacePathname = null }) =>
     (dispatch, getState) => {
@@ -3458,15 +3470,7 @@ export const mountCollection
               if (!skipTabRestore) {
                 await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
               }
-
-              const collectionSnapshotState = await window.ipcRenderer
-                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
-                .catch(() => null);
-              await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState
-                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
-                  : { pathname: collection.pathname, hasSnapshotEntry: false }
-              ));
+              await dispatch(restoreCollectionEnvironment({ collectionPathname: collection.pathname, workspacePathname }));
             }
           })
           .then(resolve)
@@ -3476,6 +3480,56 @@ export const mountCollection
           });
       });
     };
+
+const pendingPathLoadsByCollection = new Map();
+
+export const loadCollectionPaths = ({ collection, pathnames, workspacePathname = null }) => async (dispatch, getState) => {
+  const { uid: collectionUid, pathname: collectionPathname } = collection;
+  pendingPathLoadsByCollection.set(collectionUid, (pendingPathLoadsByCollection.get(collectionUid) || 0) + 1);
+  dispatch(updateCollectionLoadingState({ collectionUid, isLoading: true }));
+  try {
+    await window.ipcRenderer.invoke('renderer:mount-paths', { collectionUid, collectionPathname, pathnames });
+    const loaded = getState().collections.collections.find((c) => c.uid === collectionUid);
+    if (loaded && !loaded.activeEnvironmentUid) {
+      await dispatch(restoreCollectionEnvironment({ collectionPathname, workspacePathname }));
+    }
+  } finally {
+    const pending = pendingPathLoadsByCollection.get(collectionUid) - 1;
+    if (pending > 0) {
+      pendingPathLoadsByCollection.set(collectionUid, pending);
+    } else {
+      pendingPathLoadsByCollection.delete(collectionUid);
+      dispatch(updateCollectionLoadingState({ collectionUid, isLoading: false }));
+    }
+  }
+};
+
+export const loadCollectionForSidebar = ({ collection }) => (dispatch, getState) => {
+  if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') return Promise.resolve();
+  const { file, searchIndex } = getState().app?.preferences?.cache || {};
+  if (file?.enabled && searchIndex?.enabled) {
+    return dispatch(loadCollectionPaths({ collection, pathnames: [] }));
+  }
+  return dispatch(mountCollection({
+    collectionUid: collection.uid,
+    collectionPathname: collection.pathname,
+    brunoConfig: collection.brunoConfig
+  }));
+};
+
+export const loadCollectionForItem = ({ collection, itemPathname, workspacePathname = null }) => (dispatch, getState) => {
+  const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
+  if (fileCacheEnabled) {
+    return dispatch(loadCollectionPaths({ collection, pathnames: [itemPathname], workspacePathname }));
+  }
+  if (collection.mountStatus !== 'unmounted') return Promise.resolve();
+  return dispatch(mountCollection({
+    collectionUid: collection.uid,
+    collectionPathname: collection.pathname,
+    brunoConfig: collection.brunoConfig,
+    workspacePathname
+  }));
+};
 
 export const mountUnmountedActiveWorkspaceCollections = () => (dispatch, getState) => {
   const state = getState();
@@ -3516,10 +3570,10 @@ export const indexActiveWorkspaceCollections = () => (dispatch, getState) => {
 };
 
 export const fetchCollectionTreeFromIndex
-  = ({ collectionPath, collectionName }) =>
+  = ({ collectionPath, collectionName, skipIndexing = false }) =>
     async () => {
       const { ipcRenderer } = window;
-      return ipcRenderer.invoke('renderer:search-index-tree', { collectionPath, collectionName });
+      return ipcRenderer.invoke('renderer:search-index-tree', { collectionPath, collectionName, skipIndexing });
     };
 
 export const searchCollectionTreesFromIndex
