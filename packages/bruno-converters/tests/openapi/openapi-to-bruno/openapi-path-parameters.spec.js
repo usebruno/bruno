@@ -1,6 +1,29 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
 
+const importRequestWithParam = (param, path = '/x') => {
+  const spec = {
+    openapi: '3.0.0',
+    info: { title: 't', version: '1' },
+    servers: [{ url: 'https://api.example.com' }],
+    paths: {
+      [path]: {
+        get: { operationId: 'op', parameters: [param], responses: { 200: { description: 'OK' } } }
+      }
+    }
+  };
+
+  return openApiToBruno(spec).items[0].request;
+};
+
+const importParamEntries = (param, path) => {
+  const request = importRequestWithParam(param, path);
+
+  return param.in === 'header'
+    ? request.headers.filter((entry) => entry.name === param.name)
+    : request.params.filter((entry) => entry.name === param.name);
+};
+
 describe('openapi path-item level parameters', () => {
   it('should apply path-item parameters to all operations when no operation params exist', () => {
     const spec = `
@@ -609,6 +632,514 @@ paths:
   });
 });
 
+describe('array param serialization — OAS defaults per location', () => {
+  describe('path — simple style, explode:false (comma-join)', () => {
+    it('joins an array from the parameter example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  example: [3, 4, 5],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const idsParams = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(idsParams).toHaveLength(1);
+      expect(idsParams[0].value).toBe('3,4,5');
+      expect(idsParams[0].enabled).toBe(true);
+    });
+
+    it('joins an array from a named example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  examples: { sample: { value: [10, 20, 30] } },
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const idsParams = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(idsParams).toHaveLength(1);
+      expect(idsParams[0].value).toBe('10,20,30');
+      expect(idsParams[0].enabled).toBe(true);
+    });
+
+    it('joins an array from the schema default with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{roles}': {
+            get: {
+              summary: 'Get by roles',
+              operationId: 'getByRoles',
+              parameters: [
+                {
+                  name: 'roles',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'string' }, default: ['admin', 'user'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const rolesParam = result.items.find((i) => i.name === 'Get by roles').request.params.find((p) => p.name === 'roles');
+      expect(rolesParam.value).toBe('admin,user');
+      expect(rolesParam.enabled).toBe(true);
+    });
+
+    it('joins an array default drawn from the item options with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items/{types}': {
+            get: {
+              summary: 'Get by types',
+              operationId: 'getByTypes',
+              parameters: [
+                {
+                  name: 'types',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'string', enum: ['a', 'b', 'c'] }, default: ['a', 'b'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const typesParam = result.items.find((i) => i.name === 'Get by types').request.params.find((p) => p.name === 'types');
+      expect(typesParam.value).toBe('a,b');
+      expect(typesParam.enabled).toBe(true);
+    });
+
+    it('joins an array from the schema example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'integer' }, example: [7, 8, 9] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(1);
+      expect(params[0].value).toBe('7,8,9');
+      expect(params[0].enabled).toBe(true);
+    });
+
+    it('joins an array from the schema examples list with commas', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/users/{ids}': {
+            get: {
+              summary: 'Get users',
+              operationId: 'getUsers',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'path',
+                  required: true,
+                  schema: { type: 'array', items: { type: 'integer' }, examples: [[1, 2, 3]] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'Get users').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(1);
+      expect(params[0].value).toBe('1,2,3');
+      expect(params[0].enabled).toBe(true);
+    });
+  });
+
+  describe('header — simple style, explode:false (comma-join)', () => {
+    it('joins an array from the parameter example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  example: [1, 2, 3],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('1,2,3');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('joins an array from a named example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  examples: { sample: { value: ['a', 'b', 'c'] } },
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('a,b,c');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('joins an array from the schema default with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Roles',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'string' }, default: ['read', 'write'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Roles');
+      expect(header.value).toBe('read,write');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('joins an array from the schema example with commas', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Ids',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'integer' }, example: [4, 5, 6] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Ids');
+      expect(header.value).toBe('4,5,6');
+      expect(header.enabled).toBe(true);
+    });
+
+    it('joins an array from the schema examples list with commas', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'X-Tags',
+                  in: 'header',
+                  schema: { type: 'array', items: { type: 'string' }, examples: [['x', 'y', 'z']] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const header = result.items.find((i) => i.name === 'List items').request.headers.find((h) => h.name === 'X-Tags');
+      expect(header.value).toBe('x,y,z');
+      expect(header.enabled).toBe(true);
+    });
+  });
+
+  describe('query — form style, explode:true (one entry per item)', () => {
+    it('gives each item from the parameter example its own entry', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'ids',
+                  in: 'query',
+                  example: [3, 4, 5],
+                  schema: { type: 'array', items: { type: 'integer' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'ids');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['3', '4', '5']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('gives each item from a named example its own entry', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'tags',
+                  in: 'query',
+                  examples: { sample: { value: ['foo', 'bar', 'baz'] } },
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'tags');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['foo', 'bar', 'baz']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('gives each item from the schema default its own entry', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'status',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, default: ['active', 'pending'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'status');
+      expect(params).toHaveLength(2);
+      expect(params.map((p) => p.value)).toEqual(['active', 'pending']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('gives each item from the schema example its own entry', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'colors',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, example: ['red', 'green', 'blue'] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'colors');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['red', 'green', 'blue']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+
+    it('gives each item from the schema examples list its own entry', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'tags',
+                  in: 'query',
+                  schema: { type: 'array', items: { type: 'string' }, examples: [['foo', 'bar', 'baz']] }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const params = result.items.find((i) => i.name === 'List items').request.params.filter((p) => p.name === 'tags');
+      expect(params).toHaveLength(3);
+      expect(params.map((p) => p.value)).toEqual(['foo', 'bar', 'baz']);
+      params.forEach((p) => expect(p.enabled).toBe(true));
+    });
+  });
+
+  describe('cookie — not mapped (Bruno has no cookie param type)', () => {
+    it('cookie params are not added to request.params or request.headers', () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'API', version: '1.0.0' },
+        servers: [{ url: 'https://api.example.com' }],
+        paths: {
+          '/items': {
+            get: {
+              summary: 'List items',
+              operationId: 'listItems',
+              parameters: [
+                {
+                  name: 'session',
+                  in: 'cookie',
+                  example: ['x', 'y'],
+                  schema: { type: 'array', items: { type: 'string' } }
+                }
+              ],
+              responses: { 200: { description: 'OK' } }
+            }
+          }
+        }
+      };
+      const result = openApiToBruno(spec);
+      const req = result.items.find((i) => i.name === 'List items').request;
+      expect(req.params.filter((p) => p.name === 'session')).toHaveLength(0);
+      expect(req.headers.filter((h) => h.name === 'session')).toHaveLength(0);
+    });
+  });
+});
+
 // Tests backward-compat handling of non-standard in: 'querystring' (some importers emit this instead of 'query')
 describe('openapi querystring parameter location', () => {
   it('should map in: "querystring" to query type', () => {
@@ -640,5 +1171,405 @@ describe('openapi querystring parameter location', () => {
     expect(queryParams).toHaveLength(1);
     expect(queryParams[0].name).toBe('q');
     expect(queryParams[0].enabled).toBe(true);
+  });
+});
+
+describe('openapi explicit explode on array parameters', () => {
+  const arraySchema = { type: 'array', items: { type: 'string' }, default: ['a', 'b'] };
+
+  const importParam = (param, path) => importParamEntries(param, path).map((entry) => entry.value);
+
+  it('joins a query array into one entry when the spec asks for explode false', () => {
+    expect(importParam({ name: 'st', in: 'query', explode: false, schema: arraySchema })).toEqual(['a,b']);
+  });
+
+  it('keeps one entry per item when the spec asks for explode true', () => {
+    expect(importParam({ name: 'st', in: 'query', explode: true, schema: arraySchema })).toEqual(['a', 'b']);
+  });
+
+  it('ignores explode on a path array, because the simple style serializes it the same either way', () => {
+    const param = { name: 'st', in: 'path', required: true, explode: true, schema: arraySchema };
+    expect(importParam(param, '/x/{st}')).toEqual(['a,b']);
+  });
+
+  it('ignores explode on a header array, for the same reason', () => {
+    expect(importParam({ name: 'st', in: 'header', explode: true, schema: arraySchema })).toEqual(['a,b']);
+  });
+
+  it('writes an object item as JSON rather than the useless [object Object]', () => {
+    const schema = { type: 'array', items: { type: 'object' }, default: [{ a: 1 }, { b: 2 }] };
+    expect(importParam({ name: 'o', in: 'query', schema })).toEqual(['{"a":1}', '{"b":2}']);
+  });
+
+  it('writes an object item as JSON when a path array is joined too', () => {
+    const schema = { type: 'array', items: { type: 'object' }, default: [{ a: 1 }, { b: 2 }] };
+    const param = { name: 'o', in: 'path', required: true, schema };
+    expect(importParam(param, '/x/{o}')).toEqual(['{"a":1},{"b":2}']);
+  });
+
+  it('treats a querystring array the same way it treats a query array', () => {
+    expect(importParam({ name: 'st', in: 'querystring', schema: arraySchema })).toEqual(['a', 'b']);
+  });
+
+  it('joins a querystring array into one entry when the spec asks for explode false', () => {
+    expect(importParam({ name: 'st', in: 'querystring', explode: false, schema: arraySchema })).toEqual(['a,b']);
+  });
+
+  it('keeps an empty query array visible as a blank entry instead of dropping the parameter', () => {
+    const schema = { type: 'array', items: { type: 'string' }, default: [] };
+    expect(importParam({ name: 'ids', in: 'query', schema })).toEqual(['']);
+  });
+
+  it('keeps an empty path array visible as a blank entry as well', () => {
+    const schema = { type: 'array', items: { type: 'string' }, default: [] };
+    const param = { name: 'ids', in: 'path', required: true, schema };
+    expect(importParam(param, '/x/{ids}')).toEqual(['']);
+  });
+
+  it('leaves a list of enum options for an array parameter whose default is empty', () => {
+    const schema = { type: 'array', items: { type: 'string', enum: ['x', 'y'] }, default: [] };
+    expect(importParam({ name: 'ids', in: 'query', schema })).toEqual(['x', 'y']);
+  });
+
+  it('explodes an array of enum options that has a real default, for a query parameter', () => {
+    const schema = { type: 'array', items: { type: 'string', enum: ['x', 'y'] }, default: ['x', 'y'] };
+    expect(importParam({ name: 'ids', in: 'query', schema })).toEqual(['x', 'y']);
+  });
+
+  it('joins an array of enum options that has a real default, for a header', () => {
+    const schema = { type: 'array', items: { type: 'string', enum: ['x', 'y'] }, default: ['x', 'y'] };
+    expect(importParam({ name: 'X-Ids', in: 'header', schema })).toEqual(['x,y']);
+  });
+
+  it('writes a blank item for a null entry in an array rather than the word null', () => {
+    const schema = { type: 'array', items: { type: 'string' } };
+    const param = { name: 'tags', in: 'path', required: true, schema, example: ['a', null, 'b'] };
+    expect(importParam(param, '/x/{tags}')).toEqual(['a,,b']);
+  });
+});
+
+describe('openapi parameters that do not carry a usable value', () => {
+  const importSpec = importParamEntries;
+
+  it('falls back to a later example when the first one the spec gives is empty', () => {
+    const param = { name: 'status', in: 'query', schema: { type: 'string', default: '', example: 'active' } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['active']);
+  });
+
+  it('falls back past an empty top-level example to the one on the schema', () => {
+    const param = { name: 'status', in: 'query', example: '', schema: { type: 'string', example: 'active' } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['active']);
+  });
+
+  it('still switches on an optional parameter whose only declared value is empty', () => {
+    const param = { name: 'q', in: 'query', schema: { type: 'string', default: '' } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([true]);
+  });
+
+  it('still switches on an optional list parameter whose default is an empty list', () => {
+    const param = { name: 'tags', in: 'query', schema: { type: 'array', items: { type: 'string' }, default: [] } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([true]);
+  });
+
+  it('treats an empty default the same whether the schema is a list or a string', () => {
+    const list = { name: 'tags', in: 'query', schema: { type: 'array', items: { type: 'string' }, default: [] } };
+    const text = { name: 'tags', in: 'query', schema: { type: 'string', default: '' } };
+    expect(importSpec(list).map((p) => p.enabled)).toEqual(importSpec(text).map((p) => p.enabled));
+  });
+
+  it('leaves an optional list parameter that allows an empty value switched off', () => {
+    const param = {
+      name: 'tags',
+      in: 'query',
+      allowEmptyValue: true,
+      schema: { type: 'array', items: { type: 'string' }, default: [] }
+    };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('leaves an optional parameter switched off when the spec declares no value at all', () => {
+    const param = { name: 'q', in: 'query', schema: { type: 'string' } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('leaves an optional parameter that allows an empty value switched off', () => {
+    const param = { name: 'q', in: 'query', allowEmptyValue: true, schema: { type: 'string', default: '' } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('writes no value for a parameter whose example is null, rather than the word null', () => {
+    const param = { name: 'q', in: 'query', example: null, schema: { type: 'string' } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+  });
+
+  it('writes no value for a parameter whose default is null either', () => {
+    const param = { name: 'q', in: 'query', schema: { type: 'string', default: null } };
+    expect(importSpec(param).map((p) => p.value)).toEqual(['']);
+  });
+
+  it('leaves an optional nullable parameter switched off when its example is null', () => {
+    const param = { name: 'q', in: 'query', example: null, schema: { type: 'string', nullable: true } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('leaves an optional nullable parameter switched off when its example is empty', () => {
+    const param = { name: 'q', in: 'query', example: '', schema: { type: 'string', nullable: true } };
+    expect(importSpec(param).map((p) => p.enabled)).toEqual([false]);
+  });
+
+  it('imports the request instead of failing when an example refers back to itself', () => {
+    const selfReferencing = { a: 1 };
+    selfReferencing.self = selfReferencing;
+    const param = { name: 'q', in: 'query', example: selfReferencing, schema: { type: 'object' } };
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 't', version: '1' },
+      paths: {
+        '/x': {
+          get: { operationId: 'op', parameters: [param], responses: { 200: { description: 'OK' } } }
+        }
+      }
+    };
+
+    const names = openApiToBruno(spec).items[0].request.params.map((p) => p.name);
+    expect(names).toEqual(['a', 'self']);
+  });
+});
+
+describe('openapi object parameters at the default styles', () => {
+  const colour = { R: 100, G: 200, B: 150 };
+  const declared = {
+    type: 'object',
+    properties: { R: { type: 'integer', example: 100 }, G: { type: 'integer', example: 200 }, B: { type: 'integer', example: 150 } }
+  };
+
+  const importRequest = importRequestWithParam;
+
+  const values = (param, path) => {
+    const request = importRequest(param, path);
+    return param.in === 'header'
+      ? request.headers.map((h) => `${h.name}=${h.value}`)
+      : request.params.map((p) => `${p.name}=${p.value}`);
+  };
+
+  it('flattens an object into key and value pairs for a path parameter', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: colour };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
+  });
+
+  it('writes an object as key equals value for a path parameter that asks to explode', () => {
+    const param = { name: 'color', in: 'path', required: true, explode: true, schema: { type: 'object' }, example: colour };
+    expect(values(param, '/x/{color}')).toEqual(['color=R=100,G=200,B=150']);
+  });
+
+  it('flattens an object into a single header rather than one header per key', () => {
+    const param = { name: 'X-Color', in: 'header', schema: { type: 'object' }, example: colour };
+    expect(values(param)).toEqual(['X-Color=R,100,G,200,B,150']);
+  });
+
+  it('writes an object as key equals value for a header that asks to explode', () => {
+    const param = { name: 'X-Color', in: 'header', explode: true, schema: { type: 'object' }, example: colour };
+    expect(values(param)).toEqual(['X-Color=R=100,G=200,B=150']);
+  });
+
+  it('gives every key its own query parameter, because form explodes by default', () => {
+    const param = { name: 'color', in: 'query', schema: { type: 'object' }, example: colour };
+    expect(values(param)).toEqual(['R=100', 'G=200', 'B=150']);
+  });
+
+  it('keeps a query object in one parameter when the spec turns explode off', () => {
+    const param = { name: 'color', in: 'query', explode: false, schema: { type: 'object' }, example: colour };
+    expect(values(param)).toEqual(['color=R,100,G,200,B,150']);
+  });
+
+  it('leaves the path placeholder usable when the object declares its properties', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared };
+    const request = importRequest(param, '/x/{color}');
+
+    expect(request.url).toContain(':color');
+    expect(request.params.map((p) => p.name)).toEqual(['color']);
+    expect(request.params[0].value).toBe('R,100,G,200,B,150');
+  });
+
+  it('still spreads a declared object across query parameters, one per property', () => {
+    const param = { name: 'color', in: 'query', schema: declared };
+    expect(values(param)).toEqual(['R=100', 'G=200', 'B=150']);
+  });
+
+  it('keeps a declared object in one header rather than one header per property', () => {
+    const param = { name: 'X-Color', in: 'header', schema: declared };
+    expect(values(param)).toEqual(['X-Color=R,100,G,200,B,150']);
+  });
+
+  it('treats an object with a single key as the smallest case explode can change', () => {
+    const one = { R: 100 };
+    const flat = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: one };
+    const exploded = { ...flat, explode: true };
+
+    expect(values(flat, '/x/{color}')).toEqual(['color=R,100']);
+    expect(values(exploded, '/x/{color}')).toEqual(['color=R=100']);
+  });
+
+  it('keeps a path object parameter\'s own example ahead of the one built from its properties', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared, example: { R: 1, G: 2, B: 3 } };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,1,G,2,B,3']);
+  });
+
+  it('keeps a header object parameter\'s own example ahead of the one built from its properties', () => {
+    const param = { name: 'X-Color', in: 'header', schema: declared, example: { R: 1, G: 2, B: 3 } };
+    expect(values(param)).toEqual(['X-Color=R,1,G,2,B,3']);
+  });
+
+  it('uses a named example on an object parameter that also declares its properties', () => {
+    const param = {
+      name: 'color',
+      in: 'path',
+      required: true,
+      schema: declared,
+      examples: { muted: { value: { R: 9, G: 8, B: 7 } } }
+    };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,9,G,8,B,7']);
+  });
+
+  it('uses the schema default of an object parameter that also declares its properties', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: { ...declared, default: { R: 5, G: 6, B: 7 } } };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,5,G,6,B,7']);
+  });
+
+  it('still builds the value from the properties when the parameter declares no value of its own', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
+  });
+
+  it('falls back to the properties when the parameter example is an empty object', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: declared, example: {} };
+    expect(values(param, '/x/{color}')).toEqual(['color=R,100,G,200,B,150']);
+  });
+
+  it('leaves an optional header off when the object declares properties but no values', () => {
+    const empty = { type: 'object', properties: { R: { type: 'integer' }, G: { type: 'integer' } } };
+    const request = importRequest({ name: 'X-Color', in: 'header', schema: empty });
+
+    expect(request.headers[0].value).toBe('');
+    expect(request.headers[0].enabled).toBe(false);
+  });
+
+  it('writes no value for a required path object whose properties declare none', () => {
+    const empty = { type: 'object', properties: { R: { type: 'integer' }, G: { type: 'integer' } } };
+    const request = importRequest({ name: 'color', in: 'path', required: true, schema: empty }, '/x/{color}');
+
+    expect(request.params[0].value).toBe('');
+    expect(request.params[0].enabled).toBe(true);
+  });
+
+  it('skips the properties that declare no value rather than leaving an empty slot', () => {
+    const partial = { type: 'object', properties: { R: { type: 'integer', example: 1 }, G: { type: 'integer' } } };
+    expect(values({ name: 'X-Color', in: 'header', schema: partial })).toEqual(['X-Color=R,1']);
+  });
+
+  it('takes the default of an enum property rather than its first allowed value', () => {
+    const theme = {
+      type: 'object',
+      properties: {
+        size: { type: 'string', example: 'large' },
+        mode: { type: 'string', enum: ['light', 'dark'], default: 'dark' }
+      }
+    };
+
+    expect(values({ name: 'X-Theme', in: 'header', schema: theme })).toEqual(['X-Theme=size,large,mode,dark']);
+    expect(values({ name: 'theme', in: 'path', required: true, schema: theme }, '/x/{theme}'))
+      .toEqual(['theme=size,large,mode,dark']);
+  });
+
+  it('falls back to the first allowed value when an enum property declares no default', () => {
+    const theme = {
+      type: 'object',
+      properties: { mode: { type: 'string', enum: ['light', 'dark'] } }
+    };
+
+    expect(values({ name: 'X-Theme', in: 'header', schema: theme })).toEqual(['X-Theme=mode,light']);
+  });
+
+  it('leaves an empty object to the later fallbacks rather than writing empty braces', () => {
+    const param = { name: 'color', in: 'path', required: true, schema: { type: 'object' }, example: {} };
+    expect(values(param, '/x/{color}')).toEqual(['color=']);
+  });
+
+  it('keeps a property whose example is an empty string, as an empty member', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    expect(values({ name: 'color', in: 'path', required: true, schema: partial }, '/x/{color}')).toEqual(['color=R,,G,2']);
+  });
+
+  it('keeps a property whose default is an empty string, as an empty member', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', default: '' }, G: { type: 'integer', example: 2 } } };
+    expect(values({ name: 'X-Color', in: 'header', schema: partial })).toEqual(['X-Color=R,,G,2']);
+  });
+
+  it('writes a declared empty property as a bare key equals when the parameter explodes', () => {
+    const partial = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    const param = { name: 'color', in: 'path', required: true, explode: true, schema: partial };
+    expect(values(param, '/x/{color}')).toEqual(['color=R=,G=2']);
+  });
+
+  it('tells a property declared empty apart from one that declares nothing', () => {
+    const declaredEmpty = { type: 'object', properties: { R: { type: 'string', example: '' }, G: { type: 'integer', example: 2 } } };
+    const undeclared = { type: 'object', properties: { R: { type: 'string' }, G: { type: 'integer', example: 2 } } };
+
+    expect(values({ name: 'X-Color', in: 'header', schema: declaredEmpty })).toEqual(['X-Color=R,,G,2']);
+    expect(values({ name: 'X-Color', in: 'header', schema: undeclared })).toEqual(['X-Color=G,2']);
+  });
+});
+
+describe('openapi query array styles other than form', () => {
+  const importValues = (param) => importRequestWithParam(param).params.map((entry) => entry.value);
+
+  const schema = { type: 'array', items: { type: 'string' }, default: ['a', 'b'] };
+
+  it('joins a pipe delimited array on pipes, in a single entry because it does not explode', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'pipeDelimited', schema })).toEqual(['a|b']);
+  });
+
+  it('joins a space delimited array on spaces, in a single entry for the same reason', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'spaceDelimited', schema })).toEqual(['a b']);
+  });
+
+  it('joins a pipe delimited object on pipes as well', () => {
+    const object = { type: 'object', default: { R: 100, G: 200 } };
+    expect(importValues({ name: 'color', in: 'query', style: 'pipeDelimited', schema: object })).toEqual(['R|100|G|200']);
+  });
+
+  it('joins a space delimited object on spaces as well', () => {
+    const object = { type: 'object', default: { R: 100, G: 200 } };
+    expect(importValues({ name: 'color', in: 'query', style: 'spaceDelimited', schema: object })).toEqual(['R 100 G 200']);
+  });
+
+  it('leaves a path array on commas even when the spec names a query only style', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 't', version: '1' },
+      paths: {
+        '/x/{ids}': {
+          get: {
+            operationId: 'op',
+            parameters: [{ name: 'ids', in: 'path', required: true, style: 'pipeDelimited', schema }],
+            responses: { 200: { description: 'OK' } }
+          }
+        }
+      }
+    };
+    expect(openApiToBruno(spec).items[0].request.params.map((p) => p.value)).toEqual(['a,b']);
+  });
+
+  it('still explodes an array when the spec names the form style outright', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'form', schema })).toEqual(['a', 'b']);
+  });
+
+  it('keeps a deep object array in a single entry, since only the form style explodes by default', () => {
+    expect(importValues({ name: 'ids', in: 'query', style: 'deepObject', schema })).toEqual(['a,b']);
+  });
+
+  it('explodes a query array when the spec names no style at all, because form is the default', () => {
+    expect(importValues({ name: 'ids', in: 'query', schema })).toEqual(['a', 'b']);
   });
 });
