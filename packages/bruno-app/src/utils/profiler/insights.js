@@ -2,12 +2,6 @@ import { NO_ACTION } from './index';
 
 /**
  * Turns a profiler snapshot into a ranked list of things that look like wasted work.
- *
- * Pure: it reads only the snapshot, so it runs the same on a live snapshot and on an
- * exported baseline — which is how the tab shows what a change resolved.
- *
- * Every rule has a minimum sample size so a few clicks can't produce a finding, and the
- * thresholds are deliberately loose: these are leads to investigate, not verdicts.
  */
 
 export const THRESHOLDS = {
@@ -73,8 +67,6 @@ const actionRules = (snapshot, t, out) => {
   });
 };
 
-// Every mounted instance of a list component re-rendering on one action is conclusive
-// even from a single dispatch, so this rule skips the usual sample-size gates.
 const fanOutRules = (snapshot, t, out) => {
   snapshot.renders.forEach((r) => {
     if (!r.mounted || r.mounted < t.fanOutMinMounted) return;
