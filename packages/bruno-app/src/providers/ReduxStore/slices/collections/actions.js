@@ -1,7 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, SIDEBAR_REVEAL_STATUS } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
@@ -77,6 +77,8 @@ import {
   addSaveTransientRequestModal,
   updatePathParam,
   toggleCollection,
+  expandCollection,
+  expandItem,
   setSidebarSelection
 } from './index';
 
@@ -97,7 +99,8 @@ import {
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
   mergeHeaders,
-  isPathOrDescendant
+  isPathOrDescendant,
+  isCollectionItemCollapsed
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
@@ -3625,6 +3628,50 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
         reject();
       });
   });
+};
+
+export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) {
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+  }
+
+  const item = findItemInCollection(collection, itemUid);
+  if (!item) {
+    return collection.mountStatus === 'mounted' && !collection.isLoading
+      ? SIDEBAR_REVEAL_STATUS.SKIPPED
+      : SIDEBAR_REVEAL_STATUS.PENDING;
+  }
+
+  if (collection.collapsed) {
+    dispatch(expandCollection(collection.uid));
+  }
+
+  const treePath = getTreePathFromCollectionToItem(collection, item);
+  const nodes = expandTarget ? treePath : treePath.slice(0, -1);
+
+  nodes.forEach((node) => {
+    if (isCollectionItemCollapsed(node)) {
+      dispatch(expandItem({ collectionUid, itemUid: node.uid }));
+    }
+  });
+
+  return SIDEBAR_REVEAL_STATUS.REVEALED;
+};
+
+export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
+  const tab = getState().tabs.tabs.find((t) => t.uid === tabUid);
+  if (!tab?.collectionUid) {
+    return SIDEBAR_REVEAL_STATUS.SKIPPED;
+  }
+
+  const isExampleTab = tab.type === 'response-example';
+
+  return dispatch(revealItemInSidebar({
+    collectionUid: tab.collectionUid,
+    itemUid: isExampleTab ? tab.itemUid : tab.uid,
+    expandTarget: isExampleTab
+  }));
 };
 
 /**
