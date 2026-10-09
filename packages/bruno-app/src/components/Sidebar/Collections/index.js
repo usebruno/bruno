@@ -4,7 +4,7 @@ import useDebounce from 'hooks/useDebounce';
 import useLeadingThrottle from 'hooks/useLeadingThrottle';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
@@ -29,6 +29,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // The input renders from `searchText` so typing stays instant; everything that has to walk the
   // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows once, not per character.
   const [searchText, setSearchText] = useState('');
+  const [searchCollapsedUids, setSearchCollapsedUids] = useState(() => new Set());
   const trimmedSearchText = searchText.trim();
   const debouncedSearchText = useDebounce(trimmedSearchText, SEARCH_DEBOUNCE_MS, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
@@ -180,9 +181,28 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   }), [sidebarEntries, indexTreesByUid, searchTreesByPath]);
 
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
-    [renderedSidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText, collapsedUids: searchCollapsedUids }),
+    [renderedSidebarEntries, debouncedSearchText, searchCollapsedUids]
   );
+
+  const toggleSearchCollapse = useCallback((uid) => {
+    setSearchCollapsedUids((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) {
+        next.delete(uid);
+      } else {
+        next.add(uid);
+      }
+      return next;
+    });
+  }, []);
+
+  const updateSearchText = (text) => {
+    setSearchText(text);
+    if (!text.trim()) {
+      setSearchCollapsedUids(new Set());
+    }
+  };
 
   const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
   const showIndexingText = searchIndexBuilding && isSearchPending;
@@ -266,7 +286,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+        <CollectionSearch searchText={searchText} setSearchText={updateSearchText} />
       )}
 
       {showSearch && showIndexingText && (
@@ -303,6 +323,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             <SidebarRow
               row={row}
               searchText={debouncedSearchText}
+              searchCollapsedUids={searchCollapsedUids}
+              onToggleSearchCollapse={toggleSearchCollapse}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

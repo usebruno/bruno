@@ -39,6 +39,7 @@ import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { highlightText } from 'components/GlobalSearchModal/utils/searchUtils';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -78,6 +79,8 @@ const CollectionItemRow = ({
   collectionUid,
   collectionPathname,
   searchText,
+  isSearchCollapsed,
+  onToggleSearchCollapse,
   openBulkMenu,
   children,
   isItemMultiDragDisabled,
@@ -135,7 +138,7 @@ const CollectionItemRow = ({
   const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
+  const itemIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
@@ -364,6 +367,9 @@ const CollectionItemRow = ({
           pathname: item.pathname
         })
       );
+      if (hasSearchText && isSearchCollapsed) {
+        onToggleSearchCollapse(item.uid);
+      }
       if (item.collapsed) {
         dispatch(
           toggleCollectionItem({
@@ -378,6 +384,10 @@ const CollectionItemRow = ({
   const handleFolderCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    if (hasSearchText) {
+      onToggleSearchCollapse(item.uid);
+      return;
+    }
     dispatch(
       toggleCollectionItem({
         itemUid: item.uid,
@@ -820,7 +830,7 @@ const CollectionItemRow = ({
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                {hasSearchText ? highlightText(item.name, searchText) : item.name}
               </span>
             </div>
           </div>
