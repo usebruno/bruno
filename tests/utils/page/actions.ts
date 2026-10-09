@@ -2739,8 +2739,8 @@ const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
     .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
-    .locator('..')
-    .locator('.single-line-editor-wrapper .CodeMirror');
+    .locator('xpath=following-sibling::*[contains(@class,"single-line-editor-wrapper")][1]')
+    .locator('.CodeMirror');
 
 /**
  * Open the auth mode dropdown and pick a mode by its visible label.
@@ -2763,6 +2763,16 @@ const typeIntoField = async (page: Page, labelText: string, value: string) => {
   await page.keyboard.type(value);
 };
 
+/** Sets the field next to a label to this text. */
+const writeFieldValue = async (page: Page, labelText: string, value: string) => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readField(page, labelText)).toBe(value);
+};
+
 /**
  * Read the current value of a single-line CodeMirror editor identified by its sibling label.
  * @param page - The page object
@@ -2772,6 +2782,51 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   const editor = fieldEditor(page, labelText).first();
   await editor.waitFor({ state: 'visible' });
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+export type CollectionProxyField = 'hostname' | 'port' | 'username' | 'password';
+
+const COLLECTION_PROXY_FIELD_TEST_IDS: Record<CollectionProxyField, string> = {
+  hostname: 'collection-proxy-hostname',
+  port: 'collection-proxy-port',
+  username: 'collection-proxy-username',
+  password: 'collection-proxy-password'
+};
+
+const collectionProxyFieldRoot = (page: Page, field: CollectionProxyField) =>
+  page.getByTestId(COLLECTION_PROXY_FIELD_TEST_IDS[field]);
+
+/** Read a collection proxy hostname, port, username, or password field. */
+const readCollectionProxyField = async (page: Page, field: CollectionProxyField): Promise<string> => {
+  const root = collectionProxyFieldRoot(page, field);
+  await root.waitFor({ state: 'visible' });
+
+  if (field === 'port') {
+    return root.inputValue();
+  }
+
+  const editor = root.locator('.CodeMirror').first();
+  await editor.waitFor({ state: 'visible' });
+  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+/** Set a collection proxy hostname, port, username, or password field. */
+const writeCollectionProxyField = async (page: Page, field: CollectionProxyField, value: string) => {
+  const root = collectionProxyFieldRoot(page, field);
+  await root.waitFor({ state: 'visible' });
+
+  if (field === 'port') {
+    await root.fill(value);
+    await expect.poll(() => root.inputValue()).toBe(value);
+    return;
+  }
+
+  const editor = root.locator('.CodeMirror').first();
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((el: any, nextValue: string) => {
+    el.CodeMirror?.setValue(nextValue);
+  }, value);
+  await expect.poll(() => readCollectionProxyField(page, field)).toBe(value);
 };
 
 const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
@@ -4059,7 +4114,10 @@ export {
   selectAuthMode,
   fieldEditor,
   typeIntoField,
+  writeFieldValue,
   readField,
+  writeCollectionProxyField,
+  readCollectionProxyField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
