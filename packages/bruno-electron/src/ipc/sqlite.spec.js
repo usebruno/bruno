@@ -2,17 +2,16 @@ jest.mock('electron', () => ({
   ipcMain: { handle: jest.fn() }
 }));
 
-jest.mock('../services/sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn() }));
+jest.mock('../services/sqlite', () => ({ getStatements: jest.fn() }));
 jest.mock('../services/runner-exchange', () => ({ readRunnerExchange: jest.fn(), clearRunnerResponses: jest.fn() }));
 
 const { ipcMain } = require('electron');
-const { getStatements, getFiles } = require('../services/sqlite');
+const { getStatements } = require('../services/sqlite');
 const { readRunnerExchange, clearRunnerResponses } = require('../services/runner-exchange');
 const { registerSqliteIpc } = require('./sqlite');
 
 describe('registerSqliteIpc', () => {
   let statements;
-  let files;
   let handlers;
 
   const invoke = (channel, ...args) => handlers.get(channel)({}, ...args);
@@ -21,8 +20,6 @@ describe('registerSqliteIpc', () => {
     ipcMain.handle.mockReset();
     statements = { execute: jest.fn(() => 'result') };
     getStatements.mockReturnValue(statements);
-    files = { stat: jest.fn(() => 'entry'), read: jest.fn(async () => 'bytes') };
-    getFiles.mockReturnValue(files);
     registerSqliteIpc();
     handlers = new Map(ipcMain.handle.mock.calls);
   });
@@ -32,9 +29,7 @@ describe('registerSqliteIpc', () => {
       'datastore:file-index:file_index_size',
       'datastore:file-index:file_index_clear',
       'datastore:runner_responses:get_runner_response',
-      'datastore:runner_responses:delete_runner_responses_for_collection',
-      'datastore:files:stat',
-      'datastore:files:read'
+      'datastore:runner_responses:delete_runner_responses_for_collection'
     ]);
   });
 
@@ -104,26 +99,6 @@ describe('registerSqliteIpc', () => {
       (params) => {
         expect(() => invoke(channel, params)).toThrow('collection_uid must be a non-empty string');
         expect(clearRunnerResponses).not.toHaveBeenCalled();
-      }
-    );
-  });
-
-  describe.each([
-    ['stat', 'entry'],
-    ['read', 'bytes']
-  ])('files:%s', (method, result) => {
-    const channel = `datastore:files:${method}`;
-
-    it('forwards only the file id', async () => {
-      expect(await invoke(channel, { id: 7, extra: 'ignored' })).toBe(result);
-      expect(files[method]).toHaveBeenCalledWith(7);
-    });
-
-    it.each([undefined, {}, { id: 0 }, { id: -1 }, { id: 1.5 }, { id: '7' }, { id: null }, { id: 2 ** 53 }, { id: 1e300 }])(
-      'rejects %p without touching the store',
-      (params) => {
-        expect(() => invoke(channel, params)).toThrow('id must be a positive integer');
-        expect(files[method]).not.toHaveBeenCalled();
       }
     );
   });
