@@ -28,7 +28,7 @@ import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
-import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
 import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
@@ -45,7 +45,6 @@ import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
-import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -77,17 +76,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = useSelector(selectActiveWorkspace);
 
-  const mountedCollections = useSelector((state) => {
-    const { workspaces } = state.workspaces;
-    const workspaceCollectionPaths = (selectActiveWorkspace(state)?.collections || []).map((wc) => normalizePath(wc.path));
-    return selectCollections(state)
-      .filter((c) => {
-        if (c.mountStatus !== 'mounted') return false;
-        if (workspaces.some((w) => w.scratchCollectionUid === c.uid)) return false;
-        return workspaceCollectionPaths.some((wcPath) => normalizePath(c.pathname) === wcPath);
-      })
-      .map((c) => ({ uid: c.uid, name: c.name }));
-  }, isEqual);
+  const mountedCollections = useSelector((state) =>
+    getWorkspaceCollections({
+      collections: selectCollections(state),
+      workspaces: state.workspaces.workspaces,
+      activeWorkspace: selectActiveWorkspace(state)
+    })
+      .filter((c) => c.mountStatus === 'mounted')
+      .map((c) => ({ uid: c.uid, name: c.name })), isEqual);
 
   // Open-tab counts per collection, for the badges in the switcher.
   const tabCountsByCollection = useSelector((state) => {

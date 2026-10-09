@@ -2,7 +2,6 @@ import { buildTestState } from 'test-utils/buildTestState';
 import {
   getTabUidForItem,
   isTabForItemActive,
-  isTabForItemPresent,
   selectTabs,
   selectActiveTabUid,
   selectTabByUid,
@@ -79,7 +78,7 @@ describe('tab selectors', () => {
     expect(selector(state)).toBe(false);
   });
 
-  it('does not mark request present when only response-example tab exists for same pathname', () => {
+  it('does not resolve a tab when only a response-example tab exists for same pathname', () => {
     const state = {
       ...baseState,
       tabs: {
@@ -95,8 +94,8 @@ describe('tab selectors', () => {
       }
     };
 
-    const selector = isTabForItemPresent({ itemUid: 'request-1', itemPathname: '/c/req.bru', collectionUid: 'c1' });
-    expect(selector(state)).toBe(false);
+    const selector = getTabUidForItem({ itemUid: 'request-1', itemPathname: '/c/req.bru', collectionUid: 'c1' });
+    expect(selector(state)).toBeNull();
   });
 
   it('still resolves regular request tab by pathname fallback', () => {

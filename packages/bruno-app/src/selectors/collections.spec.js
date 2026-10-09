@@ -2,8 +2,6 @@ import { buildTestState } from 'test-utils/buildTestState';
 import {
   selectCollections,
   selectCollectionByUid,
-  selectCollectionName,
-  selectItemByUid,
   selectActiveWorkspace,
   makeSelectCollectionWithGlobals
 } from './collections';
@@ -36,19 +34,6 @@ describe('selectors/collections', () => {
     expect(selectCollectionByUid(state, 'col-a')).toBe(state.collections.collections[0]);
     expect(selectCollectionByUid(state, 'nope')).toBeUndefined();
     expect(selectCollectionByUid(state, undefined)).toBeUndefined();
-  });
-
-  it('selectCollectionName reads one field', () => {
-    expect(selectCollectionName(buildState(), 'col-b')).toBe('B');
-    expect(selectCollectionName(buildState(), 'missing')).toBeUndefined();
-  });
-
-  it('selectItemByUid walks nested folders and returns the stored reference', () => {
-    const state = buildState();
-    const item = selectItemByUid(state, 'col-a', 'req-1');
-    expect(item).toBe(state.collections.collections[0].items[0].items[0]);
-    expect(selectItemByUid(state, 'col-a', 'req-2')).toBeUndefined();
-    expect(selectItemByUid(state, 'col-zzz', 'req-1')).toBeUndefined();
   });
 
   it('selectActiveWorkspace resolves the active uid', () => {

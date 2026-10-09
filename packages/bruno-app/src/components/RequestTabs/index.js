@@ -23,10 +23,7 @@ const RequestTabs = () => {
   const [showChevrons, setShowChevrons] = useState(false);
   const activeTabUid = useSelector(selectActiveTabUid);
   const activeTab = useSelector(selectActiveTab);
-  // Only the active collection: an edit in any other collection must not
-  // re-render the tab strip.
   const activeCollection = useSelector((state) => selectCollectionByUid(state, activeTab?.collectionUid));
-  // Memoized on the tabs reference, so the array is stable between tab actions.
   const selectTabsForCollection = useMemo(makeSelectTabsForCollection, []);
   const collectionRequestTabs = useSelector((state) => selectTabsForCollection(state, activeTab?.collectionUid));
   const totalTabsCount = useSelector((state) => state.tabs.tabs.length);

@@ -1,46 +1,30 @@
 import { createSelector } from '@reduxjs/toolkit';
 import {
   findCollectionByUid,
-  findItemInCollection,
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections/index';
 
 /**
- * Narrow selectors for the collections slice.
+ * Selectors for accessing collection state without unnecessary re-renders.
  *
- * `state.collections.collections` is replaced whenever a collection or request
- * changes, so subscribing to the whole array causes re-renders for unrelated
- * edits. Prefer selecting the smallest existing reference a component needs.
+ * The collections array gets a new reference whenever a collection or request
+ * changes. Components subscribing to the entire array will re-render even
+ * when the change is unrelated to them.
  *
- * Rules:
- * - Select a single field or existing reference directly; no equality function
- *   is needed.
- * - Use `createSelector` for derived values. Use a `make…` factory when each
- *   mounted component needs its own memoization cache.
- * - If data is only needed at event time, don't subscribe to it; read it with
- *   `useStore().getState()` inside the event handler.
+ * Prefer:
+ * - Selecting only the field or object a component needs.
+ * - Using createSelector for derived data and selector factories when each
+ *   component needs its own memoization cache.
+ * - Reading from useStore().getState() for data needed only in event handlers,
+ *   rather than subscribing to changes.
  */
 
-// The full collections array. Use only when rendering the collection list itself.
-// Other components should select a specific collection, item, or field instead.
+// Use only when the component needs the entire collections array.
 export const selectCollections = (state) => state.collections.collections;
 
 export const selectCollectionByUid = (state, collectionUid) =>
   collectionUid ? findCollectionByUid(state.collections.collections, collectionUid) : undefined;
-
-export const selectCollectionName = (state, collectionUid) => selectCollectionByUid(state, collectionUid)?.name;
-
-export const selectCollectionPathname = (state, collectionUid) =>
-  selectCollectionByUid(state, collectionUid)?.pathname;
-
-export const selectCollectionMountStatus = (state, collectionUid) =>
-  selectCollectionByUid(state, collectionUid)?.mountStatus;
-
-export const selectItemByUid = (state, collectionUid, itemUid) => {
-  const collection = selectCollectionByUid(state, collectionUid);
-  return collection && itemUid ? findItemInCollection(collection, itemUid) : undefined;
-};
 
 export const selectCollectionSortOrder = (state) => state.collections.collectionSortOrder;
 
@@ -54,6 +38,8 @@ export const selectActiveWorkspace = (state) => {
 const selectGlobalEnvironments = (state) => state.globalEnvironments.globalEnvironments;
 const selectActiveGlobalEnvironmentUid = (state) => state.globalEnvironments.activeGlobalEnvironmentUid;
 
+// Each component gets its own memoized selector to avoid recreating the
+// combined collection object when its inputs haven't changed.
 export const makeSelectCollectionWithGlobals = () =>
   createSelector(
     [selectCollectionByUid, selectGlobalEnvironments, selectActiveGlobalEnvironmentUid],

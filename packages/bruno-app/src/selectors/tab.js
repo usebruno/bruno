@@ -70,13 +70,3 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
 
   return activeTab.type !== 'response-example' && activeTab.pathname === itemPathname;
 });
-
-export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => createSelector([
-  (state) => state.tabs.tabs
-], (tabs) => tabs.some((tab) => {
-  if (collectionUid && tab.collectionUid !== collectionUid) {
-    return false;
-  }
-
-  return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
-}));

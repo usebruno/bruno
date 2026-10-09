@@ -21,7 +21,7 @@ import {
   IconAppWindow,
   IconEyeOff
 } from '@tabler/icons';
-import { useSelector, useDispatch, useStore, shallowEqual } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
@@ -48,8 +48,7 @@ import CollectionItemIcon from '../CollectionItemIcon';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
-  isTabForItemActive as isTabForItemActiveSelector,
-  isTabForItemPresent as isTabForItemPresentSelector
+  isTabForItemActive as isTabForItemActiveSelector
 } from 'src/selectors/tab';
 import { selectCollectionByUid } from 'src/selectors/collections';
 import {
@@ -85,20 +84,15 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const { isTabForItemActive, isTabForItemPresent, tabUidForItem } = useSelector(
-    useMemo(() => {
-      const selectorInput = { itemUid: item.uid, itemPathname: item.pathname, collectionUid };
-      const selectActive = isTabForItemActiveSelector(selectorInput);
-      const selectPresent = isTabForItemPresentSelector(selectorInput);
-      const selectTabUid = getTabUidForItemSelector(selectorInput);
-      return (state) => ({
-        isTabForItemActive: selectActive(state),
-        isTabForItemPresent: selectPresent(state),
-        tabUidForItem: selectTabUid(state)
-      });
-    }, [item.uid, item.pathname, collectionUid]),
-    shallowEqual
+  const tabSelectorInput = useMemo(
+    () => ({ itemUid: item.uid, itemPathname: item.pathname, collectionUid }),
+    [item.uid, item.pathname, collectionUid]
   );
+  const tabUidForItem = useSelector(useMemo(() => getTabUidForItemSelector(tabSelectorInput), [tabSelectorInput]));
+  const isTabForItemActive = useSelector(
+    useMemo(() => isTabForItemActiveSelector(tabSelectorInput), [tabSelectorInput])
+  );
+  const isTabForItemPresent = tabUidForItem !== null;
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const store = useStore();
