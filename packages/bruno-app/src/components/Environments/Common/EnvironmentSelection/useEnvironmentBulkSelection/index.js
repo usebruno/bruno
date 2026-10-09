@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isMacOS } from 'utils/common/platform';
 
+const noop = () => {};
+
 const useEnvironmentBulkSelection = ({
   environments,
   filteredEnvironments,
   activeEnvUid,
   onOpenEnvironment,
-  onRenameEnvironment
+  onRenameEnvironment = noop
 }) => {
   const [selectedEnvUids, setSelectedEnvUids] = useState([]);
   const [actionTargetUids, setActionTargetUids] = useState([]);
@@ -29,10 +31,6 @@ const useEnvironmentBulkSelection = ({
   const actionTargetUidSet = useMemo(() => new Set(actionTargetUids), [actionTargetUids]);
 
   const hasSelection = validSelectedEnvUids.length > 0;
-  const selectedEnvironmentsList = useMemo(
-    () => environments?.filter((env) => selectedEnvUidSet.has(env.uid)) || [],
-    [environments, selectedEnvUidSet]
-  );
   const actionTargetEnvironmentsList = useMemo(
     () => environments?.filter((env) => actionTargetUidSet.has(env.uid)) || [],
     [environments, actionTargetUidSet]
@@ -109,6 +107,8 @@ const useEnvironmentBulkSelection = ({
   }, [lastClickedEnvUid, activeEnvUid, filteredEnvUids]);
 
   const handleRowInteraction = useCallback((e, env) => {
+    if (isMacOS() && e.ctrlKey) return;
+
     const isSelectionModifierPressed = isMacOS() ? e.metaKey : e.ctrlKey;
 
     if (isSelectionModifierPressed) {
@@ -151,12 +151,23 @@ const useEnvironmentBulkSelection = ({
   }, [validSelectedEnvUids, selectedEnvUidSet, openMenuAt]);
 
   const handleDeleted = useCallback((failedUids) => {
-    const stillPresent = new Set(failedUids || []);
-    setActionTargetUids(Array.from(stillPresent));
-    setSelectedEnvUids((prev) => prev.filter((uid) => stillPresent.has(uid)));
-    if (!failedUids || !failedUids.length) {
-      setLastClickedEnvUid(null);
-    }
+    const failed = failedUids || [];
+    const failedSet = new Set(failed);
+    const deletedSet = new Set(actionTargetUids.filter((uid) => !failedSet.has(uid)));
+
+    setActionTargetUids(failed);
+
+    setSelectedEnvUids((prev) => prev.filter((uid) => !deletedSet.has(uid)));
+    setLastClickedEnvUid((prev) => (deletedSet.has(prev) ? null : prev));
+  }, [actionTargetUids]);
+
+  const openDeleteModal = useCallback(() => {
+    setShowDeleteModal(true);
+    closeMenu();
+  }, [closeMenu]);
+
+  const closeDeleteModal = useCallback(() => {
+    setShowDeleteModal(false);
   }, []);
 
   const openExportModal = useCallback(() => {
@@ -182,7 +193,7 @@ const useEnvironmentBulkSelection = ({
     closeMenu();
     clearSelection();
     if (target) {
-      onRenameEnvironment?.(target);
+      onRenameEnvironment(target);
     }
   }, [actionTargetEnvironmentsList, closeMenu, clearSelection, onRenameEnvironment]);
 
@@ -201,81 +212,61 @@ const useEnvironmentBulkSelection = ({
     setShowDeleteModal(true);
   }, []);
 
-  const startRenameForEnv = useCallback((env) => {
-    onRenameEnvironment?.(env);
-  }, [onRenameEnvironment]);
+  const isAnyModalOpen = showDeleteModal || showExportModal || showCopyModal;
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && hasSelection) {
-        clearSelection();
+      // While a modal is open every key belongs to the modal, keep the selection it acts on intact.
+      if (isAnyModalOpen) return;
+
+      if (e.key === 'Escape') {
+        if (hasSelection) clearSelection();
+        return;
+      }
+
+      const isMac = isMacOS();
+      const hasPlatformModifierOnly = !e.shiftKey && !e.altKey && (isMac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey);
+      const hasNoModifier = !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey;
+
+      const isSelectAllShortcut = hasPlatformModifierOnly && e.key.toLowerCase() === 'a';
+      const isDeleteShortcut = isMac
+        ? hasPlatformModifierOnly && (e.key === 'Backspace' || e.key === 'Delete')
+        : hasNoModifier && e.key === 'Delete';
+
+      if (!isSelectAllShortcut && !isDeleteShortcut) return;
+
+      const activeTag = document.activeElement?.tagName;
+      const isTextFieldFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+      if (isTextFieldFocused) return;
+
+      if (!scopeRef.current?.matches(':hover')) return;
+
+      e.preventDefault();
+      if (isSelectAllShortcut) {
+        selectAllEnvs();
+      } else {
+        deleteViaShortcut();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [hasSelection, clearSelection]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const isSelectAllShortcut = (isMacOS() ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'a';
-      if (!isSelectAllShortcut) return;
-
-      const activeTag = document.activeElement?.tagName;
-      const isTextFieldFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
-      if (isTextFieldFocused) return;
-
-      if (!scopeRef.current?.matches(':hover')) return;
-
-      e.preventDefault();
-      selectAllEnvs();
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectAllEnvs]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const isDeleteShortcut = isMacOS()
-        ? e.metaKey && (e.key === 'Backspace' || e.key === 'Delete')
-        : e.key === 'Delete';
-      if (!isDeleteShortcut) return;
-
-      const activeTag = document.activeElement?.tagName;
-      const isTextFieldFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
-      if (isTextFieldFocused) return;
-
-      if (!scopeRef.current?.matches(':hover')) return;
-
-      e.preventDefault();
-      deleteViaShortcut();
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [deleteViaShortcut]);
+  }, [isAnyModalOpen, hasSelection, clearSelection, selectAllEnvs, deleteViaShortcut]);
 
   const isEnvSelected = useCallback((uid) => selectedEnvUidSet.has(uid), [selectedEnvUidSet]);
 
   return {
     scopeRef,
-    hasSelection,
     selectedEnvUids: validSelectedEnvUids,
     isEnvSelected,
-    selectedEnvironmentsList,
     actionTargetUids,
     actionTargetEnvironmentsList,
     selectOnlyEnv,
-    selectEnvs,
     selectAllEnvs,
     isAllSelected,
     showDeleteModal,
-    openDeleteModal: () => {
-      setShowDeleteModal(true);
-      closeMenu();
-    },
-    closeDeleteModal: () => setShowDeleteModal(false),
+    openDeleteModal,
+    closeDeleteModal,
     showExportModal,
     openExportModal,
     closeExportModal,
@@ -286,7 +277,7 @@ const useEnvironmentBulkSelection = ({
     startExportForEnv,
     startCopyForEnv,
     startDeleteForEnv,
-    startRenameForEnv,
+    startRenameForEnv: onRenameEnvironment,
     handleRowInteraction,
     handleRowContextMenu,
     handleDeleted,

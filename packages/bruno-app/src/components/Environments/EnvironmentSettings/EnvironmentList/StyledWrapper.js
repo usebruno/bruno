@@ -235,6 +235,16 @@ const StyledWrapper = styled.div`
 
     &.activated .environment-actions {
       opacity: 1;
+
+      .env-more-btn {
+        opacity: 0;
+      }
+    }
+
+    &:hover .environment-actions .env-more-btn,
+    &:focus-within .environment-actions .env-more-btn,
+    .environment-actions .env-more-btn[aria-expanded='true'] {
+      opacity: 1;
     }
 
     &:hover {

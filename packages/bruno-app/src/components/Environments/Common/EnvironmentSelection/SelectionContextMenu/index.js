@@ -51,7 +51,7 @@ const SelectionContextMenu = ({
         id: 'select-all',
         label: isAllSelected ? 'Unselect all' : 'Select all',
         leftSection: IconChecks,
-        rightSection: <SelectAllShortcutHint />,
+        shortcut: <SelectAllShortcutHint />,
         onClick: onSelectAll
       },
       { id: 'divider-3', type: 'divider' },
@@ -59,7 +59,7 @@ const SelectionContextMenu = ({
         id: 'delete',
         label: selectedCount > 1 ? `Delete (${selectedCount})` : 'Delete',
         leftSection: IconTrash,
-        rightSection: <DeleteShortcutHint />,
+        shortcut: <DeleteShortcutHint />,
         className: 'delete-item',
         onClick: onDelete
       }
@@ -74,7 +74,6 @@ const SelectionContextMenu = ({
       position={position}
       items={menuItems}
       onClose={onClose}
-      menuClassName="env-action-menu"
     />
   );
 };

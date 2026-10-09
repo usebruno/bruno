@@ -30,7 +30,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll
         id: 'select-all',
         label: isAllSelected ? 'Unselect all' : 'Select all',
         leftSection: IconChecks,
-        rightSection: <SelectAllShortcutHint />,
+        shortcut: <SelectAllShortcutHint />,
         onClick: onSelectAll
       },
       { id: 'divider-3', type: 'divider' },
@@ -38,7 +38,7 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll
         id: 'delete',
         label: 'Delete',
         leftSection: IconTrash,
-        rightSection: <DeleteShortcutHint />,
+        shortcut: <DeleteShortcutHint />,
         className: 'delete-item',
         onClick: onDelete
       }
@@ -57,7 +57,6 @@ const RowActionsMenu = ({ onExport, onRename, onDuplicate, onDelete, onSelectAll
         items={menuItems}
         placement="bottom-start"
         appendTo={document.body}
-        menuClassName="env-action-menu"
         data-testid="env-row-menu"
       >
         <button
