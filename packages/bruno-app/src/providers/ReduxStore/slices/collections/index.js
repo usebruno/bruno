@@ -17,7 +17,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
@@ -931,6 +931,7 @@ export const collectionsSlice = createSlice({
           item.afterCallEndTestResults = [];
           item.beforeMessageSendTestResults = [];
           item.afterMessageReceiveTestResults = [];
+          item.unresolvedVariables = null;
         }
       }
     },
@@ -3320,7 +3321,8 @@ export const collectionsSlice = createSlice({
         if (existingEnv) {
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
-          existingEnv.variables = environment.variables;
+          // One file was reloaded. Copy saved row ids onto the new rows in the same position.
+          existingEnv.variables = preserveVariableUids(existingEnv.variables, environment.variables);
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
           existingEnv.extends = environment.extends;
@@ -3401,6 +3403,7 @@ export const collectionsSlice = createSlice({
       item.afterCallEndTestResults = [];
       item.beforeMessageSendTestResults = [];
       item.afterMessageReceiveTestResults = [];
+      item.unresolvedVariables = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3498,8 +3501,20 @@ export const collectionsSlice = createSlice({
             const { results } = action.payload;
             item.postResponseTestResults = results;
           }
+
+          if (type === 'unresolved-variables') {
+            item.unresolvedVariables = action.payload.unresolvedVariables;
+          }
         }
       }
+    },
+    dismissUnresolvedVariables: (state, action) => {
+      const { collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.unresolvedVariables = null;
     },
     runFolderEvent: (state, action) => {
       const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
@@ -4282,6 +4297,7 @@ export const {
   grpcResponseReceived,
   grpcScriptError,
   grpcTestResults,
+  dismissUnresolvedVariables,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,

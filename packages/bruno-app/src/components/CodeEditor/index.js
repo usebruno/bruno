@@ -401,7 +401,9 @@ class CodeEditor extends React.Component {
 
   _setLongLineMode = (value, { deferRestore = false } = {}) => {
     const longLineDetected = hasLongLine(value);
-    this.setState({ longLineDetected });
+    if (longLineDetected !== this.state.longLineDetected) {
+      this.setState({ longLineDetected });
+    }
     const degrade = longLineDetected && !this.longLineOverride;
     return this._applyLongLineMode(degrade, value, { deferRestore });
   };
