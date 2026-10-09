@@ -21,7 +21,7 @@ import {
 } from '../../utils/request';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
-const DEFAULT_HEADER_COUNT = 6;
+const DEFAULT_HEADER_COUNT = 5;
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);

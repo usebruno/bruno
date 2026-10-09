@@ -38,6 +38,27 @@ describe('tab selectors', () => {
     expect(selector(state)).toBeNull();
   });
 
+  it('does not mark a request active while an API spec tab is the active one', () => {
+    const state = {
+      ...baseState,
+      tabs: {
+        activeTabUid: 'api-spec::scratch::/workspace/petstore.yaml',
+        tabs: [
+          {
+            uid: 'api-spec::scratch::/workspace/petstore.yaml',
+            type: 'api-spec',
+            apiSpecPathname: '/workspace/petstore.yaml',
+            pathname: null,
+            collectionUid: 'c1'
+          }
+        ]
+      }
+    };
+
+    const selector = isTabForItemActive({ itemUid: 'request-1', itemPathname: '/c/req.bru', collectionUid: 'c1' });
+    expect(selector(state)).toBe(false);
+  });
+
   it('does not mark request active when only response-example tab is active on same pathname', () => {
     const state = {
       ...baseState,

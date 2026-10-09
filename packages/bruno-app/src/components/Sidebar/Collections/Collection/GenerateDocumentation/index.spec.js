@@ -203,21 +203,21 @@ describe('GenerateDocumentation', () => {
     it('counts only the requests that carry an included tag, and only the folders that still hold one', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
+      addTag('Include Tags', 'smoke');
       expectSummary('1 Folder', '2 requests');
     });
 
     it('leaves out the requests that carry an excluded tag and any folder that ends up empty', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Exclude tags', 'wip');
+      addTag('Exclude Tags', 'wip');
       expectSummary('1 Folder', '3 requests');
     });
 
     it('goes back to the full counts when the user switches to All requests', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
+      addTag('Include Tags', 'smoke');
       expectSummary('1 Folder', '2 requests');
 
       fireEvent.click(screen.getByTestId('docs-requests-all'));
@@ -227,14 +227,86 @@ describe('GenerateDocumentation', () => {
     it('generates the docs with the same tags the counts were based on', () => {
       renderModal(buildTaggedCollection());
       switchToTagFilter();
-      addTag('Include tags', 'smoke');
-      addTag('Exclude tags', 'wip');
+      addTag('Include Tags', 'smoke');
+      addTag('Exclude Tags', 'wip');
       expectSummary('1 Folder', '2 requests');
 
       fireEvent.click(screen.getByTestId('generate-btn'));
 
       const [, options] = generateApiDocsHtml.mock.calls[0];
       expect(options.tags).toEqual({ include: ['smoke'], exclude: ['wip'] });
+    });
+  });
+
+  describe('counts leave out unsaved requests, which never reach the generated file', () => {
+    it('shows no requests for a collection whose only request has not been saved yet', () => {
+      renderModal(buildCollection({
+        items: [{ uid: 'req-draft', name: 'Untitled', type: 'http-request', isTransient: true, request: {} }]
+      }));
+
+      expectSummary('0 Folders', '0 requests');
+    });
+
+    it('counts the saved requests and leaves out the unsaved one sitting beside them', () => {
+      renderModal(buildCollection({
+        items: [
+          { uid: 'req-saved', name: 'Health', type: 'http-request', request: {} },
+          { uid: 'req-draft', name: 'Untitled', type: 'http-request', isTransient: true, request: {} }
+        ]
+      }));
+
+      expectSummary('0 Folders', '1 request');
+    });
+
+    it('leaves out an unsaved request nested inside a folder', () => {
+      renderModal(buildCollection({
+        items: [{
+          uid: 'folder-users',
+          name: 'Users',
+          type: 'folder',
+          items: [
+            { uid: 'req-saved', name: 'List users', type: 'http-request', request: {} },
+            { uid: 'req-draft', name: 'Untitled', type: 'http-request', isTransient: true, request: {} }
+          ]
+        }]
+      }));
+
+      expectSummary('1 Folder', '1 request');
+    });
+
+    it('still counts a folder whose only request is unsaved, since the folder itself is in the generated file', () => {
+      renderModal(buildCollection({
+        items: [{
+          uid: 'folder-users',
+          name: 'Users',
+          type: 'folder',
+          items: [{ uid: 'req-draft', name: 'Untitled', type: 'http-request', isTransient: true, request: {} }]
+        }]
+      }));
+
+      expectSummary('1 Folder', '0 requests');
+    });
+
+    it('counts a saved request that has unsaved edits, because the docs still include it', () => {
+      renderModal(buildCollection({
+        items: [{
+          uid: 'req-edited',
+          name: 'Health',
+          type: 'http-request',
+          request: {},
+          draft: { type: 'http-request', request: {} }
+        }]
+      }));
+
+      expectSummary('0 Folders', '1 request');
+    });
+
+    it('counts the request once it has been saved', () => {
+      renderModal(buildCollection({
+        items: [{ uid: 'req-saved', name: 'Untitled', type: 'http-request', isTransient: false, request: {} }]
+      }));
+
+      expectSummary('0 Folders', '1 request');
     });
   });
 });

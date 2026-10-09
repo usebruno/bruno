@@ -66,7 +66,6 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
         content={text}
         place={place}
         positionStrategy="fixed"
-        delayShow={500}
         opacity={1}
         style={HEADER_HINT_STYLE}
         render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
@@ -78,14 +77,6 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
 const getDefaultHeaderValue = (header, requestUrl) => {
   if (header.name === 'User-Agent') {
     return getBrunoRuntimeUserAgent(appVersion);
-  }
-
-  if (header.name === 'Host') {
-    try {
-      return new URL(requestUrl).host || header.previewValue;
-    } catch {
-      return header.previewValue;
-    }
   }
 
   return header.previewValue || '';
@@ -211,7 +202,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         uid: 'inherited-headers-section',
         rowType: ROW_TYPE.SECTION,
         section: ROW_TYPE.INHERITED,
-        label: 'Runtime Headers',
+        label: 'Inherited & Runtime Headers',
         count: allInheritedHeaders.length,
         expanded: isInheritedHeadersExpanded
       },
@@ -402,16 +393,20 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         id={`default-header-info-hint-${row.uid}`}
         text={row.omittable
           ? 'Automatically added at runtime'
-          : 'Required by HTTP, cannot be omitted'}
+          : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
         className="default-header-info"
         testId={`default-header-info-${row.name.toLowerCase()}`}
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
         place="top-end"
       >
-        <IconInfoCircle
-          size={16}
-          strokeWidth={1.5}
-        />
+        <button
+          type="button"
+          aria-label={row.omittable
+            ? 'Automatically added at runtime'
+            : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
+        >
+          <IconInfoCircle size={18} strokeWidth={1.5} aria-hidden="true" />
+        </button>
       </HeaderHint>
     );
   }, [navigateToHeaderSource]);
@@ -452,16 +447,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       placeholder: 'Name',
       width: '20%',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return (
             <div className="header-name-cell">
               {renderInheritedValue(value)}
             </div>
           );
-        }
-
-        if (row.rowType === ROW_TYPE.DEFAULT) {
-          return <span className="default-header-value">{value}</span>;
         }
 
         return (
@@ -484,25 +475,23 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       name: 'Value',
       placeholder: 'Value',
       render: ({ row, value, onChange }) => {
-        if (row.rowType === ROW_TYPE.INHERITED) {
+        if (row.rowType === ROW_TYPE.INHERITED || row.rowType === ROW_TYPE.DEFAULT) {
           return renderInheritedValue(value);
         }
 
-        return row.rowType === ROW_TYPE.DEFAULT
-          ? <span className="default-header-value">{value}</span>
-          : (
-              <SingleLineEditor
-                value={value || ''}
-                theme={storedTheme}
-                onSave={onSave}
-                onChange={onChange}
-                onRun={handleRun}
-                autocomplete={MimeTypes}
-                collection={collection}
-                item={item}
-                placeholder={!value ? 'Value' : ''}
-              />
-            );
+        return (
+          <SingleLineEditor
+            value={value || ''}
+            theme={storedTheme}
+            onSave={onSave}
+            onChange={onChange}
+            onRun={handleRun}
+            autocomplete={MimeTypes}
+            collection={collection}
+            item={item}
+            placeholder={!value ? 'Value' : ''}
+          />
+        );
       }
     },
     {

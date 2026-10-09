@@ -931,6 +931,7 @@ export const collectionsSlice = createSlice({
           item.afterCallEndTestResults = [];
           item.beforeMessageSendTestResults = [];
           item.afterMessageReceiveTestResults = [];
+          item.unresolvedVariables = null;
         }
       }
     },
@@ -3401,6 +3402,7 @@ export const collectionsSlice = createSlice({
       item.afterCallEndTestResults = [];
       item.beforeMessageSendTestResults = [];
       item.afterMessageReceiveTestResults = [];
+      item.unresolvedVariables = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3498,8 +3500,20 @@ export const collectionsSlice = createSlice({
             const { results } = action.payload;
             item.postResponseTestResults = results;
           }
+
+          if (type === 'unresolved-variables') {
+            item.unresolvedVariables = action.payload.unresolvedVariables;
+          }
         }
       }
+    },
+    dismissUnresolvedVariables: (state, action) => {
+      const { collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      item.unresolvedVariables = null;
     },
     runFolderEvent: (state, action) => {
       const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
@@ -3956,6 +3970,45 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) return;
+
+      const trimmedTag = tag.trim();
+      if (!trimmedTag) return;
+
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+
+      const tags = get(folder, 'draft.meta.tags', []);
+      if (!tags.includes(trimmedTag)) {
+        tags.push(trimmedTag);
+      }
+      set(folder, 'draft.meta.tags', tags);
+
+      collection.allTags = getUniqueTagsFromItems(collection.items);
+    },
+    deleteFolderTag: (state, action) => {
+      const { tag, collectionUid, folderUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder || !isItemAFolder(folder)) return;
+
+      if (!folder.draft) {
+        folder.draft = cloneDeep(folder.root);
+      }
+      const tags = get(folder, 'draft.meta.tags', []);
+      set(folder, 'draft.meta.tags', tags.filter((t) => t !== tag.trim()));
+
+      collection.allTags = getUniqueTagsFromItems(collection.items);
+    },
     updateCollectionTagsList: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4243,6 +4296,7 @@ export const {
   grpcResponseReceived,
   grpcScriptError,
   grpcTestResults,
+  dismissUnresolvedVariables,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
@@ -4374,6 +4428,8 @@ export const {
   updateFolderAuthMode,
   addRequestTag,
   deleteRequestTag,
+  addFolderTag,
+  deleteFolderTag,
   updateCollectionTagsList,
   updateActiveConnections,
   runWsRequestEvent,

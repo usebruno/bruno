@@ -12,10 +12,13 @@ import {
   getEnvironmentVariables,
   getVisibleSidebarUidsInOrder,
   getSelectionInfo,
+  getBulkActionsSelection,
   getUniqueTagsFromItems,
   getCollectionVersion,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getWorkspaceCollections
 } from './index';
+import * as platformUtils from 'utils/common/platform';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -777,6 +780,47 @@ describe('getSelectionInfo', () => {
   });
 });
 
+describe('getBulkActionsSelection', () => {
+  it('derives pure-collection menu flags and collapsible entries', () => {
+    const result = getBulkActionsSelection({
+      collections: [buildCollectionA(), buildCollectionB()],
+      workspaces: [],
+      selectedUids: ['colA', 'colB']
+    });
+
+    expect(result).toMatchObject({
+      isPureCollectionSelection: true,
+      canDelete: false,
+      canCollapse: true,
+      allCollapsed: false
+    });
+    expect(result.collapsibleEntries.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+  });
+
+  it('allows delete for app/folder/request selections and excludes scratch collections from resolution', () => {
+    const scratch = { uid: 'scratch', pathname: '/scratch', collapsed: false, items: [] };
+    const result = getBulkActionsSelection({
+      collections: [
+        buildCollectionA({
+          collection: {
+            items: [{ uid: 'app1', type: 'app', pathname: '/colA/app1' }]
+          }
+        }),
+        scratch
+      ],
+      workspaces: [{ scratchCollectionUid: 'scratch' }],
+      selectedUids: ['app1', 'scratch']
+    });
+
+    expect(result.effectiveSelection.map((e) => e.uid)).toEqual(['app1']);
+    expect(result).toMatchObject({
+      isPureCollectionSelection: false,
+      canDelete: true,
+      canCollapse: false
+    });
+  });
+});
+
 describe('isCollectionItemCollapsed', () => {
   it('treats a folder as expanded by default (item.collapsed unset)', () => {
     expect(isCollectionItemCollapsed({ type: 'folder' })).toBe(false);
@@ -887,5 +931,83 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getWorkspaceCollections', () => {
+  const collectionOne = { uid: 'c1', name: 'One', pathname: '/home/dev/collections/one' };
+  const collectionTwo = { uid: 'c2', name: 'Two', pathname: '/home/dev/collections/two' };
+  const scratch = { uid: 'scratch-uid', name: 'Scratch', pathname: '/home/dev/scratch' };
+  const otherWorkspaceCollection = { uid: 'c3', name: 'Three', pathname: '/home/dev/other/three' };
+
+  const activeWorkspace = {
+    uid: 'w1',
+    scratchCollectionUid: 'scratch-uid',
+    collections: [
+      { path: '/home/dev/collections/one' },
+      { path: '/home/dev/collections/two/' },
+      { path: '/home/dev/scratch' }
+    ]
+  };
+  const otherWorkspace = {
+    uid: 'w2',
+    collections: [{ path: '/home/dev/other/three' }]
+  };
+  const workspaces = [activeWorkspace, otherWorkspace];
+  const collections = [collectionOne, collectionTwo, scratch, otherWorkspaceCollection];
+
+  it('returns only the collections listed by the active workspace, excluding scratch', () => {
+    const result = getWorkspaceCollections({ collections, workspaces, activeWorkspace });
+
+    expect(result).toEqual([collectionOne, collectionTwo]);
+  });
+
+  it('matches paths regardless of separators and trailing slashes', () => {
+    const windowsWorkspace = {
+      uid: 'w3',
+      collections: [{ path: 'C:\\Users\\dev\\collections\\one\\' }]
+    };
+    const windowsCollection = { uid: 'c4', name: 'One', pathname: 'C:/Users/dev/collections/one' };
+
+    const result = getWorkspaceCollections({
+      collections: [windowsCollection],
+      workspaces: [windowsWorkspace],
+      activeWorkspace: windowsWorkspace
+    });
+
+    expect(result).toEqual([windowsCollection]);
+  });
+
+  it('returns an empty list with no active workspace, or a workspace listing none', () => {
+    const emptyWorkspace = { uid: 'w4', collections: [] };
+
+    expect(getWorkspaceCollections({ collections, workspaces, activeWorkspace: null })).toEqual([]);
+    expect(getWorkspaceCollections({ collections, workspaces: [emptyWorkspace], activeWorkspace: emptyWorkspace })).toEqual([]);
+  });
+
+  describe('path case', () => {
+    const mixedCaseWorkspace = { uid: 'w5', collections: [{ path: 'C:\\Users\\Dev\\Collections\\One' }] };
+    const lowerCaseCollection = { uid: 'c5', name: 'One', pathname: 'c:/users/dev/collections/one' };
+    const listFor = () => getWorkspaceCollections({
+      collections: [lowerCaseCollection],
+      workspaces: [mixedCaseWorkspace],
+      activeWorkspace: mixedCaseWorkspace
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('matches paths that differ only in case on Windows, like the sidebar does', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(true);
+
+      expect(listFor()).toEqual([lowerCaseCollection]);
+    });
+
+    it('keeps paths that differ in case apart on case-sensitive platforms', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(false);
+
+      expect(listFor()).toEqual([]);
+    });
   });
 });

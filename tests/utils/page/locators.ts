@@ -5,7 +5,9 @@ import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildCodeEditorHintLocators } from './code-editor-hints';
 import { buildRequestSettingsLocators } from './request-settings';
+import { buildUnresolvedVariablesInfoLocators } from './unresolved-variables-info';
 import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
@@ -19,6 +21,7 @@ import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
+import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-modal';
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
@@ -37,12 +40,14 @@ export const buildCommonLocators = (page: Page) => ({
   timelineHeaders: buildTimelineHeaderLocators(page),
   devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
+  codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
+  unresolvedVariablesInfo: buildUnresolvedVariablesInfoLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   toast: buildToastLocators(page),
   request: buildRequestLocators(page),
@@ -53,6 +58,7 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
+  createWorkspaceModal: buildCreateWorkspaceModalLocators(page),
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
@@ -78,6 +84,8 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    leftChevron: () => page.getByLabel('Left Chevron'),
+    scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
@@ -115,6 +123,7 @@ export const buildCommonLocators = (page: Page) => ({
       page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
+    itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
     card: () => page.locator('.bruno-modal-card'),
@@ -204,6 +213,7 @@ export const buildCommonLocators = (page: Page) => ({
     modeSelector: () => page.getByTestId('auth-mode-selector'),
     modeLabel: () => page.getByTestId('auth-mode-label'),
     inheritedMode: () => page.getByTestId('inherited-auth-mode'),
+    inheritedFields: () => page.getByTestId('inherited-auth-fields'),
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {
@@ -216,7 +226,14 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
-    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName })
+    item: (tagName: string) => page.locator('.tag-item', { hasText: tagName }),
+    ownItem: (tagName: string) => page.locator('.tag-item:not(.inherited)', { hasText: tagName }),
+    ownItems: () => page.locator('.tag-item:not(.inherited)'),
+    error: () => page.getByTestId('tag-error'),
+    inheritedToggle: () => page.getByTestId('inherited-tags-toggle'),
+    inheritedList: () => page.getByTestId('inherited-tag-list'),
+    inheritedItems: () => page.getByTestId('inherited-tag'),
+    inheritedItem: (tagName: string) => page.getByTestId('inherited-tag').filter({ hasText: tagName })
   },
   generateDocs: {
     menuItem: () => page.locator('.dropdown-item').filter({ hasText: 'Generate Docs' }),
@@ -248,11 +265,11 @@ export const buildCommonLocators = (page: Page) => ({
         .filter({ has: page.getByText(name, { exact: true }) })
         .getByRole('checkbox'),
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
-    allRequestsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
-    filterByTagsButton: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
+    allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
+    filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
-    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include tags'),
-    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude tags'),
+    includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
+    excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
     tagChip: (name: string) => page.locator('.bruno-modal .docs-tag-item').filter({ hasText: name }),
     gitLinkLabel: () => page.locator('.bruno-modal').getByTestId('docs-git-link')
   },
@@ -263,9 +280,11 @@ export const buildCommonLocators = (page: Page) => ({
     statusCode: () => page.getByTestId('response-status-code'),
     status: () => page.getByTestId('response-pane-status'),
     elapsedTime: () => page.getByTestId('response-elapsed-time'),
+    time: () => page.getByTestId('response-pane-status').getByTestId('response-time'),
     // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
     // absence doubles as the "response is cleared" signal.
     clearButton: () => page.getByTestId('response-clear-btn'),
+    cancelRequestButton: () => page.getByRole('button', { name: 'Cancel Request' }),
     pane: () => page.locator('.response-pane'),
     errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),

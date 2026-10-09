@@ -22,8 +22,11 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
 
   test('keeps the request app enabled with its code after migration', async ({
     pageWithUserData: page,
-    createTmpDir
-  }) => {
+    createTmpDir,
+    reuseOrLaunchElectronApp
+  }, testInfo) => {
+    const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
+
     await test.step('Write app code into a bru collection', async () => {
       await createCollection(page, COLLECTION_NAME, await createTmpDir('migrate-app'), 'bru');
       await createRequest(page, 'app-req', COLLECTION_NAME, { url: 'https://example.com', method: 'GET' });
@@ -41,7 +44,7 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
     await test.step('Reopening the request still lands in its app view, code intact', async () => {
       await openRequest(page, COLLECTION_NAME, 'app-req', { persist: true });
       await expect(activeAppView(page)).toBeVisible({ timeout: 10000 });
-      expect(await getAppWebviewHtml(page)).toContain(APP_CODE);
+      expect(await getAppWebviewHtml(page, electronApp)).toContain('Hello from the request app');
     });
   });
 });

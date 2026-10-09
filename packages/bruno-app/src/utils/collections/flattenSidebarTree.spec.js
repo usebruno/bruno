@@ -113,6 +113,67 @@ describe('flattenSidebarTree', () => {
       expect(kinds(flatten([loaded(c)]))).not.toContain('example');
     });
   });
+
+  describe('row ids are ancestor-scoped', () => {
+    it('gives a request uid duplicated across two sibling folders two distinct row ids (the basic leaf-dup shape)', () => {
+      const dupUid = 'dup-req';
+      const c = collection('C', [
+        folder('folder-a', [request('moved', { uid: dupUid })]),
+        folder('folder-b', [request('moved', { uid: dupUid })])
+      ]);
+      const rows = flatten([loaded(c)]);
+      const dupRows = rows.filter((r) => r.itemUid === dupUid);
+      expect(dupRows).toHaveLength(2);
+      expect(dupRows[0].id).not.toBe(dupRows[1].id);
+    });
+
+    it('gives the same item the same row id across renders when its parent is unchanged', () => {
+      const c = collection('C', [folder('f1', [request('stable', { uid: 'stable-uid' })])]);
+      const first = flatten([loaded(c)]).find((r) => r.itemUid === 'stable-uid');
+      const second = flatten([loaded(c)]).find((r) => r.itemUid === 'stable-uid');
+      expect(first.id).toBe(second.id);
+    });
+
+    it('distinguishes two top-level (root-parented) items with different uids', () => {
+      const c = collection('C', [request('a', { uid: 'a-uid' }), request('b', { uid: 'b-uid' })]);
+      const rows = flatten([loaded(c)]);
+      const idA = rows.find((r) => r.itemUid === 'a-uid').id;
+      const idB = rows.find((r) => r.itemUid === 'b-uid').id;
+      expect(idA).not.toBe(idB);
+    });
+
+    it('distinguishes a descendant nested under two copies of the same duplicated ancestor folder (the duplicated-subtree shape)', () => {
+      // A folder move temporarily duplicates the whole subtree with the same
+      // uids at both locations.
+      const dupFolderUid = 'dup-folder';
+      const dupReqUid = 'dup-req';
+      const c = collection('C', [
+        folder('parent-a', [folder('moved', [request('nested', { uid: dupReqUid })], { uid: dupFolderUid })]),
+        folder('parent-b', [folder('moved', [request('nested', { uid: dupReqUid })], { uid: dupFolderUid })])
+      ]);
+      const rows = flatten([loaded(c)]);
+
+      const dupFolderRows = rows.filter((r) => r.itemUid === dupFolderUid && r.kind === 'folder');
+      expect(dupFolderRows).toHaveLength(2);
+      expect(dupFolderRows[0].id).not.toBe(dupFolderRows[1].id);
+
+      const dupReqRows = rows.filter((r) => r.itemUid === dupReqUid);
+      expect(dupReqRows).toHaveLength(2);
+      expect(dupReqRows[0].id).not.toBe(dupReqRows[1].id);
+    });
+
+    it('distinguishes a uid duplicated between a top-level (root) position and a nested folder position (the root-vs-nested shape)', () => {
+      const dupUid = 'dup-root-vs-nested';
+      const c = collection('C', [
+        request('moved', { uid: dupUid }),
+        folder('holder', [request('moved', { uid: dupUid })])
+      ]);
+      const rows = flatten([loaded(c)]);
+      const dupRows = rows.filter((r) => r.itemUid === dupUid);
+      expect(dupRows).toHaveLength(2);
+      expect(dupRows[0].id).not.toBe(dupRows[1].id);
+    });
+  });
 });
 
 describe('ancestry attributes', () => {
