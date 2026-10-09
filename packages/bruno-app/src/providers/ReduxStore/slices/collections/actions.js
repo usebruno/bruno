@@ -267,35 +267,6 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
   });
 };
 
-export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionCopy = cloneDeep(collection);
-
-    // Transform collection root (uses draft if exists)
-    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-    const { ipcRenderer } = window;
-
-    ipcRenderer
-      .invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
-      .then(() => {
-        toast.success('Collection Settings saved successfully');
-        dispatch(saveCollectionDraft({ collectionUid }));
-      })
-      .then(resolve)
-      .catch((err) => {
-        toast.error('Failed to save collection settings!');
-        reject(err);
-      });
-  });
-};
-
 export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -375,43 +346,44 @@ export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dis
   });
 };
 
-export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState) => {
-  const state = getState();
-  const { collections } = state.collections;
+export const saveMultipleCollections = (collectionDrafts) => async (dispatch, getState) => {
+  const { collections } = getState().collections;
+  const { ipcRenderer } = window;
 
-  return new Promise((resolve, reject) => {
-    const savePromises = [];
+  try {
+    await Promise.all(
+      collectionDrafts.map(async ({ collectionUid }) => {
+        const collection = findCollectionByUid(collections, collectionUid);
+        if (!collection) return;
 
-    each(collectionDrafts, (collectionDraft) => {
-      const collection = findCollectionByUid(collections, collectionDraft.collectionUid);
-      if (collection) {
-        const collectionCopy = cloneDeep(collection);
-        const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-        const { ipcRenderer } = window;
+        const collectionRootToSave = transformCollectionRootToSave(collection);
+        const brunoConfigToSave = collection.draft?.brunoConfig;
 
-        const collectionSavePromises = [
-          ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
-        ];
+        // In yml both calls rewrite the single opencollection.yml (root + config), unlike bru where they
+        // write collection.bru and bruno.json. Pass the same draft-aware data to both and await sequentially.
+        await ipcRenderer.invoke(
+          'renderer:save-collection-root',
+          collection.pathname,
+          collectionRootToSave,
+          brunoConfigToSave || collection.brunoConfig
+        );
 
-        if (collectionCopy.draft?.brunoConfig) {
-          collectionSavePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionCopy.root));
+        if (brunoConfigToSave) {
+          await ipcRenderer.invoke(
+            'renderer:update-bruno-config',
+            brunoConfigToSave,
+            collection.pathname,
+            collectionRootToSave
+          );
         }
 
-        savePromises.push(
-          Promise.all(collectionSavePromises).then(() => {
-            dispatch(saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
-          })
-        );
-      }
-    });
-
-    Promise.all(savePromises)
-      .then(() => resolve())
-      .catch((err) => {
-        toast.error('Failed to save collection settings!');
-        reject(err);
-      });
-  });
+        dispatch(saveCollectionDraft({ collectionUid }));
+      })
+    );
+  } catch (err) {
+    toast.error('Failed to save collection settings!');
+    throw err;
+  }
 };
 
 export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
@@ -2432,7 +2404,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Save collection root to persist the changes
-          return dispatch(saveCollectionRoot(collectionUid))
+          return dispatch(saveCollectionSettings(collectionUid))
             .then(resolve)
             .catch(reject);
         }
@@ -2833,45 +2805,43 @@ export const exportCollectionToPostman = (location, fileName, content, overwrite
   });
 };
 
-export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => async (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
 
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
+  const { ipcRenderer } = window;
+  const collectionRootToSave = transformCollectionRootToSave(collection);
+  const brunoConfigToSave = brunoConfig || collection.draft?.brunoConfig;
 
-    const collectionCopy = cloneDeep(collection);
+  try {
+    // In yml both calls rewrite the single opencollection.yml (root + config), unlike bru where they
+    // write collection.bru and bruno.json. Pass the same draft-aware data to both and await sequentially.
+    await ipcRenderer.invoke(
+      'renderer:save-collection-root',
+      collection.pathname,
+      collectionRootToSave,
+      brunoConfigToSave || collection.brunoConfig
+    );
 
-    // Transform collection root (uses draft if exists)
-    const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
-    const { ipcRenderer } = window;
-
-    const savePromises = [];
-
-    // Save collection.bru file
-    savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
-
-    // Save bruno.json if brunoConfig is provided or if there's a brunoConfig draft
-    const brunoConfigToSave = brunoConfig || (collectionCopy.draft && collectionCopy.draft.brunoConfig);
     if (brunoConfigToSave) {
-      savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', brunoConfigToSave, collectionCopy.pathname, collectionCopy.root));
+      await ipcRenderer.invoke(
+        'renderer:update-bruno-config',
+        brunoConfigToSave,
+        collection.pathname,
+        collectionRootToSave
+      );
     }
 
-    Promise.all(savePromises)
-      .then(() => {
-        if (!silent) {
-          toast.success('Collection Settings saved successfully');
-        }
-        dispatch(saveCollectionDraft({ collectionUid }));
-      })
-      .then(resolve)
-      .catch((err) => {
-        toast.error('Failed to save collection settings!');
-        reject(err);
-      });
-  });
+    if (!silent) {
+      toast.success('Collection Settings saved successfully');
+    }
+    dispatch(saveCollectionDraft({ collectionUid }));
+  } catch (err) {
+    toast.error('Failed to save collection settings!');
+    throw err;
+  }
 };
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {

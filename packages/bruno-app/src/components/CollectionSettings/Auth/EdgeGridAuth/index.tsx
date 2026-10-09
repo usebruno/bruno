@@ -7,7 +7,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
@@ -78,7 +78,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ collection }) => {
       : get(collection, 'root.request.auth.akamaiEdgegrid')) || {};
   const { isSensitive } = useDetectSensitiveField(collection);
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
   const handleFieldChange = (field: EdgeGridField, value: string) => {
     const content: AkamaiEdgeGridAuthValues = {
