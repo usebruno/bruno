@@ -27,7 +27,7 @@ const InvalidFilesBadge = ({ count, collectionUid, rowUid, showOverviewLink = fa
 
   return (
     <StyledWrapper className="flex-shrink-0 mx-1">
-      <CountBadge variant="danger" className="invalid-files-count" data-tooltip-id={tooltipId} data-testid="invalid-files-badge">
+      <CountBadge variant="danger" className="invalid-files-count" data-tooltip-id={tooltipId} tabIndex={0} data-testid="invalid-files-badge">
         {count}
       </CountBadge>
       <span onClick={stopRowEvent} onContextMenu={stopRowEvent}>
