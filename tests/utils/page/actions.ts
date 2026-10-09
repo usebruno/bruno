@@ -3,6 +3,7 @@ import { collectionSlug } from '../../../packages/bruno-app/src/utils/collection
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
+import AdmZip from 'adm-zip';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
@@ -3167,8 +3168,8 @@ const generateCollectionDocs = async (
   });
 };
 
-const openExportToPostmanModal = async (page: Page, collectionName: string) => {
-  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+const openShareCollectionModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Share Collection for "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     await openCollection(page, collectionName);
@@ -3179,6 +3180,14 @@ const openExportToPostmanModal = async (page: Page, collectionName: string) => {
     await collectionAction.click();
     await locators.dropdown.item('Share').click();
     await expect(locators.modal.title('Share Collection')).toBeVisible();
+  });
+};
+
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openShareCollectionModal(page, collectionName);
 
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
@@ -3236,6 +3245,37 @@ const exportCollectionToPostman = async (
     await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   });
+};
+
+const exportCollectionAsZip = async (
+  page: Page,
+  electronApp: ElectronApplication,
+  collectionName: string,
+  outputDir: string
+) => {
+  const zipPath = path.join(outputDir, `${collectionName}.zip`);
+
+  await electronApp.evaluate(({ dialog }, filePath) => {
+    (dialog as any).__savedShowSaveDialog = dialog.showSaveDialog;
+    dialog.showSaveDialog = async () => ({ filePath, canceled: false });
+  }, zipPath);
+
+  try {
+    await openShareCollectionModal(page, collectionName);
+
+    return await test.step('Export as ZIP and read the written entries', async () => {
+      const locators = buildCommonLocators(page);
+      await locators.modal.button('Proceed').click();
+      await expect(locators.modal.title('Share Collection')).toBeHidden();
+      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      return new AdmZip(zipPath).getEntries().map((entry) => entry.entryName);
+    });
+  } finally {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = (dialog as any).__savedShowSaveDialog;
+      delete (dialog as any).__savedShowSaveDialog;
+    });
+  }
 };
 
 /**
@@ -4033,10 +4073,12 @@ export {
   LINK_CLICK_MODIFIER,
   openRequestInFolder,
   generateCollectionDocs,
+  openShareCollectionModal,
   openExportToPostmanModal,
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportCollectionAsZip,
   addTag,
   removeTag,
   saveFolderSettings,
