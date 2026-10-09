@@ -84,11 +84,7 @@ export const getProducedType = (node, registry) => {
 };
 
 /**
- * Finds every variable binding whose value the registry can type.
- *
- * A binding is tracked only when what it holds is certain: an uncertain one is dropped
- * rather than guessed, since a missed translation is visible in the output while a wrong
- * one silently changes what the script does.
+ * Finds every variable binding whose value the registry can type. An uncertain binding is dropped rather than guessed
  *
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift Collection

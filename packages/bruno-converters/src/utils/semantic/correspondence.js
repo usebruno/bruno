@@ -34,17 +34,14 @@ const RESPONSE = {
   postman: 'PostmanResponse',
   bruno: 'BrunoResponse',
 
-  // Postman's response object against Bruno's axios-shaped one. `code` holds the status
-  // number on Postman's and `status` the status text, which is why both shift by one name.
   members: [
+    // Postman's `code` is the status number and its `status` the status text, so both shift a name
     { pm: 'code', bru: 'status' },
     { pm: 'status', bru: 'statusText' },
 
-    // json()/text() are methods on the Postman response but an already-parsed property on
-    // Bruno's, so the call loses its parentheses one way and gains them back the other.
     { pm: 'json', bru: 'data', pmKind: 'method', bruKind: 'property' },
 
-    // `data` translates back to json(), so text() only has a way out, not a way back.
+    // `data` translates back to json(), so text() only has a way out
     {
       pm: 'text',
       bru: 'data',
@@ -69,8 +66,7 @@ const COOKIE_JAR = {
   members: [
     { pm: 'unset', bru: 'deleteCookie' },
 
-    // Postman's clear is url-scoped, which is what deleteCookies does. Bruno's own clear()
-    // takes no url and empties every domain, so it has no counterpart — see below.
+    // Postman's clear is url-scoped, which is what deleteCookies does; Bruno's own clear() is not
     { pm: 'clear', bru: 'deleteCookies' },
 
     {
@@ -103,12 +99,10 @@ const COOKIE_JAR = {
 };
 
 /**
- * Calls that bring a typed value into a script, and the types they hand to the functions
- * they are given. `yields` and the handler entries name a type *pair*, which `derive.js`
- * resolves to that side's type name.
- *
- * `bothSpellings` registers the call under its Postman *and* its Bruno path in both
- * registries: a script reaching this pass may already be partly translated.
+ * Calls that bring a typed value into a script. `yields` and the handler entries name a type
+ * *pair*, which `derive.js` resolves to that side's type name. `bothSpellings` registers the call
+ * under its Postman *and* its Bruno path in both registries, since a script reaching this pass
+ * may already be partly translated.
  */
 const ENTRY_POINTS = [
   {

@@ -6,9 +6,6 @@ import { getProducedType } from './type-environment';
  *
  *   const { code } = await pm.sendRequest(q)  ->  const { status: code } = await bru.sendRequest(q)
  *
- * No scope tracking is involved. The rename stays inside the pattern and the local names
- * are untouched, so every later reference keeps working without being visited at all.
- *
  * @param {Object} j - jscodeshift API
  * @param {Object} pattern - ObjectPattern node unpacking the typed value
  * @param {string} typeName - Registry type of the value being unpacked
@@ -18,11 +15,6 @@ export const rewritePattern = (j, pattern, typeName, registry) => {
   const members = registry.types[typeName];
   if (!members) return;
 
-  /**
-   * A rest element collects whatever the named properties leave behind, and those leftovers
-   * are the target API's members rather than the source's. Renaming its siblings would
-   * change which of them it receives, so the pattern is left whole.
-   */
   if (pattern.properties.some((property) => property.type === 'RestElement')) return;
 
   pattern.properties.forEach((property) => {
