@@ -8,10 +8,8 @@ import {
   saveEnvironment,
   closeEnvironmentPanel,
   setRequestUrlAndSave,
-  openSetAsVariableMenu,
   openSetAsVariablePopover,
-  selectVariableScope,
-  selectWordAndRightClick
+  selectVariableScope
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -120,7 +118,7 @@ test.describe('Set as variable', () => {
   });
 
   test('saves into the active collection environment', async ({ page, createTmpDir }) => {
-    const { sidebar, request, setAsVariable, environment } = buildCommonLocators(page);
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
 
     await test.step('Create a collection with an active environment', async () => {
       await createCollection(page, 'env-scope', await createTmpDir('env-scope'));

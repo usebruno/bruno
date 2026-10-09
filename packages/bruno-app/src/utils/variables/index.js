@@ -40,8 +40,6 @@ export const buildAddToScopes = ({ state, collection, item }) => {
 };
 
 export const buildScopeInfo = ({ scopeType, state, collection, item, secret = false }) => {
-  const { folderScopeTarget } = resolveFolderScopeTarget(collection, item);
-
   switch (scopeType) {
     case VARIABLE_ADD_SCOPES.COLLECTION:
       return { type: 'collection', value: '', data: { collection, variable: null } };
@@ -49,8 +47,10 @@ export const buildScopeInfo = ({ scopeType, state, collection, item, secret = fa
     case VARIABLE_ADD_SCOPES.REQUEST:
       return { type: 'request', value: '', data: { item, variable: null } };
 
-    case VARIABLE_ADD_SCOPES.FOLDER:
+    case VARIABLE_ADD_SCOPES.FOLDER: {
+      const { folderScopeTarget } = resolveFolderScopeTarget(collection, item);
       return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
+    }
 
     case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
       const freshCollection = findCollectionByUid(state?.collections?.collections, collection?.uid);

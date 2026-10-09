@@ -32,6 +32,8 @@ const DOUBLE_CLICK_RESET_MS = 600;
  * CodeMirror's own `resetSelectionOnContextMenu`), so both events must share coordinates.
  */
 const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12) => {
+  await expect(target).toBeVisible();
+
   const box = await target.boundingBox();
   if (!box) {
     throw new Error('Cannot select text: target has no bounding box');

@@ -14,8 +14,7 @@ import {
   isVariableSecret,
   getAllVariables,
   findCollectionByUid,
-  findItemInCollectionByItemUid,
-  findParentItemInCollection
+  findItemInCollectionByItemUid
 } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import {
@@ -715,17 +714,6 @@ export const renderVarInfo = (token, options) => {
 
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
     };
-
-    // Only the request/folder's direct containing folder is offered as a creatable scope. not
-    // any ancestor further up the tree.
-    const isInFolderSettings = !!(item && item.type === 'folder');
-    const parentFolder = item && !isInFolderSettings && collection
-      ? findParentItemInCollection(collection, item.uid)
-      : null;
-
-    // When the tooltip is opened from folder settings itself, the "Folder" scope should target
-    // that folder directly (labeled "Folder"), not an ancestor.
-    const folderScopeTarget = isInFolderSettings ? item : parentFolder;
 
     // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
     if (isNewVariable) {
