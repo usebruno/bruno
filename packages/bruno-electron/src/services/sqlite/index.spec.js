@@ -35,7 +35,9 @@ describe('sqlite service', () => {
       .map((file) => fs.readFileSync(file).toString('latin1'))
       .join('');
 
-  const storeSecret = () => sqlite.getFiles().write(JSON.stringify({ headers: { authorization: SECRET } }));
+  const storeSecret = (secret = SECRET) => sqlite.getFiles().write(JSON.stringify({ headers: { authorization: secret } }));
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   it('leaves deleted bytes on disk without secure delete', async () => {
     const { id } = await storeSecret();
@@ -54,16 +56,20 @@ describe('sqlite service', () => {
     expect(fs.statSync(path.join(mockUserData, 'bruno.db-wal')).size).toBe(0);
   });
 
-  it('keeps secure delete on until the outermost scrub finishes', async () => {
-    const first = await storeSecret();
-    const second = await storeSecret();
+  it('keeps secure delete on while another clear is still running', async () => {
+    const quick = await storeSecret('Bearer quick-clear-token');
+    const slow = await storeSecret('Bearer slow-clear-token');
 
-    await sqlite.withSecureDelete(async () => {
-      await sqlite.withSecureDelete(() => sqlite.getFiles().remove(first.id));
-      await sqlite.getFiles().remove(second.id);
-    });
+    await Promise.all([
+      sqlite.withSecureDelete(() => sqlite.getFiles().remove(quick.id)),
+      sqlite.withSecureDelete(async () => {
+        await sleep(20);
+        await sqlite.getFiles().remove(slow.id);
+      })
+    ]);
 
-    expect(databaseBytes()).not.toContain(SECRET);
+    expect(databaseBytes()).not.toContain('Bearer quick-clear-token');
+    expect(databaseBytes()).not.toContain('Bearer slow-clear-token');
   });
 
   it('returns what the callback returns', async () => {
