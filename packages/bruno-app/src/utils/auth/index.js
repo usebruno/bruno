@@ -5,21 +5,29 @@ import {
 import { AUTH_MODES } from 'utils/common/constants';
 
 // Resolve inherited auth by traversing up the folder hierarchy
-export const resolveInheritedAuth = (item, collection) => {
+export const resolveInheritedAuth = (item, collection, scanContext = null) => {
+  if (scanContext?.inheritedAuthByItemUid?.has(item.uid)) {
+    return scanContext.inheritedAuthByItemUid.get(item.uid);
+  }
+
   const mergedRequest = {
     ...(item.request || {}),
     ...(item.draft?.request || {})
   };
 
-  const authMode = mergedRequest.auth.mode;
+  const authMode = mergedRequest.auth?.mode;
 
   // If auth is not inherit or no auth defined, return the merged request as is
   if (!authMode || authMode !== 'inherit') {
+    if (scanContext?.inheritedAuthByItemUid) {
+      scanContext.inheritedAuthByItemUid.set(item.uid, mergedRequest);
+    }
     return mergedRequest;
   }
 
   // Get the tree path from collection to item
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  const requestTreePath = scanContext?.treePathsByItemUid?.get(item.uid)
+    ?? getTreePathFromCollectionToItem(collection, item);
 
   // Default to collection auth
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -38,10 +46,16 @@ export const resolveInheritedAuth = (item, collection) => {
     }
   }
 
-  return {
+  const resolvedRequest = {
     ...mergedRequest,
     auth: effectiveAuth
   };
+
+  if (scanContext?.inheritedAuthByItemUid) {
+    scanContext.inheritedAuthByItemUid.set(item.uid, resolvedRequest);
+  }
+
+  return resolvedRequest;
 };
 
 export const getEffectiveAuthSource = (collection, item) => {
