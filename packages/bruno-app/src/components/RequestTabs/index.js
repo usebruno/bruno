@@ -12,8 +12,10 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const RequestTabs = () => {
+  useRenderProbe('RequestTabs');
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const scrollContainerRef = useRef();

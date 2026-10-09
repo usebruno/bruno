@@ -40,8 +40,10 @@ import SidebarSection from 'components/Sidebar/SidebarSection';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import useKeybinding from 'hooks/useKeybinding';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const CollectionsSection = () => {
+  useRenderProbe('CollectionsSection');
   const dispatch = useDispatch();
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 

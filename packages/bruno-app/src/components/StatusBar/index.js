@@ -13,8 +13,10 @@ import { openConsole } from 'providers/ReduxStore/slices/logs';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useApp } from 'providers/App';
 import StyledWrapper from './StyledWrapper';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const StatusBar = () => {
+  useRenderProbe('StatusBar');
   const dispatch = useDispatch();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);

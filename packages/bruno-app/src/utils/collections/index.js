@@ -12,6 +12,7 @@ import {
   getInheritedTagSourcesFromTreePath
 } from '@usebruno/common';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { profiled } from 'utils/profiler';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
@@ -54,7 +55,7 @@ export const sortItems = (collection) => {
   sort(collection);
 };
 
-export const flattenItems = (items = []) => {
+export const flattenItems = profiled('flattenItems', (items = []) => {
   const flattenedItems = [];
 
   const flatten = (itms, flattened) => {
@@ -70,7 +71,7 @@ export const flattenItems = (items = []) => {
   flatten(items, flattenedItems);
 
   return flattenedItems;
-};
+});
 
 export const findItem = (items = [], itemUid) => {
   return find(items, (i) => i.uid === itemUid);
@@ -84,21 +85,21 @@ export const findCollectionByPathname = (collections, pathname) => {
   return find(collections, (c) => c.pathname === pathname);
 };
 
-export const findCollectionByItemUid = (collections, itemUid) => {
+export const findCollectionByItemUid = profiled('findCollectionByItemUid', (collections, itemUid) => {
   return find(collections, (c) => {
     return findItemInCollection(c, itemUid);
   });
-};
+});
 
 export const findItemByPathname = (items = [], pathname) => {
   return find(items, (i) => i.pathname === pathname);
 };
 
-export const findItemInCollectionByPathname = (collection, pathname) => {
+export const findItemInCollectionByPathname = profiled('findItemInCollectionByPathname', (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
-};
+});
 
 export const findItemInCollectionByItemUid = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
@@ -113,22 +114,22 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
   });
 };
 
-export const findItemInCollection = (collection, itemUid) => {
+export const findItemInCollection = profiled('findItemInCollection', (collection, itemUid) => {
   if (!collection || !collection.items) {
     return null;
   }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
-};
+});
 
-export const findParentItemInCollection = (collection, itemUid) => {
+export const findParentItemInCollection = profiled('findParentItemInCollection', (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.uid === itemUid);
   });
-};
+});
 
 export const recursivelyGetAllItemUids = (items = []) => {
   let flattenedItems = flattenItems(items);
@@ -1118,7 +1119,7 @@ export const deleteUidsInItem = (item) => {
   return item;
 };
 
-export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
+export const areItemsTheSameExceptSeqUpdate = profiled('areItemsTheSameExceptSeqUpdate', (_item1, _item2) => {
   let item1 = cloneDeep(_item1);
   let item2 = cloneDeep(_item2);
 
@@ -1145,14 +1146,14 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   deleteUidsInItem(item2);
 
   return isEqual(item1, item2);
-};
+});
 
 /**
  * Check if a request has actual changes (excluding examples)
  * This function compares the request data between the original item and its draft,
  * but excludes examples from the comparison to determine if the save dot should be shown
  */
-export const hasRequestChanges = (item) => {
+export const hasRequestChanges = profiled('hasRequestChanges', (item) => {
   if (!item || !item.draft) {
     return false;
   }
@@ -1169,7 +1170,7 @@ export const hasRequestChanges = (item) => {
   delete draftItem.unresolvedVariables;
 
   return !isEqual(originalItem, draftItem);
-};
+});
 
 /**
  * Check if a specific example has unsaved changes
@@ -1312,7 +1313,7 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection, item) => {
+export const getAllVariables = profiled('getAllVariables', (collection, item) => {
   if (!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
@@ -1373,10 +1374,10 @@ export const getAllVariables = (collection, item) => {
       }
     }
   };
-};
+});
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+export const mergeHeaders = profiled('mergeHeaders', (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
@@ -1422,7 +1423,7 @@ export const mergeHeaders = (collection, request, requestTreePath, options = {})
     ...Array.from(headers.values()),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
   ];
-};
+});
 
 export const maskInputValue = (value) => {
   if (!value || typeof value !== 'string') {
@@ -1435,7 +1436,7 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-export const getTreePathFromCollectionToItem = (collection, _item) => {
+export const getTreePathFromCollectionToItem = profiled('getTreePathFromCollectionToItem', (collection, _item) => {
   if (!_item?.uid) return [];
 
   let path = [];
@@ -1445,7 +1446,7 @@ export const getTreePathFromCollectionToItem = (collection, _item) => {
     item = findParentItemInCollection(collection, item?.uid);
   }
   return path;
-};
+});
 
 const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
@@ -2080,7 +2081,7 @@ const buildExampleOwnerIndex = (collections) => {
   return index;
 };
 
-export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+export const getSelectionInfo = profiled('getSelectionInfo', ({ collections = [], selectedUids = [] }) => {
   let exampleOwnerIndex = null;
 
   const resolved = selectedUids
@@ -2151,7 +2152,7 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasApp: effectiveSelection.some((e) => e.type === 'app'),
     hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
-};
+});
 
 /**
  * Extracts and categorizes all drafts (collections, folders, requests, transient) from a list of collections.
