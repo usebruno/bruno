@@ -26,7 +26,6 @@ const RequestTabs = () => {
   const activeCollection = useSelector((state) => selectCollectionByUid(state, activeTab?.collectionUid));
   const selectTabsForCollection = useMemo(makeSelectTabsForCollection, []);
   const collectionRequestTabs = useSelector((state) => selectTabsForCollection(state, activeTab?.collectionUid));
-  const totalTabsCount = useSelector((state) => state.tabs.tabs.length);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
@@ -74,10 +73,9 @@ const RequestTabs = () => {
     activeTabElement.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [activeTabUid]);
 
-  const getTabClassname = (tab, index) => {
+  const getTabClassname = (tab) => {
     return classnames('request-tab select-none', {
       'active': tab.uid === activeTabUid,
-      'last-tab': totalTabsCount && index === totalTabsCount - 1,
       'has-overflow': tabOverflowStates[tab.uid]
     });
   };
@@ -152,7 +150,7 @@ const RequestTabs = () => {
                               targetUid: target
                             }));
                           }}
-                          className={getTabClassname(tab, index)}
+                          className={getTabClassname(tab)}
                           active={tab.uid === activeTabUid}
                           onClick={() => handleClick(tab)}
                         >
