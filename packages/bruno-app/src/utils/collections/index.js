@@ -944,6 +944,17 @@ export const getCollectionItemCounts = (items = []) => {
 };
 
 /**
+ * Counts the files that failed to parse in a collection's or folder's item tree,
+ * recursively at every depth. Transient items are skipped since the sidebar doesn't show them.
+ *
+ * @param {Array} items - The collection's or folder's `items` tree.
+ * @returns {number}
+ */
+export const countInvalidItems = (items = []) => {
+  return flattenItems(items).filter((item) => item.error && !item.isTransient).length;
+};
+
+/**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
  * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
  * requests by `seq`. The same ordering is applied recursively to every nested folder
