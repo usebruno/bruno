@@ -5,7 +5,6 @@ const { getWorkspaceApiSpecs, validateWorkspacePath } = require('../../utils/wor
 const mockServer = require('../../app/mock-server/mock-server');
 const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
-  appendMockResponses,
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
@@ -20,12 +19,24 @@ const {
 const getResponses = (location) => listMockResponses(location);
 
 const parseSpecContent = (content) => {
+  let spec;
   try {
-    return JSON.parse(content);
+    spec = JSON.parse(content);
   } catch {
     const yaml = require('js-yaml');
-    return yaml.load(content);
+    try {
+      spec = yaml.load(content);
+    } catch (err) {
+      throw new Error(`Invalid API spec: ${err.reason || err.message}`);
+    }
   }
+
+  // YAML happily parses most text into a scalar; without a paths map there is nothing to mock.
+  if (!spec || typeof spec !== 'object' || !spec.paths || typeof spec.paths !== 'object') {
+    throw new Error('Invalid API spec: no paths found.');
+  }
+
+  return spec;
 };
 
 const readWorkspaceSpec = (workspacePath, specPath) => {
@@ -295,26 +306,12 @@ const registerMockServerIpc = (mainWindow) => {
       const {
         specPath,
         generateFromSchema = false,
-        persist = false,
-        workspacePath,
-        ...location
+        workspacePath
       } = payload;
 
-      const spec = readWorkspaceSpec(workspacePath || location.workspacePath, specPath);
-      const generatedResponses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
-
-      if (!persist) {
-        return { success: true, responses: generatedResponses };
-      }
-
-      const createdResponses = appendMockResponses({ ...location, workspacePath }, generatedResponses);
-      await mockServer.reloadRoutesFromStore(location.mockServerUid, { ...location, workspacePath });
-
-      return {
-        success: true,
-        createdCount: createdResponses.length,
-        responses: listMockResponses({ ...location, workspacePath })
-      };
+      const spec = readWorkspaceSpec(workspacePath, specPath);
+      const responses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
+      return { success: true, responses };
     } catch (err) {
       return { success: false, error: err.message };
     }

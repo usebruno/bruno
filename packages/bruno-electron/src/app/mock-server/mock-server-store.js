@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const { parseMockServer, stringifyMockServer } = require('@usebruno/filestore');
-const { getMockResponseRouteKey } = require('@usebruno/common').utils;
 const { generateUidBasedOnHash } = require('../../utils/common');
 const { sanitizeName, validateName } = require('../../utils/filesystem');
 
@@ -395,31 +394,7 @@ const cloneMockServerResponses = (sourceLocation, targetLocation) => {
   return setMockServerResponses(targetLocation, clonedResponses);
 };
 
-const appendMockResponses = (location, responses = []) => {
-  const entry = getEntryByLocation(location);
-  const nextRoutes = [...entry.data.routes];
-  const existingKeys = new Set(nextRoutes.map((route) => getMockResponseRouteKey(route)));
-  const createdIndexes = [];
-
-  for (const response of responses) {
-    const routeKey = getMockResponseRouteKey(response);
-    if (existingKeys.has(routeKey)) {
-      continue;
-    }
-
-    createdIndexes.push(nextRoutes.length);
-    nextRoutes.push(response);
-    existingKeys.add(routeKey);
-  }
-
-  // withRouteUids maps routes 1:1 in order, so indexes stay valid.
-  entry.data.routes = withRouteUids(entry.pathname, nextRoutes);
-  writeMockServerFile(entry);
-  return createdIndexes.map((index) => entry.data.routes[index]);
-};
-
 module.exports = {
-  appendMockResponses,
   cloneMockServerResponses,
   createEmptyMockResponse,
   deleteMockResponse,
