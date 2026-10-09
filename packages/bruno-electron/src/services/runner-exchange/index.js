@@ -1,6 +1,6 @@
 const { copyFile, writeFile } = require('node:fs/promises');
 const { safeParseJSON, safeStringifyJSON, parseDataFromResponse } = require('../../utils/common');
-const { getStatements, getFiles } = require('../sqlite');
+const { getStatements, getFiles, withSecureDelete } = require('../sqlite');
 
 const JSON_CONTENT_TYPE = 'application/json';
 const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
@@ -43,6 +43,7 @@ const storeRunnerExchange = async ({
     getStatements().execute('upsert_runner_response', {
       request_uid: requestUid,
       collection_uid: eventData.collectionUid,
+      iteration_index: eventData.iterationIndex ?? 0,
       request_file_id: requestFileId,
       response_file_id: responseFileId,
       body_file_id: bodyFileId
@@ -111,17 +112,19 @@ const removeStoredFiles = (rows) => {
   return Promise.all(ids.map((id) => getFiles().remove(id)));
 };
 
-const clearRunnerResponses = async (collectionUid) => {
-  const rows = getStatements().execute('list_runner_response_files_for_collection', { collection_uid: collectionUid });
-  getStatements().execute('delete_runner_responses_for_collection', { collection_uid: collectionUid });
-  await removeStoredFiles(rows);
-};
+const clearRunnerResponses = (collectionUid) =>
+  withSecureDelete(async () => {
+    const rows = getStatements().execute('list_runner_response_files_for_collection', { collection_uid: collectionUid });
+    getStatements().execute('delete_runner_responses_for_collection', { collection_uid: collectionUid });
+    await removeStoredFiles(rows);
+  });
 
-const clearAllRunnerResponses = async () => {
-  const rows = getStatements().execute('list_runner_response_files');
-  getStatements().execute('delete_runner_responses');
-  await removeStoredFiles(rows);
-};
+const clearAllRunnerResponses = () =>
+  withSecureDelete(async () => {
+    const rows = getStatements().execute('list_runner_response_files');
+    getStatements().execute('delete_runner_responses');
+    await removeStoredFiles(rows);
+  });
 
 module.exports = {
   MAX_RENDERABLE_RESPONSE_BYTES,
