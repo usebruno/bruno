@@ -14,7 +14,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, disabled }) =>
 
   const basicAuth = get(request, 'auth.basic', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(basicAuth?.password);
+  const { showWarning, warningMessage } = isSensitive(basicAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
