@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as path from 'path';
-import { closeAllCollections, importCollection } from '../../utils/page';
+import { closeAllCollections, exportCollectionAsZip, importCollection, openCollectionFromDialog } from '../../utils/page';
 
 const COLLECTION_NAME = 'Zip Git Metadata';
 
@@ -12,8 +12,14 @@ const GIT_METADATA_FILES = [
   { relativePath: 'orders/.GIT/config', content: '[core]' }
 ];
 
-const addGitMetadata = (collectionDir: string) => {
-  for (const { relativePath, content, mode } of GIT_METADATA_FILES) {
+const GIT_METADATA_DIRECTORIES = [
+  { relativePath: '.git/HEAD', content: 'ref: refs/heads/main' },
+  { relativePath: 'orders/.GIT/config', content: '[core]' },
+  { relativePath: 'payments/.Git/HEAD', content: 'ref: refs/heads/main' }
+];
+
+const addGitMetadata = (collectionDir: string, files = GIT_METADATA_FILES) => {
+  for (const { relativePath, content, mode } of files) {
     const filePath = path.join(collectionDir, relativePath);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, content, { mode });
@@ -57,6 +63,31 @@ test.describe('Collection ZIP import leaves out git metadata', () => {
 
       expect(importedFiles).toEqual(expect.arrayContaining(['opencollection.yml', 'users/get-user.yml']));
       expect(importedFiles.filter(hasGitSegment)).toEqual([]);
+    });
+  });
+});
+
+test.describe('Collection ZIP export leaves out git metadata', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('exporting a collection leaves out .git directories in any letter case', async ({
+    page,
+    electronApp,
+    collectionFixturePath,
+    createTmpDir
+  }) => {
+    const collectionDir = collectionFixturePath!;
+    const outputDir = await createTmpDir('zip-git-export-output');
+
+    addGitMetadata(collectionDir, GIT_METADATA_DIRECTORIES);
+    await openCollectionFromDialog(page, electronApp, collectionDir);
+    const zippedFiles = await exportCollectionAsZip(page, electronApp, COLLECTION_NAME, outputDir);
+
+    await test.step('The ZIP keeps the collection files and has no .git anywhere', async () => {
+      expect(zippedFiles).toEqual(expect.arrayContaining(['opencollection.yml', 'users/get-user.yml']));
+      expect(zippedFiles.filter(hasGitSegment)).toEqual([]);
     });
   });
 });
