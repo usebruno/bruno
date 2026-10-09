@@ -21,6 +21,7 @@ import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const fileBasename = (filePath) =>
   filePath ? path.basename(normalizePath(String(filePath))) : '';
@@ -200,6 +201,7 @@ const MultipartFormParams = ({ item, collection }) => {
                 collection={collection}
                 item={item}
                 placeholder={!value ? 'Value' : ''}
+                variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
               />
             </div>
             <button
@@ -228,6 +230,7 @@ const MultipartFormParams = ({ item, collection }) => {
           onChange={onChange}
           onRun={handleRun}
           collection={collection}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     },

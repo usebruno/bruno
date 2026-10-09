@@ -1,5 +1,8 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { GRPC_API_HINTS } from 'utils/codemirror/grpcAutocompleteHints';
+import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_LABEL } from 'utils/common/constants';
+import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
+import { SCOPE_ICON_COLOR_CLASS } from 'utils/codemirror/autocompleteScopes';
 
 const CodeMirror = require('codemirror');
 
@@ -197,7 +200,55 @@ const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 // would otherwise match `( ) % & ' * + ,`
 const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
+const SINGLE_BRACE_PATTERN = /\{$/;
+
+/**
+ * @param {Object} [options] - setupAutoComplete options
+ * @returns {string} The field's AUTOCOMPLETE_TRIGGER mode. Callers that don't pass one (code editors,
+ *   the variable popover) get `{{` only, never the single-`{` trigger.
+ */
+const getTriggerMode = (options = {}) => options.variableAutocomplete || AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE;
+// Rest of a variable name that sits after the cursor, e.g. `i.host` in `{{my.ap|i.host}}`
+const NAME_TAIL_PATTERN = /^[\w$.-]*/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
+
+const VARIABLE_SCOPE_DISPLAY_ORDER = [
+  AUTOCOMPLETE_SCOPES.GLOBAL,
+  AUTOCOMPLETE_SCOPES.COLLECTION,
+  AUTOCOMPLETE_SCOPES.ENVIRONMENT,
+  AUTOCOMPLETE_SCOPES.FOLDER,
+  AUTOCOMPLETE_SCOPES.REQUEST,
+  AUTOCOMPLETE_SCOPES.RUNTIME,
+  AUTOCOMPLETE_SCOPES.PROCESS_ENV,
+  AUTOCOMPLETE_SCOPES.DYNAMIC,
+  AUTOCOMPLETE_SCOPES.OAUTH2
+];
+
+/**
+ * Rank a variable's scope for display grouping, per VARIABLE_SCOPE_DISPLAY_ORDER.
+ * @param {string} [scope]
+ * @returns {number}
+ */
+const getVariableScopeRank = (scope) => {
+  const index = VARIABLE_SCOPE_DISPLAY_ORDER.indexOf(scope);
+  return index === -1 ? VARIABLE_SCOPE_DISPLAY_ORDER.length : index;
+};
+
+/**
+ * Compare two hints for display ordering: group by scope first (per
+ * VARIABLE_SCOPE_DISPLAY_ORDER), then alphabetically within the same scope.
+ * @param {string} a
+ * @param {string} b
+ * @param {Object} [variableScopes] - name -> scope map
+ * @returns {number}
+ */
+const compareHintsByScope = (a, b, variableScopes = {}) => {
+  const rankDifference = getVariableScopeRank(variableScopes[a]) - getVariableScopeRank(variableScopes[b]);
+  if (rankDifference !== 0) {
+    return rankDifference;
+  }
+  return a.localeCompare(b);
+};
 
 /**
  * Generate progressive hints for a given full hint
@@ -225,6 +276,13 @@ const shouldSkipVariableKey = (key) => {
 };
 
 /**
+ * True for any path inside the process.env tree: `process`, `process.env`, `process.env.FOO`.
+ * @param {string} hint
+ * @returns {boolean}
+ */
+const isProcessEnvPath = (hint) => hint === 'process' || hint.startsWith('process.env');
+
+/**
  * Transform variables object into flat hint list
  * @param {Object} allVariables - All available variables
  * @returns {string[]} Array of variable hints
@@ -250,6 +308,27 @@ const transformVariablesToHints = (allVariables = {}) => {
 };
 
 /**
+ * Transforms the scope-tagged variable list into a flat list with name to scope map
+ *
+ * @param {Array<{name: string, scope?: string}>} scopedVariables - Available variables
+ * @returns {{hints: string[], scopes: Object}} Hint names, and a name to scope map
+ */
+const transformScopedVariablesToHints = (scopedVariables = []) => {
+  const hints = [];
+  const scopes = {};
+
+  scopedVariables.forEach(({ name, scope } = {}) => {
+    if (!name) return;
+    hints.push(name);
+    if (scope) {
+      scopes[name] = scope;
+    }
+  });
+
+  return { hints, scopes };
+};
+
+/**
  * Add API hints to categorized hints based on showHintsFor configuration
  * @param {Set} apiHints - Set to add API hints to
  * @param {string[]} showHintsFor - Array of hint groups to show
@@ -267,17 +346,31 @@ const addApiHintsToSet = (apiHints, showHintsFor) => {
 /**
  * Add variable hints to categorized hints
  * @param {Set} variableHints - Set to add variable hints to
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array} allVariables - All available variables: object (brunoVarInfo.js's inline variable-value editor) or array (the editor components where we need scope also)
+ * @param {Object} variableScopes - Map to populate with name -> scope, for icon rendering
  */
-const addVariableHintsToSet = (variableHints, allVariables) => {
-  // Add mock data hints
+const addVariableHintsToSet = (variableHints, allVariables, variableScopes = {}) => {
   MOCK_DATA_HINTS.forEach((hint) => {
+    variableScopes[hint] = AUTOCOMPLETE_SCOPES.DYNAMIC;
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 
-  // Add variable hints with progressive hints
-  const variableHintsList = transformVariablesToHints(allVariables);
-  variableHintsList.forEach((hint) => {
+  if (Array.isArray(allVariables)) {
+    const scoped = transformScopedVariablesToHints(allVariables);
+    Object.assign(variableScopes, scoped.scopes);
+
+    scoped.hints.forEach((hint) => {
+      // split into prefixes only for process.env, so that atomic variables like `api.host` are not truncated to `api`
+      if (scoped.scopes[hint] === AUTOCOMPLETE_SCOPES.PROCESS_ENV) {
+        generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
+      } else {
+        variableHints.add(hint);
+      }
+    });
+    return;
+  }
+
+  transformVariablesToHints(allVariables).forEach((hint) => {
     generateProgressiveHints(hint).forEach((h) => variableHints.add(h));
   });
 };
@@ -297,10 +390,10 @@ const addCustomHintsToSet = (anywordHints, customHints) => {
 
 /**
  * Build categorized hints list from all sources
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array} allVariables - All available variables: object (brunoVarInfo.js's inline variable-value editor) or array (the editor components where we need scope also)
  * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
- * @returns {Object} Categorized hints object
+ * @returns {Object} Categorized hints object, including a variableScopes name -> scope map
  */
 const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints = [], options = {}) => {
   const categorizedHints = {
@@ -308,18 +401,20 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
     variables: new Set(),
     anyword: new Set()
   };
+  const variableScopes = {};
 
   const showHintsFor = options.showHintsFor || [];
 
   // Add different types of hints
   addApiHintsToSet(categorizedHints.api, showHintsFor);
-  addVariableHintsToSet(categorizedHints.variables, allVariables);
+  addVariableHintsToSet(categorizedHints.variables, allVariables, variableScopes);
   addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
 
   return {
     api: Array.from(categorizedHints.api).sort(),
     variables: Array.from(categorizedHints.variables).sort(),
-    anyword: Array.from(categorizedHints.anyword).sort()
+    anyword: Array.from(categorizedHints.anyword).sort(),
+    variableScopes
   };
 };
 
@@ -348,6 +443,28 @@ const calculateVariableReplacementPositions = (cursor, startPos, wordMatch) => {
   }
 
   return { replaceFrom, replaceTo };
+};
+
+/**
+ * @param {string} textAfterCursor - The line's content starting at the insertion point
+ * @returns {number} Number of closing `}` characters still needed (0, 1, or 2)
+ */
+const countMissingClosingBraces = (textAfterCursor) => {
+  const existingCloseBraces = (textAfterCursor || '').match(/^\}{0,2}/)[0].length;
+  return Math.max(0, 2 - existingCloseBraces);
+};
+
+/**
+ * Builds the variable insertion text, adding only the closing braces that are missing.
+ * @param {string} textAfterCursor - The line's content starting at the cursor, i.e.
+ *   whatever (if anything) already follows where the completion is being inserted
+ * @param {string} name - The variable name to insert
+ * @returns {string} Text to insert right after the `{` that triggered the completion (which stays); it starts with the second `{`
+ */
+const calculateSingleBraceInsertText = (textAfterCursor, name) => {
+  const closersToAdd = countMissingClosingBraces(textAfterCursor);
+
+  return `{${name}${'}'.repeat(closersToAdd)}`;
 };
 
 /**
@@ -426,9 +543,12 @@ const extractWordFromLine = (currentLine, cursorPosition) => {
 /**
  * Get current word being typed at cursor position with context information
  * @param {Object} cm - CodeMirror instance
+ * @param {Object} options - Configuration options. options.variableAutocomplete (an
+ *   AUTOCOMPLETE_TRIGGER value) gates the single-`{` trigger check below: only fields in
+ *   SINGLE_BRACE mode get it.
  * @returns {Object|null} Word information with context or null
  */
-const getCurrentWordWithContext = (cm) => {
+const getCurrentWordWithContext = (cm, options = {}) => {
   const cursor = cm.getCursor();
   const currentLine = cm.getLine(cursor.line);
   const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
@@ -437,6 +557,13 @@ const getCurrentWordWithContext = (cm) => {
   const variableMatch = currentString.match(VARIABLE_PATTERN);
   if (variableMatch) {
     const wordMatch = variableMatch[1];
+
+    // Ignore 3+ consecutive "{" characters to prevent reopening the dropdown
+    // with an empty match.
+    if (wordMatch === '' && currentString.match(/\{+$/)[0].length > 2) {
+      return null;
+    }
+
     const startPos = { line: cursor.line, ch: currentString.lastIndexOf('{{') + 2 };
     const { replaceFrom, replaceTo } = calculateVariableReplacementPositions(cursor, startPos, wordMatch);
 
@@ -446,6 +573,18 @@ const getCurrentWordWithContext = (cm) => {
       to: replaceTo,
       context: 'variables',
       requiresBraces: true
+    };
+  }
+
+  // Check for the single-`{` trigger
+  if (getTriggerMode(options) === AUTOCOMPLETE_TRIGGER.SINGLE_BRACE && SINGLE_BRACE_PATTERN.test(currentString)) {
+    return {
+      word: '',
+      from: cursor,
+      to: cursor,
+      context: 'variables',
+      requiresBraces: true,
+      isSingleBrace: true
     };
   }
 
@@ -472,21 +611,42 @@ const getCurrentWordWithContext = (cm) => {
  * Extract next segment suggestions from filtered hints
  * @param {string[]} filteredHints - Pre-filtered hints
  * @param {string} currentInput - Current user input
+ * @param {Object} [variableScopes] - name -> scope map.
  * @returns {string[]} Array of suggestion segments
  */
-const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
+const extractNextSegmentSuggestions = (filteredHints, currentInput, variableScopes = {}) => {
   const prefixMatches = new Set();
   const substringMatches = new Set();
   const lowerInput = currentInput.toLowerCase();
 
+  // `process.env.*` names are split into bare segments (`process`, `env`, `FOO`) that have no entry in
+  // variableScopes, so remember their scope here to sort them under it (see compareHintsByScope).
+  const hasScopes = Object.keys(variableScopes).length > 0;
+  const segmentScopes = {};
+  const markProcessEnvSegment = (segment) => {
+    if (hasScopes) {
+      segmentScopes[segment] = AUTOCOMPLETE_SCOPES.PROCESS_ENV;
+    }
+  };
+
   filteredHints.forEach((hint) => {
     const lowerHint = hint.toLowerCase();
+    const scope = variableScopes[hint];
+    const isAtomicVariableName = !!scope && scope !== AUTOCOMPLETE_SCOPES.PROCESS_ENV;
+    const isProcessEnvHint = scope === AUTOCOMPLETE_SCOPES.PROCESS_ENV || (!scope && isProcessEnvPath(hint));
 
     // For prefix matches, use the original progressive logic
     if (lowerHint.startsWith(lowerInput)) {
+      if (isAtomicVariableName) {
+        prefixMatches.add(hint);
+        return;
+      }
+
       // Handle exact match case
       if (lowerHint === lowerInput) {
-        prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
+        const segment = hint.substring(hint.lastIndexOf('.') + 1);
+        prefixMatches.add(segment);
+        if (isProcessEnvHint) markProcessEnvSegment(segment);
         return;
       }
 
@@ -498,6 +658,7 @@ const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
         const nextDot = afterDot.indexOf('.');
         const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
         prefixMatches.add(segment);
+        if (isProcessEnvHint) markProcessEnvSegment(segment);
       } else {
         // Show complete current segment
         const lastDotInInput = currentInput.lastIndexOf('.');
@@ -508,29 +669,37 @@ const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
             ? hint.substring(currentSegmentStart)
             : hint.substring(currentSegmentStart, nextDotAfterInput);
         prefixMatches.add(segment);
+        if (isProcessEnvHint) markProcessEnvSegment(segment);
       }
     } else if (lowerHint.includes(lowerInput)) {
       // For substring matches (search within words), suggest the complete hint
       substringMatches.add(hint);
+      if (isProcessEnvHint) markProcessEnvSegment(hint);
     }
   });
 
   // Return prefix matches first, then substring matches
-  return [...Array.from(prefixMatches).sort(), ...Array.from(substringMatches).sort()];
+  // within each, group by scope and sort alphabetically within a scope.
+  const sortScopes = { ...segmentScopes, ...variableScopes };
+  return [
+    ...Array.from(prefixMatches).sort((a, b) => compareHintsByScope(a, b, sortScopes)),
+    ...Array.from(substringMatches).sort((a, b) => compareHintsByScope(a, b, sortScopes))
+  ];
 };
 
 /**
  * Extract the relevant part of hints based on user input
  * @param {string[]} filteredHints - Pre-filtered hints
  * @param {string} currentInput - Current user input
+ * @param {Object} [variableScopes] - name -> scope map
  * @returns {string[]} Array of hint parts
  */
-const getHintParts = (filteredHints, currentInput) => {
+const getHintParts = (filteredHints, currentInput, variableScopes = {}) => {
   if (!filteredHints || filteredHints.length === 0) {
     return [];
   }
 
-  return extractNextSegmentSuggestions(filteredHints, currentInput);
+  return extractNextSegmentSuggestions(filteredHints, currentInput, variableScopes);
 };
 
 /**
@@ -563,23 +732,107 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
  * @param {string} currentWord - Current word being typed
  * @param {string} context - Current context
  * @param {string[]} showHintsFor - Allowed hint types
+ * @param {Object} [options] - Filtering options
+ * @param {boolean} [options.allowEmptyWord] - When true, single `{` can trigger the hints
  * @returns {string[]} Filtered hints
  */
-const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = []) => {
-  if (!currentWord) {
+const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = [], { allowEmptyWord = false } = {}) => {
+  if (!currentWord && !allowEmptyWord) {
     return [];
   }
 
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
 
-  const lowerWord = currentWord.toLowerCase();
+  const word = currentWord || '';
+  const lowerWord = word.toLowerCase();
   const filtered = allowedHints.filter((hint) => {
     return hint.toLowerCase().includes(lowerWord);
   });
 
-  const hintParts = getHintParts(filtered, currentWord);
+  // Only the `variables` category ever has scope info
+  const atomicNameScopes = context === 'variables' ? categorizedHints.variableScopes || {} : {};
+  const hintParts = getHintParts(filtered, word, atomicNameScopes);
 
   return hintParts.slice(0, 50);
+};
+
+// truncate after this length
+const MAX_HINT_LABEL_CHARS = 46;
+
+/**
+ * @param {string} text - The full hint label
+ * @returns {string} `text` unchanged if it already fits, otherwise cut down
+ *   and suffixed with a literal "..." so a truncated name is unambiguous.
+ */
+const truncateHintLabel = (text) => {
+  if (!text || text.length <= MAX_HINT_LABEL_CHARS) {
+    return text;
+  }
+  return `${text.slice(0, MAX_HINT_LABEL_CHARS - 3)}...`;
+};
+
+/**
+ * @param {HTMLLIElement} li - hint's list item element, provided by CodeMirror
+ * @param {Object} self - show-hint widget instance (unused here)
+ * @param {Object} completion - hint object being rendered (text/displayText/scope)
+ */
+const renderVariableHint = (li, self, completion) => {
+  const icon = document.createElement('span');
+  const colorClass = SCOPE_ICON_COLOR_CLASS[completion.scope] || 'muted';
+  icon.className = `CodeMirror-hint-variable-icon CodeMirror-hint-variable-icon-${colorClass}`;
+  icon.setAttribute('data-testid', 'autocomplete-variable-icon');
+  icon.innerHTML = SCOPE_ICON[completion.scope] || '';
+
+  const fullName = completion.displayText;
+  const label = document.createElement('span');
+  label.className = 'CodeMirror-hint-variable-name';
+  label.setAttribute('data-testid', 'autocomplete-variable-name');
+  label.textContent = truncateHintLabel(fullName);
+  // Only when cut off: a title on the label would otherwise cover the row-level scope tooltip below.
+  if (label.textContent !== fullName) {
+    label.title = fullName;
+  }
+
+  li.innerHTML = '';
+  li.classList.add('CodeMirror-hint-variable');
+  li.setAttribute('data-testid', 'autocomplete-variable-item');
+  li.appendChild(icon);
+  li.appendChild(label);
+  li.title = SCOPE_LABEL[completion.scope] || '';
+};
+
+/**
+ * Creates an autocomplete hint for a segment of a `process.env` variable.
+ *
+ * Unlike other variable scopes, `process.env` is suggested one segment at a time:
+ * `process` -> `env` -> `FOO`.
+ *
+ * Because intermediate segments like `process` and `process.env` aren't actual variables,
+ * they don't have their own entries in `variableScopes`. We use the full path
+ * (the typed prefix + the current hint) to figure out whether this is a `process.env` hint.
+ *
+ * @param {string} hint - The segment being suggested, e.g. `FOO`
+ * @param {string} pathPrefix - The path typed so far, including the last dot, e.g. `process.env.`
+ * @param {Object} variableScopes - Maps variable names to their scopes
+ * @param {string} closingSuffix - Any closing braces that still need to be added
+ * @returns {Object|null} The hint object, or null if this isn't part of a `process.env` path
+ */
+const createProcessEnvSegmentHint = (hint, pathPrefix, variableScopes, closingSuffix) => {
+  const fullPath = `${pathPrefix}${hint}`;
+
+  // This is an actual environment variable, e.g. `process.env.FOO`.
+  // Complete it and add any missing closing braces.
+  if (variableScopes[fullPath] === AUTOCOMPLETE_SCOPES.PROCESS_ENV) {
+    return { text: `${hint}${closingSuffix}`, displayText: hint, scope: AUTOCOMPLETE_SCOPES.PROCESS_ENV, render: renderVariableHint };
+  }
+
+  // `process` and `process.env` are just intermediate parts of the path.
+  // Don't add closing braces yet, since the user still needs to continue typing.
+  if (isProcessEnvPath(fullPath)) {
+    return { text: hint, displayText: hint, scope: AUTOCOMPLETE_SCOPES.PROCESS_ENV, render: renderVariableHint };
+  }
+
+  return null;
 };
 
 /**
@@ -587,13 +840,92 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
  * @param {string[]} filteredHints - Filtered hints
  * @param {Object} from - Start position
  * @param {Object} to - End position
+ * @param {Object} variableScopes - name to scope map
+ * @param {string} [textAfterCursor] - characters already exist on the line right after the cursor
+ * @param {string} [word] - Text typed after `{{`; a hint containing it replaces the whole word
  * @returns {Object} Hint object with list and positions
  */
-const createVariableHintList = (filteredHints, from, to) => {
-  const hintList = filteredHints.map((hint) => ({
-    text: hint,
-    displayText: hint
-  }));
+const createVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '', word = '') => {
+  const closingSuffix = '}'.repeat(countMissingClosingBraces(textAfterCursor));
+
+  const wordStart = { line: to.line, ch: to.ch - word.length };
+
+  // The cursor can sit in the middle of a name (`{{my.ap|i.host}}`). A hint that replaces the whole
+  // word must also swallow the rest of that name, otherwise `i.host}}` is left behind after the
+  // inserted text. Closing braces are then counted from what follows the name, not the cursor.
+  const nameTail = (textAfterCursor || '').match(NAME_TAIL_PATTERN)[0];
+  const nameEnd = { line: to.line, ch: to.ch + nameTail.length };
+  const fullReplaceSuffix = '}'.repeat(countMissingClosingBraces((textAfterCursor || '').slice(nameTail.length)));
+
+  const lowerWord = word.toLowerCase();
+  const containsWord = (name) => name.toLowerCase().includes(lowerWord);
+
+  const pathPrefix = word.slice(0, word.lastIndexOf('.') + 1);
+
+  const hintList = filteredHints.map((hint) => {
+    const scope = variableScopes[hint];
+
+    if (!scope) {
+      const processEnvHint = createProcessEnvSegmentHint(hint, pathPrefix, variableScopes, closingSuffix);
+      if (processEnvHint) {
+        return processEnvHint;
+      }
+    }
+
+    if (!scope || !SCOPE_ICON[scope]) {
+      return { text: hint, displayText: hint };
+    }
+
+    const hintObject = {
+      text: `${hint}${closingSuffix}`,
+      displayText: hint,
+      scope,
+      render: renderVariableHint
+    };
+
+    // If the current word is a substring of the hint, replace the entire word with the hint.
+    if (containsWord(hint)) {
+      hintObject.text = `${hint}${fullReplaceSuffix}`;
+      hintObject.from = wordStart;
+      hintObject.to = nameEnd;
+    }
+
+    return hintObject;
+  });
+
+  return {
+    list: hintList,
+    from,
+    to
+  };
+};
+
+/**
+ * Create hint list for the single-`{` trigger context.
+ *
+ * @param {string[]} filteredHints - Filtered hints
+ * @param {Object} from - Start position, the triggering `{` itself
+ * @param {Object} to - End position
+ * @param {Object} variableScopes - name to scope map
+ * @param {string} textAfterCursor - The line's content starting at the cursor
+ * @returns {Object} Hint object with list and positions
+ */
+const createSingleBraceVariableHintList = (filteredHints, from, to, variableScopes = {}, textAfterCursor = '') => {
+  const hintList = filteredHints.map((hint) => {
+    const scope = variableScopes[hint];
+    if (!scope && isProcessEnvPath(hint)) {
+      return { text: `{${hint}`, displayText: hint, scope: AUTOCOMPLETE_SCOPES.PROCESS_ENV, render: renderVariableHint };
+    }
+    if (!scope || !SCOPE_ICON[scope]) {
+      return { text: `{${hint}`, displayText: hint };
+    }
+    return {
+      text: calculateSingleBraceInsertText(textAfterCursor, hint),
+      displayText: hint,
+      scope,
+      render: renderVariableHint
+    };
+  });
 
   return {
     list: hintList,
@@ -648,7 +980,9 @@ export const showRootHints = (cm, showHintsFor = []) => {
 /**
  * Bruno AutoComplete Helper - Main function with context awareness
  * @param {Object} cm - CodeMirror instance
- * @param {Object} allVariables - All available variables
+ * @param {Object|Array<{name: string, scope: string}>} allVariables - All available variables: a plain
+ *   `{ name: value }` object (no scope info, e.g. the inline variable-value editor in brunoVarInfo.js) or an array of
+ *   `{ name, scope }` entries (the request editors, which show a scope icon per hint)
  * @param {string[]} anywordAutocompleteHints - Custom autocomplete hints
  * @param {Object} options - Configuration options
  * @returns {Object|null} Hint object or null
@@ -658,12 +992,12 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
-  const wordInfo = getCurrentWordWithContext(cm);
+  const wordInfo = getCurrentWordWithContext(cm, options);
   if (!wordInfo) {
     return null;
   }
 
-  const { word, from, to, context, requiresBraces } = wordInfo;
+  const { word, from, to, context, requiresBraces, isSingleBrace } = wordInfo;
   const showHintsFor = options.showHintsFor || [];
 
   // Check if this context requires braces but we're not in a brace context
@@ -671,15 +1005,29 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
+  // OFF: typing never opens the variable list (Ctrl+Space forces SINGLE_BRACE, so it still does)
+  if (context === 'variables' && getTriggerMode(options) === AUTOCOMPLETE_TRIGGER.OFF) {
+    return null;
+  }
+
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
-  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor);
+
+  // `{{` opens the list straight away, before any name is typed
+  const allowEmptyWord = context === 'variables';
+  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor, { allowEmptyWord });
 
   if (filteredHints.length === 0) {
     return null;
   }
 
   if (context === 'variables') {
-    return createVariableHintList(filteredHints, from, to);
+    const cursor = cm.getCursor();
+    const textAfterCursor = cm.getLine(cursor.line).slice(cursor.ch);
+
+    if (isSingleBrace) {
+      return createSingleBraceVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor);
+    }
+    return createVariableHintList(filteredHints, from, to, categorizedHints.variableScopes, textAfterCursor, word);
   }
 
   return createStandardHintList(filteredHints, from, to);
@@ -751,12 +1099,20 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
     return;
   }
 
+  const changeGeneration = cm.changeGeneration();
+  // Ctrl+Space shortcut fires our manual trigger on keydown, but releasing those two physical keys
+  // fires the keyup event. Skip for those.
+  if (changeGeneration === cm._brunoLastAutocompleteChangeGeneration) {
+    return;
+  }
+  cm._brunoLastAutocompleteChangeGeneration = changeGeneration;
+
   const allVariables = options.getAllVariables?.() || {};
   const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
 
   if (!hints) {
-    const wordInfo = getCurrentWordWithContext(cm);
+    const wordInfo = getCurrentWordWithContext(cm, options);
     if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
@@ -767,6 +1123,72 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
     hint: () => hints,
     completeSingle: false
   });
+};
+
+const TRIGGER_CLOSE_CHARACTERS = /[\s()\[\];:>,]/;
+
+/**
+ * Manually (re)trigger autocomplete at the current caret position. invoked by the
+ * Ctrl+Space shortcut (HotkeysProvider).
+ *
+ * @param {Object} cm - CodeMirror editor instance
+ * @param {Object} options - The same options object passed to setupAutoComplete
+ */
+const triggerAutocompleteAtCaret = (cm, options = {}) => {
+  if (cm.getOption('readOnly')) {
+    return;
+  }
+
+  const allVariables = options.getAllVariables?.() || {};
+  const anywordAutocompleteHints = options.getAnywordAutocompleteHints?.() || [];
+
+  // the manual shortcut works in every mode, including OFF
+  const forcedOptions = { ...options, variableAutocomplete: AUTOCOMPLETE_TRIGGER.SINGLE_BRACE };
+
+  const existingHints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, forcedOptions);
+  if (existingHints) {
+    cm.showHint({
+      hint: () => existingHints,
+      completeSingle: false,
+      closeCharacters: TRIGGER_CLOSE_CHARACTERS
+    });
+
+    cm._brunoLastAutocompleteChangeGeneration = cm.changeGeneration();
+    return;
+  }
+
+  const showHintsFor = options.showHintsFor || [];
+  if (!showHintsFor.includes('variables')) {
+    return;
+  }
+
+  const cursor = cm.getCursor();
+  let hints = null;
+
+  // One operation, so the insert and a possible rollback are a single undo step.
+  cm.operation(() => {
+    cm.replaceRange('{{', cursor, cursor);
+    // Explicit, rather than relying on CodeMirror's own post-insert cursor placement.
+    cm.setCursor({ line: cursor.line, ch: cursor.ch + 2 });
+
+    hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, forcedOptions);
+    if (!hints) {
+      cm.replaceRange('', cursor, { line: cursor.line, ch: cursor.ch + 2 });
+      cm.setCursor(cursor);
+    }
+  });
+
+  if (!hints) {
+    return;
+  }
+
+  cm.showHint({
+    hint: () => hints,
+    completeSingle: false,
+    closeCharacters: TRIGGER_CLOSE_CHARACTERS
+  });
+
+  cm._brunoLastAutocompleteChangeGeneration = cm.changeGeneration();
 };
 
 /**
@@ -798,16 +1220,20 @@ export const setupAutoComplete = (editor, options = {}) => {
     editor.on('mousedown', clickHandler);
   }
 
+  // Manual trigger, invoked by the global Ctrl+Space shortcut (HotkeysProvider).
+  editor.brunoTriggerAutocomplete = () => triggerAutocompleteAtCaret(editor, options);
+
   return () => {
     editor.off('keyup', keyupHandler);
     if (options.showHintsOnClick) {
       editor.off('mousedown', clickHandler);
     }
+    delete editor.brunoTriggerAutocomplete;
   };
 };
 
 // Exported for testing
-export { extractNextSegmentSuggestions, WORD_PATTERN };
+export { extractNextSegmentSuggestions, WORD_PATTERN, calculateSingleBraceInsertText, truncateHintLabel };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

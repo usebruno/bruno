@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { getAllVariables } from 'utils/collections';
 import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
@@ -87,6 +88,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) =>
               onChange={onChange}
               collection={collection}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+              variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
             />
           )}
           renderTypeSelector={!isLastEmptyRow && varType === 'request'

@@ -3,8 +3,9 @@ import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getAllVariablesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import StyledWrapper from './StyledWrapper';
 
@@ -75,7 +76,7 @@ class SingleLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getAllVariablesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
@@ -83,7 +84,8 @@ class SingleLineEditor extends Component {
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
-      showHintsOnClick: this.props.showHintsOnClick
+      showHintsOnClick: this.props.showHintsOnClick,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(

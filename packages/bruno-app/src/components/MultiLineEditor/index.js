@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables } from 'utils/collections';
+import { getAllVariables, getAllVariablesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
@@ -183,14 +184,15 @@ class MultiLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getAllVariablesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
       getAllVariables: getAllVariablesHandler,
-      getAnywordAutocompleteHints
+      getAnywordAutocompleteHints,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(

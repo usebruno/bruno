@@ -401,6 +401,23 @@ export const HotkeysProvider = (props) => {
     };
   }, [preferences, dispatch, userKeyBindings, keybindingsEnabled]);
 
+  // trigger autocomplete in the focused CodeMirror-based field.
+  useEffect(() => {
+    bindAction('triggerAutocomplete', (e) => {
+      const cm = document.activeElement?.closest('.CodeMirror')?.CodeMirror;
+      if (!cm?.brunoTriggerAutocomplete) {
+        // Not in an autocomplete-enabled field.
+        return;
+      }
+      cm.brunoTriggerAutocomplete();
+      return false;
+    });
+
+    return () => {
+      unbindAction('triggerAutocomplete');
+    };
+  }, [userKeyBindings, keybindingsEnabled]);
+
   // Zoom in
   useEffect(() => {
     bindAction('zoomIn', () => {

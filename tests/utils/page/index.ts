@@ -18,3 +18,4 @@ export * from '../snapshot';
 export * from './request-settings';
 export * from './unresolved-variables-info';
 export * from './variables-tab';
+export * from './autocomplete';

@@ -24,63 +24,36 @@ export const VARIABLE_ADD_SCOPES = {
   FOLDER: 'folder'
 };
 
-export const CHEVRON_ICON_SVG_TEXT = `
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="6,9 12,15 18,9"></polyline>
-</svg>
-`;
+// Every scope a variable can be tagged with: the ones a variable can be added to, plus the
+// read-only ones that exist only so a variable can show its icon and label.
+export const AUTOCOMPLETE_SCOPES = {
+  ...VARIABLE_ADD_SCOPES,
+  RUNTIME: 'runtime',
+  PROCESS_ENV: 'process.env',
+  DYNAMIC: 'dynamic',
+  OAUTH2: 'oauth2'
+};
 
-// Collection Environment
-const DATABASE_ICON_SVG_TEXT = `
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <ellipse cx="12" cy="6" rx="8" ry="3"></ellipse>
-  <path d="M4 6v6a8 3 0 0 0 16 0v-6"></path>
-  <path d="M4 12v6a8 3 0 0 0 16 0v-6"></path>
-</svg>
-`;
+/**
+ * Which keystrokes open the variable autocomplete dropdown in a field (passed as the editors'
+ * `variableAutocomplete` prop). Ctrl+Space (the manual trigger) works in every mode.
+ */
+export const AUTOCOMPLETE_TRIGGER = {
+  SINGLE_BRACE: 'singleBrace', // `{` opens it (and `{{` still does)
+  DOUBLE_BRACE: 'doubleBrace', // only `{{` opens it
+  OFF: 'off' // typing never opens the variable list
+};
 
-// Global Environment
-const WORLD_ICON_SVG_TEXT = `
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="9"></circle>
-  <line x1="3.6" y1="9" x2="20.4" y2="9"></line>
-  <line x1="3.6" y1="15" x2="20.4" y2="15"></line>
-  <path d="M11.5 3a17 17 0 0 0 0 18"></path>
-  <path d="M12.5 3a17 17 0 0 1 0 18"></path>
-</svg>
-`;
-
-// Request
-const SEND_ICON_SVG_TEXT = `
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="10" y1="14" x2="21" y2="3"></line>
-  <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"></path>
-</svg>
-`;
-
-// Parent Folder
-const FOLDER_ICON_SVG_TEXT = `
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"></path>
-</svg>
-`;
-
-// Collection variable
-const BOX_ICON_SVG_TEXT = `
-<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"></polyline>
-  <line x1="12" y1="12" x2="20" y2="7.5"></line>
-  <line x1="12" y1="12" x2="12" y2="21"></line>
-  <line x1="12" y1="12" x2="4" y2="7.5"></line>
-</svg>
-`;
-
-export const SCOPE_ICON = {
-  [VARIABLE_ADD_SCOPES.REQUEST]: SEND_ICON_SVG_TEXT,
-  [VARIABLE_ADD_SCOPES.FOLDER]: FOLDER_ICON_SVG_TEXT,
-  [VARIABLE_ADD_SCOPES.COLLECTION]: BOX_ICON_SVG_TEXT,
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: DATABASE_ICON_SVG_TEXT,
-  [VARIABLE_ADD_SCOPES.GLOBAL]: WORLD_ICON_SVG_TEXT
+export const SCOPE_LABEL = {
+  [AUTOCOMPLETE_SCOPES.REQUEST]: 'Request',
+  [AUTOCOMPLETE_SCOPES.FOLDER]: 'Folder',
+  [AUTOCOMPLETE_SCOPES.COLLECTION]: 'Collection',
+  [AUTOCOMPLETE_SCOPES.ENVIRONMENT]: 'Environment',
+  [AUTOCOMPLETE_SCOPES.GLOBAL]: 'Global',
+  [AUTOCOMPLETE_SCOPES.RUNTIME]: 'Runtime',
+  [AUTOCOMPLETE_SCOPES.PROCESS_ENV]: 'Process Env',
+  [AUTOCOMPLETE_SCOPES.DYNAMIC]: 'Dynamic',
+  [AUTOCOMPLETE_SCOPES.OAUTH2]: 'OAuth2'
 };
 
 export const AUTH_MODES = {

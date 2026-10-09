@@ -41,6 +41,7 @@ import { useResizableColumns } from 'hooks/useResizableColumns';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 import InheritedVariableRow from './InheritedVariableRow';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -205,6 +206,7 @@ const EnvVarValueCell = ({
               }
             }}
             onSave={handleSave}
+            variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
           />
         </div>
       )}
@@ -1132,6 +1134,7 @@ const EnvironmentVariablesTable = ({
                       }
                     }}
                     onSave={handleSave}
+                    variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                   />
                 </td>
                 <td>
