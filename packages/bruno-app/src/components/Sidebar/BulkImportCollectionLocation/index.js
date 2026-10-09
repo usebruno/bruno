@@ -16,6 +16,7 @@ import SelectionList from 'components/SelectionList';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
+import { convertAsyncApiToBruno } from 'utils/importers/asyncapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import StyledWrapper from './StyledWrapper';
@@ -47,6 +48,8 @@ const getCollectionName = (format, rawData) => {
   switch (format) {
     case 'openapi':
       return rawData.info?.title || 'OpenAPI Collection';
+    case 'asyncapi':
+      return rawData.info?.title || 'AsyncAPI Collection';
     case 'postman':
       return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
     case 'insomnia':
@@ -77,6 +80,9 @@ const convertCollection = async (format, rawData, groupingType, filePath) => {
   switch (format) {
     case 'openapi':
       collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
+      break;
+    case 'asyncapi':
+      collection = convertAsyncApiToBruno(rawData);
       break;
     case 'wsdl':
       collection = await convertWsdlToBruno(rawData, filePath);
