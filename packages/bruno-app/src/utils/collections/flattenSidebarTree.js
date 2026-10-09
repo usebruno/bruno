@@ -48,7 +48,6 @@ const walkChildren = (
     collectionId,
     hasSearch,
     searchText,
-    collapsedUids,
     appendRow,
     addItemToIndex
   } = collectionContext;
@@ -84,7 +83,7 @@ const walkChildren = (
     addItemToIndex(folder.uid, folder);
 
     // Search reveals matching descendants regardless of the collapsed state.
-    const isExpanded = hasSearch ? !collapsedUids.has(folder.uid) : !folder.collapsed;
+    const isExpanded = hasSearch || !folder.collapsed;
 
     if (!isExpanded) continue;
 
@@ -183,7 +182,6 @@ const flattenCollection = ({
   collection,
   hasSearch,
   searchText,
-  collapsedUids,
   appendRow,
   addItemToIndex,
   addCollectionToIndex
@@ -213,7 +211,7 @@ const flattenCollection = ({
   addCollectionToIndex(collection.uid, collection);
 
   // Search reveals matching descendants regardless of the collapsed state.
-  const isExpanded = hasSearch ? !collapsedUids.has(collection.uid) : !collection.collapsed;
+  const isExpanded = hasSearch || !collection.collapsed;
 
   if (!isExpanded) return;
 
@@ -223,7 +221,6 @@ const flattenCollection = ({
     collectionId,
     hasSearch,
     searchText,
-    collapsedUids,
     appendRow,
     addItemToIndex
   };
@@ -268,7 +265,7 @@ const flattenCollection = ({
  * }}
  */
 export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
-  const { searchText = '', collapsedUids = new Set() } = options;
+  const { searchText = '' } = options;
   const hasSearch = Boolean(searchText.trim());
 
   const rows = [];
@@ -306,7 +303,6 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
       collection: entry.collection,
       hasSearch,
       searchText,
-      collapsedUids,
       appendRow,
       addItemToIndex,
       addCollectionToIndex

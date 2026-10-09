@@ -18,7 +18,7 @@ export const highlightText = (text, searchQuery) => {
     const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${escapedQuery})`, 'gi');
     return text.split(regex).map((part, i) =>
-      i % 2 === 1 ? (
+      regex.test(part) ? (
         <span key={i} className="highlight">{part}</span>
       ) : part
     );

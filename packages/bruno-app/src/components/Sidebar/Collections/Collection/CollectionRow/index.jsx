@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, loadCollectionForSidebar, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -38,7 +38,6 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { highlightText } from 'components/GlobalSearchModal/utils/searchUtils';
 import { getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
@@ -60,7 +59,7 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSearchCollapse, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
+const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -138,7 +137,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const collectionIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : collection.collapsed;
+  const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -151,11 +150,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
-    dispatch(loadCollectionForSidebar({ collection }));
-
-    if (hasSearchText && isSearchCollapsed && !isChevronClick) {
-      onToggleSearchCollapse(collection.uid);
-    }
+    ensureCollectionIsMounted();
 
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
@@ -185,11 +180,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (hasSearchText) {
-      onToggleSearchCollapse(collection.uid);
-      return;
-    }
-    dispatch(loadCollectionForSidebar({ collection }));
+    ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
   };
 
@@ -606,7 +597,7 @@ const CollectionRow = ({ collection, searchText, isSearchCollapsed, onToggleSear
             />
           </ActionIcon>
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
-            {hasSearchText ? highlightText(collection.name, searchText) : collection.name}
+            {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>

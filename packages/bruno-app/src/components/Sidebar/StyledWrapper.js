@@ -5,10 +5,6 @@ const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
   max-height: 100%;
 
-  .highlight {
-    color: ${(props) => props.theme.brand};
-  }
-
   .collection-name.collection-selected,
   .collection-item-name.collection-item-selected {
     background: ${(props) => rgba(props.theme.primary.text, 0.1)};

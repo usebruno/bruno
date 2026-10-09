@@ -3,15 +3,7 @@ const path = require('node:path');
 const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
-const {
-  defaultClassify,
-  uidForSeed,
-  BRUNO_CONFIG_BASENAME,
-  COLLECTION_ROOT_BASENAMES,
-  FOLDER_ROOT_BASENAMES,
-  ENVIRONMENTS_DIR
-} = require('../../utils/mount');
-const { getRequestUid } = require('../../cache/requestUids');
+const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
 const { SearchIndex } = require('../search-index');
 const { indexCollection, toRow, toMetaRow, withParentFolders } = require('../search-index/indexer');
@@ -77,26 +69,10 @@ const ensureTransientDirectory = () => {
   return fs.mkdtempSync(path.join(base, 'bruno-'));
 };
 
-const isInside = (root, target) => {
-  const relative = path.relative(root, target);
-  return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
-};
-
-const readCollectionFiles = async (collectionPath) => {
-  const environmentsDir = path.join(collectionPath, ENVIRONMENTS_DIR);
-  const environments = await fs.promises.readdir(environmentsDir).catch(() => []);
-  return [
-    BRUNO_CONFIG_BASENAME,
-    ...COLLECTION_ROOT_BASENAMES,
-    ...environments.map((name) => path.join(ENVIRONMENTS_DIR, name)).filter((relativePath) => defaultClassify(relativePath)?.type === 'environment')
-  ];
-};
-
 class MountManager {
   #index = null;
   #searchIndex = null;
   #mounts = new Map();
-  #pathLoads = new Map();
   #activeIndexingCount = 0;
 
   async mount({ win, collectionPath, collectionUid, brunoConfig, emit, workspacePath }) {
@@ -153,136 +129,18 @@ class MountManager {
     return tempDirectoryPath;
   }
 
-  async mountPaths({ win, collectionPath, collectionUid, emit, pathnames }) {
-    if (!preferencesUtil.isFileCacheEnabled()) return;
-    const root = path.resolve(collectionPath);
-    const targets = pathnames.map((pathname) => path.resolve(pathname)).filter((target) => isInside(root, target));
-    if (pathnames.length > 0 && targets.length === 0) return;
-
-    let load = this.#pathLoads.get(root);
-    if (!load) {
-      load = { collectionUid, files: new Map(), folders: new Set(), directories: new Set(), queue: Promise.resolve() };
-      this.#pathLoads.set(root, load);
-    }
-    load.win = win;
-    const run = load.queue.then(() => this.#loadPaths(load, { root, collectionUid, emit, targets }));
-    load.queue = run.catch(() => {});
-    return run;
-  }
-
-  async #loadPaths(load, { root, collectionUid, emit, targets }) {
-    const fileIndex = this.#getPersistentIndex();
-    const wanted = await readCollectionFiles(root);
-    for (const target of targets) wanted.push(...await this.#readItemFiles(load, root, target));
-
-    for (const relativePath of new Set(wanted)) {
-      const entry = await this.#verifyFile(fileIndex, root, relativePath, load.files.get(relativePath));
-      if (entry) load.files.set(relativePath, entry);
-      else load.files.delete(relativePath);
-    }
-
-    const files = new Map(load.files);
-    for (const folder of load.folders) {
-      const hasFolderFile = [...FOLDER_ROOT_BASENAMES].some((name) => files.has(path.join(folder, name)));
-      if (!hasFolderFile) files.set(path.join(folder, 'folder.bru'), {});
-    }
-
-    const tree = buildTree(root, files, { uidFor: getRequestUid });
-    await sendTree(collectionUid, root, tree, {
-      ...emit,
-      tree: (partialTree) => {
-        if (!this.#mounts.get(collectionUid)?.treeSent) emit.tree(partialTree);
-      }
-    });
-
-    if (this.#mounts.has(collectionUid)) return;
-    load.directories.add(root);
-    const environmentsDirectory = path.join(root, ENVIRONMENTS_DIR);
-    if (fs.existsSync(environmentsDirectory)) load.directories.add(environmentsDirectory);
-    const indexOptions = {
-      ...(await this.getWatcherIndexOptions(root)),
-      fileIndex: this.#getPersistentIndex()
-    };
-    require('../../app/collection-watcher').addPathWatcher(load.win, root, collectionUid, [...load.directories], indexOptions);
-  }
-
-  async #readItemFiles(load, root, target) {
-    const isFolder = await fs.promises.stat(target).then((stat) => stat.isDirectory(), () => null);
-    if (isFolder === null) return [];
-
-    const relativePath = path.relative(root, target);
-    const segments = relativePath.split(path.sep);
-    if (isFolder) load.folders.add(relativePath);
-
-    const folderCount = isFolder ? segments.length : segments.length - 1;
-    const files = [];
-    for (let depth = 1; depth <= folderCount; depth++) {
-      const folderPath = segments.slice(0, depth).join(path.sep);
-      load.directories.add(path.join(root, folderPath));
-      for (const name of FOLDER_ROOT_BASENAMES) files.push(path.join(folderPath, name));
-    }
-    if (!isFolder) files.push(relativePath);
-    return files;
-  }
-
-  async #verifyFile(fileIndex, collectionPath, relativePath, known) {
-    const absolutePath = path.join(collectionPath, relativePath);
-    const stat = await fs.promises.stat(absolutePath, { bigint: true }).catch(() => null);
-    if (!stat?.isFile()) return null;
-
-    const saved = known ?? fileIndex.entryWithMetadata(collectionPath, relativePath);
-    if (saved && saved.mtime === stat.mtimeNs) return saved;
-    const cls = defaultClassify(relativePath);
-    if (!cls) return null;
-    let result;
-    try {
-      result = await getPool().runOnce(JobType.ParseFile, {
-        collectionPath,
-        relativePath,
-        format: cls.format,
-        type: cls.type
-      });
-    } catch (err) {
-      return { error: { message: err.message, stack: err.stack } };
-    }
-    if (result.error) return { data: result.data, error: result.error, raw: result.raw };
-
-    fileIndex.stage(collectionPath, {
-      op: 'add',
-      relativePath,
-      mtime: result.mtime,
-      hash: result.hash,
-      data: result.data,
-      raw: result.raw
-    });
-    return { data: result.data, raw: result.raw, mtime: result.mtime, hash: result.hash };
-  }
-
   async unmount(collectionUid) {
     try {
       getWsClient()?.closeForCollection(collectionUid);
     } catch (_) {}
 
     const entry = this.#mounts.get(collectionUid);
-    if (!entry) {
-      this.#removePathLoad(collectionUid);
-      return;
-    }
+    if (!entry) return;
     this.#mounts.delete(collectionUid);
     const collectionWatcher = require('../../app/collection-watcher');
     try {
       collectionWatcher.removeWatcher(entry.collectionPath, entry.win, collectionUid);
     } catch (_) {}
-  }
-
-  #removePathLoad(collectionUid) {
-    for (const [root, load] of this.#pathLoads) {
-      if (load.collectionUid !== collectionUid) continue;
-      this.#pathLoads.delete(root);
-      try {
-        require('../../app/collection-watcher').removeWatcher(root, load.win, collectionUid);
-      } catch (_) {}
-    }
   }
 
   async shutdown({ force = false } = {}) {
@@ -293,7 +151,6 @@ class MountManager {
     // both indexes run on the shared database, which the sqlite service closes
     this.#index = null;
     this.#searchIndex = null;
-    this.#pathLoads.clear();
   }
 
   getSearchIndexSize() {
@@ -316,10 +173,7 @@ class MountManager {
   }
 
   searchIndex(term, options = {}) {
-    const rows = this.#getSearchIndex().search(term, options);
-    const pathKey = { request: 'requestPath', folder: 'folderPath' }[options.scope ?? 'request'];
-    if (!pathKey) return rows;
-    return rows.map((row) => ({ ...row, uid: getRequestUid(path.join(row.collectionPath, row[pathKey])) }));
+    return this.#getSearchIndex().search(term, options);
   }
 
   async searchIndexTrees(term, workspacePath) {
@@ -337,11 +191,9 @@ class MountManager {
     return trees;
   }
 
-  async getIndexTree({ collectionPath, collectionName, skipIndexing = false }) {
+  async getIndexTree({ collectionPath, collectionName }) {
     const root = path.resolve(collectionPath);
-    if (!skipIndexing) {
-      await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
-    }
+    await this.indexCollectionInBackground({ collectionPath: root, collectionName }).catch(() => {});
     const rows = this.#getSearchIndex().rowsForCollection(root);
     return { items: this.#buildTreeFromIndexRows(root, rows) };
   }
@@ -396,7 +248,6 @@ class MountManager {
 
   clearCollectionIndex(collectionPath) {
     const root = path.resolve(collectionPath);
-    this.#pathLoads.delete(root);
     this.#getPersistentIndex().clearCollection(root);
     this.#getSearchIndex().clearCollection(root);
   }
@@ -404,10 +255,7 @@ class MountManager {
   async #reconcile(entry, indexOptions) {
     const { fileIndex } = indexOptions;
     const denylist = entry.brunoConfig?.ignore || [];
-    const { added, updated, removed } = await fileIndex.status(entry.collectionPath, {
-      denylist,
-      run: (request) => getPool().run(JobType.ScanCollection, request)
-    });
+    const { added, updated, removed } = await fileIndex.status(entry.collectionPath, { denylist });
 
     const toParse = [];
     for (const e of [...added, ...updated]) {
@@ -520,6 +368,7 @@ class MountManager {
   // The search index rows go through the same tree builder as a mounted collection: each row stands in for a
   // parsed request file, so folders, ordering and uids come out exactly as they do after a mount
   #buildTreeFromIndexRows(collectionPath, rows, { onlyFoldersWithRows = false } = {}) {
+    const { getRequestUid } = require('../../cache/requestUids');
     const folders = this.#getSearchIndex().foldersFor(collectionPath).filter(({ folderPath }) => {
       if (!onlyFoldersWithRows) return true;
       return rows.some((row) => row.folderPath === folderPath || row.folderPath?.startsWith(`${folderPath}${path.sep}`));
@@ -545,15 +394,9 @@ class MountManager {
   }
 
   async #emitTree(collectionUid, entry) {
+    const { getRequestUid } = require('../../cache/requestUids');
     const tree = buildTree(entry.collectionPath, entry.state, { uidFor: getRequestUid });
-    await sendTree(collectionUid, entry.collectionPath, tree, {
-      ...entry.emit,
-      tree: (fullTree) => {
-        entry.treeSent = true;
-        this.#pathLoads.delete(entry.collectionPath);
-        entry.emit.tree(fullTree);
-      }
-    });
+    await sendTree(collectionUid, entry.collectionPath, tree, entry.emit);
   }
 
   #getPersistentIndex() {

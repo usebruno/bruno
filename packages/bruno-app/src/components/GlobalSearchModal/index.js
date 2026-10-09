@@ -10,7 +10,7 @@ import {
 import path from 'path';
 import useLeadingThrottle from 'hooks/useLeadingThrottle';
 import { expandCollection, expandItem, toggleCollection } from 'providers/ReduxStore/slices/collections';
-import { indexActiveWorkspaceCollections, loadCollectionForSidebar, loadCollectionForItem } from 'providers/ReduxStore/slices/collections/actions';
+import { indexActiveWorkspaceCollections, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
@@ -204,8 +204,12 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const showIndexingText = searchIndexBuilding;
 
   const ensureCollectionIsMounted = (collection) => {
-    if (!collection) return;
-    dispatch(loadCollectionForSidebar({ collection }));
+    if (!collection || collection.mountStatus === 'mounted') return;
+    dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig
+    }));
   };
 
   const handleKeyNavigation = (e) => {
@@ -254,25 +258,18 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     let collection = findCollectionByPath(result.row.collectionPath);
     if (!collection) return;
 
-    const isFolderResult = result.type === SEARCH_TYPES.FOLDER;
-    const relativePath = isFolderResult ? result.row.folderPath : result.row.requestPath;
-    const targetPathname = path.join(result.row.collectionPath, relativePath);
-
     if (collection.mountStatus !== 'mounted') {
-      const tabType = isFolderResult ? 'folder-settings' : result.row.requestProtocol;
-      dispatch(addTab({
-        uid: result.row.uid,
+      await dispatch(mountCollection({
         collectionUid: collection.uid,
-        type: tabType,
-        ...(isFolderResult ? {} : { requestPaneTab: getDefaultRequestPaneTab({ type: tabType }) }),
-        pathname: targetPathname,
-        name: result.name
-      }));
-      await dispatch(loadCollectionForItem({ collection, itemPathname: targetPathname })).catch(() => null);
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      })).catch(() => null);
       collection = store.getState().collections.collections.find((c) => c.uid === collection.uid);
     }
     if (!collection) return;
 
+    const relativePath = result.type === SEARCH_TYPES.FOLDER ? result.row.folderPath : result.row.requestPath;
+    const targetPathname = path.join(result.row.collectionPath, relativePath);
     const item = findItemInCollectionByPathname(collection, targetPathname);
     if (!item) return;
 

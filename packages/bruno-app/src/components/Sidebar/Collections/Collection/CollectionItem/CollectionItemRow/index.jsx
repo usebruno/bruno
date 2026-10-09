@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection, loadCollectionForItem } from 'providers/ReduxStore/slices/collections/actions';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem, mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, expandItem, collapseItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -39,7 +39,6 @@ import RunCollectionItem from '../RunCollectionItem';
 import GenerateCodeItem from '../GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
-import { highlightText } from 'components/GlobalSearchModal/utils/searchUtils';
 import { getDefaultRequestPaneTab, getItemTypeLabel } from 'utils/collections';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
@@ -79,8 +78,6 @@ const CollectionItemRow = ({
   collectionUid,
   collectionPathname,
   searchText,
-  isSearchCollapsed,
-  onToggleSearchCollapse,
   openBulkMenu,
   children,
   isItemMultiDragDisabled,
@@ -138,7 +135,7 @@ const CollectionItemRow = ({
   const examplesExpanded = !isCollectionItemCollapsed(item);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const itemIsCollapsed = hasSearchText ? Boolean(isSearchCollapsed) : isCollectionItemCollapsed(item);
+  const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
@@ -331,11 +328,13 @@ const CollectionItemRow = ({
   const handleClick = (event) => {
     if (handleSelectionClick(event)) return;
     if (event && event.detail != 1) return;
-    const isCollectionLoaded = collection?.mountStatus === 'mounted';
-    if (!isCollectionLoaded) {
-      dispatch(loadCollectionForItem({ collection, itemPathname: item.pathname }));
+    if (collection?.mountStatus === 'unmounted') {
+      dispatch(mountCollection({
+        collectionUid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig
+      }));
     }
-    const loadingTabName = isCollectionLoaded ? {} : { name: item.name };
     const isRequest = isItemARequest(item);
     const isApp = item.type === 'app';
     if (isRequest || isApp) {
@@ -353,8 +352,7 @@ const CollectionItemRow = ({
           collectionUid: collectionUid,
           ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
-          pathname: item.pathname,
-          ...loadingTabName
+          pathname: item.pathname
         })
       );
     } else {
@@ -363,13 +361,9 @@ const CollectionItemRow = ({
           uid: item.uid,
           collectionUid: collectionUid,
           type: 'folder-settings',
-          pathname: item.pathname,
-          ...loadingTabName
+          pathname: item.pathname
         })
       );
-      if (hasSearchText && isSearchCollapsed) {
-        onToggleSearchCollapse(item.uid);
-      }
       if (item.collapsed) {
         dispatch(
           toggleCollectionItem({
@@ -384,13 +378,6 @@ const CollectionItemRow = ({
   const handleFolderCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (hasSearchText) {
-      onToggleSearchCollapse(item.uid);
-      return;
-    }
-    if (collection?.mountStatus !== 'mounted' && item.collapsed) {
-      dispatch(loadCollectionForItem({ collection, itemPathname: item.pathname }));
-    }
     dispatch(
       toggleCollectionItem({
         itemUid: item.uid,
@@ -418,15 +405,6 @@ const CollectionItemRow = ({
   };
 
   // Handle right-click context menu
-  const mountCollectionForActions = () => {
-    if (collection?.mountStatus !== 'unmounted') return;
-    dispatch(mountCollection({
-      collectionUid,
-      collectionPathname: collection.pathname,
-      brunoConfig: collection.brunoConfig
-    }));
-  };
-
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -436,7 +414,6 @@ const CollectionItemRow = ({
       return;
     }
 
-    mountCollectionForActions();
     menuDropdownRef.current?.show();
   };
 
@@ -843,12 +820,12 @@ const CollectionItemRow = ({
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
-                {hasSearchText ? highlightText(item.name, searchText) : item.name}
+                {item.name}
               </span>
             </div>
           </div>
           {!isDragging && !isMultiSelected && (
-            <div className="pr-2 collection-actions" onClick={mountCollectionForActions}>
+            <div className="pr-2 collection-actions">
               <MenuDropdown
                 ref={menuDropdownRef}
                 items={buildMenuItems()}

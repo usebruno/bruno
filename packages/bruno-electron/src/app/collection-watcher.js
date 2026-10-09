@@ -818,7 +818,6 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspac
 class CollectionWatcher {
   constructor() {
     this.watchers = {};
-    this.pathWatchers = new Set();
     this.loadingStates = {};
     this.tempDirectoryMap = {};
   }
@@ -896,10 +895,9 @@ class CollectionWatcher {
     if (existingWatcher) {
       existingWatcher.close();
     }
-    this.pathWatchers.delete(watchPath);
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null, searchIndex = null, workspacePathname = null, watchPaths = null } = options;
+    const { ignoreInitial = false, fileIndex = null, searchIndex = null, workspacePathname = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
@@ -913,9 +911,7 @@ class CollectionWatcher {
 
     this.initializeLoadingState(collectionUid);
 
-    if (!watchPaths) {
-      this.startCollectionDiscovery(win, collectionUid);
-    }
+    this.startCollectionDiscovery(win, collectionUid);
 
     if (brunoConfig) {
       setBrunoConfig(collectionUid, brunoConfig);
@@ -925,7 +921,7 @@ class CollectionWatcher {
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
 
-    const watcher = chokidar.watch(watchPaths || watchPath, {
+    const watcher = chokidar.watch(watchPath, {
       ignoreInitial,
       usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
       ignored: (filepath) => {
@@ -968,24 +964,15 @@ class CollectionWatcher {
         stabilityThreshold: 80,
         pollInterval: 10
       },
-      depth: watchPaths ? 0 : 20,
+      depth: 20,
       disableGlobbing: true
     });
 
     let startedNewWatcher = false;
     watcher
-      .on('ready', () => {
-        if (!watchPaths) {
-          onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname);
-        }
-      })
+      .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
       .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
-      .on('addDir', (pathname) => {
-        addDirectory(win, pathname, collectionUid, watchPath);
-        if (watchPaths) {
-          watcher.add(pathname);
-        }
-      })
+      .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
       .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
       .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
       .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
@@ -1016,24 +1003,6 @@ class CollectionWatcher {
     dotEnvWatcher.addCollectionWatcher(win, watchPath, collectionUid);
   }
 
-  addPathWatcher(win, watchPath, collectionUid, directories, options = {}) {
-    const existingWatcher = this.watchers[watchPath];
-    if (existingWatcher && !this.pathWatchers.has(watchPath)) {
-      return;
-    }
-    if (existingWatcher) {
-      existingWatcher.add(directories);
-      return;
-    }
-
-    this.addWatcher(win, watchPath, collectionUid, getBrunoConfig(collectionUid), false, false, {
-      ...options,
-      ignoreInitial: true,
-      watchPaths: directories
-    });
-    this.pathWatchers.add(watchPath);
-  }
-
   hasWatcher(watchPath) {
     return this.watchers[watchPath];
   }
@@ -1044,7 +1013,6 @@ class CollectionWatcher {
       existingWatcher.close();
     }
     this.watchers[watchPath] = null;
-    this.pathWatchers.delete(watchPath);
 
     fileIndexByCollection.delete(watchPath);
     searchIndexByCollection.delete(watchPath);
