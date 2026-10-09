@@ -4,7 +4,7 @@ const EXPECTED_PATH_SUFFIX = 'tests/preferences/default-collection-location';
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DEFAULT_LOCATION_SUFFIX_PATTERN = new RegExp(`${escapeRegExp('tests/preferences')}(\\/default-collection-location)?$`);
 
-test.describe('Default Location Feature', () => {
+test.describe('TC-772: Default Location Feature', { tag: '@sanity' }, () => {
   test('Should hydrate the default location from preferences', async ({ pageWithUserData: page }) => {
     // open preferences tab
     await page.locator('.preferences-button').click();
