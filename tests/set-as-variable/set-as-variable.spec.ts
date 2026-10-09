@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { test, expect } from '../../playwright';
 import {
   createCollection,
@@ -8,6 +10,7 @@ import {
   saveEnvironment,
   closeEnvironmentPanel,
   setRequestUrlAndSave,
+  openSetAsVariableMenu,
   openSetAsVariablePopover,
   selectVariableScope
 } from '../utils/page';
@@ -50,6 +53,42 @@ test.describe('Set as variable', () => {
       await expect(setAsVariable.popover()).toBeHidden();
       await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
       await expect(request.urlVariableToken('scheme', 'valid')).toBeVisible();
+    });
+  });
+
+  test('does not open the hover tooltip while the menu is up', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable, varInfoPopup } = buildCommonLocators(page);
+
+    await test.step('Create a request whose URL holds a variable reference', async () => {
+      await createCollection(page, 'no-tooltip', await createTmpDir('no-tooltip'));
+      await createRequest(page, 'Fetch Posts', 'no-tooltip');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/{{posts}}');
+    });
+
+    await test.step('Right-clicking a selection inside {{...}} keeps the tooltip closed', async () => {
+      const menu = await openSetAsVariableMenu(page, request.urlLine(), 150);
+      await expect(menu).toBeVisible();
+
+      // Leaving and re-entering the token is what fires mouseover and re-arms the hover timer,
+      // which used to reopen the tooltip underneath the menu.
+      await page.mouse.move(0, 0);
+      await request.urlVariableToken('posts', 'invalid').hover();
+      await page.waitForTimeout(400);
+
+      await expect(varInfoPopup.all()).toHaveCount(0);
+      await expect(menu).toBeVisible();
+    });
+
+    await test.step('The tooltip works again once the menu is dismissed', async () => {
+      await page.keyboard.press('Escape');
+      await expect(setAsVariable.menu()).toBeHidden();
+
+      // The pointer is still on the token after the right-click, so move away first or no
+      // fresh mouseover fires.
+      await page.mouse.move(0, 0);
+      await request.urlVariableToken('posts', 'invalid').hover();
+      await expect(varInfoPopup.all().first()).toBeVisible();
     });
   });
 
@@ -170,6 +209,127 @@ test.describe('Set as variable', () => {
       await setAsVariable.createEnvSubmit().click();
 
       await expect(setAsVariable.scopeBadge()).toContainText('Environment');
+    });
+  });
+
+  test('keeps a half-typed environment name when the scope list is collapsed', async ({
+    page,
+    createTmpDir
+  }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with no environment', async () => {
+      await createCollection(page, 'keep-draft', await createTmpDir('keep-draft'));
+      await createRequest(page, 'Fetch Posts', 'keep-draft');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Start naming an environment inline', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.addToToggle().click();
+      await setAsVariable.createEnvLink('environment').click();
+      await setAsVariable.createEnvName().fill('stag');
+    });
+
+    await test.step('Collapsing and reopening Add to leaves the half-typed name intact', async () => {
+      await setAsVariable.addToToggle().click();
+      await expect(setAsVariable.scopeList()).toBeHidden();
+
+      await setAsVariable.addToToggle().click();
+      await expect(setAsVariable.createEnvName()).toHaveValue('stag');
+    });
+  });
+
+  test('saves when Enter is pressed in the name field', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'enter-save', await createTmpDir('enter-save'));
+      await createRequest(page, 'Fetch Posts', 'enter-save');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Name the variable and pick the request scope', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+    });
+
+    await test.step('Enter in the name field saves without clicking Save', async () => {
+      // Press on the input itself: the save handler only acts when the Enter event targets it,
+      // and picking a scope leaves focus on the scope button.
+      await setAsVariable.nameInput().press('Enter');
+
+      await expect(setAsVariable.popover()).toBeHidden();
+      await expect(request.urlLine()).toContainText('{{scheme}}://example.com/posts');
+      await expect(request.urlVariableToken('scheme', 'valid')).toBeVisible();
+    });
+  });
+
+  test('warns before overwriting an existing variable in the same scope', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+    const warning = () => page.getByTestId('set-as-variable-overwrite-warning');
+
+    await createCollection(page, 'overwrite-warn', await createTmpDir('overwrite-warn'));
+    await createRequest(page, 'Fetch Posts', 'overwrite-warn');
+    await sidebar.request('Fetch Posts').click();
+    await setRequestUrlAndSave(page, 'https://example.com/posts');
+    await createEnvironment(page, 'Dev', 'collection');
+    await addEnvironmentVariable(page, { name: 'placeholder', value: 'x' });
+    await saveEnvironment(page);
+    await closeEnvironmentPanel(page);
+
+    await test.step('Save a variable into the environment scope', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'environment');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await test.step('Reusing that name in the same scope warns before replacing it', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 30);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'environment');
+      await expect(warning()).toBeVisible();
+      await expect(setAsVariable.saveButton()).toHaveText('Overwrite');
+    });
+  });
+
+  test('overwriting a request variable replaces it instead of adding a duplicate', async ({
+    page,
+    createTmpDir
+  }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+    const dir = await createTmpDir('no-dupe');
+
+    await createCollection(page, 'no-dupe', dir);
+    await createRequest(page, 'Fetch Posts', 'no-dupe');
+    await sidebar.request('Fetch Posts').click();
+
+    const saveSchemeVar = async () => {
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'request');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    };
+
+    await test.step('Save the same variable name twice into the request scope', async () => {
+      await saveSchemeVar();
+      await saveSchemeVar();
+    });
+
+    await test.step('The request file holds one scheme variable, not two', async () => {
+      const requestFile = path.join(dir, 'no-dupe', 'Fetch Posts.yml');
+      await expect(() => expect(fs.existsSync(requestFile)).toBe(true)).toPass();
+
+      const contents = fs.readFileSync(requestFile, 'utf8');
+      const occurrences = contents.split('\n').filter((line) => /^\s*(-\s*)?name:\s*scheme\s*$/.test(line)).length;
+      expect(occurrences, `expected one scheme var, file was:\n${contents}`).toBe(1);
     });
   });
 

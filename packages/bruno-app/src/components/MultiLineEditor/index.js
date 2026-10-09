@@ -42,6 +42,8 @@ class MultiLineEditor extends Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
     this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item

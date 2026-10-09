@@ -83,6 +83,16 @@ export const SCOPE_ICON = {
   [VARIABLE_ADD_SCOPES.GLOBAL]: WORLD_ICON_SVG_TEXT
 };
 
+export const SCOPE_LABEL = {
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'Request',
+  [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Environment',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global'
+};
+
+export const COPY_SUCCESS_TIMEOUT = 1000;
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',

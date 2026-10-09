@@ -32,17 +32,19 @@ const DOUBLE_CLICK_RESET_MS = 600;
  * CodeMirror's own `resetSelectionOnContextMenu`), so both events must share coordinates.
  */
 const selectWordAndRightClick = async (page: Page, target: Locator, offsetX = 12) => {
-  await expect(target).toBeVisible();
+  let box: Awaited<ReturnType<Locator['boundingBox']>> = null;
+  await expect(async () => {
+    box = await target.boundingBox();
+    expect(box).not.toBeNull();
+  }).toPass();
 
-  const box = await target.boundingBox();
-  if (!box) {
-    throw new Error('Cannot select text: target has no bounding box');
-  }
-
-  const x = box.x + offsetX;
-  const y = box.y + box.height / 2;
+  const x = box!.x + offsetX;
+  const y = box!.y + box!.height / 2;
 
   await page.mouse.dblclick(x, y);
+
+  await expect(page.locator('.CodeMirror-selected').first()).toBeVisible();
+
   await page.waitForTimeout(DOUBLE_CLICK_RESET_MS);
   await page.mouse.click(x, y, { button: 'right' });
 };

@@ -39,17 +39,37 @@ export const buildAddToScopes = ({ state, collection, item }) => {
   });
 };
 
-export const buildScopeInfo = ({ scopeType, state, collection, item, secret = false }) => {
-  switch (scopeType) {
-    case VARIABLE_ADD_SCOPES.COLLECTION:
-      return { type: 'collection', value: '', data: { collection, variable: null } };
+const findEnabledVariable = (variables, variableName) =>
+  variableName ? (variables || []).find((variable) => variable.enabled && variable.name === variableName) || null : null;
 
-    case VARIABLE_ADD_SCOPES.REQUEST:
-      return { type: 'request', value: '', data: { item, variable: null } };
+export const buildScopeInfo = ({ scopeType, state, collection, item, secret = false, variableName }) => {
+  switch (scopeType) {
+    case VARIABLE_ADD_SCOPES.COLLECTION: {
+      const root = collection?.draft?.root || collection?.root;
+      return {
+        type: 'collection',
+        value: '',
+        data: { collection, variable: findEnabledVariable(root?.request?.vars?.req, variableName) }
+      };
+    }
+
+    case VARIABLE_ADD_SCOPES.REQUEST: {
+      const request = item?.draft?.request || item?.request;
+      return {
+        type: 'request',
+        value: '',
+        data: { item, variable: findEnabledVariable(request?.vars?.req, variableName) }
+      };
+    }
 
     case VARIABLE_ADD_SCOPES.FOLDER: {
       const { folderScopeTarget } = resolveFolderScopeTarget(collection, item);
-      return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
+      const root = folderScopeTarget?.draft || folderScopeTarget?.root;
+      return {
+        type: 'folder',
+        value: '',
+        data: { folder: folderScopeTarget, variable: findEnabledVariable(root?.request?.vars?.req, variableName) }
+      };
     }
 
     case VARIABLE_ADD_SCOPES.ENVIRONMENT: {

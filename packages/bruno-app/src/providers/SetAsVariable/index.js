@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import SetAsVariableMenu from 'components/SetAsVariableMenu';
 import SetAsVariablePopover from 'components/SetAsVariablePopover';
 import { getCodeMirrorSelectionPayload } from 'utils/codemirror/selection';
-import { dismissActiveVarInfoPopup } from 'utils/codemirror/brunoVarInfo';
+import { setVarInfoSuppressed } from 'utils/codemirror/brunoVarInfo';
 import { SetAsVariableContext } from './context';
 
 const CLOSED = { view: 'closed', selection: null };
@@ -30,6 +30,14 @@ export function SetAsVariableProvider({ children }) {
   const activeTabUidRef = useRef(activeTabUid);
   activeTabUidRef.current = activeTabUid;
 
+  // Syncing an imperative, non-React popup: the open callbacks suppress immediately so an
+  // already-visible tooltip goes away on the same tick, and this keeps it in step afterwards.
+  useEffect(() => setVarInfoSuppressed(state.view !== 'closed'), [state.view]);
+
+  useEffect(() => {
+    setState((current) => (current.selection && current.selection.tabUid !== activeTabUid ? CLOSED : current));
+  }, [activeTabUid]);
+
   const close = useCallback(() => setState(CLOSED), []);
 
   const dismissMenu = useCallback(() => setState((current) => (current.view === 'menu' ? CLOSED : current)), []);
@@ -42,7 +50,7 @@ export function SetAsVariableProvider({ children }) {
 
     event.preventDefault();
     event.stopPropagation();
-    dismissActiveVarInfoPopup();
+    setVarInfoSuppressed(true);
 
     setState({
       view: 'menu',
@@ -74,7 +82,7 @@ export function SetAsVariableProvider({ children }) {
     if (!selectionContainsPoint(domSelection, event.clientX, event.clientY)) return;
 
     event.preventDefault();
-    dismissActiveVarInfoPopup();
+    setVarInfoSuppressed(true);
 
     setState({
       view: 'menu',

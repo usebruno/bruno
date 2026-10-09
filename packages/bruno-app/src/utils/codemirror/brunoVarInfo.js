@@ -27,7 +27,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
-import { SCOPE_ICON } from 'utils/common/constants';
+import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -36,8 +36,16 @@ const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIR
 const { get } = require('lodash');
 
 let hideActiveVarInfoPopup = () => {};
+let varInfoSuppressed = false;
 
-export const dismissActiveVarInfoPopup = () => hideActiveVarInfoPopup();
+// The hover timer re-arms on every mousemove, so dismissing once is not enough while another
+// popup owns the selection — suppression has to hold until that popup closes.
+export const setVarInfoSuppressed = (suppressed) => {
+  varInfoSuppressed = suppressed;
+  if (suppressed) {
+    hideActiveVarInfoPopup();
+  }
+};
 
 const COPY_ICON_SVG_TEXT = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -54,7 +62,7 @@ const CHECKMARK_ICON_SVG_TEXT = `
 
 const COPY_SUCCESS_COLOR = '#22c55e';
 
-export const COPY_SUCCESS_TIMEOUT = 1000;
+export { COPY_SUCCESS_TIMEOUT };
 
 // Editor height constraints
 const EDITOR_MIN_HEIGHT = 1.75;
@@ -86,11 +94,7 @@ const EYE_OFF_ICON_SVG = `
 
 const getScopeLabel = (scopeType) => {
   const labels = {
-    'global': 'Global',
-    'environment': 'Environment',
-    'collection': 'Collection',
-    'folder': 'Folder',
-    'request': 'Request',
+    ...SCOPE_LABEL,
     'runtime': 'Runtime',
     'process.env': 'Process Env',
     'dynamic': 'Dynamic',
@@ -931,7 +935,7 @@ if (!SERVER_RENDERED) {
     const target = e.target || e.srcElement;
 
     // Prevent new tooltips if one is already active
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
+    if (varInfoSuppressed || target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
     // Show popover for both valid and invalid variables
@@ -959,6 +963,9 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
+      if (varInfoSuppressed) {
+        return;
+      }
       onMouseHover(cm, box, point);
     };
 

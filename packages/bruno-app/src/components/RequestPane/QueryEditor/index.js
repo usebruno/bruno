@@ -50,6 +50,8 @@ export default class QueryEditor extends React.Component {
   static contextType = SetAsVariableContext;
 
   _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false) return;
+
     this.context.openFromCodeMirror(event, editor, {
       collection: this.props.collection,
       item: this.props.item

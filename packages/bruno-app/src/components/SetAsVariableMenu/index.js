@@ -1,14 +1,6 @@
 import React from 'react';
 import MenuDropdown from 'ui/MenuDropdown';
-
-const anchorStyle = (selection) => ({
-  position: 'fixed',
-  left: `${selection.x}px`,
-  top: `${selection.y}px`,
-  width: '1px',
-  height: '1px',
-  pointerEvents: 'none'
-});
+import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
 
 const SetAsVariableMenu = ({ selection, onNewVariable, onClose }) => (
   <MenuDropdown
@@ -19,7 +11,7 @@ const SetAsVariableMenu = ({ selection, onNewVariable, onClose }) => (
     appendTo={document.body}
     data-testid="set-as-variable-menu"
   >
-    <div style={anchorStyle(selection)} />
+    <div style={cursorAnchorStyle(selection)} />
   </MenuDropdown>
 );
 

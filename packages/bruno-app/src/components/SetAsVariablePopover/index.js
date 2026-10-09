@@ -9,20 +9,10 @@ import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/a
 import { buildAddToScopes, buildScopeInfo, createEnvironmentForScope, getScopeVariableNames } from 'utils/variables';
 import { replaceSelectionWithVariable } from 'utils/codemirror/selection';
 import { variableNameRegex } from 'utils/common/regex';
-import { SCOPE_ICON, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { cursorAnchorStyle } from 'utils/common/cursorAnchor';
+import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import StyledWrapper from './StyledWrapper';
-
-const COPY_SUCCESS_TIMEOUT = 1000;
-const INVALID_NAME_ERROR
-  = 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
-
-const SCOPE_BADGE_LABEL = {
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'Global',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'Environment',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'Collection',
-  [VARIABLE_ADD_SCOPES.FOLDER]: 'Folder',
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'Request'
-};
 
 const summariseValue = (text) => {
   const lineCount = (text.match(/\n/g) || []).length + 1;
@@ -37,19 +27,10 @@ const pickDefaultScope = (scopes) => {
 
 const ScopeIcon = ({ scopeType, muted }) => (
   <span
-    className={`var-set-scope-icon var-set-scope-icon-${muted ? 'muted' : scopeType}`}
+    className={`var-add-to-option-icon var-add-to-option-icon-${muted ? 'muted' : scopeType}`}
     dangerouslySetInnerHTML={{ __html: SCOPE_ICON[scopeType] }}
   />
 );
-
-const anchorStyle = (selection) => ({
-  position: 'fixed',
-  left: `${selection?.x || 0}px`,
-  top: `${selection?.y || 0}px`,
-  width: '1px',
-  height: '1px',
-  pointerEvents: 'none'
-});
 
 const SetAsVariablePopover = ({ selection, onClose }) => {
   const dispatch = useDispatch();
@@ -114,16 +95,14 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
   };
 
   const selectedScope = scopes.find((scope) => scope.type === scopeType) || null;
-  const existingVariableNames = scopeType
-    ? getScopeVariableNames({
-        scopeType,
-        state: { collections: { collections }, globalEnvironments },
-        collection: selection.collection,
-        item: selection.item
-      })
-    : new Set();
+  const existingVariableNames = getScopeVariableNames({
+    scopeType,
+    state: { collections: { collections }, globalEnvironments },
+    collection: selection.collection,
+    item: selection.item
+  });
   const overwrites = !!name && !!selectedScope && existingVariableNames.has(name);
-  const nameError = name && !variableNameRegex.test(name) ? INVALID_NAME_ERROR : null;
+  const nameError = name && !variableNameRegex.test(name) ? INVALID_VARIABLE_NAME_ERROR : null;
   const canSave = !!name && !nameError && !!selectedScope && !saving;
 
   const handleSave = () => {
@@ -134,7 +113,8 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
       state: store.getState(),
       collection: selection.collection,
       item: selection.item,
-      secret: selectedScope.supportsSecret ? secret : false
+      secret: selectedScope.supportsSecret ? secret : false,
+      variableName: name
     });
 
     setSaving(true);
@@ -178,7 +158,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
       appendTo={document.body}
       onClickOutside={onClose}
       noPadding={true}
-      icon={<div style={anchorStyle(selection)} />}
+      icon={<div style={cursorAnchorStyle(selection)} />}
     >
       <StyledWrapper data-testid="set-as-variable-popover" onKeyDown={handleKeyDown}>
         <div className="var-set-header">
@@ -186,9 +166,9 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
             {summariseValue(selection.text)}
           </div>
           {selectedScope ? (
-            <span className="var-set-scope-badge" data-testid="set-as-variable-scope-badge">
+            <span className="var-scope-badge" data-testid="set-as-variable-scope-badge">
               <ScopeIcon scopeType={selectedScope.type} />
-              {SCOPE_BADGE_LABEL[selectedScope.type]}
+              {SCOPE_LABEL[selectedScope.type]}
             </span>
           ) : null}
         </div>
@@ -234,7 +214,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
         <div className="var-set-controls">
           <button
             type="button"
-            className="var-set-add-to-toggle"
+            className="var-add-to-toggle var-set-add-to-toggle"
             aria-expanded={scopeListOpen}
             onClick={() => setScopeListOpen((open) => !open)}
             data-testid="set-as-variable-add-to-toggle"
@@ -248,9 +228,10 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
           </button>
 
           {selectedScope?.supportsSecret ? (
-            <label className="var-set-secret-label">
+            <label className="var-add-to-secret-label">
               <input
                 type="checkbox"
+                className="var-add-to-secret-checkbox"
                 checked={secret}
                 onChange={(event) => setSecret(event.target.checked)}
                 data-testid="set-as-variable-secret"
@@ -261,11 +242,11 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
         </div>
 
         {scopeListOpen ? (
-          <div className="var-set-scope-list" data-testid="set-as-variable-scopes">
+          <div className="var-add-to-list" data-testid="set-as-variable-scopes">
             {scopes.map((scope) => {
               if (creatingScopeType === scope.type) {
                 return (
-                  <div key={scope.type} className="var-set-scope-option is-creating">
+                  <div key={scope.type} className="var-add-to-option var-set-scope-option is-creating">
                     <input
                       type="text"
                       autoFocus
@@ -298,12 +279,12 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
 
               if (!scope.enabled) {
                 return (
-                  <div key={scope.type} className="var-set-scope-option is-disabled">
+                  <div key={scope.type} className="var-add-to-option var-set-scope-option is-disabled">
                     <ScopeIcon scopeType={scope.type} muted />
                     <span className="var-set-note">{`No ${scope.label} selected`}</span>
                     <button
                       type="button"
-                      className="var-set-create-env-link"
+                      className="var-add-to-link-button"
                       onClick={() => openCreateForm(scope)}
                       data-testid={`set-as-variable-create-env-${scope.type}`}
                     >
@@ -316,11 +297,11 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
               return (
                 <div
                   key={scope.type}
-                  className={`var-set-scope-option ${scope.type === scopeType ? 'is-active' : ''}`}
+                  className={`var-add-to-option var-set-scope-option ${scope.type === scopeType ? 'is-active' : ''}`}
                 >
                   <button
                     type="button"
-                    className="var-set-scope-trigger"
+                    className="var-add-to-option-trigger var-set-scope-trigger"
                     onClick={() => {
                       setScopeType(scope.type);
                       setScopeListOpen(false);
@@ -328,7 +309,7 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
                     data-testid={`set-as-variable-scope-${scope.type}`}
                   >
                     <ScopeIcon scopeType={scope.type} />
-                    <span className="var-set-scope-label">{scope.label}</span>
+                    <span className="var-add-to-option-label">{scope.label}</span>
                   </button>
                 </div>
               );
