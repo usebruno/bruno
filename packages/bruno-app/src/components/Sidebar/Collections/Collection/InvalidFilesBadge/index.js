@@ -6,7 +6,7 @@ import { REQUESTS_NOT_LOADED_ID } from 'components/CollectionSettings/Overview/R
 import CountBadge from 'ui/CountBadge';
 import StyledWrapper from './StyledWrapper';
 
-const InvalidFilesBadge = ({ count, collectionUid, rowUid, showOverviewLink = false }) => {
+const InvalidFilesBadge = ({ count, collectionUid, rowUid }) => {
   const dispatch = useDispatch();
 
   if (!count) {
@@ -36,20 +36,16 @@ const InvalidFilesBadge = ({ count, collectionUid, rowUid, showOverviewLink = fa
           className="tooltip-mod"
           place="bottom-start"
           positionStrategy="fixed"
-          clickable={showOverviewLink}
+          clickable
           noArrow
           opacity={1}
         >
           <span data-testid="invalid-files-tooltip">
             You have {count} invalid {count === 1 ? 'file' : 'files'}.
-            {showOverviewLink ? (
-              <>
-                {' '}
-                <button type="button" className="text-link hover:underline" onClick={handleSeeHere} data-testid="invalid-files-see-here">
-                  See here
-                </button>
-              </>
-            ) : null}
+            {' '}
+            <button type="button" className="text-link hover:underline" onClick={handleSeeHere} data-testid="invalid-files-see-here">
+              See here
+            </button>
           </span>
         </Tooltip>
       </span>

@@ -601,7 +601,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
           <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
-          <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} showOverviewLink />
+          <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} />
           {isLoading ? <IconLoader2 className="animate-spin flex-shrink-0 mx-1 ml-auto" size={18} strokeWidth={1.5} /> : null}
         </div>
         {!isDragging && !isMultiSelected && (

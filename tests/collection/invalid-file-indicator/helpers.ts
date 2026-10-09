@@ -71,10 +71,10 @@ export const verifyInvalidFileIndicators = async (
     await expect(sidebar.folderInvalidFilesBadge(collectionName, 'nested')).toHaveText('1');
   });
 
-  await test.step('hovering a folder count shows that folder\'s count without a link', async () => {
+  await test.step('hovering a folder count shows that folder\'s count with the overview link', async () => {
     await sidebar.folderInvalidFilesBadge(collectionName, 'nested').hover();
-    await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 1 invalid file.');
-    await expect(sidebar.invalidFilesSeeHere()).toHaveCount(0);
+    await expect(sidebar.invalidFilesTooltip()).toHaveText('You have 1 invalid file. See here');
+    await expect(sidebar.invalidFilesSeeHere()).toBeVisible();
   });
 
   await test.step('fixing a deeply nested file updates every count above it', async () => {
