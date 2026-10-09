@@ -18,6 +18,12 @@ const Wrapper = styled.div`
     overflow-x: hidden;
 
   }
+
+  .search-index-status {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+    padding: 2px 12px;
+  }
 `;
 
 export default Wrapper;

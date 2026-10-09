@@ -113,6 +113,26 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
   });
 };
 
+export const findAncestorFolderUidsByPathname = (collection, pathname) => {
+  const ancestorUids = [];
+
+  const walk = (items) => {
+    const folder = find(items, (i) => {
+      if (i.type !== 'folder') return false;
+      const prefix = i.pathname.endsWith(path.sep) ? i.pathname : `${i.pathname}${path.sep}`;
+      return pathname === i.pathname || pathname.startsWith(prefix);
+    });
+
+    if (!folder) return;
+    ancestorUids.push(folder.uid);
+    walk(folder.items);
+  };
+
+  walk(collection.items);
+
+  return ancestorUids;
+};
+
 export const findItemInCollection = (collection, itemUid) => {
   if (!collection || !collection.items) {
     return null;

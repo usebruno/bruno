@@ -39,7 +39,9 @@ const isDenied = (relativePathPosix, patterns) => {
   return false;
 };
 
-const walk = (root, denylist) => {
+// Lists the files under root. When `folders` is an array, every folder that is walked into is added to it too
+// (relative paths), so empty folders are known as well.
+const walk = (root, denylist, folders = null) => {
   const out = [];
   const visited = new Set();
   const visit = (absDir, relDir) => {
@@ -73,6 +75,7 @@ const walk = (root, denylist) => {
       if (isDir) {
         if (DENY_DIRS.has(entry.name)) continue;
         if (matchesPlainPrefix(posixifyPath(childRel), denylist)) continue;
+        if (folders) folders.push(childRel);
         visit(childAbs, childRel);
       } else if (isFile) {
         if (isDenied(posixifyPath(childRel), denylist)) continue;

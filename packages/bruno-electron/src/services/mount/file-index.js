@@ -84,6 +84,18 @@ class FileIndex {
     return map;
   }
 
+  // The same entries with the `mtime` and `hash` each one was saved with, so a caller can tell whether a saved copy
+  // still matches the file on disk
+  entriesWithMetadata(collectionPath, options = {}) {
+    const metadata = this.#loadMetadata(collectionPath);
+    const entries = this.entries(collectionPath, options);
+    for (const [relativePath, entry] of entries) {
+      const saved = metadata.get(relativePath);
+      if (saved) Object.assign(entry, { mtime: saved.mtime, hash: saved.hash });
+    }
+    return entries;
+  }
+
   stage(collectionPath, entry) {
     const root = collectionPath;
     const { op } = entry;
@@ -111,14 +123,18 @@ class FileIndex {
     const target = this.#resolveTarget(collectionPath, absolutePath);
     if (!target) return;
     const stat = fs.statSync(absolutePath, { bigint: true });
+    const mtime = stat.mtimeNs;
+    const hash = hashFile(absolutePath);
     this.stage(target.root, {
       op: 'add',
       relativePath: target.relativePath,
-      mtime: stat.mtimeNs,
-      hash: hashFile(absolutePath),
+      mtime,
+      hash,
       raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
+    // the same mtime/hash that were saved, so a caller (the search index) can use them without reading the file again
+    return { mtime, hash };
   }
 
   unstagePath(collectionPath, absolutePath) {

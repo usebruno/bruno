@@ -19,7 +19,10 @@ export const SEARCH_CONFIG = {
   FOCUS_DELAY: 100,
   SCROLL_BEHAVIOR: 'smooth',
   SCROLL_BLOCK: 'nearest',
-  DEBOUNCE_DELAY: 300
+  // while the search index is building: at most one index query per this window
+  INDEX_THROTTLE_DELAY: 3000,
+  // a hair longer than the throttle window, so a refresh tick never lands just inside it and gets dropped
+  INDEX_REFRESH_INTERVAL: 3100
 };
 
 export const DOCUMENTATION_RESULT = {

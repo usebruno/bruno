@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { IconEraser } from '@tabler/icons';
 import useFileCache from 'hooks/useFileCache';
+import useSearchIndex from 'hooks/useSearchIndex';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
@@ -18,8 +19,10 @@ const Cache = () => {
 
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
+  const searchIndexEnabled = get(preferences, 'cache.searchIndex.enabled', false);
 
   const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
+  const { size: searchIndexSize, building: searchIndexBuilding, clear: clearSearchIndex } = useSearchIndex();
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -31,6 +34,13 @@ const Cache = () => {
     persist({
       ...preferences.cache,
       file: { enabled: !fileCacheEnabled }
+    });
+  };
+
+  const handleToggleSearchIndex = () => {
+    persist({
+      ...preferences.cache,
+      searchIndex: { ...preferences.cache?.searchIndex, enabled: !searchIndexEnabled }
     });
   };
 
@@ -51,6 +61,15 @@ const Cache = () => {
       toast.success('File cache cleared');
     } catch (error) {
       toast.error('Failed to clear file cache');
+    }
+  };
+
+  const handleClearSearchIndex = async () => {
+    try {
+      await clearSearchIndex();
+      toast.success('Search index cleared');
+    } catch (error) {
+      toast.error(`Failed to clear search index: ${error?.message || error}`);
     }
   };
 
@@ -92,6 +111,40 @@ const Cache = () => {
             label="Clear cache"
             onClick={handleClearFileCache}
             disabled={!fileCacheSize}
+            colorOnHover={theme.colors.text.danger}
+          >
+            <IconEraser size={16} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
+      </div>
+
+      <div className="cache-item">
+        <div className="cache-item-header">
+          <div className="cache-item-title-group">
+            <span className="cache-item-title">Search index</span>
+          </div>
+          <ToggleSwitch
+            data-testid="cache.searchIndex.enabled"
+            isOn={searchIndexEnabled}
+            handleToggle={handleToggleSearchIndex}
+            size="2xs"
+            activeColor={theme.primary.solid}
+          />
+        </div>
+        <div className="cache-item-body">
+          <div className="cache-item-body-text">
+            <p className="cache-item-description">
+              Lets you search requests in collections you haven't opened yet. Clearing it means
+              search results from unopened collections may be unavailable until it's rebuilt.
+            </p>
+            <p className="cache-item-size">
+              Index size <strong>{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
+            </p>
+          </div>
+          <ActionIcon
+            label="Clear search index"
+            onClick={handleClearSearchIndex}
+            disabled={searchIndexBuilding}
             colorOnHover={theme.colors.text.danger}
           >
             <IconEraser size={16} strokeWidth={1.5} />

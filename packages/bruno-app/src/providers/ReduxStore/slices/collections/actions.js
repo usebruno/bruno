@@ -3477,6 +3477,58 @@ export const mountCollection
       });
     };
 
+export const mountUnmountedActiveWorkspaceCollections = () => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  if (!activeWorkspace) return;
+
+  const workspacePaths = new Set((activeWorkspace.collections || []).map((wc) => normalizePath(wc.path)));
+  collections
+    .filter((c) => c.mountStatus === 'unmounted' && workspacePaths.has(normalizePath(c.pathname)))
+    .forEach((collection) => {
+      dispatch(mountCollection({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        brunoConfig: collection.brunoConfig,
+        workspacePathname: activeWorkspace.pathname
+      })).catch(() => {});
+    });
+};
+
+export const indexActiveWorkspaceCollections = () => (dispatch, getState) => {
+  const state = getState();
+  const { collections, collectionSortOrder } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  if (!activeWorkspace) return Promise.resolve();
+
+  // Sidebar order, so collections are indexed from the top of the list down
+  const activeCollections = buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder })
+    .filter((entry) => entry.kind === 'loaded')
+    .map(({ collection }) => ({ path: collection.pathname, name: collection.name }));
+  if (!activeCollections.length) return Promise.resolve();
+
+  return window.ipcRenderer
+    .invoke('renderer:index-collections', activeCollections, activeWorkspace.pathname)
+    .catch(() => {});
+};
+
+export const fetchCollectionTreeFromIndex
+  = ({ collectionPath, collectionName }) =>
+    async () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:search-index-tree', { collectionPath, collectionName });
+    };
+
+export const searchCollectionTreesFromIndex
+  = (term, workspacePath) =>
+    async () => {
+      const { ipcRenderer } = window;
+      return ipcRenderer.invoke('renderer:search-index-trees', term, workspacePath);
+    };
+
 export const showInFolder = (collectionPath) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

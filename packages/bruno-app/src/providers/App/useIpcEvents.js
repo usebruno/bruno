@@ -3,7 +3,8 @@ import {
   updateCookies,
   updatePreferences,
   setGitVersion,
-  setIsOpeningCollection
+  setIsOpeningCollection,
+  setSearchIndexStatus
 } from 'providers/ReduxStore/slices/app';
 import {
   updateServerStatus,
@@ -127,6 +128,14 @@ const useIpcEvents = () => {
       }
     };
     ipcRenderer.invoke('renderer:ready');
+
+    ipcRenderer.invoke('renderer:get-search-index-status').then((status) => {
+      dispatch(setSearchIndexStatus(status));
+    });
+
+    const removeSearchIndexStatusListener = ipcRenderer.on('main:search-index-status', (status) => {
+      dispatch(setSearchIndexStatus(status));
+    });
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
@@ -425,6 +434,7 @@ const useIpcEvents = () => {
     });
 
     return () => {
+      removeSearchIndexStatusListener();
       removeCollectionTreeLoadedListener();
       removeCollectionLoadingStateV2Listener();
       removeBrunoConfigUpdateV2Listener();

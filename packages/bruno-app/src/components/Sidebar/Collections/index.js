@@ -1,35 +1,60 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Virtuoso } from 'react-virtuoso';
-import StyledWrapper from './StyledWrapper';
-import CreateOrOpenCollection from './CreateOrOpenCollection';
-import CollectionSearch from './CollectionSearch/index';
-import InlineCollectionCreator from './InlineCollectionCreator';
-import SidebarRow from './SidebarRow';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
-import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
-import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
-import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import useLeadingThrottle from 'hooks/useLeadingThrottle';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { fetchCollectionTreeFromIndex, indexActiveWorkspaceCollections, searchCollectionTreesFromIndex } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Virtuoso } from 'react-virtuoso';
+import IndeterminateProgressBar from 'ui/IndeterminateProgressBar';
+import { buildIndexes, flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
+import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
+import { normalizePath } from 'utils/common/path';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import CollectionSearch from './CollectionSearch/index';
+import CreateOrOpenCollection from './CreateOrOpenCollection';
+import InlineCollectionCreator from './InlineCollectionCreator';
+import SidebarRow from './SidebarRow';
+import StyledWrapper from './StyledWrapper';
+
+const SEARCH_DEBOUNCE_MS = 350;
+const SEARCH_INDEX_THROTTLE_MS = 3000;
+// a hair longer than the throttle window, so a refresh tick never lands just inside it and gets dropped
+const SEARCH_INDEX_REFRESH_MS = 3100;
 
 const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
+  // The input renders from `searchText` so typing stays instant; everything that has to walk the
+  // tree reads `debouncedSearchText`, so a burst of keystrokes rebuilds the rows once, not per character.
   const [searchText, setSearchText] = useState('');
   const trimmedSearchText = searchText.trim();
-  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
+  const debouncedSearchText = useDebounce(trimmedSearchText, SEARCH_DEBOUNCE_MS, { shouldSkipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder, selectedSidebarUids } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const searchIndexBuilding = useSelector((state) => state.app.searchIndexBuilding);
+  const searchIndexEnabled = useSelector((state) => state.app.preferences?.cache?.searchIndex?.enabled);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
   const virtuosoRef = useRef(null);
   const lastScrolledTabUidRef = useRef(null);
+  const hasMountedForSearchRef = useRef(false);
+  const pendingTreeFetchUidsRef = useRef(new Set());
+  const searchTextRef = useRef(searchText);
+  searchTextRef.current = searchText;
+  const activeWorkspacePathnameRef = useRef(null);
+  const pollIntervalRef = useRef(null);
+  const searchIndexBuildingRef = useRef(searchIndexBuilding);
+  searchIndexBuildingRef.current = searchIndexBuilding;
+  const wasSearchIndexBuildingRef = useRef(false);
+  const lastQueriedTextRef = useRef('');
+  const searchRequestIdRef = useRef(0);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+  activeWorkspacePathnameRef.current = activeWorkspace?.pathname;
 
   // Build the sidebar list in workspace.yml order. Each entry is either a fully
   // loaded collection (rendered via <Collection />) or, for non-default workspaces,
@@ -40,11 +65,127 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
-  // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
+  // A collection that isn't mounted yet has no `collection.items` - its structure lives only in
+  // the search index until a real mount runs. Fetched on expand, keyed by uid, and merged into the
+  // entry below rather than written to Redux: it's a read-only stand-in, not collection state.
+  const [indexTreesByUid, setIndexTreesByUid] = useState({});
+  const [searchTreesByPath, setSearchTreesByPath] = useState({});
+  const [isSearchIndexPending, setIsSearchIndexPending] = useState(false);
+
+  // Search runs against the search index only (mounted or not). The first call runs the query immediately and
+  // calls made within the next 3 s are ignored; the refresh interval below picks up whatever was typed meanwhile.
+  const searchIndexThrottled = useLeadingThrottle(() => {
+    const text = searchTextRef.current.trim();
+    if (!text) return;
+    // Once the index is complete, repeating the same text would return the same rows
+    if (!searchIndexBuildingRef.current && text === lastQueriedTextRef.current) return;
+    lastQueriedTextRef.current = text;
+
+    const requestId = ++searchRequestIdRef.current;
+    setIsSearchIndexPending(true);
+    dispatch(searchCollectionTreesFromIndex(text, activeWorkspacePathnameRef.current))
+      .then((trees) => {
+        if (requestId !== searchRequestIdRef.current) return;
+        const byPath = {};
+        for (const [collectionPath, items] of Object.entries(trees || {})) {
+          byPath[normalizePath(collectionPath)] = items;
+        }
+        setSearchTreesByPath(byPath);
+      })
+      .catch(() => {
+        if (requestId === searchRequestIdRef.current) setSearchTreesByPath({});
+      })
+      .finally(() => {
+        if (requestId === searchRequestIdRef.current && !searchIndexBuildingRef.current) setIsSearchIndexPending(false);
+      });
+  }, SEARCH_INDEX_THROTTLE_MS);
+
+  useEffect(() => {
+    const toFetch = sidebarEntries.filter((entry) =>
+      entry.kind === 'loaded'
+      && entry.collection.mountStatus !== 'mounted'
+      && !entry.collection.collapsed
+      && !(entry.collection.uid in indexTreesByUid)
+      && !pendingTreeFetchUidsRef.current.has(entry.collection.uid));
+
+    toFetch.forEach((entry) => {
+      const { collection } = entry;
+      pendingTreeFetchUidsRef.current.add(collection.uid);
+      dispatch(fetchCollectionTreeFromIndex({
+        collectionPath: collection.pathname,
+        collectionName: collection.name
+      }))
+        .then(({ items }) => {
+          pendingTreeFetchUidsRef.current.delete(collection.uid);
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: items }));
+        })
+        .catch(() => {
+          pendingTreeFetchUidsRef.current.delete(collection.uid);
+          setIndexTreesByUid((prev) => ({ ...prev, [collection.uid]: [] }));
+        });
+    });
+
+    const stopSearchIndexRefresh = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      searchIndexThrottled.cancel();
+      lastQueriedTextRef.current = '';
+      wasSearchIndexBuildingRef.current = false;
+    };
+
+    if (!searchText.trim()) {
+      stopSearchIndexRefresh();
+      setSearchTreesByPath({});
+      setIsSearchIndexPending(false);
+      hasMountedForSearchRef.current = false;
+      return;
+    }
+
+    // Without a search index there is nothing to query; the rows are filtered in memory instead
+    if (!searchIndexEnabled) {
+      stopSearchIndexRefresh();
+      setSearchTreesByPath({});
+      setIsSearchIndexPending(false);
+      return;
+    }
+
+    if (!hasMountedForSearchRef.current) {
+      hasMountedForSearchRef.current = true;
+      dispatch(indexActiveWorkspaceCollections());
+    }
+
+    // The index just finished building: the final search must not be swallowed by the throttle window
+    if (wasSearchIndexBuildingRef.current && !searchIndexBuilding) {
+      searchIndexThrottled.cancel();
+      lastQueriedTextRef.current = '';
+    }
+    wasSearchIndexBuildingRef.current = searchIndexBuilding;
+
+    if (searchIndexBuilding) setIsSearchIndexPending(true);
+    searchIndexThrottled();
+    if (!pollIntervalRef.current) {
+      pollIntervalRef.current = setInterval(searchIndexThrottled, SEARCH_INDEX_REFRESH_MS);
+    }
+  }, [sidebarEntries, indexTreesByUid, searchText, dispatch, searchIndexEnabled, searchIndexBuilding, searchIndexThrottled]);
+
+  // A mounted collection keeps its Redux items (filtered in memory below); an unmounted one gets its items
+  // from the search index - its browse tree, or the matches of the current search.
+  const renderedSidebarEntries = useMemo(() => sidebarEntries.map((entry) => {
+    if (entry.kind !== 'loaded' || entry.collection.mountStatus === 'mounted') return entry;
+    const items = indexTreesByUid[entry.collection.uid] || searchTreesByPath[normalizePath(entry.collection.pathname)];
+    if (!items) return entry;
+    return { ...entry, collection: { ...entry.collection, items } };
+  }), [sidebarEntries, indexTreesByUid, searchTreesByPath]);
+
   const { rows, itemsByUid, collectionsByUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
-    [sidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, { searchText: debouncedSearchText }),
+    [renderedSidebarEntries, debouncedSearchText]
   );
+
+  const isSearchPending = trimmedSearchText !== debouncedSearchText || isSearchIndexPending;
+  const showIndexingText = searchIndexBuilding && isSearchPending;
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -126,6 +267,16 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     <StyledWrapper data-testid="collections">
       {showSearch && (
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+      )}
+
+      {showSearch && showIndexingText && (
+        <div className="search-index-status" data-testid="sidebar-indexing-status">Indexing…</div>
+      )}
+      {showSearch && (
+        <IndeterminateProgressBar
+          active={isSearchPending || searchIndexBuilding}
+          data-testid="sidebar-progress"
+        />
       )}
 
       {isCreatingCollection && (

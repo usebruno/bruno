@@ -261,6 +261,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  ipcMain.handle('renderer:set-active-workspace', async (event, workspacePath) => {
+    if (!workspacePath) return;
+  });
+
   ipcMain.handle('renderer:rename-workspace', async (event, workspacePath, newName) => {
     try {
       await updateWorkspaceName(workspacePath, newName);

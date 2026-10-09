@@ -82,6 +82,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     margin-left: 0.25rem;
   }
+
 `;
 
 export default StyledWrapper;
