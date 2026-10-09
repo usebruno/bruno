@@ -121,4 +121,68 @@ test.describe('Apps - secure context', () => {
       expect(first.origin).not.toBe(second.origin);
     });
   });
+
+  test('sensitive permissions are denied in the app guest', async ({ page, electronApp, createTmpDir }) => {
+    await test.step('Open an app guest', async () => {
+      await openAppWith(page, electronApp, createTmpDir, 'permissions', '<div id="out"></div>');
+    });
+
+    const raw = await test.step('Request clipboard, geolocation, and camera from the guest', () =>
+      guestEval(
+        page,
+        electronApp,
+        `(async function () {
+          function withTimeout(work, ms) {
+            return new Promise(function (resolve) {
+              var done = false;
+              var finish = function (value) {
+                if (done) return;
+                done = true;
+                resolve(value);
+              };
+              setTimeout(function () { finish('timeout'); }, ms);
+              Promise.resolve().then(work).then(finish, function (err) {
+                finish((err && (err.name || err.message)) || 'error');
+              });
+            });
+          }
+          function query(name) {
+            return navigator.permissions.query({ name: name }).then(
+              function (status) { return status.state; },
+              function (err) { return (err && err.name) || 'error'; }
+            );
+          }
+          var clipboardRead = await withTimeout(function () {
+            return navigator.clipboard.readText().then(function () { return 'granted'; });
+          }, 3000);
+          var geolocation = await withTimeout(function () {
+            return new Promise(function (resolve) {
+              navigator.geolocation.getCurrentPosition(
+                function () { resolve('granted'); },
+                function (err) { resolve('denied:' + err.code); }
+              );
+            });
+          }, 3000);
+          return JSON.stringify({
+            clipboardRead: clipboardRead,
+            clipboardReadPermission: await query('clipboard-read'),
+            geolocation: geolocation,
+            camera: await query('camera'),
+            clipboardWrite: await query('clipboard-write')
+          });
+        })()`
+      ));
+
+    const result = JSON.parse(raw as string);
+
+    await test.step('Assert reads and device access are denied', async () => {
+      expect(result.clipboardRead).toBe('NotAllowedError');
+      expect(result.clipboardReadPermission).toBe('denied');
+      expect(result.geolocation).toBe('denied:1');
+      // getUserMedia rejects with NotFoundError when the machine has no camera,
+      // which does not show whether the media permission was denied.
+      expect(result.camera).toBe('denied');
+      expect(result.clipboardWrite).toBe('granted');
+    });
+  });
 });
