@@ -72,7 +72,7 @@ const CollectionSourceFields = ({
             items={collectionItems}
             selectedItemId={collectionUid}
             data-testid="api-spec-collection-dropdown"
-            menuClassName="max-h-64 overflow-y-auto"
+            menuClassName="max-h-40 overflow-y-auto"
             placement="bottom-start"
             appendTo={() => document.body}
             popperOptions={{ strategy: 'fixed' }}
@@ -82,11 +82,11 @@ const CollectionSourceFields = ({
             <button
               type="button"
               id="collection-select"
-              className="collection-select-trigger flex items-center justify-between cursor-pointer mt-1 w-full"
+              className="collection-select-trigger flex items-center justify-between cursor-pointer mt-1.5 w-full"
               data-testid="api-spec-collection-trigger"
             >
               <span className={selectedWorkspaceCollection ? 'truncate' : 'truncate placeholder'}>
-                {selectedWorkspaceCollection?.name || 'Select a collection'}
+                {selectedWorkspaceCollection?.name || 'Choose a collection'}
               </span>
               <IconChevronDown className="caret" size={14} strokeWidth={2} />
             </button>
@@ -102,8 +102,8 @@ const CollectionSourceFields = ({
             type="text"
             name="collectionLocation"
             readOnly={true}
-            placeholder="Choose file..."
-            className="block textbox mt-1 w-full cursor-pointer"
+            placeholder="Select collection folder"
+            className="block textbox mt-1.5 w-full cursor-pointer"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -135,14 +135,14 @@ const CollectionSourceFields = ({
 
       {environmentNames.length ? (
         <>
-          <label htmlFor="api-spec-environment" className="flex items-center font-semibold mt-3">
+          <label htmlFor="api-spec-environment" className="flex items-center font-semibold mt-5">
             Environment
           </label>
           <MenuDropdown
             items={environmentItems}
             selectedItemId={environment}
             data-testid="api-spec-environment-dropdown"
-            menuClassName="max-h-64 overflow-y-auto"
+            menuClassName="max-h-40 overflow-y-auto"
             placement="bottom-start"
             appendTo={() => document.body}
             popperOptions={{ strategy: 'fixed' }}

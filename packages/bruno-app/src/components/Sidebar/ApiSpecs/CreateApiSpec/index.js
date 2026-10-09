@@ -32,8 +32,8 @@ import {
 const CreateApiSpec = ({ onClose }) => {
   const sourceRadios = [
     { id: 'api-spec-source-blank', value: API_SPEC_SOURCE.BLANK, label: 'Blank Spec' },
-    { id: 'api-spec-source-collection', value: API_SPEC_SOURCE.COLLECTION, label: 'From Bruno Collection' },
-    { id: 'api-spec-source-url', value: API_SPEC_SOURCE.URL, label: 'From Spec URL' }
+    { id: 'api-spec-source-collection', value: API_SPEC_SOURCE.COLLECTION, label: 'Bruno Collection' },
+    { id: 'api-spec-source-url', value: API_SPEC_SOURCE.URL, label: 'Spec URL' }
   ];
 
   const inputRef = useRef();
@@ -327,12 +327,12 @@ const CreateApiSpec = ({ onClose }) => {
         >
           <form className="bruno-form w-[500px] max-w-full" onSubmit={formik.handleSubmit}>
             <label className="block font-semibold mb-2">Source</label>
-            <div className="flex items-center gap-[28px]">
+            <div className="flex items-center gap-4">
               {sourceRadios.map(({ id, value, label }) => (
                 <div key={id} className="flex items-center">
                   <input
                     id={id}
-                    className="cursor-pointer w-[18px] h-[18px]"
+                    className="cursor-pointer"
                     type="radio"
                     name="importFrom"
                     value={value}
@@ -376,7 +376,10 @@ const CreateApiSpec = ({ onClose }) => {
               />
             ) : null}
 
-            <label htmlFor="api-spec-name" className="flex items-center font-semibold mt-3">
+            <label
+              htmlFor="api-spec-name"
+              className={`flex items-center font-semibold ${formik.values.importFrom === API_SPEC_SOURCE.BLANK ? 'mt-3' : 'mt-5'}`}
+            >
               Name
             </label>
             <div className="relative">
