@@ -2,6 +2,8 @@ export const REQUEST_TYPES = ['http-request', 'graphql-request', 'grpc-request',
 
 export const DEFAULT_COLLECTION_FORMAT = 'yml';
 
+export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
+
 export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const DEFAULT_SIDEBAR_COLLAPSED = false;
 

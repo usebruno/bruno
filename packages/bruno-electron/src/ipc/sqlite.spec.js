@@ -3,9 +3,11 @@ jest.mock('electron', () => ({
 }));
 
 jest.mock('../services/sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn() }));
+jest.mock('../services/runner-exchange', () => ({ readRunnerExchange: jest.fn(), clearRunnerResponses: jest.fn() }));
 
 const { ipcMain } = require('electron');
 const { getStatements, getFiles } = require('../services/sqlite');
+const { readRunnerExchange, clearRunnerResponses } = require('../services/runner-exchange');
 const { registerSqliteIpc } = require('./sqlite');
 
 describe('registerSqliteIpc', () => {
@@ -67,16 +69,20 @@ describe('registerSqliteIpc', () => {
   describe('get_runner_response', () => {
     const channel = 'datastore:runner_responses:get_runner_response';
 
-    it('forwards only the request uid', () => {
-      expect(invoke(channel, { request_uid: 'run-1', extra: 'ignored' })).toBe('result');
-      expect(statements.execute).toHaveBeenCalledWith('get_runner_response', { request_uid: 'run-1' });
+    beforeEach(() => {
+      readRunnerExchange.mockReset().mockResolvedValue('exchange');
+    });
+
+    it('returns the exchange rebuilt from the row and its files', async () => {
+      expect(await invoke(channel, { request_uid: 'run-1', extra: 'ignored' })).toBe('exchange');
+      expect(readRunnerExchange).toHaveBeenCalledWith('run-1');
     });
 
     it.each([undefined, {}, { request_uid: '' }, { request_uid: 42 }, { request_uid: { id: 'x' } }])(
       'rejects %p without touching the database',
       (params) => {
         expect(() => invoke(channel, params)).toThrow('request_uid must be a non-empty string');
-        expect(statements.execute).not.toHaveBeenCalled();
+        expect(readRunnerExchange).not.toHaveBeenCalled();
       }
     );
   });
@@ -84,18 +90,20 @@ describe('registerSqliteIpc', () => {
   describe('delete_runner_responses_for_collection', () => {
     const channel = 'datastore:runner_responses:delete_runner_responses_for_collection';
 
-    it('forwards only the collection uid', () => {
-      expect(invoke(channel, { collection_uid: 'col-1', extra: 'ignored' })).toBe('result');
-      expect(statements.execute).toHaveBeenCalledWith('delete_runner_responses_for_collection', {
-        collection_uid: 'col-1'
-      });
+    beforeEach(() => {
+      clearRunnerResponses.mockReset().mockResolvedValue(undefined);
+    });
+
+    it('clears the rows and their files by collection uid only', async () => {
+      await invoke(channel, { collection_uid: 'col-1', extra: 'ignored' });
+      expect(clearRunnerResponses).toHaveBeenCalledWith('col-1');
     });
 
     it.each([undefined, {}, { collection_uid: '' }, { collection_uid: 42 }])(
       'rejects %p without touching the database',
       (params) => {
         expect(() => invoke(channel, params)).toThrow('collection_uid must be a non-empty string');
-        expect(statements.execute).not.toHaveBeenCalled();
+        expect(clearRunnerResponses).not.toHaveBeenCalled();
       }
     );
   });

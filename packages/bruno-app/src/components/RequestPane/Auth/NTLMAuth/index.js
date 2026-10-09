@@ -15,7 +15,7 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth, disabled }) => 
 
   const ntlmAuth = get(request, 'auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
+  const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 

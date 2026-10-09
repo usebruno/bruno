@@ -66,7 +66,6 @@ const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId,
         content={text}
         place={place}
         positionStrategy="fixed"
-        delayShow={500}
         opacity={1}
         style={HEADER_HINT_STYLE}
         render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
@@ -400,10 +399,14 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
         place="top-end"
       >
-        <IconInfoCircle
-          size={16}
-          strokeWidth={1.5}
-        />
+        <button
+          type="button"
+          aria-label={row.omittable
+            ? 'Automatically added at runtime'
+            : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
+        >
+          <IconInfoCircle size={18} strokeWidth={1.5} aria-hidden="true" />
+        </button>
       </HeaderHint>
     );
   }, [navigateToHeaderSource]);
