@@ -54,4 +54,15 @@ describe('bru.getGlobalEnvName', () => {
     bru.deleteAllGlobalEnvVars();
     expect(bru.globalEnvironmentVariables).toEqual({ __name__: 'Production' });
   });
+
+  test('is exposed in the QuickJS sandbox', async () => {
+    const { executeQuickJsVm, loader } = require('../src/sandbox/quickjs');
+    await loader();
+    const result = executeQuickJsVm({
+      script: 'bru.getGlobalEnvName()',
+      context: { bru: makeBru({ globalEnvironmentName: 'Production' }) },
+      scriptType: 'expression'
+    });
+    expect(result).toBe('Production');
+  });
 });
