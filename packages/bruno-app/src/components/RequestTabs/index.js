@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
+import get from 'lodash/get';
 import classnames from 'classnames';
+import { normalizePath } from 'utils/common/path';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
@@ -28,6 +30,8 @@ const RequestTabs = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const preferences = useSelector((state) => state.app.preferences);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -45,7 +49,35 @@ const RequestTabs = () => {
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+  const unifiedTabs = get(preferences, 'general.unifiedTabs', false);
+  
+  const activeWorkspace = find(workspaces, (w) => w.uid === activeWorkspaceUid);
+  const workspaceCollectionUids = useMemo(() => {
+    if (!activeWorkspace || !unifiedTabs) return [];
+    
+    const workspaceCollectionPaths = activeWorkspace.collections?.map((wc) => wc.path) || [];
+    
+    return collections
+      .filter((c) => {
+        if (c.mountStatus !== 'mounted') return false;
+        const isScratch = workspaces.some((w) => w.scratchCollectionUid === c.uid);
+        if (isScratch) return false;
+        return workspaceCollectionPaths.some((wcPath) => normalizePath(c.pathname) === normalizePath(wcPath));
+      })
+      .map((c) => c.uid);
+  }, [activeWorkspace, collections, workspaces, unifiedTabs]);
+
+  const collectionRequestTabs = useMemo(() => {
+    if (unifiedTabs && activeWorkspace) {
+      return filter(tabs, (t) => {
+        if (t.type === 'workspaceOverview' || t.type === 'workspaceEnvironments') {
+          return t.collectionUid === activeWorkspace.scratchCollectionUid;
+        }
+        return workspaceCollectionUids.includes(t.collectionUid);
+      });
+    }
+    return filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+  }, [tabs, activeTab, unifiedTabs, activeWorkspace, workspaceCollectionUids]);
 
   const isScratchCollection = useMemo(() => {
     return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
@@ -144,6 +176,9 @@ const RequestTabs = () => {
               <ul role="tablist" ref={tabsRef}>
                 {collectionRequestTabs && collectionRequestTabs.length
                   ? collectionRequestTabs.map((tab, index) => {
+                      const tabCollection = unifiedTabs 
+                        ? find(collections, (c) => c.uid === tab.collectionUid) || activeCollection
+                        : activeCollection;
                       return (
                         <DraggableTab
                           key={tab.uid}
@@ -164,7 +199,7 @@ const RequestTabs = () => {
                             tabIndex={index}
                             key={tab.uid}
                             tab={tab}
-                            collection={activeCollection}
+                            collection={tabCollection}
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}
