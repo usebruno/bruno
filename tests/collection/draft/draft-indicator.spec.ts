@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection, createFolder, writeFieldValue } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder, writeCollectionProxyField } from '../../utils/page';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
@@ -179,8 +179,8 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await page.locator('input[name="enabled"][value="true"]').check();
 
     // Fill in hostname and port
-    await writeFieldValue(page, 'Hostname', 'localhost');
-    await writeFieldValue(page, 'Port', '8080');
+    await writeCollectionProxyField(page, 'hostname', 'localhost');
+    await writeCollectionProxyField(page, 'port', '8080');
 
     // Verify draft indicator appears
     await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();

@@ -316,6 +316,7 @@ const ProxySettings = ({ collection }) => {
                   onChange={handleHostnameChange}
                   collection={collection}
                   isCompact
+                  data-testid="collection-proxy-hostname"
                 />
               </div>
             </div>
@@ -325,6 +326,7 @@ const ProxySettings = ({ collection }) => {
               </label>
               <input
                 id="port"
+                data-testid="collection-proxy-port"
                 type="number"
                 name="port"
                 className="block textbox"
@@ -360,6 +362,7 @@ const ProxySettings = ({ collection }) => {
                     onChange={handleAuthUsernameChange}
                     collection={collection}
                     isCompact
+                    data-testid="collection-proxy-username"
                   />
                 </div>
               </div>
@@ -376,6 +379,7 @@ const ProxySettings = ({ collection }) => {
                     collection={collection}
                     isSecret={true}
                     isCompact
+                    data-testid="collection-proxy-password"
                   />
                   {showWarning && <SensitiveFieldWarning fieldName="proxy-password" warningMessage={warningMessage} />}
                 </div>

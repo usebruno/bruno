@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { createCollection, closeAllCollections, writeFieldValue } from '../../utils/page';
+import { createCollection, closeAllCollections, writeCollectionProxyField } from '../../utils/page';
 
 test.describe('Draft values are used in requests', () => {
   test.afterEach(async ({ page }) => {
@@ -143,8 +143,8 @@ test.describe('Draft values are used in requests', () => {
     // Go to Proxy Settings tab
     await page.locator('.tab.proxy').click();
     await page.locator('input[name="enabled"][value="true"]').check();
-    await writeFieldValue(page, 'Hostname', 'localhost');
-    await writeFieldValue(page, 'Port', '8080');
+    await writeCollectionProxyField(page, 'hostname', 'localhost');
+    await writeCollectionProxyField(page, 'port', '8080');
 
     await page.locator('.collection-item-name').filter({ hasText: 'Test Request' }).click();
 
