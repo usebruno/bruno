@@ -1,7 +1,7 @@
 import React from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
+import { areItemsLoading, getItemsLoadStats, getCollectionVersion, countInvalidItems } from 'utils/collections/index';
 import { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
@@ -15,6 +15,7 @@ import Migration from '../Migration';
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
+  const invalidItemCount = countInvalidItems(collection.items);
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);
@@ -145,6 +146,11 @@ const Info = ({ collection }) => {
                 {
                   isCollectionLoading ? `${totalItems - itemsLoadingCount} out of ${totalItems} requests in the collection loaded` : `${totalRequestsInCollection} request${totalRequestsInCollection !== 1 ? 's' : ''} in collection`
                 }
+                {invalidItemCount > 0 ? (
+                  <span data-testid="info-invalid-files-count">
+                    {' '}· {invalidItemCount} invalid
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
