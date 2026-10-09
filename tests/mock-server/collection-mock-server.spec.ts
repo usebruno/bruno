@@ -380,6 +380,46 @@ test.describe.serial('Mock Server', () => {
     currentMockPort = await startMockServer(page);
   });
 
+  test('should not overlap Delay and Duration columns for large delay values', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+    const originalViewport = page.viewportSize();
+
+    await openMockServerTab(page, COLLECTION_NAME);
+    await stopMockServer(page);
+    await ms.delayInput().fill('3000');
+    await ms.delayInput().blur();
+    currentMockPort = await startMockServer(page);
+
+    try {
+      await test.step('Narrow the window so the numeric columns are at their tightest', async () => {
+        await page.setViewportSize({ width: 900, height: 820 });
+      });
+
+      await test.step('Log a request that carries the large delay', async () => {
+        await mockFetch('/health');
+        await ms.tabLog().click();
+        await expect(ms.logDelayValue()).toBeVisible();
+      });
+
+      await test.step('Delay value stays within its own column', async () => {
+        const delayBox = await ms.logDelayValue().boundingBox();
+        const durationBox = await ms.logDurationCell().boundingBox();
+
+        expect(delayBox).not.toBeNull();
+        expect(durationBox).not.toBeNull();
+        expect(delayBox!.x + delayBox!.width).toBeLessThanOrEqual(durationBox!.x + 1);
+      });
+    } finally {
+      if (originalViewport) {
+        await page.setViewportSize(originalViewport);
+      }
+      await stopMockServer(page);
+      await ms.delayInput().fill('0');
+      await ms.delayInput().blur();
+      currentMockPort = await startMockServer(page);
+    }
+  });
+
   test('should show refresh toast with correct route count', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
