@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import type { Statements } from './statements';
@@ -61,6 +61,7 @@ export class FileStore {
       if (fileName) {
         this._writing.add(fileName);
         await mkdir(this.directory, { recursive: true, mode: 0o700 });
+        if (process.platform !== 'win32') await chmod(this.directory, 0o700);
         await writeFile(this.pathFor(fileName), bytes, { mode: 0o600 });
       }
 

@@ -51,6 +51,14 @@ describe('FileStore', () => {
       expect(statSync(files.locate(id)!.path!).mode & 0o777).toBe(0o600);
     });
 
+    (process.platform === 'win32' ? it.skip : it)('makes an existing files directory private to the owner', async () => {
+      mkdirSync(files.directory, { recursive: true, mode: 0o755 });
+
+      await files.write(Buffer.alloc(INLINE_MAX + 1, 0x61));
+
+      expect(statSync(files.directory).mode & 0o777).toBe(0o700);
+    });
+
     it('lets the schema stamp created_at and updated_at in epoch seconds', async () => {
       const before = Math.floor(Date.now() / 1000);
       const { id } = await files.write('hello');
