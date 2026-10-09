@@ -16,6 +16,7 @@ const AwsV4Auth = ({ collection }) => {
   const awsv4Auth = collection.draft?.root ? get(collection, 'draft.root.request.auth.awsv4', {}) : get(collection, 'root.request.auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
+  const sessionTokenSensitive = isSensitive(awsv4Auth?.sessionToken);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -150,15 +151,19 @@ const AwsV4Auth = ({ collection }) => {
       </div>
 
       <label className="block mb-1">Session Token</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleSessionTokenChange(val)}
           collection={collection}
+          isSecret={true}
           isCompact
         />
+        {sessionTokenSensitive.showWarning && (
+          <SensitiveFieldWarning fieldName="awsv4-session-token" warningMessage={sessionTokenSensitive.warningMessage} />
+        )}
       </div>
 
       <label className="block mb-1">Service</label>

@@ -39,6 +39,11 @@ test.describe('Close workspace returns to default workspace', () => {
         await expect(locators.sidebar.collection('ColA')).toBeVisible({ timeout: 10000 });
       });
 
+      await test.step('Focus the My Workspace overview so the header shows the workspace name', async () => {
+        await page.locator('.home-button').click();
+        await expect(switcherName).toHaveText('My Workspace', { timeout: 10000 });
+      });
+
       await test.step('Stub open-dialog and switch to WorkspaceB', async () => {
         await app.evaluate(
           ({ dialog }, targetPath: string) => {
@@ -61,10 +66,11 @@ test.describe('Close workspace returns to default workspace', () => {
         await locators.modal.button('Close').click();
       });
 
-      await test.step('App returns to My Workspace, never shows "Scratch", and ColA reloads', async () => {
+      await test.step('App returns to My Workspace, header reads "My Workspace", and ColA reloads', async () => {
         await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace', { timeout: 10000 });
+        await expect(switcherName).toBeVisible({ timeout: 10000 });
+        await expect(switcherName).toHaveText('My Workspace', { timeout: 10000 });
         await expect(locators.sidebar.collection('ColA')).toBeVisible({ timeout: 10000 });
-        await expect(switcherName).not.toHaveText('Scratch');
       });
     } finally {
       if (app) await closeElectronApp(app);
