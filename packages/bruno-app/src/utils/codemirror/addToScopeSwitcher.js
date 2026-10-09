@@ -166,7 +166,7 @@ const renderNoEnvironmentInline = (row, scope, actions) => {
   note.className = 'var-add-to-option-note';
   note.setAttribute('data-testid', 'var-info-add-to-no-env-note');
 
-  note.appendChild(document.createTextNode(`No ${scope.label} selected. `));
+  note.appendChild(document.createTextNode(`No ${scope.label} selected`));
 
   const createLink = document.createElement('button');
   createLink.type = 'button';
@@ -179,8 +179,8 @@ const renderNoEnvironmentInline = (row, scope, actions) => {
     renderCreateEnvironment(row, scope, actions);
   });
 
-  note.appendChild(createLink);
   row.appendChild(note);
+  row.appendChild(createLink);
 };
 
 const buildScopeRow = (scope, actions) => {

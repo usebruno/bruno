@@ -438,7 +438,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Scope Badge */
-  .CodeMirror-brunoVarInfo .var-scope-badge {
+  .var-scope-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -452,7 +452,7 @@ const GlobalStyle = createGlobalStyle`
     flex-shrink: 0;
   }
 
-  .CodeMirror-brunoVarInfo .var-scope-badge-icon {
+  .var-scope-badge-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -460,7 +460,7 @@ const GlobalStyle = createGlobalStyle`
     color: currentColor;
   }
 
-  .CodeMirror-brunoVarInfo .var-scope-badge-icon svg {
+  .var-scope-badge-icon svg {
     width: 0.75rem;
     height: 0.75rem;
   }
@@ -652,20 +652,20 @@ const GlobalStyle = createGlobalStyle`
   }
 
    /* "Add to" scope switcher (shown below the value editor for brand new variables) */
-  .CodeMirror-brunoVarInfo .var-add-to-switcher {
+  .var-add-to-switcher {
     margin-top: 0.5rem;
     width: 19rem;
   }
 
   /* Toggle and Secret checkbox sit in one row. */
-  .CodeMirror-brunoVarInfo .var-add-to-controls {
+  .var-add-to-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.25rem;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-toggle {
+  .var-add-to-toggle {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -681,11 +681,11 @@ const GlobalStyle = createGlobalStyle`
     transition: background 0.15s;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-toggle:hover {
+  .var-add-to-toggle:hover {
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-secret-label {
+  .var-add-to-secret-label {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -696,13 +696,13 @@ const GlobalStyle = createGlobalStyle`
     user-select: none;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-secret-checkbox {
+  .var-add-to-secret-checkbox {
     margin: 0;
     cursor: pointer;
     accent-color: ${(props) => props.theme.primary.solid};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron {
+  .var-add-to-toggle-chevron {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -711,17 +711,17 @@ const GlobalStyle = createGlobalStyle`
     transition: transform 0.15s;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron-open {
+  .var-add-to-toggle-chevron-open {
     transform: rotate(180deg);
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-list {
+  .var-add-to-list {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option {
+  .var-add-to-option {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -732,7 +732,7 @@ const GlobalStyle = createGlobalStyle`
     margin-top: 0.125rem;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-trigger {
+  .var-add-to-option-trigger {
     display: flex;
     align-items: center;
     gap: 0.375rem;
@@ -749,11 +749,11 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option:has(.var-add-to-option-trigger:hover) {
+  .var-add-to-option:has(.var-add-to-option-trigger:hover) {
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon {
+  .var-add-to-option-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -766,58 +766,58 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon svg {
+  .var-add-to-option-icon svg {
     width: 0.75rem;
     height: 0.75rem;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-request {
+  .var-add-to-option-icon-request {
     color: ${(props) => props.theme.colors.text.purple};
     background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-folder {
+  .var-add-to-option-icon-folder {
     color: ${(props) => props.theme.colors.text.yellow};
     background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-collection {
+  .var-add-to-option-icon-collection {
     color: ${(props) => props.theme.colors.text.subtext1};
     background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-environment {
+  .var-add-to-option-icon-environment {
     color: ${(props) => props.theme.colors.text.green};
     background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-global {
+  .var-add-to-option-icon-global {
     color: ${(props) => props.theme.textLink};
     background: ${(props) => rgba(props.theme.textLink, 0.14)};
   }
 
   /* Disabled row badge */
-  .CodeMirror-brunoVarInfo .var-add-to-option-icon-muted {
+  .var-add-to-option-icon-muted {
     color: ${(props) => props.theme.dropdown.mutedText};
     background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
   }
 
   /* Currently selected scope in the "Add to" list — matches the selected-item treatment used by
      the app's other dropdowns (see components/Dropdown, StatusBar/ThemeDropdown). */
-  .CodeMirror-brunoVarInfo .var-add-to-option-active {
+  .var-add-to-option-active {
     background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-trigger,
-  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-label {
+  .var-add-to-option-active .var-add-to-option-trigger,
+  .var-add-to-option-active .var-add-to-option-label {
     color: ${(props) => props.theme.dropdown.selectedColor};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-active:has(.var-add-to-option-trigger:hover) {
+  .var-add-to-option-active:has(.var-add-to-option-trigger:hover) {
     background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-label {
+  .var-add-to-option-label {
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -825,7 +825,7 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-note {
+  .var-add-to-option-note {
     flex: 1;
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.dropdown.mutedText};
@@ -833,21 +833,24 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-link-button {
+  .var-add-to-link-button {
+    flex-shrink: 0;
+    margin-left: auto;
     background: transparent;
     border: none;
     padding: 0;
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.dropdown.color};
     text-decoration: underline;
+    text-underline-offset: 0.125rem;
     cursor: pointer;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-link-button:hover {
+  .var-add-to-link-button:hover {
     color: ${(props) => props.theme.textLink};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-inline-env-name-input {
+  .var-add-to-inline-env-name-input {
     flex: 1;
     min-width: 0;
     height: 1.5rem;
@@ -860,11 +863,11 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.dropdown.color};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-inline-env-name-input:focus {
+  .var-add-to-inline-env-name-input:focus {
     outline: none;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button {
+  .var-add-to-inline-create-button {
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -880,11 +883,11 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button:hover {
+  .var-add-to-inline-create-button:hover {
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button:disabled {
+  .var-add-to-inline-create-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }

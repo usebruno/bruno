@@ -14,28 +14,38 @@ import {
   isVariableSecret,
   getAllVariables,
   findCollectionByUid,
-  findItemInCollectionByItemUid,
-  findParentItemInCollection,
-  getAvailableAddToScopes
+  findItemInCollectionByItemUid
 } from 'utils/collections';
+import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import {
-  updateVariableInScope,
-  addEnvironment,
-  selectEnvironment
-} from 'providers/ReduxStore/slices/collections/actions';
-import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+  buildAddToScopes as sharedBuildAddToScopes,
+  buildScopeInfo,
+  createEnvironmentForScope
+} from 'utils/variables';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
-import { VARIABLE_ADD_SCOPES, SCOPE_ICON } from 'utils/common/constants';
+import { variableNameRegex } from 'utils/common/regex';
+import { SCOPE_ICON, SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
+
+let hideActiveVarInfoPopup = () => {};
+let varInfoSuppressed = false;
+
+// The hover timer re-arms on every mousemove, so dismissing once is not enough while another
+// popup owns the selection — suppression has to hold until that popup closes.
+export const setVarInfoSuppressed = (suppressed) => {
+  varInfoSuppressed = suppressed;
+  if (suppressed) {
+    hideActiveVarInfoPopup();
+  }
+};
 
 const COPY_ICON_SVG_TEXT = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -52,7 +62,7 @@ const CHECKMARK_ICON_SVG_TEXT = `
 
 const COPY_SUCCESS_COLOR = '#22c55e';
 
-export const COPY_SUCCESS_TIMEOUT = 1000;
+export { COPY_SUCCESS_TIMEOUT };
 
 // Editor height constraints
 const EDITOR_MIN_HEIGHT = 1.75;
@@ -84,11 +94,7 @@ const EYE_OFF_ICON_SVG = `
 
 const getScopeLabel = (scopeType) => {
   const labels = {
-    'global': 'Global',
-    'environment': 'Environment',
-    'collection': 'Collection',
-    'folder': 'Folder',
-    'request': 'Request',
+    ...SCOPE_LABEL,
     'runtime': 'Runtime',
     'process.env': 'Process Env',
     'dynamic': 'Dynamic',
@@ -115,40 +121,6 @@ const setScopeBadgeContent = (scopeBadge, scopeType, label) => {
   labelSpan.className = 'var-scope-badge-label';
   labelSpan.textContent = label;
   scopeBadge.appendChild(labelSpan);
-};
-
-const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
-
-// `addEnvironment` only writes the file through IPC. The store is updated later, once the
-// filesystem watcher picks up the new file and dispatches it in.
-// subscribe to the store and resolve on the exact dispatch that adds it
-const waitForEnvironmentByName = (collectionUid, name) => {
-  const findEnvironment = () => {
-    const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
-    return (freshCollection?.environments || []).find((env) => env.name === name);
-  };
-
-  return new Promise((resolve, reject) => {
-  // check if the environment already exists in the store (in case it was created before this function was called)
-    const existing = findEnvironment();
-    if (existing) {
-      return resolve(existing);
-    }
-
-    const timeoutId = setTimeout(() => {
-      unsubscribe();
-      reject(new Error(`Failed to create environment "${name}"`));
-    }, NEW_ENVIRONMENT_WAIT_TIMEOUT_MS);
-
-    const unsubscribe = store.subscribe(() => {
-      const found = findEnvironment();
-      if (found) {
-        clearTimeout(timeoutId);
-        unsubscribe();
-        resolve(found);
-      }
-    });
-  });
 };
 
 // Get the masked display text based on the value length
@@ -747,72 +719,13 @@ export const renderVarInfo = (token, options) => {
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
     };
 
-    // Only the request/folder's direct containing folder is offered as a creatable scope. not
-    // any ancestor further up the tree.
-    const isInFolderSettings = !!(item && item.type === 'folder');
-    const parentFolder = item && !isInFolderSettings && collection
-      ? findParentItemInCollection(collection, item.uid)
-      : null;
-
-    // When the tooltip is opened from folder settings itself, the "Folder" scope should target
-    // that folder directly (labeled "Folder"), not an ancestor.
-    const folderScopeTarget = isInFolderSettings ? item : parentFolder;
-
     // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
     if (isNewVariable) {
-      const buildScopeInfoForSwitch = (scope) => {
-        switch (scope.type) {
-          case VARIABLE_ADD_SCOPES.COLLECTION:
-            return { type: 'collection', value: '', data: { collection, variable: null } };
-          case VARIABLE_ADD_SCOPES.REQUEST:
-            return { type: 'request', value: '', data: { item, variable: null } };
-          case VARIABLE_ADD_SCOPES.FOLDER:
-            return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
-          case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
-            const freshState = store.getState();
-            const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
-            const environment = (freshCollection?.environments || []).find(
-              (env) => env.uid === freshCollection?.activeEnvironmentUid
-            );
-            return { type: 'environment', value: '', data: { environment, variable: null, secret: false } };
-          }
-          case VARIABLE_ADD_SCOPES.GLOBAL: {
-            const freshGlobalState = store.getState();
-            const globalEnvironments = freshGlobalState.globalEnvironments?.globalEnvironments || [];
-            const activeGlobalEnvironmentUid = freshGlobalState.globalEnvironments?.activeGlobalEnvironmentUid;
-            const globalEnvironment = globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid);
-            return { type: 'global', value: '', data: { environment: globalEnvironment, variable: null, secret: false } };
-          }
-          default:
-            return null;
-        }
-      };
+      const buildScopeInfoForSwitch = (scope) =>
+        buildScopeInfo({ scopeType: scope.type, state: store.getState(), collection, item });
 
-      const buildAddToScopes = () => {
-        const addToScopesState = store.getState();
-        const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
-
-        const freshCollectionForScopes = collection?.uid
-          ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
-          : null;
-        const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
-          (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
-        )?.name;
-        const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
-          (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
-        )?.name;
-
-        return getAvailableAddToScopes({
-          activeEnvironmentUid: activeEnvironmentName ? freshCollectionForScopes?.activeEnvironmentUid : undefined,
-          activeEnvironmentName,
-          activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
-          activeGlobalEnvironmentName,
-          item,
-          parentFolder: folderScopeTarget,
-          isSelfFolder: isInFolderSettings,
-          hasCollection: !!collection?.uid
-        });
-      };
+      const buildAddToScopes = () =>
+        sharedBuildAddToScopes({ state: store.getState(), collection, item });
 
       const getFreshScopeForType = (type) => buildAddToScopes().find((s) => s.type === type);
 
@@ -878,47 +791,9 @@ export const renderVarInfo = (token, options) => {
         setScopeBadgeContent(scopeBadge, newScopeInfo.type, getScopeLabel(newScopeInfo.type));
       };
 
-      const onCreateEnvironment = (scope, name) => {
-        const dispatch = store.dispatch;
-        const trimmedName = (name || '').trim();
-
-        if (!validateName(trimmedName)) {
-          return Promise.reject(new Error(validateNameError(trimmedName)));
-        }
-
-        const freshState = store.getState();
-
-        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
-          const globalEnvironments = freshState.globalEnvironments?.globalEnvironments || [];
-          const isDuplicate = globalEnvironments.some(
-            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
-          );
-          if (isDuplicate) {
-            return Promise.reject(new Error('Environment already exists'));
-          }
-
-          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }))
-            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.GLOBAL));
-        }
-
-        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
-          const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
-
-          const isDuplicate = (freshCollection?.environments || []).some(
-            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
-          );
-          if (isDuplicate) {
-            return Promise.reject(new Error('Environment already exists'));
-          }
-
-          return dispatch(addEnvironment(trimmedName, collection.uid))
-            .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
-            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)))
-            .then(() => getFreshScopeForType(VARIABLE_ADD_SCOPES.ENVIRONMENT));
-        }
-
-        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
-      };
+      const onCreateEnvironment = (scope, name) =>
+        createEnvironmentForScope({ scope, name, collectionUid: collection?.uid, store })
+          .then(() => getFreshScopeForType(scope.type));
 
       const addToSwitcher = createAddToScopeSwitcher({
         scopes: addToScopes,
@@ -1060,7 +935,7 @@ if (!SERVER_RENDERED) {
     const target = e.target || e.srcElement;
 
     // Prevent new tooltips if one is already active
-    if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
+    if (varInfoSuppressed || target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
     // Show popover for both valid and invalid variables
@@ -1088,6 +963,9 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
+      if (varInfoSuppressed) {
+        return;
+      }
       onMouseHover(cm, box, point);
     };
 
@@ -1216,6 +1094,11 @@ if (!SERVER_RENDERED) {
 
     // Track this popup as the active one
     activePopup = popup;
+    hideActiveVarInfoPopup = () => {
+      if (activePopup === popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
+    };
 
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);

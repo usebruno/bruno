@@ -2352,7 +2352,7 @@ const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secre
   const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
 
   const updatedVariables = variable
-    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue, secret: v.secret || !!secret } : v))
     : [...(variables || []), newVariable];
 
   return { variable, updatedVariables };

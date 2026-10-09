@@ -27,3 +27,6 @@ export const hasInvalidVariableNames = (variables) => {
 export const INVALID_VARIABLE_NAMES_ERROR_PREFIX = 'Invalid variable name(s):';
 
 export const invalidVariableNamesError = (names) => `${INVALID_VARIABLE_NAMES_ERROR_PREFIX} ${names.join(', ')}`;
+
+export const INVALID_VARIABLE_NAME_ERROR
+  = 'Variable contains invalid characters. Must only contain alphanumeric characters, "-", "_", "."';
