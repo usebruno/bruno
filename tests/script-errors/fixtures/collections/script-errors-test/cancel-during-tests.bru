@@ -1,0 +1,21 @@
+meta {
+  name: cancel-during-tests
+  type: http
+  seq: 14
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  throw new Error("Post-response script failed");
+}
+
+tests {
+  console.log("Test script started");
+  await bru.sleep(3000);
+  throw new Error("Test script failed");
+}

@@ -1,5 +1,5 @@
 import { test, expect, Page } from '../../playwright';
-import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
+import { buildResponseErrorsLocators, buildCommonLocators } from '../utils/page/locators';
 import { openRequest, sendAndWaitForErrorCard, sendAndWaitForResponse, closeAllTabs } from '../utils/page/actions';
 import { setSandboxMode } from '../utils/page/runner';
 
@@ -16,11 +16,11 @@ const getScrollerScrollTop = async (page: Page, dataTestId: string): Promise<num
 };
 
 test.describe('Script Error — focus error line (highlight + scroll)', () => {
-  let scriptErrorLocators: ReturnType<typeof buildScriptErrorLocators>;
+  let responseErrorsLocators: ReturnType<typeof buildResponseErrorsLocators>;
   let commonLocators: ReturnType<typeof buildCommonLocators>;
 
   test.beforeAll(async ({ pageWithUserData: page }) => {
-    scriptErrorLocators = buildScriptErrorLocators(page);
+    responseErrorsLocators = buildResponseErrorsLocators(page);
     commonLocators = buildCommonLocators(page);
     // Highlight/scroll is a pure UI concern — pick one sandbox mode.
     await setSandboxMode(page, 'script-errors-test', 'developer');
@@ -37,8 +37,8 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
     });
 
     await test.step('Click file path to navigate', async () => {
-      const card = scriptErrorLocators.card();
-      await scriptErrorLocators.filePath(card).click();
+      const card = responseErrorsLocators.card();
+      await responseErrorsLocators.filePath(card).click();
     });
 
     await test.step('Pre-request editor shows flash class on the error line', async () => {
@@ -56,7 +56,7 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
     await test.step('Open request, send, then navigate', async () => {
       await openRequest(page, 'script-errors-test', 'pre-request-ref-error');
       await sendAndWaitForErrorCard(page);
-      await scriptErrorLocators.filePath(scriptErrorLocators.card()).click();
+      await responseErrorsLocators.filePath(responseErrorsLocators.card()).click();
     });
 
     await test.step('Flash class is present immediately', async () => {
@@ -86,13 +86,13 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
       .locator('.CodeMirror .cm-error-line-flash');
 
     await test.step('First click flashes the line, then it fades', async () => {
-      await scriptErrorLocators.filePath(scriptErrorLocators.card()).click();
+      await responseErrorsLocators.filePath(responseErrorsLocators.card()).click();
       await expect(flashedLine).toHaveCount(1);
       await expect(flashedLine).toHaveCount(0, { timeout: 5000 });
     });
 
     await test.step('Second click flashes the line again', async () => {
-      await scriptErrorLocators.filePath(scriptErrorLocators.card()).click();
+      await responseErrorsLocators.filePath(responseErrorsLocators.card()).click();
       await expect(flashedLine).toHaveCount(1);
     });
   });
@@ -104,9 +104,9 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
     });
 
     await test.step('Click file path to navigate', async () => {
-      const card = scriptErrorLocators.card();
+      const card = responseErrorsLocators.card();
       await expect(card).toBeVisible();
-      await scriptErrorLocators.filePath(card).click();
+      await responseErrorsLocators.filePath(card).click();
     });
 
     await test.step('Post Response sub-tab is active', async () => {
@@ -129,9 +129,9 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
     });
 
     await test.step('Click file path to navigate', async () => {
-      const card = scriptErrorLocators.card();
+      const card = responseErrorsLocators.card();
       await expect(card).toBeVisible();
-      await scriptErrorLocators.filePath(card).click();
+      await responseErrorsLocators.filePath(card).click();
     });
 
     await test.step('Tests editor shows flash class on the error line', async () => {
@@ -149,8 +149,8 @@ test.describe('Script Error — focus error line (highlight + scroll)', () => {
     });
 
     await test.step('Click file path to navigate', async () => {
-      const card = scriptErrorLocators.card();
-      await scriptErrorLocators.filePath(card).click();
+      const card = responseErrorsLocators.card();
+      await responseErrorsLocators.filePath(card).click();
     });
 
     await test.step('Editor scrolled — scrollTop is non-zero', async () => {

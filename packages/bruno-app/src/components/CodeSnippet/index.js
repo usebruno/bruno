@@ -24,7 +24,7 @@ const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
   if (hunks?.length) {
     return (
       <StyledWrapper>
-        <div className="code-snippet" data-testid="code-snippet">
+        <div className="code-snippet scrollbar-hover" data-testid="code-snippet">
           {hunks.map((hunk, idx) => (
             <React.Fragment key={idx}>
               {hunk.hasSeparatorBefore && (
@@ -45,7 +45,7 @@ const CodeSnippet = ({ lines, hunks, variant = 'error' }) => {
 
   return (
     <StyledWrapper>
-      <div className="code-snippet" data-testid="code-snippet">
+      <div className="code-snippet scrollbar-hover" data-testid="code-snippet">
         {lines.map((line) => renderLine(line, highlightClass))}
       </div>
     </StyledWrapper>
