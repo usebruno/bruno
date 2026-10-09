@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { walk, defaultClassify, resolveDenylist } = require('./mount');
-const { parseRequest, parseEnvironment, parseCollection } = require('@usebruno/filestore');
+const { parseRequest, parseEnvironment, parseCollection, parseFolder } = require('@usebruno/filestore');
+const { sortByNameThenSequence } = require('@usebruno/common');
 const { dotenvToJson } = require('@usebruno/lang');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -51,10 +52,31 @@ const readCollectionConfig = async (collectionPath) => {
   }
 };
 
+// Match the sidebar's depth-first order: folders (name/sequence), then requests (sequence).
+const flattenRequests = (folder) => {
+  const folders = sortByNameThenSequence([...folder.folders.values()]);
+  return [
+    ...folders.flatMap(flattenRequests),
+    ...folder.requests.sort((a, b) => (a.seq ?? 1) - (b.seq ?? 1))
+  ];
+};
+
 const readCollectionForApiSpec = async (collectionPath) => {
   const { configFile, brunoConfig, configParsed } = await readCollectionConfig(collectionPath);
 
-  const requests = [];
+  const root = { folders: new Map(), requests: [] };
+  const getFolder = (relativePath) => {
+    const dirname = path.dirname(relativePath);
+    const segments = dirname === '.' ? [] : dirname.split(path.sep);
+    let folder = root;
+    for (const name of segments) {
+      if (!folder.folders.has(name)) {
+        folder.folders.set(name, { name, folders: new Map(), requests: [] });
+      }
+      folder = folder.folders.get(name);
+    }
+    return folder;
+  };
   const envVariables = {};
   const collectionVariables = {};
   const skipped = [];
@@ -99,7 +121,16 @@ const readCollectionForApiSpec = async (collectionPath) => {
       case 'request':
         await collect('request', relativePath, async () => {
           const item = await parseRequest(fs.readFileSync(absolutePath, 'utf8'), { format });
-          requests.push({ ...item, pathname: absolutePath, depth: relativePath.split(path.sep).filter(Boolean).length });
+          getFolder(relativePath).requests.push({ ...item, pathname: absolutePath, depth: relativePath.split(path.sep).filter(Boolean).length });
+        });
+        break;
+
+      case 'folder':
+        await collect('folder root', relativePath, async () => {
+          const parsed = await parseFolder(fs.readFileSync(absolutePath, 'utf8'), { format });
+          const folder = getFolder(relativePath);
+          if (parsed?.meta?.name) folder.name = parsed.meta.name;
+          folder.seq = parsed?.meta?.seq;
         });
         break;
 
@@ -131,7 +162,7 @@ const readCollectionForApiSpec = async (collectionPath) => {
 
   return {
     configFile,
-    requests,
+    requests: flattenRequests(root),
     envVariables,
     processEnvVariables,
     collectionVariables,

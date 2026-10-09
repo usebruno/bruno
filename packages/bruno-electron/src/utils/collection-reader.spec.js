@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { stringifyRequest, stringifyEnvironment, stringifyCollection } = require('@usebruno/filestore');
+const { stringifyRequest, stringifyEnvironment, stringifyCollection, stringifyFolder } = require('@usebruno/filestore');
 
 const mockGetEnvSecrets = jest.fn(() => []);
 
@@ -106,7 +106,62 @@ describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s collections', (forma
   });
 });
 
+describe.each(['bru', 'yml'])('readCollectionForApiSpec: %s sidebar order', (format) => {
+  const writeRequest = (dir, folder, name, seq) => {
+    const item = { ...httpItem(name, `https://api.test/${name}`), seq };
+    writeFile(dir, path.join(folder, `${name}.${format}`), stringifyRequest(item, { format }));
+  };
+  const writeFolder = (dir, folder, meta) => {
+    writeFile(dir, path.join(folder, `folder.${format}`), stringifyFolder({ meta }, { format }));
+  };
+
+  it('orders folders before requests and respects sequence at every level', async () => {
+    const dir = mkCollection(`order-${format}`);
+    writeFolder(dir, 'Alpha', { name: 'Alpha', seq: 2 });
+    writeFolder(dir, 'Zulu', { name: 'Zulu', seq: 1 });
+    writeFolder(dir, path.join('Zulu', 'Alpha'), { name: 'Alpha', seq: 2 });
+    writeFolder(dir, path.join('Zulu', 'Zulu'), { name: 'Zulu', seq: 1 });
+    writeRequest(dir, 'Alpha', 'AlphaFolder', 1);
+    writeRequest(dir, path.join('Zulu', 'Alpha'), 'NestedSecond', 1);
+    writeRequest(dir, path.join('Zulu', 'Zulu'), 'NestedFirst', 1);
+    writeRequest(dir, 'Zulu', 'ASecond', 2);
+    writeRequest(dir, 'Zulu', 'ZFirst', 1);
+    writeRequest(dir, '', 'ARootSecond', 2);
+    writeRequest(dir, '', 'ZRootFirst', 1);
+
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.requests.map((item) => item.name)).toEqual([
+      'NestedFirst', 'NestedSecond', 'ZFirst', 'ASecond', 'AlphaFolder', 'ZRootFirst', 'ARootSecond'
+    ]);
+    expect(result.skipped).toEqual([]);
+  });
+
+  it('uses folder display names and alphabetical fallback around explicitly positioned folders', async () => {
+    const dir = mkCollection(`fallback-${format}`);
+    writeFolder(dir, 'AOnDisk', { name: 'Zulu' });
+    writeFolder(dir, 'ZOnDisk', { name: 'Alpha' });
+    writeFolder(dir, 'Pinned', { name: 'Pinned', seq: 2 });
+    writeRequest(dir, 'AOnDisk', 'Last', 1);
+    writeRequest(dir, 'ZOnDisk', 'First', 1);
+    writeRequest(dir, 'Pinned', 'Second', 1);
+    writeRequest(dir, 'MiddleWithoutMetadata', 'Third', 1);
+
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.requests.map((item) => item.name)).toEqual(['First', 'Second', 'Third', 'Last']);
+  });
+});
+
 describe('readCollectionForApiSpec: robustness', () => {
+  it('keeps requests in folders with unreadable metadata and reports the skipped folder file', async () => {
+    const dir = mkCollection('bad-folder');
+    writeFile(dir, path.join('Folder', 'folder.bru'), 'not valid bru at all {{{{');
+    writeFile(dir, path.join('Folder', 'Good.bru'), stringifyRequest(httpItem('Good', 'https://api.test/ok'), { format: 'bru' }));
+
+    const result = await readCollectionForApiSpec(dir);
+    expect(result.requests.map((item) => item.name)).toEqual(['Good']);
+    expect(result.skipped).toEqual([path.join('Folder', 'folder.bru')]);
+  });
+
   it('skips an unparseable request file instead of failing the whole load, and reports it in skipped', async () => {
     const dir = mkCollection('bad');
     writeFile(dir, 'Good.bru', stringifyRequest(httpItem('Good', 'https://api.test/ok'), { format: 'bru' }));
