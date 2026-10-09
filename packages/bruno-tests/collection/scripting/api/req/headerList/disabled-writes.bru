@@ -1,0 +1,58 @@
+meta {
+  name: disabled-writes
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  x-on-then-off: was-enabled
+  ~x-off-then-on: was-disabled
+}
+
+script:pre-request {
+  req.headerList.upsert({ key: 'x-new-off', value: 'v', disabled: true });
+  req.headerList.add({ key: 'x-on-then-off', value: 'v', disabled: true });
+  req.headerList.upsert({ key: 'x-off-then-on', value: 'now-on' });
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("disabled writes are left out of req.getHeaders()", function() {
+    const rawHeaders = req.getHeaders();
+    expect(rawHeaders['x-new-off']).to.be.undefined;
+    expect(rawHeaders['x-on-then-off']).to.be.undefined;
+  });
+
+  test("a new header written with disabled: true is disabled", function() {
+    expect(req.headerList.one('x-new-off').disabled).to.be.true;
+  });
+
+  test("an enabled header written with disabled: true becomes disabled", function() {
+    const header = req.headerList.one('x-on-then-off');
+    expect(header.disabled).to.be.true;
+    expect(header.value).to.equal('v');
+  });
+
+  test("an enabled write on a disabled header enables it with a single entry", function() {
+    const header = req.headerList.one('x-off-then-on');
+    expect(header.disabled).to.be.undefined;
+    expect(header.value).to.equal('now-on');
+    expect(req.getHeaders()['x-off-then-on']).to.equal('now-on');
+    const matches = req.headerList.all().filter(h => h.key === 'x-off-then-on');
+    expect(matches.length).to.equal(1);
+  });
+
+  test("req.headerList.idx(0) is the first entry of all()", function() {
+    expect(req.headerList.idx(0)).to.deep.equal(req.headerList.all()[0]);
+  });
+}

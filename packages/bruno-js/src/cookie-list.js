@@ -1,9 +1,9 @@
-const PropertyList = require('./property-list');
+const ReadOnlyPropertyList = require('./readonly-property-list');
 
 /**
  * CookieList — the `bru.cookies` API for reading and writing cookies in scripts.
  *
- * Extends PropertyList in dynamic mode: the cookie list is freshly read from the
+ * Extends ReadOnlyPropertyList in dynamic mode: the cookie list is freshly read from the
  * cookie jar on every access, and write operations delegate to the jar rather
  * than mutating an in-memory array.
  *
@@ -35,17 +35,17 @@ const PropertyList = require('./property-list');
  * |--------------------|--------------------------------------------------|----------------------|
  * | `has(name)`        | `true` if a cookie with that key exists          | `true`               |
  * | `has(name, value)` | `true` if key exists **and** value matches        | `false`              |
- * | `find(predicate)`  | First cookie matching the predicate function     | `{ key: 'sid', … }` |
- * | `filter(predicate)`| Array of cookies matching the predicate          | `[{ key: … }, …]`   |
- * | `indexOf(item)`    | Index of a structurally-equal cookie, or `-1`    | `0`                  |
+ * | `find(predicate, context?)`   | First cookie matching the predicate function     | `{ key: 'sid', … }` |
+ * | `filter(predicate, context?)` | Array of cookies matching the predicate          | `[{ key: … }, …]`   |
+ * | `indexOf(item)`    | Index of a cookie by string key or structurally-equal object, or `-1` | `0` |
  *
- * ## Iteration methods (inherited)
+ * ## Iteration methods (inherited; optional `context` binds `this` in callbacks)
  *
- * | Method                  | Description                                  |
- * |-------------------------|----------------------------------------------|
- * | `each(fn)`              | Calls `fn(cookie, index)` for every cookie   |
- * | `map(fn)`               | Returns a new array of mapped values         |
- * | `reduce(fn, initial?)`  | Reduces cookies to a single value            |
+ * | Method                           | Description                                  |
+ * |----------------------------------|----------------------------------------------|
+ * | `each(fn, context?)`             | Calls `fn(cookie, index)` for every cookie   |
+ * | `map(fn, context?)`              | Returns a new array of mapped values         |
+ * | `reduce(fn, initial?, context?)` | Reduces cookies to a single value            |
  *
  * ## Transform methods (inherited)
  *
@@ -74,7 +74,7 @@ const PropertyList = require('./property-list');
  * The jar handle exposes: `getCookie`, `getCookies`, `setCookie`, `setCookies`,
  * `deleteCookie`, `deleteCookies`, `hasCookie`, and `clear`.
  */
-class CookieList extends PropertyList {
+class CookieList extends ReadOnlyPropertyList {
   /**
    * @param {object} options
    * @param {Function} options.getUrl - Returns the interpolated request URL (or falsy if unavailable)

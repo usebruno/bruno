@@ -41,6 +41,32 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Header entries', () => {
+    it('Should emit headerEntries in row order with disabled rows flagged, and headers from the enabled rows', async () => {
+      const request = {
+        method: 'GET',
+        url: 'test-domain',
+        body: { mode: 'none' },
+        headers: [
+          { name: 'x-on', value: 'on', enabled: true },
+          { name: 'x-off', value: 'off', enabled: false },
+          { name: '', value: 'nameless', enabled: true },
+          { name: 'x-on', value: 'last-wins', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.headers['x-on']).toBe('last-wins');
+      expect(result.headers).not.toHaveProperty('x-off');
+      expect(result.headerEntries).toEqual([
+        { key: 'x-on', value: 'on' },
+        { key: 'x-off', value: 'off', disabled: true },
+        { key: 'x-on', value: 'last-wins' }
+      ]);
+      expect(result).not.toHaveProperty('disabledHeaders');
+    });
+  });
+
   describe('Effective tags', () => {
     // prepareRequest resolves tags against the tree, and electron walks it by uid,
     // so the item must be reachable in collection.items under the same uid

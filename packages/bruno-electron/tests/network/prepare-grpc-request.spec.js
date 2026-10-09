@@ -9,7 +9,7 @@ jest.mock('../../src/ipc/network/prepare-request');
 
 const prepareGrpcRequest = require('../../src/ipc/network/prepare-grpc-request');
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem } = require('../../src/utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders } = require('../../src/utils/collection');
 const { getProcessEnvVars } = require('../../src/store/process-env');
 const { setAuthHeaders } = require('../../src/ipc/network/prepare-request');
 
@@ -75,6 +75,11 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       expect(result.headers['content-type']).toBe('application/grpc');
       expect(result.headers['authorization']).toBe('Bearer token123');
       expect(result.headers['user-agent']).toBe('bruno-client');
+      expect(result.headerEntries).toEqual([
+        { key: 'content-type', value: 'application/grpc' },
+        { key: 'authorization', value: 'Bearer token123' },
+        { key: 'user-agent', value: 'bruno-client' }
+      ]);
       expect(typeof result.headers['content-type']).toBe('string');
       expect(typeof result.headers['authorization']).toBe('string');
       expect(typeof result.headers['user-agent']).toBe('string');
@@ -89,6 +94,38 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
       const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
 
       expect(result.headers).toEqual({});
+      expect(result.headerEntries).toEqual([
+        { key: 'content-type', value: 'application/grpc', disabled: true },
+        { key: 'authorization', value: 'Bearer token123', disabled: true }
+      ]);
+    });
+
+    it('should keep enabled and disabled headers apart', async () => {
+      mockItem.request.headers = [
+        { name: 'x-on', value: 'on', enabled: true },
+        { name: 'x-off', value: 'off', enabled: false },
+        { name: '', value: 'nameless', enabled: false }
+      ];
+
+      const result = await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
+
+      expect(result.headers).toEqual({ 'x-on': 'on' });
+      expect(result.headerEntries).toEqual([
+        { key: 'x-on', value: 'on' },
+        { key: 'x-off', value: 'off', disabled: true }
+      ]);
+      expect(result).not.toHaveProperty('disabledHeaders');
+    });
+
+    it('should merge inherited headers including disabled ones', async () => {
+      const requestTreePath = [{ type: 'request' }];
+      getTreePathFromCollectionToItem.mockReturnValue(requestTreePath);
+
+      await prepareGrpcRequest(mockItem, mockCollection, mockEnvironment, mockRuntimeVariables);
+
+      expect(mergeHeaders).toHaveBeenCalledWith(mockCollection, mockItem.request, requestTreePath, {
+        includeDisabledHeaders: true
+      });
     });
   });
 });

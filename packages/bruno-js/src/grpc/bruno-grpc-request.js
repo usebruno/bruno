@@ -11,8 +11,6 @@ const GrpcMessage = require('./grpc-message');
  * Keep quickjs shim up to date on any updates to this class
  */
 class BrunoGrpcRequest {
-  #request;
-
   /**
    * @param {object} request - The prepared gRPC request
    * @param {object} [options]
@@ -26,26 +24,20 @@ class BrunoGrpcRequest {
    *   the model entirely, so `'message' in bru.grpc.request` is `false` there.
    */
   constructor(request, { metadataWritable = false, sentMessages = [], message } = {}) {
-    this.#request = request;
     this.url = request.url;
     this.method = request.method;
     this.methodType = request.methodType;
     this.authMode = request.authMode || 'none';
     this.protoPath = request.protoPath;
     this.name = request.name;
-    this.metadata = new GrpcMetadataList(() => this.#metadataEntries(), { writable: metadataWritable });
+    // The list edits `request.headerEntries` and projects into `request.headers`, the object the
+    // gRPC client builds call metadata from once the hook returns.
+    this.metadata = new GrpcMetadataList(request, { writable: metadataWritable });
     // The list clones what it is given, so a hook editing a message cannot reach what the call sent.
     this.messages = new GrpcMessageList(sentMessages);
     if (message) {
       this.message = new GrpcMessage(message);
     }
-  }
-
-  // Provides reference for in-memory edits on setters
-  #metadataEntries() {
-    this.#request.headers ??= {};
-
-    return this.#request.headers;
   }
 }
 

@@ -60,6 +60,59 @@ describe('BrunoGrpcRequest', () => {
     });
   });
 
+  describe('disabled metadata', () => {
+    const withDisabled = () => makeReq({
+      headerEntries: [
+        { key: 'X-Token', value: 'authored' },
+        { key: 'x-off', value: 'hidden', disabled: true }
+      ]
+    });
+
+    test('disabled entries surface with disabled: true, in store order', () => {
+      const req = new BrunoGrpcRequest(withDisabled());
+
+      expect(req.metadata.all()).toEqual([
+        { key: 'X-Token', value: 'authored' },
+        { key: 'x-off', value: 'hidden', disabled: true }
+      ]);
+      expect(req.metadata.idx(1)).toEqual(req.metadata.all()[1]);
+    });
+
+    test('a request without headerEntries gets them on the first disabled write', () => {
+      const raw = makeReq();
+      const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
+
+      req.metadata.add({ key: 'x-token', value: 'off', disabled: true });
+
+      expect(raw.headers).toEqual({});
+      expect(raw.headerEntries).toEqual([{ key: 'x-token', value: 'off', disabled: true }]);
+    });
+
+    test('remove() and clear() reach the disabled entries of the underlying request', () => {
+      const raw = withDisabled();
+      raw.headerEntries.push({ key: 'x-gone', value: '1', disabled: true });
+      const req = new BrunoGrpcRequest(raw, { metadataWritable: true });
+
+      req.metadata.remove('X-GONE');
+      expect(raw.headerEntries).toEqual([
+        { key: 'X-Token', value: 'authored' },
+        { key: 'x-off', value: 'hidden', disabled: true }
+      ]);
+
+      req.metadata.clear();
+      expect(raw.headers).toEqual({});
+      expect(raw.headerEntries).toEqual([]);
+    });
+
+    test('a header added to the map after the entries were built shows up appended', () => {
+      const raw = withDisabled();
+      raw.headers.Authorization = 'Bearer x';
+      const req = new BrunoGrpcRequest(raw);
+
+      expect(req.metadata.map((entry) => entry.key)).toEqual(['X-Token', 'x-off', 'Authorization']);
+    });
+  });
+
   describe('messages', () => {
     test('reports the messages the call sent, not the ones that were authored', () => {
       const sentMessages = [{ data: { greeting: 'hi' }, timestamp: 1700000000 }];

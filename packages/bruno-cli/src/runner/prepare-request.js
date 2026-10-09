@@ -29,15 +29,23 @@ const prepareRequest = async (item = {}, collection = {}) => {
     mergeAuth(collection, request, requestTreePath);
   }
 
-  const disabledHeaders = [];
+  // `headers` is what goes on the wire (last enabled row wins per name). `headerEntries` is the
+  // ordered store behind `req.headerList`, disabled rows included; the list keeps the two in sync.
+  // COMPAT: `req.headerList.all()` follows this order (what mergeHeaders emits: enabled rows first,
+  // then disabled rows). It used to list disabled headers first. `disabledHeaders` is no longer set.
+  const headerEntries = [];
   each(get(request, 'headers', []), (h) => {
-    if (h.enabled && h.name?.length > 0) {
+    if (!(h.name?.length > 0)) {
+      return;
+    }
+    if (h.enabled) {
       headers[h.name] = h.value;
+      headerEntries.push({ key: h.name, value: h.value });
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
-    } else if (!h.enabled && h.name?.length > 0) {
-      disabledHeaders.push({ name: h.name, value: h.value });
+    } else {
+      headerEntries.push({ key: h.name, value: h.value, disabled: true });
     }
   });
 
@@ -45,7 +53,7 @@ const prepareRequest = async (item = {}, collection = {}) => {
     method: request.method,
     url: request.url,
     headers: headers,
-    disabledHeaders,
+    headerEntries,
     name: item.name,
     pathname: item.pathname,
     tags: getEffectiveTags(getOwnTags(item), getInheritedTagsFromTreePath(requestTreePath)),

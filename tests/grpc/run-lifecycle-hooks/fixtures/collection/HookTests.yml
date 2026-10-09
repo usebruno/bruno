@@ -12,6 +12,9 @@ grpc:
       value: kept-value
     - name: x-remove
       value: doomed-value
+    - name: x-off
+      value: off-value
+      disabled: true
   message:
     - title: message 1
       message: |-
@@ -34,12 +37,13 @@ runtime:
         });
 
         test('authored metadata is readable', () => {
-          expect(bru.grpc.request.metadata.count()).to.equal(2);
+          expect(bru.grpc.request.metadata.count()).to.equal(3);
           expect(bru.grpc.request.metadata.has('x-keep')).to.be.true;
           expect(bru.grpc.request.metadata.has('X-KEEP')).to.be.true;
           expect(bru.grpc.request.metadata.has('x-absent')).to.be.false;
           expect(bru.grpc.request.metadata.get('x-remove')).to.equal('doomed-value');
           expect(bru.grpc.request.metadata.one('x-keep')).to.eql({ key: 'x-keep', value: 'kept-value' });
+          expect(bru.grpc.request.metadata.one('x-off')).to.eql({ key: 'x-off', value: 'off-value', disabled: true });
         });
 
         // `messages` always reports what the call sent, and the call has yet to send anything.
@@ -53,7 +57,8 @@ runtime:
 
           expect(bru.grpc.request.metadata.has('x-remove')).to.be.false;
           expect(bru.grpc.request.metadata.get('x-hook')).to.equal('set-by-hook');
-          expect(bru.grpc.request.metadata.count()).to.equal(2);
+          // x-keep and x-hook enabled, x-off still disabled
+          expect(bru.grpc.request.metadata.count()).to.equal(3);
         });
     - type: grpc:after-call-end
       code: |-
@@ -77,6 +82,7 @@ runtime:
           expect(bru.grpc.request.metadata.has('x-remove')).to.be.false;
           expect(bru.grpc.request.metadata.get('x-keep')).to.equal('kept-value');
           expect(bru.grpc.request.metadata.get('x-hook')).to.equal('set-by-hook');
+          expect(bru.grpc.request.metadata.one('x-off').disabled).to.be.true;
         });
 
         test('response metadata and trailers are readable', () => {
