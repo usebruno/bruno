@@ -17,9 +17,21 @@ export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';
 export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
-export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize, applySecureContext } from './utils/agent-cache';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
+export {
+  isSocksProxyAgent,
+  socks5ProxyKeyFor,
+  connectSocks5ForHttp2,
+  createHttp2CreateConnection
+} from './utils/http2';
+export type {
+  SocksProxyLike,
+  Socks5Http2Agent,
+  ConnectSocks5ForHttp2Params,
+  ConnectSocks5ForHttp2Result
+} from './utils/http2';
 
 export * as scripting from './scripting';
 
