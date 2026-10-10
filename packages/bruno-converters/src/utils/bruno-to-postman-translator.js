@@ -3,6 +3,7 @@ import {
   buildMemberExpressionFromString
 } from './ast-utils';
 import brunoSendRequestTransformer from './bruno-send-request-transformer';
+import { applySemanticTypes, BRUNO_REGISTRY } from './semantic';
 const j = require('jscodeshift');
 
 // =============================================================================
@@ -135,6 +136,12 @@ const simpleTranslations = {
 
   // Cookies jar
   'bru.cookies.jar': 'pm.cookies.jar',
+
+  'bru.cookies.jar().getCookie': 'pm.cookies.jar().get',
+  'bru.cookies.jar().getCookies': 'pm.cookies.jar().getAll',
+  'bru.cookies.jar().setCookie': 'pm.cookies.jar().set',
+  'bru.cookies.jar().deleteCookie': 'pm.cookies.jar().unset',
+  'bru.cookies.jar().deleteCookies': 'pm.cookies.jar().clear',
 
   // Direct cookie access
   'bru.cookies.get': 'pm.cookies.get',
@@ -472,18 +479,6 @@ complexTransformations.forEach((t) => {
   complexTransformationsMap.set(t.pattern, t);
 });
 
-// Cookie jar method mappings (Bruno -> PM)
-// Note: Bruno's setCookie with cookie object form is not supported (Postman only accepts url, name, value, callback?)
-// Note: getCookies(url, callback?) -> getAll(url, options?, callback?)
-//       PM docs treat callback as 2nd arg, likely handled internally to detect function vs options object
-const cookieMethodMapping = {
-  getCookie: 'get', // (url, name, callback?) -> (url, name, callback?)
-  getCookies: 'getAll', // (url, callback?) -> (url, callback?) - PM handles internally
-  setCookie: 'set', // (url, name, value, callback?) -> (url, name, value?, callback?)
-  deleteCookie: 'unset', // (url, name, callback?) -> (url, name, callback?)
-  deleteCookies: 'clear' // (url, callback?) -> (url, callback?)
-};
-
 // =============================================================================
 // TRANSFORMATION FUNCTIONS
 // =============================================================================
@@ -522,49 +517,6 @@ function processAllTransformations(ast) {
 
     const replacement = simpleTranslations[memberExprStr];
     j(path).replaceWith(buildMemberExpressionFromString(replacement));
-  });
-}
-
-/**
- * Transform cookie jar method calls.
- * Handles both direct calls and variables assigned to cookie jars.
- *
- * @param {Object} ast - jscodeshift AST
- */
-function transformCookieJarMethods(ast) {
-  // Track variables assigned to cookie jar instances
-  const cookieJarVars = new Set();
-
-  // Find variables assigned to cookie jar
-  ast.find(j.VariableDeclarator).forEach((path) => {
-    if (path.value.init?.type === 'CallExpression' && path.value.init.callee.type === 'MemberExpression') {
-      const calleeStr = getMemberExpressionString(path.value.init.callee);
-      if (calleeStr === 'bru.cookies.jar' || calleeStr === 'pm.cookies.jar') {
-        if (path.value.id.type === 'Identifier') {
-          cookieJarVars.add(path.value.id.name);
-        }
-      }
-    }
-  });
-
-  // Transform method calls on cookie jars
-  ast.find(j.CallExpression).forEach((path) => {
-    const { callee } = path.value;
-    if (callee.type !== 'MemberExpression' || callee.property.type !== 'Identifier') return;
-
-    const methodName = callee.property.name;
-    if (!cookieMethodMapping[methodName]) return;
-
-    // Check if object is a direct jar() call or a jar variable
-    const isDirectJarCall = callee.object.type === 'CallExpression'
-      && callee.object.callee.type === 'MemberExpression'
-      && ['bru.cookies.jar', 'pm.cookies.jar'].includes(getMemberExpressionString(callee.object.callee));
-
-    const isJarVariable = callee.object.type === 'Identifier' && cookieJarVars.has(callee.object.name);
-
-    if (isDirectJarCall || isJarVariable) {
-      path.value.callee.property.name = cookieMethodMapping[methodName];
-    }
   });
 }
 
@@ -620,8 +572,8 @@ function translateBruToPostman(code) {
   try {
     const ast = j(code);
 
+    applySemanticTypes(j, ast, BRUNO_REGISTRY);
     processAllTransformations(ast);
-    transformCookieJarMethods(ast);
     transformTestsAndExpect(ast);
 
     return ast.toSource();

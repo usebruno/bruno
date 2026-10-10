@@ -91,3 +91,50 @@ export function isIdentifierNamed(node, name) {
 export function isNullLiteral(node) {
   return node && node.type === 'Literal' && node.value === null;
 }
+
+/**
+ * Gets the statically-known property name of a member expression. A computed access
+ * with a non-literal key (`p[someVar]`) has no static name — even an Identifier key
+ * named `then` is a variable there, not the method.
+ *
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null} - The property name, or null if it isn't statically known
+ */
+export function getStaticPropertyName(memberExpr) {
+  const property = memberExpr.property;
+
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+}
+
+/**
+ * Attaches a leading line comment to a node, flagging something the translation could not
+ * carry across. Re-attaching the same text is a no-op, so a node reached by more than one
+ * pass is not annotated twice.
+ *
+ * @param {Object} node - The node to annotate
+ * @param {string} text - Comment text, without the leading slashes
+ */
+export function attachWarning(node, text) {
+  const value = ` ${text}`;
+  node.comments = node.comments || [];
+
+  if (node.comments.some((comment) => comment.value === value)) return;
+
+  node.comments.push({ type: 'CommentLine', value, leading: true, trailing: false });
+}
+
+/**
+ * Attaches a warning to the statement a node sits in, which is where a reader looking at
+ * the translated script will see it.
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} path - Path of the node being flagged
+ * @param {string} text - Comment text, without the leading slashes
+ */
+export function warnOnStatement(j, path, text) {
+  const statement = j(path).closest(j.Statement).paths()[0];
+  if (statement) attachWarning(statement.value, text);
+}
