@@ -15,7 +15,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save, disabled }) => 
 
   const wsseAuth = get(request, 'auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
+  const { showWarning, warningMessage } = isSensitive(wsseAuth?.password, item);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 

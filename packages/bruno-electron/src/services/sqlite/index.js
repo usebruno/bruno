@@ -24,17 +24,28 @@ const removeLegacyFileIndex = () => {
 class SqliteService {
   _db = null;
   _statements = null;
+  _files = null;
+  _activeSecureDeletes = 0;
   constructor() {
-    const { db, statements } = createDatabase(path.join(app.getPath('userData'), 'bruno.db'), {
-      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' }
+    const userData = app.getPath('userData');
+    const { db, statements, files } = createDatabase(path.join(userData, 'bruno.db'), {
+      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' },
+      filesDir: path.join(userData, 'sqlite-files'),
+      inlineMaxBytes: 1024 * 1024
     });
     this._db = db;
     this._statements = statements;
+    this._files = files;
     removeLegacyFileIndex();
+    files?.collect().catch((err) => console.warn('failed to collect orphaned files: ', err));
   }
 
   get statements() {
     return this._statements;
+  }
+
+  get files() {
+    return this._files;
   }
 
   get db() {
@@ -46,6 +57,31 @@ class SqliteService {
       this._db.close();
       this._db = null;
       this._statements = null;
+      this._files = null;
+    }
+  }
+
+  async withSecureDelete(callback) {
+    const raw = this._db?._db;
+    if (!raw) return callback();
+
+    if (this._activeSecureDeletes === 0) raw.exec('PRAGMA secure_delete = ON');
+    this._activeSecureDeletes += 1;
+
+    try {
+      return await callback();
+    } finally {
+      this._activeSecureDeletes -= 1;
+      if (this._activeSecureDeletes === 0) this._endSecureDelete(raw);
+    }
+  }
+
+  _endSecureDelete(raw) {
+    try {
+      raw.exec('PRAGMA secure_delete = OFF');
+      raw.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    } catch (err) {
+      console.warn('failed to flush securely deleted pages: ', err);
     }
   }
 
@@ -104,12 +140,34 @@ const unavailableStatements = {
 
 const getStatements = () => service?.statements ?? unavailableStatements;
 
+const unavailableFiles = {
+  async write() {
+    throw unavailable('a file write');
+  },
+  stat(id) {
+    throw unavailable(`a stat of file ${id}`);
+  },
+  async read(id) {
+    throw unavailable(`a read of file ${id}`);
+  },
+  async remove(id) {
+    throw unavailable(`a removal of file ${id}`);
+  },
+  async collect() {
+    throw unavailable('a file collection');
+  }
+};
+
+const getFiles = () => service?.files ?? unavailableFiles;
+
 const transaction = (callback) => {
   const db = service?.db;
   if (!db) throw unavailable('a transaction');
   return db._transaction(callback);
 };
 
+const withSecureDelete = (callback) => (service ? service.withSecureDelete(callback) : callback());
+
 const reclaimDiskSpace = (options) => (service ? service.reclaimDiskSpace(options) : Promise.resolve());
 
-module.exports = { openDatabase, shutdown, getStatements, transaction, reclaimDiskSpace };
+module.exports = { openDatabase, shutdown, getStatements, getFiles, transaction, withSecureDelete, reclaimDiskSpace };

@@ -92,7 +92,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
         const value = oAuth[key] || '';
-        const { showWarning, warningMessage } = isSensitive(value);
+        const { showWarning, warningMessage } = isSensitive(value, item);
 
         return (
           <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
