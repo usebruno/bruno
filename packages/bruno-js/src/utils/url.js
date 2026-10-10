@@ -44,7 +44,9 @@ const parseUrl = (rawUrl) => {
         return {
           host: url.host,
           pathname: url.pathname,
-          queryString: url.search.replace(/^\?/, '')
+          // url.search percent-encodes the query (a space becomes %20), so read it from the raw url
+          // instead, reporting the query as written, the same as for a templated url
+          queryString: customParseUrl(rawUrl).queryString
         };
       }
     } catch (e) {
