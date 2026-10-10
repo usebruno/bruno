@@ -72,12 +72,10 @@ const InputControl = forwardRef(
 InputControl.displayName = 'InputControl';
 
 /**
- * Single-line text input. Pass `label`, `description`, `error` (a string shows as the
- * message) or `required` and it wraps itself in a Field, so one component covers a
- * labelled form field. With none of them it renders the bare control, which is what
- * table cells, search boxes and variant="ghost" inputs want.
+ * A single-line text input with optional field support.
  *
- * Field stays exported for wrapping other controls (Select, textarea, custom).
+ * Automatically wraps in Field when `label`, `description`, or a string `error`
+ * is provided. Otherwise, renders a standalone input.
  */
 const Input = forwardRef(({ label, description, error, required, ...props }, ref) => {
   const hasField = Boolean(label || description || typeof error === 'string');

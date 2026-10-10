@@ -4,24 +4,20 @@ import Input from '../Input';
 import StyledWrapper from './StyledWrapper';
 
 /**
- * MaskedInput - a secret input (token, password, API key) with a show/hide button.
+ * A masked input for passwords, tokens, and API keys.
  *
- * Input underneath, so it takes every Input prop: label, description, error, required, size,
- * fullWidth, leftSection, name, id, ref and so on. On top of that it owns the masking:
- * - `type` is "password" until revealed, then "text"
- * - autofill, autocorrect and autocapitalize are off unless the caller overrides them
- * - the reveal button is hidden when the field is disabled
+ * Supports all Input props and adds a show/hide toggle.
+ * Visibility is managed internally unless controlled through `visible` and `onVisibilityChange`.
  *
- * Visibility is uncontrolled by default. Pass `visible` (with `onVisibilityChange`) to control it.
- * `rightSection` renders after the reveal button.
+ * Disables autocomplete, autocorrect, and autocapitalization by default.
+ * `rightSection` renders after the visibility toggle.
  *
- * For a secret that spans several lines (a PEM key) use MaskedTextfield instead.
- *
- * `type` is ignored: the masking owns it.
+ * For multiline secrets, use MaskedTextfield instead.
  *
  * @param {boolean} props.visible - Controlled visibility state
  * @param {function} props.onVisibilityChange - Called with the next visibility: (visible: boolean) => void
  */
+
 const MaskedInput = forwardRef(
   ({ visible: controlledVisible, onVisibilityChange, disabled = false, rightSection, type, 'data-testid': testId = 'masked-input', ...rest }, ref) => {
     // `type` is destructured only so it cannot reach Input through `rest` and fight the masking.
