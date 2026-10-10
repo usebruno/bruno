@@ -114,9 +114,10 @@ const runSingleRequest = async function (
   runSingleRequestByPathname,
   globalEnvVars = {},
   persistPaths = {},
-  runAbortSignal = null
+  runAbortSignal = null,
+  variableValueRecorder = null
 ) {
-  const syncVariableUpdates = (result, currentRequest) => {
+  const syncVariableUpdates = (result, currentRequest, recordValues) => {
     if (!result) return;
     applyVariableUpdates(result, {
       envVariables,
@@ -138,6 +139,9 @@ const runSingleRequest = async function (
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
     }
+    // A script that runs (or errors) after this sync interpolates the values it wrote into
+    // whatever the reporter captures next, so the snapshot follows the sync on every path.
+    recordValues?.();
   };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
@@ -183,6 +187,31 @@ const runSingleRequest = async function (
 
     // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
     request.globalEnvironmentVariables = globalEnvVars;
+
+    // Record the effective value each tracked variable resolves to for this
+    // request, mirroring the precedence the interpolator applies below:
+    // global < collection < env < folder < request < oauth2 < runtime.
+    // Process env vars are handled by the caller: they only interpolate via
+    // {{process.env.NAME}}, and the caller masks them by bare name too.
+    const recordEffectiveVariableValues = () => {
+      if (!variableValueRecorder) {
+        return;
+      }
+      const effectiveVariables = {
+        ...request.globalEnvironmentVariables,
+        ...request.collectionVariables,
+        ...envVariables,
+        ...request.folderVariables,
+        ...request.requestVariables,
+        ...request.oauth2CredentialVariables,
+        ...runtimeVariables
+      };
+      variableValueRecorder(effectiveVariables);
+    };
+
+    // First snapshot: the values the request starts with (also the ones
+    // certs/proxy interpolation below consumes).
+    recordEffectiveVariableValues();
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });
@@ -273,7 +302,7 @@ const runSingleRequest = async function (
           scriptingConfig,
           runSingleRequestByPathname,
           collectionName);
-        syncVariableUpdates(result, request);
+        syncVariableUpdates(result, request, recordEffectiveVariableValues);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -328,7 +357,7 @@ const runSingleRequest = async function (
         preRequestTestResults = error?.partialResults?.results || [];
 
         // Persist any variable changes the script made before erroring
-        syncVariableUpdates(error?.partialResults, request);
+        syncVariableUpdates(error?.partialResults, request, recordEffectiveVariableValues);
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -772,7 +801,7 @@ const runSingleRequest = async function (
         // Only network-level failures (no response received) reach the onFail handler, matching
         // the desktop app. Variables the handler wrote are synced like any other script write.
         const onFailResult = await executeRequestOnFailHandler(request, err);
-        syncVariableUpdates(onFailResult, request);
+        syncVariableUpdates(onFailResult, request, recordEffectiveVariableValues);
 
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         applySentHeadersToRequest(request, err);
@@ -834,7 +863,7 @@ const runSingleRequest = async function (
       );
       // Expressions can invoke bru.setEnvVar / setGlobalEnvVar / setCollectionVar as a side effect,
       // mirroring how the desktop app surfaces these mutations after the vars block.
-      syncVariableUpdates(result, request);
+      syncVariableUpdates(result, request, recordEffectiveVariableValues);
     }
 
     // run post response script
@@ -855,7 +884,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
-        syncVariableUpdates(result, request);
+        syncVariableUpdates(result, request, recordEffectiveVariableValues);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -887,7 +916,7 @@ const runSingleRequest = async function (
           }
         ];
 
-        syncVariableUpdates(error?.partialResults, request);
+        syncVariableUpdates(error?.partialResults, request, recordEffectiveVariableValues);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -934,7 +963,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
-        syncVariableUpdates(result, request);
+        syncVariableUpdates(result, request, recordEffectiveVariableValues);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -967,7 +996,7 @@ const runSingleRequest = async function (
           }
         ];
 
-        syncVariableUpdates(error?.partialResults, request);
+        syncVariableUpdates(error?.partialResults, request, recordEffectiveVariableValues);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
