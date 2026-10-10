@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import range from 'lodash/range';
+import get from 'lodash/get';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
@@ -85,10 +86,13 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
+  const preferences = useSelector((state) => state.app.preferences);
+  const unifiedTabs = get(preferences, 'general.unifiedTabs', false);
+  
   const selectorInput = {
     itemUid: item.uid,
     itemPathname: item.pathname,
-    collectionUid
+    collectionUid: unifiedTabs ? null : collectionUid
   };
 
   const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);

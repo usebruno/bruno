@@ -64,7 +64,8 @@ const defaultPreferences = {
   },
   general: {
     defaultLocation: '',
-    defaultWorkspacePath: ''
+    defaultWorkspacePath: '',
+    unifiedTabs: false
   },
   autoSave: {
     enabled: false,
@@ -186,7 +187,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
-    defaultWorkspacePath: Yup.string().max(1024).nullable()
+    defaultWorkspacePath: Yup.string().max(1024).nullable(),
+    unifiedTabs: Yup.boolean()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
