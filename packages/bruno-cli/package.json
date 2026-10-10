@@ -3,6 +3,13 @@
   "version": "1.16.0",
   "license": "MIT",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./collection": "./src/utils/collection.js",
+    "./filesystem": "./src/utils/filesystem.js",
+    "./bin/bru.js": "./bin/bru.js",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "bru": "./bin/bru.js"
   },
