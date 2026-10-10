@@ -20,13 +20,13 @@ const sizeStyles = {
   lg: css`
     --checkbox-box-size: 16px;
     --checkbox-label-size: ${(props) => props.theme.font.size.base};
-    --checkbox-border-radius: 4px;
+    --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `,
   xl: css`
     --checkbox-box-size: 18px;
     --checkbox-label-size: ${(props) => props.theme.font.size.md};
-    --checkbox-border-radius: 4px;
+    --checkbox-border-radius: 2px;
     --checkbox-border-width: 1px;
   `
 };
