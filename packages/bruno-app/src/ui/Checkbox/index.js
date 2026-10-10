@@ -3,22 +3,45 @@ import StyledWrapper from './StyledWrapper';
 
 const ICON_CONFIG = {
   sm: {
-    check: { width: 9, height: 6, strokeWidth: 1, path: 'M0.6 3L3.2 5.4L8.4 0.6' },
-    indeterminate: { width: 8, height: 2, strokeWidth: 1.5 }
+    check: {
+      width: 9,
+      height: 7,
+      strokeWidth: 1.75,
+      path: 'M1.25 3.25L3.5 5.5L7.75 1.25'
+    },
+    indeterminate: { width: 8, height: 4, strokeWidth: 1.5 }
   },
   md: {
-    check: { width: 11, height: 8, strokeWidth: 2, path: 'M0.8 4L3.9 7.2L10.2 0.8' },
-    indeterminate: { width: 9, height: 3, strokeWidth: 2 }
+    check: {
+      width: 11,
+      height: 9,
+      strokeWidth: 2,
+      path: 'M1.5 4.25L4.25 7L9.5 1.5'
+    },
+    indeterminate: { width: 9, height: 4, strokeWidth: 2 }
   },
   lg: {
-    check: { width: 12, height: 9, strokeWidth: 2, path: 'M0.9 4.5L4.3 8.1L11.1 0.9' },
-    indeterminate: { width: 10, height: 3, strokeWidth: 2 }
+    check: {
+      width: 12,
+      height: 10,
+      strokeWidth: 2.25,
+      path: 'M1.5 4.75L4.75 8L10.5 1.5'
+    },
+    indeterminate: { width: 10, height: 4, strokeWidth: 2 }
   },
   xl: {
-    check: { width: 14, height: 10, strokeWidth: 2, path: 'M1 5L5 9L13 1' },
-    indeterminate: { width: 11, height: 3, strokeWidth: 2 }
+    check: {
+      width: 14,
+      height: 11,
+      strokeWidth: 2.5,
+      path: 'M1.75 5.25L5.5 9L12.25 1.75'
+    },
+    indeterminate: { width: 11, height: 4, strokeWidth: 2 }
   }
 };
+
+// Horizontal space between the ends of the minus line and the edge of its SVG.
+const INDETERMINATE_PADDING = 1.5;
 
 const DEFAULT_SIZE = 'md';
 
@@ -62,9 +85,9 @@ function IndeterminateIcon({ size }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <line
-        x1={strokeWidth / 2}
+        x1={INDETERMINATE_PADDING + strokeWidth / 2}
         y1={height / 2}
-        x2={width - strokeWidth / 2}
+        x2={width - INDETERMINATE_PADDING - strokeWidth / 2}
         y2={height / 2}
         stroke="currentColor"
         strokeWidth={strokeWidth}
