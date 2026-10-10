@@ -3,13 +3,13 @@ const https = require('node:https');
 const http = require('node:http');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const {
   getOrCreateHttpsAgent,
   getOrCreateHttpAgent,
   resolveAgentsFromPac,
-  PatchedHttpsProxyAgent
+  PatchedHttpsProxyAgent,
+  HeaderSafeHttpProxyAgent
 } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
 
@@ -150,7 +150,7 @@ async function setupProxyAgents({
         if (isHttpsRequest) {
           requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HeaderSafeHttpProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
         }
       }
     }
@@ -187,7 +187,7 @@ async function setupProxyAgents({
                 message: `Using system proxy: ${http_proxy}`
               });
             }
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HeaderSafeHttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
           }
         } catch (error) {
           throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
