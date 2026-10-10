@@ -8,7 +8,7 @@ const GlobalEnvironmentSettings = () => {
     state.workspaces.workspaces.find((w) => w.uid === activeWorkspaceUid)
   );
 
-  return <WorkspaceEnvironments workspace={workspace} />;
+  return <WorkspaceEnvironments key={workspace?.uid} workspace={workspace} />;
 };
 
 export default GlobalEnvironmentSettings;

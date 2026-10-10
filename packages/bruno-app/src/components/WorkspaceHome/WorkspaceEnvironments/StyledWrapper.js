@@ -6,26 +6,27 @@ const StyledWrapper = styled.div`
   flex-direction: column;
   overflow: hidden;
   background-color: ${(props) => props.theme.bg};
-  
+
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 10%;
+    flex: 1;
     color: ${(props) => props.theme.colors.text.muted};
-    
+
     svg {
       opacity: 0.3;
       margin-bottom: 8px;
     }
-    
+
     .title {
       font-size: 13px;
       font-weight: 500;
       margin-bottom: 12px;
       color: ${(props) => props.theme.colors.text.muted};
     }
-    
+
     .actions {
       display: flex;
       gap: 8px;
