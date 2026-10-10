@@ -1136,3 +1136,53 @@ describe('exportApiSpec - a secret that has a value', () => {
     expect(pathsIn(content)).toEqual(['/users/42']);
   });
 });
+
+describe('exportApiSpec - path normalisation', () => {
+  const exportPathsFor = (url, variables = { baseUrl: 'https://api.example.com' }) => {
+    const items = [
+      {
+        name: 'Request',
+        type: 'http-request',
+        request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+      }
+    ];
+    const { content } = exportApiSpec({ variables, items, name: 'Test API' });
+    return Object.keys(require('js-yaml').load(content).paths);
+  };
+
+  it('excludes the query string from a {{baseUrl}} path', () => {
+    expect(exportPathsFor('{{baseUrl}}/users?status=active')).toEqual(['/users']);
+  });
+
+  it('excludes the fragment from a {{baseUrl}} path', () => {
+    expect(exportPathsFor('{{baseUrl}}/users#details')).toEqual(['/users']);
+  });
+
+  it('excludes both query string and fragment from a {{baseUrl}} path', () => {
+    expect(exportPathsFor('{{baseUrl}}/users?status=active#details')).toEqual(['/users']);
+  });
+
+  it('excludes the fragment when the URL matches a known baseUrl directly', () => {
+    expect(exportPathsFor('https://api.example.com/users#details')).toEqual(['/users']);
+  });
+
+  it('excludes the fragment when a request-level baseUrl override is present', () => {
+    const items = [
+      {
+        name: 'Request',
+        type: 'http-request',
+        request: {
+          url: '{{baseUrl}}/users#details',
+          method: 'GET',
+          params: [],
+          headers: [],
+          body: {},
+          auth: {},
+          vars: { req: [{ name: 'baseUrl', value: 'https://override.example.com', enabled: true }] }
+        }
+      }
+    ];
+    const { content } = exportApiSpec({ variables: { baseUrl: 'https://api.example.com' }, items, name: 'Test API' });
+    expect(Object.keys(require('js-yaml').load(content).paths)).toEqual(['/users']);
+  });
+});
