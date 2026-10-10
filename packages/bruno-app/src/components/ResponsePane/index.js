@@ -25,11 +25,13 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
 
 const ResponsePane = ({ item, collection }) => {
+  useRenderProbe('ResponsePane', { item, collection });
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);

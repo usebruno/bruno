@@ -17,8 +17,10 @@ import { normalizePath } from 'utils/common/path';
 import { normalizeQuery, isValidQuery, highlightText, sortResults, getTypeLabel, getItemPath } from './utils/searchUtils';
 import { SEARCH_TYPES, MATCH_TYPES, SEARCH_CONFIG, DOCUMENTATION_RESULT } from './constants';
 import StyledWrapper from './StyledWrapper';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 const GlobalSearchModal = ({ isOpen, onClose }) => {
+  useRenderProbe('GlobalSearchModal', { isOpen, onClose });
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [results, setResults] = useState([]);

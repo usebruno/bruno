@@ -16,10 +16,12 @@ import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { isEnvironmentValidationError } from 'utils/environments';
 import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
+import { useRenderProbe } from 'hooks/useRenderProbe';
 
 export const HotkeysContext = React.createContext();
 
 export const HotkeysProvider = (props) => {
+  useRenderProbe('HotkeysProvider');
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);

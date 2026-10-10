@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { profiledSelector } from 'utils/profiler';
 
-export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => createSelector([
+export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => profiledSelector('tab/getTabUidForItem', createSelector([
   (state) => state.tabs.tabs
 ], (tabs) => {
   const tabByUid = tabs.find((tab) => tab.uid === itemUid && (!collectionUid || tab.collectionUid === collectionUid));
@@ -18,9 +19,9 @@ export const getTabUidForItem = ({ itemUid, itemPathname, collectionUid }) => cr
     && (!collectionUid || tab.collectionUid === collectionUid)
   ));
   return tabByPathname?.uid || null;
-});
+}));
 
-export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => createSelector([
+export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => profiledSelector('tab/isTabForItemActive', createSelector([
   (state) => state.tabs?.activeTabUid,
   (state) => state.tabs.tabs
 ], (activeTabUid, tabs) => {
@@ -46,9 +47,9 @@ export const isTabForItemActive = ({ itemUid, itemPathname, collectionUid }) => 
   }
 
   return activeTab.type !== 'response-example' && activeTab.pathname === itemPathname;
-});
+}));
 
-export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => createSelector([
+export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) => profiledSelector('tab/isTabForItemPresent', createSelector([
   (state) => state.tabs.tabs
 ], (tabs) => tabs.some((tab) => {
   if (collectionUid && tab.collectionUid !== collectionUid) {
@@ -56,4 +57,4 @@ export const isTabForItemPresent = ({ itemUid, itemPathname, collectionUid }) =>
   }
 
   return tab.uid === itemUid || (itemPathname && tab.type !== 'response-example' && tab.pathname === itemPathname);
-}));
+})));
