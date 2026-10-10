@@ -13,6 +13,7 @@ export const buildSidebarLocators = (page: Page) => {
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
   const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
+  const example = (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
 
@@ -22,6 +23,7 @@ export const buildSidebarLocators = (page: Page) => {
     item,
     folder: item,
     request: item,
+    requestMethod: (name: string) => itemRow(name).getByTestId('sidebar-request-method'),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
@@ -56,7 +58,9 @@ export const buildSidebarLocators = (page: Page) => {
     },
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
-    example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
+    example,
+    exampleName: (name: string) => example(name).locator('.item-name'),
+    exampleIcon: (name: string) => example(name).getByTestId('sidebar-response-example-icon'),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
